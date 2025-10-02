@@ -10,6 +10,7 @@ import { EntityRegistry } from '../../entities/EntityRegistry';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { userToBabylon, babylonToUser } from '../../core/CoordinateSystem';
 import { loadModelFromFile } from '../../scene/ModelLoader';
+import { saveWorldToFile, loadWorldFromFile, restoreWorldState } from '../../scene/WorldSerializer';
 import type { NodeType } from '../../scene/SceneTreeNode';
 
 type ObjectType = 'box' | 'sphere' | 'cylinder';
@@ -33,6 +34,8 @@ interface EditorState {
   deleteNode: (nodeId: string) => void;
   renameNode: (nodeId: string, newName: string) => void;
   moveNode: (nodeId: string, newParentId: string | null) => void;
+  saveWorld: () => void;
+  loadWorld: (file: File) => Promise<void>;
   setTransformMode: (mode: TransformMode) => void;
   setCamera: (camera: BABYLON.Camera) => void;
   togglePlayback: () => void;
@@ -326,6 +329,40 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     } catch (error) {
       console.error('Failed to import model:', error);
       // Could add toast notification here
+    }
+  },
+
+  // Save world to file
+  saveWorld: () => {
+    try {
+      saveWorldToFile();
+      console.log('World saved successfully');
+    } catch (error) {
+      console.error('Failed to save world:', error);
+      alert('Failed to save world. Check console for details.');
+    }
+  },
+
+  // Load world from file
+  loadWorld: async (file: File) => {
+    try {
+      const worldData = await loadWorldFromFile(file);
+      if (!worldData) {
+        alert('Failed to load world file. Invalid format.');
+        return;
+      }
+
+      // Restore world state
+      const success = restoreWorldState(worldData);
+      if (success) {
+        console.log('World loaded successfully');
+        window.dispatchEvent(new Event('scenetree-update'));
+      } else {
+        alert('Failed to restore world state.');
+      }
+    } catch (error) {
+      console.error('Failed to load world:', error);
+      alert('Failed to load world. Check console for details.');
     }
   },
 }));

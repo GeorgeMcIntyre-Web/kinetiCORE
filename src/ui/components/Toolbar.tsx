@@ -13,7 +13,10 @@ export const Toolbar: React.FC = () => {
   const createObject = useEditorStore((state) => state.createObject);
   const createCollection = useEditorStore((state) => state.createCollection);
   const importModel = useEditorStore((state) => state.importModel);
+  const saveWorld = useEditorStore((state) => state.saveWorld);
+  const loadWorld = useEditorStore((state) => state.loadWorld);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const worldLoadInputRef = useRef<HTMLInputElement>(null);
 
   const modes: { mode: TransformMode; label: string; key: string }[] = [
     { mode: 'translate', label: 'Move', key: 'G' },
@@ -32,6 +35,21 @@ export const Toolbar: React.FC = () => {
       // Reset input so same file can be loaded again
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleLoadWorldClick = () => {
+    worldLoadInputRef.current?.click();
+  };
+
+  const handleWorldFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      await loadWorld(file);
+      // Reset input so same file can be loaded again
+      if (worldLoadInputRef.current) {
+        worldLoadInputRef.current.value = '';
       }
     }
   };
@@ -108,6 +126,32 @@ export const Toolbar: React.FC = () => {
           >
             + Collection
           </button>
+        </div>
+      </div>
+      <div className="toolbar-section">
+        <h3>World</h3>
+        <div className="button-group">
+          <button
+            className="toolbar-button"
+            onClick={saveWorld}
+            title="Save World to JSON file"
+          >
+            Save World
+          </button>
+          <button
+            className="toolbar-button"
+            onClick={handleLoadWorldClick}
+            title="Load World from JSON file"
+          >
+            Load World
+          </button>
+          <input
+            ref={worldLoadInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleWorldFileChange}
+            style={{ display: 'none' }}
+          />
         </div>
       </div>
     </div>
