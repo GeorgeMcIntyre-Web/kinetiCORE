@@ -3,7 +3,7 @@
 
 import { create } from 'zustand';
 import * as BABYLON from '@babylonjs/core';
-import { TransformMode } from '../../core/types';
+import { TransformMode, CustomFrameFeature, CustomFrameFeatureType } from '../../core/types';
 import { DEFAULT_TRANSFORM_MODE } from '../../core/constants';
 import { SceneManager } from '../../scene/SceneManager';
 import { EntityRegistry } from '../../entities/EntityRegistry';
@@ -11,6 +11,8 @@ import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { userToBabylon, babylonToUser } from '../../core/CoordinateSystem';
 import { loadModelFromFile, getRootMeshes, getChildMeshes } from '../../scene/ModelLoader';
 import { saveWorldToFile, loadWorldFromFile, restoreWorldState } from '../../scene/WorldSerializer';
+import { CustomFrameHelper } from '../../scene/CustomFrameHelper';
+import { CoordinateFrameWidget } from '../../scene/CoordinateFrameWidget';
 import type { NodeType } from '../../scene/SceneTreeNode';
 
 type ObjectType = 'box' | 'sphere' | 'cylinder';
@@ -22,6 +24,9 @@ interface EditorState {
   transformMode: TransformMode;
   camera: BABYLON.Camera | null;
   isPlaying: boolean;
+  customFrameSelectionMode: 'none' | CustomFrameFeatureType;
+  customFrame: CustomFrameFeature | null;
+  coordinateFrameWidget: CoordinateFrameWidget | null;
 
   // Actions
   selectMesh: (mesh: BABYLON.Mesh) => void;
@@ -44,6 +49,10 @@ interface EditorState {
   updateNodePosition: (nodeId: string, position: { x: number; y: number; z: number }) => void;
   updateNodeRotation: (nodeId: string, rotation: { x: number; y: number; z: number }) => void;
   updateNodeScale: (nodeId: string, scale: { x: number; y: number; z: number }) => void;
+  setCustomFrameSelectionMode: (mode: 'none' | CustomFrameFeatureType) => void;
+  setCustomFrame: (frame: CustomFrameFeature | null) => void;
+  handleSceneClickForCustomFrame: (pickInfo: BABYLON.PickingInfo) => void;
+  initializeCoordinateFrameWidget: () => void;
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -53,6 +62,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   transformMode: DEFAULT_TRANSFORM_MODE,
   camera: null,
   isPlaying: false,
+  customFrameSelectionMode: 'none',
+  customFrame: null,
+  coordinateFrameWidget: null,
 
   // Selection actions
   selectMesh: (mesh) => {
@@ -502,5 +514,103 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
 
     window.dispatchEvent(new Event('scenetree-update'));
+  },
+
+  // Custom frame actions
+  setCustomFrameSelectionMode: (mode) => {
+    set({ customFrameSelectionMode: mode });
+  },
+
+  setCustomFrame: (frame) => {
+    const { coordinateFrameWidget } = get();
+
+    if (frame) {
+      // Show visual axes widget
+      if (coordinateFrameWidget) {
+        coordinateFrameWidget.show(frame, 0.1);
+      }
+    } else {
+      // Hide visual axes widget
+      if (coordinateFrameWidget) {
+        coordinateFrameWidget.hide();
+      }
+    }
+
+    set({ customFrame: frame });
+  },
+
+  initializeCoordinateFrameWidget: () => {
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+
+    if (scene) {
+      const widget = new CoordinateFrameWidget(scene);
+      set({ coordinateFrameWidget: widget });
+    }
+  },
+
+  handleSceneClickForCustomFrame: (pickInfo) => {
+    const { customFrameSelectionMode, selectedNodeId } = get();
+
+    if (customFrameSelectionMode === 'none' || !pickInfo.hit || !pickInfo.pickedMesh) {
+      return;
+    }
+
+    const mesh = pickInfo.pickedMesh as BABYLON.Mesh;
+    const pickPoint = pickInfo.pickedPoint;
+
+    if (!pickPoint) return;
+
+    let frame: CustomFrameFeature | null = null;
+
+    try {
+      switch (customFrameSelectionMode) {
+        case 'object':
+          frame = CustomFrameHelper.calculateObjectFrame(mesh, selectedNodeId || mesh.uniqueId.toString());
+          break;
+
+        case 'face':
+          const faceIndex = CustomFrameHelper.findClosestFace(mesh, pickPoint);
+          if (faceIndex !== null) {
+            frame = CustomFrameHelper.calculateFaceFrame(
+              mesh,
+              selectedNodeId || mesh.uniqueId.toString(),
+              faceIndex
+            );
+          }
+          break;
+
+        case 'edge':
+          const edge = CustomFrameHelper.findClosestEdge(mesh, pickPoint);
+          if (edge) {
+            frame = CustomFrameHelper.calculateEdgeFrame(
+              mesh,
+              selectedNodeId || mesh.uniqueId.toString(),
+              edge[0],
+              edge[1]
+            );
+          }
+          break;
+
+        case 'vertex':
+          const vertexIndex = CustomFrameHelper.findClosestVertex(mesh, pickPoint);
+          if (vertexIndex !== null) {
+            frame = CustomFrameHelper.calculateVertexFrame(
+              mesh,
+              selectedNodeId || mesh.uniqueId.toString(),
+              vertexIndex
+            );
+          }
+          break;
+      }
+
+      if (frame) {
+        get().setCustomFrame(frame);
+        get().setCustomFrameSelectionMode('none');
+        console.log('Custom frame set:', frame);
+      }
+    } catch (error) {
+      console.error('Error calculating custom frame:', error);
+    }
   },
 }));
