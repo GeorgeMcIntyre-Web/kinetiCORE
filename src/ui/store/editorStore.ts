@@ -7,6 +7,7 @@ import { TransformMode } from '../../core/types';
 import { DEFAULT_TRANSFORM_MODE } from '../../core/constants';
 import { SceneManager } from '../../scene/SceneManager';
 import { EntityRegistry } from '../../entities/EntityRegistry';
+import { userToBabylon } from '../../core/CoordinateSystem';
 
 type ObjectType = 'box' | 'sphere' | 'cylinder';
 
@@ -105,8 +106,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         break;
     }
 
-    // Position slightly above ground
-    mesh.position.y = 3;
+    // Position slightly above ground (user space: 1000mm high = 1m in Z-up)
+    // Converts to Babylon space (Y-up, meters)
+    mesh.position = userToBabylon({ x: 0, y: 0, z: 1000 });
 
     // Create material
     const material = new BABYLON.StandardMaterial(`mat_${mesh.name}`, scene);

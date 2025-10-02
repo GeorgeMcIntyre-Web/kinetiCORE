@@ -2,6 +2,7 @@
 // Owner: Edwin
 
 import { useEditorStore } from '../store/editorStore';
+import { babylonToUser } from '../../core/CoordinateSystem';
 import './Inspector.css';
 
 export const Inspector: React.FC = () => {
@@ -22,6 +23,9 @@ export const Inspector: React.FC = () => {
 
   const selectedMesh = selectedMeshes[0];
 
+  // Convert Babylon internal position to user space (mm, Z-up)
+  const userPos = babylonToUser(selectedMesh.position);
+
   return (
     <div className="inspector">
       <div className="inspector-header">
@@ -37,25 +41,35 @@ export const Inspector: React.FC = () => {
         </div>
 
         <div className="property-group">
-          <h3>Transform</h3>
+          <h3>Position (mm)</h3>
           <div className="property">
-            <label>Position</label>
+            <label>X (Right)</label>
             <div className="vector-input">
               <input
                 type="number"
-                value={selectedMesh.position.x.toFixed(2)}
+                value={userPos.x.toFixed(1)}
                 readOnly
                 placeholder="X"
               />
+            </div>
+          </div>
+          <div className="property">
+            <label>Y (Forward)</label>
+            <div className="vector-input">
               <input
                 type="number"
-                value={selectedMesh.position.y.toFixed(2)}
+                value={userPos.y.toFixed(1)}
                 readOnly
                 placeholder="Y"
               />
+            </div>
+          </div>
+          <div className="property">
+            <label>Z (Height)</label>
+            <div className="vector-input">
               <input
                 type="number"
-                value={selectedMesh.position.z.toFixed(2)}
+                value={userPos.z.toFixed(1)}
                 readOnly
                 placeholder="Z"
               />
