@@ -1,0 +1,44 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: #0a0a0a;
+}
+
+.header {
+  background-color: #1a1a1a;
+  padding: 0.75rem 2rem;
+  border-bottom: 2px solid #646cff;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #646cff;
+  font-weight: 700;
+}
+
+.header p {
+  margin: 0.25rem 0 0 0;
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  overflow: hidden;
+}
+
+.viewport {
+  background-color: #0a0a0a;
+  overflow: hidden;
+}
+
+.sidebar {
+  background-color: #1a1a1a;
+  overflow: hidden;
+}

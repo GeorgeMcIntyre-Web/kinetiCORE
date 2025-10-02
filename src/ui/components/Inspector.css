@@ -1,0 +1,81 @@
+.inspector {
+  background-color: #1a1a1a;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #333;
+}
+
+.inspector-header {
+  padding: 1rem;
+  border-bottom: 1px solid #333;
+}
+
+.inspector-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #fff;
+}
+
+.inspector-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.no-selection {
+  color: #666;
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.property-group {
+  margin-bottom: 1.5rem;
+}
+
+.property-group h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.property {
+  margin-bottom: 0.75rem;
+}
+
+.property label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+.property input[type='text'],
+.property input[type='number'] {
+  width: 100%;
+  padding: 0.5rem;
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.property input[type='text']:focus,
+.property input[type='number']:focus {
+  outline: none;
+  border-color: #646cff;
+}
+
+.vector-input {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.vector-input input {
+  width: 100%;
+}
