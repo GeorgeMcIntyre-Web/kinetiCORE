@@ -66,10 +66,12 @@ export const SceneCanvas: React.FC = () => {
             if (pickResult.hit && pickResult.pickedMesh) {
               const mesh = pickResult.pickedMesh;
 
-              // Ignore ground and axis meshes
+              // Ignore ground, axis meshes, and widget elements
               if (
                 mesh.name !== 'ground' &&
                 !mesh.name.startsWith('axis') &&
+                !mesh.name.startsWith('widget') &&
+                !mesh.name.startsWith('label') &&
                 mesh instanceof BABYLON.Mesh
               ) {
                 clearSelection();

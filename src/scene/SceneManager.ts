@@ -4,7 +4,6 @@
 import * as BABYLON from '@babylonjs/core';
 import {
   GROUND_SIZE,
-  AXIS_LENGTH,
   CAMERA_MIN_RADIUS,
   CAMERA_MAX_RADIUS,
   CAMERA_WHEEL_PRECISION,
@@ -13,6 +12,7 @@ import {
   CAMERA_DEFAULT_BETA,
   CAMERA_DEFAULT_RADIUS,
 } from '../core/constants';
+import { CoordinateFrameWidget } from './CoordinateFrameWidget';
 
 export class SceneManager {
   private static instance: SceneManager | null = null;
@@ -20,6 +20,7 @@ export class SceneManager {
   private scene: BABYLON.Scene | null = null;
   private camera: BABYLON.ArcRotateCamera | null = null;
   private ground: BABYLON.Mesh | null = null;
+  private coordWidget: CoordinateFrameWidget | null = null;
 
   private constructor() {}
 
@@ -91,9 +92,6 @@ export class SceneManager {
     // Freeze ground world matrix for performance
     this.ground.freezeWorldMatrix();
 
-    // Create coordinate axes (X=red, Y=green, Z=blue)
-    this.createCoordinateAxes();
-
     // Create default camera
     // Note: In Babylon's Y-up space, camera looks down from above
     this.camera = new BABYLON.ArcRotateCamera(
@@ -115,6 +113,15 @@ export class SceneManager {
     // Set camera up vector to match Babylon's Y-up
     this.camera.upVector = new BABYLON.Vector3(0, 1, 0);
 
+    // Create coordinate frame widget in corner
+    this.coordWidget = new CoordinateFrameWidget(this.scene);
+    this.coordWidget.setViewport(0, 0, 0.15, 0.15); // Bottom-left corner, 15% size
+
+    // Update widget when camera moves
+    this.camera.onViewMatrixChangedObservable.add(() => {
+      this.coordWidget?.updateOrientation();
+    });
+
     // Render loop
     this.engine.runRenderLoop(() => {
       this.scene?.render();
@@ -126,83 +133,6 @@ export class SceneManager {
     });
   }
 
-  /**
-   * Create coordinate axes for reference
-   * NOTE: These are in Babylon's internal space (Y-up)
-   * But represent user space (Z-up) conceptually:
-   *   Babylon X (Red) = User X (Right)
-   *   Babylon Y (Green) = User Z (Up)
-   *   Babylon Z (Blue) = User Y (Forward)
-   */
-  private createCoordinateAxes(): void {
-    if (!this.scene) return;
-
-    const axisLength = AXIS_LENGTH;
-
-    // X-axis (Red) - Same in both spaces (Right)
-    const axisX = BABYLON.MeshBuilder.CreateLines(
-      'axisX',
-      {
-        points: [BABYLON.Vector3.Zero(), new BABYLON.Vector3(axisLength, 0, 0)],
-      },
-      this.scene
-    );
-    axisX.color = new BABYLON.Color3(1, 0, 0);
-
-    // Y-axis (Green) - Babylon Y = User Z (UP)
-    const axisY = BABYLON.MeshBuilder.CreateLines(
-      'axisY',
-      {
-        points: [BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, axisLength, 0)],
-      },
-      this.scene
-    );
-    axisY.color = new BABYLON.Color3(0, 1, 0);
-
-    // Z-axis (Blue) - Babylon Z = User Y (Forward)
-    const axisZ = BABYLON.MeshBuilder.CreateLines(
-      'axisZ',
-      {
-        points: [BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, 0, axisLength)],
-      },
-      this.scene
-    );
-    axisZ.color = new BABYLON.Color3(0, 0, 1);
-
-    // Add axis labels for user clarity
-    this.createAxisLabel('X', new BABYLON.Vector3(axisLength + 0.5, 0, 0), new BABYLON.Color3(1, 0, 0));
-    this.createAxisLabel('Z', new BABYLON.Vector3(0, axisLength + 0.5, 0), new BABYLON.Color3(0, 1, 0)); // User Z (up)
-    this.createAxisLabel('Y', new BABYLON.Vector3(0, 0, axisLength + 0.5), new BABYLON.Color3(0, 0, 1)); // User Y (forward)
-  }
-
-  /**
-   * Create text label for axis
-   */
-  private createAxisLabel(text: string, position: BABYLON.Vector3, color: BABYLON.Color3): void {
-    if (!this.scene) return;
-
-    // Create a simple plane with text (using dynamic texture)
-    const plane = BABYLON.MeshBuilder.CreatePlane(`label${text}`, { size: 0.5 }, this.scene);
-    plane.position = position;
-    plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL; // Always face camera
-
-    const texture = new BABYLON.DynamicTexture(`labelTexture${text}`, 256, this.scene);
-    const material = new BABYLON.StandardMaterial(`labelMat${text}`, this.scene);
-    material.diffuseTexture = texture;
-    material.emissiveColor = color;
-    material.disableLighting = true;
-    plane.material = material;
-
-    // Draw text on texture
-    const ctx = texture.getContext();
-    const context = ctx as CanvasRenderingContext2D;
-    context.fillStyle = `rgb(${color.r * 255}, ${color.g * 255}, ${color.b * 255})`;
-    context.font = 'bold 120px Arial';
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.fillText(text, 128, 128);
-    texture.update();
-  }
 
   getScene(): BABYLON.Scene | null {
     return this.scene;
@@ -221,11 +151,13 @@ export class SceneManager {
   }
 
   dispose(): void {
+    this.coordWidget?.dispose();
     this.scene?.dispose();
     this.engine?.dispose();
     this.scene = null;
     this.engine = null;
     this.camera = null;
     this.ground = null;
+    this.coordWidget = null;
   }
 }
