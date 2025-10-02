@@ -97,9 +97,27 @@ export type TransformMode = 'translate' | 'rotate' | 'scale';
  */
 export type ReferenceFrameType = 'local' | 'world' | 'custom';
 
+export type CustomFrameFeatureType = 'object' | 'face' | 'edge' | 'vertex';
+
+export interface CustomFrameFeature {
+  featureType: CustomFrameFeatureType;
+  nodeId: string;
+  // For face: face index
+  faceIndex?: number;
+  // For edge: two vertex indices
+  edgeVertices?: [number, number];
+  // For vertex: vertex index
+  vertexIndex?: number;
+  // Calculated coordinate frame (origin + axes)
+  origin: { x: number; y: number; z: number };
+  xAxis: { x: number; y: number; z: number };
+  yAxis: { x: number; y: number; z: number };
+  zAxis: { x: number; y: number; z: number };
+}
+
 export interface ReferenceFrame {
   type: ReferenceFrameType;
-  customFrameNodeId?: string; // ID of node to use as custom reference
+  customFrame?: CustomFrameFeature;
 }
 
 /**

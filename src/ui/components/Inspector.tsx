@@ -6,7 +6,7 @@ import { useEditorStore } from '../store/editorStore';
 import { babylonToUser } from '../../core/CoordinateSystem';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { EntityRegistry } from '../../entities/EntityRegistry';
-import type { ReferenceFrameType } from '../../core/types';
+import type { ReferenceFrameType, CustomFrameFeature, CustomFrameFeatureType } from '../../core/types';
 import './Inspector.css';
 
 export const Inspector: React.FC = () => {
@@ -16,9 +16,14 @@ export const Inspector: React.FC = () => {
   const updateNodePosition = useEditorStore((state) => state.updateNodePosition);
   const updateNodeRotation = useEditorStore((state) => state.updateNodeRotation);
   const updateNodeScale = useEditorStore((state) => state.updateNodeScale);
+  const customFrameSelectionMode = useEditorStore((state) => state.customFrameSelectionMode);
+  const setCustomFrameSelectionMode = useEditorStore((state) => state.setCustomFrameSelectionMode);
+  const customFrame = useEditorStore((state) => state.customFrame);
+  const setCustomFrame = useEditorStore((state) => state.setCustomFrame);
 
   const [coordinateMode, setCoordinateMode] = useState<ReferenceFrameType>('local');
   const [isSelectingCustomFrame, setIsSelectingCustomFrame] = useState(false);
+  const [featureType, setFeatureType] = useState<CustomFrameFeatureType>('object');
   const [posIncrement] = useState(10); // mm - configurable increment for position
   const [, forceUpdate] = useState({});
 
@@ -169,6 +174,43 @@ export const Inspector: React.FC = () => {
   const handleScaleReset = () => {
     if (!selectedNodeId) return;
     updateNodeScale(selectedNodeId, { x: 1, y: 1, z: 1 });
+  };
+
+  // Custom frame handlers
+  const handleStartCustomFrameSelection = () => {
+    setCoordinateMode('custom');
+    setIsSelectingCustomFrame(true);
+    setCustomFrameSelectionMode('object');
+  };
+
+  const handleSelectFeatureType = (type: CustomFrameFeatureType) => {
+    setFeatureType(type);
+    if (type === 'object') {
+      // For object, immediately use the selected mesh
+      if (selectedMeshes.length > 0 && selectedNodeId) {
+        setCustomFrameSelectionMode('none');
+        setIsSelectingCustomFrame(false);
+        // Frame will be calculated in editorStore when object is clicked
+      }
+    } else {
+      // For face/edge/vertex, enter feature selection mode
+      setCustomFrameSelectionMode(type);
+    }
+  };
+
+  const handleCancelCustomFrameSelection = () => {
+    setIsSelectingCustomFrame(false);
+    setCustomFrameSelectionMode('none');
+    if (!customFrame) {
+      setCoordinateMode('local');
+    }
+  };
+
+  const handleClearCustomFrame = () => {
+    setCustomFrame(null);
+    setCoordinateMode('local');
+    setIsSelectingCustomFrame(false);
+    setCustomFrameSelectionMode('none');
   };
 
   return (
@@ -465,10 +507,7 @@ export const Inspector: React.FC = () => {
               </button>
               <button
                 className={coordinateMode === 'custom' ? 'active' : ''}
-                onClick={() => {
-                  setCoordinateMode('custom');
-                  setIsSelectingCustomFrame(true);
-                }}
+                onClick={handleStartCustomFrameSelection}
                 title="Custom reference frame"
               >
                 Custom
@@ -476,10 +515,64 @@ export const Inspector: React.FC = () => {
             </div>
           </div>
 
+          {/* Show custom frame info if one is set */}
+          {customFrame && coordinateMode === 'custom' && !isSelectingCustomFrame && (
+            <div className="custom-frame-info">
+              <p>
+                Frame: {customFrame.featureType}
+                {customFrame.featureType === 'face' && ` (face ${customFrame.faceIndex})`}
+                {customFrame.featureType === 'edge' && ' (edge)'}
+                {customFrame.featureType === 'vertex' && ` (vertex ${customFrame.vertexIndex})`}
+              </p>
+              <button onClick={handleClearCustomFrame} className="clear-frame-button">
+                Clear
+              </button>
+            </div>
+          )}
+
+          {/* Custom frame selection UI */}
           {isSelectingCustomFrame && (
             <div className="custom-frame-selector">
-              <p>Click an object in the scene tree to set as reference frame</p>
-              <button onClick={() => setIsSelectingCustomFrame(false)}>Cancel</button>
+              <p className="selector-title">Select Feature Type:</p>
+              <div className="feature-type-buttons">
+                <button
+                  className={featureType === 'object' ? 'active' : ''}
+                  onClick={() => handleSelectFeatureType('object')}
+                  title="Use object origin"
+                >
+                  Object
+                </button>
+                <button
+                  className={featureType === 'face' ? 'active' : ''}
+                  onClick={() => handleSelectFeatureType('face')}
+                  title="Select a face"
+                >
+                  Face
+                </button>
+                <button
+                  className={featureType === 'edge' ? 'active' : ''}
+                  onClick={() => handleSelectFeatureType('edge')}
+                  title="Select an edge"
+                >
+                  Edge
+                </button>
+                <button
+                  className={featureType === 'vertex' ? 'active' : ''}
+                  onClick={() => handleSelectFeatureType('vertex')}
+                  title="Select a vertex/corner"
+                >
+                  Vertex
+                </button>
+              </div>
+              <p className="selector-instruction">
+                {customFrameSelectionMode === 'object' && 'Click an object in the 3D viewport'}
+                {customFrameSelectionMode === 'face' && 'Click on a face in the 3D viewport'}
+                {customFrameSelectionMode === 'edge' && 'Click near an edge in the 3D viewport'}
+                {customFrameSelectionMode === 'vertex' && 'Click near a vertex in the 3D viewport'}
+              </p>
+              <button onClick={handleCancelCustomFrameSelection} className="cancel-button">
+                Cancel
+              </button>
             </div>
           )}
         </div>
