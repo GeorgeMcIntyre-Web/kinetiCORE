@@ -16,6 +16,7 @@ export class SceneManager {
   private engine: BABYLON.Engine | BABYLON.WebGPUEngine | null = null;
   private scene: BABYLON.Scene | null = null;
   private camera: BABYLON.ArcRotateCamera | null = null;
+  private ground: BABYLON.Mesh | null = null;
 
   private constructor() {}
 
@@ -69,7 +70,7 @@ export class SceneManager {
     directionalLight.intensity = 0.5;
 
     // Create ground plane
-    const ground = BABYLON.MeshBuilder.CreateGround(
+    this.ground = BABYLON.MeshBuilder.CreateGround(
       'ground',
       { width: GROUND_SIZE, height: GROUND_SIZE },
       this.scene
@@ -78,11 +79,11 @@ export class SceneManager {
     const groundMaterial = new BABYLON.StandardMaterial('groundMat', this.scene);
     groundMaterial.diffuseColor = new BABYLON.Color3(0.3, 0.3, 0.3);
     groundMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
-    ground.material = groundMaterial;
-    ground.receiveShadows = true;
+    this.ground.material = groundMaterial;
+    this.ground.receiveShadows = true;
 
     // Freeze ground world matrix for performance
-    ground.freezeWorldMatrix();
+    this.ground.freezeWorldMatrix();
 
     // Create coordinate axes (X=red, Y=green, Z=blue)
     this.createCoordinateAxes();
@@ -164,11 +165,16 @@ export class SceneManager {
     return this.camera;
   }
 
+  getGround(): BABYLON.Mesh | null {
+    return this.ground;
+  }
+
   dispose(): void {
     this.scene?.dispose();
     this.engine?.dispose();
     this.scene = null;
     this.engine = null;
     this.camera = null;
+    this.ground = null;
   }
 }

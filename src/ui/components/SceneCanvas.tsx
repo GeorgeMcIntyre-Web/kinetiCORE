@@ -39,6 +39,23 @@ export const SceneCanvas: React.FC = () => {
         // Set up physics engine in registry
         registry.setPhysicsEngine(physicsEngine);
 
+        // Create static physics body for ground
+        const ground = sceneManager.getGround();
+        if (ground) {
+          registry.create({
+            mesh: ground,
+            physics: {
+              enabled: true,
+              type: 'static', // Static body - won't move
+              shape: 'box',
+            },
+            metadata: {
+              name: 'ground',
+              type: 'ground',
+            },
+          });
+        }
+
         // Create transform gizmo
         gizmoRef.current = new TransformGizmo(scene);
 
