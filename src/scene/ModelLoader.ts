@@ -150,10 +150,22 @@ export function getFormatDescription(): string {
 
 /**
  * Build hierarchical mesh structure
- * Returns root meshes (meshes with no parent)
+ * Returns root meshes (meshes with no parent, or parent is not another mesh in the list)
  */
 export function getRootMeshes(meshes: BABYLON.AbstractMesh[]): BABYLON.AbstractMesh[] {
-  return meshes.filter(mesh => !mesh.parent || !(mesh.parent instanceof BABYLON.AbstractMesh));
+  const meshSet = new Set(meshes);
+  return meshes.filter(mesh => {
+    // No parent = root
+    if (!mesh.parent) return true;
+
+    // Parent is not a mesh = root (parent is TransformNode, etc.)
+    if (!(mesh.parent instanceof BABYLON.AbstractMesh)) return true;
+
+    // Parent is a mesh but not in our imported meshes list = root
+    if (!meshSet.has(mesh.parent as BABYLON.AbstractMesh)) return true;
+
+    return false;
+  });
 }
 
 /**
