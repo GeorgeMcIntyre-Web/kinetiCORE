@@ -307,30 +307,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Build hierarchical tree structure
       const rootMeshes = getRootMeshes(meshes);
 
-      // Track processed meshes to avoid duplicates
-      const processedMeshes = new Set<string>();
-
-      // Recursive function to build tree from mesh hierarchy
-      const buildTreeForMesh = (mesh: BABYLON.AbstractMesh, parentNodeId: string | null, depth: number = 0): void => {
-        // Skip if already processed
-        const meshId = mesh.uniqueId.toString();
-        if (processedMeshes.has(meshId)) return;
-        processedMeshes.add(meshId);
-
-        // Get children first to check count
-        const children = getChildMeshes(mesh);
-
-        // Only create nodes for actual meshes, not TransformNodes
+      // Simple recursive function - builds tree until no more children (null)
+      const buildTreeForMesh = (mesh: BABYLON.AbstractMesh, parentNodeId: string | null): void => {
+        // Only create nodes for actual Mesh objects (skip TransformNodes)
         if (!(mesh instanceof BABYLON.Mesh)) {
-          // If it's a TransformNode, just process its children
-          console.log(`${'  '.repeat(depth)}[TransformNode] ${mesh.name} - passing ${children.length} children through`);
+          // TransformNode: recursively process children without creating a node
+          const children = getChildMeshes(mesh);
           for (const child of children) {
-            buildTreeForMesh(child, parentNodeId, depth);
+            buildTreeForMesh(child, parentNodeId);
           }
           return;
         }
 
-        // Create node for this mesh
+        // Create tree node for this mesh
         const node = tree.createNode(
           'mesh',
           mesh.name || 'Unnamed',
@@ -339,14 +328,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         );
 
         // Link node to mesh
-        node.babylonMeshId = meshId;
+        node.babylonMeshId = mesh.uniqueId.toString();
 
-        console.log(`${'  '.repeat(depth)}[Mesh] ${mesh.name} - ${children.length} children`);
-
-        // Recursively add children
-        for (const child of children) {
-          buildTreeForMesh(child, node.id, depth + 1);
+        // Recursively build tree for all children until no more children (null/empty)
+        const children = getChildMeshes(mesh);
+        if (children.length > 0) {
+          for (const child of children) {
+            buildTreeForMesh(child, node.id); // Pass this node as parent
+          }
         }
+        // Base case: no children, recursion stops naturally
       };
 
       // Build tree for each root mesh
@@ -364,7 +355,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Notify tree to update
       window.dispatchEvent(new Event('scenetree-update'));
 
-      console.log(`Imported ${meshes.length} total, ${rootMeshes.length} roots, ${processedMeshes.size} in tree`);
+      console.log(`Imported ${meshes.length} meshes with ${rootMeshes.length} root nodes`);
     } catch (error) {
       console.error('Failed to import model:', error);
       alert(`Failed to import model: ${error instanceof Error ? error.message : 'Unknown error'}`);
