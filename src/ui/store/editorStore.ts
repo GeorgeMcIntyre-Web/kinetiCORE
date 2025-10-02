@@ -311,18 +311,21 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const processedMeshes = new Set<string>();
 
       // Recursive function to build tree from mesh hierarchy
-      const buildTreeForMesh = (mesh: BABYLON.AbstractMesh, parentNodeId: string | null): void => {
+      const buildTreeForMesh = (mesh: BABYLON.AbstractMesh, parentNodeId: string | null, depth: number = 0): void => {
         // Skip if already processed
         const meshId = mesh.uniqueId.toString();
         if (processedMeshes.has(meshId)) return;
         processedMeshes.add(meshId);
 
+        // Get children first to check count
+        const children = getChildMeshes(mesh);
+
         // Only create nodes for actual meshes, not TransformNodes
         if (!(mesh instanceof BABYLON.Mesh)) {
           // If it's a TransformNode, just process its children
-          const children = getChildMeshes(mesh);
+          console.log(`${'  '.repeat(depth)}[TransformNode] ${mesh.name} - passing ${children.length} children through`);
           for (const child of children) {
-            buildTreeForMesh(child, parentNodeId);
+            buildTreeForMesh(child, parentNodeId, depth);
           }
           return;
         }
@@ -338,10 +341,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         // Link node to mesh
         node.babylonMeshId = meshId;
 
+        console.log(`${'  '.repeat(depth)}[Mesh] ${mesh.name} - ${children.length} children`);
+
         // Recursively add children
-        const children = getChildMeshes(mesh);
         for (const child of children) {
-          buildTreeForMesh(child, node.id);
+          buildTreeForMesh(child, node.id, depth + 1);
         }
       };
 
