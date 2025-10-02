@@ -29,7 +29,12 @@
 .content {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: 300px 1fr 320px;
+  overflow: hidden;
+}
+
+.sidebar-left {
+  background-color: #1a1a1a;
   overflow: hidden;
 }
 
@@ -38,7 +43,7 @@
   overflow: hidden;
 }
 
-.sidebar {
+.sidebar-right {
   background-color: #1a1a1a;
   overflow: hidden;
 }

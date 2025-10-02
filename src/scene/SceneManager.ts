@@ -12,7 +12,6 @@ import {
   CAMERA_DEFAULT_BETA,
   CAMERA_DEFAULT_RADIUS,
 } from '../core/constants';
-import { CoordinateFrameWidget } from './CoordinateFrameWidget';
 
 export class SceneManager {
   private static instance: SceneManager | null = null;
@@ -20,7 +19,6 @@ export class SceneManager {
   private scene: BABYLON.Scene | null = null;
   private camera: BABYLON.ArcRotateCamera | null = null;
   private ground: BABYLON.Mesh | null = null;
-  private coordWidget: CoordinateFrameWidget | null = null;
 
   private constructor() {}
 
@@ -113,14 +111,16 @@ export class SceneManager {
     // Set camera up vector to match Babylon's Y-up
     this.camera.upVector = new BABYLON.Vector3(0, 1, 0);
 
-    // Create coordinate frame widget in corner
-    this.coordWidget = new CoordinateFrameWidget(this.scene);
-    this.coordWidget.setViewport(0, 0, 0.15, 0.15); // Bottom-left corner, 15% size
+    // Set camera to orthographic mode by default
+    this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
 
-    // Update widget when camera moves
-    this.camera.onViewMatrixChangedObservable.add(() => {
-      this.coordWidget?.updateOrientation();
-    });
+    // Set orthographic viewport (adjust based on initial radius)
+    const orthoSize = CAMERA_DEFAULT_RADIUS;
+    const aspectRatio = this.engine.getRenderWidth() / this.engine.getRenderHeight();
+    this.camera.orthoLeft = -orthoSize * aspectRatio;
+    this.camera.orthoRight = orthoSize * aspectRatio;
+    this.camera.orthoTop = orthoSize;
+    this.camera.orthoBottom = -orthoSize;
 
     // Render loop
     this.engine.runRenderLoop(() => {
@@ -151,13 +151,11 @@ export class SceneManager {
   }
 
   dispose(): void {
-    this.coordWidget?.dispose();
     this.scene?.dispose();
     this.engine?.dispose();
     this.scene = null;
     this.engine = null;
     this.camera = null;
     this.ground = null;
-    this.coordWidget = null;
   }
 }

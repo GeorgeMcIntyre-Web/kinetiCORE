@@ -35,6 +35,11 @@ export class EntityRegistry {
   create(config: SceneEntityConfig): SceneEntity {
     const entity = new SceneEntity(config);
 
+    // Set physics engine (needed for later toggle)
+    if (this.physicsEngine) {
+      entity.setPhysicsEngine(this.physicsEngine);
+    }
+
     // Enable physics if configured
     if (config.physics?.enabled && this.physicsEngine) {
       entity.enablePhysics(this.physicsEngine, config.physics);

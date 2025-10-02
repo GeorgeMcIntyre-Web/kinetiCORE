@@ -13,6 +13,10 @@ export interface SceneEntityConfig {
     type?: 'static' | 'dynamic' | 'kinematic';
     shape?: 'box' | 'sphere' | 'cylinder' | 'capsule';
     mass?: number;
+    // Shape-specific parameters
+    dimensions?: { x: number; y: number; z: number }; // For box
+    radius?: number; // For sphere, cylinder, capsule
+    height?: number; // For cylinder, capsule
   };
   metadata?: Partial<EntityMetadata>;
 }
@@ -25,9 +29,14 @@ export class SceneEntity {
   private physicsHandle: string | null = null;
   private physicsEngine: IPhysicsEngine | null = null;
   private metadata: EntityMetadata;
+  private physicsConfig: SceneEntityConfig['physics'] | null = null;
+  private physicsEnabled: boolean = false;
 
   constructor(config: SceneEntityConfig) {
     this.mesh = config.mesh;
+
+    // Store physics config for later use
+    this.physicsConfig = config.physics || null;
 
     // Initialize metadata
     this.metadata = {
@@ -47,28 +56,88 @@ export class SceneEntity {
    */
   enablePhysics(physicsEngine: IPhysicsEngine, config: SceneEntityConfig['physics']): void {
     if (!config?.enabled) return;
+    if (this.physicsEnabled) return; // Already enabled
 
     this.physicsEngine = physicsEngine;
+    this.physicsEnabled = true;
 
     // Compute world matrix to get accurate bounds
     this.mesh.computeWorldMatrix(true);
 
-    // Get mesh dimensions from bounding box
-    const boundingInfo = this.mesh.getBoundingInfo();
-    const dimensions = boundingInfo.boundingBox.extendSize.scale(2);
-
     const position = this.mesh.position;
     const rotation = this.mesh.rotationQuaternion || BABYLON.Quaternion.Identity();
 
-    // Create physics body
-    this.physicsHandle = physicsEngine.createRigidBody({
+    // Build body descriptor
+    const bodyDescriptor: any = {
       type: config.type || 'dynamic',
       position: { x: position.x, y: position.y, z: position.z },
       rotation: { x: rotation.x, y: rotation.y, z: rotation.z, w: rotation.w },
       shape: config.shape || 'box',
-      dimensions: { x: dimensions.x, y: dimensions.y, z: dimensions.z },
       mass: config.mass || 1.0,
-    });
+    };
+
+    // Add shape-specific parameters
+    if (config.dimensions) {
+      bodyDescriptor.dimensions = config.dimensions;
+    } else if (config.shape === 'box') {
+      // Fall back to bounding box for box shapes
+      const boundingInfo = this.mesh.getBoundingInfo();
+      const dimensions = boundingInfo.boundingBox.extendSize.scale(2);
+      bodyDescriptor.dimensions = { x: dimensions.x, y: dimensions.y, z: dimensions.z };
+    }
+
+    if (config.radius !== undefined) {
+      bodyDescriptor.radius = config.radius;
+    }
+
+    if (config.height !== undefined) {
+      bodyDescriptor.height = config.height;
+    }
+
+    // Create physics body
+    this.physicsHandle = physicsEngine.createRigidBody(bodyDescriptor);
+  }
+
+  /**
+   * Disable physics for this entity
+   */
+  disablePhysics(): void {
+    if (!this.physicsEnabled) return;
+
+    if (this.physicsEngine && this.physicsHandle) {
+      this.physicsEngine.removeRigidBody(this.physicsHandle);
+      this.physicsHandle = null;
+    }
+
+    this.physicsEnabled = false;
+  }
+
+  /**
+   * Toggle physics on/off
+   */
+  togglePhysics(): boolean {
+    if (this.physicsEnabled) {
+      this.disablePhysics();
+    } else if (this.physicsConfig && this.physicsEngine) {
+      // Re-enable with stored config
+      const configWithEnabled = { ...this.physicsConfig, enabled: true };
+      this.enablePhysics(this.physicsEngine, configWithEnabled);
+    }
+    return this.physicsEnabled;
+  }
+
+  /**
+   * Check if physics is enabled
+   */
+  isPhysicsEnabled(): boolean {
+    return this.physicsEnabled;
+  }
+
+  /**
+   * Set physics engine (required before enabling physics)
+   */
+  setPhysicsEngine(engine: IPhysicsEngine): void {
+    this.physicsEngine = engine;
   }
 
   /**

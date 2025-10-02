@@ -1,0 +1,12 @@
+.coordinate-frame {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.coordinate-frame canvas {
+  display: block;
+  background: transparent;
+}

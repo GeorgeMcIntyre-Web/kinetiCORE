@@ -8,10 +8,12 @@ import { RapierPhysicsEngine } from '../../physics/RapierPhysicsEngine';
 import { EntityRegistry } from '../../entities/EntityRegistry';
 import { TransformGizmo } from '../../manipulation/TransformGizmo';
 import { useEditorStore } from '../store/editorStore';
+import { CoordinateFrame } from './CoordinateFrame';
 
 export const SceneCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const setCamera = useEditorStore((state) => state.setCamera);
+  const camera = useEditorStore((state) => state.camera);
   const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
   const transformMode = useEditorStore((state) => state.transformMode);
   const selectMesh = useEditorStore((state) => state.selectMesh);
@@ -123,14 +125,17 @@ export const SceneCanvas: React.FC = () => {
   }, [selectedMeshes, transformMode]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'block',
-        outline: 'none',
-      }}
-    />
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <canvas
+        ref={canvasRef}
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'block',
+          outline: 'none',
+        }}
+      />
+      {camera && <CoordinateFrame camera={camera as BABYLON.ArcRotateCamera} />}
+    </div>
   );
 };

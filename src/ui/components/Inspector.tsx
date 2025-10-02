@@ -1,12 +1,19 @@
 // Inspector component - shows properties of selected objects
 // Owner: Edwin
 
+import { useState } from 'react';
 import { useEditorStore } from '../store/editorStore';
 import { babylonToUser } from '../../core/CoordinateSystem';
+import { SceneTreeManager } from '../../scene/SceneTreeManager';
+import { EntityRegistry } from '../../entities/EntityRegistry';
 import './Inspector.css';
 
 export const Inspector: React.FC = () => {
   const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
+  const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+  const togglePhysics = useEditorStore((state) => state.togglePhysics);
+  const [coordinateMode, setCoordinateMode] = useState<'local' | 'world'>('local');
+  const [physicsEnabled, setPhysicsEnabled] = useState(false);
 
   if (selectedMeshes.length === 0) {
     return (
@@ -22,9 +29,29 @@ export const Inspector: React.FC = () => {
   }
 
   const selectedMesh = selectedMeshes[0];
+  const tree = SceneTreeManager.getInstance();
+  const node = selectedNodeId ? tree.getNode(selectedNodeId) : undefined;
+  const registry = EntityRegistry.getInstance();
+  const entity = node?.entityId ? registry.get(node.entityId) : undefined;
 
-  // Convert Babylon internal position to user space (mm, Z-up)
-  const userPos = babylonToUser(selectedMesh.position);
+  // Get local and world positions
+  const localPos = node?.position || babylonToUser(selectedMesh.position);
+  const worldPos = selectedNodeId
+    ? tree.getWorldPosition(selectedNodeId)
+    : babylonToUser(selectedMesh.position);
+
+  // Choose which position to display based on mode
+  const displayPos = coordinateMode === 'local' ? localPos : worldPos;
+
+  // Get current physics state
+  const isPhysicsEnabled = entity?.isPhysicsEnabled() || false;
+
+  const handleTogglePhysics = () => {
+    if (selectedNodeId) {
+      togglePhysics(selectedNodeId);
+      setPhysicsEnabled(!physicsEnabled);
+    }
+  };
 
   return (
     <div className="inspector">
@@ -36,40 +63,84 @@ export const Inspector: React.FC = () => {
           <h3>Object</h3>
           <div className="property">
             <label>Name</label>
-            <input type="text" value={selectedMesh.name} readOnly />
+            <input type="text" value={node?.name || selectedMesh.name} readOnly />
+          </div>
+          {node && (
+            <div className="property">
+              <label>Type</label>
+              <input type="text" value={node.type} readOnly />
+            </div>
+          )}
+        </div>
+
+        <div className="property-group">
+          <h3>Physics</h3>
+          <div className="property">
+            <label>Enable Physics</label>
+            <button
+              onClick={handleTogglePhysics}
+              style={{
+                padding: '6px 12px',
+                backgroundColor: isPhysicsEnabled ? '#4CAF50' : '#666',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+              }}
+            >
+              {isPhysicsEnabled ? 'Enabled' : 'Disabled'}
+            </button>
           </div>
         </div>
 
         <div className="property-group">
-          <h3>Position (mm)</h3>
+          <h3>
+            Transform
+            <div className="button-group" style={{ display: 'inline-block', marginLeft: '10px' }}>
+              <button
+                className={coordinateMode === 'local' ? 'active' : ''}
+                onClick={() => setCoordinateMode('local')}
+                style={{ fontSize: '11px', padding: '2px 8px' }}
+              >
+                Local
+              </button>
+              <button
+                className={coordinateMode === 'world' ? 'active' : ''}
+                onClick={() => setCoordinateMode('world')}
+                style={{ fontSize: '11px', padding: '2px 8px' }}
+              >
+                World
+              </button>
+            </div>
+          </h3>
           <div className="property">
-            <label>X (Right)</label>
+            <label>X (Right) mm</label>
             <div className="vector-input">
               <input
                 type="number"
-                value={userPos.x.toFixed(1)}
+                value={displayPos.x.toFixed(1)}
                 readOnly
                 placeholder="X"
               />
             </div>
           </div>
           <div className="property">
-            <label>Y (Forward)</label>
+            <label>Y (Forward) mm</label>
             <div className="vector-input">
               <input
                 type="number"
-                value={userPos.y.toFixed(1)}
+                value={displayPos.y.toFixed(1)}
                 readOnly
                 placeholder="Y"
               />
             </div>
           </div>
           <div className="property">
-            <label>Z (Height)</label>
+            <label>Z (Height) mm</label>
             <div className="vector-input">
               <input
                 type="number"
-                value={userPos.z.toFixed(1)}
+                value={displayPos.z.toFixed(1)}
                 readOnly
                 placeholder="Z"
               />
