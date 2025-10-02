@@ -187,7 +187,7 @@ export function vec3ToBabylon(userVec: Vec3): BABYLON.Vector3 {
  * Check if node type is a container (can have children)
  */
 export function isContainerType(type: NodeType): boolean {
-  return ['world', 'scene', 'system', 'collection', 'robot', 'gripper', 'actuator'].includes(type);
+  return ['world', 'scene', 'system', 'collection', 'robot', 'gripper', 'actuator', 'mesh'].includes(type);
 }
 
 /**
