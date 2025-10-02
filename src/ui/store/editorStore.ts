@@ -9,7 +9,7 @@ import { SceneManager } from '../../scene/SceneManager';
 import { EntityRegistry } from '../../entities/EntityRegistry';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { userToBabylon, babylonToUser } from '../../core/CoordinateSystem';
-import { loadModelFromFile } from '../../scene/ModelLoader';
+import { loadModelFromFile, getRootMeshes, getChildMeshes } from '../../scene/ModelLoader';
 import { saveWorldToFile, loadWorldFromFile, restoreWorldState } from '../../scene/WorldSerializer';
 import type { NodeType } from '../../scene/SceneTreeNode';
 
@@ -296,39 +296,58 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Load model
       const meshes = await loadModelFromFile(file, scene);
 
-      // Create tree nodes for each mesh
-      for (const mesh of meshes) {
-        if (mesh instanceof BABYLON.Mesh) {
-          // Create node
-          const node = tree.createNode(
-            'mesh',
-            mesh.name,
-            assetsNode?.id || null,
-            babylonToUser(mesh.position)
-          );
+      // Create a collection for this model
+      const modelName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+      const modelCollection = tree.createNode(
+        'collection',
+        modelName,
+        assetsNode?.id || null
+      );
 
-          // Link node to mesh
-          node.babylonMeshId = mesh.uniqueId.toString();
+      // Build hierarchical tree structure
+      const rootMeshes = getRootMeshes(meshes);
 
-          // Optionally create entity for physics
-          // (skipping for now - user can add physics later)
+      // Recursive function to build tree from mesh hierarchy
+      const buildTreeForMesh = (mesh: BABYLON.AbstractMesh, parentNodeId: string | null): void => {
+        if (!(mesh instanceof BABYLON.Mesh)) return;
+
+        // Create node for this mesh
+        const node = tree.createNode(
+          'mesh',
+          mesh.name || 'Unnamed',
+          parentNodeId,
+          babylonToUser(mesh.position)
+        );
+
+        // Link node to mesh
+        node.babylonMeshId = mesh.uniqueId.toString();
+
+        // Recursively add children
+        const children = getChildMeshes(mesh);
+        for (const child of children) {
+          buildTreeForMesh(child, node.id);
         }
+      };
+
+      // Build tree for each root mesh
+      for (const rootMesh of rootMeshes) {
+        buildTreeForMesh(rootMesh, modelCollection.id);
       }
 
-      // Select first mesh
-      if (meshes.length > 0 && meshes[0] instanceof BABYLON.Mesh) {
-        const node = tree.getNodeByBabylonMeshId(meshes[0].uniqueId.toString());
-        if (node) {
-          get().clearSelection();
-          get().selectNode(node.id);
-        }
-      }
+      // Select the model collection
+      get().clearSelection();
+      get().selectNode(modelCollection.id);
+
+      // Expand the collection to show contents
+      tree.toggleExpanded(modelCollection.id);
 
       // Notify tree to update
       window.dispatchEvent(new Event('scenetree-update'));
+
+      console.log(`Imported ${meshes.length} meshes with ${rootMeshes.length} root nodes`);
     } catch (error) {
       console.error('Failed to import model:', error);
-      // Could add toast notification here
+      alert(`Failed to import model: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },
 

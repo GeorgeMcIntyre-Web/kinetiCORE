@@ -7,6 +7,18 @@ import '@babylonjs/loaders/glTF';
 import '@babylonjs/loaders/OBJ';
 import '@babylonjs/loaders/STL';
 
+// Import Draco decoder for compressed GLB files
+import { DracoCompression } from '@babylonjs/core/Meshes/Compression/dracoCompression';
+
+// Configure Draco decoder
+DracoCompression.Configuration = {
+  decoder: {
+    wasmUrl: 'https://preview.babylonjs.com/draco_wasm_wrapper_gltf.js',
+    wasmBinaryUrl: 'https://preview.babylonjs.com/draco_decoder_gltf.wasm',
+    fallbackUrl: 'https://preview.babylonjs.com/draco_decoder_gltf.js',
+  },
+};
+
 /**
  * Supported 3D file formats
  */
@@ -134,4 +146,21 @@ export function getAcceptedFileTypes(): string {
  */
 export function getFormatDescription(): string {
   return 'glTF (.gltf, .glb), Wavefront (.obj), STL (.stl), Babylon (.babylon)';
+}
+
+/**
+ * Build hierarchical mesh structure
+ * Returns root meshes (meshes with no parent)
+ */
+export function getRootMeshes(meshes: BABYLON.AbstractMesh[]): BABYLON.AbstractMesh[] {
+  return meshes.filter(mesh => !mesh.parent || !(mesh.parent instanceof BABYLON.AbstractMesh));
+}
+
+/**
+ * Get direct children of a mesh
+ */
+export function getChildMeshes(mesh: BABYLON.AbstractMesh): BABYLON.AbstractMesh[] {
+  return mesh.getChildren((node): node is BABYLON.AbstractMesh => {
+    return node instanceof BABYLON.AbstractMesh;
+  }, false);
 }
