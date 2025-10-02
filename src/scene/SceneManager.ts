@@ -13,7 +13,7 @@ import {
 
 export class SceneManager {
   private static instance: SceneManager | null = null;
-  private engine: BABYLON.Engine | null = null;
+  private engine: BABYLON.Engine | BABYLON.WebGPUEngine | null = null;
   private scene: BABYLON.Scene | null = null;
   private camera: BABYLON.ArcRotateCamera | null = null;
 
@@ -30,12 +30,23 @@ export class SceneManager {
    * Initialize the Babylon.js scene
    */
   async initialize(canvas: HTMLCanvasElement): Promise<void> {
+    // Try to create WebGPU engine first, fallback to WebGL2
+    const webGPUSupported = await BABYLON.WebGPUEngine.IsSupportedAsync;
 
-    // Create engine with WebGL2
-    this.engine = new BABYLON.Engine(canvas, true, {
-      preserveDrawingBuffer: true,
-      stencil: true,
-    });
+    if (webGPUSupported) {
+      const webGPUEngine = new BABYLON.WebGPUEngine(canvas, {
+        antialias: true,
+        stencil: true,
+      });
+      await webGPUEngine.initAsync();
+      this.engine = webGPUEngine;
+    } else {
+      // Fallback to WebGL2
+      this.engine = new BABYLON.Engine(canvas, true, {
+        preserveDrawingBuffer: true,
+        stencil: true,
+      });
+    }
 
     // Create scene
     this.scene = new BABYLON.Scene(this.engine);
@@ -145,7 +156,7 @@ export class SceneManager {
     return this.scene;
   }
 
-  getEngine(): BABYLON.Engine | null {
+  getEngine(): BABYLON.Engine | BABYLON.WebGPUEngine | null {
     return this.engine;
   }
 
