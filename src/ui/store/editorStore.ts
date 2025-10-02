@@ -41,6 +41,9 @@ interface EditorState {
   togglePlayback: () => void;
   createObject: (type: ObjectType) => void;
   importModel: (file: File) => Promise<void>;
+  updateNodePosition: (nodeId: string, position: { x: number; y: number; z: number }) => void;
+  updateNodeRotation: (nodeId: string, rotation: { x: number; y: number; z: number }) => void;
+  updateNodeScale: (nodeId: string, scale: { x: number; y: number; z: number }) => void;
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -407,5 +410,97 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       console.error('Failed to load world:', error);
       alert('Failed to load world. Check console for details.');
     }
+  },
+
+  // Transform update actions
+  updateNodePosition: (nodeId: string, position: { x: number; y: number; z: number }) => {
+    const tree = SceneTreeManager.getInstance();
+    const node = tree.getNode(nodeId);
+    if (!node) return;
+
+    // Update local position in tree
+    tree.setLocalPosition(nodeId, position);
+
+    // Update Babylon mesh if it exists
+    if (node.babylonMeshId) {
+      const sceneManager = SceneManager.getInstance();
+      const scene = sceneManager.getScene();
+      if (scene) {
+        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+        if (mesh) {
+          const babylonPos = userToBabylon(position);
+          mesh.position.copyFrom(babylonPos);
+
+          // Sync to physics if entity exists
+          if (node.entityId) {
+            const registry = EntityRegistry.getInstance();
+            const entity = registry.get(node.entityId);
+            entity?.syncToPhysics();
+          }
+        }
+      }
+    }
+
+    window.dispatchEvent(new Event('scenetree-update'));
+  },
+
+  updateNodeRotation: (nodeId: string, rotation: { x: number; y: number; z: number }) => {
+    const tree = SceneTreeManager.getInstance();
+    const node = tree.getNode(nodeId);
+    if (!node) return;
+
+    // Update local rotation in tree
+    tree.setLocalRotation(nodeId, rotation);
+
+    // Update Babylon mesh if it exists
+    if (node.babylonMeshId) {
+      const sceneManager = SceneManager.getInstance();
+      const scene = sceneManager.getScene();
+      if (scene) {
+        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+        if (mesh instanceof BABYLON.Mesh) {
+          // Convert degrees to radians
+          const radiansX = (rotation.x * Math.PI) / 180;
+          const radiansY = (rotation.y * Math.PI) / 180;
+          const radiansZ = (rotation.z * Math.PI) / 180;
+
+          mesh.rotation.set(radiansX, radiansY, radiansZ);
+
+          // Sync to physics if entity exists
+          if (node.entityId) {
+            const registry = EntityRegistry.getInstance();
+            const entity = registry.get(node.entityId);
+            entity?.syncToPhysics();
+          }
+        }
+      }
+    }
+
+    window.dispatchEvent(new Event('scenetree-update'));
+  },
+
+  updateNodeScale: (nodeId: string, scale: { x: number; y: number; z: number }) => {
+    const tree = SceneTreeManager.getInstance();
+    const node = tree.getNode(nodeId);
+    if (!node) return;
+
+    // Update local scale in tree
+    tree.setScale(nodeId, scale);
+
+    // Update Babylon mesh if it exists
+    if (node.babylonMeshId) {
+      const sceneManager = SceneManager.getInstance();
+      const scene = sceneManager.getScene();
+      if (scene) {
+        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+        if (mesh instanceof BABYLON.Mesh) {
+          mesh.scaling.set(scale.x, scale.y, scale.z);
+
+          // Note: Scaling doesn't sync to physics as it would require recreating the collider
+        }
+      }
+    }
+
+    window.dispatchEvent(new Event('scenetree-update'));
   },
 }));

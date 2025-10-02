@@ -93,6 +93,16 @@ export interface CollisionResult {
 export type TransformMode = 'translate' | 'rotate' | 'scale';
 
 /**
+ * Reference frame for transforms
+ */
+export type ReferenceFrameType = 'local' | 'world' | 'custom';
+
+export interface ReferenceFrame {
+  type: ReferenceFrameType;
+  customFrameNodeId?: string; // ID of node to use as custom reference
+}
+
+/**
  * Editor state (for Zustand)
  */
 export interface EditorState {

@@ -7,61 +7,62 @@
 }
 
 .inspector-header {
-  padding: 1rem;
+  padding: 0.35rem 0.5rem;
   border-bottom: 1px solid #333;
 }
 
 .inspector-header h2 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 0.85rem;
   color: #fff;
 }
 
 .inspector-content {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem;
+  padding: 0.5rem;
 }
 
 .no-selection {
   color: #666;
   text-align: center;
-  margin-top: 2rem;
+  margin-top: 1rem;
+  font-size: 0.75rem;
 }
 
 .property-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.4rem;
 }
 
 .property-group h3 {
-  margin: 0 0 0.75rem 0;
-  font-size: 0.9rem;
+  margin: 0 0 0.25rem 0;
+  font-size: 0.7rem;
   color: #888;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   font-weight: 500;
 }
 
 .property {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.3rem;
 }
 
 .property label {
   display: block;
-  margin-bottom: 0.25rem;
-  font-size: 0.85rem;
+  margin-bottom: 0.15rem;
+  font-size: 0.7rem;
   color: #aaa;
 }
 
 .property input[type='text'],
 .property input[type='number'] {
   width: 100%;
-  padding: 0.5rem;
+  padding: 0.3rem 0.4rem;
   background-color: #2a2a2a;
   border: 1px solid #444;
   color: #fff;
-  border-radius: 4px;
-  font-size: 0.9rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
 }
 
 .property input[type='text']:focus,
@@ -73,9 +74,216 @@
 .vector-input {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
+  gap: 0.3rem;
 }
 
 .vector-input input {
   width: 100%;
+}
+
+/* Physics toggle button */
+.physics-toggle-button {
+  padding: 0.3rem 0.6rem;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: opacity 0.2s;
+}
+
+.physics-toggle-button:hover {
+  opacity: 0.8;
+}
+
+/* Transform header with button group */
+.transform-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.3rem;
+}
+
+.transform-header h3 {
+  margin: 0;
+  font-size: 0.7rem;
+}
+
+.button-group {
+  display: flex;
+  gap: 2px;
+  background-color: #2a2a2a;
+  border-radius: 2px;
+  padding: 2px;
+}
+
+.button-group button {
+  padding: 2px 5px;
+  font-size: 9px;
+  background-color: transparent;
+  color: #aaa;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.button-group button:hover {
+  background-color: #333;
+  color: #fff;
+}
+
+.button-group button.active {
+  background-color: #646cff;
+  color: #fff;
+}
+
+/* Custom frame selector */
+.custom-frame-selector {
+  background-color: #2a2a2a;
+  border: 1px solid #646cff;
+  border-radius: 3px;
+  padding: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.custom-frame-selector p {
+  margin: 0 0 0.3rem 0;
+  font-size: 0.7rem;
+  color: #aaa;
+}
+
+.custom-frame-selector button {
+  padding: 0.2rem 0.5rem;
+  background-color: #444;
+  color: #fff;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.7rem;
+}
+
+.custom-frame-selector button:hover {
+  background-color: #555;
+}
+
+/* Transform sections */
+.transform-section {
+  margin-bottom: 0.3rem;
+  padding: 0.25rem;
+  background-color: #222;
+  border-radius: 2px;
+}
+
+.transform-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.transform-section-header label {
+  font-size: 0.65rem;
+  color: #888;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+}
+
+.reset-button {
+  padding: 1px 4px;
+  font-size: 0.65rem;
+  background-color: #444;
+  color: #aaa;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reset-button:hover {
+  background-color: #555;
+  color: #fff;
+}
+
+/* Horizontal transform control row */
+.transform-control-row {
+  display: flex;
+  gap: 0.15rem;
+  align-items: center;
+}
+
+.axis-control {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.axis-label {
+  font-size: 0.6rem;
+  color: #aaa;
+  font-weight: 500;
+  width: 9px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.increment-button {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  background-color: #2a2a2a;
+  color: #aaa;
+  border: 1px solid #444;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.increment-button:hover {
+  background-color: #333;
+  color: #fff;
+  border-color: #555;
+}
+
+.increment-button:active {
+  background-color: #444;
+}
+
+.axis-control input[type='number'] {
+  width: 42px;
+  padding: 0.1rem 0.15rem;
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  color: #fff;
+  border-radius: 2px;
+  font-size: 0.6rem;
+  text-align: center;
+}
+
+.axis-control input[type='number']:focus {
+  outline: none;
+  border-color: #646cff;
+  background-color: #333;
+  box-shadow: 0 0 0 1px rgba(100, 108, 255, 0.3);
+}
+
+/* Remove spinner buttons from number inputs */
+.axis-control input[type='number']::-webkit-inner-spin-button,
+.axis-control input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.axis-control input[type='number'] {
+  -moz-appearance: textfield;
 }
