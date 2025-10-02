@@ -307,6 +307,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Build hierarchical tree structure
       const rootMeshes = getRootMeshes(meshes);
 
+      console.log('=== GLB Import Debug ===');
+      console.log(`Total meshes: ${meshes.length}, Root meshes: ${rootMeshes.length}`);
+
+      // Check structure of first few meshes
+      rootMeshes.slice(0, 3).forEach(root => {
+        const children = getChildMeshes(root);
+        console.log(`Root: ${root.name} (${root.constructor.name}) has ${children.length} children`);
+        children.slice(0, 3).forEach(child => {
+          const grandchildren = getChildMeshes(child);
+          console.log(`  Child: ${child.name} (${child.constructor.name}) has ${grandchildren.length} children`);
+        });
+      });
+
       // Simple recursive function - builds tree until no more children (null)
       const buildTreeForMesh = (mesh: BABYLON.AbstractMesh, parentNodeId: string | null): void => {
         // Only create nodes for actual Mesh objects (skip TransformNodes)
