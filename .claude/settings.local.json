@@ -11,7 +11,9 @@
       "Bash(npm run build:*)",
       "Bash(tree:*)",
       "Bash(npm run lint:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

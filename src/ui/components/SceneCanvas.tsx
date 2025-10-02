@@ -2,32 +2,106 @@
 // Owner: Edwin/Cole
 
 import { useEffect, useRef } from 'react';
+import * as BABYLON from '@babylonjs/core';
 import { SceneManager } from '../../scene/SceneManager';
+import { RapierPhysicsEngine } from '../../physics/RapierPhysicsEngine';
+import { EntityRegistry } from '../../entities/EntityRegistry';
+import { TransformGizmo } from '../../manipulation/TransformGizmo';
 import { useEditorStore } from '../store/editorStore';
 
 export const SceneCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const setCamera = useEditorStore((state) => state.setCamera);
+  const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
+  const transformMode = useEditorStore((state) => state.transformMode);
+  const selectMesh = useEditorStore((state) => state.selectMesh);
+  const clearSelection = useEditorStore((state) => state.clearSelection);
+  const gizmoRef = useRef<TransformGizmo | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const sceneManager = SceneManager.getInstance();
+    const physicsEngine = new RapierPhysicsEngine();
+    const registry = EntityRegistry.getInstance();
 
-    // Initialize scene
-    sceneManager.initialize(canvas).then(() => {
+    // Initialize scene and physics
+    Promise.all([sceneManager.initialize(canvas), physicsEngine.initialize()]).then(() => {
       const camera = sceneManager.getCamera();
+      const scene = sceneManager.getScene();
+
       if (camera) {
         setCamera(camera);
+      }
+
+      if (scene) {
+        // Set up physics engine in registry
+        registry.setPhysicsEngine(physicsEngine);
+
+        // Create transform gizmo
+        gizmoRef.current = new TransformGizmo(scene);
+
+        // Add click selection
+        scene.onPointerDown = (evt, pickResult) => {
+          if (evt.button === 0) {
+            // Left click
+            if (pickResult.hit && pickResult.pickedMesh) {
+              const mesh = pickResult.pickedMesh;
+
+              // Ignore ground and axis meshes
+              if (
+                mesh.name !== 'ground' &&
+                !mesh.name.startsWith('axis') &&
+                mesh instanceof BABYLON.Mesh
+              ) {
+                clearSelection();
+                selectMesh(mesh);
+              }
+            } else {
+              // Clicked on empty space - clear selection
+              clearSelection();
+            }
+          }
+        };
+
+        // Physics update loop
+        const engine = sceneManager.getEngine();
+        engine?.runRenderLoop(() => {
+          // Step physics (fixed 60 FPS timestep)
+          physicsEngine.step(1 / 60);
+
+          // Sync all entities from physics to meshes
+          registry.syncAllFromPhysics();
+
+          // Render scene
+          scene.render();
+        });
       }
     });
 
     // Cleanup on unmount
     return () => {
+      gizmoRef.current?.dispose();
+      physicsEngine.dispose();
+      registry.clear();
       sceneManager.dispose();
     };
-  }, [setCamera]);
+  }, [setCamera, selectMesh, clearSelection]);
+
+  // Update gizmo when selection or mode changes
+  useEffect(() => {
+    if (!gizmoRef.current) return;
+
+    if (selectedMeshes.length > 0) {
+      // Attach gizmo to first selected mesh
+      gizmoRef.current.attachToMesh(selectedMeshes[0]);
+      gizmoRef.current.setMode(transformMode);
+    } else {
+      // Detach gizmo when nothing selected
+      gizmoRef.current.attachToMesh(null);
+    }
+  }, [selectedMeshes, transformMode]);
 
   return (
     <canvas
