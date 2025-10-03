@@ -1,6 +1,6 @@
 // Model Loader - Import 3D files in various formats
 // Owner: Cole
-// Supports: glTF, GLB, OBJ, STL, Babylon, DXF, JT, URDF
+// Supports: glTF, GLB, OBJ, STL, Babylon, DXF, JT, CATIA, URDF
 
 import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
@@ -15,6 +15,9 @@ import { loadURDFFromFile } from '../loaders/urdf/URDFLoader';
 
 // Import JT loader
 import { loadJTFromFile } from '../loaders/jt/JTLoader';
+
+// Import CATIA loader
+import { loadCATIAFromFile } from '../loaders/catia/CATIALoader';
 
 // Configure Draco decoder
 DracoCompression.Configuration = {
@@ -36,6 +39,10 @@ export const SUPPORTED_FORMATS = {
   BABYLON: '.babylon',
   DXF: '.dxf',
   JT: '.jt',
+  CATPART: '.catpart',
+  CATPRODUCT: '.catproduct',
+  CATDRAWING: '.catdrawing',
+  CATPROCESS: '.catprocess',
   URDF: '.urdf',
 } as const;
 
@@ -66,6 +73,10 @@ function getMimeType(extension: string): string {
     '.babylon': 'application/json',
     '.dxf': 'application/dxf',
     '.jt': 'application/jt',
+    '.catpart': 'application/catia',
+    '.catproduct': 'application/catia',
+    '.catdrawing': 'application/catia',
+    '.catprocess': 'application/catia',
     '.urdf': 'application/xml',
   };
   return mimeTypes[extension] || 'application/octet-stream';
@@ -101,6 +112,12 @@ export async function loadModelFromFile(
   // Handle JT files
   if (extension === '.jt') {
     return loadJTFromFile(file, scene);
+  }
+
+  // Handle CATIA files
+  if (extension === '.catpart' || extension === '.catproduct' ||
+      extension === '.catdrawing' || extension === '.catprocess') {
+    return loadCATIAFromFile(file, scene);
   }
 
   // Standard Babylon.js loader for other formats

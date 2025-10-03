@@ -87,19 +87,55 @@ export async function loadJTFromFile(
 
         console.log(`[JT Import] Loaded ${result.meshes.length} meshes from ${file.name}`);
 
-        // Add JT metadata to meshes
+        // Flatten hierarchy: Move all meshes to root level
+        const flattenedMeshes: BABYLON.AbstractMesh[] = [];
+        const rootNode = new BABYLON.TransformNode(file.name.replace('.jt', ''), scene);
+
         result.meshes.forEach(mesh => {
+            // Skip root __root__ nodes that Babylon creates
+            if (mesh.name === '__root__') {
+                return;
+            }
+
+            // Bake the transform from the hierarchy
+            if (mesh.parent) {
+                // Compute world matrix
+                mesh.computeWorldMatrix(true);
+                const worldMatrix = mesh.getWorldMatrix();
+
+                // Remove from parent
+                mesh.setParent(null);
+
+                // Apply the baked transform
+                worldMatrix.decompose(mesh.scaling, mesh.rotationQuaternion!, mesh.position);
+            }
+
+            // Attach to our flat root node
+            mesh.setParent(rootNode);
+
+            // Add JT metadata
             if (!mesh.metadata) {
                 mesh.metadata = {};
             }
             mesh.metadata.sourceFormat = 'jt';
             mesh.metadata.originalFile = file.name;
             mesh.metadata.convertedVia = 'pyopenjt';
+
+            flattenedMeshes.push(mesh);
         });
 
+        // Clean up old transform nodes
+        result.transformNodes.forEach(node => {
+            if (node.name !== '__root__' && node !== rootNode) {
+                node.dispose();
+            }
+        });
+
+        console.log(`[JT Import] Flattened to ${flattenedMeshes.length} meshes under root node`);
+
         return {
-            meshes: result.meshes,
-            rootNodes: result.transformNodes
+            meshes: flattenedMeshes,
+            rootNodes: [rootNode]
         };
 
     } catch (error) {
