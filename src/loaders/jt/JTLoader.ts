@@ -1,6 +1,6 @@
 /**
- * JT file loader with progress tracking
- * Supports JT versions 8.0, 9.0, and 10.x
+ * JT file loader using PyOpenJt backend conversion service
+ * Supports JT versions 8.0, 9.0, and 10.x via JT → GLB conversion
  */
 
 import * as BABYLON from '@babylonjs/core';
@@ -8,31 +8,123 @@ import { JTImportProgress, JTPart, JTHeader } from './types';
 import { JTImportError } from './errors';
 import { JTErrorType } from './types';
 import { convertJTToBabylonCoordinates, reverseTriangleWinding } from './coordinateConversion';
+import { JTConversionService, JTConversionError } from './JTConversionService';
 
 /**
- * Load JT file (placeholder implementation)
+ * Load JT file via PyOpenJt backend conversion to GLTF
  *
  * @param file - JT file to load
  * @param scene - Babylon.js scene
  * @returns Promise resolving to loaded meshes and root nodes
  *
- * @throws {JTImportError} When JT Open Toolkit WASM is not available
+ * @throws {JTImportError} When conversion or loading fails
  */
 export async function loadJTFromFile(
     file: File,
-    _scene: BABYLON.Scene
+    scene: BABYLON.Scene
 ): Promise<{ meshes: BABYLON.AbstractMesh[]; rootNodes: BABYLON.TransformNode[] }> {
-    throw new JTImportError(
-        JTErrorType.WASMNotLoaded,
-        `JT import requires JT Open Toolkit WASM module.\n\n` +
-        `File: ${file.name}\n\n` +
-        `To enable JT import:\n` +
-        `1. Compile JT Open Toolkit to WebAssembly (see src/loaders/jt/README.md)\n` +
-        `2. Place jt-toolkit.wasm and jt-toolkit.js in public/wasm/\n` +
-        `3. Update JTLoader.initialize() to load the WASM module\n\n` +
-        `For more details, see: docs/features_jt.md`,
-        false  // not recoverable
-    );
+    const converter = new JTConversionService();
+
+    try {
+        // Check if backend is available
+        const health = await converter.checkHealth();
+
+        if (health.status === 'unhealthy') {
+            throw new JTImportError(
+                JTErrorType.WASMNotLoaded,
+                `JT conversion backend is not available.\n\n` +
+                `${health.message}\n\n` +
+                `Please start the PyOpenJt server:\n` +
+                `1. Open PowerShell/Command Prompt\n` +
+                `2. cd C:\\Users\\George\\source\\repos\\PyOpenJt\\Server\n` +
+                `3. python JtConversionServer.py\n\n` +
+                `Server should be running at http://localhost:8000\n\n` +
+                `See PyOpenJt_SETUP_GUIDE.md for setup instructions.`,
+                false
+            );
+        }
+
+        if (!health.pyopenjt_built) {
+            throw new JTImportError(
+                JTErrorType.WASMNotLoaded,
+                `PyOpenJt is not built yet.\n\n` +
+                `${health.message}\n\n` +
+                `Please build PyOpenJt:\n` +
+                `1. Install VCPKG and CMake\n` +
+                `2. cd C:\\Users\\George\\source\\repos\\PyOpenJt\n` +
+                `3. .\\Setup.bat\n` +
+                `4. Open WinBuild\\PyOpenJt.sln in Visual Studio\n` +
+                `5. Build in Release mode\n\n` +
+                `See PyOpenJt_SETUP_GUIDE.md for detailed instructions.`,
+                false
+            );
+        }
+
+        console.log(`[JT Import] Converting ${file.name} to GLTF...`);
+
+        // Convert JT → GLTF
+        const gltfBlob = await converter.convertToGLB(file, (progress) => {
+            console.log(`[JT Import] ${progress.message} (${progress.percent}%)`);
+            // TODO: Show progress in UI via LoadingIndicator
+        });
+
+        console.log(`[JT Import] Conversion complete, loading GLTF...`);
+
+        // Load the converted GLTF file
+        const gltfFile = new File([gltfBlob], file.name.replace('.jt', '.gltf'), {
+            type: 'model/gltf+json'
+        });
+
+        // Use BABYLON.js GLTF loader
+        const result = await BABYLON.SceneLoader.ImportMeshAsync(
+            '',  // Load all meshes
+            '',
+            gltfFile,
+            scene,
+            undefined,
+            '.gltf'
+        );
+
+        console.log(`[JT Import] Loaded ${result.meshes.length} meshes from ${file.name}`);
+
+        // Add JT metadata to meshes
+        result.meshes.forEach(mesh => {
+            if (!mesh.metadata) {
+                mesh.metadata = {};
+            }
+            mesh.metadata.sourceFormat = 'jt';
+            mesh.metadata.originalFile = file.name;
+            mesh.metadata.convertedVia = 'pyopenjt';
+        });
+
+        return {
+            meshes: result.meshes,
+            rootNodes: result.transformNodes
+        };
+
+    } catch (error) {
+        // Handle conversion errors
+        if (error instanceof JTConversionError) {
+            const helpfulMessage = JTConversionService.getHelpfulErrorMessage(error);
+            throw new JTImportError(
+                JTErrorType.CorruptedFile,
+                helpfulMessage,
+                false
+            );
+        }
+
+        // Re-throw JTImportError as-is
+        if (error instanceof JTImportError) {
+            throw error;
+        }
+
+        // Wrap unexpected errors
+        throw new JTImportError(
+            JTErrorType.CorruptedFile,
+            `Failed to import JT file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            false
+        );
+    }
 }
 
 export class JTLoader {
