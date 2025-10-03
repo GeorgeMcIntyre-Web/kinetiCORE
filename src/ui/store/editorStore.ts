@@ -14,6 +14,8 @@ import { saveWorldToFile, loadWorldFromFile, restoreWorldState } from '../../sce
 import { CustomFrameHelper } from '../../scene/CustomFrameHelper';
 import { CoordinateFrameWidget } from '../../scene/CoordinateFrameWidget';
 import type { NodeType } from '../../scene/SceneTreeNode';
+import { toast } from '../components/ToastNotifications';
+import { loading } from '../components/LoadingIndicator';
 
 type ObjectType = 'box' | 'sphere' | 'cylinder';
 
@@ -258,6 +260,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return;
     }
 
+    const nodeName = node.name;
+
     // If it has an entity, remove it
     if (node.entityId) {
       const registry = EntityRegistry.getInstance();
@@ -273,6 +277,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
 
     window.dispatchEvent(new Event('scenetree-update'));
+
+    toast.success(`Deleted "${nodeName}"`);
   },
 
   // Rename node
@@ -394,6 +400,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     // Notify tree to update
     window.dispatchEvent(new Event('scenetree-update'));
+
+    // Show success toast
+    toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} created`);
   },
 
   // Import 3D model from file
@@ -405,9 +414,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const tree = SceneTreeManager.getInstance();
     const assetsNode = tree.getAssetsNode();
 
+    loading.start('Loading model...', 'uploading');
+
     try {
       // Load model - now returns both meshes and root nodes
       const { meshes, rootNodes } = await loadModelFromFile(file, scene);
+      loading.update('Processing geometry...', 50);
 
       // Get the model name from the file
       const modelName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
@@ -468,10 +480,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Notify tree to update
       window.dispatchEvent(new Event('scenetree-update'));
 
+      loading.update('Finalizing...', 90);
+      loading.end();
+      toast.success(`Imported ${meshes.length} meshes from ${file.name}`);
       console.log(`Imported ${meshes.length} meshes with ${rootNodes.length} root nodes`);
     } catch (error) {
+      loading.end();
       console.error('Failed to import model:', error);
-      alert(`Failed to import model: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to import ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },
 

@@ -1,7 +1,7 @@
 // Scene Canvas component - renders Babylon.js scene
 // Owner: Edwin/Cole
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import { SceneManager } from '../../scene/SceneManager';
 import { RapierPhysicsEngine } from '../../physics/RapierPhysicsEngine';
@@ -9,6 +9,8 @@ import { EntityRegistry } from '../../entities/EntityRegistry';
 import { TransformGizmo } from '../../manipulation/TransformGizmo';
 import { useEditorStore } from '../store/editorStore';
 import { CoordinateFrame } from './CoordinateFrame';
+import { ContextMenu, useViewportContextMenu } from './ContextMenu';
+import { CameraViewControls } from './CameraViewControls';
 
 export const SceneCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -18,8 +20,12 @@ export const SceneCanvas: React.FC = () => {
   const transformMode = useEditorStore((state) => state.transformMode);
   const selectMesh = useEditorStore((state) => state.selectMesh);
   const clearSelection = useEditorStore((state) => state.clearSelection);
+  const createObject = useEditorStore((state) => state.createObject);
   const initializeCoordinateFrameWidget = useEditorStore((state) => state.initializeCoordinateFrameWidget);
   const gizmoRef = useRef<TransformGizmo | null>(null);
+
+  const { contextMenu, showContextMenu, hideContextMenu } = useViewportContextMenu();
+  const [menuItems, setMenuItems] = useState<any[]>([]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -87,6 +93,9 @@ export const SceneCanvas: React.FC = () => {
               // Clicked on empty space - clear selection
               clearSelection();
             }
+          } else if (evt.button === 2) {
+            // Right click - context menu handled by onContextMenu prop
+            evt.preventDefault();
           }
         };
 
@@ -128,8 +137,21 @@ export const SceneCanvas: React.FC = () => {
     }
   }, [selectedMeshes, transformMode]);
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const items = showContextMenu(e, (type: string) => {
+      if (type === 'box' || type === 'sphere' || type === 'cylinder') {
+        createObject(type);
+      }
+    });
+    setMenuItems(items);
+  };
+
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div
+      style={{ position: 'relative', width: '100%', height: '100%' }}
+      onContextMenu={handleContextMenu}
+    >
       <canvas
         ref={canvasRef}
         style={{
@@ -139,6 +161,20 @@ export const SceneCanvas: React.FC = () => {
           outline: 'none',
         }}
       />
+
+      {/* Camera view controls */}
+      <CameraViewControls />
+
+      {/* Context menu */}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={menuItems}
+          onClose={hideContextMenu}
+        />
+      )}
+
       {camera && <CoordinateFrame camera={camera as BABYLON.ArcRotateCamera} />}
     </div>
   );

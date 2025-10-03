@@ -17,7 +17,11 @@
       "Bash(del \"c:\\Users\\georgem\\source\\repos\\kinetiCORE\\src\\scene\\CoordinateFrameWidget.ts\")",
       "Bash(npm install:*)",
       "Bash(git pull:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(git log:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npx tailwindcss init:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": []

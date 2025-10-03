@@ -29,6 +29,7 @@ import {
   Trash2,
   Edit3,
 } from 'lucide-react';
+import { ContextMenu, useNodeContextMenu } from './ContextMenu';
 import './SceneTree.css';
 
 /**
@@ -93,6 +94,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameName, setRenameName] = useState(node.name);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const { getNodeMenuItems } = useNodeContextMenu();
 
   const children = tree.getChildren(node.id);
   const hasChildren = children.length > 0;
@@ -197,6 +200,29 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
     }
   };
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ x: e.clientX, y: e.clientY });
+  };
+
+  const menuItems = contextMenu ? getNodeMenuItems(
+    node.id,
+    node.name,
+    node.type,
+    node.visible,
+    node.locked,
+    canDelete,
+    {
+      onRename: () => setIsRenaming(true),
+      onDuplicate: () => {}, // TODO: Implement duplicate
+      onDelete: () => handleDelete({} as React.MouseEvent),
+      onToggleVisibility: () => handleToggleVisibility({} as React.MouseEvent),
+      onToggleLock: () => handleToggleLock({} as React.MouseEvent),
+      onZoom: () => zoomToNode(node.id),
+    }
+  ) : [];
+
   return (
     <div className="tree-node">
       <div
@@ -204,6 +230,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
         style={{ paddingLeft: `${level * 16}px` }}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
+        onContextMenu={handleContextMenu}
         draggable={!node.locked && canDelete}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
@@ -310,6 +337,16 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
             <TreeNode key={child.id} node={child} level={level + 1} />
           ))}
         </div>
+      )}
+
+      {/* Context menu */}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={menuItems}
+          onClose={() => setContextMenu(null)}
+        />
       )}
     </div>
   );

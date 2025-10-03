@@ -9,6 +9,7 @@ import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { SceneManager } from '../../scene/SceneManager';
 import { EntityRegistry } from '../../entities/EntityRegistry';
 import type { ReferenceFrameType, CustomFrameFeatureType } from '../../core/types';
+import { XNumericInput, YNumericInput, ZNumericInput } from './NumericInput';
 import './Inspector.css';
 
 export const Inspector: React.FC = () => {
@@ -147,22 +148,6 @@ export const Inspector: React.FC = () => {
     updateNodePosition(selectedNodeId, newPos);
   };
 
-  const handlePositionIncrement = (axis: 'x' | 'y' | 'z', direction: number) => {
-    if (!selectedNodeId) return;
-    const delta = direction * posIncrement;
-
-    // Always work in local coordinates
-    let currentPos = localPos;
-    if (coordinateMode === 'world') {
-      // When in world mode, still increment local position for now
-      // TODO: Implement proper world-space increments
-      currentPos = localPos;
-    }
-
-    const newPos = { ...currentPos, [axis]: currentPos[axis] + delta };
-    updateNodePosition(selectedNodeId, newPos);
-  };
-
   const handlePositionReset = () => {
     if (!selectedNodeId) return;
     updateNodePosition(selectedNodeId, { x: 0, y: 0, z: 0 });
@@ -178,12 +163,6 @@ export const Inspector: React.FC = () => {
     updateNodeRotation(selectedNodeId, newRot);
   };
 
-  const handleRotationIncrement = (axis: 'x' | 'y' | 'z', delta: number) => {
-    if (!selectedNodeId) return;
-    const newRot = { ...rotationDegrees, [axis]: rotationDegrees[axis] + delta };
-    updateNodeRotation(selectedNodeId, newRot);
-  };
-
   const handleRotationReset = () => {
     if (!selectedNodeId) return;
     updateNodeRotation(selectedNodeId, { x: 0, y: 0, z: 0 });
@@ -196,13 +175,6 @@ export const Inspector: React.FC = () => {
     if (isNaN(numValue)) return;
 
     const newScale = { x: scale.x, y: scale.y, z: scale.z, [axis]: numValue };
-    updateNodeScale(selectedNodeId, newScale);
-  };
-
-  const handleScaleIncrement = (axis: 'x' | 'y' | 'z', delta: number) => {
-    if (!selectedNodeId) return;
-    const currentScale = { x: scale.x, y: scale.y, z: scale.z };
-    const newScale = { ...currentScale, [axis]: currentScale[axis] + delta };
     updateNodeScale(selectedNodeId, newScale);
   };
 
@@ -281,74 +253,35 @@ export const Inspector: React.FC = () => {
             <div className="transform-control-row">
               <div className="axis-control">
                 <label className="axis-label">X</label>
-                <button
-                  className="increment-button"
-                  onClick={() => handlePositionIncrement('x', -1)}
-                  title="Decrease by 10mm"
-                >
-                  -
-                </button>
-                <input
-                  type="number"
-                  value={displayPos.x.toFixed(1)}
-                  onChange={(e) => handlePositionChange('x', e.target.value)}
-                  step="1"
+                <XNumericInput
+                  value={displayPos.x}
+                  onChange={(val) => handlePositionChange('x', val.toString())}
+                  step={posIncrement}
+                  precision={1}
+                  unit="mm"
                 />
-                <button
-                  className="increment-button"
-                  onClick={() => handlePositionIncrement('x', 1)}
-                  title="Increase by 10mm"
-                >
-                  +
-                </button>
               </div>
 
               <div className="axis-control">
                 <label className="axis-label">Y</label>
-                <button
-                  className="increment-button"
-                  onClick={() => handlePositionIncrement('y', -1)}
-                  title="Decrease by 10mm"
-                >
-                  -
-                </button>
-                <input
-                  type="number"
-                  value={displayPos.y.toFixed(1)}
-                  onChange={(e) => handlePositionChange('y', e.target.value)}
-                  step="1"
+                <YNumericInput
+                  value={displayPos.y}
+                  onChange={(val) => handlePositionChange('y', val.toString())}
+                  step={posIncrement}
+                  precision={1}
+                  unit="mm"
                 />
-                <button
-                  className="increment-button"
-                  onClick={() => handlePositionIncrement('y', 1)}
-                  title="Increase by 10mm"
-                >
-                  +
-                </button>
               </div>
 
               <div className="axis-control">
                 <label className="axis-label">Z</label>
-                <button
-                  className="increment-button"
-                  onClick={() => handlePositionIncrement('z', -1)}
-                  title="Decrease by 10mm"
-                >
-                  -
-                </button>
-                <input
-                  type="number"
-                  value={displayPos.z.toFixed(1)}
-                  onChange={(e) => handlePositionChange('z', e.target.value)}
-                  step="1"
+                <ZNumericInput
+                  value={displayPos.z}
+                  onChange={(val) => handlePositionChange('z', val.toString())}
+                  step={posIncrement}
+                  precision={1}
+                  unit="mm"
                 />
-                <button
-                  className="increment-button"
-                  onClick={() => handlePositionIncrement('z', 1)}
-                  title="Increase by 10mm"
-                >
-                  +
-                </button>
               </div>
             </div>
           </div>
@@ -365,74 +298,35 @@ export const Inspector: React.FC = () => {
             <div className="transform-control-row">
               <div className="axis-control">
                 <label className="axis-label">X</label>
-                <button
-                  className="increment-button"
-                  onClick={() => handleRotationIncrement('x', -5)}
-                  title="Decrease by 5°"
-                >
-                  -
-                </button>
-                <input
-                  type="number"
-                  value={rotationDegrees.x.toFixed(1)}
-                  onChange={(e) => handleRotationChange('x', e.target.value)}
-                  step="5"
+                <XNumericInput
+                  value={rotationDegrees.x}
+                  onChange={(val) => handleRotationChange('x', val.toString())}
+                  step={5}
+                  precision={1}
+                  unit="°"
                 />
-                <button
-                  className="increment-button"
-                  onClick={() => handleRotationIncrement('x', 5)}
-                  title="Increase by 5°"
-                >
-                  +
-                </button>
               </div>
 
               <div className="axis-control">
                 <label className="axis-label">Y</label>
-                <button
-                  className="increment-button"
-                  onClick={() => handleRotationIncrement('y', -5)}
-                  title="Decrease by 5°"
-                >
-                  -
-                </button>
-                <input
-                  type="number"
-                  value={rotationDegrees.y.toFixed(1)}
-                  onChange={(e) => handleRotationChange('y', e.target.value)}
-                  step="5"
+                <YNumericInput
+                  value={rotationDegrees.y}
+                  onChange={(val) => handleRotationChange('y', val.toString())}
+                  step={5}
+                  precision={1}
+                  unit="°"
                 />
-                <button
-                  className="increment-button"
-                  onClick={() => handleRotationIncrement('y', 5)}
-                  title="Increase by 5°"
-                >
-                  +
-                </button>
               </div>
 
               <div className="axis-control">
                 <label className="axis-label">Z</label>
-                <button
-                  className="increment-button"
-                  onClick={() => handleRotationIncrement('z', -5)}
-                  title="Decrease by 5°"
-                >
-                  -
-                </button>
-                <input
-                  type="number"
-                  value={rotationDegrees.z.toFixed(1)}
-                  onChange={(e) => handleRotationChange('z', e.target.value)}
-                  step="5"
+                <ZNumericInput
+                  value={rotationDegrees.z}
+                  onChange={(val) => handleRotationChange('z', val.toString())}
+                  step={5}
+                  precision={1}
+                  unit="°"
                 />
-                <button
-                  className="increment-button"
-                  onClick={() => handleRotationIncrement('z', 5)}
-                  title="Increase by 5°"
-                >
-                  +
-                </button>
               </div>
             </div>
           </div>
@@ -449,74 +343,35 @@ export const Inspector: React.FC = () => {
             <div className="transform-control-row">
               <div className="axis-control">
                 <label className="axis-label">X</label>
-                <button
-                  className="increment-button"
-                  onClick={() => handleScaleIncrement('x', -0.1)}
-                  title="Decrease by 0.1"
-                >
-                  -
-                </button>
-                <input
-                  type="number"
-                  value={scale.x.toFixed(2)}
-                  onChange={(e) => handleScaleChange('x', e.target.value)}
-                  step="0.1"
+                <XNumericInput
+                  value={scale.x}
+                  onChange={(val) => handleScaleChange('x', val.toString())}
+                  step={0.1}
+                  precision={2}
+                  min={0.01}
                 />
-                <button
-                  className="increment-button"
-                  onClick={() => handleScaleIncrement('x', 0.1)}
-                  title="Increase by 0.1"
-                >
-                  +
-                </button>
               </div>
 
               <div className="axis-control">
                 <label className="axis-label">Y</label>
-                <button
-                  className="increment-button"
-                  onClick={() => handleScaleIncrement('y', -0.1)}
-                  title="Decrease by 0.1"
-                >
-                  -
-                </button>
-                <input
-                  type="number"
-                  value={scale.y.toFixed(2)}
-                  onChange={(e) => handleScaleChange('y', e.target.value)}
-                  step="0.1"
+                <YNumericInput
+                  value={scale.y}
+                  onChange={(val) => handleScaleChange('y', val.toString())}
+                  step={0.1}
+                  precision={2}
+                  min={0.01}
                 />
-                <button
-                  className="increment-button"
-                  onClick={() => handleScaleIncrement('y', 0.1)}
-                  title="Increase by 0.1"
-                >
-                  +
-                </button>
               </div>
 
               <div className="axis-control">
                 <label className="axis-label">Z</label>
-                <button
-                  className="increment-button"
-                  onClick={() => handleScaleIncrement('z', -0.1)}
-                  title="Decrease by 0.1"
-                >
-                  -
-                </button>
-                <input
-                  type="number"
-                  value={scale.z.toFixed(2)}
-                  onChange={(e) => handleScaleChange('z', e.target.value)}
-                  step="0.1"
+                <ZNumericInput
+                  value={scale.z}
+                  onChange={(val) => handleScaleChange('z', val.toString())}
+                  step={0.1}
+                  precision={2}
+                  min={0.01}
                 />
-                <button
-                  className="increment-button"
-                  onClick={() => handleScaleIncrement('z', 0.1)}
-                  title="Increase by 0.1"
-                >
-                  +
-                </button>
               </div>
             </div>
           </div>

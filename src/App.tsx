@@ -3,6 +3,10 @@ import { Toolbar } from './ui/components/Toolbar';
 import { SceneCanvas } from './ui/components/SceneCanvas';
 import { SceneTree } from './ui/components/SceneTree';
 import { Inspector } from './ui/components/Inspector';
+import { KeyboardShortcuts } from './ui/components/KeyboardShortcuts';
+import { QuickAddMenu } from './ui/components/QuickAddMenu';
+import { ToastNotifications } from './ui/components/ToastNotifications';
+import { LoadingIndicator } from './ui/components/LoadingIndicator';
 
 function App() {
   return (
@@ -23,6 +27,12 @@ function App() {
           <Inspector />
         </aside>
       </div>
+
+      {/* Global UI Components */}
+      <KeyboardShortcuts />
+      <QuickAddMenu />
+      <ToastNotifications />
+      <LoadingIndicator />
     </div>
   );
 }
