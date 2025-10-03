@@ -31,7 +31,13 @@ export type NodeType =
 /**
  * Joint types for kinematic devices
  */
-export type JointType = 'revolute' | 'prismatic' | 'fixed';
+export type JointType =
+  | 'revolute'    // Rotation around axis (hinge)
+  | 'prismatic'   // Linear sliding
+  | 'fixed'       // No movement (rigid connection)
+  | 'spherical'   // Ball joint (3DOF rotation)
+  | 'cylindrical' // Rotation + translation
+  | 'planar';     // 2D motion in plane
 
 /**
  * Device types for kinematic assemblies
