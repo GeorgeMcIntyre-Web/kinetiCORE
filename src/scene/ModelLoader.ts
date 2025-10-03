@@ -13,6 +13,9 @@ import { DracoCompression } from '@babylonjs/core/Meshes/Compression/dracoCompre
 // Import URDF loader
 import { loadURDFFromFile } from '../loaders/urdf/URDFLoader';
 
+// Import JT loader
+import { loadJTFromFile } from '../loaders/jt/JTLoader';
+
 // Configure Draco decoder
 DracoCompression.Configuration = {
   decoder: {
@@ -95,9 +98,9 @@ export async function loadModelFromFile(
     throw new Error('DXF import: Please use dedicated DXF import workflow');
   }
 
-  // Handle JT files (placeholder - needs JTLoader integration)
+  // Handle JT files
   if (extension === '.jt') {
-    throw new Error('JT import: Please use dedicated JT import workflow');
+    return loadJTFromFile(file, scene);
   }
 
   // Standard Babylon.js loader for other formats

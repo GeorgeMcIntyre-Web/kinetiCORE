@@ -26,7 +26,8 @@ export enum JTErrorType {
     UnsupportedVersion = 'UNSUPPORTED_VERSION',
     CorruptedFile = 'CORRUPTED_FILE',
     MissingGeometry = 'MISSING_GEOMETRY',
-    InvalidLOD = 'INVALID_LOD'
+    InvalidLOD = 'INVALID_LOD',
+    WASMNotLoaded = 'WASM_NOT_LOADED'
 }
 
 export interface JTPart {

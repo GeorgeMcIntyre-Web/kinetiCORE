@@ -9,6 +9,32 @@ import { JTImportError } from './errors';
 import { JTErrorType } from './types';
 import { convertJTToBabylonCoordinates, reverseTriangleWinding } from './coordinateConversion';
 
+/**
+ * Load JT file (placeholder implementation)
+ *
+ * @param file - JT file to load
+ * @param scene - Babylon.js scene
+ * @returns Promise resolving to loaded meshes and root nodes
+ *
+ * @throws {JTImportError} When JT Open Toolkit WASM is not available
+ */
+export async function loadJTFromFile(
+    file: File,
+    _scene: BABYLON.Scene
+): Promise<{ meshes: BABYLON.AbstractMesh[]; rootNodes: BABYLON.TransformNode[] }> {
+    throw new JTImportError(
+        JTErrorType.WASMNotLoaded,
+        `JT import requires JT Open Toolkit WASM module.\n\n` +
+        `File: ${file.name}\n\n` +
+        `To enable JT import:\n` +
+        `1. Compile JT Open Toolkit to WebAssembly (see src/loaders/jt/README.md)\n` +
+        `2. Place jt-toolkit.wasm and jt-toolkit.js in public/wasm/\n` +
+        `3. Update JTLoader.initialize() to load the WASM module\n\n` +
+        `For more details, see: docs/features_jt.md`,
+        false  // not recoverable
+    );
+}
+
 export class JTLoader {
     private jtModule: any = null;
 

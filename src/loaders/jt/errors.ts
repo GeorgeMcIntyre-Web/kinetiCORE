@@ -40,6 +40,8 @@ export class JTImportError extends Error {
                 return 'No valid geometry was found in the JT file.';
             case JTErrorType.InvalidLOD:
                 return 'The requested LOD level is not available in this file.';
+            case JTErrorType.WASMNotLoaded:
+                return 'JT import requires JT Open Toolkit WASM module. See documentation for setup instructions.';
             default:
                 return 'An unknown error occurred while importing the JT file.';
         }
