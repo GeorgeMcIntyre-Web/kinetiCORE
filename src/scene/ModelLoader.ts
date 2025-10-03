@@ -69,7 +69,7 @@ function getMimeType(extension: string): string {
 export async function loadModelFromFile(
   file: File,
   scene: BABYLON.Scene
-): Promise<BABYLON.AbstractMesh[]> {
+): Promise<{ meshes: BABYLON.AbstractMesh[]; rootNodes: BABYLON.TransformNode[] }> {
   return new Promise((resolve, reject) => {
     const extension = getFileExtension(file.name);
 
@@ -100,7 +100,7 @@ export async function loadModelFromFile(
         '',           // Root URL (using blob URL instead)
         url,          // Filename (blob URL)
         scene,
-        (meshes) => {
+        (meshes, _particleSystems, _skeletons, _animationGroups, transformNodes) => {
           // Clean up blob URL
           URL.revokeObjectURL(url);
 
@@ -113,7 +113,16 @@ export async function loadModelFromFile(
             }
           });
 
-          resolve(meshes);
+          // Find root nodes (nodes with no parent or parent not in the loaded set)
+          const allNodes = [...transformNodes, ...meshes];
+          const nodeSet = new Set(allNodes);
+          const rootNodes = allNodes.filter(node => {
+            if (!node.parent) return true;
+            if (!nodeSet.has(node.parent as BABYLON.TransformNode)) return true;
+            return false;
+          }) as BABYLON.TransformNode[];
+
+          resolve({ meshes, rootNodes });
         },
         null,         // Progress callback (optional)
         (_scene, message) => {
@@ -175,4 +184,17 @@ export function getChildMeshes(mesh: BABYLON.AbstractMesh): BABYLON.AbstractMesh
   return mesh.getChildren((node): node is BABYLON.AbstractMesh => {
     return node instanceof BABYLON.AbstractMesh;
   }, false);
+}
+
+/**
+ * Get all children (TransformNodes and Meshes)
+ * Only returns DIRECT children, filtering out duplicates
+ */
+export function getAllChildren(node: BABYLON.TransformNode): BABYLON.TransformNode[] {
+  const allChildren = node.getChildren((child): child is BABYLON.TransformNode => {
+    return child instanceof BABYLON.TransformNode;
+  }, false);
+
+  // Filter out duplicates: keep only nodes whose direct parent is the current node
+  return allChildren.filter(child => child.parent === node);
 }

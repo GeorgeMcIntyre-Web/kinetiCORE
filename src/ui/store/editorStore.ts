@@ -9,7 +9,7 @@ import { SceneManager } from '../../scene/SceneManager';
 import { EntityRegistry } from '../../entities/EntityRegistry';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { userToBabylon, babylonToUser } from '../../core/CoordinateSystem';
-import { loadModelFromFile, getRootMeshes, getChildMeshes } from '../../scene/ModelLoader';
+import { loadModelFromFile, getAllChildren } from '../../scene/ModelLoader';
 import { saveWorldToFile, loadWorldFromFile, restoreWorldState } from '../../scene/WorldSerializer';
 import { CustomFrameHelper } from '../../scene/CustomFrameHelper';
 import { CoordinateFrameWidget } from '../../scene/CoordinateFrameWidget';
@@ -308,8 +308,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const assetsNode = tree.getAssetsNode();
 
     try {
-      // Load model
-      const meshes = await loadModelFromFile(file, scene);
+      // Load model - now returns both meshes and root nodes
+      const { meshes, rootNodes } = await loadModelFromFile(file, scene);
+
+      console.log('=== GLB Import Analysis ===');
+      console.log(`Total nodes: ${rootNodes.length}`);
+      rootNodes.forEach(node => {
+        console.log(`Root: ${node.name} (${node.constructor.name})`);
+        const children = getAllChildren(node);
+        console.log(`  Children: ${children.length}`);
+        children.slice(0, 5).forEach(child => {
+          console.log(`    - ${child.name} (${child.constructor.name})`);
+        });
+      });
 
       // Create a collection for this model
       const modelName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
@@ -319,68 +330,43 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         assetsNode?.id || null
       );
 
-      // Build hierarchical tree structure
-      const rootMeshes = getRootMeshes(meshes);
+      // Recursive function - creates tree nodes for all nodes (TransformNodes and Meshes)
+      const buildTreeForNode = (node: BABYLON.TransformNode, parentNodeId: string | null, depth: number = 0): void => {
+        const isMesh = node instanceof BABYLON.Mesh;
+        const children = getAllChildren(node);
 
-      console.log('=== GLB Import Debug ===');
-      console.log(`Total meshes: ${meshes.length}, Root meshes: ${rootMeshes.length}`);
+        console.log(`${'  '.repeat(depth)}${node.name} (${node.constructor.name}) - ${children.length} children`);
 
-      // Debug: Show detailed mesh structure
-      console.log('\nFirst 10 meshes with parent/child info:');
-      meshes.slice(0, 10).forEach(mesh => {
-        const children = getChildMeshes(mesh);
-        const parentName = mesh.parent ? `${mesh.parent.name} (${mesh.parent.constructor.name})` : 'null';
-        console.log(`  ${mesh.name} (${mesh.constructor.name})`);
-        console.log(`    Parent: ${parentName}`);
-        console.log(`    Children (${children.length}): [${children.slice(0, 3).map(c => c.name).join(', ')}${children.length > 3 ? '...' : ''}]`);
-      });
-
-      console.log('\nRoot meshes detail:');
-      rootMeshes.slice(0, 3).forEach(root => {
-        const children = getChildMeshes(root);
-        console.log(`  ${root.name} (${root.constructor.name}) - ${children.length} children`);
-        children.slice(0, 3).forEach(child => {
-          const grandchildren = getChildMeshes(child);
-          console.log(`    └─ ${child.name} (${child.constructor.name}) - ${grandchildren.length} children`);
-        });
-      });
-
-      // Simple recursive function - builds tree until no more children (null)
-      const buildTreeForMesh = (mesh: BABYLON.AbstractMesh, parentNodeId: string | null): void => {
-        // Only create nodes for actual Mesh objects (skip TransformNodes)
-        if (!(mesh instanceof BABYLON.Mesh)) {
-          // TransformNode: recursively process children without creating a node
-          const children = getChildMeshes(mesh);
+        // Skip __root__ container nodes - process children directly
+        if (node.name === '__root__' || node.name.startsWith('__root')) {
           for (const child of children) {
-            buildTreeForMesh(child, parentNodeId);
+            buildTreeForNode(child, parentNodeId, depth);
           }
           return;
         }
 
-        // Create tree node for this mesh
-        const node = tree.createNode(
-          'mesh',
-          mesh.name || 'Unnamed',
+        // Create tree node
+        const treeNode = tree.createNode(
+          isMesh ? 'mesh' : 'collection',
+          node.name || 'Unnamed',
           parentNodeId,
-          babylonToUser(mesh.position)
+          babylonToUser(node.position)
         );
 
-        // Link node to mesh
-        node.babylonMeshId = mesh.uniqueId.toString();
-
-        // Recursively build tree for all children until no more children (null/empty)
-        const children = getChildMeshes(mesh);
-        if (children.length > 0) {
-          for (const child of children) {
-            buildTreeForMesh(child, node.id); // Pass this node as parent
-          }
+        // Link to mesh if applicable
+        if (isMesh) {
+          treeNode.babylonMeshId = node.uniqueId.toString();
         }
-        // Base case: no children, recursion stops naturally
+
+        // Recursively process all children
+        for (const child of children) {
+          buildTreeForNode(child, treeNode.id, depth + 1);
+        }
       };
 
-      // Build tree for each root mesh
-      for (const rootMesh of rootMeshes) {
-        buildTreeForMesh(rootMesh, modelCollection.id);
+      // Build tree starting from root nodes
+      for (const rootNode of rootNodes) {
+        buildTreeForNode(rootNode, modelCollection.id);
       }
 
       // Select the model collection
@@ -393,7 +379,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Notify tree to update
       window.dispatchEvent(new Event('scenetree-update'));
 
-      console.log(`Imported ${meshes.length} meshes with ${rootMeshes.length} root nodes`);
+      console.log(`Imported ${meshes.length} meshes with ${rootNodes.length} root nodes`);
     } catch (error) {
       console.error('Failed to import model:', error);
       alert(`Failed to import model: ${error instanceof Error ? error.message : 'Unknown error'}`);
