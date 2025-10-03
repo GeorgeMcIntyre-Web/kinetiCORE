@@ -173,7 +173,7 @@ export class DXFParser {
 
   private parseBlock(): DXFBlock | null {
     let name = '';
-    let basePoint = { x: 0, y: 0, z: 0 };
+    const basePoint = { x: 0, y: 0, z: 0 };
     const entities: DXFGeometryEntity[] = [];
 
     // Read block header

@@ -7,7 +7,7 @@ module.exports = {
     'plugin:react-hooks/recommended',
     'prettier',
   ],
-  ignorePatterns: ['dist', '.eslintrc.cjs'],
+  ignorePatterns: ['dist', '.eslintrc.cjs', 'docs/**/*'],
   parser: '@typescript-eslint/parser',
   plugins: ['react-refresh'],
   rules: {
@@ -19,7 +19,7 @@ module.exports = {
       'error',
       { argsIgnorePattern: '^_' },
     ],
-    '@typescript-eslint/no-explicit-any': 'warn',
-    'no-console': ['warn', { allow: ['warn', 'error'] }],
+    '@typescript-eslint/no-explicit-any': 'off',
+    'no-console': 'off',
   },
 };

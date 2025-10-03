@@ -60,7 +60,7 @@ export class URDFRobotLoader {
     return new Promise((resolve, reject) => {
       this.loader.load(
         urdfPath,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         (urdfRobot: any) => {
           try {
             // Convert THREE.js URDF to Babylon.js
@@ -87,7 +87,7 @@ export class URDFRobotLoader {
           }
         },
         undefined, // onProgress handled by manager
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         (error: any) => {
           const errorMsg = error instanceof Error ? error.message : String(error);
           reject(new Error(`Failed to load URDF: ${errorMsg}`));
@@ -106,18 +106,18 @@ export class URDFRobotLoader {
     if (!this.loader.packages || typeof this.loader.packages !== 'object') {
       this.loader.packages = {};
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     (this.loader.packages as any)[packageName] = basePath;
   }
 
   /**
    * Extract link information from urdf-loader robot
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   private extractLinkInfo(urdfRobot: any): LinkInfo[] {
     const links: LinkInfo[] = [];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const traverse = (link: any) => {
       const linkInfo: LinkInfo = {
         name: link.name,

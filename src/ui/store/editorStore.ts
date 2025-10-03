@@ -680,11 +680,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     try {
       switch (customFrameSelectionMode) {
-        case 'object':
+        case 'object': {
           frame = CustomFrameHelper.calculateObjectFrame(mesh, selectedNodeId || mesh.uniqueId.toString());
           break;
+        }
 
-        case 'face':
+        case 'face': {
           const faceIndex = CustomFrameHelper.findClosestFace(mesh, pickPoint);
           if (faceIndex !== null) {
             frame = CustomFrameHelper.calculateFaceFrame(
@@ -694,8 +695,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             );
           }
           break;
+        }
 
-        case 'edge':
+        case 'edge': {
           const edge = CustomFrameHelper.findClosestEdge(mesh, pickPoint);
           if (edge) {
             frame = CustomFrameHelper.calculateEdgeFrame(
@@ -706,8 +708,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             );
           }
           break;
+        }
 
-        case 'vertex':
+        case 'vertex': {
           const vertexIndex = CustomFrameHelper.findClosestVertex(mesh, pickPoint);
           if (vertexIndex !== null) {
             frame = CustomFrameHelper.calculateVertexFrame(
@@ -717,6 +720,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             );
           }
           break;
+        }
       }
 
       if (frame) {

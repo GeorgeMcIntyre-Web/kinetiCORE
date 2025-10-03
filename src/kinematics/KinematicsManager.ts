@@ -412,7 +412,7 @@ export class KinematicsManager {
       node.childIds.forEach(childId => traverse(childId));
     };
 
-(nodeId);
+    traverse(nodeId);
     return descendants;
   }
 
