@@ -6,7 +6,7 @@ import { useEditorStore } from '../store/editorStore';
 import { babylonToUser } from '../../core/CoordinateSystem';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { EntityRegistry } from '../../entities/EntityRegistry';
-import type { ReferenceFrameType, CustomFrameFeature, CustomFrameFeatureType } from '../../core/types';
+import type { ReferenceFrameType, CustomFrameFeatureType } from '../../core/types';
 import './Inspector.css';
 
 export const Inspector: React.FC = () => {

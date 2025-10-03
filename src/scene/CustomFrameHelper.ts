@@ -2,8 +2,8 @@
 // Owner: George
 
 import * as BABYLON from '@babylonjs/core';
-import type { CustomFrameFeature, CustomFrameFeatureType } from '../core/types';
-import { babylonToUser, userToBabylon } from '../core/CoordinateSystem';
+import type { CustomFrameFeature } from '../core/types';
+import { babylonToUser } from '../core/CoordinateSystem';
 
 export class CustomFrameHelper {
   /**
