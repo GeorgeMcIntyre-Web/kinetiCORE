@@ -31,6 +31,7 @@ interface EditorState {
   // Actions
   selectMesh: (mesh: BABYLON.Mesh) => void;
   selectNode: (nodeId: string) => void;
+  zoomToNode: (nodeId: string) => void;
   deselectMesh: (mesh: BABYLON.Mesh) => void;
   clearSelection: () => void;
   toggleMeshSelection: (mesh: BABYLON.Mesh) => void;
@@ -95,6 +96,31 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         if (mesh && mesh instanceof BABYLON.Mesh) {
           set({ selectedMeshes: [mesh] });
         }
+      }
+    }
+  },
+
+  zoomToNode: (nodeId) => {
+    const tree = SceneTreeManager.getInstance();
+    const node = tree.getNode(nodeId);
+    if (!node) return;
+
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    if (!scene) return;
+
+    // If it's a mesh node, zoom to the specific mesh
+    if (node.type === 'mesh' && node.babylonMeshId) {
+      const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+      if (mesh) {
+        sceneManager.zoomToMesh(mesh);
+      }
+    }
+    // If it's a collection/TransformNode, find by name and zoom to all children
+    else if (node.type === 'collection') {
+      const transformNode = scene.transformNodes.find(tn => tn.name === node.name);
+      if (transformNode) {
+        sceneManager.zoomToNode(transformNode);
       }
     }
   },
@@ -311,19 +337,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Load model - now returns both meshes and root nodes
       const { meshes, rootNodes } = await loadModelFromFile(file, scene);
 
-      console.log('=== GLB Import Analysis ===');
-      console.log(`Total nodes: ${rootNodes.length}`);
-      rootNodes.forEach(node => {
-        console.log(`Root: ${node.name} (${node.constructor.name})`);
-        const children = getAllChildren(node);
-        console.log(`  Children: ${children.length}`);
-        children.slice(0, 5).forEach(child => {
-          console.log(`    - ${child.name} (${child.constructor.name})`);
-        });
-      });
+      // Get the model name from the file
+      const modelName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
 
       // Create a collection for this model
-      const modelName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
       const modelCollection = tree.createNode(
         'collection',
         modelName,
@@ -335,10 +352,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         const isMesh = node instanceof BABYLON.Mesh;
         const children = getAllChildren(node);
 
-        console.log(`${'  '.repeat(depth)}${node.name} (${node.constructor.name}) - ${children.length} children`);
-
-        // Skip __root__ container nodes - process children directly
-        if (node.name === '__root__' || node.name.startsWith('__root')) {
+        // Skip __root__ and duplicate filename nodes - process children directly
+        if (node.name === '__root__' ||
+            node.name.startsWith('__root') ||
+            node.name === modelName) {
           for (const child of children) {
             buildTreeForNode(child, parentNodeId, depth);
           }

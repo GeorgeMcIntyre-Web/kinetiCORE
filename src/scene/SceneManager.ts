@@ -124,6 +124,15 @@ export class SceneManager {
 
     // Render loop
     this.engine.runRenderLoop(() => {
+      // Update orthographic zoom based on camera radius
+      if (this.camera && this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+        const orthoSize = this.camera.radius;
+        const aspectRatio = this.engine!.getRenderWidth() / this.engine!.getRenderHeight();
+        this.camera.orthoLeft = -orthoSize * aspectRatio;
+        this.camera.orthoRight = orthoSize * aspectRatio;
+        this.camera.orthoTop = orthoSize;
+        this.camera.orthoBottom = -orthoSize;
+      }
       this.scene?.render();
     });
 
@@ -148,6 +157,116 @@ export class SceneManager {
 
   getGround(): BABYLON.Mesh | null {
     return this.ground;
+  }
+
+  /**
+   * Zoom camera to focus on a specific mesh or node
+   */
+  zoomToMesh(mesh: BABYLON.AbstractMesh): void {
+    if (!this.camera) return;
+
+    // Get mesh bounding box
+    const boundingInfo = mesh.getBoundingInfo();
+    const boundingBox = boundingInfo.boundingBox;
+    const center = boundingBox.centerWorld;
+    const size = boundingBox.extendSizeWorld;
+
+    // Calculate required radius to fit the object
+    const maxDimension = Math.max(size.x, size.y, size.z) * 2;
+    const targetRadius = Math.max(maxDimension * 1.5, CAMERA_MIN_RADIUS);
+
+    // Animate camera to new position
+    BABYLON.Animation.CreateAndStartAnimation(
+      'zoomToMesh',
+      this.camera,
+      'radius',
+      60,
+      30,
+      this.camera.radius,
+      Math.min(targetRadius, CAMERA_MAX_RADIUS),
+      BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+    );
+
+    BABYLON.Animation.CreateAndStartAnimation(
+      'panToMesh',
+      this.camera,
+      'target',
+      60,
+      30,
+      this.camera.target,
+      center,
+      BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+    );
+  }
+
+  /**
+   * Zoom camera to focus on a TransformNode and all its visible children
+   */
+  zoomToNode(node: BABYLON.TransformNode): void {
+    if (!this.camera || !this.scene) return;
+
+    // Get all descendant meshes
+    const meshes = node.getChildMeshes(false);
+
+    if (meshes.length === 0) return;
+
+    // Calculate combined bounding box
+    let minX = Infinity, minY = Infinity, minZ = Infinity;
+    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+
+    meshes.forEach(mesh => {
+      if (!mesh.isVisible) return;
+
+      const boundingInfo = mesh.getBoundingInfo();
+      const boundingBox = boundingInfo.boundingBox;
+      const min = boundingBox.minimumWorld;
+      const max = boundingBox.maximumWorld;
+
+      minX = Math.min(minX, min.x);
+      minY = Math.min(minY, min.y);
+      minZ = Math.min(minZ, min.z);
+      maxX = Math.max(maxX, max.x);
+      maxY = Math.max(maxY, max.y);
+      maxZ = Math.max(maxZ, max.z);
+    });
+
+    // Calculate center and size
+    const center = new BABYLON.Vector3(
+      (minX + maxX) / 2,
+      (minY + maxY) / 2,
+      (minZ + maxZ) / 2
+    );
+
+    const sizeX = maxX - minX;
+    const sizeY = maxY - minY;
+    const sizeZ = maxZ - minZ;
+
+    // Calculate required radius to fit all objects
+    const maxDimension = Math.max(sizeX, sizeY, sizeZ) * 2;
+    const targetRadius = Math.max(maxDimension * 1.5, CAMERA_MIN_RADIUS);
+
+    // Animate camera to new position
+    BABYLON.Animation.CreateAndStartAnimation(
+      'zoomToNode',
+      this.camera,
+      'radius',
+      60,
+      30,
+      this.camera.radius,
+      Math.min(targetRadius, CAMERA_MAX_RADIUS),
+      BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+    );
+
+    BABYLON.Animation.CreateAndStartAnimation(
+      'panToNode',
+      this.camera,
+      'target',
+      60,
+      30,
+      this.camera.target,
+      center,
+      BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+    );
   }
 
   dispose(): void {

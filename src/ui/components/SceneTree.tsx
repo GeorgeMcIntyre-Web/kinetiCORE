@@ -84,6 +84,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
   const tree = SceneTreeManager.getInstance();
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const selectNode = useEditorStore((state) => state.selectNode);
+  const zoomToNode = useEditorStore((state) => state.zoomToNode);
   const clearSelection = useEditorStore((state) => state.clearSelection);
   const deleteNode = useEditorStore((state) => state.deleteNode);
   const renameNode = useEditorStore((state) => state.renameNode);
@@ -104,6 +105,14 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
       clearSelection();
     } else {
       selectNode(node.id);
+    }
+  };
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Zoom to mesh nodes or collection nodes (TransformNodes with children)
+    if (node.type === 'mesh' || node.type === 'collection') {
+      zoomToNode(node.id);
     }
   };
 
@@ -192,8 +201,9 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
     <div className="tree-node">
       <div
         className={`tree-node-row ${isSelected ? 'selected' : ''} ${node.locked ? 'locked' : ''} ${isDragOver ? 'drag-over' : ''}`}
-        style={{ paddingLeft: `${level * 20}px` }}
+        style={{ paddingLeft: `${level * 16}px` }}
         onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
         draggable={!node.locked && canDelete}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
@@ -217,7 +227,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
         <div className="tree-node-icon">{getNodeIcon(node.type, node.expanded)}</div>
 
         {/* Name */}
-        <div className="tree-node-name">
+        <div className="tree-node-name" title={node.name}>
           {isRenaming ? (
             <input
               type="text"

@@ -28,7 +28,7 @@
 .scene-tree-content {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
   padding: 4px 0;
 }
 
@@ -104,9 +104,8 @@
   flex: 1;
   font-size: 13px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   color: #cccccc;
+  min-width: fit-content;
 }
 
 .tree-node-count {

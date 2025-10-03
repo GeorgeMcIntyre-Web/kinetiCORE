@@ -29,7 +29,7 @@
 .content {
   flex: 1;
   display: grid;
-  grid-template-columns: 300px 1fr 320px;
+  grid-template-columns: 350px 1fr 320px;
   overflow: hidden;
 }
 
