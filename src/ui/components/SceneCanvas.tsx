@@ -4,22 +4,25 @@
 import { useEffect, useRef } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import { SceneManager } from '../../scene/SceneManager';
+import { CollisionVisualizer } from '../../scene/CollisionVisualizer';
+import { CollisionAnalyzer } from '../../scene/CollisionAnalyzer';
 import { RapierPhysicsEngine } from '../../physics/RapierPhysicsEngine';
 import { EntityRegistry } from '../../entities/EntityRegistry';
 import { TransformGizmo } from '../../manipulation/TransformGizmo';
 import { useEditorStore } from '../store/editorStore';
 import { CoordinateFrame } from './CoordinateFrame';
 
-export const SceneCanvas: React.FC = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const setCamera = useEditorStore((state) => state.setCamera);
-  const camera = useEditorStore((state) => state.camera);
-  const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
-  const transformMode = useEditorStore((state) => state.transformMode);
-  const selectMesh = useEditorStore((state) => state.selectMesh);
-  const clearSelection = useEditorStore((state) => state.clearSelection);
-  const initializeCoordinateFrameWidget = useEditorStore((state) => state.initializeCoordinateFrameWidget);
-  const gizmoRef = useRef<TransformGizmo | null>(null);
+export const SceneCanvas = () => {
+  const canvasRef = useRef(null as any);
+  const setCamera = (useEditorStore as any)((state: any) => state.setCamera);
+  const camera = (useEditorStore as any)((state: any) => state.camera);
+  const selectedMeshes = (useEditorStore as any)((state: any) => state.selectedMeshes);
+  const transformMode = (useEditorStore as any)((state: any) => state.transformMode);
+  const selectMesh = (useEditorStore as any)((state: any) => state.selectMesh);
+  const clearSelection = (useEditorStore as any)((state: any) => state.clearSelection);
+  const initializeCoordinateFrameWidget = (useEditorStore as any)((state: any) => state.initializeCoordinateFrameWidget);
+  const gizmoRef = useRef(null as any);
+  const visualizerRef = useRef(null as any);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -34,9 +37,9 @@ export const SceneCanvas: React.FC = () => {
       const camera = sceneManager.getCamera();
       const scene = sceneManager.getScene();
 
-      if (camera) {
-        setCamera(camera);
-      }
+          if (camera) {
+            setCamera(camera);
+          }
 
       if (scene) {
         // Set up physics engine in registry
@@ -66,7 +69,7 @@ export const SceneCanvas: React.FC = () => {
         gizmoRef.current = new TransformGizmo(scene);
 
         // Add click selection
-        scene.onPointerDown = (evt, pickResult) => {
+        scene.onPointerDown = (evt: any, pickResult: any) => {
           if (evt.button === 0) {
             // Left click
             if (pickResult.hit && pickResult.pickedMesh) {
@@ -99,6 +102,22 @@ export const SceneCanvas: React.FC = () => {
           // Sync all entities from physics to meshes
           registry.syncAllFromPhysics();
 
+          // Visualize collisions
+          const manifolds = (physicsEngine as any).getAllCollisions?.() || [];
+          const contacts = manifolds.flatMap((m: any) => m.contacts);
+          if (!visualizerRef.current) {
+            visualizerRef.current = new CollisionVisualizer(scene);
+          }
+          visualizerRef.current.update(contacts, manifolds);
+
+          // Optional: periodic analysis log
+          if (Math.random() < 0.016) {
+            const analysis = CollisionAnalyzer.analyze(contacts, manifolds);
+            if (analysis.totalContacts > 0) {
+              console.log(CollisionAnalyzer.generateReport(analysis));
+            }
+          }
+
           // Render scene
           scene.render();
         });
@@ -108,6 +127,7 @@ export const SceneCanvas: React.FC = () => {
     // Cleanup on unmount
     return () => {
       gizmoRef.current?.dispose();
+      visualizerRef.current?.dispose();
       physicsEngine.dispose();
       registry.clear();
       sceneManager.dispose();
@@ -139,7 +159,7 @@ export const SceneCanvas: React.FC = () => {
           outline: 'none',
         }}
       />
-      {camera && <CoordinateFrame camera={camera as BABYLON.ArcRotateCamera} />}
+      {camera && <CoordinateFrame camera={camera as any} />}
     </div>
   );
 };

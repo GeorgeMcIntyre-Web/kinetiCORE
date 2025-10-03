@@ -51,7 +51,7 @@ export type PhysicsBodyType = 'static' | 'dynamic' | 'kinematic';
 /**
  * Collider shapes
  */
-export type ColliderShape = 'box' | 'sphere' | 'cylinder' | 'capsule' | 'convexHull' | 'trimesh';
+export type ColliderShape = 'box' | 'sphere' | 'cylinder' | 'capsule' | 'convexHull' | 'trimesh' | 'compound';
 
 /**
  * Physics body descriptor

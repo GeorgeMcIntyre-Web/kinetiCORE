@@ -1,6 +1,7 @@
 import './App.css';
 import { Toolbar } from './ui/components/Toolbar';
 import { SceneCanvas } from './ui/components/SceneCanvas';
+import { CollisionInspector } from './ui/components/CollisionInspector';
 import { SceneTree } from './ui/components/SceneTree';
 import { Inspector } from './ui/components/Inspector';
 
@@ -23,6 +24,7 @@ function App() {
           <Inspector />
         </aside>
       </div>
+      <CollisionInspector />
     </div>
   );
 }

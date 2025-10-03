@@ -4,6 +4,42 @@
 
 import { Vector3, Quaternion, BodyDescriptor, RaycastHit } from '@core/types';
 
+// Advanced collision types
+export interface CollisionContact {
+  point: Vector3;
+  normal: Vector3;
+  depth: number;
+  bodyA: string;
+  bodyB: string;
+  faceIndexA?: number;
+  faceIndexB?: number;
+  timestamp: number;
+}
+
+export interface CollisionManifold {
+  bodyA: string;
+  bodyB: string;
+  contacts: CollisionContact[];
+  totalPenetration: number;
+  isNewCollision: boolean;
+  isPersistent: boolean;
+}
+
+export interface ConvexDecomposition {
+  hulls: any[];
+  hullCount: number;
+  sourceVertices: Float32Array;
+  sourceIndices: Uint32Array;
+}
+
+export interface TriMeshCollider {
+  vertices: Float32Array;
+  indices: Uint32Array;
+  normals: Float32Array;
+  triangleCount: number;
+  spatialHash: Map<string, number[]>;
+}
+
 /**
  * Abstract physics engine interface
  * Allows swapping physics engines without changing application code
@@ -66,4 +102,53 @@ export interface IPhysicsEngine {
    * Use sparingly - prefer using the abstraction methods
    */
   getWorld(): unknown;
+
+  /**
+   * Create precise triangle mesh collider from mesh data
+   */
+  createTriMeshCollider(mesh: any, descriptor: BodyDescriptor): string;
+
+  /**
+   * Create convex hull collider (faster than trimesh)
+   */
+  createConvexHullCollider(mesh: any, descriptor: BodyDescriptor): string;
+
+  /**
+   * Decompose concave mesh into multiple convex hulls
+   */
+  createCompoundConvexCollider(
+    mesh: any,
+    descriptor: BodyDescriptor,
+    maxHulls?: number
+  ): string;
+
+  /**
+   * Get ALL collision contacts for a body (not just boolean)
+   */
+  getCollisionContacts(handle: string): CollisionContact[];
+
+  /**
+   * Get detailed collision manifold between two specific bodies
+   */
+  getCollisionManifold(handleA: string, handleB: string): CollisionManifold | null;
+
+  /**
+   * Get all active collision pairs in the scene
+   */
+  getAllCollisions(): CollisionManifold[];
+
+  /**
+   * Query for potential collisions using swept volume
+   */
+  sweepTest(handle: string, direction: Vector3, distance: number): CollisionContact[];
+
+  /**
+   * Enable/disable collision between specific body pairs
+   */
+  setCollisionFilter(handleA: string, handleB: string, enabled: boolean): void;
+
+  /**
+   * Set collision layer/mask for selective collision
+   */
+  setCollisionLayer(handle: string, layer: number, mask: number): void;
 }

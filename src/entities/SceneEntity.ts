@@ -7,11 +7,11 @@ import { IPhysicsEngine } from '../physics/IPhysicsEngine';
 import { EntityMetadata, Transform } from '../core/types';
 
 export interface SceneEntityConfig {
-  mesh: BABYLON.Mesh;
+  mesh: any;
   physics?: {
     enabled: boolean;
     type?: 'static' | 'dynamic' | 'kinematic';
-    shape?: 'box' | 'sphere' | 'cylinder' | 'capsule';
+    shape?: 'box' | 'sphere' | 'cylinder' | 'capsule' | 'convexHull' | 'trimesh' | 'compound';
     mass?: number;
     // Shape-specific parameters
     dimensions?: { x: number; y: number; z: number }; // For box
@@ -25,7 +25,7 @@ export interface SceneEntityConfig {
  * SceneEntity represents a unified 3D object with synchronized mesh and physics
  */
 export class SceneEntity {
-  private mesh: BABYLON.Mesh;
+  private mesh: any;
   private physicsHandle: string | null = null;
   private physicsEngine: IPhysicsEngine | null = null;
   private metadata: EntityMetadata;
@@ -94,8 +94,20 @@ export class SceneEntity {
       bodyDescriptor.height = config.height;
     }
 
-    // Create physics body
-    this.physicsHandle = physicsEngine.createRigidBody(bodyDescriptor);
+    // Create appropriate collider based on shape
+    switch (bodyDescriptor.shape) {
+      case 'trimesh':
+        this.physicsHandle = (physicsEngine as any).createTriMeshCollider(this.mesh, bodyDescriptor);
+        break;
+      case 'convexHull':
+        this.physicsHandle = (physicsEngine as any).createConvexHullCollider(this.mesh, bodyDescriptor);
+        break;
+      case 'compound':
+        this.physicsHandle = (physicsEngine as any).createCompoundConvexCollider(this.mesh, bodyDescriptor, (config as any).maxConvexHulls || 32);
+        break;
+      default:
+        this.physicsHandle = physicsEngine.createRigidBody(bodyDescriptor);
+    }
   }
 
   /**
@@ -223,7 +235,7 @@ export class SceneEntity {
     this.syncToPhysics();
   }
 
-  getMesh(): BABYLON.Mesh {
+  getMesh(): any {
     return this.mesh;
   }
 
