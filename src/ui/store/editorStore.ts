@@ -325,13 +325,23 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       console.log('=== GLB Import Debug ===');
       console.log(`Total meshes: ${meshes.length}, Root meshes: ${rootMeshes.length}`);
 
-      // Check structure of first few meshes
+      // Debug: Show detailed mesh structure
+      console.log('\nFirst 10 meshes with parent/child info:');
+      meshes.slice(0, 10).forEach(mesh => {
+        const children = getChildMeshes(mesh);
+        const parentName = mesh.parent ? `${mesh.parent.name} (${mesh.parent.constructor.name})` : 'null';
+        console.log(`  ${mesh.name} (${mesh.constructor.name})`);
+        console.log(`    Parent: ${parentName}`);
+        console.log(`    Children (${children.length}): [${children.slice(0, 3).map(c => c.name).join(', ')}${children.length > 3 ? '...' : ''}]`);
+      });
+
+      console.log('\nRoot meshes detail:');
       rootMeshes.slice(0, 3).forEach(root => {
         const children = getChildMeshes(root);
-        console.log(`Root: ${root.name} (${root.constructor.name}) has ${children.length} children`);
+        console.log(`  ${root.name} (${root.constructor.name}) - ${children.length} children`);
         children.slice(0, 3).forEach(child => {
           const grandchildren = getChildMeshes(child);
-          console.log(`  Child: ${child.name} (${child.constructor.name}) has ${grandchildren.length} children`);
+          console.log(`    └─ ${child.name} (${child.constructor.name}) - ${grandchildren.length} children`);
         });
       });
 
