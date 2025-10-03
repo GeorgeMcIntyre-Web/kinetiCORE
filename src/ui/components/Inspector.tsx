@@ -2,9 +2,11 @@
 // Owner: Edwin
 
 import { useState, useEffect } from 'react';
+import * as BABYLON from '@babylonjs/core';
 import { useEditorStore } from '../store/editorStore';
 import { babylonToUser } from '../../core/CoordinateSystem';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
+import { SceneManager } from '../../scene/SceneManager';
 import { EntityRegistry } from '../../entities/EntityRegistry';
 import type { ReferenceFrameType, CustomFrameFeatureType } from '../../core/types';
 import './Inspector.css';
@@ -36,17 +38,17 @@ export const Inspector: React.FC = () => {
     return () => window.removeEventListener('scenetree-update', handleTreeUpdate);
   }, []);
 
-  // Poll mesh position updates (when moved by gizmos)
+  // Poll for real-time position updates (when moved by gizmos or programmatically)
   useEffect(() => {
     const intervalId = setInterval(() => {
-      if (selectedMeshes.length > 0) {
+      if (selectedNodeId) {
         forceUpdate({});
       }
     }, 100); // Update 10 times per second
     return () => clearInterval(intervalId);
-  }, [selectedMeshes]);
+  }, [selectedNodeId]);
 
-  if (selectedMeshes.length === 0) {
+  if (!selectedNodeId) {
     return (
       <div className="inspector">
         <div className="inspector-header">
@@ -59,31 +61,64 @@ export const Inspector: React.FC = () => {
     );
   }
 
-  const selectedMesh = selectedMeshes[0];
   const tree = SceneTreeManager.getInstance();
-  const node = selectedNodeId ? tree.getNode(selectedNodeId) : undefined;
+  const node = tree.getNode(selectedNodeId);
+  if (!node) {
+    return (
+      <div className="inspector">
+        <div className="inspector-header">
+          <h2>Inspector</h2>
+        </div>
+        <div className="inspector-content">
+          <p className="no-selection">Node not found</p>
+        </div>
+      </div>
+    );
+  }
+
   const registry = EntityRegistry.getInstance();
   const entity = node?.entityId ? registry.get(node.entityId) : undefined;
+  const sceneManager = SceneManager.getInstance();
+  const scene = sceneManager.getScene();
 
-  // Get local and world positions
-  const localPos = node?.position || babylonToUser(selectedMesh.position);
-  const worldPos = selectedNodeId
-    ? tree.getWorldPosition(selectedNodeId)
-    : babylonToUser(selectedMesh.position);
+  // Get the Babylon object (Mesh or TransformNode)
+  let babylonNode: BABYLON.TransformNode | null = null;
+  if (node.babylonMeshId && scene) {
+    babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+  } else if (node.type === 'collection' && scene) {
+    // Find TransformNode by name
+    babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
+  }
+
+  // Get REAL-TIME local and world positions from Babylon
+  let localPos = { x: 0, y: 0, z: 0 };
+  let worldPos = { x: 0, y: 0, z: 0 };
+  if (babylonNode) {
+    localPos = babylonToUser(babylonNode.position);
+    const worldMatrix = babylonNode.getWorldMatrix();
+    const worldPosition = worldMatrix.getTranslation();
+    worldPos = babylonToUser(worldPosition);
+  }
 
   // Choose which position to display based on mode
   const displayPos = coordinateMode === 'local' ? localPos : worldPos;
 
-  // Get rotation in degrees
-  const rotationRadians = selectedMesh.rotation;
-  const rotationDegrees = {
-    x: (rotationRadians.x * 180) / Math.PI,
-    y: (rotationRadians.y * 180) / Math.PI,
-    z: (rotationRadians.z * 180) / Math.PI,
-  };
+  // Get real-time rotation in degrees
+  let rotationDegrees = { x: 0, y: 0, z: 0 };
+  if (babylonNode) {
+    const rotationRadians = babylonNode.rotation;
+    rotationDegrees = {
+      x: (rotationRadians.x * 180) / Math.PI,
+      y: (rotationRadians.y * 180) / Math.PI,
+      z: (rotationRadians.z * 180) / Math.PI,
+    };
+  }
 
-  // Get scale
-  const scale = selectedMesh.scaling;
+  // Get real-time scale
+  let scale = { x: 1, y: 1, z: 1 };
+  if (babylonNode) {
+    scale = babylonNode.scaling;
+  }
 
   // Get current physics state
   const isPhysicsEnabled = entity?.isPhysicsEnabled() || false;
@@ -223,14 +258,12 @@ export const Inspector: React.FC = () => {
           <h3>Object</h3>
           <div className="property">
             <label>Name</label>
-            <input type="text" value={node?.name || selectedMesh.name} readOnly />
+            <input type="text" value={node.name} readOnly />
           </div>
-          {node && (
-            <div className="property">
-              <label>Type</label>
-              <input type="text" value={node.type} readOnly />
-            </div>
-          )}
+          <div className="property">
+            <label>Type</label>
+            <input type="text" value={node.type} readOnly />
+          </div>
         </div>
 
         <div className="property-group">

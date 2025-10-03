@@ -446,23 +446,30 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     // Update local position in tree
     tree.setLocalPosition(nodeId, position);
 
-    // Update Babylon mesh if it exists
-    if (node.babylonMeshId) {
-      const sceneManager = SceneManager.getInstance();
-      const scene = sceneManager.getScene();
-      if (scene) {
-        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
-        if (mesh) {
-          const babylonPos = userToBabylon(position);
-          mesh.position.copyFrom(babylonPos);
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    if (!scene) return;
 
-          // Sync to physics if entity exists
-          if (node.entityId) {
-            const registry = EntityRegistry.getInstance();
-            const entity = registry.get(node.entityId);
-            entity?.syncToPhysics();
-          }
-        }
+    const babylonPos = userToBabylon(position);
+
+    // Update Babylon node (Mesh or TransformNode)
+    let babylonNode: BABYLON.TransformNode | null = null;
+    if (node.babylonMeshId) {
+      // It's a mesh
+      babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+    } else if (node.type === 'collection') {
+      // It's a collection/TransformNode - find by name
+      babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
+    }
+
+    if (babylonNode) {
+      babylonNode.position.copyFrom(babylonPos);
+
+      // Sync to physics if entity exists (only for meshes)
+      if (node.entityId) {
+        const registry = EntityRegistry.getInstance();
+        const entity = registry.get(node.entityId);
+        entity?.syncToPhysics();
       }
     }
 
@@ -477,27 +484,31 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     // Update local rotation in tree
     tree.setLocalRotation(nodeId, rotation);
 
-    // Update Babylon mesh if it exists
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    if (!scene) return;
+
+    // Convert degrees to radians
+    const radiansX = (rotation.x * Math.PI) / 180;
+    const radiansY = (rotation.y * Math.PI) / 180;
+    const radiansZ = (rotation.z * Math.PI) / 180;
+
+    // Update Babylon node (Mesh or TransformNode)
+    let babylonNode: BABYLON.TransformNode | null = null;
     if (node.babylonMeshId) {
-      const sceneManager = SceneManager.getInstance();
-      const scene = sceneManager.getScene();
-      if (scene) {
-        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
-        if (mesh instanceof BABYLON.Mesh) {
-          // Convert degrees to radians
-          const radiansX = (rotation.x * Math.PI) / 180;
-          const radiansY = (rotation.y * Math.PI) / 180;
-          const radiansZ = (rotation.z * Math.PI) / 180;
+      babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+    } else if (node.type === 'collection') {
+      babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
+    }
 
-          mesh.rotation.set(radiansX, radiansY, radiansZ);
+    if (babylonNode) {
+      babylonNode.rotation.set(radiansX, radiansY, radiansZ);
 
-          // Sync to physics if entity exists
-          if (node.entityId) {
-            const registry = EntityRegistry.getInstance();
-            const entity = registry.get(node.entityId);
-            entity?.syncToPhysics();
-          }
-        }
+      // Sync to physics if entity exists (only for meshes)
+      if (node.entityId) {
+        const registry = EntityRegistry.getInstance();
+        const entity = registry.get(node.entityId);
+        entity?.syncToPhysics();
       }
     }
 
@@ -512,18 +523,21 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     // Update local scale in tree
     tree.setScale(nodeId, scale);
 
-    // Update Babylon mesh if it exists
-    if (node.babylonMeshId) {
-      const sceneManager = SceneManager.getInstance();
-      const scene = sceneManager.getScene();
-      if (scene) {
-        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
-        if (mesh instanceof BABYLON.Mesh) {
-          mesh.scaling.set(scale.x, scale.y, scale.z);
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    if (!scene) return;
 
-          // Note: Scaling doesn't sync to physics as it would require recreating the collider
-        }
-      }
+    // Update Babylon node (Mesh or TransformNode)
+    let babylonNode: BABYLON.TransformNode | null = null;
+    if (node.babylonMeshId) {
+      babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+    } else if (node.type === 'collection') {
+      babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
+    }
+
+    if (babylonNode) {
+      babylonNode.scaling.set(scale.x, scale.y, scale.z);
+      // Note: Scaling doesn't sync to physics as it would require recreating the collider
     }
 
     window.dispatchEvent(new Event('scenetree-update'));
