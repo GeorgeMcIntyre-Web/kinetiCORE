@@ -23,9 +23,12 @@
     "@babylonjs/gui": "^8.0.0",
     "@babylonjs/loaders": "^8.0.0",
     "@dimforge/rapier3d-compat": "^0.11.2",
+    "@types/three": "^0.180.0",
     "lucide-react": "^0.544.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "three": "^0.180.0",
+    "urdf-loader": "^0.12.6",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
