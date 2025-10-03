@@ -59,12 +59,23 @@ async function loadJTFile(file: File): Promise<BABYLON.Mesh[]> {
         
         // Convert JT tessellation to Babylon.js geometry
         const vertexData = new BABYLON.VertexData();
-        vertexData.positions = lod0.vertices;
-        vertexData.indices = lod0.indices;
-        vertexData.normals = lod0.normals || BABYLON.VertexData.ComputeNormals(
-            lod0.vertices, 
-            lod0.indices
-        );
+
+        // Apply coordinate conversion from JT (right-handed) to Babylon (left-handed)
+        vertexData.positions = convertJTToBabylonCoordinates(lod0.vertices);
+        vertexData.indices = reverseTriangleWinding(lod0.indices);
+
+        // Compute or convert normals
+        if (lod0.normals) {
+            vertexData.normals = convertJTToBabylonCoordinates(lod0.normals);
+        } else {
+            const normals: number[] = [];
+            BABYLON.VertexData.ComputeNormals(
+                vertexData.positions,
+                vertexData.indices,
+                normals
+            );
+            vertexData.normals = normals;
+        }
         
         if (lod0.uvs) {
             vertexData.uvs = lod0.uvs;
@@ -284,7 +295,7 @@ class PMIRenderer {
         );
         
         // Billboard mode to face camera
-        plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+        plane.billboardMode = BABYLON.TransformNode.BILLBOARDMODE_ALL;
         
         // Position at attachment point
         plane.position = pmi.geometry.attachmentPoints[0];
@@ -322,6 +333,478 @@ class PMIRenderer {
         return plane;
     }
 }
+```
+
+## Coordinate System Handling
+
+**JT files use right-handed Y-up coordinate system** (same as Rapier physics engine). However, Babylon.js uses left-handed Y-up, requiring Z-axis negation during import:
+
+```typescript
+function convertJTToBabylonCoordinates(jtVertices: Float32Array): Float32Array {
+    const babylonVertices = new Float32Array(jtVertices.length);
+
+    for (let i = 0; i < jtVertices.length; i += 3) {
+        babylonVertices[i] = jtVertices[i];         // X unchanged
+        babylonVertices[i + 1] = jtVertices[i + 1]; // Y unchanged
+        babylonVertices[i + 2] = -jtVertices[i + 2]; // Z negated
+    }
+
+    return babylonVertices;
+}
+
+// Also reverse triangle winding order for correct face orientation
+function reverseTriangleWinding(indices: Uint32Array): Uint32Array {
+    const reversed = new Uint32Array(indices.length);
+
+    for (let i = 0; i < indices.length; i += 3) {
+        reversed[i] = indices[i];
+        reversed[i + 1] = indices[i + 2];     // Swap last two vertices
+        reversed[i + 2] = indices[i + 1];
+    }
+
+    return reversed;
+}
+```
+
+## Error Handling and Validation
+
+**JT format versions and file corruption require robust error handling**:
+
+```typescript
+enum JTErrorType {
+    UnsupportedVersion = 'UNSUPPORTED_VERSION',
+    CorruptedFile = 'CORRUPTED_FILE',
+    MissingGeometry = 'MISSING_GEOMETRY',
+    InvalidLOD = 'INVALID_LOD'
+}
+
+class JTImportError extends Error {
+    constructor(
+        public type: JTErrorType,
+        public details: string,
+        public recoverable: boolean = false
+    ) {
+        super(`JT Import Error: ${details}`);
+    }
+}
+
+async function loadJTFileWithValidation(file: File): Promise<BABYLON.Mesh[]> {
+    const jtModule = await initJTToolkit();
+
+    try {
+        // Read file header to check version
+        const header = await this.readJTHeader(file);
+
+        if (header.version < 8.0) {
+            throw new JTImportError(
+                JTErrorType.UnsupportedVersion,
+                `JT version ${header.version} not supported. Minimum version: 8.0`,
+                false
+            );
+        }
+
+        // Load file
+        const reader = new jtModule.JTReader();
+        const result = reader.open('/input.jt');
+
+        if (!result.success) {
+            throw new JTImportError(
+                JTErrorType.CorruptedFile,
+                `Failed to parse JT file: ${result.error}`,
+                false
+            );
+        }
+
+        const assembly = reader.getSceneGraph();
+
+        // Validate assembly has geometry
+        if (!assembly.parts || assembly.parts.length === 0) {
+            throw new JTImportError(
+                JTErrorType.MissingGeometry,
+                'JT file contains no geometry data',
+                false
+            );
+        }
+
+        // Process parts with per-part error handling
+        const meshes: BABYLON.Mesh[] = [];
+        const errors: string[] = [];
+
+        for (const part of assembly.parts) {
+            try {
+                const mesh = await this.processPart(part);
+                meshes.push(mesh);
+            } catch (e) {
+                errors.push(`Failed to process part ${part.name}: ${e.message}`);
+                // Continue with other parts
+            }
+        }
+
+        if (meshes.length === 0) {
+            throw new JTImportError(
+                JTErrorType.MissingGeometry,
+                `No parts could be imported. Errors: ${errors.join(', ')}`,
+                false
+            );
+        }
+
+        if (errors.length > 0) {
+            console.warn(`Partial JT import: ${errors.length} parts failed`, errors);
+        }
+
+        return meshes;
+
+    } catch (error) {
+        if (error instanceof JTImportError) {
+            throw error;
+        }
+        throw new JTImportError(
+            JTErrorType.CorruptedFile,
+            `Unexpected error: ${error.message}`,
+            false
+        );
+    }
+}
+```
+
+## Progress Reporting for Large Assemblies
+
+**User feedback during import of 1000+ part assemblies**:
+
+```typescript
+interface JTImportProgress {
+    stage: 'loading' | 'parsing' | 'geometry' | 'materials' | 'complete';
+    partsProcessed: number;
+    totalParts: number;
+    percentComplete: number;
+    currentPart?: string;
+}
+
+class JTLoaderWithProgress {
+    async load(
+        file: File,
+        progressCallback?: (progress: JTImportProgress) => void
+    ): Promise<BABYLON.Mesh[]> {
+
+        const updateProgress = (stage: string, current: number, total: number) => {
+            if (progressCallback) {
+                progressCallback({
+                    stage: stage as any,
+                    partsProcessed: current,
+                    totalParts: total,
+                    percentComplete: Math.floor((current / total) * 100)
+                });
+            }
+        };
+
+        // Stage 1: Loading
+        updateProgress('loading', 0, 100);
+        const buffer = await file.arrayBuffer();
+
+        // Stage 2: Parsing
+        updateProgress('parsing', 0, 100);
+        const jtModule = await initJTToolkit();
+        const reader = new jtModule.JTReader();
+        await reader.open(buffer);
+
+        const assembly = reader.getSceneGraph();
+        const totalParts = assembly.parts.length;
+
+        // Stage 3: Geometry extraction
+        const meshes: BABYLON.Mesh[] = [];
+
+        for (let i = 0; i < assembly.parts.length; i++) {
+            const part = assembly.parts[i];
+
+            updateProgress('geometry', i, totalParts);
+
+            // Use requestIdleCallback for non-blocking processing
+            await this.processPartAsync(part, meshes);
+        }
+
+        // Stage 4: Materials
+        updateProgress('materials', 0, meshes.length);
+        await this.applyMaterials(meshes, (i) => {
+            updateProgress('materials', i, meshes.length);
+        });
+
+        updateProgress('complete', totalParts, totalParts);
+        return meshes;
+    }
+
+    private processPartAsync(part: JTPart, meshes: BABYLON.Mesh[]): Promise<void> {
+        return new Promise((resolve) => {
+            // Use requestIdleCallback to avoid blocking UI
+            const callback = (typeof requestIdleCallback !== 'undefined')
+                ? requestIdleCallback
+                : (cb: any) => setTimeout(cb, 0);
+
+            callback(() => {
+                const mesh = this.createMeshFromPart(part);
+                meshes.push(mesh);
+                resolve();
+            });
+        });
+    }
+}
+```
+
+## Physics Integration with kinetiCORE Architecture
+
+**Integration with George's physics abstraction layer and Cole's entity system**:
+
+```typescript
+interface JTImportOptions {
+    createPhysics?: boolean;        // Use IPhysicsEngine abstraction
+    physicsType?: 'static' | 'dynamic';
+    targetLOD?: number;              // Default LOD level (0-3)
+    loadPMI?: boolean;               // Load PMI annotations
+    loadKinematics?: boolean;        // Extract joint/constraint data
+    progressCallback?: (progress: JTImportProgress) => void;
+}
+
+class JTEntityImporter {
+    constructor(
+        private entityRegistry: EntityRegistry,
+        private physicsEngine: IPhysicsEngine
+    ) {}
+
+    async importAsEntities(
+        file: File,
+        options: JTImportOptions = {}
+    ): Promise<SceneEntity[]> {
+
+        const meshes = await this.loadJTFile(file, options);
+        const entities: SceneEntity[] = [];
+
+        for (const mesh of meshes) {
+            // Create scene entity with physics (George's architecture)
+            const entity = this.entityRegistry.create({
+                mesh: mesh,
+                physics: options.createPhysics ? {
+                    type: options.physicsType || 'static',
+                    shape: this.selectPhysicsShape(mesh),
+                    mass: options.physicsType === 'dynamic' ? 1.0 : 0
+                } : undefined
+            });
+
+            // Store JT-specific metadata
+            entity.metadata = {
+                ...entity.metadata,
+                jtPartId: mesh.metadata.jtPartId,
+                lodLevels: mesh.metadata.lodLevels,
+                pmi: mesh.metadata.pmi,
+                sourceFormat: 'jt'
+            };
+
+            entities.push(entity);
+        }
+
+        // Extract assembly constraints if available
+        if (options.loadKinematics) {
+            await this.extractKinematicConstraints(entities, file);
+        }
+
+        return entities;
+    }
+
+    private selectPhysicsShape(mesh: BABYLON.Mesh): PhysicsShapeType {
+        // For imported JT models, use appropriate collision shape
+        const bounds = mesh.getBoundingInfo();
+        const extents = bounds.boundingBox.extendSize;
+
+        // Simple heuristic: box-like objects get box collider
+        const aspectRatio = Math.max(extents.x, extents.y, extents.z) /
+                           Math.min(extents.x, extents.y, extents.z);
+
+        if (aspectRatio < 2.0) {
+            return 'box'; // Roughly cubic
+        }
+
+        // Complex geometry uses trimesh (expensive but accurate)
+        // For static objects this is acceptable
+        return 'trimesh';
+    }
+
+    private async extractKinematicConstraints(
+        entities: SceneEntity[],
+        jtFile: File
+    ): Promise<void> {
+        // JT files can store assembly constraints (joints, mates)
+        const reader = await this.openJTFile(jtFile);
+        const constraints = reader.getAssemblyConstraints();
+
+        for (const constraint of constraints) {
+            const part1 = entities.find(e => e.metadata.jtPartId === constraint.part1Id);
+            const part2 = entities.find(e => e.metadata.jtPartId === constraint.part2Id);
+
+            if (!part1 || !part2) continue;
+
+            // Create physics joint based on constraint type
+            switch (constraint.type) {
+                case 'revolute':
+                    this.physicsEngine.createRevoluteJoint(
+                        part1.physicsBody,
+                        part2.physicsBody,
+                        constraint.axis,
+                        constraint.limits
+                    );
+                    break;
+                case 'prismatic':
+                    this.physicsEngine.createPrismaticJoint(
+                        part1.physicsBody,
+                        part2.physicsBody,
+                        constraint.axis,
+                        constraint.limits
+                    );
+                    break;
+                // Additional joint types...
+            }
+        }
+    }
+}
+```
+
+## Material and Texture Handling
+
+**JT files can embed texture maps and advanced material properties**:
+
+```typescript
+async function loadJTMaterials(part: JTPart, scene: BABYLON.Scene): Promise<BABYLON.Material> {
+    const material = new BABYLON.PBRMaterial(part.name + "_mat", scene);
+
+    if (!part.material) {
+        // Default material
+        material.albedoColor = new BABYLON.Color3(0.8, 0.8, 0.8);
+        return material;
+    }
+
+    const jtMat = part.material;
+
+    // Base color
+    if (jtMat.baseColor) {
+        material.albedoColor = new BABYLON.Color3(
+            jtMat.baseColor.r,
+            jtMat.baseColor.g,
+            jtMat.baseColor.b
+        );
+    }
+
+    // PBR properties
+    material.metallic = jtMat.metallic ?? 0.0;
+    material.roughness = jtMat.roughness ?? 0.5;
+
+    // Texture maps (JT can embed textures)
+    if (jtMat.albedoTexture) {
+        const textureData = await jtMat.albedoTexture.getData();
+        material.albedoTexture = this.createTextureFromData(
+            textureData,
+            `${part.name}_albedo`,
+            scene
+        );
+    }
+
+    if (jtMat.normalMap) {
+        const normalData = await jtMat.normalMap.getData();
+        material.bumpTexture = this.createTextureFromData(
+            normalData,
+            `${part.name}_normal`,
+            scene
+        );
+    }
+
+    if (jtMat.metallicRoughnessTexture) {
+        const mrData = await jtMat.metallicRoughnessTexture.getData();
+        material.metallicTexture = this.createTextureFromData(
+            mrData,
+            `${part.name}_metallic`,
+            scene
+        );
+    }
+
+    // Transparency
+    if (jtMat.opacity !== undefined && jtMat.opacity < 1.0) {
+        material.alpha = jtMat.opacity;
+        material.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHABLEND;
+    }
+
+    return material;
+}
+
+private createTextureFromData(
+    data: ImageData,
+    name: string,
+    scene: BABYLON.Scene
+): BABYLON.Texture {
+    // Convert embedded texture data to Babylon texture
+    const canvas = document.createElement('canvas');
+    canvas.width = data.width;
+    canvas.height = data.height;
+
+    const ctx = canvas.getContext('2d')!;
+    ctx.putImageData(data, 0, 0);
+
+    const dataUrl = canvas.toDataURL();
+    return new BABYLON.Texture(dataUrl, scene);
+}
+```
+
+## Testing Strategy
+
+**Validation approach for JT import functionality**:
+
+```typescript
+// Test file recommendations:
+// - Simple single-part JT (< 1 MB) - basic validation
+// - Multi-part assembly (10-50 parts) - hierarchy testing
+// - Large assembly (500+ parts) - performance testing
+// - JT with PMI annotations - annotation extraction
+// - JT with embedded textures - material testing
+// - Different JT versions (8.0, 9.0, 10.0) - compatibility
+
+describe('JT Import', () => {
+    it('should import single-part JT file', async () => {
+        const file = await loadTestFile('test_assets/single_part.jt');
+        const meshes = await jtLoader.load(file);
+
+        expect(meshes.length).toBe(1);
+        expect(meshes[0].getTotalVertices()).toBeGreaterThan(0);
+    });
+
+    it('should preserve assembly hierarchy', async () => {
+        const file = await loadTestFile('test_assets/assembly.jt');
+        const entities = await jtImporter.importAsEntities(file);
+
+        const rootParts = entities.filter(e => !e.parent);
+        expect(rootParts.length).toBeGreaterThan(0);
+    });
+
+    it('should handle coordinate conversion correctly', async () => {
+        const jtVertices = new Float32Array([1, 2, 3]);
+        const babylonVertices = convertJTToBabylonCoordinates(jtVertices);
+
+        expect(babylonVertices[0]).toBe(1);   // X unchanged
+        expect(babylonVertices[1]).toBe(2);   // Y unchanged
+        expect(babylonVertices[2]).toBe(-3);  // Z negated
+    });
+
+    it('should extract LOD levels', async () => {
+        const file = await loadTestFile('test_assets/multi_lod.jt');
+        const meshes = await jtLoader.load(file);
+
+        expect(meshes[0].metadata.lodLevels).toBeGreaterThan(1);
+    });
+
+    it('should create physics bodies when requested', async () => {
+        const file = await loadTestFile('test_assets/single_part.jt');
+        const entities = await jtImporter.importAsEntities(file, {
+            createPhysics: true,
+            physicsType: 'static'
+        });
+
+        expect(entities[0].physicsBody).toBeDefined();
+    });
+});
 ```
 
 ## Integration with Existing Architecture
@@ -365,7 +848,7 @@ class UniversalCADLoader {
 
 ```typescript
 class JTMemoryManager {
-    private memoryBudget = 2 * 1024 * 1024 * 1024; // 2GB
+    private memoryBudget = 1.5 * 1024 * 1024 * 1024; // 1.5GB (safe browser limit)
     private currentUsage = 0;
     
     trackMesh(mesh: BABYLON.Mesh) {
