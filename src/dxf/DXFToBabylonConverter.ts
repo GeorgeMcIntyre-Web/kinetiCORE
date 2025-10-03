@@ -141,8 +141,6 @@ export class DXFToBabylonConverter {
     color: BABYLON.Color3,
     options: DXFToBabylonOptions
   ): void {
-    const baseIndex = builder.positions.length / 3;
-
     switch (entity.type) {
       case 'LINE':
         this.addLine(builder, entity, color, options.extrusionThickness);

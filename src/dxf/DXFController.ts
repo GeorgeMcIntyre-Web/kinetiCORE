@@ -23,12 +23,10 @@ export interface DXFImportResult extends DXFConversionResult {
 }
 
 export class DXFController {
-  private scene: BABYLON.Scene;
   private converter: DXFToBabylonConverter;
   private worker?: Worker;
 
   constructor(scene: BABYLON.Scene) {
-    this.scene = scene;
     this.converter = new DXFToBabylonConverter(scene);
   }
 

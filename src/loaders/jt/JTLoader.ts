@@ -116,7 +116,7 @@ export class JTLoader {
     /**
      * Read JT file header to check version
      */
-    private async readJTHeader(buffer: ArrayBuffer): Promise<JTHeader> {
+    private async readJTHeader(_buffer: ArrayBuffer): Promise<JTHeader> {
         // Placeholder - actual implementation would parse JT header
         // JT files have a specific header structure with version info
         return {
@@ -141,7 +141,7 @@ export class JTLoader {
     /**
      * Create JT reader from buffer
      */
-    private createReader(buffer: ArrayBuffer): any {
+    private createReader(_buffer: ArrayBuffer): any {
         // Placeholder - would use actual JT Open Toolkit
         throw new Error('JT reader not yet implemented');
     }

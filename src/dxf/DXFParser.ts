@@ -50,8 +50,8 @@ export class DXFParser {
 
     // Parse sections
     await this.parseHeader();
-    await this.parseTables(onProgress);
-    await this.parseBlocks(onProgress);
+    await this.parseTables();
+    await this.parseBlocks();
     await this.parseEntities(onProgress);
 
     return {
@@ -83,9 +83,7 @@ export class DXFParser {
     }
   }
 
-  private async parseTables(
-    onProgress?: (progress: DXFParseProgress) => void
-  ): Promise<void> {
+  private async parseTables(): Promise<void> {
     this.seekToSection('TABLES');
     if (this.currentIndex >= this.lines.length) return;
 
@@ -98,15 +96,13 @@ export class DXFParser {
       if (pair.code === 0 && pair.value === 'TABLE') {
         const tableName = this.readPair();
         if (tableName?.value === 'LAYER') {
-          await this.parseLayerTable(onProgress);
+          await this.parseLayerTable();
         }
       }
     }
   }
 
-  private async parseLayerTable(
-    onProgress?: (progress: DXFParseProgress) => void
-  ): Promise<void> {
+  private async parseLayerTable(): Promise<void> {
     while (this.currentIndex < this.lines.length) {
       const pair = this.readPair();
       if (!pair) break;
@@ -156,9 +152,7 @@ export class DXFParser {
     return name ? { name, color, lineType, frozen, locked: false } : null;
   }
 
-  private async parseBlocks(
-    onProgress?: (progress: DXFParseProgress) => void
-  ): Promise<void> {
+  private async parseBlocks(): Promise<void> {
     this.seekToSection('BLOCKS');
     if (this.currentIndex >= this.lines.length) return;
 

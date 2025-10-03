@@ -3,7 +3,7 @@
  */
 
 import * as BABYLON from '@babylonjs/core';
-import { JTPart, JTMaterial } from './types';
+import { JTPart } from './types';
 
 export class JTMaterialLoader {
     /**
@@ -75,7 +75,7 @@ export class JTMaterialLoader {
      */
     private createTextureFromData(
         data: ImageData,
-        name: string,
+        _name: string,
         scene: BABYLON.Scene
     ): BABYLON.Texture {
         // Convert embedded texture data to Babylon texture
