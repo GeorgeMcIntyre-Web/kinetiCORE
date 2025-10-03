@@ -21,7 +21,17 @@
       "Bash(git log:*)",
       "Bash(npm run dev:*)",
       "Bash(npx tailwindcss init:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(npx eslint:*)",
+      "Bash(awk:*)",
+      "Bash(timeout 30 npm run type-check)",
+      "Bash(echo:*)",
+      "Bash(timeout 60 npm run build)",
+      "Bash(timeout 120 npm run build)",
+      "Read(//c/Users/georgem/source/repos/kinetiCORE_data/urdf/fanuc/urdf/**)",
+      "Read(//c/Users/georgem/source/repos/kinetiCORE_data/urdf/fanuc/**)",
+      "Bash(timeout 2 sleep 1)",
+      "Bash(exit 0)"
     ],
     "deny": [],
     "ask": []

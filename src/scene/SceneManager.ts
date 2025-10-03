@@ -19,6 +19,7 @@ export class SceneManager {
   private scene: BABYLON.Scene | null = null;
   private camera: BABYLON.ArcRotateCamera | null = null;
   private ground: BABYLON.Mesh | null = null;
+  private isInitialized: boolean = false;
 
   private constructor() {}
 
@@ -33,23 +34,21 @@ export class SceneManager {
    * Initialize the Babylon.js scene
    */
   async initialize(canvas: HTMLCanvasElement): Promise<void> {
-    // Try to create WebGPU engine first, fallback to WebGL2
-    const webGPUSupported = await BABYLON.WebGPUEngine.IsSupportedAsync;
-
-    if (webGPUSupported) {
-      const webGPUEngine = new BABYLON.WebGPUEngine(canvas, {
-        antialias: true,
-        stencil: true,
-      });
-      await webGPUEngine.initAsync();
-      this.engine = webGPUEngine;
-    } else {
-      // Fallback to WebGL2
-      this.engine = new BABYLON.Engine(canvas, true, {
-        preserveDrawingBuffer: true,
-        stencil: true,
-      });
+    // Prevent double initialization (React StrictMode calls useEffect twice)
+    if (this.isInitialized || this.engine) {
+      console.log('SceneManager already initialized, skipping...');
+      return;
     }
+
+    // Mark as initializing immediately to prevent race conditions
+    this.isInitialized = true;
+
+    // Always use WebGL2 for stability (WebGPU can have driver issues)
+    this.engine = new BABYLON.Engine(canvas, true, {
+      preserveDrawingBuffer: true,
+      stencil: true,
+    });
+    console.log('Using WebGL2 engine');
 
     // Create scene
     this.scene = new BABYLON.Scene(this.engine);
@@ -276,5 +275,6 @@ export class SceneManager {
     this.engine = null;
     this.camera = null;
     this.ground = null;
+    this.isInitialized = false;
   }
 }

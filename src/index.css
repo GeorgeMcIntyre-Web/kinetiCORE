@@ -15,6 +15,13 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Animation CSS Custom Properties */
+  --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 0.15s;
+  --transition-base: 0.25s;
+  --transition-slow: 0.3s;
+  --ripple-duration: 0.6s;
 }
 
 * {
@@ -73,4 +80,111 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+/* ========================================
+   ANIMATION UTILITIES
+   ======================================== */
+
+/* Ripple Effect for Buttons */
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.3) 0%,
+    transparent 70%
+  );
+  opacity: 0;
+  transform: scale(0);
+  transition: transform var(--ripple-duration),
+              opacity var(--ripple-duration);
+  pointer-events: none;
+}
+
+.btn-ripple:active::after {
+  transform: scale(2.5);
+  opacity: 0.6;
+  transition: transform 0s, opacity 0s;
+}
+
+.btn-ripple:active::after {
+  animation: ripple var(--ripple-duration) ease-out;
+}
+
+/* Smooth Transitions - Base */
+.transition-smooth {
+  transition: all var(--transition-base) var(--transition-timing);
+}
+
+.transition-fast {
+  transition: all var(--transition-fast) var(--transition-timing);
+}
+
+.transition-slow {
+  transition: all var(--transition-slow) var(--transition-timing);
+}
+
+/* Transform-Only Transitions (60fps optimized) */
+.transition-transform {
+  transition: transform var(--transition-base) var(--transition-timing),
+              opacity var(--transition-base) var(--transition-timing);
+  will-change: transform, opacity;
+}
+
+/* Hover Effects */
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+.hover-slide-right:hover {
+  transform: translateX(2px);
+}
+
+/* Skeleton Loading */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #2a2a2a 25%,
+    #3a3a3a 50%,
+    #2a2a2a 75%
+  );
+  background-size: 200% 100%;
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+.skeleton-text {
+  height: 1em;
+  margin: 0.5em 0;
+}
+
+.skeleton-circle {
+  border-radius: 50%;
+}
+
+/* Panel Animations */
+.panel-enter {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.panel-exit {
+  animation: slideInLeft 0.3s ease-out reverse;
+}
+
+/* Focus Ring with Smooth Transition */
+.focus-ring:focus-visible {
+  outline: 2px solid #646cff;
+  outline-offset: 2px;
+  transition: outline-offset var(--transition-fast) var(--transition-timing);
 }

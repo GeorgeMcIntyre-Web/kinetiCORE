@@ -1,6 +1,6 @@
 // Model Loader - Import 3D files in various formats
 // Owner: Cole
-// Supports: glTF, GLB, OBJ, STL, Babylon
+// Supports: glTF, GLB, OBJ, STL, Babylon, DXF, JT, URDF
 
 import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
@@ -9,6 +9,9 @@ import '@babylonjs/loaders/STL';
 
 // Import Draco decoder for compressed GLB files
 import { DracoCompression } from '@babylonjs/core/Meshes/Compression/dracoCompression';
+
+// Import URDF loader
+import { loadURDFFromFile } from '../loaders/urdf/URDFLoader';
 
 // Configure Draco decoder
 DracoCompression.Configuration = {
@@ -28,6 +31,9 @@ export const SUPPORTED_FORMATS = {
   OBJ: '.obj',
   STL: '.stl',
   BABYLON: '.babylon',
+  DXF: '.dxf',
+  JT: '.jt',
+  URDF: '.urdf',
 } as const;
 
 /**
@@ -55,6 +61,9 @@ function getMimeType(extension: string): string {
     '.obj': 'text/plain',
     '.stl': 'application/octet-stream',
     '.babylon': 'application/json',
+    '.dxf': 'application/dxf',
+    '.jt': 'application/jt',
+    '.urdf': 'application/xml',
   };
   return mimeTypes[extension] || 'application/octet-stream';
 }
@@ -70,14 +79,29 @@ export async function loadModelFromFile(
   file: File,
   scene: BABYLON.Scene
 ): Promise<{ meshes: BABYLON.AbstractMesh[]; rootNodes: BABYLON.TransformNode[] }> {
+  const extension = getFileExtension(file.name);
+
+  if (!isSupportedFormat(file.name)) {
+    throw new Error(`Unsupported file format: ${extension}`);
+  }
+
+  // Handle URDF files specially (they need XML parsing)
+  if (extension === '.urdf') {
+    return loadURDFFromFile(file, scene);
+  }
+
+  // Handle DXF files (placeholder - needs DXFController integration)
+  if (extension === '.dxf') {
+    throw new Error('DXF import: Please use dedicated DXF import workflow');
+  }
+
+  // Handle JT files (placeholder - needs JTLoader integration)
+  if (extension === '.jt') {
+    throw new Error('JT import: Please use dedicated JT import workflow');
+  }
+
+  // Standard Babylon.js loader for other formats
   return new Promise((resolve, reject) => {
-    const extension = getFileExtension(file.name);
-
-    if (!isSupportedFormat(file.name)) {
-      reject(new Error(`Unsupported file format: ${extension}`));
-      return;
-    }
-
     const reader = new FileReader();
 
     reader.onload = (event) => {
@@ -154,7 +178,7 @@ export function getAcceptedFileTypes(): string {
  * Get human-readable format description
  */
 export function getFormatDescription(): string {
-  return 'glTF (.gltf, .glb), Wavefront (.obj), STL (.stl), Babylon (.babylon)';
+  return 'glTF (.gltf, .glb), Wavefront (.obj), STL (.stl), Babylon (.babylon), DXF (.dxf), JT (.jt), URDF (.urdf)';
 }
 
 /**

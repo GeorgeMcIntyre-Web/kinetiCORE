@@ -55,8 +55,11 @@ export const LoadingIndicator: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[9999]">
-      <div className="bg-gray-900 border-2 border-blue-500 rounded-lg p-8 min-w-[400px] shadow-2xl">
+    <div className="fixed inset-0 bg-black bg-opacity-60
+                    flex items-center justify-center z-[9999]
+                    animate-fade-in">
+      <div className="bg-gray-900 border-2 border-blue-500 rounded-lg
+                      p-8 min-w-[400px] shadow-2xl animate-scale-in">
         <div className="flex flex-col items-center gap-4">
           {/* Icon */}
           <div className="text-blue-400">
@@ -86,13 +89,72 @@ export const LoadingIndicator: React.FC = () => {
           {/* Spinner for indeterminate progress */}
           {progress === undefined && type === 'loading' && (
             <div className="flex gap-2 justify-center">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                   style={{ animationDelay: '0ms' }} />
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                   style={{ animationDelay: '150ms' }} />
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                   style={{ animationDelay: '300ms' }} />
             </div>
           )}
         </div>
       </div>
+    </div>
+  );
+};
+
+/**
+ * Skeleton Loading Component
+ * Use this for showing loading placeholders
+ */
+interface SkeletonProps {
+  width?: string;
+  height?: string;
+  className?: string;
+  variant?: 'text' | 'circular' | 'rectangular';
+}
+
+export const Skeleton: React.FC<SkeletonProps> = ({
+  width = '100%',
+  height = '1em',
+  className = '',
+  variant = 'rectangular',
+}) => {
+  const variantClass = {
+    text: 'skeleton-text',
+    circular: 'skeleton-circle',
+    rectangular: '',
+  }[variant];
+
+  return (
+    <div
+      className={`skeleton ${variantClass} ${className}`}
+      style={{ width, height }}
+    />
+  );
+};
+
+/**
+ * Skeleton list for tree/list loading states
+ */
+interface SkeletonListProps {
+  count?: number;
+  height?: string;
+}
+
+export const SkeletonList: React.FC<SkeletonListProps> = ({
+  count = 5,
+  height = '32px',
+}) => {
+  return (
+    <div className="space-y-2 p-4">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="flex items-center gap-2 animate-slide-up"
+             style={{ animationDelay: `${i * 50}ms` }}>
+          <Skeleton variant="circular" width="20px" height="20px" />
+          <Skeleton width="60%" height={height} />
+        </div>
+      ))}
     </div>
   );
 };

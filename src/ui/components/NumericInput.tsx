@@ -3,7 +3,7 @@
 // Location: src/ui/components/NumericInput.tsx
 
 import { useState, useRef, useEffect } from 'react';
-import { GripVertical } from 'lucide-react';
+import { ChevronsLeftRight } from 'lucide-react';
 
 interface NumericInputProps {
   value: number;
@@ -126,47 +126,71 @@ export const NumericInput: React.FC<NumericInputProps> = ({
 
   const displayValue = isEditing ? editValue : value.toFixed(precision);
 
+  // Background gradient classes for drag feedback
+  const dragGradientClasses = {
+    red: 'from-red-900/30 to-transparent',
+    green: 'from-green-900/30 to-transparent',
+    blue: 'from-blue-900/30 to-transparent',
+    default: 'from-gray-700/50 to-transparent',
+  };
+
   return (
     <div className="relative flex items-center group">
-      {/* Drag handle */}
+      {/* Drag indicator icon */}
       <div
         className={`
           absolute left-1 top-1/2 -translate-y-1/2 cursor-ew-resize
-          opacity-0 group-hover:opacity-100 transition-opacity
+          transition-opacity pointer-events-none z-10
           ${gripColorClasses[axisColor]}
           ${disabled ? 'cursor-not-allowed opacity-30' : ''}
+          ${isDragging ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'}
         `}
-        onMouseDown={handleMouseDown}
       >
-        <GripVertical size={12} />
+        <ChevronsLeftRight size={12} />
       </div>
 
-      {/* Input field */}
-      <input
-        ref={inputRef}
-        type="text"
-        value={displayValue}
-        onChange={handleInputChange}
-        onFocus={handleInputFocus}
-        onBlur={handleInputBlur}
-        onKeyDown={handleKeyDown}
-        disabled={disabled}
-        className={`
-          w-full pl-6 pr-2 py-1.5 bg-gray-800 rounded text-sm text-white
-          text-center font-mono transition-all
-          ${colorClasses[axisColor]}
-          ${isDragging ? 'bg-gray-700 select-none' : ''}
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-750'}
-          focus:outline-none focus:bg-gray-750
-        `}
-      />
+      {/* Input field with gradient background on drag */}
+      <div className="relative w-full" onMouseDown={handleMouseDown}>
+        {/* Animated gradient background */}
+        {isDragging && (
+          <div
+            className={`
+              absolute inset-0 rounded pointer-events-none
+              bg-gradient-to-r ${dragGradientClasses[axisColor]}
+              animate-pulse
+            `}
+          />
+        )}
 
-      {/* Unit label */}
-      {unit && (
-        <span className="absolute right-2 text-xs text-gray-500 pointer-events-none">
-          {unit}
-        </span>
-      )}
+        <input
+          ref={inputRef}
+          type="text"
+          value={displayValue}
+          onChange={handleInputChange}
+          onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+          className={`
+            relative w-full pl-6 pr-2 py-1.5 bg-gray-800 rounded text-sm
+            text-white text-center font-mono transition-all
+            ${colorClasses[axisColor]}
+            ${isDragging ? 'select-none' : ''}
+            ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-750'}
+            focus:outline-none focus:bg-gray-750
+          `}
+        />
+
+        {/* Unit label */}
+        {unit && (
+          <span
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs
+              text-gray-500 pointer-events-none"
+          >
+            {unit}
+          </span>
+        )}
+      </div>
     </div>
   );
 };

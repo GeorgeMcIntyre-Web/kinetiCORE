@@ -4,6 +4,7 @@
   display: flex;
   flex-direction: column;
   border-left: 1px solid #333;
+  animation: slideInRight 0.3s ease-out;
 }
 
 .inspector-header {
@@ -32,6 +33,7 @@
 
 .property-group {
   margin-bottom: 0.4rem;
+  animation: slideUp 0.2s ease-out;
 }
 
 .property-group h3 {
@@ -125,7 +127,9 @@
   border: none;
   border-radius: 2px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
 
 .button-group button:hover {
@@ -359,4 +363,89 @@
 
 .axis-control input[type='number'] {
   -moz-appearance: textfield;
+}
+
+/* Transform Preset Buttons */
+.transform-presets {
+  display: flex;
+  gap: 0.2rem;
+  margin-bottom: 0.3rem;
+}
+
+.preset-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.25rem 0.3rem;
+  background-color: #2a2a2a;
+  color: #aaa;
+  border: 1px solid #444;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.65rem;
+  transition: all 0.2s;
+}
+
+.preset-btn:hover {
+  background-color: #333;
+  color: #fff;
+  border-color: #555;
+  transform: translateY(-1px);
+}
+
+.preset-btn:active {
+  transform: translateY(0);
+  background-color: #444;
+}
+
+/* Quick Rotation Section */
+.quick-rotation-section {
+  margin-top: 0.3rem;
+  padding-top: 0.3rem;
+  border-top: 1px solid #333;
+}
+
+.quick-rotation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.2rem;
+}
+
+.quick-rotation-label {
+  font-size: 0.6rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+}
+
+.quick-rotation-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.15rem;
+}
+
+.quick-angle-btn {
+  padding: 0.2rem 0.3rem;
+  background-color: #2a2a2a;
+  color: #aaa;
+  border: 1px solid #444;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.65rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.quick-angle-btn:hover {
+  background-color: #646cff;
+  color: #fff;
+  border-color: #646cff;
+  transform: scale(1.05);
+}
+
+.quick-angle-btn:active {
+  transform: scale(0.98);
 }

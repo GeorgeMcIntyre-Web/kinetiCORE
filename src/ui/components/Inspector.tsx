@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import * as BABYLON from '@babylonjs/core';
+import { RotateCcw, AlignCenter, Grid3x3 } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import { babylonToUser } from '../../core/CoordinateSystem';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
@@ -95,10 +96,31 @@ export const Inspector: React.FC = () => {
   let localPos = { x: 0, y: 0, z: 0 };
   let worldPos = { x: 0, y: 0, z: 0 };
   if (babylonNode) {
-    localPos = babylonToUser(babylonNode.position);
-    const worldMatrix = babylonNode.getWorldMatrix();
-    const worldPosition = worldMatrix.getTranslation();
-    worldPos = babylonToUser(worldPosition);
+    // Check if this is a URDF mesh (uses native Babylon Y-up coordinates)
+    const isURDFMesh = babylonNode.metadata?.isURDFMesh || babylonNode.metadata?.coordinateSystem === 'babylon-native';
+
+    if (isURDFMesh) {
+      // URDF objects use Babylon's native Y-up coordinates, no axis conversion needed
+      // Just convert meters to millimeters
+      localPos = {
+        x: babylonNode.position.x * 1000,
+        y: babylonNode.position.y * 1000,
+        z: babylonNode.position.z * 1000,
+      };
+      const worldMatrix = babylonNode.getWorldMatrix();
+      const worldPosition = worldMatrix.getTranslation();
+      worldPos = {
+        x: worldPosition.x * 1000,
+        y: worldPosition.y * 1000,
+        z: worldPosition.z * 1000,
+      };
+    } else {
+      // Regular kinetiCORE objects: convert from Babylon Y-up to User Z-up
+      localPos = babylonToUser(babylonNode.position);
+      const worldMatrix = babylonNode.getWorldMatrix();
+      const worldPosition = worldMatrix.getTranslation();
+      worldPos = babylonToUser(worldPosition);
+    }
   }
 
   // Choose which position to display based on mode
@@ -153,6 +175,23 @@ export const Inspector: React.FC = () => {
     updateNodePosition(selectedNodeId, { x: 0, y: 0, z: 0 });
   };
 
+  const handleCenterPosition = () => {
+    if (!selectedNodeId) return;
+    // Center the object in world space (0,0,0)
+    updateNodePosition(selectedNodeId, { x: 0, y: 0, z: 0 });
+  };
+
+  const handleSnapToGrid = () => {
+    if (!selectedNodeId) return;
+    const gridSize = 100; // 100mm grid
+    const snappedPos = {
+      x: Math.round(displayPos.x / gridSize) * gridSize,
+      y: Math.round(displayPos.y / gridSize) * gridSize,
+      z: Math.round(displayPos.z / gridSize) * gridSize,
+    };
+    updateNodePosition(selectedNodeId, snappedPos);
+  };
+
   // Rotation handlers
   const handleRotationChange = (axis: 'x' | 'y' | 'z', value: string) => {
     if (!selectedNodeId) return;
@@ -166,6 +205,12 @@ export const Inspector: React.FC = () => {
   const handleRotationReset = () => {
     if (!selectedNodeId) return;
     updateNodeRotation(selectedNodeId, { x: 0, y: 0, z: 0 });
+  };
+
+  const handleQuickRotation = (axis: 'x' | 'y' | 'z', angle: number) => {
+    if (!selectedNodeId) return;
+    const newRot = { ...rotationDegrees, [axis]: angle };
+    updateNodeRotation(selectedNodeId, newRot);
   };
 
   // Scale handlers
@@ -245,8 +290,33 @@ export const Inspector: React.FC = () => {
           <div className="transform-section">
             <div className="transform-section-header">
               <label>Position (mm)</label>
-              <button className="reset-button" onClick={handlePositionReset} title="Reset to origin">
+            </div>
+
+            {/* Transform Presets */}
+            <div className="transform-presets">
+              <button
+                className="preset-btn"
+                onClick={handlePositionReset}
+                title="Reset position to origin (0,0,0)"
+              >
+                <RotateCcw size={14} />
                 Reset
+              </button>
+              <button
+                className="preset-btn"
+                onClick={handleCenterPosition}
+                title="Center object at world origin"
+              >
+                <AlignCenter size={14} />
+                Center
+              </button>
+              <button
+                className="preset-btn"
+                onClick={handleSnapToGrid}
+                title="Snap to nearest 100mm grid point"
+              >
+                <Grid3x3 size={14} />
+                Snap
               </button>
             </div>
 
@@ -290,9 +360,6 @@ export const Inspector: React.FC = () => {
           <div className="transform-section">
             <div className="transform-section-header">
               <label>Rotation (degrees)</label>
-              <button className="reset-button" onClick={handleRotationReset} title="Reset to zero">
-                Reset
-              </button>
             </div>
 
             <div className="transform-control-row">
@@ -327,6 +394,50 @@ export const Inspector: React.FC = () => {
                   precision={1}
                   unit="°"
                 />
+              </div>
+            </div>
+
+            {/* Quick Rotation Angles */}
+            <div className="quick-rotation-section">
+              <div className="quick-rotation-header">
+                <label className="quick-rotation-label">Quick angles:</label>
+                <button
+                  className="reset-button"
+                  onClick={handleRotationReset}
+                  title="Reset all rotations to 0°"
+                >
+                  Reset
+                </button>
+              </div>
+              <div className="quick-rotation-grid">
+                <button
+                  className="quick-angle-btn"
+                  onClick={() => handleQuickRotation('z', 0)}
+                  title="Set Z rotation to 0°"
+                >
+                  0°
+                </button>
+                <button
+                  className="quick-angle-btn"
+                  onClick={() => handleQuickRotation('z', 45)}
+                  title="Set Z rotation to 45°"
+                >
+                  45°
+                </button>
+                <button
+                  className="quick-angle-btn"
+                  onClick={() => handleQuickRotation('z', 90)}
+                  title="Set Z rotation to 90°"
+                >
+                  90°
+                </button>
+                <button
+                  className="quick-angle-btn"
+                  onClick={() => handleQuickRotation('z', 180)}
+                  title="Set Z rotation to 180°"
+                >
+                  180°
+                </button>
               </div>
             </div>
           </div>

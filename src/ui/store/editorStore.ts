@@ -10,6 +10,7 @@ import { EntityRegistry } from '../../entities/EntityRegistry';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { userToBabylon, babylonToUser } from '../../core/CoordinateSystem';
 import { loadModelFromFile, getAllChildren } from '../../scene/ModelLoader';
+import { loadURDFWithMeshes } from '../../loaders/urdf/URDFLoaderWithMeshes';
 import { saveWorldToFile, loadWorldFromFile, restoreWorldState } from '../../scene/WorldSerializer';
 import { CustomFrameHelper } from '../../scene/CustomFrameHelper';
 import { CoordinateFrameWidget } from '../../scene/CoordinateFrameWidget';
@@ -49,6 +50,7 @@ interface EditorState {
   togglePlayback: () => void;
   createObject: (type: ObjectType) => void;
   importModel: (file: File) => Promise<void>;
+  importURDFFolder: (files: File[]) => Promise<void>;
   updateNodePosition: (nodeId: string, position: { x: number; y: number; z: number }) => void;
   updateNodeRotation: (nodeId: string, rotation: { x: number; y: number; z: number }) => void;
   updateNodeScale: (nodeId: string, scale: { x: number; y: number; z: number }) => void;
@@ -421,6 +423,20 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const { meshes, rootNodes } = await loadModelFromFile(file, scene);
       loading.update('Processing geometry...', 50);
 
+      // Check if this is a URDF robot with missing meshes
+      const isURDF = file.name.endsWith('.urdf');
+      if (isURDF && rootNodes.length > 0) {
+        const robotRoot = rootNodes[0];
+        const requiredMeshes = robotRoot.metadata?.requiredMeshFiles;
+
+        if (requiredMeshes && requiredMeshes.length > 0) {
+          toast.warning(
+            `URDF loaded with ${requiredMeshes.length} placeholder(s). ` +
+            `Check console for mesh file paths.`
+          );
+        }
+      }
+
       // Get the model name from the file
       const modelName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
 
@@ -447,11 +463,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         }
 
         // Create tree node
+        // Check if this is a URDF object (uses Babylon native coordinates)
+        const isURDF = node.metadata?.isURDFMesh || node.metadata?.coordinateSystem === 'babylon-native';
+        const position = isURDF
+          ? { x: node.position.x * 1000, y: node.position.y * 1000, z: node.position.z * 1000 }  // Just convert meters to mm
+          : babylonToUser(node.position);  // Full conversion with axis swap
+
         const treeNode = tree.createNode(
           isMesh ? 'mesh' : 'collection',
           node.name || 'Unnamed',
           parentNodeId,
-          babylonToUser(node.position)
+          position
         );
 
         // Link to mesh if applicable
@@ -488,6 +510,107 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       loading.end();
       console.error('Failed to import model:', error);
       toast.error(`Failed to import ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  },
+
+  // Import URDF folder with mesh files
+  importURDFFolder: async (files: File[]) => {
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    if (!scene) return;
+
+    const tree = SceneTreeManager.getInstance();
+    const assetsNode = tree.getAssetsNode();
+
+    loading.start('Loading URDF folder...', 'uploading');
+
+    try {
+      // Find the URDF file
+      const urdfFile = files.find(f => f.name.endsWith('.urdf'));
+      if (!urdfFile) {
+        throw new Error('No URDF file found in selected folder');
+      }
+
+      console.log(`Found URDF: ${urdfFile.name}`);
+      console.log(`Total files: ${files.length}`);
+
+      // Load URDF with meshes
+      const { meshes, rootNodes } = await loadURDFWithMeshes(urdfFile, files, scene);
+      loading.update('Processing geometry...', 50);
+
+      // Get the model name from the file
+      const modelName = urdfFile.name.substring(0, urdfFile.name.lastIndexOf('.')) || urdfFile.name;
+
+      // Create a collection for this model
+      const modelCollection = tree.createNode(
+        'collection',
+        modelName,
+        assetsNode?.id || null
+      );
+
+      // Recursive function - creates tree nodes for all nodes (TransformNodes and Meshes)
+      const buildTreeForNode = (node: BABYLON.TransformNode, parentNodeId: string | null, depth: number = 0): void => {
+        const isMesh = node instanceof BABYLON.Mesh;
+        const children = getAllChildren(node);
+
+        // Skip __root__ and duplicate filename nodes - process children directly
+        if (node.name === '__root__' ||
+            node.name.startsWith('__root') ||
+            node.name === modelName) {
+          for (const child of children) {
+            buildTreeForNode(child, parentNodeId, depth);
+          }
+          return;
+        }
+
+        // Create tree node
+        // Check if this is a URDF object (uses Babylon native coordinates)
+        const isURDF = node.metadata?.isURDFMesh || node.metadata?.coordinateSystem === 'babylon-native';
+        const position = isURDF
+          ? { x: node.position.x * 1000, y: node.position.y * 1000, z: node.position.z * 1000 }  // Just convert meters to mm
+          : babylonToUser(node.position);  // Full conversion with axis swap
+
+        const treeNode = tree.createNode(
+          isMesh ? 'mesh' : 'collection',
+          node.name || 'Unnamed',
+          parentNodeId,
+          position
+        );
+
+        // Link to mesh if applicable
+        if (isMesh) {
+          treeNode.babylonMeshId = node.uniqueId.toString();
+        }
+
+        // Recursively process all children
+        for (const child of children) {
+          buildTreeForNode(child, treeNode.id, depth + 1);
+        }
+      };
+
+      // Build tree starting from root nodes
+      for (const rootNode of rootNodes) {
+        buildTreeForNode(rootNode, modelCollection.id);
+      }
+
+      // Select the model collection
+      get().clearSelection();
+      get().selectNode(modelCollection.id);
+
+      // Expand the collection to show contents
+      tree.toggleExpanded(modelCollection.id);
+
+      // Notify tree to update
+      window.dispatchEvent(new Event('scenetree-update'));
+
+      loading.update('Finalizing...', 90);
+      loading.end();
+      toast.success(`Imported URDF robot with ${meshes.length} meshes`);
+      console.log(`Imported ${meshes.length} meshes with ${rootNodes.length} root nodes`);
+    } catch (error) {
+      loading.end();
+      console.error('Failed to import URDF folder:', error);
+      toast.error(`Failed to import URDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },
 

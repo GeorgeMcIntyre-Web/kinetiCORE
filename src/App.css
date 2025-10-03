@@ -9,41 +9,119 @@
 
 .header {
   background-color: #1a1a1a;
-  padding: 0.75rem 2rem;
+  padding: 0.5rem 1.5rem;
   border-bottom: 2px solid #646cff;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
 }
 
 .header h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   color: #646cff;
   font-weight: 700;
 }
 
 .header p {
-  margin: 0.25rem 0 0 0;
+  margin: 0;
   color: #888;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
 }
 
 .content {
   flex: 1;
-  display: grid;
-  grid-template-columns: 350px 1fr 320px;
   overflow: hidden;
+  position: relative;
 }
 
-.sidebar-left {
+/* Resizable Panel Styles */
+.panel-left,
+.panel-right {
   background-color: #1a1a1a;
   overflow: hidden;
 }
 
-.viewport {
+/* Resize Handle Styles */
+.resize-handle {
+  position: relative;
   background-color: #0a0a0a;
-  overflow: hidden;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.sidebar-right {
-  background-color: #1a1a1a;
-  overflow: hidden;
+.resize-handle-vertical {
+  width: 4px;
+  cursor: col-resize;
+}
+
+.resize-handle-vertical::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 40px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    #646cff 50%,
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  border-radius: 2px;
+}
+
+.resize-handle:hover {
+  background-color: #646cff;
+}
+
+.resize-handle-vertical:hover::after {
+  opacity: 0.5;
+}
+
+.resize-handle[data-resize-handle-active] {
+  background-color: #646cff;
+}
+
+.resize-handle-vertical[data-resize-handle-active]::after {
+  opacity: 0.8;
+}
+
+/* Panel Collapse Button */
+.panel-collapse-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 48px;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #888;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10;
+}
+
+.resize-handle:hover .panel-collapse-btn {
+  opacity: 1;
+}
+
+.panel-collapse-btn:hover {
+  background: #646cff;
+  color: #fff;
+  border-color: #646cff;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.panel-collapse-btn:active {
+  transform: translate(-50%, -50%) scale(0.95);
 }

@@ -1,7 +1,7 @@
 // Scene Tree - Hierarchical view of scene objects
 // Owner: Edwin
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useEditorStore } from '../store/editorStore';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import type { SceneNode, NodeType } from '../../scene/SceneTreeNode';
@@ -28,8 +28,13 @@ import {
   Unlock,
   Trash2,
   Edit3,
+  Search,
+  X,
+  Layers,
+  Anchor,
 } from 'lucide-react';
 import { ContextMenu, useNodeContextMenu } from './ContextMenu';
+import { EntityRegistry } from '../../entities/EntityRegistry';
 import './SceneTree.css';
 
 /**
@@ -74,14 +79,98 @@ function getNodeIcon(type: NodeType, expanded?: boolean): React.ReactNode {
 }
 
 /**
+ * Get status badges for a node
+ */
+function getNodeStatusBadges(node: SceneNode): JSX.Element[] {
+  const badges: JSX.Element[] = [];
+  const registry = EntityRegistry.getInstance();
+
+  // Check if node has an entity with physics enabled
+  if (node.entityId) {
+    const entity = registry.get(node.entityId);
+    if (entity && entity.isPhysicsEnabled()) {
+      badges.push(
+        <span key="physics" className="status-badge physics" title="Physics enabled">
+          P
+        </span>
+      );
+    }
+  }
+
+  // Check if node is grounded (kinematic)
+  if (node.type === 'link' && node.linkData) {
+    badges.push(
+      <span key="grounded" className="status-badge grounded" title="Grounded">
+        <Anchor size={10} />
+      </span>
+    );
+  }
+
+  // Check if node has constraints/joints
+  if (node.type === 'joint' || node.jointData) {
+    badges.push(
+      <span key="constraint" className="status-badge constraint" title="Constrained">
+        <Layers size={10} />
+      </span>
+    );
+  }
+
+  return badges;
+}
+
+/**
+ * Filter nodes based on search term (recursive)
+ */
+function nodeMatchesSearch(node: SceneNode, searchTerm: string): boolean {
+  if (!searchTerm) return true;
+
+  const lowerSearch = searchTerm.toLowerCase();
+
+  // Check node name
+  if (node.name.toLowerCase().includes(lowerSearch)) {
+    return true;
+  }
+
+  // Check node type
+  if (node.type.toLowerCase().includes(lowerSearch)) {
+    return true;
+  }
+
+  // Check tags
+  if (node.tags?.some(tag => tag.toLowerCase().includes(lowerSearch))) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Check if node or any of its children match search
+ */
+function nodeOrChildrenMatchSearch(
+  node: SceneNode,
+  searchTerm: string,
+  tree: SceneTreeManager
+): boolean {
+  if (nodeMatchesSearch(node, searchTerm)) {
+    return true;
+  }
+
+  // Check children
+  const children = tree.getChildren(node.id);
+  return children.some(child => nodeOrChildrenMatchSearch(child, searchTerm, tree));
+}
+
+/**
  * Tree node component (recursive)
  */
 interface TreeNodeProps {
   node: SceneNode;
   level: number;
+  searchTerm: string;
 }
 
-const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
+const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm }) => {
   const tree = SceneTreeManager.getInstance();
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const selectNode = useEditorStore((state) => state.selectNode);
@@ -100,7 +189,21 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
   const children = tree.getChildren(node.id);
   const hasChildren = children.length > 0;
   const isSelected = selectedNodeId === node.id;
-  const canDelete = node.type !== 'world' && node.type !== 'scene' && node.type !== 'system';
+  const canDelete = node.type !== 'world' &&
+                    node.type !== 'scene' &&
+                    node.type !== 'system';
+
+  // Filter visibility based on search
+  const shouldShow = nodeOrChildrenMatchSearch(node, searchTerm, tree);
+  const isHighlighted = searchTerm && nodeMatchesSearch(node, searchTerm);
+
+  // Get status badges
+  const statusBadges = useMemo(() => getNodeStatusBadges(node), [node]);
+
+  // Don't render if filtered out by search
+  if (!shouldShow) {
+    return null;
+  }
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -226,7 +329,11 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
   return (
     <div className="tree-node">
       <div
-        className={`tree-node-row ${isSelected ? 'selected' : ''} ${node.locked ? 'locked' : ''} ${isDragOver ? 'drag-over' : ''}`}
+        className={`tree-node-row
+          ${isSelected ? 'selected' : ''}
+          ${node.locked ? 'locked' : ''}
+          ${isDragOver ? 'drag-over' : ''}
+          ${isHighlighted ? 'highlighted' : ''}`}
         style={{ paddingLeft: `${level * 16}px` }}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
@@ -281,6 +388,11 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
             <>
               {node.name}
               {hasChildren && <span className="tree-node-count">({children.length})</span>}
+              {statusBadges.length > 0 && (
+                <div className="tree-node-badges">
+                  {statusBadges}
+                </div>
+              )}
             </>
           )}
         </div>
@@ -334,7 +446,12 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
       {hasChildren && node.expanded && (
         <div className="tree-node-children">
           {children.map((child) => (
-            <TreeNode key={child.id} node={child} level={level + 1} />
+            <TreeNode
+              key={child.id}
+              node={child}
+              level={level + 1}
+              searchTerm={searchTerm}
+            />
           ))}
         </div>
       )}
@@ -357,8 +474,12 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level }) => {
  */
 export const SceneTree: React.FC = () => {
   const [, forceUpdate] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
   const tree = SceneTreeManager.getInstance();
   const rootNode = tree.getRootNode();
+  const createCollection = useEditorStore((state) => state.createCollection);
+  const deleteNode = useEditorStore((state) => state.deleteNode);
 
   // Listen for tree updates
   useEffect(() => {
@@ -371,6 +492,47 @@ export const SceneTree: React.FC = () => {
       window.removeEventListener('scenetree-update', handleUpdate);
     };
   }, [tree]);
+
+  // Handle Ctrl+F to focus search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        const searchInput = document.querySelector('.scene-tree-search input');
+        if (searchInput instanceof HTMLInputElement) {
+          searchInput.focus();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+  };
+
+  const handleGroupSelected = () => {
+    if (selectedNodes.length > 1) {
+      createCollection(`Group_${Date.now()}`);
+      setSelectedNodes([]);
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedNodes.length > 0) {
+      const confirmed = window.confirm(
+        `Delete ${selectedNodes.length} selected items?`
+      );
+      if (confirmed) {
+        selectedNodes.forEach(nodeId => deleteNode(nodeId));
+        setSelectedNodes([]);
+      }
+    }
+  };
 
   if (!rootNode) {
     return (
@@ -390,8 +552,50 @@ export const SceneTree: React.FC = () => {
       <div className="scene-tree-header">
         <h2>Scene</h2>
       </div>
+
+      {/* Search bar */}
+      <div className="scene-tree-search">
+        <Search size={16} className="search-icon" />
+        <input
+          type="text"
+          placeholder="Search scene (Ctrl+F)"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        {searchTerm && (
+          <button
+            className="clear-search"
+            onClick={handleClearSearch}
+            title="Clear search"
+          >
+            <X size={16} />
+          </button>
+        )}
+      </div>
+
+      {/* Bulk operations panel */}
+      {selectedNodes.length > 1 && (
+        <div className="bulk-operations">
+          <span className="bulk-count">{selectedNodes.length} items selected</span>
+          <div className="bulk-actions">
+            <button onClick={handleGroupSelected} title="Group selected items">
+              <Layers size={14} />
+              Group
+            </button>
+            <button
+              onClick={handleDeleteSelected}
+              title="Delete selected items"
+              className="delete-btn"
+            >
+              <Trash2 size={14} />
+              Delete
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="scene-tree-content">
-        <TreeNode node={rootNode} level={0} />
+        <TreeNode node={rootNode} level={0} searchTerm={searchTerm} />
       </div>
     </div>
   );
