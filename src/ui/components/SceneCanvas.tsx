@@ -18,6 +18,7 @@ export const SceneCanvas: React.FC = () => {
   const transformMode = useEditorStore((state) => state.transformMode);
   const selectMesh = useEditorStore((state) => state.selectMesh);
   const clearSelection = useEditorStore((state) => state.clearSelection);
+  const initializeCoordinateFrameWidget = useEditorStore((state) => state.initializeCoordinateFrameWidget);
   const gizmoRef = useRef<TransformGizmo | null>(null);
 
   useEffect(() => {
@@ -57,6 +58,9 @@ export const SceneCanvas: React.FC = () => {
             },
           });
         }
+
+        // Initialize coordinate frame widget for TransformNode visualization
+        initializeCoordinateFrameWidget();
 
         // Create transform gizmo
         gizmoRef.current = new TransformGizmo(scene);
@@ -108,7 +112,7 @@ export const SceneCanvas: React.FC = () => {
       registry.clear();
       sceneManager.dispose();
     };
-  }, [setCamera, selectMesh, clearSelection]);
+  }, [setCamera, selectMesh, clearSelection, initializeCoordinateFrameWidget]);
 
   // Update gizmo when selection or mode changes
   useEffect(() => {

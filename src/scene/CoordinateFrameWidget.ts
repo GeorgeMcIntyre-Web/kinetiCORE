@@ -14,6 +14,9 @@ export class CoordinateFrameWidget {
   private xArrowHead: BABYLON.Mesh | null = null;
   private yArrowHead: BABYLON.Mesh | null = null;
   private zArrowHead: BABYLON.Mesh | null = null;
+  private xLabel: BABYLON.Mesh | null = null;
+  private yLabel: BABYLON.Mesh | null = null;
+  private zLabel: BABYLON.Mesh | null = null;
 
   constructor(scene: BABYLON.Scene) {
     this.scene = scene;
@@ -48,6 +51,10 @@ export class CoordinateFrameWidget {
     this.xArrowHead = this.createArrowHead(xAxis.scale(axisLength), xAxis, new BABYLON.Color3(1, 0, 0));
     this.xArrowHead.parent = this.rootNode;
 
+    // X-axis label
+    this.xLabel = this.createLabel(xAxis.scale(axisLength * 1.2), 'X', new BABYLON.Color3(1, 0, 0));
+    this.xLabel.parent = this.rootNode;
+
     // Y-axis (Green)
     this.yAxisLine = this.createAxisLine(
       BABYLON.Vector3.Zero(),
@@ -59,6 +66,10 @@ export class CoordinateFrameWidget {
     this.yArrowHead = this.createArrowHead(yAxis.scale(axisLength), yAxis, new BABYLON.Color3(0, 1, 0));
     this.yArrowHead.parent = this.rootNode;
 
+    // Y-axis label
+    this.yLabel = this.createLabel(yAxis.scale(axisLength * 1.2), 'Y', new BABYLON.Color3(0, 1, 0));
+    this.yLabel.parent = this.rootNode;
+
     // Z-axis (Blue)
     this.zAxisLine = this.createAxisLine(
       BABYLON.Vector3.Zero(),
@@ -69,6 +80,10 @@ export class CoordinateFrameWidget {
 
     this.zArrowHead = this.createArrowHead(zAxis.scale(axisLength), zAxis, new BABYLON.Color3(0, 0, 1));
     this.zArrowHead.parent = this.rootNode;
+
+    // Z-axis label
+    this.zLabel = this.createLabel(zAxis.scale(axisLength * 1.2), 'Z', new BABYLON.Color3(0, 0, 1));
+    this.zLabel.parent = this.rootNode;
 
     // Make widget always render on top
     [this.xAxisLine, this.yAxisLine, this.zAxisLine].forEach((line) => {
@@ -82,6 +97,13 @@ export class CoordinateFrameWidget {
       if (arrow) {
         arrow.renderingGroupId = 3;
         arrow.isPickable = false;
+      }
+    });
+
+    [this.xLabel, this.yLabel, this.zLabel].forEach((label) => {
+      if (label) {
+        label.renderingGroupId = 3;
+        label.isPickable = false;
       }
     });
   }
@@ -113,6 +135,18 @@ export class CoordinateFrameWidget {
     if (this.zArrowHead) {
       this.zArrowHead.dispose();
       this.zArrowHead = null;
+    }
+    if (this.xLabel) {
+      this.xLabel.dispose();
+      this.xLabel = null;
+    }
+    if (this.yLabel) {
+      this.yLabel.dispose();
+      this.yLabel = null;
+    }
+    if (this.zLabel) {
+      this.zLabel.dispose();
+      this.zLabel = null;
     }
     if (this.rootNode) {
       this.rootNode.dispose();
@@ -190,6 +224,57 @@ export class CoordinateFrameWidget {
     cone.material = material;
 
     return cone;
+  }
+
+  /**
+   * Create text label for axis using a plane with dynamic texture
+   */
+  private createLabel(
+    position: BABYLON.Vector3,
+    text: string,
+    color: BABYLON.Color3
+  ): BABYLON.Mesh {
+    // Create a plane for the label
+    const plane = BABYLON.MeshBuilder.CreatePlane(
+      'axisLabel',
+      { size: 0.05 },
+      this.scene
+    );
+
+    plane.position = position;
+    plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL; // Always face camera
+
+    // Create dynamic texture for text
+    const dynamicTexture = new BABYLON.DynamicTexture(
+      'labelTexture',
+      { width: 256, height: 256 },
+      this.scene,
+      false
+    );
+
+    // Draw text using DynamicTexture's drawText method
+    dynamicTexture.drawText(
+      text,
+      null,
+      null,
+      'bold 180px Arial',
+      `rgb(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)})`,
+      'transparent',
+      true,
+      true
+    );
+
+    // Create material with emissive color so it's always visible
+    const material = new BABYLON.StandardMaterial('labelMaterial', this.scene);
+    material.diffuseTexture = dynamicTexture;
+    material.emissiveColor = color;
+    material.disableLighting = true;
+    material.opacityTexture = dynamicTexture;
+    material.backFaceCulling = false;
+
+    plane.material = material;
+
+    return plane;
   }
 
   /**

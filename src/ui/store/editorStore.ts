@@ -85,17 +85,82 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   selectNode: (nodeId) => {
     set({ selectedNodeId: nodeId });
 
-    // Also select corresponding mesh
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(nodeId);
-    if (node && node.babylonMeshId) {
-      const sceneManager = SceneManager.getInstance();
-      const scene = sceneManager.getScene();
-      if (scene) {
-        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
-        if (mesh && mesh instanceof BABYLON.Mesh) {
-          set({ selectedMeshes: [mesh] });
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    const { coordinateFrameWidget } = get();
+
+    // If it's a mesh node with babylonMeshId
+    if (node && node.babylonMeshId && scene) {
+      const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+      if (mesh && mesh instanceof BABYLON.Mesh) {
+        set({ selectedMeshes: [mesh] });
+      }
+    }
+
+    // If it's a collection/TransformNode, show coordinate frame at its origin
+    if (node && node.type === 'collection' && scene) {
+      const transformNode = scene.transformNodes.find(tn => tn.name === node.name);
+      if (transformNode && coordinateFrameWidget) {
+        // Get world position and orientation of TransformNode
+        const worldMatrix = transformNode.computeWorldMatrix(true);
+        const position = worldMatrix.getTranslation();
+
+        // Get rotation axes from world matrix (direction vectors, not positions)
+        const xAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Right(), worldMatrix).normalize();
+        const yAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Up(), worldMatrix).normalize();
+        const zAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Forward(), worldMatrix).normalize();
+
+        // Create custom frame feature for visualization
+        // NOTE: CoordinateFrameWidget.show() will call userToBabylon on origin, so pass user coords
+        const frame: CustomFrameFeature = {
+          featureType: 'object',
+          nodeId: nodeId,
+          origin: babylonToUser(position),
+          xAxis: { x: xAxis.x, y: xAxis.y, z: xAxis.z },
+          yAxis: { x: yAxis.x, y: yAxis.y, z: yAxis.z },
+          zAxis: { x: zAxis.x, y: zAxis.y, z: zAxis.z },
+        };
+
+        // Calculate appropriate axis length based on bounding box
+        const meshes = transformNode.getChildMeshes(false);
+        let axisLength = 0.1; // Default 0.1 Babylon units (100mm)
+
+        if (meshes.length > 0) {
+          // Calculate combined bounding box diagonal
+          let minX = Infinity, minY = Infinity, minZ = Infinity;
+          let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+
+          meshes.forEach(mesh => {
+            if (!mesh.isVisible) return;
+            mesh.computeWorldMatrix(true);
+            const boundingBox = mesh.getBoundingInfo().boundingBox;
+            const min = boundingBox.minimumWorld;
+            const max = boundingBox.maximumWorld;
+
+            minX = Math.min(minX, min.x);
+            minY = Math.min(minY, min.y);
+            minZ = Math.min(minZ, min.z);
+            maxX = Math.max(maxX, max.x);
+            maxY = Math.max(maxY, max.y);
+            maxZ = Math.max(maxZ, max.z);
+          });
+
+          const diagonal = Math.sqrt(
+            (maxX - minX) ** 2 + (maxY - minY) ** 2 + (maxZ - minZ) ** 2
+          );
+
+          // Set axis length to 20% of diagonal (in Babylon units = meters)
+          axisLength = diagonal * 0.2;
         }
+
+        coordinateFrameWidget.show(frame, axisLength);
+      }
+    } else {
+      // Hide coordinate frame widget if not a collection
+      if (coordinateFrameWidget && !get().customFrame) {
+        coordinateFrameWidget.hide();
       }
     }
   },
@@ -132,6 +197,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   clearSelection: () => {
+    const { coordinateFrameWidget, customFrame } = get();
+
+    // Hide coordinate frame widget if not showing a custom frame
+    if (coordinateFrameWidget && !customFrame) {
+      coordinateFrameWidget.hide();
+    }
+
     set({ selectedMeshes: [], selectedNodeId: null });
   },
 
