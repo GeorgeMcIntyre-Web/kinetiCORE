@@ -1,0 +1,325 @@
+/* Robot Jogging Panel - Professional 6-axis robot control */
+
+.robot-jogging-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  background: #1a202c;
+  color: #e2e8f0;
+}
+
+/* Mode Selector */
+.jog-mode-selector {
+  display: flex;
+  gap: 8px;
+  background: #2d3748;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.mode-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #a0aec0;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-button:hover {
+  background: #4a5568;
+  color: #e2e8f0;
+}
+
+.mode-button.active {
+  background: #3182ce;
+  color: white;
+}
+
+/* Jog Step Control */
+.jog-step-control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.jog-step-control label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #a0aec0;
+}
+
+.step-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #2d3748;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.step-selector button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #4a5568;
+  border: none;
+  border-radius: 4px;
+  color: #e2e8f0;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.step-selector button:hover {
+  background: #718096;
+}
+
+.step-selector button:active {
+  transform: scale(0.95);
+}
+
+.step-selector input {
+  flex: 1;
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 4px;
+  color: #e2e8f0;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  padding: 6px;
+  width: 60px;
+}
+
+.step-selector .unit {
+  color: #a0aec0;
+  font-size: 14px;
+  font-weight: 500;
+  margin-left: -4px;
+}
+
+/* Joint Mode - Grid Layout */
+.joints-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.joint-jog-item {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.joint-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.joint-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #63b3ed;
+  letter-spacing: 0.5px;
+}
+
+.joint-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e2e8f0;
+  font-family: 'Courier New', monospace;
+}
+
+/* Jog Buttons */
+.jog-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.jog-btn {
+  flex: 1;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.jog-btn:active {
+  transform: scale(0.95);
+}
+
+.jog-minus {
+  background: #fc8181;
+  color: #742a2a;
+}
+
+.jog-minus:hover {
+  background: #f56565;
+}
+
+.jog-plus {
+  background: #68d391;
+  color: #22543d;
+}
+
+.jog-plus:hover {
+  background: #48bb78;
+}
+
+/* Joint Limits Indicator */
+.joint-limits {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: #718096;
+}
+
+.limit-bar {
+  flex: 1;
+  height: 4px;
+  background: #4a5568;
+  border-radius: 2px;
+  position: relative;
+}
+
+.limit-indicator {
+  position: absolute;
+  top: -2px;
+  width: 8px;
+  height: 8px;
+  background: #63b3ed;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+/* TCP Mode */
+.tcp-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tcp-section {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.tcp-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #a0aec0;
+}
+
+.tcp-axis-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tcp-axis {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.axis-label {
+  width: 32px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #63b3ed;
+  text-align: center;
+}
+
+.tcp-axis .jog-btn {
+  flex: 1;
+  height: 38px;
+}
+
+/* TCP Info */
+.tcp-info {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 16px;
+  border-left: 4px solid #ed8936;
+}
+
+.info-text {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.info-subtext {
+  margin: 0;
+  font-size: 12px;
+  color: #a0aec0;
+  line-height: 1.5;
+}
+
+/* Panel Actions */
+.panel-actions {
+  display: flex;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #4a5568;
+}
+
+.reset-button {
+  flex: 1;
+  padding: 12px 20px;
+  background: #4a5568;
+  border: none;
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reset-button:hover {
+  background: #718096;
+}
+
+.reset-button:active {
+  transform: scale(0.98);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .joints-grid {
+    grid-template-columns: 1fr;
+  }
+}

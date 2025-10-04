@@ -17,6 +17,7 @@ import {
 import { useEditorStore } from '../store/editorStore';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
+import { RobotJoggingPanel } from './RobotJoggingPanel';
 import type { JointType } from '../../kinematics/KinematicsManager';
 import './KinematicsPanel.css';
 
@@ -407,75 +408,9 @@ export const KinematicsPanel: React.FC<KinematicsPanelProps> = ({ onClose }) => 
           </div>
         )}
 
-        {/* Step 4: Test Motion */}
+        {/* Step 4: Test Motion - Professional Robot Jogging */}
         {currentStep === 'test_motion' && (
-          <div className="step-content">
-            <div className="section-header">
-              <Play size={20} />
-              <h3>Test Motion</h3>
-            </div>
-
-            <p className="instruction-text">
-              Test your kinematic chain by moving the joints interactively.
-            </p>
-
-            <div className="joints-control">
-              {joints.map(joint => (
-                <div key={joint.id} className="joint-control">
-                  <label>{joint.name}</label>
-                  <div className="slider-group">
-                    <span className="value">
-                      {joint.type === 'revolute'
-                        ? `${(joint.position * 180 / Math.PI).toFixed(1)}°`
-                        : `${joint.position.toFixed(1)}mm`
-                      }
-                    </span>
-                    <input
-                      type="range"
-                      min={joint.limits.lower}
-                      max={joint.limits.upper}
-                      value={joint.position}
-                      step="0.01"
-                      onChange={(e) => {
-                        const value = parseFloat(e.target.value);
-                        fkSolver.updateJointPosition(joint.id, value);
-                      }}
-                    />
-                  </div>
-                  <div className="joint-actions">
-                    <button
-                      className="icon-button"
-                      title="Reset to zero"
-                      onClick={() => fkSolver.updateJointPosition(joint.id, 0)}
-                    >
-                      ↺
-                    </button>
-                    <button
-                      className="icon-button"
-                      title="Animate joint"
-                      onClick={() => fkSolver.animateJoint(joint.id, 2000)}
-                    >
-                      ▶
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="motion-controls">
-              <button
-                className="secondary-button"
-                onClick={() => fkSolver.resetToHome()}
-              >
-                Reset All to Home
-              </button>
-            </div>
-
-            <div className="success-box">
-              <CheckCircle size={20} />
-              <p>Kinematics setup complete!</p>
-            </div>
-          </div>
+          <RobotJoggingPanel joints={joints} fkSolver={fkSolver} />
         )}
       </div>
     </div>
