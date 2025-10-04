@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
+import { SceneTree } from '../components/SceneTree';
+import { KinematicsPanel } from '../components/KinematicsPanel';
 import './EssentialModeLayout.css';
 
 interface ActionCard {
@@ -288,6 +290,18 @@ export const EssentialModeLayout: React.FC = () => {
           {/* Viewport container - SceneCanvas will overlay this */}
           <div id="viewport-essential" className="viewport-canvas"></div>
         </main>
+
+        {/* Right Sidebar - Scene Tree & Kinematics */}
+        <aside className="essential-right-sidebar">
+          <div className="sidebar-section">
+            <h3 className="sidebar-title">Scene</h3>
+            <SceneTree />
+          </div>
+          <div className="sidebar-section">
+            <h3 className="sidebar-title">Kinematics</h3>
+            <KinematicsPanel onClose={() => {}} />
+          </div>
+        </aside>
       </div>
 
       {/* Hidden file input for importing models */}
