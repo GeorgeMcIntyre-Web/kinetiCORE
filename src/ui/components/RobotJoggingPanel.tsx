@@ -5,8 +5,9 @@
 // - Joint Mode: Jog individual joints
 // - TCP Mode: Jog tool center point in Cartesian space
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Move, RotateCw, Minus, Plus } from 'lucide-react';
+import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import type { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
 import './RobotJoggingPanel.css';
 
@@ -14,14 +15,28 @@ type JogMode = 'joint' | 'tcp';
 type JogAxis = 'X' | 'Y' | 'Z' | 'Rx' | 'Ry' | 'Rz';
 
 interface RobotJoggingPanelProps {
-  joints: any[];
+  joints: any[]; // DEPRECATED - not used, fetching directly from KinematicsManager
   fkSolver: ForwardKinematicsSolver;
 }
 
-export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints, fkSolver }) => {
+export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ fkSolver }) => {
   const [jogMode, setJogMode] = useState<JogMode>('joint');
   const [jogStepJoint, setJogStepJoint] = useState(5); // degrees
   const [jogStepTcp, setJogStepTcp] = useState(10); // mm for linear, 5 deg for rotary
+  const [joints, setJoints] = useState<any[]>([]);
+
+  // Fetch joints directly from KinematicsManager - bypassing React props issue
+  useEffect(() => {
+    const kinematicsManager = KinematicsManager.getInstance();
+    const updateJoints = () => {
+      const allJoints = kinematicsManager.getAllJoints();
+      setJoints(allJoints);
+    };
+
+    updateJoints();
+    const interval = setInterval(updateJoints, 100); // Poll every 100ms
+    return () => clearInterval(interval);
+  }, []);
 
   // Filter to only show revolute joints (exclude fixed joints)
   const revoluteJoints = joints.filter(j => j.type === 'revolute');
@@ -29,7 +44,9 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints, fk
   // Debug logging
   console.log('[RobotJoggingPanel] Total joints:', joints.length);
   console.log('[RobotJoggingPanel] Revolute joints:', revoluteJoints.length);
-  console.log('[RobotJoggingPanel] Joint names:', revoluteJoints.map(j => j.name));
+  if (revoluteJoints.length > 0) {
+    console.log('[RobotJoggingPanel] Joint names:', revoluteJoints.map(j => j.name));
+  }
 
   const handleJogJoint = (jointId: string, direction: number) => {
     const joint = joints.find(j => j.id === jointId);
