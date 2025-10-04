@@ -291,7 +291,12 @@ export class KinematicsManager {
    * Get all joints
    */
   getAllJoints(): JointConfig[] {
-    return Array.from(this.joints.values());
+    const allJoints = Array.from(this.joints.values());
+    console.log(`[KinematicsManager.getAllJoints()] Returning ${allJoints.length} joints from Map`);
+    console.log(`[KinematicsManager.getAllJoints()] Joint IDs:`, allJoints.map(j => j.id));
+    console.log(`[KinematicsManager.getAllJoints()] Joint names:`, allJoints.map(j => j.name));
+    console.log(`[KinematicsManager.getAllJoints()] Joint types:`, allJoints.map(j => j.type));
+    return allJoints;
   }
 
   /**
