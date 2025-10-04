@@ -1,7 +1,7 @@
 // Expert Mode Layout - Power User/Enterprise interface
 // Owner: George (Architecture)
 
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Box,
   Circle,
@@ -31,6 +31,43 @@ import './ExpertModeLayout.css';
 export const ExpertModeLayout: React.FC = () => {
   const { userLevel, setUserLevel } = useUserLevel();
   const createObject = useEditorStore((state) => state.createObject);
+  const importModel = useEditorStore((state) => state.importModel);
+  const saveWorld = useEditorStore((state) => state.saveWorld);
+
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [commandQuery, setCommandQuery] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImport = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && importModel) {
+      await importModel(file);
+    }
+    if (event.target) {
+      event.target.value = '';
+    }
+  };
+
+  const handleCommandPaletteToggle = () => {
+    setCommandPaletteOpen(!commandPaletteOpen);
+    setCommandQuery('');
+  };
+
+  // Keyboard shortcut for command palette
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        handleCommandPaletteToggle();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [commandPaletteOpen]);
 
   return (
     <div className="expert-layout">
@@ -52,27 +89,34 @@ export const ExpertModeLayout: React.FC = () => {
         <div className="header-center">
           <div className="command-palette">
             <Command size={16} />
-            <input type="text" placeholder="Command Palette (Ctrl+K)" disabled />
+            <input
+              type="text"
+              placeholder="Command Palette (Ctrl+K)"
+              value={commandQuery}
+              onChange={(e) => setCommandQuery(e.target.value)}
+              onFocus={() => setCommandPaletteOpen(true)}
+              onBlur={() => setTimeout(() => setCommandPaletteOpen(false), 200)}
+            />
           </div>
         </div>
         <div className="header-right">
-          <button className="macro-btn" disabled title="Macro Recorder">
+          <button className="macro-btn" title="Macro Recorder (Coming Soon)" disabled>
             <Code size={16} />
           </button>
-          <button className="macro-btn" disabled title="Script Editor">
+          <button className="macro-btn" title="Script Editor (Coming Soon)" disabled>
             <Terminal size={16} />
           </button>
-          <button className="macro-btn" disabled title="Layout Manager">
+          <button className="macro-btn" title="Layout Manager (Coming Soon)" disabled>
             <Layout size={16} />
           </button>
           <div className="separator"></div>
-          <button className="action-btn" title="Save">
+          <button className="action-btn" title="Save" onClick={saveWorld}>
             <Save size={16} />
           </button>
-          <button className="action-btn" disabled title="Import">
+          <button className="action-btn" title="Import" onClick={handleImport}>
             <Upload size={16} />
           </button>
-          <button className="action-btn" disabled title="Export">
+          <button className="action-btn" title="Export" onClick={saveWorld}>
             <Download size={16} />
           </button>
           <select
@@ -341,6 +385,15 @@ def create_array():
           </div>
         </div>
       </div>
+
+      {/* Hidden file input for importing models */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".urdf,.stl,.obj,.jt,.catpart,.catproduct,.catdrawing"
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+      />
     </div>
   );
 };

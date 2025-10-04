@@ -1,7 +1,7 @@
 // Professional Mode Layout - Engineer/Designer interface
 // Owner: George (Architecture)
 
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Box,
   Circle,
@@ -32,6 +32,85 @@ import './ProfessionalModeLayout.css';
 export const ProfessionalModeLayout: React.FC = () => {
   const { userLevel, setUserLevel } = useUserLevel();
   const createObject = useEditorStore((state) => state.createObject);
+  const importModel = useEditorStore((state) => state.importModel);
+  const saveWorld = useEditorStore((state) => state.saveWorld);
+  const setTransformMode = useEditorStore((state) => state.setTransformMode);
+  const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+  const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
+  const duplicateNode = useEditorStore((state) => state.duplicateNode);
+  const commandManager = useEditorStore((state) => state.commandManager);
+  const undo = useEditorStore((state) => state.undo);
+  const redo = useEditorStore((state) => state.redo);
+  const canUndo = useEditorStore((state) => state.canUndo());
+  const canRedo = useEditorStore((state) => state.canRedo());
+
+  const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'analysis'>('modeling');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImport = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && importModel) {
+      await importModel(file);
+    }
+    if (event.target) {
+      event.target.value = '';
+    }
+  };
+
+  const handleExport = () => {
+    // TODO: Implement proper export dialog with format selection
+    saveWorld();
+  };
+
+  const handleTransformTool = (mode: 'translate' | 'rotate' | 'scale') => {
+    if (selectedNodeId) {
+      setTransformMode(mode);
+    }
+  };
+
+  const handleCopy = () => {
+    if (selectedNodeId) {
+      duplicateNode(selectedNodeId);
+    }
+  };
+
+  const handleBooleanOperation = async (operation: 'union' | 'subtract' | 'intersect') => {
+    const { toast } = await import('../components/ToastNotifications');
+    const { loading } = await import('../components/LoadingIndicator');
+    const { BooleanOperationCommand } = await import('../../history/commands/BooleanOperationCommand');
+
+    if (selectedNodeIds.length !== 2) {
+      toast.warning('Please select exactly two objects for Boolean operations (Ctrl+Click to multi-select)');
+      return;
+    }
+
+    try {
+      loading.start(`Performing ${operation} operation...`, 'processing');
+
+      const command = new BooleanOperationCommand(
+        selectedNodeIds[0],
+        selectedNodeIds[1],
+        operation
+      );
+
+      await commandManager.execute(command);
+
+      loading.end();
+      toast.success(`Boolean ${operation} completed successfully`);
+    } catch (error) {
+      console.error('Boolean operation failed:', error);
+      toast.error(`Boolean operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleMeasurement = (type: 'distance' | 'angle' | 'volume') => {
+    // TODO: Implement measurement tools
+    console.log(`${type} measurement coming soon`);
+  };
 
   return (
     <div className="professional-layout">
@@ -40,11 +119,22 @@ export const ProfessionalModeLayout: React.FC = () => {
         <div className="header-left">
           <h1 className="logo">kinetiCORE</h1>
           <div className="workspace-tabs">
-            <button className="workspace-tab active">Modeling</button>
-            <button className="workspace-tab" disabled>
+            <button
+              className={`workspace-tab ${activeWorkspace === 'modeling' ? 'active' : ''}`}
+              onClick={() => setActiveWorkspace('modeling')}
+            >
+              Modeling
+            </button>
+            <button
+              className={`workspace-tab ${activeWorkspace === 'simulation' ? 'active' : ''}`}
+              onClick={() => setActiveWorkspace('simulation')}
+            >
               Simulation
             </button>
-            <button className="workspace-tab" disabled>
+            <button
+              className={`workspace-tab ${activeWorkspace === 'analysis' ? 'active' : ''}`}
+              onClick={() => setActiveWorkspace('analysis')}
+            >
               Analysis
             </button>
           </div>
@@ -52,20 +142,30 @@ export const ProfessionalModeLayout: React.FC = () => {
         </div>
         <div className="header-right">
           <div className="global-actions">
-            <button className="action-btn" title="Save">
+            <button className="action-btn" title="Save" onClick={saveWorld}>
               <Save size={18} />
             </button>
-            <button className="action-btn" title="Import" disabled>
+            <button className="action-btn" title="Import" onClick={handleImport}>
               <Upload size={18} />
             </button>
-            <button className="action-btn" title="Export" disabled>
+            <button className="action-btn" title="Export" onClick={handleExport}>
               <Download size={18} />
             </button>
             <div className="separator"></div>
-            <button className="action-btn" title="Undo" disabled>
+            <button
+              className="action-btn"
+              title={canUndo ? "Undo (Ctrl+Z)" : "Nothing to undo"}
+              disabled={!canUndo}
+              onClick={undo}
+            >
               <Undo size={18} />
             </button>
-            <button className="action-btn" title="Redo" disabled>
+            <button
+              className="action-btn"
+              title={canRedo ? "Redo (Ctrl+Y)" : "Nothing to redo"}
+              disabled={!canRedo}
+              onClick={redo}
+            >
               <Redo size={18} />
             </button>
           </div>
@@ -189,21 +289,41 @@ export const ProfessionalModeLayout: React.FC = () => {
         <div className="tool-group">
           <div className="group-label">Transform</div>
           <div className="tool-buttons">
-            <button className="tool-btn" disabled title="Move">
+            <button
+              className="tool-btn"
+              disabled={!selectedNodeId}
+              title={selectedNodeId ? "Move" : "Select an object first"}
+              onClick={() => handleTransformTool('translate')}
+            >
               <Move size={20} />
               <span>Move</span>
             </button>
-            <button className="tool-btn" disabled title="Rotate">
+            <button
+              className="tool-btn"
+              disabled={!selectedNodeId}
+              title={selectedNodeId ? "Rotate" : "Select an object first"}
+              onClick={() => handleTransformTool('rotate')}
+            >
               <RotateCw size={20} />
               <span>Rotate</span>
             </button>
-            <button className="tool-btn" disabled title="Scale">
+            <button
+              className="tool-btn"
+              disabled={!selectedNodeId}
+              title={selectedNodeId ? "Scale" : "Select an object first"}
+              onClick={() => handleTransformTool('scale')}
+            >
               <Scale size={20} />
               <span>Scale</span>
             </button>
-            <button className="tool-btn" disabled title="Copy">
+            <button
+              className="tool-btn"
+              disabled={!selectedNodeId}
+              title={selectedNodeId ? "Duplicate (Ctrl+D)" : "Select an object first"}
+              onClick={handleCopy}
+            >
               <Copy size={20} />
-              <span>Copy</span>
+              <span>Duplicate</span>
             </button>
           </div>
         </div>
@@ -214,13 +334,25 @@ export const ProfessionalModeLayout: React.FC = () => {
         <div className="tool-group">
           <div className="group-label">Modify</div>
           <div className="tool-buttons">
-            <button className="tool-btn-small" disabled title="Union">
+            <button
+              className="tool-btn-small"
+              title="Union (Coming Soon)"
+              onClick={() => handleBooleanOperation('union')}
+            >
               Union
             </button>
-            <button className="tool-btn-small" disabled title="Subtract">
+            <button
+              className="tool-btn-small"
+              title="Subtract (Coming Soon)"
+              onClick={() => handleBooleanOperation('subtract')}
+            >
               Subtract
             </button>
-            <button className="tool-btn-small" disabled title="Intersect">
+            <button
+              className="tool-btn-small"
+              title="Intersect (Coming Soon)"
+              onClick={() => handleBooleanOperation('intersect')}
+            >
               Intersect
             </button>
           </div>
@@ -232,13 +364,25 @@ export const ProfessionalModeLayout: React.FC = () => {
         <div className="tool-group">
           <div className="group-label">Measure</div>
           <div className="tool-buttons">
-            <button className="tool-btn-small" disabled title="Distance">
+            <button
+              className="tool-btn-small"
+              title="Distance (Coming Soon)"
+              onClick={() => handleMeasurement('distance')}
+            >
               Distance
             </button>
-            <button className="tool-btn-small" disabled title="Angle">
+            <button
+              className="tool-btn-small"
+              title="Angle (Coming Soon)"
+              onClick={() => handleMeasurement('angle')}
+            >
               Angle
             </button>
-            <button className="tool-btn-small" disabled title="Volume">
+            <button
+              className="tool-btn-small"
+              title="Volume (Coming Soon)"
+              onClick={() => handleMeasurement('volume')}
+            >
               Volume
             </button>
           </div>
@@ -371,6 +515,15 @@ export const ProfessionalModeLayout: React.FC = () => {
           <Inspector />
         </aside>
       </div>
+
+      {/* Hidden file input for importing models */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".urdf,.stl,.obj,.jt,.catpart,.catproduct,.catdrawing"
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+      />
     </div>
   );
 };
