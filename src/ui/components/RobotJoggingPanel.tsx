@@ -90,7 +90,7 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints, fk
             {revoluteJoints.map((joint, index) => (
               <div key={joint.id} className="joint-jog-item">
                 <div className="joint-header">
-                  <span className="joint-label">J{index + 1}</span>
+                  <span className="joint-label">{joint.name}</span>
                   <span className="joint-value">
                     {(joint.position * 180 / Math.PI).toFixed(1)}°
                   </span>
@@ -99,14 +99,14 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints, fk
                   <button
                     className="jog-btn jog-minus"
                     onMouseDown={() => handleJogJoint(joint.id, -1)}
-                    title={`Jog J${index + 1} negative`}
+                    title={`Jog ${joint.name} negative`}
                   >
                     <Minus size={16} />
                   </button>
                   <button
                     className="jog-btn jog-plus"
                     onMouseDown={() => handleJogJoint(joint.id, 1)}
-                    title={`Jog J${index + 1} positive`}
+                    title={`Jog ${joint.name} positive`}
                   >
                     <Plus size={16} />
                   </button>
