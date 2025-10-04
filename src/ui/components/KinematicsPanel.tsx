@@ -59,6 +59,18 @@ export const KinematicsPanel: React.FC<KinematicsPanelProps> = ({ onClose }) => 
     if (selectedNodeId && currentStep === 'select_model') {
       const suggested = kinematicsManager.suggestGroundNode(selectedNodeId);
       setSuggestedGroundId(suggested);
+
+      // If joints already exist (from URDF import), auto-ground and skip to test
+      const existingJoints = kinematicsManager.getAllJoints();
+      if (existingJoints.length > 0 && suggested) {
+        const success = kinematicsManager.groundNode(suggested);
+        if (success) {
+          setGroundedNodeId(suggested);
+          setCurrentStep('test_motion');
+          return;
+        }
+      }
+
       setCurrentStep('ground_base');
     }
   }, [selectedNodeId]);
