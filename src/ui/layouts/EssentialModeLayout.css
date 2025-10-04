@@ -382,13 +382,14 @@
 
 .sidebar-section {
   border-bottom: 1px solid #4a5568;
-  max-height: 50%;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-section:last-child {
   border-bottom: none;
   flex: 1;
+  min-height: 0; /* Allow flexbox to shrink */
 }
 
 .sidebar-title {
