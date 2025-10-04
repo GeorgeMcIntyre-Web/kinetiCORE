@@ -95,16 +95,22 @@ export const KinematicsPanel: React.FC<KinematicsPanelProps> = ({ onClose }) => 
     }
   }); // NO dependencies - runs every render until grounded
 
-  // Update joints list
+  // Update joints list - poll frequently to catch URDF imports
   useEffect(() => {
     const updateJoints = () => {
-      setJoints(kinematicsManager.getAllJoints());
+      const allJoints = kinematicsManager.getAllJoints();
+      // Always update - React will handle unnecessary re-renders
+      console.log('[KinematicsPanel] getAllJoints() returned:', allJoints.length, 'joints');
+      if (allJoints.length > 0) {
+        console.log('[KinematicsPanel] Joint names:', allJoints.map(j => j.name));
+      }
+      setJoints(allJoints);
     };
 
     updateJoints();
-    const interval = setInterval(updateJoints, 500);
+    const interval = setInterval(updateJoints, 100); // Poll faster: 100ms instead of 500ms
     return () => clearInterval(interval);
-  }, []);
+  }, []); // Run once on mount, interval handles updates
 
   // Handle node selection for parent/child picking
   useEffect(() => {
