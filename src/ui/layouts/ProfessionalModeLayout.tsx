@@ -336,21 +336,24 @@ export const ProfessionalModeLayout: React.FC = () => {
           <div className="tool-buttons">
             <button
               className="tool-btn-small"
-              title="Union (Coming Soon)"
+              title={selectedNodeIds.length === 2 ? "Union - Combine two objects into one" : "Union - Select exactly 2 objects (Ctrl+Click)"}
+              disabled={selectedNodeIds.length !== 2}
               onClick={() => handleBooleanOperation('union')}
             >
               Union
             </button>
             <button
               className="tool-btn-small"
-              title="Subtract (Coming Soon)"
+              title={selectedNodeIds.length === 2 ? "Subtract - Remove 2nd object from 1st" : "Subtract - Select exactly 2 objects (Ctrl+Click)"}
+              disabled={selectedNodeIds.length !== 2}
               onClick={() => handleBooleanOperation('subtract')}
             >
               Subtract
             </button>
             <button
               className="tool-btn-small"
-              title="Intersect (Coming Soon)"
+              title={selectedNodeIds.length === 2 ? "Intersect - Keep only overlapping volume" : "Intersect - Select exactly 2 objects (Ctrl+Click)"}
+              disabled={selectedNodeIds.length !== 2}
               onClick={() => handleBooleanOperation('intersect')}
             >
               Intersect
