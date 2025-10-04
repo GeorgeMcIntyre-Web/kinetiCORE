@@ -146,13 +146,15 @@ export async function loadURDFWithMeshes(
         // Parent to link node
         mesh.parent = linkNode;
 
-        // Apply visual origin transform (URDF is in meters, same as Babylon)
+        // Apply visual origin transform
+        // URDF: Z-up, meters → Babylon: Y-up, meters
+        // Conversion: (x, y, z) URDF → (x, z, y) Babylon
         const origin = link.visual.origin;
         if (origin.xyz[0] !== 0 || origin.xyz[1] !== 0 || origin.xyz[2] !== 0) {
           mesh.position = new BABYLON.Vector3(
-            origin.xyz[0],
-            origin.xyz[1],
-            origin.xyz[2]
+            origin.xyz[0],  // X stays X
+            origin.xyz[2],  // URDF Z (up) → Babylon Y (up)
+            origin.xyz[1]   // URDF Y (forward) → Babylon Z (forward)
           );
         }
 
@@ -419,12 +421,14 @@ function applyRPYRotation(
   node: BABYLON.TransformNode | BABYLON.AbstractMesh,
   rpy: number[]
 ): void {
-  const roll = rpy[0];
-  const pitch = rpy[1];
-  const yaw = rpy[2];
+  // URDF uses Z-up convention, Babylon uses Y-up
+  // URDF: Roll(X), Pitch(Y), Yaw(Z) in Z-up frame
+  // Need to convert to Babylon's Y-up frame
+  const roll = rpy[0];   // Rotation around X (same in both)
+  const pitch = rpy[1];  // URDF: around Y, Babylon: around Z
+  const yaw = rpy[2];    // URDF: around Z, Babylon: around Y
 
-  // Convert RPY to quaternion using intrinsic XYZ convention
-  // This matches ROS/URDF specification
+  // Convert RPY to quaternion in URDF's Z-up frame
   const qx = Math.sin(roll / 2) * Math.cos(pitch / 2) * Math.cos(yaw / 2) -
              Math.cos(roll / 2) * Math.sin(pitch / 2) * Math.sin(yaw / 2);
   const qy = Math.cos(roll / 2) * Math.sin(pitch / 2) * Math.cos(yaw / 2) +
@@ -434,6 +438,7 @@ function applyRPYRotation(
   const qw = Math.cos(roll / 2) * Math.cos(pitch / 2) * Math.cos(yaw / 2) +
              Math.sin(roll / 2) * Math.sin(pitch / 2) * Math.sin(yaw / 2);
 
-  // Apply quaternion to node
-  node.rotationQuaternion = new BABYLON.Quaternion(qx, qy, qz, qw);
+  // Convert quaternion from Z-up to Y-up: swap Y and Z components
+  // URDF (x, y, z, w) → Babylon (x, z, y, w)
+  node.rotationQuaternion = new BABYLON.Quaternion(qx, qz, qy, qw);
 }

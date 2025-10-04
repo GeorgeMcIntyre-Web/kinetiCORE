@@ -90,8 +90,13 @@ const selected = useEditorStore.getState().selectedMeshes;
 
 ## Known Issues & Gotchas
 
-- **Coordinate systems:** Babylon is left-handed Y-up, Rapier is right-handed Y-up
-  - Conversion happens in `RapierAdapter` - negate Z when transferring
+- **Coordinate systems:**
+  - **User/CAD Space:** Z-up, right-handed, millimeters (X=Right, Y=Forward, Z=Up)
+  - **URDF Files:** Z-up, right-handed, meters (ROS standard)
+  - **Babylon Scene:** Y-up, right-handed (via `scene.useRightHandedSystem = true`), meters
+  - **Rapier Physics:** Y-up, right-handed, meters
+  - **Conversion:** (x, y, z) Z-up → (x, z, y) Y-up, plus mm↔m scaling
+  - All conversions handled in `CoordinateSystem.ts` and URDF loaders
 - **Disposal order:** Always dispose physics bodies BEFORE Babylon meshes
 - **localStorage:** Not supported in Claude artifacts - use in-memory state only
 - **World matrix:** Call `mesh.computeWorldMatrix(true)` before reading bounds for physics

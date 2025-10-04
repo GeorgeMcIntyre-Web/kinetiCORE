@@ -1,6 +1,11 @@
 // URDF Joint Extractor
 // Owner: George
 // Automatically extracts joint definitions from URDF XML and creates kinematic chains
+//
+// COORDINATE SYSTEM CONVERSION:
+// - URDF: Z-up, right-handed, meters (ROS standard)
+// - Babylon: Y-up, right-handed, meters
+// - Conversion: (x, y, z) URDF → (x, z, y) Babylon
 
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
@@ -98,6 +103,32 @@ export async function extractJointsFromURDF(urdfXML: string): Promise<URDFJoint[
 }
 
 /**
+ * Convert URDF position (Z-up, meters) to Babylon (Y-up, meters)
+ * URDF: (x, y, z) where Z is up
+ * Babylon: (x, y, z) where Y is up
+ * Conversion: x stays x, URDF.z → Babylon.y, URDF.y → Babylon.z
+ */
+function urdfToBabylonPosition(urdfPos: [number, number, number]): { x: number; y: number; z: number } {
+  return {
+    x: urdfPos[0],      // X stays X
+    y: urdfPos[2],      // URDF Z (up) → Babylon Y (up)
+    z: urdfPos[1],      // URDF Y (forward) → Babylon Z (forward)
+  };
+}
+
+/**
+ * Convert URDF axis (Z-up) to Babylon (Y-up)
+ * Axes are directional vectors, same transformation as positions
+ */
+function urdfToBabylonAxis(urdfAxis: [number, number, number]): { x: number; y: number; z: number } {
+  return {
+    x: urdfAxis[0],     // X stays X
+    y: urdfAxis[2],     // URDF Z → Babylon Y
+    z: urdfAxis[1],     // URDF Y → Babylon Z
+  };
+}
+
+/**
  * Map URDF joint type to kinetiCORE joint type
  */
 function mapURDFJointType(urdfType: string): JointType {
@@ -180,19 +211,17 @@ export async function createKinematicsFromURDF(
 
     const jointType = mapURDFJointType(urdfJoint.type);
 
-    // Convert URDF coordinates (meters) to kinetiCORE (mm)
+    // Convert URDF coordinates (Z-up, meters) to Babylon (Y-up, meters) then to kinetiCORE (mm)
     const M_TO_MM = 1000;
+    const originBabylon = urdfToBabylonPosition(urdfJoint.origin.xyz);
     const origin = {
-      x: urdfJoint.origin.xyz[0] * M_TO_MM,
-      y: urdfJoint.origin.xyz[1] * M_TO_MM,
-      z: urdfJoint.origin.xyz[2] * M_TO_MM,
+      x: originBabylon.x * M_TO_MM,
+      y: originBabylon.y * M_TO_MM,
+      z: originBabylon.z * M_TO_MM,
     };
 
-    const axis = {
-      x: urdfJoint.axis.xyz[0],
-      y: urdfJoint.axis.xyz[1],
-      z: urdfJoint.axis.xyz[2],
-    };
+    // Convert axis direction (Z-up to Y-up)
+    const axis = urdfToBabylonAxis(urdfJoint.axis.xyz);
 
     // Create joint with URDF limits
     const joint = kinematicsManager.createJoint({
