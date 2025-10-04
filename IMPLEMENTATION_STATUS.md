@@ -119,10 +119,10 @@
 - ✅ URDF (.urdf) - Robot models
 - ✅ JT (.jt) - Siemens JT format with PyOpenJt backend
 - ✅ CATIA (.catpart, .catproduct, .catdrawing, .catprocess)
+- ✅ DXF (.dxf) - 2D CAD drawings with layer support
 - ✅ STL (.stl) - 3D mesh
 - ✅ OBJ (.obj) - Wavefront mesh
 - ✅ glTF (.gltf, .glb) - Standard 3D format
-- 🟡 DXF (.dxf) - Backend exists, needs UI integration
 
 **Test Data Available:**
 - 17 JT assembly files (Turbo Charger, Roadster 853)
@@ -186,21 +186,6 @@ Three user experience levels:
 ---
 
 ## 🔴 Not Yet Implemented
-
-### DXF Import Workflow
-**Status:** BACKEND READY - UI PENDING
-
-- ✅ Backend DXFToBabylonConverter exists
-- ✅ Converter parses DXF entities (lines, polylines, circles, arcs)
-- ❌ Not added to file picker UI
-- ❌ ModelLoader throws error "use dedicated workflow"
-
-**Action Required:**
-1. Add `.dxf` to file input accept lists
-2. Enable DXF import in ModelLoader.ts
-3. Test with sample DXF files
-
----
 
 ### Automated Testing
 **Status:** NOT STARTED
@@ -360,8 +345,8 @@ eea1026 - fix: close context menu on any canvas click
 ---
 
 **Status Summary:**
-- ✅ 7 major features PRODUCTION READY
+- ✅ 8 major features PRODUCTION READY (added DXF import)
 - 🟡 2 features PARTIALLY COMPLETE
-- 🔴 3 features NOT STARTED
+- 🔴 2 features NOT STARTED (removed DXF - now complete)
 - 📦 All builds passing
 - 🧪 Ready for manual testing phase
