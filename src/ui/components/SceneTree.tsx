@@ -173,7 +173,9 @@ interface TreeNodeProps {
 const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm }) => {
   const tree = SceneTreeManager.getInstance();
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+  const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
   const selectNode = useEditorStore((state) => state.selectNode);
+  const toggleNodeSelection = useEditorStore((state) => state.toggleNodeSelection);
   const zoomToNode = useEditorStore((state) => state.zoomToNode);
   const clearSelection = useEditorStore((state) => state.clearSelection);
   const deleteNode = useEditorStore((state) => state.deleteNode);
@@ -188,7 +190,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm }) => {
 
   const children = tree.getChildren(node.id);
   const hasChildren = children.length > 0;
-  const isSelected = selectedNodeId === node.id;
+  const isSelected = selectedNodeId === node.id || selectedNodeIds.includes(node.id);
   const canDelete = node.type !== 'world' &&
                     node.type !== 'scene' &&
                     node.type !== 'system';
@@ -207,7 +209,11 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm }) => {
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isSelected) {
+
+    // Ctrl+Click or Cmd+Click for multi-selection
+    if (e.ctrlKey || e.metaKey) {
+      toggleNodeSelection(node.id);
+    } else if (isSelected) {
       clearSelection();
     } else {
       selectNode(node.id);

@@ -139,6 +139,19 @@ export class SceneManager {
     window.addEventListener('resize', () => {
       this.engine?.resize();
     });
+
+    // Initialize CSG2 for Boolean operations
+    try {
+      const { BooleanOperations } = await import('./BooleanOperations');
+      const csgInitialized = await BooleanOperations.initialize();
+      if (csgInitialized) {
+        console.log('✅ CSG2 (Manifold) initialized successfully');
+      } else {
+        console.warn('⚠️ CSG2 initialization failed - Boolean operations will not work');
+      }
+    } catch (error) {
+      console.error('Failed to initialize CSG2:', error);
+    }
   }
 
 

@@ -22,9 +22,13 @@ export const KeyboardShortcuts: React.FC = () => {
   const setTransformMode = useEditorStore((state) => state.setTransformMode);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const deleteNode = useEditorStore((state) => state.deleteNode);
+  const duplicateNode = useEditorStore((state) => state.duplicateNode);
   const clearSelection = useEditorStore((state) => state.clearSelection);
   const togglePhysics = useEditorStore((state) => state.togglePhysics);
   const zoomToNode = useEditorStore((state) => state.zoomToNode);
+  const zoomFit = useEditorStore((state) => state.zoomFit);
+  const undo = useEditorStore((state) => state.undo);
+  const redo = useEditorStore((state) => state.redo);
 
   const shortcuts: Shortcut[] = [
     // Transform modes
@@ -40,7 +44,9 @@ export const KeyboardShortcuts: React.FC = () => {
     // Object operations
     { key: 'Delete', description: 'Delete Selected', action: () => selectedNodeId && deleteNode(selectedNodeId), category: 'Edit' },
     { key: 'Backspace', description: 'Delete Selected', action: () => selectedNodeId && deleteNode(selectedNodeId), category: 'Edit' },
-    { key: 'd', ctrl: true, description: 'Duplicate', action: () => {}, category: 'Edit' },
+    { key: 'd', ctrl: true, description: 'Duplicate', action: () => selectedNodeId && duplicateNode(selectedNodeId), category: 'Edit' },
+    { key: 'z', ctrl: true, description: 'Undo', action: () => undo(), category: 'Edit' },
+    { key: 'y', ctrl: true, description: 'Redo', action: () => redo(), category: 'Edit' },
     { key: 'h', description: 'Toggle Visibility', action: () => {}, category: 'Edit' },
 
     // Physics
@@ -55,6 +61,7 @@ export const KeyboardShortcuts: React.FC = () => {
     { key: '3', description: 'Side View', action: () => {}, category: 'View' },
     { key: '7', description: 'Top View', action: () => {}, category: 'View' },
     { key: '0', description: 'Camera View', action: () => {}, category: 'View' },
+    { key: '.', description: 'Zoom Fit All', action: () => zoomFit(), category: 'View' },
 
     // Help
     { key: '?', description: 'Show Shortcuts', action: () => setShowHelp(!showHelp), category: 'Help' },

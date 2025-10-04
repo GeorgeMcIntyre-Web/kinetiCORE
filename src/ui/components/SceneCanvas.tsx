@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import { SceneManager } from '../../scene/SceneManager';
+import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { RapierPhysicsEngine } from '../../physics/RapierPhysicsEngine';
 import { EntityRegistry } from '../../entities/EntityRegistry';
 import { TransformGizmo } from '../../manipulation/TransformGizmo';
@@ -20,12 +21,14 @@ export const SceneCanvas: React.FC = () => {
   const setCamera = useEditorStore((state) => state.setCamera);
   const camera = useEditorStore((state) => state.camera);
   const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
+  const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
   const transformMode = useEditorStore((state) => state.transformMode);
   const selectMesh = useEditorStore((state) => state.selectMesh);
   const clearSelection = useEditorStore((state) => state.clearSelection);
   const createObject = useEditorStore((state) => state.createObject);
   const initializeCoordinateFrameWidget = useEditorStore((state) => state.initializeCoordinateFrameWidget);
   const gizmoRef = useRef<TransformGizmo | null>(null);
+  const highlightLayerRef = useRef<BABYLON.HighlightLayer | null>(null);
 
   const { contextMenu, showContextMenu, hideContextMenu } = useViewportContextMenu();
   const [menuItems, setMenuItems] = useState<any[]>([]);
@@ -74,6 +77,11 @@ export const SceneCanvas: React.FC = () => {
         // Create transform gizmo
         gizmoRef.current = new TransformGizmo(scene);
 
+        // Create highlight layer for visual selection feedback
+        highlightLayerRef.current = new BABYLON.HighlightLayer('highlight', scene);
+        highlightLayerRef.current.innerGlow = false;
+        highlightLayerRef.current.outerGlow = true;
+
         // Add click selection
         scene.onPointerDown = (evt, pickResult) => {
           if (evt.button === 0) {
@@ -89,12 +97,28 @@ export const SceneCanvas: React.FC = () => {
                 !mesh.name.startsWith('label') &&
                 mesh instanceof BABYLON.Mesh
               ) {
-                clearSelection();
-                selectMesh(mesh);
+                // Ctrl+Click for multi-selection
+                if (evt.ctrlKey || evt.metaKey) {
+                  // Find the node ID for this mesh
+                  const tree = SceneTreeManager.getInstance();
+                  const registry = EntityRegistry.getInstance();
+                  const entity = registry.getEntityByMeshId(mesh.uniqueId);
+
+                  if (entity && entity.sceneNodeId) {
+                    const state = useEditorStore.getState();
+                    state.toggleNodeSelection(entity.sceneNodeId);
+                  }
+                } else {
+                  // Regular click - replace selection
+                  clearSelection();
+                  selectMesh(mesh);
+                }
               }
             } else {
-              // Clicked on empty space - clear selection
-              clearSelection();
+              // Clicked on empty space - clear selection unless Ctrl is held
+              if (!evt.ctrlKey && !evt.metaKey) {
+                clearSelection();
+              }
             }
           } else if (evt.button === 2) {
             // Right click - context menu handled by onContextMenu prop
@@ -139,6 +163,45 @@ export const SceneCanvas: React.FC = () => {
       gizmoRef.current.attachToMesh(null);
     }
   }, [selectedMeshes, transformMode]);
+
+  // Update highlight layer for multi-selection visual feedback
+  useEffect(() => {
+    if (!highlightLayerRef.current) return;
+
+    const highlightLayer = highlightLayerRef.current;
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    if (!scene) return;
+
+    // Clear all highlights
+    highlightLayer.removeAllMeshes();
+
+    // Get all selected node IDs (includes multi-selection)
+    const allSelectedIds = selectedNodeIds.length > 0 ? selectedNodeIds :
+                           (selectedMeshes.length > 0 ? [useEditorStore.getState().selectedNodeId].filter(Boolean) : []);
+
+    if (allSelectedIds.length > 0) {
+      const registry = EntityRegistry.getInstance();
+      const tree = SceneTreeManager.getInstance();
+
+      // Highlight all selected meshes
+      allSelectedIds.forEach((nodeId, index) => {
+        if (!nodeId) return;
+        const node = tree.getNode(nodeId);
+        if (!node || node.type !== 'mesh' || !node.babylonMeshId) return;
+
+        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+        if (mesh && mesh instanceof BABYLON.Mesh) {
+          // Use different colors for multi-selection: first = green, others = orange
+          const color = index === 0
+            ? new BABYLON.Color3(0.28, 0.73, 0.47) // Green for primary selection
+            : new BABYLON.Color3(1.0, 0.6, 0.0);    // Orange for additional selections
+
+          highlightLayer.addMesh(mesh, color);
+        }
+      });
+    }
+  }, [selectedNodeIds, selectedMeshes]);
 
   // Position canvas to overlay the active viewport div
   useEffect(() => {
@@ -230,6 +293,22 @@ export const SceneCanvas: React.FC = () => {
 
       {/* Camera view controls */}
       <CameraViewControls />
+
+      {/* Multi-selection indicator */}
+      {selectedNodeIds.length > 1 && (
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2
+                        bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg
+                        flex items-center gap-2 z-20 pointer-events-none
+                        animate-fade-in">
+          <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+          <span className="font-semibold text-sm">
+            {selectedNodeIds.length} objects selected
+          </span>
+          <span className="text-xs opacity-75">
+            (Ctrl+Click to deselect)
+          </span>
+        </div>
+      )}
 
       {/* Context menu */}
       {contextMenu && (

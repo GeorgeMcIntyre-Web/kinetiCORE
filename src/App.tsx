@@ -6,6 +6,7 @@ import { QuickAddMenu } from './ui/components/QuickAddMenu';
 import { ToastNotifications } from './ui/components/ToastNotifications';
 import { LoadingIndicator } from './ui/components/LoadingIndicator';
 import { SceneCanvas } from './ui/components/SceneCanvas';
+import { ErrorBoundary } from './ui/components/ErrorBoundary';
 import { UserLevelProvider, useUserLevel } from './ui/core/UserLevelContext';
 import { EssentialModeLayout } from './ui/layouts/EssentialModeLayout';
 import { ProfessionalModeLayout } from './ui/layouts/ProfessionalModeLayout';
@@ -32,21 +33,33 @@ const AppContent: React.FC = () => {
 
   return (
     <>
-      {renderLayout()}
+      <ErrorBoundary fallbackMessage="The layout encountered an error">
+        {renderLayout()}
+      </ErrorBoundary>
 
       {/* Global UI Components - Always active */}
-      <KeyboardShortcuts />
-      <QuickAddMenu />
+      <ErrorBoundary fallbackMessage="Keyboard shortcuts failed">
+        <KeyboardShortcuts />
+      </ErrorBoundary>
+
+      <ErrorBoundary fallbackMessage="Quick add menu failed">
+        <QuickAddMenu />
+      </ErrorBoundary>
+
       <ToastNotifications />
       <LoadingIndicator />
 
       {/* Kinematics Panel - Overlay */}
       {showKinematicsPanel && (
-        <KinematicsPanel onClose={() => setShowKinematicsPanel(false)} />
+        <ErrorBoundary fallbackMessage="Kinematics panel failed">
+          <KinematicsPanel onClose={() => setShowKinematicsPanel(false)} />
+        </ErrorBoundary>
       )}
 
       {/* SceneCanvas rendered ONCE at root level - never unmounts during layout switches */}
-      <SceneCanvas />
+      <ErrorBoundary fallbackMessage="3D scene rendering failed">
+        <SceneCanvas />
+      </ErrorBoundary>
     </>
   );
 };

@@ -17,6 +17,9 @@ import { CoordinateFrameWidget } from '../../scene/CoordinateFrameWidget';
 import type { NodeType } from '../../scene/SceneTreeNode';
 import { toast } from '../components/ToastNotifications';
 import { loading } from '../components/LoadingIndicator';
+import { CommandManager } from '../../history/CommandManager';
+import { DeleteObjectCommand } from '../../history/commands/DeleteObjectCommand';
+import { DuplicateObjectCommand } from '../../history/commands/DuplicateObjectCommand';
 
 type ObjectType = 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'plane' | 'ground' | 'capsule' | 'disc' | 'torusknot' | 'polyhedron';
 
@@ -24,23 +27,34 @@ interface EditorState {
   // State
   selectedMeshes: BABYLON.Mesh[];
   selectedNodeId: string | null;
+  selectedNodeIds: string[]; // Multi-selection support
   transformMode: TransformMode;
   camera: BABYLON.Camera | null;
   isPlaying: boolean;
   customFrameSelectionMode: 'none' | CustomFrameFeatureType;
   customFrame: CustomFrameFeature | null;
   coordinateFrameWidget: CoordinateFrameWidget | null;
+  commandManager: CommandManager;
 
   // Actions
+  undo: () => void;
+  redo: () => void;
+  canUndo: () => boolean;
+  canRedo: () => boolean;
   selectMesh: (mesh: BABYLON.Mesh) => void;
   selectNode: (nodeId: string) => void;
+  addToSelection: (nodeId: string) => void; // Add node to multi-selection
+  removeFromSelection: (nodeId: string) => void; // Remove from multi-selection
+  toggleNodeSelection: (nodeId: string) => void; // Toggle node in multi-selection
   zoomToNode: (nodeId: string) => void;
+  zoomFit: () => void; // Zoom to fit all visible objects
   deselectMesh: (mesh: BABYLON.Mesh) => void;
   clearSelection: () => void;
   toggleMeshSelection: (mesh: BABYLON.Mesh) => void;
   togglePhysics: (nodeId: string) => void;
   createCollection: (name?: string) => void;
   deleteNode: (nodeId: string) => void;
+  duplicateNode: (nodeId: string) => void;
   renameNode: (nodeId: string, newName: string) => void;
   moveNode: (nodeId: string, newParentId: string | null) => void;
   saveWorld: () => void;
@@ -64,12 +78,37 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // Initial state
   selectedMeshes: [],
   selectedNodeId: null,
+  selectedNodeIds: [],
   transformMode: DEFAULT_TRANSFORM_MODE,
   camera: null,
   isPlaying: false,
   customFrameSelectionMode: 'none',
   customFrame: null,
   coordinateFrameWidget: null,
+  commandManager: new CommandManager(),
+
+  // Undo/Redo actions
+  undo: () => {
+    const { commandManager } = get();
+    if (commandManager.undo()) {
+      toast.info('Undo successful');
+    }
+  },
+
+  redo: () => {
+    const { commandManager } = get();
+    if (commandManager.redo()) {
+      toast.info('Redo successful');
+    }
+  },
+
+  canUndo: () => {
+    return get().commandManager.canUndo();
+  },
+
+  canRedo: () => {
+    return get().commandManager.canRedo();
+  },
 
   // Selection actions
   selectMesh: (mesh) => {
@@ -87,7 +126,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   selectNode: (nodeId) => {
-    set({ selectedNodeId: nodeId });
+    set({ selectedNodeId: nodeId, selectedNodeIds: [nodeId] });
 
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(nodeId);
@@ -169,6 +208,35 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 
+  addToSelection: (nodeId: string) => {
+    const { selectedNodeIds } = get();
+    if (!selectedNodeIds.includes(nodeId)) {
+      const newSelection = [...selectedNodeIds, nodeId];
+      set({
+        selectedNodeIds: newSelection,
+        selectedNodeId: newSelection[newSelection.length - 1] // Last selected is primary
+      });
+    }
+  },
+
+  removeFromSelection: (nodeId: string) => {
+    const { selectedNodeIds } = get();
+    const newSelection = selectedNodeIds.filter(id => id !== nodeId);
+    set({
+      selectedNodeIds: newSelection,
+      selectedNodeId: newSelection.length > 0 ? newSelection[newSelection.length - 1] : null
+    });
+  },
+
+  toggleNodeSelection: (nodeId: string) => {
+    const { selectedNodeIds } = get();
+    if (selectedNodeIds.includes(nodeId)) {
+      get().removeFromSelection(nodeId);
+    } else {
+      get().addToSelection(nodeId);
+    }
+  },
+
   zoomToNode: (nodeId) => {
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(nodeId);
@@ -194,6 +262,52 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 
+  zoomFit: () => {
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    const camera = get().camera;
+
+    if (!scene || !camera || !(camera instanceof BABYLON.ArcRotateCamera)) return;
+
+    // Get all visible meshes (excluding ground)
+    const meshes = scene.meshes.filter((m: BABYLON.AbstractMesh) =>
+      m.isVisible && m.name !== 'ground'
+    );
+
+    if (meshes.length === 0) return;
+
+    // Calculate bounding box of all meshes
+    let minX = Infinity, minY = Infinity, minZ = Infinity;
+    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+
+    meshes.forEach((mesh: BABYLON.AbstractMesh) => {
+      mesh.computeWorldMatrix(true);
+      const boundingBox = mesh.getBoundingInfo().boundingBox;
+      const min = boundingBox.minimumWorld;
+      const max = boundingBox.maximumWorld;
+
+      minX = Math.min(minX, min.x);
+      minY = Math.min(minY, min.y);
+      minZ = Math.min(minZ, min.z);
+      maxX = Math.max(maxX, max.x);
+      maxY = Math.max(maxY, max.y);
+      maxZ = Math.max(maxZ, max.z);
+    });
+
+    // Calculate diagonal to determine zoom distance
+    const diagonal = Math.sqrt(
+      (maxX - minX) ** 2 + (maxY - minY) ** 2 + (maxZ - minZ) ** 2
+    );
+
+    // Set camera to frame all objects
+    camera.radius = diagonal * 1.5;
+    camera.target = new BABYLON.Vector3(
+      (minX + maxX) / 2,
+      (minY + maxY) / 2,
+      (minZ + maxZ) / 2
+    );
+  },
+
   deselectMesh: (mesh) => {
     set({
       selectedMeshes: get().selectedMeshes.filter((m) => m !== mesh),
@@ -208,7 +322,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       coordinateFrameWidget.hide();
     }
 
-    set({ selectedMeshes: [], selectedNodeId: null });
+    set({ selectedMeshes: [], selectedNodeId: null, selectedNodeIds: [] });
   },
 
   toggleMeshSelection: (mesh) => {
@@ -264,23 +378,52 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     const nodeName = node.name;
 
-    // If it has an entity, remove it
-    if (node.entityId) {
-      const registry = EntityRegistry.getInstance();
-      registry.remove(node.entityId);
-    }
-
-    // Remove from tree (this will also remove all children)
-    tree.deleteNode(nodeId);
-
     // Clear selection if deleted node was selected
     if (get().selectedNodeId === nodeId) {
       get().clearSelection();
     }
 
-    window.dispatchEvent(new Event('scenetree-update'));
+    // Execute delete command (supports undo)
+    const { commandManager } = get();
+    const command = new DeleteObjectCommand(nodeId);
+    commandManager.execute(command);
 
     toast.success(`Deleted "${nodeName}"`);
+  },
+
+  // Duplicate node
+  duplicateNode: (nodeId: string) => {
+    const tree = SceneTreeManager.getInstance();
+    const node = tree.getNode(nodeId);
+    if (!node) {
+      toast.error('Cannot duplicate: node not found');
+      return;
+    }
+
+    // Don't allow duplicating system nodes or collections
+    if (node.type === 'world' || node.type === 'scene' || node.type === 'system' || node.type === 'collection') {
+      toast.warning('Can only duplicate mesh objects');
+      return;
+    }
+
+    try {
+      // Execute duplicate command (supports undo)
+      const { commandManager } = get();
+      const command = new DuplicateObjectCommand(nodeId);
+      commandManager.execute(command);
+
+      // Select the duplicated object
+      const duplicatedNodeId = command.getDuplicatedNodeId();
+      if (duplicatedNodeId) {
+        get().clearSelection();
+        get().selectNode(duplicatedNodeId);
+      }
+
+      toast.success(`Duplicated "${node.name}"`);
+    } catch (error) {
+      console.error('Failed to duplicate node:', error);
+      toast.error(`Failed to duplicate: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   },
 
   // Rename node

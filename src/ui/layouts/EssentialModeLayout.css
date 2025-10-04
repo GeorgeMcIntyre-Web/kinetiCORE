@@ -217,6 +217,22 @@
   transform: scale(1.05);
 }
 
+/* Action Help */
+.action-help {
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(72, 187, 120, 0.1);
+  border: 1px solid rgba(72, 187, 120, 0.3);
+  border-radius: 6px;
+}
+
+.action-help p {
+  margin: 0;
+  font-size: 13px;
+  color: #68d391;
+  font-style: italic;
+}
+
 /* Help Panel */
 .help-panel {
   background: #1a202c;
@@ -265,8 +281,9 @@
 .viewport-controls {
   position: absolute;
   top: 20px;
-  left: 20px;
+  right: 20px;
   display: flex;
+  flex-direction: column;
   gap: 8px;
   z-index: 10;
 }
@@ -274,13 +291,16 @@
 .control-btn {
   background: #2d3748;
   border: 1px solid #4a5568;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 13px;
   font-weight: 500;
   color: #e2e8f0;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  min-width: 100px;
+  text-align: center;
 }
 
 .control-btn:not(:disabled):hover {

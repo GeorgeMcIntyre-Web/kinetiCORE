@@ -1,7 +1,8 @@
 // Essential Mode Layout - Beginner-friendly interface
 // Owner: George (Architecture)
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
+import * as BABYLON from '@babylonjs/core';
 import {
   Box,
   Circle,
@@ -10,7 +11,8 @@ import {
   Palette,
   Save,
   HelpCircle,
-  Upload
+  Upload,
+  CheckCircle
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
@@ -29,21 +31,71 @@ export const EssentialModeLayout: React.FC = () => {
   const { userLevel, setUserLevel } = useUserLevel();
   const createObject = useEditorStore((state) => state.createObject);
   const importModel = useEditorStore((state) => state.importModel);
+  const saveWorld = useEditorStore((state) => state.saveWorld);
+  const setTransformMode = useEditorStore((state) => state.setTransformMode);
+  const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+  const zoomFit = useEditorStore((state) => state.zoomFit);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Track action card completion state
+  const [completedActions, setCompletedActions] = useState<Set<string>>(new Set());
+
+  // Track when user creates their first object
+  useEffect(() => {
+    if (selectedNodeId && !completedActions.has('create')) {
+      setCompletedActions(prev => new Set(prev).add('create'));
+    }
+  }, [selectedNodeId]);
+
+  const markActionComplete = (actionId: string) => {
+    setCompletedActions(prev => new Set(prev).add(actionId));
+  };
+
+  const completedCount = completedActions.size;
+  const totalActions = 5;
 
   const handleFileImport = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && importModel) {
-      importModel(file);
+      await importModel(file);
+      markActionComplete('import');
     }
     // Reset the input so the same file can be selected again
     if (event.target) {
       event.target.value = '';
     }
+  };
+
+  const handleEnableTransform = () => {
+    if (selectedNodeId) {
+      setTransformMode('translate');
+      markActionComplete('move');
+    }
+  };
+
+  const handleSaveWork = () => {
+    saveWorld();
+    markActionComplete('save');
+  };
+
+  const handleResetView = () => {
+    const sceneManager = require('../../scene/SceneManager').SceneManager.getInstance();
+    const camera = sceneManager.getCamera();
+    if (camera) {
+      // Reset to default camera position
+      camera.alpha = -Math.PI / 2;
+      camera.beta = Math.PI / 3;
+      camera.radius = 10;
+      camera.target = BABYLON.Vector3.Zero();
+    }
+  };
+
+  const handleZoomFit = () => {
+    zoomFit();
   };
 
   const actionCards: ActionCard[] = [
@@ -52,7 +104,7 @@ export const EssentialModeLayout: React.FC = () => {
       title: 'Create Your First Object',
       description: 'Choose a shape to start building',
       icon: <Box size={32} />,
-      completed: false,
+      completed: completedActions.has('create'),
       disabled: false,
     },
     {
@@ -60,7 +112,7 @@ export const EssentialModeLayout: React.FC = () => {
       title: 'Import Your Model',
       description: 'Load existing 3D models (URDF, STL, OBJ, JT, CATIA)',
       icon: <Upload size={32} />,
-      completed: false,
+      completed: completedActions.has('import'),
       disabled: false,
     },
     {
@@ -68,24 +120,24 @@ export const EssentialModeLayout: React.FC = () => {
       title: 'Move and Resize Objects',
       description: 'Learn to position and scale your creations',
       icon: <Play size={32} />,
-      completed: false,
-      disabled: true,
+      completed: completedActions.has('move'),
+      disabled: !selectedNodeId,
     },
     {
       id: 'color',
       title: 'Change Colors and Organize',
       description: 'Make your scene look great',
       icon: <Palette size={32} />,
-      completed: false,
-      disabled: true,
+      completed: completedActions.has('color'),
+      disabled: !selectedNodeId,
     },
     {
       id: 'save',
       title: 'Save Your Work',
       description: 'Keep your progress safe',
       icon: <Save size={32} />,
-      completed: false,
-      disabled: true,
+      completed: completedActions.has('save'),
+      disabled: false,
     },
   ];
 
@@ -126,57 +178,84 @@ export const EssentialModeLayout: React.FC = () => {
               Let's build something amazing together. Follow these steps to get started.
             </p>
             <div className="progress-bar">
-              <div className="progress-fill" style={{ width: '0%' }}></div>
+              <div className="progress-fill" style={{ width: `${(completedCount / totalActions) * 100}%` }}></div>
             </div>
-            <p className="progress-text">0 of 5 steps completed</p>
+            <p className="progress-text">{completedCount} of {totalActions} steps completed</p>
           </div>
 
           {/* Action Cards */}
           <div className="action-cards">
-            {actionCards.map((card) => (
-              <div
-                key={card.id}
-                className={`action-card ${card.disabled ? 'disabled' : ''} ${
-                  card.completed ? 'completed' : ''
-                }`}
-                onClick={card.id === 'import' && !card.disabled ? handleFileImport : undefined}
-                style={card.id === 'import' && !card.disabled ? { cursor: 'pointer' } : undefined}
-              >
-                <div className="card-icon">{card.icon}</div>
-                <div className="card-content">
-                  <h3>{card.title}</h3>
-                  <p>{card.description}</p>
-                  {card.id === 'create' && !card.disabled && (
-                    <div className="shape-gallery">
-                      <button
-                        className="shape-btn"
-                        title="Create Box"
-                        onClick={() => createObject('box')}
-                      >
-                        <Box size={24} />
-                        <span>Box</span>
-                      </button>
-                      <button
-                        className="shape-btn"
-                        title="Create Sphere"
-                        onClick={() => createObject('sphere')}
-                      >
-                        <Circle size={24} />
-                        <span>Sphere</span>
-                      </button>
-                      <button
-                        className="shape-btn"
-                        title="Create Cylinder"
-                        onClick={() => createObject('cylinder')}
-                      >
-                        <Cylinder size={24} />
-                        <span>Cylinder</span>
-                      </button>
-                    </div>
-                  )}
+            {actionCards.map((card) => {
+              const getCardClickHandler = () => {
+                if (card.disabled) return undefined;
+                switch (card.id) {
+                  case 'import': return handleFileImport;
+                  case 'move': return handleEnableTransform;
+                  case 'save': return handleSaveWork;
+                  default: return undefined;
+                }
+              };
+
+              return (
+                <div
+                  key={card.id}
+                  className={`action-card ${card.disabled ? 'disabled' : ''} ${
+                    card.completed ? 'completed' : ''
+                  }`}
+                  onClick={getCardClickHandler()}
+                  style={!card.disabled && getCardClickHandler() ? { cursor: 'pointer' } : undefined}
+                >
+                  <div className="card-icon">
+                    {card.completed ? <CheckCircle size={32} /> : card.icon}
+                  </div>
+                  <div className="card-content">
+                    <h3>
+                      {card.title}
+                      {card.completed && ' ✓'}
+                    </h3>
+                    <p>{card.description}</p>
+                    {card.id === 'create' && !card.disabled && (
+                      <div className="shape-gallery">
+                        <button
+                          className="shape-btn"
+                          title="Create Box"
+                          onClick={() => createObject('box')}
+                        >
+                          <Box size={24} />
+                          <span>Box</span>
+                        </button>
+                        <button
+                          className="shape-btn"
+                          title="Create Sphere"
+                          onClick={() => createObject('sphere')}
+                        >
+                          <Circle size={24} />
+                          <span>Sphere</span>
+                        </button>
+                        <button
+                          className="shape-btn"
+                          title="Create Cylinder"
+                          onClick={() => createObject('cylinder')}
+                        >
+                          <Cylinder size={24} />
+                          <span>Cylinder</span>
+                        </button>
+                      </div>
+                    )}
+                    {card.id === 'move' && !card.disabled && (
+                      <div className="action-help">
+                        <p>✨ Select an object, then click here to enable move/resize mode!</p>
+                      </div>
+                    )}
+                    {card.id === 'save' && !card.disabled && (
+                      <div className="action-help">
+                        <p>💾 Click to save your world to a file</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Help Panel */}
@@ -198,21 +277,12 @@ export const EssentialModeLayout: React.FC = () => {
         <main className="essential-viewport">
           {/* Viewport Controls */}
           <div className="viewport-controls">
-            <button className="control-btn" title="Reset View" disabled>
+            <button className="control-btn" title="Reset View" onClick={handleResetView}>
               Reset View
             </button>
-            <button className="control-btn" title="Zoom to Fit" disabled>
+            <button className="control-btn" title="Zoom to Fit" onClick={handleZoomFit}>
               Zoom Fit
             </button>
-          </div>
-
-          {/* Getting Started Message */}
-          <div className="getting-started">
-            <div className="starter-message">
-              <h2>Let's Create Something!</h2>
-              <p>Choose a shape from the left panel to begin</p>
-              <div className="starter-arrow">←</div>
-            </div>
           </div>
 
           {/* Viewport container - SceneCanvas will overlay this */}
