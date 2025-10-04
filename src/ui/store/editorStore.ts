@@ -18,7 +18,7 @@ import type { NodeType } from '../../scene/SceneTreeNode';
 import { toast } from '../components/ToastNotifications';
 import { loading } from '../components/LoadingIndicator';
 
-type ObjectType = 'box' | 'sphere' | 'cylinder';
+type ObjectType = 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'plane' | 'ground' | 'capsule' | 'disc' | 'torusknot' | 'polyhedron';
 
 interface EditorState {
   // State
@@ -339,6 +339,62 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           scene
         );
         break;
+      case 'cone':
+        mesh = BABYLON.MeshBuilder.CreateCylinder(
+          `Cone_${Date.now()}`,
+          { height: 2, diameterTop: 0, diameterBottom: 1 },
+          scene
+        );
+        break;
+      case 'torus':
+        mesh = BABYLON.MeshBuilder.CreateTorus(
+          `Torus_${Date.now()}`,
+          { diameter: 2, thickness: 0.5, tessellation: 32 },
+          scene
+        );
+        break;
+      case 'plane':
+        mesh = BABYLON.MeshBuilder.CreatePlane(
+          `Plane_${Date.now()}`,
+          { size: 2 },
+          scene
+        );
+        break;
+      case 'ground':
+        mesh = BABYLON.MeshBuilder.CreateGround(
+          `Ground_${Date.now()}`,
+          { width: 5, height: 5 },
+          scene
+        );
+        break;
+      case 'capsule':
+        mesh = BABYLON.MeshBuilder.CreateCapsule(
+          `Capsule_${Date.now()}`,
+          { height: 2, radius: 0.5 },
+          scene
+        );
+        break;
+      case 'disc':
+        mesh = BABYLON.MeshBuilder.CreateDisc(
+          `Disc_${Date.now()}`,
+          { radius: 1, tessellation: 32 },
+          scene
+        );
+        break;
+      case 'torusknot':
+        mesh = BABYLON.MeshBuilder.CreateTorusKnot(
+          `TorusKnot_${Date.now()}`,
+          { radius: 1, tube: 0.3, radialSegments: 64, tubularSegments: 16 },
+          scene
+        );
+        break;
+      case 'polyhedron':
+        mesh = BABYLON.MeshBuilder.CreatePolyhedron(
+          `Polyhedron_${Date.now()}`,
+          { type: 0, size: 1 },
+          scene
+        );
+        break;
       default:
         console.error('Unknown object type:', type);
         return;
@@ -362,18 +418,71 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     );
     mesh.material = material;
 
+    // Map visual shape to physics shape (some complex shapes approximate to simpler ones)
+    const getPhysicsShape = (visualType: ObjectType): 'box' | 'sphere' | 'cylinder' => {
+      switch (visualType) {
+        case 'box':
+          return 'box';
+        case 'sphere':
+        case 'torus':
+        case 'torusknot':
+        case 'polyhedron':
+          return 'sphere';
+        case 'cylinder':
+        case 'cone':
+        case 'capsule':
+        case 'disc':
+          return 'cylinder';
+        case 'plane':
+        case 'ground':
+          return 'box'; // Thin box for planes
+        default:
+          return 'box';
+      }
+    };
+
+    // Get physics shape dimensions based on visual shape
+    const getPhysicsParams = (visualType: ObjectType) => {
+      const physicsShape = getPhysicsShape(visualType);
+
+      switch (visualType) {
+        case 'box':
+          return { shape: physicsShape, dimensions: { x: 2, y: 2, z: 2 } };
+        case 'sphere':
+          return { shape: physicsShape, radius: 1 };
+        case 'cylinder':
+          return { shape: physicsShape, radius: 0.5, height: 2 };
+        case 'cone':
+          return { shape: physicsShape, radius: 0.5, height: 2 };
+        case 'torus':
+          return { shape: physicsShape, radius: 1.25 }; // diameter 2 + thickness 0.5
+        case 'plane':
+          return { shape: physicsShape, dimensions: { x: 2, y: 2, z: 0.01 } };
+        case 'ground':
+          return { shape: physicsShape, dimensions: { x: 5, y: 5, z: 0.01 } };
+        case 'capsule':
+          return { shape: physicsShape, radius: 0.5, height: 2 };
+        case 'disc':
+          return { shape: physicsShape, radius: 1, height: 0.01 };
+        case 'torusknot':
+          return { shape: physicsShape, radius: 1.3 }; // approximate bounding sphere
+        case 'polyhedron':
+          return { shape: physicsShape, radius: 1 };
+        default:
+          return { shape: 'box' as const, dimensions: { x: 1, y: 1, z: 1 } };
+      }
+    };
+
+    const physicsParams = getPhysicsParams(type);
+
     // Create entity with physics disabled by default
     const entity = registry.create({
       mesh,
       physics: {
         enabled: false, // Disabled by default
         type: 'dynamic',
-        shape: type,
         mass: 1.0,
-        // Shape-specific parameters
-        ...(type === 'box' && { dimensions: { x: 2, y: 2, z: 2 } }),
-        ...(type === 'sphere' && { radius: 1 }), // diameter 2 / 2 = radius 1
-        ...(type === 'cylinder' && { radius: 0.5, height: 2 }), // diameter 1 / 2 = radius 0.5
+        ...physicsParams,
       },
       metadata: {
         name: mesh.name,

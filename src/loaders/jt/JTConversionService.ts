@@ -135,14 +135,14 @@ export class JTConversionService {
                     const errorData = await response.json();
                     if (errorData.detail) {
                         errorDetails = errorData.detail;
-                        errorMessage = errorDetails;
+                        errorMessage = errorDetails || errorMessage;
                     }
                 } catch {
                     // If error response is not JSON, use status text
                     errorDetails = await response.text();
                 }
 
-                throw new JTConversionError(response.status, errorMessage, errorDetails);
+                throw new JTConversionError(response.status, errorMessage, errorDetails || '');
             }
 
             // Stage 3: Downloading

@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import { RotateCcw, AlignCenter, Grid3x3 } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
+import { useUserLevel } from '../core/UserLevelContext';
 import { babylonToUser } from '../../core/CoordinateSystem';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { SceneManager } from '../../scene/SceneManager';
@@ -14,6 +15,7 @@ import { XNumericInput, YNumericInput, ZNumericInput } from './NumericInput';
 import './Inspector.css';
 
 export const Inspector: React.FC = () => {
+  const { userLevel } = useUserLevel();
   const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const togglePhysics = useEditorStore((state) => state.togglePhysics);
@@ -49,6 +51,16 @@ export const Inspector: React.FC = () => {
     }, 100); // Update 10 times per second
     return () => clearInterval(intervalId);
   }, [selectedNodeId]);
+
+  // Clear custom frame if switching to non-expert mode
+  useEffect(() => {
+    if (userLevel !== 'expert' && coordinateMode === 'custom') {
+      setCoordinateMode('local');
+      if (customFrame) {
+        setCustomFrame(null);
+      }
+    }
+  }, [userLevel, coordinateMode, customFrame, setCustomFrame]);
 
   if (!selectedNodeId) {
     return (
@@ -294,6 +306,7 @@ export const Inspector: React.FC = () => {
 
             {/* Transform Presets */}
             <div className="transform-presets">
+              {/* Essential: Only Reset */}
               <button
                 className="preset-btn"
                 onClick={handlePositionReset}
@@ -302,22 +315,28 @@ export const Inspector: React.FC = () => {
                 <RotateCcw size={14} />
                 Reset
               </button>
-              <button
-                className="preset-btn"
-                onClick={handleCenterPosition}
-                title="Center object at world origin"
-              >
-                <AlignCenter size={14} />
-                Center
-              </button>
-              <button
-                className="preset-btn"
-                onClick={handleSnapToGrid}
-                title="Snap to nearest 100mm grid point"
-              >
-                <Grid3x3 size={14} />
-                Snap
-              </button>
+
+              {/* Professional+: Center and Snap */}
+              {userLevel !== 'essential' && (
+                <>
+                  <button
+                    className="preset-btn"
+                    onClick={handleCenterPosition}
+                    title="Center object at world origin"
+                  >
+                    <AlignCenter size={14} />
+                    Center
+                  </button>
+                  <button
+                    className="preset-btn"
+                    onClick={handleSnapToGrid}
+                    title="Snap to nearest 100mm grid point"
+                  >
+                    <Grid3x3 size={14} />
+                    Snap
+                  </button>
+                </>
+              )}
             </div>
 
             <div className="transform-control-row">
@@ -397,49 +416,51 @@ export const Inspector: React.FC = () => {
               </div>
             </div>
 
-            {/* Quick Rotation Angles */}
-            <div className="quick-rotation-section">
-              <div className="quick-rotation-header">
-                <label className="quick-rotation-label">Quick angles:</label>
-                <button
-                  className="reset-button"
-                  onClick={handleRotationReset}
-                  title="Reset all rotations to 0°"
-                >
-                  Reset
-                </button>
+            {/* Quick Rotation Angles - Professional+ only */}
+            {userLevel !== 'essential' && (
+              <div className="quick-rotation-section">
+                <div className="quick-rotation-header">
+                  <label className="quick-rotation-label">Quick angles:</label>
+                  <button
+                    className="reset-button"
+                    onClick={handleRotationReset}
+                    title="Reset all rotations to 0°"
+                  >
+                    Reset
+                  </button>
+                </div>
+                <div className="quick-rotation-grid">
+                  <button
+                    className="quick-angle-btn"
+                    onClick={() => handleQuickRotation('z', 0)}
+                    title="Set Z rotation to 0°"
+                  >
+                    0°
+                  </button>
+                  <button
+                    className="quick-angle-btn"
+                    onClick={() => handleQuickRotation('z', 45)}
+                    title="Set Z rotation to 45°"
+                  >
+                    45°
+                  </button>
+                  <button
+                    className="quick-angle-btn"
+                    onClick={() => handleQuickRotation('z', 90)}
+                    title="Set Z rotation to 90°"
+                  >
+                    90°
+                  </button>
+                  <button
+                    className="quick-angle-btn"
+                    onClick={() => handleQuickRotation('z', 180)}
+                    title="Set Z rotation to 180°"
+                  >
+                    180°
+                  </button>
+                </div>
               </div>
-              <div className="quick-rotation-grid">
-                <button
-                  className="quick-angle-btn"
-                  onClick={() => handleQuickRotation('z', 0)}
-                  title="Set Z rotation to 0°"
-                >
-                  0°
-                </button>
-                <button
-                  className="quick-angle-btn"
-                  onClick={() => handleQuickRotation('z', 45)}
-                  title="Set Z rotation to 45°"
-                >
-                  45°
-                </button>
-                <button
-                  className="quick-angle-btn"
-                  onClick={() => handleQuickRotation('z', 90)}
-                  title="Set Z rotation to 90°"
-                >
-                  90°
-                </button>
-                <button
-                  className="quick-angle-btn"
-                  onClick={() => handleQuickRotation('z', 180)}
-                  title="Set Z rotation to 180°"
-                >
-                  180°
-                </button>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Scale Controls */}
@@ -504,33 +525,41 @@ export const Inspector: React.FC = () => {
               >
                 World
               </button>
-              <button
-                className={coordinateMode === 'custom' ? 'active' : ''}
-                onClick={handleStartCustomFrameSelection}
-                title="Custom reference frame"
-              >
-                Custom
-              </button>
+
+              {/* Custom Frame - Expert only */}
+              {userLevel === 'expert' && (
+                <button
+                  className={coordinateMode === 'custom' ? 'active' : ''}
+                  onClick={handleStartCustomFrameSelection}
+                  title="Custom reference frame"
+                >
+                  Custom
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Show custom frame info if one is set */}
-          {customFrame && coordinateMode === 'custom' && !isSelectingCustomFrame && (
-            <div className="custom-frame-info">
-              <p>
-                Frame: {customFrame.featureType}
-                {customFrame.featureType === 'face' && ` (face ${customFrame.faceIndex})`}
-                {customFrame.featureType === 'edge' && ' (edge)'}
-                {customFrame.featureType === 'vertex' && ` (vertex ${customFrame.vertexIndex})`}
-              </p>
-              <button onClick={handleClearCustomFrame} className="clear-frame-button">
-                Clear
-              </button>
-            </div>
-          )}
+          {/* Show custom frame info if one is set - Expert only */}
+          {userLevel === 'expert' &&
+            customFrame &&
+            coordinateMode === 'custom' &&
+            !isSelectingCustomFrame && (
+              <div className="custom-frame-info">
+                <p>
+                  Frame: {customFrame.featureType}
+                  {customFrame.featureType === 'face' && ` (face ${customFrame.faceIndex})`}
+                  {customFrame.featureType === 'edge' && ' (edge)'}
+                  {customFrame.featureType === 'vertex' &&
+                    ` (vertex ${customFrame.vertexIndex})`}
+                </p>
+                <button onClick={handleClearCustomFrame} className="clear-frame-button">
+                  Clear
+                </button>
+              </div>
+            )}
 
-          {/* Custom frame selection UI */}
-          {isSelectingCustomFrame && (
+          {/* Custom frame selection UI - Expert only */}
+          {userLevel === 'expert' && isSelectingCustomFrame && (
             <div className="custom-frame-selector">
               <p className="selector-title">Select Feature Type:</p>
               <div className="feature-type-buttons">
@@ -576,21 +605,24 @@ export const Inspector: React.FC = () => {
           )}
         </div>
 
-        <div className="property-group">
-          <h3>Physics</h3>
-          <div className="property">
-            <label>Enable Physics</label>
-            <button
-              onClick={handleTogglePhysics}
-              className="physics-toggle-button"
-              style={{
-                backgroundColor: isPhysicsEnabled ? '#4CAF50' : '#666',
-              }}
-            >
-              {isPhysicsEnabled ? 'Enabled' : 'Disabled'}
-            </button>
+        {/* Physics - Professional+ only */}
+        {userLevel !== 'essential' && (
+          <div className="property-group">
+            <h3>Physics</h3>
+            <div className="property">
+              <label>Enable Physics</label>
+              <button
+                onClick={handleTogglePhysics}
+                className="physics-toggle-button"
+                style={{
+                  backgroundColor: isPhysicsEnabled ? '#4CAF50' : '#666',
+                }}
+              >
+                {isPhysicsEnabled ? 'Enabled' : 'Disabled'}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

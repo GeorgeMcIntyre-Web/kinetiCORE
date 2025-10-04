@@ -8,12 +8,15 @@ import { RapierPhysicsEngine } from '../../physics/RapierPhysicsEngine';
 import { EntityRegistry } from '../../entities/EntityRegistry';
 import { TransformGizmo } from '../../manipulation/TransformGizmo';
 import { useEditorStore } from '../store/editorStore';
+import { useUserLevel } from '../core/UserLevelContext';
 import { CoordinateFrame } from './CoordinateFrame';
 import { ContextMenu, useViewportContextMenu } from './ContextMenu';
 import { CameraViewControls } from './CameraViewControls';
 
 export const SceneCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { userLevel } = useUserLevel();
   const setCamera = useEditorStore((state) => state.setCamera);
   const camera = useEditorStore((state) => state.camera);
   const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
@@ -137,6 +140,63 @@ export const SceneCanvas: React.FC = () => {
     }
   }, [selectedMeshes, transformMode]);
 
+  // Position canvas to overlay the active viewport div
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Determine viewport ID based on user level
+    const viewportId = `viewport-${userLevel}`;
+
+    const updatePosition = () => {
+      const viewportElement = document.getElementById(viewportId);
+      if (!viewportElement) {
+        // Hide canvas if viewport not found
+        container.style.display = 'none';
+        return;
+      }
+
+      const rect = viewportElement.getBoundingClientRect();
+      container.style.display = 'block';
+      container.style.position = 'fixed';
+      container.style.top = `${rect.top}px`;
+      container.style.left = `${rect.left}px`;
+      container.style.width = `${rect.width}px`;
+      container.style.height = `${rect.height}px`;
+      container.style.pointerEvents = 'auto';
+
+      // Trigger engine resize to match new dimensions
+      const sceneManager = SceneManager.getInstance();
+      const engine = sceneManager.getEngine();
+      if (engine) {
+        engine.resize();
+      }
+    };
+
+    // Initial positioning
+    updatePosition();
+
+    // Watch for window resize
+    window.addEventListener('resize', updatePosition);
+
+    // Use ResizeObserver to track viewport changes
+    const viewportElement = document.getElementById(viewportId);
+    let resizeObserver: ResizeObserver | null = null;
+
+    if (viewportElement) {
+      resizeObserver = new ResizeObserver(updatePosition);
+      resizeObserver.observe(viewportElement);
+    }
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
+  }, [userLevel]);
+
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     const items = showContextMenu(e, (type: string) => {
@@ -149,7 +209,12 @@ export const SceneCanvas: React.FC = () => {
 
   return (
     <div
-      style={{ position: 'relative', width: '100%', height: '100%' }}
+      ref={containerRef}
+      style={{
+        position: 'fixed',
+        zIndex: 1,
+        pointerEvents: 'none',
+      }}
       onContextMenu={handleContextMenu}
     >
       <canvas
@@ -159,6 +224,7 @@ export const SceneCanvas: React.FC = () => {
           height: '100%',
           display: 'block',
           outline: 'none',
+          pointerEvents: 'auto',
         }}
       />
 

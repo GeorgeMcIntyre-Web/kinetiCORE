@@ -52,7 +52,9 @@
       "Bash(\"C:\\Users\\George\\source\\repos\\PyOpenJt\\WinBuild\\Release\\JtDump.exe\" --help)",
       "Bash(grep:*)",
       "Bash(\"C:\\Users\\George\\source\\repos\\PyOpenJt\\WinBuild\\Release\\JtDump.exe\" \"C:\\Users\\George\\source\\repos\\PyOpenJt\\Data\\ExampleFiles\\CoffeeMaker.jt\" -o test.json)",
-      "Read(//c/Users/George/source/repos/KineticCoreData/**)"
+      "Read(//c/Users/George/source/repos/KineticCoreData/**)",
+      "Bash(git reset:*)",
+      "Bash(timeout 10 sleep 5)"
     ],
     "deny": [],
     "ask": []

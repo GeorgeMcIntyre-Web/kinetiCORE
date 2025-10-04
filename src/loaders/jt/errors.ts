@@ -5,6 +5,9 @@
 
 import { JTErrorType } from './types';
 
+// Re-export JTErrorType so other modules can import it from errors.ts
+export { JTErrorType };
+
 export class JTImportError extends Error {
     constructor(
         public type: JTErrorType,
