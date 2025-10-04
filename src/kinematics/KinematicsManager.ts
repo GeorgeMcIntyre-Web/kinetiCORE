@@ -365,25 +365,155 @@ export class KinematicsManager {
 
     const tree = SceneTreeManager.getInstance();
     const parentNode = tree.getNode(joint.parentNodeId);
-    if (!parentNode?.babylonMeshId) return;
+    const childNode = tree.getNode(joint.childNodeId);
+    if (!parentNode || !childNode) return;
+
+    const visualizers: BABYLON.Mesh[] = [];
+
+    // Get parent mesh world position
+    let parentMesh: BABYLON.Mesh | null = null;
+    if (parentNode.babylonMeshId) {
+      parentMesh = scene.getMeshByUniqueId(parseInt(parentNode.babylonMeshId)) as BABYLON.Mesh;
+    }
+
+    if (!parentMesh) return;
+
+    const parentWorldMatrix = parentMesh.computeWorldMatrix(true);
+    const jointOriginLocal = new BABYLON.Vector3(
+      joint.origin.x * 0.001, // mm to meters
+      joint.origin.y * 0.001,
+      joint.origin.z * 0.001
+    );
+    const jointOriginWorld = BABYLON.Vector3.TransformCoordinates(
+      jointOriginLocal,
+      parentWorldMatrix
+    );
+
+    // Create joint origin marker (sphere)
+    const originMarker = BABYLON.MeshBuilder.CreateSphere(
+      `jointOrigin_${jointId}`,
+      { diameter: 0.02 }, // 20mm diameter
+      scene
+    );
+    originMarker.position.copyFrom(jointOriginWorld);
+    originMarker.isPickable = false;
+
+    const markerMaterial = new BABYLON.StandardMaterial(`jointOriginMat_${jointId}`, scene);
+    markerMaterial.emissiveColor = new BABYLON.Color3(1, 0.5, 0); // Orange
+    originMarker.material = markerMaterial;
+    visualizers.push(originMarker);
 
     // Create axis visualizer
-    const axisLength = 0.1; // 100mm
+    const axisLength = 0.15; // 150mm
     const axisDir = new BABYLON.Vector3(joint.axis.x, joint.axis.y, joint.axis.z).normalize();
-    const origin = new BABYLON.Vector3(joint.origin.x, joint.origin.y, joint.origin.z);
+    const axisWorldDir = BABYLON.Vector3.TransformNormal(axisDir, parentWorldMatrix);
 
-    // Create arrow for axis
-    const arrow = BABYLON.MeshBuilder.CreateLines(
+    // Create arrow for axis (using cylinder + cone)
+    const axisLine = BABYLON.MeshBuilder.CreateCylinder(
       `jointAxis_${jointId}`,
       {
-        points: [origin, origin.add(axisDir.scale(axisLength))],
+        height: axisLength,
+        diameter: 0.005, // 5mm diameter
       },
       scene
     );
-    arrow.color = new BABYLON.Color3(1, 1, 0); // Yellow
-    arrow.isPickable = false;
 
-    this.jointAxisVisualizers.set(jointId, [arrow]);
+    // Position and orient the axis
+    const axisEndPoint = jointOriginWorld.add(axisWorldDir.scale(axisLength / 2));
+    axisLine.position.copyFrom(axisEndPoint);
+
+    // Orient cylinder along axis
+    const up = BABYLON.Vector3.Up();
+    const angle = Math.acos(BABYLON.Vector3.Dot(up, axisWorldDir));
+    const rotAxis = BABYLON.Vector3.Cross(up, axisWorldDir).normalize();
+    if (rotAxis.length() > 0) {
+      axisLine.rotationQuaternion = BABYLON.Quaternion.RotationAxis(rotAxis, angle);
+    }
+
+    axisLine.isPickable = false;
+    const axisMaterial = new BABYLON.StandardMaterial(`jointAxisMat_${jointId}`, scene);
+    axisMaterial.emissiveColor = new BABYLON.Color3(1, 1, 0); // Yellow
+    axisLine.material = axisMaterial;
+    visualizers.push(axisLine);
+
+    // Create arrowhead (cone)
+    const arrowhead = BABYLON.MeshBuilder.CreateCylinder(
+      `jointArrow_${jointId}`,
+      {
+        height: 0.02,
+        diameterTop: 0,
+        diameterBottom: 0.015,
+      },
+      scene
+    );
+
+    const arrowTip = jointOriginWorld.add(axisWorldDir.scale(axisLength));
+    arrowhead.position.copyFrom(arrowTip);
+    if (rotAxis.length() > 0) {
+      arrowhead.rotationQuaternion = BABYLON.Quaternion.RotationAxis(rotAxis, angle);
+    }
+
+    arrowhead.isPickable = false;
+    arrowhead.material = axisMaterial;
+    visualizers.push(arrowhead);
+
+    // Show rotation limits for revolute joints
+    if (joint.type === 'revolute' && joint.showLimits) {
+      const limitVisualizer = this.createRevoluteLimitVisualizer(
+        joint,
+        jointOriginWorld,
+        axisWorldDir,
+        scene
+      );
+      if (limitVisualizer) {
+        visualizers.push(limitVisualizer);
+      }
+    }
+
+    this.jointAxisVisualizers.set(jointId, visualizers);
+  }
+
+  /**
+   * Create a visual indicator for revolute joint limits
+   */
+  private createRevoluteLimitVisualizer(
+    joint: JointConfig,
+    origin: BABYLON.Vector3,
+    _axis: BABYLON.Vector3,
+    scene: BABYLON.Scene
+  ): BABYLON.Mesh | null {
+    // Create a partial disc/arc showing the joint limits
+    const radius = 0.08; // 80mm radius
+    const segments = 32;
+    const angleRange = joint.limits.upper - joint.limits.lower;
+
+    const points: BABYLON.Vector3[] = [];
+    points.push(origin); // Center point
+
+    for (let i = 0; i <= segments; i++) {
+      const angle = joint.limits.lower + (angleRange * i) / segments;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+
+      // Create point in local plane perpendicular to axis
+      // TODO: Proper 3D orientation based on axis
+      const point = origin.add(new BABYLON.Vector3(x, 0, y));
+      points.push(point);
+    }
+
+    points.push(origin); // Close the arc
+
+    const limitArc = BABYLON.MeshBuilder.CreateLines(
+      `jointLimits_${joint.id}`,
+      { points },
+      scene
+    );
+
+    limitArc.color = new BABYLON.Color3(0, 1, 1); // Cyan
+    limitArc.alpha = 0.5;
+    limitArc.isPickable = false;
+
+    return limitArc;
   }
 
   /**

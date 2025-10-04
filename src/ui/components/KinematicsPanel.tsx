@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
+import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
 import type { JointType } from '../../kinematics/KinematicsManager';
 import './KinematicsPanel.css';
 
@@ -36,12 +37,15 @@ interface KinematicsPanelProps {
 export const KinematicsPanel: React.FC<KinematicsPanelProps> = ({ onClose }) => {
   const selectedNodeId = useEditorStore(state => state.selectedNodeId);
   const kinematicsManager = KinematicsManager.getInstance();
+  const fkSolver = ForwardKinematicsSolver.getInstance();
 
   const [currentStep, setCurrentStep] = useState<WorkflowStep>('select_model');
   const [groundedNodeId, setGroundedNodeId] = useState<string | null>(null);
   const [suggestedGroundId, setSuggestedGroundId] = useState<string | null>(null);
   const [joints, setJoints] = useState<any[]>([]);
   const [showJointCreator, setShowJointCreator] = useState(false);
+  const [isSelectingParent, setIsSelectingParent] = useState(false);
+  const [isSelectingChild, setIsSelectingChild] = useState(false);
 
   // Joint creation state
   const [jointParent, setJointParent] = useState<string>('');
@@ -68,6 +72,17 @@ export const KinematicsPanel: React.FC<KinematicsPanelProps> = ({ onClose }) => 
     const interval = setInterval(updateJoints, 500);
     return () => clearInterval(interval);
   }, []);
+
+  // Handle node selection for parent/child picking
+  useEffect(() => {
+    if (isSelectingParent && selectedNodeId) {
+      setJointParent(selectedNodeId);
+      setIsSelectingParent(false);
+    } else if (isSelectingChild && selectedNodeId) {
+      setJointChild(selectedNodeId);
+      setIsSelectingChild(false);
+    }
+  }, [selectedNodeId, isSelectingParent, isSelectingChild]);
 
   const handleGroundNode = (nodeId: string) => {
     const success = kinematicsManager.groundNode(nodeId);
@@ -301,25 +316,67 @@ export const KinematicsPanel: React.FC<KinematicsPanelProps> = ({ onClose }) => 
 
                 <div className="form-group">
                   <label>Parent Part (Fixed Side)</label>
-                  <input
-                    type="text"
-                    placeholder="Select from scene tree"
-                    value={jointParent}
-                    readOnly
-                  />
-                  <p className="hint">Click on the parent part in the scene tree</p>
+                  <div className="input-with-button">
+                    <input
+                      type="text"
+                      placeholder="Click 'Select' to pick from scene"
+                      value={jointParent}
+                      readOnly
+                    />
+                    <button
+                      className={`select-button ${isSelectingParent ? 'active' : ''}`}
+                      onClick={() => {
+                        setIsSelectingParent(true);
+                        setIsSelectingChild(false);
+                      }}
+                    >
+                      {isSelectingParent ? '👆 Click in scene...' : 'Select'}
+                    </button>
+                  </div>
+                  {isSelectingParent && (
+                    <p className="hint active">Click on a part in the scene tree or 3D view</p>
+                  )}
                 </div>
 
                 <div className="form-group">
                   <label>Child Part (Moving Side)</label>
-                  <input
-                    type="text"
-                    placeholder="Select from scene tree"
-                    value={jointChild}
-                    readOnly
-                  />
-                  <p className="hint">Click on the child part in the scene tree</p>
+                  <div className="input-with-button">
+                    <input
+                      type="text"
+                      placeholder="Click 'Select' to pick from scene"
+                      value={jointChild}
+                      readOnly
+                    />
+                    <button
+                      className={`select-button ${isSelectingChild ? 'active' : ''}`}
+                      onClick={() => {
+                        setIsSelectingChild(true);
+                        setIsSelectingParent(false);
+                      }}
+                    >
+                      {isSelectingChild ? '👆 Click in scene...' : 'Select'}
+                    </button>
+                  </div>
+                  {isSelectingChild && (
+                    <p className="hint active">Click on a part in the scene tree or 3D view</p>
+                  )}
                 </div>
+
+                {jointParent && jointChild && (
+                  <div className="selection-preview">
+                    <button
+                      className="swap-button"
+                      onClick={() => {
+                        const temp = jointParent;
+                        setJointParent(jointChild);
+                        setJointChild(temp);
+                      }}
+                      title="Swap parent and child"
+                    >
+                      ⇄ Swap Parent/Child
+                    </button>
+                  </div>
+                )}
 
                 <div className="button-group">
                   <button
@@ -380,13 +437,38 @@ export const KinematicsPanel: React.FC<KinematicsPanelProps> = ({ onClose }) => 
                       value={joint.position}
                       step="0.01"
                       onChange={(e) => {
-                        // TODO: Update joint position
-                        console.log('Update joint:', joint.id, e.target.value);
+                        const value = parseFloat(e.target.value);
+                        fkSolver.updateJointPosition(joint.id, value);
                       }}
                     />
                   </div>
+                  <div className="joint-actions">
+                    <button
+                      className="icon-button"
+                      title="Reset to zero"
+                      onClick={() => fkSolver.updateJointPosition(joint.id, 0)}
+                    >
+                      ↺
+                    </button>
+                    <button
+                      className="icon-button"
+                      title="Animate joint"
+                      onClick={() => fkSolver.animateJoint(joint.id, 2000)}
+                    >
+                      ▶
+                    </button>
+                  </div>
                 </div>
               ))}
+            </div>
+
+            <div className="motion-controls">
+              <button
+                className="secondary-button"
+                onClick={() => fkSolver.resetToHome()}
+              >
+                Reset All to Home
+              </button>
             </div>
 
             <div className="success-box">

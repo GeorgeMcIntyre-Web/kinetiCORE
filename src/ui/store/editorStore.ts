@@ -11,6 +11,7 @@ import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { userToBabylon, babylonToUser } from '../../core/CoordinateSystem';
 import { loadModelFromFile, getAllChildren } from '../../scene/ModelLoader';
 import { loadURDFWithMeshes } from '../../loaders/urdf/URDFLoaderWithMeshes';
+import { createKinematicsFromURDF } from '../../loaders/urdf/URDFJointExtractor';
 import { saveWorldToFile, loadWorldFromFile, restoreWorldState } from '../../scene/WorldSerializer';
 import { CustomFrameHelper } from '../../scene/CustomFrameHelper';
 import { CoordinateFrameWidget } from '../../scene/CoordinateFrameWidget';
@@ -754,10 +755,28 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Notify tree to update
       window.dispatchEvent(new Event('scenetree-update'));
 
-      loading.update('Finalizing...', 90);
-      loading.end();
-      toast.success(`Imported ${meshes.length} meshes from ${file.name}`);
-      console.log(`Imported ${meshes.length} meshes with ${rootNodes.length} root nodes`);
+      // Auto-extract kinematics from URDF (single file import)
+      if (isURDF) {
+        loading.update('Extracting kinematics...', 75);
+        try {
+          const urdfXML = await file.text();
+          await createKinematicsFromURDF(urdfXML, modelCollection.id);
+          loading.update('Finalizing...', 90);
+          loading.end();
+          toast.success(`Imported ${meshes.length} meshes from ${file.name} + kinematics! 🤖`);
+          console.log(`Imported ${meshes.length} meshes with kinematics auto-extracted`);
+        } catch (error) {
+          console.warn('Failed to auto-extract kinematics:', error);
+          loading.update('Finalizing...', 90);
+          loading.end();
+          toast.success(`Imported ${meshes.length} meshes from ${file.name}`);
+        }
+      } else {
+        loading.update('Finalizing...', 90);
+        loading.end();
+        toast.success(`Imported ${meshes.length} meshes from ${file.name}`);
+        console.log(`Imported ${meshes.length} meshes with ${rootNodes.length} root nodes`);
+      }
     } catch (error) {
       loading.end();
       console.error('Failed to import model:', error);
@@ -855,10 +874,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Notify tree to update
       window.dispatchEvent(new Event('scenetree-update'));
 
-      loading.update('Finalizing...', 90);
-      loading.end();
-      toast.success(`Imported URDF robot with ${meshes.length} meshes`);
-      console.log(`Imported ${meshes.length} meshes with ${rootNodes.length} root nodes`);
+      loading.update('Extracting kinematics...', 75);
+
+      // Auto-extract kinematics from URDF
+      try {
+        const urdfXML = await urdfFile.text();
+        await createKinematicsFromURDF(urdfXML, modelCollection.id);
+        loading.update('Finalizing...', 90);
+        loading.end();
+        toast.success(`Imported URDF robot with ${meshes.length} meshes + kinematics! 🤖`);
+        console.log(`Imported ${meshes.length} meshes with kinematics auto-extracted`);
+      } catch (error) {
+        console.warn('Failed to auto-extract kinematics:', error);
+        loading.update('Finalizing...', 90);
+        loading.end();
+        toast.success(`Imported ${meshes.length} meshes (kinematics extraction skipped)`);
+      }
     } catch (error) {
       loading.end();
       console.error('Failed to import URDF folder:', error);

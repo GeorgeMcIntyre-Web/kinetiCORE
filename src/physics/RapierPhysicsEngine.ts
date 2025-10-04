@@ -12,6 +12,7 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
   private world: RAPIER.World | null = null;
   private bodies = new Map<string, RAPIER.RigidBody>();
   private colliders = new Map<string, RAPIER.Collider>();
+  private joints = new Map<string, RAPIER.ImpulseJoint>();
 
   async initialize(gravity: Vector3 = DEFAULT_GRAVITY): Promise<void> {
     // Initialize Rapier WASM
@@ -209,10 +210,144 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
     }
     this.bodies.clear();
     this.colliders.clear();
+    this.joints.clear();
     this.RAPIER = null;
   }
 
   getWorld(): RAPIER.World | null {
     return this.world;
+  }
+
+  // === Joint Constraint Implementation ===
+
+  createRevoluteJoint(
+    bodyA: string,
+    bodyB: string,
+    anchor: Vector3,
+    axis: Vector3
+  ): string | null {
+    if (!this.world || !this.RAPIER) return null;
+
+    const rigidBodyA = this.bodies.get(bodyA);
+    const rigidBodyB = this.bodies.get(bodyB);
+
+    if (!rigidBodyA || !rigidBodyB) {
+      console.error('Bodies not found for joint creation');
+      return null;
+    }
+
+    // Create revolute joint parameters
+    const params = this.RAPIER.JointData.revolute(
+      { x: anchor.x, y: anchor.y, z: anchor.z }, // Anchor in bodyA's local space
+      { x: 0, y: 0, z: 0 }, // Anchor in bodyB's local space (adjust as needed)
+      { x: axis.x, y: axis.y, z: axis.z } // Rotation axis
+    );
+
+    // Create the joint
+    const joint = this.world.createImpulseJoint(params, rigidBodyA, rigidBodyB, true);
+
+    const handle = crypto.randomUUID();
+    this.joints.set(handle, joint);
+
+    return handle;
+  }
+
+  createPrismaticJoint(
+    bodyA: string,
+    bodyB: string,
+    anchor: Vector3,
+    axis: Vector3
+  ): string | null {
+    if (!this.world || !this.RAPIER) return null;
+
+    const rigidBodyA = this.bodies.get(bodyA);
+    const rigidBodyB = this.bodies.get(bodyB);
+
+    if (!rigidBodyA || !rigidBodyB) {
+      console.error('Bodies not found for joint creation');
+      return null;
+    }
+
+    // Create prismatic joint parameters
+    const params = this.RAPIER.JointData.prismatic(
+      { x: anchor.x, y: anchor.y, z: anchor.z }, // Anchor in bodyA's local space
+      { x: 0, y: 0, z: 0 }, // Anchor in bodyB's local space
+      { x: axis.x, y: axis.y, z: axis.z } // Translation axis
+    );
+
+    // Create the joint
+    const joint = this.world.createImpulseJoint(params, rigidBodyA, rigidBodyB, true);
+
+    const handle = crypto.randomUUID();
+    this.joints.set(handle, joint);
+
+    return handle;
+  }
+
+  createFixedJoint(bodyA: string, bodyB: string, anchor: Vector3): string | null {
+    if (!this.world || !this.RAPIER) return null;
+
+    const rigidBodyA = this.bodies.get(bodyA);
+    const rigidBodyB = this.bodies.get(bodyB);
+
+    if (!rigidBodyA || !rigidBodyB) {
+      console.error('Bodies not found for joint creation');
+      return null;
+    }
+
+    // Create fixed joint parameters
+    const params = this.RAPIER.JointData.fixed(
+      { x: anchor.x, y: anchor.y, z: anchor.z }, // Anchor in bodyA's local space
+      { x: 0, y: 0, z: 0, w: 1 }, // Rotation (identity quaternion)
+      { x: 0, y: 0, z: 0 }, // Anchor in bodyB's local space
+      { x: 0, y: 0, z: 0, w: 1 } // Rotation
+    );
+
+    // Create the joint
+    const joint = this.world.createImpulseJoint(params, rigidBodyA, rigidBodyB, true);
+
+    const handle = crypto.randomUUID();
+    this.joints.set(handle, joint);
+
+    return handle;
+  }
+
+  setJointLimits(jointHandle: string, _lower: number, _upper: number): void {
+    const joint = this.joints.get(jointHandle);
+    if (!joint) return;
+
+    // Note: Rapier's ImpulseJoint limit configuration varies by joint type
+    // This is a placeholder - full implementation requires tracking joint types
+    // and using type-specific methods like:
+    // - RevoluteJoint: setLimits(min, max)
+    // - PrismaticJoint: setLimits(min, max)
+    console.log('setJointLimits called for joint:', jointHandle);
+  }
+
+  setJointMotor(jointHandle: string, _targetVelocity: number, _maxForce: number): void {
+    const joint = this.joints.get(jointHandle);
+    if (!joint) return;
+
+    // Note: Rapier's motor configuration varies by joint type
+    // This is a placeholder - full implementation requires tracking joint types
+    console.log('setJointMotor called for joint:', jointHandle);
+  }
+
+  getJointPosition(jointHandle: string): number | null {
+    const joint = this.joints.get(jointHandle);
+    if (!joint) return null;
+
+    // Rapier doesn't directly expose joint position in all cases
+    // This is a simplified implementation
+    // For full implementation, would need to track joint type and calculate from body positions
+    return 0; // TODO: Implement proper position reading
+  }
+
+  removeJoint(jointHandle: string): void {
+    const joint = this.joints.get(jointHandle);
+    if (!joint || !this.world) return;
+
+    this.world.removeImpulseJoint(joint, true);
+    this.joints.delete(jointHandle);
   }
 }

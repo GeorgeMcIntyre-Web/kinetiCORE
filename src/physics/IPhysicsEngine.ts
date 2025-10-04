@@ -66,4 +66,74 @@ export interface IPhysicsEngine {
    * Use sparingly - prefer using the abstraction methods
    */
   getWorld(): unknown;
+
+  // === Joint Constraints ===
+
+  /**
+   * Create a revolute joint (hinge) between two bodies
+   * @param bodyA Handle of first rigid body
+   * @param bodyB Handle of second rigid body
+   * @param anchor Anchor point in world space
+   * @param axis Rotation axis in world space
+   * @returns Joint handle
+   */
+  createRevoluteJoint(
+    bodyA: string,
+    bodyB: string,
+    anchor: Vector3,
+    axis: Vector3
+  ): string | null;
+
+  /**
+   * Create a prismatic joint (slider) between two bodies
+   * @param bodyA Handle of first rigid body
+   * @param bodyB Handle of second rigid body
+   * @param anchor Anchor point in world space
+   * @param axis Translation axis in world space
+   * @returns Joint handle
+   */
+  createPrismaticJoint(
+    bodyA: string,
+    bodyB: string,
+    anchor: Vector3,
+    axis: Vector3
+  ): string | null;
+
+  /**
+   * Create a fixed joint (rigid connection) between two bodies
+   * @param bodyA Handle of first rigid body
+   * @param bodyB Handle of second rigid body
+   * @param anchor Anchor point in world space
+   * @returns Joint handle
+   */
+  createFixedJoint(bodyA: string, bodyB: string, anchor: Vector3): string | null;
+
+  /**
+   * Set joint position/angle limits
+   * @param jointHandle Handle of the joint
+   * @param lower Lower limit (radians for revolute, meters for prismatic)
+   * @param upper Upper limit
+   */
+  setJointLimits(jointHandle: string, lower: number, upper: number): void;
+
+  /**
+   * Set joint motor parameters
+   * @param jointHandle Handle of the joint
+   * @param targetVelocity Target velocity (rad/s or m/s)
+   * @param maxForce Maximum force/torque
+   */
+  setJointMotor(jointHandle: string, targetVelocity: number, maxForce: number): void;
+
+  /**
+   * Get current joint position/angle
+   * @param jointHandle Handle of the joint
+   * @returns Current position/angle, or null if joint not found
+   */
+  getJointPosition(jointHandle: string): number | null;
+
+  /**
+   * Remove a joint constraint
+   * @param jointHandle Handle of the joint
+   */
+  removeJoint(jointHandle: string): void;
 }

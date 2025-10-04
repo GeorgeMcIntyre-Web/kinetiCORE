@@ -20,6 +20,7 @@ export class SceneManager {
   private camera: BABYLON.ArcRotateCamera | null = null;
   private ground: BABYLON.Mesh | null = null;
   private isInitialized: boolean = false;
+  private isUsingWebGPU: boolean = false;
 
   private constructor() {}
 
@@ -43,12 +44,41 @@ export class SceneManager {
     // Mark as initializing immediately to prevent race conditions
     this.isInitialized = true;
 
-    // Always use WebGL2 for stability (WebGPU can have driver issues)
-    this.engine = new BABYLON.Engine(canvas, true, {
-      preserveDrawingBuffer: true,
-      stencil: true,
-    });
-    console.log('Using WebGL2 engine');
+    // Try WebGPU first, fallback to WebGL2
+    const useWebGPU = localStorage.getItem('preferWebGPU') !== 'false'; // Default: try WebGPU
+
+    if (useWebGPU && await BABYLON.WebGPUEngine.IsSupportedAsync) {
+      try {
+        console.log('🚀 Initializing WebGPU engine...');
+        const webgpuEngine = new BABYLON.WebGPUEngine(canvas, {
+          antialias: true,
+          stencil: true,
+        });
+        await webgpuEngine.initAsync();
+        this.engine = webgpuEngine;
+        this.isUsingWebGPU = true;
+        console.log('✅ WebGPU engine ready');
+      } catch (error) {
+        console.warn('⚠️ WebGPU initialization failed, falling back to WebGL2:', error);
+        this.engine = new BABYLON.Engine(canvas, true, {
+          preserveDrawingBuffer: true,
+          stencil: true,
+        });
+        this.isUsingWebGPU = false;
+        console.log('Using WebGL2 engine (fallback)');
+      }
+    } else {
+      this.engine = new BABYLON.Engine(canvas, true, {
+        preserveDrawingBuffer: true,
+        stencil: true,
+      });
+      this.isUsingWebGPU = false;
+      if (!useWebGPU) {
+        console.log('Using WebGL2 engine (user preference)');
+      } else {
+        console.log('Using WebGL2 engine (WebGPU not supported)');
+      }
+    }
 
     // Create scene
     this.scene = new BABYLON.Scene(this.engine);
@@ -169,6 +199,20 @@ export class SceneManager {
 
   getGround(): BABYLON.Mesh | null {
     return this.ground;
+  }
+
+  /**
+   * Check if using WebGPU rendering
+   */
+  isWebGPU(): boolean {
+    return this.isUsingWebGPU;
+  }
+
+  /**
+   * Get rendering engine name
+   */
+  getRenderingEngineName(): string {
+    return this.isUsingWebGPU ? 'WebGPU' : 'WebGL2';
   }
 
   /**
