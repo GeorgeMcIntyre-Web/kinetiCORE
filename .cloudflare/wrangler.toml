@@ -1,0 +1,62 @@
+# Cloudflare Pages Configuration for kinetiCORE
+# Documentation: https://developers.cloudflare.com/pages/
+
+name = "kineticore"
+compatibility_date = "2025-01-01"
+
+# Pages project settings
+pages_build_output_dir = "dist"
+
+[build]
+command = "npm run build"
+
+[build.environment]
+NODE_VERSION = "18"
+
+# Headers for static assets optimization
+[[headers]]
+for = "/*"
+[headers.values]
+X-Frame-Options = "DENY"
+X-Content-Type-Options = "nosniff"
+Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Cache static assets for 1 year
+[[headers]]
+for = "/assets/*"
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
+
+# Cache WASM files efficiently
+[[headers]]
+for = "/*.wasm"
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
+Content-Type = "application/wasm"
+
+# WebGL / Babylon.js optimization headers
+[[headers]]
+for = "/*.glb"
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
+Content-Type = "model/gltf-binary"
+
+[[headers]]
+for = "/*.gltf"
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
+Content-Type = "model/gltf+json"
+
+# URDF files
+[[headers]]
+for = "/*.urdf"
+[headers.values]
+Cache-Control = "public, max-age=86400"
+Content-Type = "application/xml"
+
+# Allow SharedArrayBuffer for Rapier physics (WASM threading)
+[[headers]]
+for = "/*"
+[headers.values]
+Cross-Origin-Embedder-Policy = "require-corp"
+Cross-Origin-Opener-Policy = "same-origin"

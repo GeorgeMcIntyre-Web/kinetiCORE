@@ -211,13 +211,13 @@ export async function createKinematicsFromURDF(
 
     const jointType = mapURDFJointType(urdfJoint.type);
 
-    // Convert URDF coordinates (Z-up, meters) to Babylon (Y-up, meters) then to kinetiCORE (mm)
-    const M_TO_MM = 1000;
+    // Convert URDF coordinates (Z-up, meters) to Babylon (Y-up, meters)
+    // URDF uses meters, Babylon uses meters - no unit conversion needed
     const originBabylon = urdfToBabylonPosition(urdfJoint.origin.xyz);
     const origin = {
-      x: originBabylon.x * M_TO_MM,
-      y: originBabylon.y * M_TO_MM,
-      z: originBabylon.z * M_TO_MM,
+      x: originBabylon.x,
+      y: originBabylon.y,
+      z: originBabylon.z,
     };
 
     // Convert axis direction (Z-up to Y-up)

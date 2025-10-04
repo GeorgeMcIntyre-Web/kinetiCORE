@@ -57,7 +57,8 @@
       "Bash(timeout 10 sleep 5)",
       "Bash(npm search:*)",
       "Bash(curl:*)",
-      "Bash(git clone:*)"
+      "Bash(git clone:*)",
+      "Read(//c/Users/George/source/repos/kinetiCORE_data/**)"
     ],
     "deny": [],
     "ask": []

@@ -48,39 +48,41 @@
 /* Jog Step Control */
 .jog-step-control {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #2d3748;
+  padding: 12px;
+  border-radius: 8px;
 }
 
 .jog-step-control label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: #a0aec0;
+  white-space: nowrap;
 }
 
 .step-selector {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: #2d3748;
-  padding: 8px;
-  border-radius: 8px;
+  gap: 10px;
 }
 
 .step-selector button {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #4a5568;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   color: #e2e8f0;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -94,39 +96,44 @@
 }
 
 .step-selector input {
-  flex: 1;
   background: #1a202c;
-  border: 1px solid #4a5568;
-  border-radius: 4px;
+  border: 2px solid #4a5568;
+  border-radius: 6px;
   color: #e2e8f0;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
   text-align: center;
-  padding: 6px;
-  width: 60px;
+  padding: 8px 12px;
+  width: 70px;
 }
 
 .step-selector .unit {
-  color: #a0aec0;
-  font-size: 14px;
-  font-weight: 500;
-  margin-left: -4px;
+  color: #e2e8f0;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 /* Joint Mode - Grid Layout */
+.joint-jog-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .joints-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .joint-jog-item {
   background: #2d3748;
-  border-radius: 8px;
-  padding: 12px;
+  border-radius: 6px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  border: 1px solid #4a5568;
 }
 
 .joint-header {
@@ -136,16 +143,16 @@
 }
 
 .joint-label {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   color: #63b3ed;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .joint-value {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: #48bb78;
   font-family: 'Courier New', monospace;
 }
 
@@ -157,14 +164,14 @@
 
 .jog-btn {
   flex: 1;
-  height: 42px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: 6px;
-  font-size: 18px;
-  font-weight: 700;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
   user-select: none;
