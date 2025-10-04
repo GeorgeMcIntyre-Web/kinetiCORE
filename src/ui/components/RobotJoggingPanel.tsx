@@ -26,6 +26,11 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints, fk
   // Filter to only show revolute joints (exclude fixed joints)
   const revoluteJoints = joints.filter(j => j.type === 'revolute');
 
+  // Debug logging
+  console.log('[RobotJoggingPanel] Total joints:', joints.length);
+  console.log('[RobotJoggingPanel] Revolute joints:', revoluteJoints.length);
+  console.log('[RobotJoggingPanel] Joint names:', revoluteJoints.map(j => j.name));
+
   const handleJogJoint = (jointId: string, direction: number) => {
     const joint = joints.find(j => j.id === jointId);
     if (!joint) return;

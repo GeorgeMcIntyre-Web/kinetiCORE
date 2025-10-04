@@ -63,10 +63,12 @@ export const KinematicsPanel: React.FC<KinematicsPanelProps> = ({ onClose }) => 
       // If joints already exist (from URDF import), auto-ground and skip to test
       const existingJoints = kinematicsManager.getAllJoints();
       if (existingJoints.length > 0 && suggested) {
+        console.log('[KinematicsPanel] Auto-grounding base for URDF robot with', existingJoints.length, 'joints');
         const success = kinematicsManager.groundNode(suggested);
         if (success) {
           setGroundedNodeId(suggested);
           setCurrentStep('test_motion');
+          console.log('[KinematicsPanel] Skipped to test_motion step');
           return;
         }
       }
@@ -75,19 +77,23 @@ export const KinematicsPanel: React.FC<KinematicsPanelProps> = ({ onClose }) => 
     }
   }, [selectedNodeId]);
 
-  // Auto-ground when at ground_base step with existing joints
+  // IMMEDIATE auto-ground when joints exist - runs on every render if needed
   useEffect(() => {
-    if (currentStep === 'ground_base' && !groundedNodeId) {
-      const existingJoints = kinematicsManager.getAllJoints();
-      if (existingJoints.length > 0 && suggestedGroundId) {
-        const success = kinematicsManager.groundNode(suggestedGroundId);
-        if (success) {
-          setGroundedNodeId(suggestedGroundId);
+    const existingJoints = kinematicsManager.getAllJoints();
+
+    // If we have joints, suggested base, and haven't grounded yet - DO IT NOW
+    if (existingJoints.length > 0 && suggestedGroundId && !groundedNodeId) {
+      console.log('[KinematicsPanel] IMMEDIATE auto-ground triggered');
+      const success = kinematicsManager.groundNode(suggestedGroundId);
+      if (success) {
+        setGroundedNodeId(suggestedGroundId);
+        if (currentStep === 'ground_base' || currentStep === 'select_model') {
           setCurrentStep('test_motion');
+          console.log('[KinematicsPanel] Jumped to test_motion');
         }
       }
     }
-  }, [currentStep, suggestedGroundId, groundedNodeId]);
+  }); // NO dependencies - runs every render until grounded
 
   // Update joints list
   useEffect(() => {
