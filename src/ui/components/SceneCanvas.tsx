@@ -85,7 +85,9 @@ export const SceneCanvas: React.FC = () => {
         // Add click selection
         scene.onPointerDown = (evt, pickResult) => {
           if (evt.button === 0) {
-            // Left click
+            // Left click - always close context menu
+            hideContextMenu();
+
             if (pickResult.hit && pickResult.pickedMesh) {
               const mesh = pickResult.pickedMesh;
 
