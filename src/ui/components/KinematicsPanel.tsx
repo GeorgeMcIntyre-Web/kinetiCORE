@@ -75,6 +75,20 @@ export const KinematicsPanel: React.FC<KinematicsPanelProps> = ({ onClose }) => 
     }
   }, [selectedNodeId]);
 
+  // Auto-ground when at ground_base step with existing joints
+  useEffect(() => {
+    if (currentStep === 'ground_base' && !groundedNodeId) {
+      const existingJoints = kinematicsManager.getAllJoints();
+      if (existingJoints.length > 0 && suggestedGroundId) {
+        const success = kinematicsManager.groundNode(suggestedGroundId);
+        if (success) {
+          setGroundedNodeId(suggestedGroundId);
+          setCurrentStep('test_motion');
+        }
+      }
+    }
+  }, [currentStep, suggestedGroundId, groundedNodeId]);
+
   // Update joints list
   useEffect(() => {
     const updateJoints = () => {
