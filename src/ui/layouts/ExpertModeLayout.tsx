@@ -390,7 +390,7 @@ def create_array():
       <input
         ref={fileInputRef}
         type="file"
-        accept=".urdf,.stl,.obj,.jt,.catpart,.catproduct,.catdrawing"
+        accept=".urdf,.stl,.obj,.dxf,.jt,.catpart,.catproduct,.catdrawing"
         onChange={handleFileChange}
         style={{ display: 'none' }}
       />

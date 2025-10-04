@@ -101,15 +101,9 @@ export const SceneCanvas: React.FC = () => {
               ) {
                 // Ctrl+Click for multi-selection
                 if (evt.ctrlKey || evt.metaKey) {
-                  // Find the node ID for this mesh
-                  const tree = SceneTreeManager.getInstance();
-                  const registry = EntityRegistry.getInstance();
-                  const entity = registry.getEntityByMeshId(mesh.uniqueId);
-
-                  if (entity && entity.sceneNodeId) {
-                    const state = useEditorStore.getState();
-                    state.toggleNodeSelection(entity.sceneNodeId);
-                  }
+                  // For now, just add to mesh selection
+                  // TODO: Implement node-based multi-selection from viewport
+                  selectMesh(mesh);
                 } else {
                   // Regular click - replace selection
                   clearSelection();
@@ -183,7 +177,6 @@ export const SceneCanvas: React.FC = () => {
                            (selectedMeshes.length > 0 ? [useEditorStore.getState().selectedNodeId].filter(Boolean) : []);
 
     if (allSelectedIds.length > 0) {
-      const registry = EntityRegistry.getInstance();
       const tree = SceneTreeManager.getInstance();
 
       // Highlight all selected meshes

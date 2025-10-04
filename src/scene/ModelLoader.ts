@@ -19,6 +19,9 @@ import { loadJTFromFile } from '../loaders/jt/JTLoader';
 // Import CATIA loader
 import { loadCATIAFromFile } from '../loaders/catia/CATIALoader';
 
+// Import DXF loader
+import { DXFController } from '../dxf/DXFController';
+
 // Configure Draco decoder
 DracoCompression.Configuration = {
   decoder: {
@@ -104,9 +107,9 @@ export async function loadModelFromFile(
     return loadURDFFromFile(file, scene);
   }
 
-  // Handle DXF files (placeholder - needs DXFController integration)
+  // Handle DXF files
   if (extension === '.dxf') {
-    throw new Error('DXF import: Please use dedicated DXF import workflow');
+    return loadDXFFromFile(file, scene);
   }
 
   // Handle JT files
@@ -185,6 +188,40 @@ export async function loadModelFromFile(
     // Read file as ArrayBuffer
     reader.readAsArrayBuffer(file);
   });
+}
+
+/**
+ * Load DXF file using DXF Controller
+ */
+async function loadDXFFromFile(file: File, scene: BABYLON.Scene): Promise<{ meshes: BABYLON.AbstractMesh[]; rootNodes: BABYLON.TransformNode[] }> {
+  const controller = new DXFController(scene);
+
+  const result = await controller.importFile(file, {}, {
+    mergeByLayer: true,
+    extrusionThickness: 0.1,
+  });
+
+  // Get all meshes from the result
+  const meshes: BABYLON.AbstractMesh[] = [];
+  Object.values(result.layerGroups).forEach(layerGroup => {
+    meshes.push(...layerGroup.meshes);
+  });
+
+  // The root node is the parent of layer groups if it exists
+  const rootNodes: BABYLON.TransformNode[] = [];
+  if (meshes.length > 0 && meshes[0].parent) {
+    const parent = meshes[0].parent;
+    if (parent instanceof BABYLON.TransformNode && !rootNodes.includes(parent)) {
+      rootNodes.push(parent);
+    }
+  }
+
+  // If no parent, treat individual meshes as root nodes
+  if (rootNodes.length === 0) {
+    rootNodes.push(...meshes.filter(m => !m.parent));
+  }
+
+  return { meshes, rootNodes };
 }
 
 /**
