@@ -1,0 +1,6 @@
+1. when clicking j1 +/- then all the other joints jump there must be a 3d transf forward kinematic issue.
+2. Library to help use with robotic and fk and ik??
+3. Reseach standard practice to use a urdf file with 3d files stl path etc., needs to be robust.
+4. Robot size looks small but the 3d model is not in.
+5. 
+

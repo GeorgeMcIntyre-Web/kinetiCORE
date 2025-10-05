@@ -716,8 +716,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         }
 
         // Create tree node
-        // Check if this is a URDF object (uses Babylon native coordinates)
-        const isURDF = node.metadata?.isURDFMesh || node.metadata?.coordinateSystem === 'babylon-native';
+        // Check if this is a URDF object (already converted to Babylon Y-up)
+        const isURDF = node.metadata?.isURDFMesh ||
+                       node.metadata?.coordinateSystem === 'urdf-converted' ||
+                       node.metadata?.coordinateSystem === 'babylon-native';
         const position = isURDF
           ? { x: node.position.x * 1000, y: node.position.y * 1000, z: node.position.z * 1000 }  // Just convert meters to mm
           : babylonToUser(node.position);  // Full conversion with axis swap
@@ -835,8 +837,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         }
 
         // Create tree node
-        // Check if this is a URDF object (uses Babylon native coordinates)
-        const isURDF = node.metadata?.isURDFMesh || node.metadata?.coordinateSystem === 'babylon-native';
+        // Check if this is a URDF object (already converted to Babylon Y-up)
+        const isURDF = node.metadata?.isURDFMesh ||
+                       node.metadata?.coordinateSystem === 'urdf-converted' ||
+                       node.metadata?.coordinateSystem === 'babylon-native';
         const position = isURDF
           ? { x: node.position.x * 1000, y: node.position.y * 1000, z: node.position.z * 1000 }  // Just convert meters to mm
           : babylonToUser(node.position);  // Full conversion with axis swap

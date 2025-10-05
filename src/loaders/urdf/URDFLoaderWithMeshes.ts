@@ -20,8 +20,9 @@ export async function loadURDFWithMeshes(
   const urdfText = await urdfFile.text();
   const urdf = parseURDF(urdfText);
 
-  // URDF uses meters, Babylon.js uses meters - NO CONVERSION NEEDED
-  // (The Inspector will handle display units)
+  // URDF coordinate system: Z-up, right-handed, meters
+  // Babylon coordinate system: Y-up, right-handed, meters
+  // Conversion: (x, y, z) URDF → (x, z, y) Babylon + mesh rotation -90° around X
 
   console.log(`Loading URDF: ${urdf.robotName}`);
   console.log(`Total files provided: ${files.length}`);
@@ -44,7 +45,7 @@ export async function loadURDFWithMeshes(
   robotRoot.metadata = {
     isURDFRobot: true,
     isURDFMesh: true,
-    coordinateSystem: 'babylon-native', // Y-up, meters
+    coordinateSystem: 'urdf-converted', // Converted from Z-up URDF to Y-up Babylon
     urdfJoints: urdf.joints,
     urdfLinks: urdf.links,
   };
@@ -59,7 +60,7 @@ export async function loadURDFWithMeshes(
     linkNode.metadata = {
       isURDFLink: true,
       isURDFMesh: true,
-      coordinateSystem: 'babylon-native', // Y-up, meters
+      coordinateSystem: 'urdf-converted', // Converted from Z-up URDF to Y-up Babylon
     };
     linkNodes.set(link.name, linkNode);
 
@@ -176,16 +177,16 @@ export async function loadURDFWithMeshes(
     if (parentNode && childNode) {
       childNode.parent = parentNode;
 
-      // Apply joint origin transform (URDF is in meters, same as Babylon)
+      // Apply joint origin transform
+      // URDF: Z-up, meters → Babylon: Y-up, meters
+      // Conversion: (x, y, z) URDF → (x, z, y) Babylon
       childNode.position = new BABYLON.Vector3(
-        joint.origin.xyz[0],
-        joint.origin.xyz[1],
-        joint.origin.xyz[2]
+        joint.origin.xyz[0],  // X stays X
+        joint.origin.xyz[2],  // URDF Z (up) → Babylon Y (up)
+        joint.origin.xyz[1]   // URDF Y (forward) → Babylon Z (forward)
       );
 
-      // URDF uses RPY (Roll-Pitch-Yaw) = intrinsic XYZ Euler angles
-      // Babylon uses extrinsic ZYX Euler angles
-      // Convert RPY to quaternion, then to Babylon rotation
+      // Apply RPY rotation with Z-up to Y-up conversion
       applyRPYRotation(childNode, joint.origin.rpy);
 
       // Store joint metadata (preserve existing metadata)
@@ -247,7 +248,7 @@ function findMeshFile(meshPath: string, fileMap: Map<string, File>): File | unde
     return fileMap.get(meshPath);
   }
 
-  // Try filename only
+  // Try filename only (most common case)
   const filename = meshPath.split('/').pop();
   if (filename && fileMap.has(filename)) {
     console.log(`  ✓ Found (filename match): ${filename}`);
@@ -267,14 +268,6 @@ function findMeshFile(meshPath: string, fileMap: Map<string, File>): File | unde
   for (const [path, file] of fileMap.entries()) {
     if (path.endsWith(meshPath)) {
       console.log(`  ✓ Found (ends with): ${path}`);
-      return file;
-    }
-  }
-
-  // Try searching paths that contain the mesh path
-  for (const [path, file] of fileMap.entries()) {
-    if (path.includes(meshPath)) {
-      console.log(`  ✓ Found (contains): ${path}`);
       return file;
     }
   }
@@ -302,6 +295,16 @@ function findMeshFile(meshPath: string, fileMap: Map<string, File>): File | unde
       // If at least 2 parts match, consider it a match
       if (matchCount >= 2) {
         console.log(`  ✓ Found (structure match - ${matchCount} parts): ${path}`);
+        return file;
+      }
+    }
+
+    // Final fallback: try case-insensitive filename match
+    const lowerFilename = filename.toLowerCase();
+    for (const [path, file] of fileMap.entries()) {
+      const pathFilename = path.split('/').pop()?.toLowerCase();
+      if (pathFilename === lowerFilename) {
+        console.log(`  ✓ Found (case-insensitive filename): ${path}`);
         return file;
       }
     }
@@ -358,34 +361,45 @@ async function loadMeshFile(
             // Parent first, THEN set local position
             mesh.parent = linkNode;
 
-            // Mark as URDF mesh (uses native Babylon Y-up coordinates)
+            // Mark as URDF mesh (converted from Z-up to Y-up)
             mesh.metadata = mesh.metadata || {};
             mesh.metadata.isURDFMesh = true;
-            mesh.metadata.coordinateSystem = 'babylon-native'; // Y-up, meters
+            mesh.metadata.coordinateSystem = 'urdf-converted'; // Converted from Z-up to Y-up
 
             // Reset position to origin
             mesh.position = BABYLON.Vector3.Zero();
             mesh.rotation = BABYLON.Vector3.Zero();
             mesh.scaling = BABYLON.Vector3.One();
 
-            // Visual origin is relative to the link frame (URDF is in meters, same as Babylon)
-            // Most URDF visual origins are (0,0,0)
+            // IMPORTANT: STL meshes from URDF are modeled in Z-up convention
+            // We need to rotate them to Y-up (Babylon's convention)
+            // Rotation: -90° around X axis (Z-up → Y-up)
+            const baseRotation = BABYLON.Quaternion.RotationAxis(
+              BABYLON.Vector3.Right(), // X axis
+              -Math.PI / 2 // -90 degrees
+            );
+            mesh.rotationQuaternion = baseRotation;
+
+            // Visual origin is relative to the link frame
+            // URDF: Z-up, meters → Babylon: Y-up, meters
+            // Conversion: (x, y, z) URDF → (x, z, y) Babylon
             if (origin.xyz[0] !== 0 || origin.xyz[1] !== 0 || origin.xyz[2] !== 0) {
               mesh.position = new BABYLON.Vector3(
-                origin.xyz[0],
-                origin.xyz[1],
-                origin.xyz[2]
+                origin.xyz[0],  // X stays X
+                origin.xyz[2],  // URDF Z (up) → Babylon Y (up)
+                origin.xyz[1]   // URDF Y (forward) → Babylon Z (forward)
               );
             }
 
-            // Apply RPY rotation only if non-zero
+            // Apply RPY rotation with Z-up to Y-up conversion (composes with base rotation)
             if (origin.rpy[0] !== 0 || origin.rpy[1] !== 0 || origin.rpy[2] !== 0) {
               applyRPYRotation(mesh, origin.rpy);
             }
 
             // Apply scale from URDF if specified
+            // Note: Scale needs to swap Y and Z components to match coordinate conversion
             if (scale) {
-              mesh.scaling = new BABYLON.Vector3(scale[0], scale[1], scale[2]);
+              mesh.scaling = new BABYLON.Vector3(scale[0], scale[2], scale[1]);
             }
 
             meshesToReturn.push(mesh);
@@ -440,5 +454,12 @@ function applyRPYRotation(
 
   // Convert quaternion from Z-up to Y-up: swap Y and Z components
   // URDF (x, y, z, w) → Babylon (x, z, y, w)
-  node.rotationQuaternion = new BABYLON.Quaternion(qx, qz, qy, qw);
+  const rpyQuaternion = new BABYLON.Quaternion(qx, qz, qy, qw);
+
+  // If node already has a rotation quaternion (e.g., base rotation), compose with it
+  if (node.rotationQuaternion) {
+    node.rotationQuaternion = node.rotationQuaternion.multiply(rpyQuaternion);
+  } else {
+    node.rotationQuaternion = rpyQuaternion;
+  }
 }

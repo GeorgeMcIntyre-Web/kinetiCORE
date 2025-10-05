@@ -357,6 +357,28 @@ export class KinematicsManager {
   }
 
   /**
+   * Get a kinematic chain by name
+   */
+  getChain(name: string): KinematicChain | undefined {
+    return Array.from(this.chains.values()).find(chain => chain.name === name);
+  }
+
+  /**
+   * Get all kinematic chains
+   */
+  getAllChains(): KinematicChain[] {
+    return Array.from(this.chains.values());
+  }
+
+  /**
+   * Get joints for a specific chain
+   */
+  getChainJoints(chainId: string): JointConfig[] {
+    const chain = this.chains.get(chainId);
+    return chain ? chain.joints : [];
+  }
+
+  /**
    * Find all joints in chain starting from root
    */
   private findChainJoints(rootNodeId: string): JointConfig[] {

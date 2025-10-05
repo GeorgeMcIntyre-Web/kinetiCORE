@@ -58,7 +58,8 @@
       "Bash(npm search:*)",
       "Bash(curl:*)",
       "Bash(git clone:*)",
-      "Read(//c/Users/George/source/repos/kinetiCORE_data/**)"
+      "Read(//c/Users/George/source/repos/kinetiCORE_data/**)",
+      "Read(//c/Users/George/source/repos/**)"
     ],
     "deny": [],
     "ask": []

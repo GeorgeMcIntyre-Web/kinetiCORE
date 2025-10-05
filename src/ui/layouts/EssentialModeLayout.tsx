@@ -33,7 +33,6 @@ export const EssentialModeLayout: React.FC = () => {
   const { userLevel, setUserLevel } = useUserLevel();
   const createObject = useEditorStore((state) => state.createObject);
   const importModel = useEditorStore((state) => state.importModel);
-  const importURDFFolder = useEditorStore((state) => state.importURDFFolder);
   const saveWorld = useEditorStore((state) => state.saveWorld);
   const setTransformMode = useEditorStore((state) => state.setTransformMode);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
@@ -62,22 +61,10 @@ export const EssentialModeLayout: React.FC = () => {
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      const fileArray = Array.from(files);
-
-      // Check if this is a folder with URDF files
-      const urdfFile = fileArray.find(f => f.name.endsWith('.urdf'));
-
-      if (urdfFile && fileArray.length > 1) {
-        // Folder selection with URDF + meshes
-        await importURDFFolder(fileArray);
-        markActionComplete('import');
-      } else if (files.length === 1) {
-        // Single file import
-        await importModel(files[0]);
-        markActionComplete('import');
-      }
+    const file = event.target.files?.[0];
+    if (file) {
+      await importModel(file);
+      markActionComplete('import');
     }
     // Reset the input so the same file can be selected again
     if (event.target) {
@@ -321,11 +308,8 @@ export const EssentialModeLayout: React.FC = () => {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".urdf,.stl,.obj,.dxf,.jt,.catpart,.catproduct,.catdrawing"
+        accept=".urdf,.stl,.obj,.dxf,.jt,.catpart,.catproduct,.catdrawing,.glb,.gltf"
         onChange={handleFileChange}
-        multiple
-        webkitdirectory=""
-        directory=""
         style={{ display: 'none' }}
       />
     </div>

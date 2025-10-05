@@ -80,7 +80,6 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ fkSolver }
 
     // Convert mm to meters for position deltas
     const stepMeters = jogStepTcp / 1000.0;
-    const stepRadians = (jogStepTcp * Math.PI) / 180;
 
     let positionDelta = new BABYLON.Vector3(0, 0, 0);
 

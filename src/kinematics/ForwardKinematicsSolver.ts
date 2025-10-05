@@ -396,7 +396,7 @@ export class ForwardKinematicsSolver {
       // Create joint rotation/translation matrix based on type
       let jointTransform = BABYLON.Matrix.Identity();
 
-      if (joint.type === 'revolute' || joint.type === 'continuous') {
+      if (joint.type === 'revolute') {
         // Rotation around axis
         const axis = new BABYLON.Vector3(
           joint.axis.x,
@@ -492,7 +492,7 @@ export class ForwardKinematicsSolver {
       }
 
       let jointTransform = BABYLON.Matrix.Identity();
-      if (joint.type === 'revolute' || joint.type === 'continuous') {
+      if (joint.type === 'revolute') {
         const axis = new BABYLON.Vector3(
           joint.axis.x,
           joint.axis.y,
@@ -541,7 +541,7 @@ export class ForwardKinematicsSolver {
         jointTransforms[i]
       );
 
-      if (joint.type === 'revolute' || joint.type === 'continuous') {
+      if (joint.type === 'revolute') {
         // Linear velocity: v = axis × (end_effector_pos - joint_pos)
         const r = endEffectorPos.subtract(jointPos);
         const linearVel = BABYLON.Vector3.Cross(worldAxis, r);
@@ -582,7 +582,7 @@ export class ForwardKinematicsSolver {
     if (!chain) return null;
 
     const joints = this.kinematicsManager.getChainJoints(chain.id);
-    const jointAngles = joints.map(j => j.position);
+    const jointAngles = joints.map((j: JointConfig) => j.position);
 
     return this.solve(chainName, jointAngles);
   }
