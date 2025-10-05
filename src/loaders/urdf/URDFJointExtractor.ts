@@ -7,6 +7,7 @@
 // - Babylon: Y-up, right-handed, meters
 // - Conversion: (x, y, z) URDF → (x, z, y) Babylon
 
+import * as BABYLON from '@babylonjs/core';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import type { JointType } from '../../scene/SceneTreeNode';
@@ -129,6 +130,33 @@ function urdfToBabylonAxis(urdfAxis: [number, number, number]): { x: number; y: 
 }
 
 /**
+ * Convert URDF RPY (Roll-Pitch-Yaw in Z-up) to Babylon Quaternion (Y-up)
+ * URDF RPY: rotations around X, Y, Z axes in Z-up coordinate system
+ * Babylon: needs quaternion in Y-up coordinate system
+ */
+function urdfRPYToBabylonQuaternion(rpy: [number, number, number]): { x: number; y: number; z: number; w: number } {
+  const [roll, pitch, yaw] = rpy;
+
+  // Create quaternion from RPY in URDF's Z-up frame
+  // URDF: X=right, Y=forward, Z=up
+  // Roll around X, Pitch around Y, Yaw around Z
+  const qX = BABYLON.Quaternion.RotationAxis(BABYLON.Vector3.Right(), roll);
+  const qY = BABYLON.Quaternion.RotationAxis(BABYLON.Vector3.Forward(), pitch);
+  const qZ = BABYLON.Quaternion.RotationAxis(BABYLON.Vector3.Up(), yaw);
+
+  // Combine rotations (ZYX order is standard for RPY)
+  let q = qZ.multiply(qY).multiply(qX);
+
+  // Transform quaternion from Z-up to Y-up coordinate system
+  // We need to rotate the entire quaternion's reference frame
+  // This is equivalent to rotating -90° around X axis
+  const coordTransform = BABYLON.Quaternion.RotationAxis(BABYLON.Vector3.Right(), -Math.PI / 2);
+  q = coordTransform.multiply(q).multiply(coordTransform.conjugate());
+
+  return { x: q.x, y: q.y, z: q.z, w: q.w };
+}
+
+/**
  * Map URDF joint type to kinetiCORE joint type
  */
 function mapURDFJointType(urdfType: string): JointType {
@@ -220,6 +248,9 @@ export async function createKinematicsFromURDF(
       z: originBabylon.z,
     };
 
+    // Convert origin rotation (RPY) from URDF Z-up to Babylon Y-up
+    const originRotation = urdfRPYToBabylonQuaternion(urdfJoint.origin.rpy);
+
     // Convert axis direction (Z-up to Y-up)
     const axis = urdfToBabylonAxis(urdfJoint.axis.xyz);
 
@@ -230,6 +261,7 @@ export async function createKinematicsFromURDF(
       parentNodeId,
       childNodeId,
       origin,
+      originRotation,
       axis,
       limits: urdfJoint.limits || {
         lower: jointType === 'revolute' ? -Math.PI : -1000,
@@ -258,6 +290,20 @@ export async function createKinematicsFromURDF(
       kinematicsManager.createChain(robotName, baseLinkNodeId, 'serial');
     }
   }
+
+  // CRITICAL: Run initial FK solve to position all links correctly
+  // Without this, links stay at their import positions until first joint movement
+  const { ForwardKinematicsSolver } = await import('../../kinematics/ForwardKinematicsSolver');
+  const fkSolver = ForwardKinematicsSolver.getInstance();
+
+  // Solve all joints at their current positions (default 0)
+  // Skip physics sync to avoid Rapier "recursive use" errors during initialization
+  const allJoints = kinematicsManager.getAllJoints();
+  console.log(`Running initial FK solve for ${allJoints.length} joints...`);
+  for (const joint of allJoints) {
+    fkSolver.updateJointPosition(joint.id, joint.position, false); // false = don't sync to physics
+  }
+  console.log('✅ Initial FK solve complete - robot positioned correctly');
 }
 
 /**

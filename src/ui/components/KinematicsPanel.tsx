@@ -3,454 +3,202 @@
 // Owner: Edwin
 
 import { useState, useEffect } from 'react';
-import {
-  Anchor,
-  Link2,
-  Play,
-  Settings,
-  CheckCircle,
-  AlertCircle,
-  ChevronRight,
-  Zap,
-  Target
-} from 'lucide-react';
-import { useEditorStore } from '../store/editorStore';
+import { AlertCircle } from 'lucide-react';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
+import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { RobotJoggingPanel } from './RobotJoggingPanel';
-import type { JointType } from '../../kinematics/KinematicsManager';
 import './KinematicsPanel.css';
-
-/**
- * Workflow steps for kinematics setup
- */
-type WorkflowStep =
-  | 'select_model'    // Select imported model
-  | 'ground_base'     // Ground the base part
-  | 'create_joints'   // Define joints
-  | 'test_motion'     // Test kinematics
-  | 'complete';       // All done
 
 interface KinematicsPanelProps {
   onClose?: () => void;
 }
 
-export const KinematicsPanel: React.FC<KinematicsPanelProps> = ({ onClose }) => {
-  const selectedNodeId = useEditorStore(state => state.selectedNodeId);
+interface RobotInfo {
+  nodeId: string;
+  name: string;
+  jointCount: number;
+}
+
+export const KinematicsPanel: React.FC<KinematicsPanelProps> = () => {
   const kinematicsManager = KinematicsManager.getInstance();
   const fkSolver = ForwardKinematicsSolver.getInstance();
 
-  const [currentStep, setCurrentStep] = useState<WorkflowStep>('select_model');
-  const [groundedNodeId, setGroundedNodeId] = useState<string | null>(null);
-  const [suggestedGroundId, setSuggestedGroundId] = useState<string | null>(null);
+  const [robots, setRobots] = useState<RobotInfo[]>([]);
+  const [selectedRobotId, setSelectedRobotId] = useState<string | null>(null);
   const [joints, setJoints] = useState<any[]>([]);
-  const [showJointCreator, setShowJointCreator] = useState(false);
-  const [isSelectingParent, setIsSelectingParent] = useState(false);
-  const [isSelectingChild, setIsSelectingChild] = useState(false);
 
-  // Joint creation state
-  const [jointParent, setJointParent] = useState<string>('');
-  const [jointChild, setJointChild] = useState<string>('');
-  const [jointType, setJointType] = useState<JointType>('revolute');
-  const [jointName, setJointName] = useState('');
-
-  // Auto-suggest ground node when model is selected
+  // Discover all robots in the scene
   useEffect(() => {
-    if (selectedNodeId && currentStep === 'select_model') {
-      const suggested = kinematicsManager.suggestGroundNode(selectedNodeId);
-      setSuggestedGroundId(suggested);
+    const discoverRobots = () => {
+      const tree = SceneTreeManager.getInstance();
+      const allJoints = kinematicsManager.getAllJoints();
 
-      // If joints already exist (from URDF import), auto-ground and skip to test
-      const existingJoints = kinematicsManager.getAllJoints();
-      if (existingJoints.length > 0 && suggested) {
-        console.log('[KinematicsPanel] Auto-grounding base for URDF robot with', existingJoints.length, 'joints');
-        const success = kinematicsManager.groundNode(suggested);
-        if (success) {
-          setGroundedNodeId(suggested);
-          setCurrentStep('test_motion');
-          console.log('[KinematicsPanel] Skipped to test_motion step');
-          return;
-        }
+      if (allJoints.length === 0) {
+        setRobots([]);
+        return;
       }
 
-      setCurrentStep('ground_base');
-    }
-  }, [selectedNodeId]);
+      // Group joints by their root node (robot)
+      const robotMap = new Map<string, { name: string; joints: any[] }>();
 
-  // IMMEDIATE auto-ground when joints exist - runs on every render if needed
-  useEffect(() => {
-    const existingJoints = kinematicsManager.getAllJoints();
+      allJoints.forEach(joint => {
+        // Find the root parent for this joint by walking all the way to the top
+        const parentNode = tree.getNode(joint.parentNodeId);
+        if (parentNode) {
+          // Walk up to find the highest level collection (the robot itself)
+          let rootNode = parentNode;
+          let attempts = 0;
+          while (rootNode.parentId && attempts < 50) {
+            const parent = tree.getNode(rootNode.parentId);
+            if (!parent) break;
+            // Stop if parent is Assets root
+            if (parent.name === 'Assets') break;
+            // Keep going up, the last collection we find is the robot
+            rootNode = parent;
+            attempts++;
+          }
 
-    // If we have joints, suggested base, and haven't grounded yet - DO IT NOW
-    if (existingJoints.length > 0 && suggestedGroundId && !groundedNodeId) {
-      console.log('[KinematicsPanel] IMMEDIATE auto-ground triggered');
-      const success = kinematicsManager.groundNode(suggestedGroundId);
-      if (success) {
-        setGroundedNodeId(suggestedGroundId);
-        if (currentStep === 'ground_base' || currentStep === 'select_model') {
-          setCurrentStep('test_motion');
-          console.log('[KinematicsPanel] Jumped to test_motion');
+          const rootId = rootNode.id;
+          if (!robotMap.has(rootId)) {
+            robotMap.set(rootId, { name: rootNode.name, joints: [] });
+          }
+          robotMap.get(rootId)!.joints.push(joint);
         }
-      }
-    }
-  }); // NO dependencies - runs every render until grounded
+      });
 
-  // Update joints list - poll frequently to catch URDF imports
+      // Convert to array of RobotInfo
+      const discoveredRobots: RobotInfo[] = Array.from(robotMap.entries()).map(
+        ([nodeId, data]) => ({
+          nodeId,
+          name: data.name,
+          jointCount: data.joints.length
+        })
+      );
+
+      // Debug: Log discovered robots only when changed
+      if (discoveredRobots.length !== robots.length) {
+        console.log('[KinematicsPanel] Discovered robots:', discoveredRobots);
+      }
+
+      setRobots(discoveredRobots);
+
+      // Auto-select first robot if nothing selected
+      if (!selectedRobotId && discoveredRobots.length > 0) {
+        console.log('[KinematicsPanel] Auto-selecting first robot:', discoveredRobots[0].name);
+        setSelectedRobotId(discoveredRobots[0].nodeId);
+      }
+
+      // Auto-ground robots ONCE
+      if (discoveredRobots.length > robots.length) {
+        discoveredRobots.forEach(robot => {
+          const suggested = kinematicsManager.suggestGroundNode(robot.nodeId);
+          if (suggested) {
+            console.log('[KinematicsPanel] Auto-grounding robot:', robot.name, 'node:', suggested);
+            kinematicsManager.groundNode(suggested);
+          }
+        });
+      }
+    };
+
+    discoverRobots();
+    const interval = setInterval(discoverRobots, 1000); // Reduced from 500ms to 1000ms
+    return () => clearInterval(interval);
+  }, [selectedRobotId, robots.length]); // Added robots.length dependency
+
+  // Update joints for selected robot
   useEffect(() => {
     const updateJoints = () => {
-      const allJoints = kinematicsManager.getAllJoints();
-      // Always update - React will handle unnecessary re-renders
-      console.log('[KinematicsPanel] getAllJoints() returned:', allJoints.length, 'joints');
-      if (allJoints.length > 0) {
-        console.log('[KinematicsPanel] Joint names:', allJoints.map(j => j.name));
+      if (!selectedRobotId) {
+        setJoints([]);
+        return;
       }
-      setJoints(allJoints);
+
+      const allJoints = kinematicsManager.getAllJoints();
+      const tree = SceneTreeManager.getInstance();
+
+      // Filter joints that belong to the selected robot
+      const robotJoints = allJoints.filter(joint => {
+        const parentNode = tree.getNode(joint.parentNodeId);
+        if (!parentNode) return false;
+
+        // Check if this joint's parent is under the selected robot
+        let node = parentNode;
+        while (node) {
+          if (node.id === selectedRobotId) return true;
+          if (!node.parentId) break;
+          const parent = tree.getNode(node.parentId);
+          if (!parent) break;
+          node = parent;
+        }
+        return false;
+      });
+
+      setJoints(robotJoints);
     };
 
     updateJoints();
-    const interval = setInterval(updateJoints, 100); // Poll faster: 100ms instead of 500ms
+    const interval = setInterval(updateJoints, 500); // Reduced from 200ms to 500ms
     return () => clearInterval(interval);
-  }, []); // Run once on mount, interval handles updates
+  }, [selectedRobotId]);
 
-  // Handle node selection for parent/child picking
-  useEffect(() => {
-    if (isSelectingParent && selectedNodeId) {
-      setJointParent(selectedNodeId);
-      setIsSelectingParent(false);
-    } else if (isSelectingChild && selectedNodeId) {
-      setJointChild(selectedNodeId);
-      setIsSelectingChild(false);
-    }
-  }, [selectedNodeId, isSelectingParent, isSelectingChild]);
-
-  const handleGroundNode = (nodeId: string) => {
-    const success = kinematicsManager.groundNode(nodeId);
-    if (success) {
-      setGroundedNodeId(nodeId);
-      setCurrentStep('create_joints');
-    }
-  };
-
-  const handleQuickGround = () => {
-    if (suggestedGroundId) {
-      handleGroundNode(suggestedGroundId);
-    }
-  };
-
-  const handleCreateJoint = () => {
-    if (!jointParent || !jointChild) {
-      alert('Please select both parent and child parts');
-      return;
-    }
-
-    const joint = kinematicsManager.createJoint({
-      name: jointName || `Joint_${joints.length + 1}`,
-      type: jointType,
-      parentNodeId: jointParent,
-      childNodeId: jointChild,
-    });
-
-    if (joint) {
-      setShowJointCreator(false);
-      setJointParent('');
-      setJointChild('');
-      setJointName('');
-
-      // Move to test step if we have joints
-      if (joints.length === 0) {
-        setCurrentStep('test_motion');
-      }
-    }
-  };
-
-  const handleDeleteJoint = (jointId: string) => {
-    if (confirm('Delete this joint?')) {
-      kinematicsManager.deleteJoint(jointId);
-    }
-  };
+  const selectedRobot = robots.find(r => r.nodeId === selectedRobotId);
 
   return (
     <div className="kinematics-panel">
-      <div className="panel-header">
-        <h2>Kinematics Setup</h2>
-        {onClose && (
-          <button className="close-button" onClick={onClose}>×</button>
-        )}
-      </div>
-
-      {/* Progress Indicator */}
-      <div className="workflow-progress">
-        <div className={`step ${currentStep === 'select_model' || currentStep === 'ground_base' ? 'active' : 'complete'}`}>
-          <div className="step-number">1</div>
-          <div className="step-label">Select Model</div>
-        </div>
-        <ChevronRight size={16} className="step-arrow" />
-
-        <div className={`step ${currentStep === 'ground_base' ? 'active' : currentStep === 'create_joints' || currentStep === 'test_motion' || currentStep === 'complete' ? 'complete' : ''}`}>
-          <div className="step-number">2</div>
-          <div className="step-label">Ground Base</div>
-        </div>
-        <ChevronRight size={16} className="step-arrow" />
-
-        <div className={`step ${currentStep === 'create_joints' ? 'active' : currentStep === 'test_motion' || currentStep === 'complete' ? 'complete' : ''}`}>
-          <div className="step-number">3</div>
-          <div className="step-label">Create Joints</div>
-        </div>
-        <ChevronRight size={16} className="step-arrow" />
-
-        <div className={`step ${currentStep === 'test_motion' || currentStep === 'complete' ? 'active' : ''}`}>
-          <div className="step-number">4</div>
-          <div className="step-label">Test Motion</div>
-        </div>
-      </div>
-
-      <div className="panel-content">
-        {/* Step 1: Select Model */}
-        {currentStep === 'select_model' && (
-          <div className="step-content">
-            <div className="info-box">
-              <AlertCircle size={20} />
-              <p>Select an imported model in the scene tree to begin</p>
-            </div>
-            <div className="instructions">
-              <h3>Getting Started</h3>
-              <ol>
-                <li>Import a GLB file using the toolbar</li>
-                <li>Click on the model in the scene tree</li>
-                <li>We'll guide you through setting up kinematics</li>
-              </ol>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Ground Base */}
-        {currentStep === 'ground_base' && (
-          <div className="step-content">
-            <div className="section-header">
-              <Anchor size={20} />
-              <h3>Ground the Base Part</h3>
-            </div>
-
-            <p className="instruction-text">
-              First, we need to anchor the base part to the world. This is the part that won't move.
-            </p>
-
-            {suggestedGroundId && !groundedNodeId && (
-              <div className="suggestion-box">
-                <div className="suggestion-header">
-                  <Zap size={18} />
-                  <span>Smart Suggestion</span>
-                </div>
-                <p>We detected this part as the likely base:</p>
-                <button
-                  className="quick-action-button"
-                  onClick={handleQuickGround}
-                >
-                  <Target size={16} />
-                  Ground Suggested Part
-                </button>
-                <p className="hint">Or select a different part from the scene tree and click below</p>
-              </div>
-            )}
-
-            {selectedNodeId && !groundedNodeId && (
-              <button
-                className="primary-button"
-                onClick={() => handleGroundNode(selectedNodeId)}
-              >
-                <Anchor size={16} />
-                Ground Selected Part
-              </button>
-            )}
-
-            {groundedNodeId && (
-              <div className="success-box">
-                <CheckCircle size={20} />
-                <p>Base part grounded successfully!</p>
-                <button
-                  className="next-button"
-                  onClick={() => setCurrentStep('create_joints')}
-                >
-                  Next: Create Joints
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Step 3: Create Joints */}
-        {currentStep === 'create_joints' && (
-          <div className="step-content">
-            <div className="section-header">
-              <Link2 size={20} />
-              <h3>Define Joints</h3>
-            </div>
-
-            <p className="instruction-text">
-              Create joints to connect moving parts to each other or to the base.
-            </p>
-
-            {/* Joint List */}
-            <div className="joints-list">
-              {joints.map(joint => (
-                <div key={joint.id} className="joint-item">
-                  <div className="joint-info">
-                    <Settings size={16} />
-                    <span className="joint-name">{joint.name}</span>
-                    <span className="joint-type">{joint.type}</span>
-                  </div>
-                  <button
-                    className="delete-button"
-                    onClick={() => handleDeleteJoint(joint.id)}
-                  >
-                    ×
-                  </button>
-                </div>
+      {robots.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          {/* Robot Selector */}
+          <div style={{
+            padding: '8px',
+            background: '#2d3748',
+            borderBottom: '1px solid #4a5568'
+          }}>
+            <select
+              value={selectedRobotId || ''}
+              onChange={(e) => setSelectedRobotId(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '6px 8px',
+                background: '#1a202c',
+                border: '1px solid #4a5568',
+                borderRadius: '4px',
+                color: '#e2e8f0',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              {robots.map(robot => (
+                <option key={robot.nodeId} value={robot.nodeId}>
+                  {robot.name} ({robot.jointCount} joints)
+                </option>
               ))}
+            </select>
+          </div>
 
-              {joints.length === 0 && (
-                <div className="empty-state">
-                  <p>No joints created yet</p>
-                </div>
-              )}
-            </div>
-
-            {/* Joint Creator */}
-            {!showJointCreator && (
-              <button
-                className="primary-button"
-                onClick={() => setShowJointCreator(true)}
-              >
-                + Create Joint
-              </button>
-            )}
-
-            {showJointCreator && (
-              <div className="joint-creator">
-                <h4>New Joint</h4>
-
-                <div className="form-group">
-                  <label>Joint Name (optional)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g., Shoulder Joint"
-                    value={jointName}
-                    onChange={(e) => setJointName(e.target.value)}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Joint Type</label>
-                  <select
-                    value={jointType}
-                    onChange={(e) => setJointType(e.target.value as JointType)}
-                  >
-                    <option value="revolute">Revolute (Rotation)</option>
-                    <option value="prismatic">Prismatic (Sliding)</option>
-                    <option value="fixed">Fixed (Rigid)</option>
-                    <option value="spherical">Spherical (Ball Joint)</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>Parent Part (Fixed Side)</label>
-                  <div className="input-with-button">
-                    <input
-                      type="text"
-                      placeholder="Click 'Select' to pick from scene"
-                      value={jointParent}
-                      readOnly
-                    />
-                    <button
-                      className={`select-button ${isSelectingParent ? 'active' : ''}`}
-                      onClick={() => {
-                        setIsSelectingParent(true);
-                        setIsSelectingChild(false);
-                      }}
-                    >
-                      {isSelectingParent ? '👆 Click in scene...' : 'Select'}
-                    </button>
-                  </div>
-                  {isSelectingParent && (
-                    <p className="hint active">Click on a part in the scene tree or 3D view</p>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label>Child Part (Moving Side)</label>
-                  <div className="input-with-button">
-                    <input
-                      type="text"
-                      placeholder="Click 'Select' to pick from scene"
-                      value={jointChild}
-                      readOnly
-                    />
-                    <button
-                      className={`select-button ${isSelectingChild ? 'active' : ''}`}
-                      onClick={() => {
-                        setIsSelectingChild(true);
-                        setIsSelectingParent(false);
-                      }}
-                    >
-                      {isSelectingChild ? '👆 Click in scene...' : 'Select'}
-                    </button>
-                  </div>
-                  {isSelectingChild && (
-                    <p className="hint active">Click on a part in the scene tree or 3D view</p>
-                  )}
-                </div>
-
-                {jointParent && jointChild && (
-                  <div className="selection-preview">
-                    <button
-                      className="swap-button"
-                      onClick={() => {
-                        const temp = jointParent;
-                        setJointParent(jointChild);
-                        setJointChild(temp);
-                      }}
-                      title="Swap parent and child"
-                    >
-                      ⇄ Swap Parent/Child
-                    </button>
-                  </div>
-                )}
-
-                <div className="button-group">
-                  <button
-                    className="secondary-button"
-                    onClick={() => setShowJointCreator(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="primary-button"
-                    onClick={handleCreateJoint}
-                  >
-                    Create Joint
-                  </button>
+          {/* Robot Controls */}
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            {selectedRobot ? (
+              <RobotJoggingPanel joints={joints} fkSolver={fkSolver} />
+            ) : (
+              <div className="panel-content">
+                <div className="info-box">
+                  <AlertCircle size={20} />
+                  <p>Select a robot from the dropdown</p>
                 </div>
               </div>
             )}
-
-            {joints.length > 0 && (
-              <button
-                className="next-button"
-                onClick={() => setCurrentStep('test_motion')}
-              >
-                Next: Test Motion
-                <ChevronRight size={16} />
-              </button>
-            )}
           </div>
-        )}
-
-        {/* Step 4: Test Motion - Professional Robot Jogging */}
-        {currentStep === 'test_motion' && (
-          <RobotJoggingPanel joints={joints} fkSolver={fkSolver} />
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="panel-content">
+          <div className="info-box">
+            <AlertCircle size={20} />
+            <p>Import a URDF robot to control joints</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

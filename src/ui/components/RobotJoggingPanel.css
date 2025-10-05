@@ -3,10 +3,12 @@
 .robot-jogging-panel {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 20px;
+  gap: 12px;
+  padding: 8px;
   background: #1a202c;
   color: #e2e8f0;
+  height: 100%;
+  overflow-y: auto;
 }
 
 /* Mode Selector */
@@ -50,10 +52,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   background: #2d3748;
-  padding: 12px;
-  border-radius: 8px;
+  padding: 8px;
+  border-radius: 6px;
 }
 
 .jog-step-control label {
@@ -72,16 +74,16 @@
 }
 
 .step-selector button {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #4a5568;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   color: #e2e8f0;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
@@ -98,18 +100,18 @@
 .step-selector input {
   background: #1a202c;
   border: 2px solid #4a5568;
-  border-radius: 6px;
+  border-radius: 4px;
   color: #e2e8f0;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   text-align: center;
-  padding: 8px 12px;
-  width: 70px;
+  padding: 4px 8px;
+  width: 50px;
 }
 
 .step-selector .unit {
   color: #e2e8f0;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -128,47 +130,47 @@
 
 .joint-jog-item {
   background: #2d3748;
-  border-radius: 6px;
-  padding: 8px 10px;
+  border-radius: 4px;
+  padding: 6px 8px;
   display: grid;
-  grid-template-columns: 60px 1fr auto;
-  gap: 10px;
+  grid-template-columns: 40px 1fr auto;
+  gap: 8px;
   align-items: center;
   border: 1px solid #4a5568;
 }
 
 .joint-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: #63b3ed;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   text-transform: uppercase;
 }
 
 .joint-value {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   color: #48bb78;
   font-family: 'Courier New', monospace;
-  text-align: right;
+  text-align: left;
 }
 
 /* Jog Buttons */
 .jog-buttons {
   display: flex;
-  gap: 6px;
-  min-width: 140px;
+  gap: 4px;
+  min-width: 100px;
 }
 
 .jog-btn {
-  width: 60px;
-  height: 32px;
+  width: 50px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
   border-radius: 4px;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;

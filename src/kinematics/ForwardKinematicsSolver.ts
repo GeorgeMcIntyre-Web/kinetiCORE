@@ -34,7 +34,7 @@ export class ForwardKinematicsSolver {
   /**
    * Update a single joint position and recalculate transforms
    */
-  updateJointPosition(jointId: string, value: number): boolean {
+  updateJointPosition(jointId: string, value: number, syncPhysics: boolean = true): boolean {
     const joint = this.kinematicsManager.getJoint(jointId);
     if (!joint) {
       console.error(`Joint not found: ${jointId}`);
@@ -58,13 +58,13 @@ export class ForwardKinematicsSolver {
     }
 
     // Calculate and apply transform
-    return this.applyJointTransform(joint);
+    return this.applyJointTransform(joint, syncPhysics);
   }
 
   /**
    * Apply joint transform to child mesh
    */
-  private applyJointTransform(joint: JointConfig): boolean {
+  private applyJointTransform(joint: JointConfig, syncPhysics: boolean = true): boolean {
     const scene = this.sceneManager.getScene();
     if (!scene) return false;
 
@@ -97,15 +97,15 @@ export class ForwardKinematicsSolver {
     childBabylonNode.position.copyFrom(transform.position);
     childBabylonNode.rotationQuaternion = transform.rotation;
 
-    // Sync to physics if entity exists
-    if (childNode.entityId) {
+    // Sync to physics if entity exists (skip during initial FK solve to avoid Rapier errors)
+    if (syncPhysics && childNode.entityId) {
       const registry = EntityRegistry.getInstance();
       const entity = registry.get(childNode.entityId);
       entity?.syncToPhysics();
     }
 
     // Recursively update child joints
-    this.updateChildJoints(joint.childNodeId);
+    this.updateChildJoints(joint.childNodeId, syncPhysics);
 
     return true;
   }
@@ -118,22 +118,33 @@ export class ForwardKinematicsSolver {
     rotation: BABYLON.Quaternion;
   } {
     const position = new BABYLON.Vector3(
-      joint.origin.x * 0.001, // mm to meters
-      joint.origin.y * 0.001,
-      joint.origin.z * 0.001
+      joint.origin.x, // Already in meters from URDF
+      joint.origin.y,
+      joint.origin.z
     );
 
-    let rotation = BABYLON.Quaternion.Identity();
+    // Start with the origin rotation (base orientation from URDF)
+    let rotation = joint.originRotation
+      ? new BABYLON.Quaternion(
+          joint.originRotation.x,
+          joint.originRotation.y,
+          joint.originRotation.z,
+          joint.originRotation.w
+        )
+      : BABYLON.Quaternion.Identity();
 
     switch (joint.type) {
       case 'revolute': {
-        // Rotate around joint axis
+        // Rotate around joint axis by the current joint position
         const axis = new BABYLON.Vector3(
           joint.axis.x,
           joint.axis.y,
           joint.axis.z
         ).normalize();
-        rotation = BABYLON.Quaternion.RotationAxis(axis, joint.position);
+        const jointRotation = BABYLON.Quaternion.RotationAxis(axis, joint.position);
+
+        // Combine origin rotation with joint rotation
+        rotation = rotation.multiply(jointRotation);
         break;
       }
 
@@ -144,20 +155,21 @@ export class ForwardKinematicsSolver {
           joint.axis.y,
           joint.axis.z
         ).normalize();
-        const translation = axis.scale(joint.position * 0.001); // mm to meters
+        const translation = axis.scale(joint.position); // Already in meters
         position.addInPlace(translation);
         break;
       }
 
       case 'fixed':
-        // No movement
+        // No movement, just use origin rotation
         break;
 
       case 'spherical': {
         // Ball joint - for now, interpret position as rotation around Z
         // TODO: Implement 3DOF spherical joint control
         const axis = BABYLON.Vector3.Up();
-        rotation = BABYLON.Quaternion.RotationAxis(axis, joint.position);
+        const jointRotation = BABYLON.Quaternion.RotationAxis(axis, joint.position);
+        rotation = rotation.multiply(jointRotation);
         break;
       }
 
@@ -169,8 +181,8 @@ export class ForwardKinematicsSolver {
           joint.axis.z
         ).normalize();
 
-        // Position controls translation (in mm)
-        const translation = axis.scale(joint.position * 0.001);
+        // Position controls translation
+        const translation = axis.scale(joint.position);
         position.addInPlace(translation);
 
         // TODO: Add rotation component (needs second DOF control)
@@ -185,7 +197,7 @@ export class ForwardKinematicsSolver {
           joint.axis.y,
           joint.axis.z
         ).normalize();
-        const translation = axis.scale(joint.position * 0.001);
+        const translation = axis.scale(joint.position);
         position.addInPlace(translation);
         break;
       }
@@ -197,12 +209,12 @@ export class ForwardKinematicsSolver {
   /**
    * Recursively update all child joints in the kinematic chain
    */
-  private updateChildJoints(nodeId: string): void {
+  private updateChildJoints(nodeId: string, syncPhysics: boolean = true): void {
     const childJoints = this.kinematicsManager.getNodeJoints(nodeId);
 
     for (const childJoint of childJoints) {
       if (childJoint.parentNodeId === nodeId) {
-        this.applyJointTransform(childJoint);
+        this.applyJointTransform(childJoint, syncPhysics);
       }
     }
   }
@@ -327,5 +339,251 @@ export class ForwardKinematicsSolver {
     for (const [jointId, value] of values.entries()) {
       this.updateJointPosition(jointId, value);
     }
+  }
+
+  /**
+   * Compute forward kinematics for a kinematic chain
+   * Returns end-effector pose given joint angles
+   */
+  solve(chainName: string, jointAngles: number[]): {
+    position: BABYLON.Vector3;
+    rotation: BABYLON.Quaternion;
+  } | null {
+    const chain = this.kinematicsManager.getChain(chainName);
+    if (!chain) {
+      console.error(`Chain not found: ${chainName}`);
+      return null;
+    }
+
+    const joints = this.kinematicsManager.getChainJoints(chain.id);
+    if (joints.length !== jointAngles.length) {
+      console.error(
+        `Joint count mismatch: expected ${joints.length}, got ${jointAngles.length}`
+      );
+      return null;
+    }
+
+    // Start with identity transform at base
+    let accumulatedTransform = BABYLON.Matrix.Identity();
+
+    // Build transformation chain from base to end-effector
+    for (let i = 0; i < joints.length; i++) {
+      const joint = joints[i];
+      const angle = jointAngles[i];
+
+      // Create origin translation matrix
+      const originTranslation = BABYLON.Matrix.Translation(
+        joint.origin.x,
+        joint.origin.y,
+        joint.origin.z
+      );
+
+      // Create origin rotation matrix
+      let originRotation = BABYLON.Matrix.Identity();
+      if (joint.originRotation) {
+        const quat = new BABYLON.Quaternion(
+          joint.originRotation.x,
+          joint.originRotation.y,
+          joint.originRotation.z,
+          joint.originRotation.w
+        );
+        originRotation = BABYLON.Matrix.FromQuaternionToRef(
+          quat,
+          new BABYLON.Matrix()
+        );
+      }
+
+      // Create joint rotation/translation matrix based on type
+      let jointTransform = BABYLON.Matrix.Identity();
+
+      if (joint.type === 'revolute' || joint.type === 'continuous') {
+        // Rotation around axis
+        const axis = new BABYLON.Vector3(
+          joint.axis.x,
+          joint.axis.y,
+          joint.axis.z
+        ).normalize();
+        jointTransform = BABYLON.Matrix.RotationAxis(axis, angle);
+      } else if (joint.type === 'prismatic') {
+        // Translation along axis
+        const axis = new BABYLON.Vector3(
+          joint.axis.x,
+          joint.axis.y,
+          joint.axis.z
+        ).normalize();
+        const translation = axis.scale(angle);
+        jointTransform = BABYLON.Matrix.Translation(
+          translation.x,
+          translation.y,
+          translation.z
+        );
+      }
+
+      // Combine: T = T_prev * T_origin * R_origin * T_joint
+      const linkTransform = originTranslation
+        .multiply(originRotation)
+        .multiply(jointTransform);
+
+      accumulatedTransform = accumulatedTransform.multiply(linkTransform);
+    }
+
+    // Extract position and rotation from final transform
+    const position = accumulatedTransform.getTranslation();
+    const rotation = BABYLON.Quaternion.FromRotationMatrix(accumulatedTransform);
+
+    return { position, rotation };
+  }
+
+  /**
+   * Compute Jacobian matrix for velocity kinematics
+   * J * joint_velocities = end_effector_velocity
+   * Returns 6xN matrix (3 linear + 3 angular velocities)
+   */
+  computeJacobian(chainName: string, jointAngles: number[]): number[][] | null {
+    const chain = this.kinematicsManager.getChain(chainName);
+    if (!chain) {
+      console.error(`Chain not found: ${chainName}`);
+      return null;
+    }
+
+    const joints = this.kinematicsManager.getChainJoints(chain.id);
+    if (joints.length !== jointAngles.length) {
+      console.error(
+        `Joint count mismatch: expected ${joints.length}, got ${jointAngles.length}`
+      );
+      return null;
+    }
+
+    const n = joints.length;
+    const jacobian: number[][] = Array(6).fill(0).map(() => Array(n).fill(0));
+
+    // Get end-effector position
+    const endEffectorPose = this.solve(chainName, jointAngles);
+    if (!endEffectorPose) return null;
+
+    const endEffectorPos = endEffectorPose.position;
+
+    // Compute transform for each joint
+    const jointTransforms: BABYLON.Matrix[] = [];
+    let accumulatedTransform = BABYLON.Matrix.Identity();
+
+    for (let i = 0; i < joints.length; i++) {
+      const joint = joints[i];
+      const angle = jointAngles[i];
+
+      const originTranslation = BABYLON.Matrix.Translation(
+        joint.origin.x,
+        joint.origin.y,
+        joint.origin.z
+      );
+
+      let originRotation = BABYLON.Matrix.Identity();
+      if (joint.originRotation) {
+        const quat = new BABYLON.Quaternion(
+          joint.originRotation.x,
+          joint.originRotation.y,
+          joint.originRotation.z,
+          joint.originRotation.w
+        );
+        originRotation = BABYLON.Matrix.FromQuaternionToRef(
+          quat,
+          new BABYLON.Matrix()
+        );
+      }
+
+      let jointTransform = BABYLON.Matrix.Identity();
+      if (joint.type === 'revolute' || joint.type === 'continuous') {
+        const axis = new BABYLON.Vector3(
+          joint.axis.x,
+          joint.axis.y,
+          joint.axis.z
+        ).normalize();
+        jointTransform = BABYLON.Matrix.RotationAxis(axis, angle);
+      } else if (joint.type === 'prismatic') {
+        const axis = new BABYLON.Vector3(
+          joint.axis.x,
+          joint.axis.y,
+          joint.axis.z
+        ).normalize();
+        const translation = axis.scale(angle);
+        jointTransform = BABYLON.Matrix.Translation(
+          translation.x,
+          translation.y,
+          translation.z
+        );
+      }
+
+      const linkTransform = originTranslation
+        .multiply(originRotation)
+        .multiply(jointTransform);
+
+      accumulatedTransform = accumulatedTransform.multiply(linkTransform);
+      jointTransforms.push(accumulatedTransform.clone());
+    }
+
+    // Compute Jacobian columns
+    for (let i = 0; i < joints.length; i++) {
+      const joint = joints[i];
+
+      // Get joint position in world frame
+      const jointPos = jointTransforms[i].getTranslation();
+
+      // Get joint axis in world frame
+      const localAxis = new BABYLON.Vector3(
+        joint.axis.x,
+        joint.axis.y,
+        joint.axis.z
+      ).normalize();
+
+      // Transform axis to world frame
+      const worldAxis = BABYLON.Vector3.TransformNormal(
+        localAxis,
+        jointTransforms[i]
+      );
+
+      if (joint.type === 'revolute' || joint.type === 'continuous') {
+        // Linear velocity: v = axis × (end_effector_pos - joint_pos)
+        const r = endEffectorPos.subtract(jointPos);
+        const linearVel = BABYLON.Vector3.Cross(worldAxis, r);
+
+        jacobian[0][i] = linearVel.x;
+        jacobian[1][i] = linearVel.y;
+        jacobian[2][i] = linearVel.z;
+
+        // Angular velocity: ω = axis
+        jacobian[3][i] = worldAxis.x;
+        jacobian[4][i] = worldAxis.y;
+        jacobian[5][i] = worldAxis.z;
+      } else if (joint.type === 'prismatic') {
+        // Linear velocity: v = axis
+        jacobian[0][i] = worldAxis.x;
+        jacobian[1][i] = worldAxis.y;
+        jacobian[2][i] = worldAxis.z;
+
+        // Angular velocity: ω = 0
+        jacobian[3][i] = 0;
+        jacobian[4][i] = 0;
+        jacobian[5][i] = 0;
+      }
+    }
+
+    return jacobian;
+  }
+
+  /**
+   * Get end-effector pose for a kinematic chain
+   * Uses current joint positions from KinematicsManager
+   */
+  getEndEffectorPose(chainName: string): {
+    position: BABYLON.Vector3;
+    rotation: BABYLON.Quaternion;
+  } | null {
+    const chain = this.kinematicsManager.getChain(chainName);
+    if (!chain) return null;
+
+    const joints = this.kinematicsManager.getChainJoints(chain.id);
+    const jointAngles = joints.map(j => j.position);
+
+    return this.solve(chainName, jointAngles);
   }
 }

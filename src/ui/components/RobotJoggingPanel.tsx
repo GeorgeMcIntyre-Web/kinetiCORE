@@ -7,8 +7,10 @@
 
 import { useState, useEffect } from 'react';
 import { Move, RotateCw, Minus, Plus } from 'lucide-react';
+import * as BABYLON from '@babylonjs/core';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import type { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
+import { InverseKinematicsSolver } from '../../kinematics/InverseKinematicsSolver';
 import './RobotJoggingPanel.css';
 
 type JogMode = 'joint' | 'tcp';
@@ -24,6 +26,8 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ fkSolver }
   const [jogStepJoint, setJogStepJoint] = useState(5); // degrees
   const [jogStepTcp, setJogStepTcp] = useState(10); // mm for linear, 5 deg for rotary
   const [joints, setJoints] = useState<any[]>([]);
+  const [tcpPosition, setTcpPosition] = useState<string>('—');
+  const [ikSolver] = useState(() => InverseKinematicsSolver.getInstance());
 
   // Fetch joints directly from KinematicsManager - bypassing React props issue
   useEffect(() => {
@@ -31,22 +35,28 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ fkSolver }
     const updateJoints = () => {
       const allJoints = kinematicsManager.getAllJoints();
       setJoints(allJoints);
+
+      // Update TCP position display
+      const chains = kinematicsManager.getAllChains();
+      if (chains.length > 0) {
+        const endEffectorPose = fkSolver.getEndEffectorPose(chains[0].name);
+        if (endEffectorPose) {
+          const pos = endEffectorPose.position;
+          setTcpPosition(
+            `X:${(pos.x * 1000).toFixed(1)} Y:${(pos.y * 1000).toFixed(1)} ` +
+            `Z:${(pos.z * 1000).toFixed(1)} mm`
+          );
+        }
+      }
     };
 
     updateJoints();
-    const interval = setInterval(updateJoints, 100); // Poll every 100ms
+    const interval = setInterval(updateJoints, 500); // Poll every 500ms (reduced from 100ms)
     return () => clearInterval(interval);
-  }, []);
+  }, [fkSolver]);
 
   // Filter to only show revolute joints (exclude fixed joints)
   const revoluteJoints = joints.filter(j => j.type === 'revolute');
-
-  // Debug logging
-  console.log('[RobotJoggingPanel] Total joints:', joints.length);
-  console.log('[RobotJoggingPanel] Revolute joints:', revoluteJoints.length);
-  if (revoluteJoints.length > 0) {
-    console.log('[RobotJoggingPanel] Joint names:', revoluteJoints.map(j => j.name));
-  }
 
   const handleJogJoint = (jointId: string, direction: number) => {
     const joint = joints.find(j => j.id === jointId);
@@ -58,9 +68,45 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ fkSolver }
   };
 
   const handleJogTcp = (axis: JogAxis, direction: number) => {
-    // TODO: Implement inverse kinematics for TCP jogging
-    console.log(`Jog TCP: ${axis} ${direction > 0 ? '+' : '-'}${jogStepTcp}${axis.startsWith('R') ? '°' : 'mm'}`);
-    alert('TCP (Cartesian) jogging requires inverse kinematics - coming soon!');
+    const kinematicsManager = KinematicsManager.getInstance();
+    const chains = kinematicsManager.getAllChains();
+
+    if (chains.length === 0) {
+      console.warn('No kinematic chains available');
+      return;
+    }
+
+    const chainName = chains[0].name;
+
+    // Convert mm to meters for position deltas
+    const stepMeters = jogStepTcp / 1000.0;
+    const stepRadians = (jogStepTcp * Math.PI) / 180;
+
+    let positionDelta = new BABYLON.Vector3(0, 0, 0);
+
+    // Linear motion
+    if (axis === 'X') {
+      positionDelta.x = stepMeters * direction;
+    } else if (axis === 'Y') {
+      positionDelta.y = stepMeters * direction;
+    } else if (axis === 'Z') {
+      positionDelta.z = stepMeters * direction;
+    }
+
+    // Rotary motion (TODO: requires orientation IK)
+    if (axis.startsWith('R')) {
+      console.log(
+        `Rotary TCP jogging (${axis}) not yet implemented - requires orientation IK`
+      );
+      return;
+    }
+
+    // Solve IK for new position
+    const success = ikSolver.moveEndEffector(chainName, positionDelta, 'jacobian');
+
+    if (!success) {
+      console.warn(`IK failed for TCP jog: ${axis} ${direction > 0 ? '+' : '-'}`);
+    }
   };
 
   const handleResetAll = () => {
@@ -209,10 +255,10 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ fkSolver }
 
             <div className="tcp-info">
               <p className="info-text">
-                ⚠️ TCP jogging requires inverse kinematics solver
+                📍 Current TCP Position
               </p>
               <p className="info-subtext">
-                Currently under development. Use Joint mode for now.
+                {tcpPosition}
               </p>
             </div>
           </div>

@@ -36,6 +36,7 @@ export interface JointConfig {
 
   // Joint origin (in parent's local space)
   origin: { x: number; y: number; z: number };
+  originRotation?: { x: number; y: number; z: number; w: number }; // Quaternion
 
   // Limits
   limits: {
@@ -317,12 +318,7 @@ export class KinematicsManager {
    * Get all joints
    */
   getAllJoints(): JointConfig[] {
-    const allJoints = Array.from(this.joints.values());
-    console.log(`[KinematicsManager.getAllJoints()] Returning ${allJoints.length} joints from Map`);
-    console.log(`[KinematicsManager.getAllJoints()] Joint IDs:`, allJoints.map(j => j.id));
-    console.log(`[KinematicsManager.getAllJoints()] Joint names:`, allJoints.map(j => j.name));
-    console.log(`[KinematicsManager.getAllJoints()] Joint types:`, allJoints.map(j => j.type));
-    return allJoints;
+    return Array.from(this.joints.values());
   }
 
   /**
