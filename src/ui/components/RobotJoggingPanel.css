@@ -117,61 +117,59 @@
 .joint-jog-mode {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .joints-grid {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .joint-jog-item {
   background: #2d3748;
   border-radius: 6px;
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: 60px 1fr auto;
+  gap: 10px;
+  align-items: center;
   border: 1px solid #4a5568;
 }
 
-.joint-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .joint-label {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: #63b3ed;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .joint-value {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: #48bb78;
   font-family: 'Courier New', monospace;
+  text-align: right;
 }
 
 /* Jog Buttons */
 .jog-buttons {
   display: flex;
   gap: 6px;
+  min-width: 140px;
 }
 
 .jog-btn {
-  flex: 1;
-  height: 36px;
+  width: 60px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
   border-radius: 4px;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
   user-select: none;

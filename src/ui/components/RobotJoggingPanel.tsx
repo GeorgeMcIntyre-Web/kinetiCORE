@@ -111,12 +111,10 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ fkSolver }
           <div className="joints-grid">
             {revoluteJoints.map((joint, index) => (
               <div key={joint.id} className="joint-jog-item">
-                <div className="joint-header">
-                  <span className="joint-label">{joint.name}</span>
-                  <span className="joint-value">
-                    {(joint.position * 180 / Math.PI).toFixed(1)}°
-                  </span>
-                </div>
+                <span className="joint-label">J{index + 1}</span>
+                <span className="joint-value">
+                  {(joint.position * 180 / Math.PI).toFixed(1)}°
+                </span>
                 <div className="jog-buttons">
                   <button
                     className="jog-btn jog-minus"
@@ -132,18 +130,6 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ fkSolver }
                   >
                     <Plus size={16} />
                   </button>
-                </div>
-                <div className="joint-limits">
-                  <span className="limit-min">{(joint.limits.lower * 180 / Math.PI).toFixed(0)}°</span>
-                  <div className="limit-bar">
-                    <div
-                      className="limit-indicator"
-                      style={{
-                        left: `${((joint.position - joint.limits.lower) / (joint.limits.upper - joint.limits.lower)) * 100}%`
-                      }}
-                    />
-                  </div>
-                  <span className="limit-max">{(joint.limits.upper * 180 / Math.PI).toFixed(0)}°</span>
                 </div>
               </div>
             ))}

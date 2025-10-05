@@ -94,6 +94,7 @@ export class KinematicsManager {
 
   static getInstance(): KinematicsManager {
     if (!KinematicsManager.instance) {
+      console.log('[KinematicsManager.getInstance()] Creating NEW singleton instance');
       KinematicsManager.instance = new KinematicsManager();
     }
     return KinematicsManager.instance;
@@ -204,6 +205,14 @@ export class KinematicsManager {
    * Create a joint between two nodes
    */
   createJoint(config: Partial<JointConfig>): JointConfig | null {
+    console.log(`[KinematicsManager.createJoint()] CALLED with config:`, {
+      name: config.name,
+      type: config.type,
+      parent: config.parentNodeId,
+      child: config.childNodeId,
+    });
+    console.log(`[KinematicsManager.createJoint()] Current joints.size BEFORE adding:`, this.joints.size);
+
     if (!config.parentNodeId || !config.childNodeId) {
       console.error('Parent and child nodes required');
       return null;
@@ -219,8 +228,10 @@ export class KinematicsManager {
     }
 
     // Create joint with defaults
+    // Use joint name as ID if provided (URDF joints have unique names)
+    // Otherwise generate unique ID with timestamp + random component
     const joint: JointConfig = {
-      id: config.id || `joint_${Date.now()}`,
+      id: config.id || (config.name ? `joint_${config.name}` : `joint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`),
       name: config.name || `Joint_${this.joints.size + 1}`,
       type: config.type || 'revolute',
       parentNodeId: config.parentNodeId,
@@ -240,7 +251,13 @@ export class KinematicsManager {
       showLimits: true,
     };
 
+    console.log(`[KinematicsManager.createJoint()] Generated joint ID:`, joint.id);
+    console.log(`[KinematicsManager.createJoint()] Adding joint to Map...`);
+
     this.joints.set(joint.id, joint);
+
+    console.log(`[KinematicsManager.createJoint()] joints.size AFTER adding:`, this.joints.size);
+    console.log(`[KinematicsManager.createJoint()] All joint IDs now in Map:`, Array.from(this.joints.keys()));
 
     // Update child node to track its joint
     childNode.jointData = {
@@ -261,13 +278,22 @@ export class KinematicsManager {
    * Delete a joint
    */
   deleteJoint(jointId: string): boolean {
+    console.log(`[KinematicsManager.deleteJoint()] CALLED with jointId:`, jointId);
+    console.log(`[KinematicsManager.deleteJoint()] joints.size BEFORE delete:`, this.joints.size);
+
     const joint = this.joints.get(jointId);
-    if (!joint) return false;
+    if (!joint) {
+      console.log(`[KinematicsManager.deleteJoint()] Joint NOT FOUND - no deletion`);
+      return false;
+    }
 
     // Clean up visualizers
     this.hideJointVisuals(jointId);
 
     this.joints.delete(jointId);
+
+    console.log(`[KinematicsManager.deleteJoint()] joints.size AFTER delete:`, this.joints.size);
+    console.log(`[KinematicsManager.deleteJoint()] Remaining joint IDs:`, Array.from(this.joints.keys()));
 
     // Remove joint data from child node
     const tree = SceneTreeManager.getInstance();
