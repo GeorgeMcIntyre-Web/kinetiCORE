@@ -672,12 +672,32 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     loading.start('Loading model...', 'uploading');
 
     try {
+      // For URDF files, try to automatically find mesh files
+      const isURDF = file.name.endsWith('.urdf');
+      let meshFilesToUse: File[] = [];
+
+      if (isURDF) {
+        loading.update('Searching for STL mesh files...', 25);
+        const { findMeshFilesForURDF } = await import('../../loaders/urdf/URDFMeshFinder');
+        meshFilesToUse = await findMeshFilesForURDF(file);
+
+        if (meshFilesToUse.length > 0) {
+          loading.update(`Found ${meshFilesToUse.length} mesh files, loading...`, 40);
+          console.log(`[Auto-discovered ${meshFilesToUse.length} mesh files for URDF]`);
+        } else {
+          loading.update('No mesh files found, using placeholders...', 40);
+          console.log('[No mesh files found - placeholders will be used]');
+        }
+      }
+
       // Load model - now returns both meshes and root nodes
-      const { meshes, rootNodes } = await loadModelFromFile(file, scene);
+      const { meshes, rootNodes } = isURDF && meshFilesToUse.length > 0
+        ? await (await import('../../loaders/urdf/URDFLoaderWithMeshes')).loadURDFWithMeshes(file, meshFilesToUse, scene)
+        : await loadModelFromFile(file, scene);
+
       loading.update('Processing geometry...', 50);
 
       // Check if this is a URDF robot with missing meshes
-      const isURDF = file.name.endsWith('.urdf');
       if (isURDF && rootNodes.length > 0) {
         const robotRoot = rootNodes[0];
         const requiredMeshes = robotRoot.metadata?.requiredMeshFiles;
