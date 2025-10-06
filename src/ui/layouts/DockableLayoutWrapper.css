@@ -1,0 +1,128 @@
+/* Dockable Layout Wrapper Styles */
+
+.dockable-layout-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: #1a1a1a;
+}
+
+/* Custom theme for kinetiCORE */
+.dockview-theme-kineticore {
+  --dv-activegroup-visiblepanel-tab-background-color: #2d2d2d;
+  --dv-activegroup-hiddenpanel-tab-background-color: #1e1e1e;
+  --dv-group-view-background-color: #1a1a1a;
+  --dv-tabs-and-actions-container-background-color: #252525;
+  --dv-tabs-container-scrollbar-color: #646cff;
+  --dv-separator-border: 1px solid #3f3f3f;
+  --dv-activegroup-visiblepanel-tab-color: #ffffff;
+  --dv-activegroup-hiddenpanel-tab-color: #a0a0a0;
+  --dv-inactivegroup-visiblepanel-tab-color: #c0c0c0;
+  --dv-inactivegroup-hiddenpanel-tab-color: #808080;
+  --dv-drag-over-background-color: rgba(100, 108, 255, 0.2);
+  --dv-paneview-header-border-color: #3f3f3f;
+  --dv-icon-hover-background-color: #3f3f3f;
+  --dv-activegroup-visiblepanel-tab-border-bottom: 2px solid #646cff;
+}
+
+/* Panel content styling */
+.dockview-theme-kineticore .panel-content {
+  padding: 12px;
+  height: 100%;
+  overflow: auto;
+  background: #1a1a1a;
+  color: #e0e0e0;
+}
+
+/* Override dockview default styles */
+.dockview-theme-kineticore .dv-default-tab {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 4px 4px 0 0;
+  transition: background-color 0.2s ease;
+}
+
+.dockview-theme-kineticore .dv-default-tab:hover {
+  background-color: #2d2d2d;
+}
+
+.dockview-theme-kineticore .dv-resize-container {
+  background: #3f3f3f;
+}
+
+.dockview-theme-kineticore .dv-resize-container:hover {
+  background: #646cff;
+}
+
+/* Watermark (main content area) */
+.dockview-theme-kineticore .watermark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: #1a1a1a;
+}
+
+/* Panel header icons */
+.dockview-theme-kineticore .action-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dockview-theme-kineticore .action-container .action {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  cursor: pointer;
+  color: #a0a0a0;
+  transition: all 0.2s ease;
+}
+
+.dockview-theme-kineticore .action-container .action:hover {
+  background: #3f3f3f;
+  color: #ffffff;
+}
+
+/* Floating window styling */
+.dockview-theme-kineticore .dv-floating-group-container {
+  border: 1px solid #3f3f3f;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Scrollbar styling */
+.dockview-theme-kineticore ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.dockview-theme-kineticore ::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.dockview-theme-kineticore ::-webkit-scrollbar-thumb {
+  background: #3f3f3f;
+  border-radius: 5px;
+}
+
+.dockview-theme-kineticore ::-webkit-scrollbar-thumb:hover {
+  background: #646cff;
+}
+
+/* Empty group placeholder */
+.dockview-theme-kineticore .empty-group-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #606060;
+  font-size: 14px;
+}

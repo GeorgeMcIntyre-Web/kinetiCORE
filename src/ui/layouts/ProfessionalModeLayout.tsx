@@ -1,7 +1,7 @@
 // Professional Mode Layout - Engineer/Designer interface
 // Owner: George (Architecture)
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Circle,
@@ -15,8 +15,6 @@ import {
   RotateCw,
   Scale,
   Copy,
-  Grid3x3,
-  Layers,
   Save,
   Upload,
   Download,
@@ -25,8 +23,7 @@ import {
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
-import { Inspector } from '../components/Inspector';
-import { SceneTree } from '../components/SceneTree';
+import { DockableLayoutWrapper } from './DockableLayoutWrapper';
 import './ProfessionalModeLayout.css';
 
 export const ProfessionalModeLayout: React.FC = () => {
@@ -43,9 +40,20 @@ export const ProfessionalModeLayout: React.FC = () => {
   const redo = useEditorStore((state) => state.redo);
   const canUndo = useEditorStore((state) => state.canUndo());
   const canRedo = useEditorStore((state) => state.canRedo());
+  const savePanelLayout = useEditorStore((state) => state.savePanelLayout);
+  const loadPanelLayout = useEditorStore((state) => state.loadPanelLayout);
 
   const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'analysis'>('modeling');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [savedLayout, setSavedLayout] = useState<any>(null);
+
+  // Load saved panel layout on mount
+  useEffect(() => {
+    const layout = loadPanelLayout();
+    if (layout) {
+      setSavedLayout(layout);
+    }
+  }, [loadPanelLayout]);
 
   const handleImport = () => {
     fileInputRef.current?.click();
@@ -392,131 +400,22 @@ export const ProfessionalModeLayout: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main Content with Dockable Panels */}
       <div className="professional-content">
-        {/* Left Sidebar */}
-        <aside className="professional-left-sidebar">
-          {/* Scene Tree */}
-          <SceneTree />
-
-          {/* Tool Palette */}
-          <div className="panel">
-            <div className="panel-header">
-              <Grid3x3 size={16} />
-              <h3>Tool Palette</h3>
-            </div>
-            <div className="panel-content">
-              <div className="palette-category">
-                <div className="category-title">Primitives</div>
-                <div className="palette-grid">
-                  <button
-                    className="palette-item"
-                    title="Box"
-                    onClick={() => createObject('box')}
-                  >
-                    <Box size={20} />
-                  </button>
-                  <button
-                    className="palette-item"
-                    title="Sphere"
-                    onClick={() => createObject('sphere')}
-                  >
-                    <Circle size={20} />
-                  </button>
-                  <button
-                    className="palette-item"
-                    title="Cylinder"
-                    onClick={() => createObject('cylinder')}
-                  >
-                    <Cylinder size={20} />
-                  </button>
-                  <button
-                    className="palette-item"
-                    title="Cone"
-                    onClick={() => createObject('cone')}
-                  >
-                    <Cone size={20} />
-                  </button>
-                  <button
-                    className="palette-item"
-                    title="Torus"
-                    onClick={() => createObject('torus')}
-                  >
-                    <Circle size={20} />
-                  </button>
-                  <button
-                    className="palette-item"
-                    title="Plane"
-                    onClick={() => createObject('plane')}
-                  >
-                    <Square size={20} />
-                  </button>
-                  <button
-                    className="palette-item"
-                    title="Ground"
-                    onClick={() => createObject('ground')}
-                  >
-                    <Square size={20} />
-                  </button>
-                  <button
-                    className="palette-item"
-                    title="Capsule"
-                    onClick={() => createObject('capsule')}
-                  >
-                    <Pill size={20} />
-                  </button>
-                  <button
-                    className="palette-item"
-                    title="Disc"
-                    onClick={() => createObject('disc')}
-                  >
-                    <Disc size={20} />
-                  </button>
-                  <button
-                    className="palette-item"
-                    title="Torus Knot"
-                    onClick={() => createObject('torusknot')}
-                  >
-                    <Circle size={20} />
-                  </button>
-                  <button
-                    className="palette-item"
-                    title="Polyhedron"
-                    onClick={() => createObject('polyhedron')}
-                  >
-                    <Diamond size={20} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Layers Panel */}
-          <div className="panel">
-            <div className="panel-header">
-              <Layers size={16} />
-              <h3>Layers</h3>
-            </div>
-            <div className="panel-content">
-              <div className="layer-item active">
-                <span className="layer-visibility">👁</span>
-                <span className="layer-name">Layer 1</span>
-              </div>
-              <button className="layer-add" disabled>
-                + Add Layer
-              </button>
-            </div>
-          </div>
-        </aside>
-
-        {/* Main Viewport - SceneCanvas will overlay this */}
-        <main id="viewport-professional" className="professional-viewport"></main>
-
-        {/* Right Sidebar */}
-        <aside className="professional-right-sidebar">
-          {/* Inspector */}
-          <Inspector />
-        </aside>
+        <DockableLayoutWrapper
+          config={{
+            leftPanels: [
+              { id: 'sceneTree-panel', type: 'sceneTree' },
+              { id: 'toolPalette-panel', type: 'toolPalette' },
+            ],
+            rightPanels: [
+              { id: 'inspector-panel', type: 'inspector' },
+            ],
+            mainContent: <main id="viewport-professional" className="professional-viewport"></main>,
+          }}
+          onLayoutChange={savePanelLayout}
+          savedLayout={savedLayout}
+        />
       </div>
 
       {/* Hidden file input for importing models */}

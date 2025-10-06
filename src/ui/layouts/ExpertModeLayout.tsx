@@ -1,7 +1,7 @@
 // Expert Mode Layout - Power User/Enterprise interface
 // Owner: George (Architecture)
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Circle,
@@ -15,17 +15,13 @@ import {
   Command,
   Layout,
   Terminal,
-  GitBranch,
   Save,
   Upload,
   Download,
-  Play,
-  Pause,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
-import { Inspector } from '../components/Inspector';
-import { SceneTree } from '../components/SceneTree';
+import { DockableLayoutWrapper } from './DockableLayoutWrapper';
 import './ExpertModeLayout.css';
 
 export const ExpertModeLayout: React.FC = () => {
@@ -33,10 +29,21 @@ export const ExpertModeLayout: React.FC = () => {
   const createObject = useEditorStore((state) => state.createObject);
   const importModel = useEditorStore((state) => state.importModel);
   const saveWorld = useEditorStore((state) => state.saveWorld);
+  const savePanelLayout = useEditorStore((state) => state.savePanelLayout);
+  const loadPanelLayout = useEditorStore((state) => state.loadPanelLayout);
 
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [savedLayout, setSavedLayout] = useState<any>(null);
+
+  // Load saved panel layout on mount
+  useEffect(() => {
+    const layout = loadPanelLayout();
+    if (layout) {
+      setSavedLayout(layout);
+    }
+  }, [loadPanelLayout]);
 
   const handleImport = () => {
     fileInputRef.current?.click();
@@ -261,129 +268,51 @@ export const ExpertModeLayout: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main Content with Dockable Panels */}
       <div className="expert-content">
-        {/* Left Panel */}
-        <aside className="expert-left-panel">
-          {/* Tabbed Panels */}
-          <div className="panel-tabs">
-            <button className="panel-tab active">Scene</button>
-            <button className="panel-tab" disabled>
-              Plugins
-            </button>
-            <button className="panel-tab" disabled>
-              Scripts
-            </button>
-          </div>
-
-          <div className="panel-content">
-            {/* Scene Tree */}
-            <SceneTree />
-
-            {/* Script Editor Preview */}
-            <div className="script-editor-preview">
-              <div className="editor-header">
-                <Code size={14} />
-                <span>Script Editor</span>
-              </div>
-              <div className="editor-content">
-                <pre>
-                  <code className="disabled-text">
-                    {`// Python Script
-def create_array():
-    # Coming soon
-    pass`}
-                  </code>
-                </pre>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        {/* Center - Quad Viewport */}
-        <main className="expert-center">
-          <div className="quad-viewport">
-            <div className="viewport-quad">
-              <div className="viewport-label">Top View</div>
-              <div className="viewport-content disabled">
-                <div className="viewport-placeholder">Top</div>
-              </div>
-            </div>
-            <div className="viewport-quad">
-              <div className="viewport-label">Front View</div>
-              <div className="viewport-content disabled">
-                <div className="viewport-placeholder">Front</div>
-              </div>
-            </div>
-            <div className="viewport-quad">
-              <div className="viewport-label">Right View</div>
-              <div className="viewport-content disabled">
-                <div className="viewport-placeholder">Right</div>
-              </div>
-            </div>
-            <div className="viewport-quad active">
-              <div className="viewport-label">Perspective</div>
-              <div id="viewport-expert" className="viewport-content"></div>
-            </div>
-          </div>
-        </main>
-
-        {/* Right Panel */}
-        <aside className="expert-right-panel">
-          {/* Tabbed Panels */}
-          <div className="panel-tabs">
-            <button className="panel-tab active">Properties</button>
-            <button className="panel-tab" disabled>
-              Console
-            </button>
-            <button className="panel-tab" disabled>
-              Version
-            </button>
-          </div>
-
-          <div className="panel-content">
-            {/* Inspector */}
-            <Inspector />
-
-            {/* Version Control Preview */}
-            <div className="version-control-preview">
-              <div className="vc-header">
-                <GitBranch size={14} />
-                <span>Version Control</span>
-              </div>
-              <div className="vc-content disabled-text">
-                <p>Git integration coming soon</p>
-              </div>
-            </div>
-          </div>
-        </aside>
-      </div>
-
-      {/* Bottom Panel - Timeline/Console */}
-      <div className="expert-bottom-panel">
-        <div className="bottom-tabs">
-          <button className="bottom-tab active">Timeline</button>
-          <button className="bottom-tab" disabled>
-            Console
-          </button>
-          <button className="bottom-tab" disabled>
-            Results
-          </button>
-        </div>
-        <div className="bottom-content">
-          <div className="timeline-controls">
-            <button className="timeline-btn" disabled>
-              <Play size={16} />
-            </button>
-            <button className="timeline-btn" disabled>
-              <Pause size={16} />
-            </button>
-            <div className="timeline-scrubber">
-              <input type="range" min="0" max="100" value="0" disabled />
-            </div>
-            <span className="timeline-time disabled-text">0:00 / 0:00</span>
-          </div>
-        </div>
+        <DockableLayoutWrapper
+          config={{
+            leftPanels: [
+              { id: 'sceneTree-expert', type: 'sceneTree', title: 'Scene' },
+            ],
+            rightPanels: [
+              { id: 'inspector-expert', type: 'inspector', title: 'Properties' },
+            ],
+            bottomPanels: [
+              { id: 'kinematics-expert', type: 'kinematics', title: 'Timeline/Kinematics' },
+            ],
+            mainContent: (
+              <main className="expert-center">
+                <div className="quad-viewport">
+                  <div className="viewport-quad">
+                    <div className="viewport-label">Top View</div>
+                    <div className="viewport-content disabled">
+                      <div className="viewport-placeholder">Top</div>
+                    </div>
+                  </div>
+                  <div className="viewport-quad">
+                    <div className="viewport-label">Front View</div>
+                    <div className="viewport-content disabled">
+                      <div className="viewport-placeholder">Front</div>
+                    </div>
+                  </div>
+                  <div className="viewport-quad">
+                    <div className="viewport-label">Right View</div>
+                    <div className="viewport-content disabled">
+                      <div className="viewport-placeholder">Right</div>
+                    </div>
+                  </div>
+                  <div className="viewport-quad active">
+                    <div className="viewport-label">Perspective</div>
+                    <div id="viewport-expert" className="viewport-content"></div>
+                  </div>
+                </div>
+              </main>
+            ),
+          }}
+          onLayoutChange={savePanelLayout}
+          savedLayout={savedLayout}
+        />
       </div>
 
       {/* Hidden file input for importing models */}
