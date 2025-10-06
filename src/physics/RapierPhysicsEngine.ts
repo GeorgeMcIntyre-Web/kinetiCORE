@@ -133,7 +133,9 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
       // Remove all colliders first to avoid Rapier's "recursive use" error
       const colliderSet = this.colliders.get(handle);
       if (colliderSet) {
-        for (const collider of colliderSet) {
+        // Convert Set to Array for iteration
+        const collidersArray = Array.from(colliderSet);
+        for (const collider of collidersArray) {
           try {
             this.world.removeCollider(collider, false); // false = don't wake up bodies
           } catch (e) {

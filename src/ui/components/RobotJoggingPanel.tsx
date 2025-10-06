@@ -7,7 +7,6 @@
 
 import { useState, useEffect } from 'react';
 import { Move, RotateCw, Minus, Plus } from 'lucide-react';
-import * as BABYLON from '@babylonjs/core';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import type { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
 import { InverseKinematicsSolver } from '../../kinematics/InverseKinematicsSolver';
