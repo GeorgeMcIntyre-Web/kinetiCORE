@@ -1,17 +1,19 @@
 // Coordinate System Conversion Utilities
 // Owner: George
 //
-// USER SPACE (What engineers see):
+// USER SPACE (What engineers see in UI):
 //   - Right-handed coordinate system
-//   - Z-axis is UP (vertical)
+//   - Z-axis is UP (vertical) - CAD standard
 //   - Units in millimeters (mm)
 //   - X = Right, Y = Forward, Z = UP
 //
 // INTERNAL SPACE (Babylon.js / Rapier):
 //   - Right-handed coordinate system
-//   - Y-axis is UP (Babylon's convention)
+//   - Y-axis is UP (Babylon/Rapier native)
 //   - Units in meters (m)
 //   - X = Right, Y = UP, Z = Forward
+//
+// CONVERSION: Swap Y ↔ Z axes + convert mm ↔ m
 
 import * as BABYLON from '@babylonjs/core';
 import { Vector3, Quaternion } from './types';
@@ -23,11 +25,12 @@ export const MM_TO_M = 0.001;
 export const M_TO_MM = 1000;
 
 /**
- * Convert user space coordinates (Z-up, mm) to Babylon space (Y-up, meters)
+ * Convert user space (Z-up, mm) to Babylon space (Y-up, meters)
+ * Swaps Y ↔ Z and converts mm to meters
  */
 export function userToBabylon(userPos: Vector3): BABYLON.Vector3 {
   return new BABYLON.Vector3(
-    userPos.x * MM_TO_M, // X stays X
+    userPos.x * MM_TO_M, // X stays X (mm to m)
     userPos.z * MM_TO_M, // User Z (up) → Babylon Y (up)
     userPos.y * MM_TO_M  // User Y (forward) → Babylon Z (forward)
   );
@@ -35,10 +38,11 @@ export function userToBabylon(userPos: Vector3): BABYLON.Vector3 {
 
 /**
  * Convert Babylon space (Y-up, meters) to user space (Z-up, mm)
+ * Swaps Y ↔ Z and converts meters to mm
  */
 export function babylonToUser(babylonPos: BABYLON.Vector3): Vector3 {
   return {
-    x: babylonPos.x * M_TO_MM, // X stays X
+    x: babylonPos.x * M_TO_MM, // X stays X (m to mm)
     y: babylonPos.z * M_TO_MM, // Babylon Z (forward) → User Y (forward)
     z: babylonPos.y * M_TO_MM, // Babylon Y (up) → User Z (up)
   };
@@ -46,10 +50,11 @@ export function babylonToUser(babylonPos: BABYLON.Vector3): Vector3 {
 
 /**
  * Convert user rotation (Z-up) to Babylon rotation (Y-up)
+ * Applies 90° rotation around X to swap Y and Z axes
  */
 export function userRotationToBabylon(userRot: Quaternion): BABYLON.Quaternion {
-  // Rotate the quaternion to account for axis swap
-  // This applies a 90° rotation around X to swap Y and Z axes
+  // Rotate the quaternion to account for Y ↔ Z axis swap
+  // This applies a 90° rotation around X to convert Z-up → Y-up
   const axisSwap = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.X, Math.PI / 2);
   const userQuat = new BABYLON.Quaternion(userRot.x, userRot.y, userRot.z, userRot.w);
   return axisSwap.multiply(userQuat);
@@ -57,9 +62,10 @@ export function userRotationToBabylon(userRot: Quaternion): BABYLON.Quaternion {
 
 /**
  * Convert Babylon rotation (Y-up) to user rotation (Z-up)
+ * Reverses the 90° rotation around X
  */
 export function babylonRotationToUser(babylonRot: BABYLON.Quaternion): Quaternion {
-  // Reverse the 90° rotation around X
+  // Reverse the 90° rotation around X to convert Y-up → Z-up
   const axisSwap = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.X, -Math.PI / 2);
   const result = axisSwap.multiply(babylonRot);
   return {
@@ -71,7 +77,8 @@ export function babylonRotationToUser(babylonRot: BABYLON.Quaternion): Quaternio
 }
 
 /**
- * Convert user space vector (no scaling, just axis swap)
+ * Convert user space vector (Z-up) to Babylon vector (Y-up)
+ * Swaps Y ↔ Z axes (no unit conversion for vectors)
  */
 export function userVectorToBabylon(userVec: Vector3): BABYLON.Vector3 {
   return new BABYLON.Vector3(

@@ -86,24 +86,27 @@ export class SceneManager {
     // Configure for right-handed coordinate system (matches CAD standards)
     this.scene.useRightHandedSystem = true;
 
-    // Setup basic lighting
+    // Internal: Y-up (Babylon native)
+    // User sees: Z-up (converted via CoordinateSystem.ts)
+
+    // Setup basic lighting (Y-up: light points down from above)
     const hemisphericLight = new BABYLON.HemisphericLight(
       'hemisphericLight',
-      new BABYLON.Vector3(0, 1, 0),
+      new BABYLON.Vector3(0, 1, 0), // Y-up: light from above
       this.scene
     );
     hemisphericLight.intensity = 0.7;
 
-    // Directional light with shadows
+    // Directional light with shadows (Y-up: comes from above-side)
     const directionalLight = new BABYLON.DirectionalLight(
       'directionalLight',
-      new BABYLON.Vector3(-1, -2, -1),
+      new BABYLON.Vector3(-1, -2, -1), // Y-up: direction from above
       this.scene
     );
-    directionalLight.position = new BABYLON.Vector3(10, 20, 10);
+    directionalLight.position = new BABYLON.Vector3(10, 20, 10); // Y-up: positioned above
     directionalLight.intensity = 0.5;
 
-    // Create ground plane
+    // Create ground plane (Y-up: XZ plane at Y=0)
     this.ground = BABYLON.MeshBuilder.CreateGround(
       'ground',
       { width: GROUND_SIZE, height: GROUND_SIZE },
@@ -119,8 +122,8 @@ export class SceneManager {
     // Freeze ground world matrix for performance
     this.ground.freezeWorldMatrix();
 
-    // Create default camera
-    // Note: In Babylon's Y-up space, camera looks down from above
+    // Create default camera (Y-up Babylon native)
+    // Note: User sees Z-up via CoordinateSystem.ts conversions
     this.camera = new BABYLON.ArcRotateCamera(
       'camera',
       CAMERA_DEFAULT_ALPHA, // Rotation around Y-axis
@@ -137,7 +140,7 @@ export class SceneManager {
     this.camera.wheelPrecision = CAMERA_WHEEL_PRECISION;
     this.camera.inertia = CAMERA_INERTIA;
 
-    // Set camera up vector to match Babylon's Y-up
+    // Set camera up vector to Y-up (Babylon native)
     this.camera.upVector = new BABYLON.Vector3(0, 1, 0);
 
     // Set camera to orthographic mode by default

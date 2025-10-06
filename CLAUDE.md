@@ -11,11 +11,12 @@ Web-based 3D industrial simulation and kinematics platform for robot simulation.
 
 ## Architecture Principles
 
-1. **Physics abstraction layer** - Never import Rapier directly, always use `IPhysicsEngine`
-2. **Scene entities** - Unified objects that sync Babylon meshes ↔ Rapier bodies automatically
-3. **Command pattern** - All user actions wrapped in commands (enables undo/redo)
-4. **Separate state layers** - React state (Zustand) is independent from 3D scene state
-5. **Direct mutation in render loops** - Never `setState` in animation loops, use refs
+1. **Z-up coordinate system** - kinetiCORE uses Z-up (CAD/ROS standard). See `COORDINATE_SYSTEM.md`
+2. **Physics abstraction layer** - Never import Rapier directly, always use `IPhysicsEngine`
+3. **Scene entities** - Unified objects that sync Babylon meshes ↔ Rapier bodies automatically
+4. **Command pattern** - All user actions wrapped in commands (enables undo/redo)
+5. **Separate state layers** - React state (Zustand) is independent from 3D scene state
+6. **Direct mutation in render loops** - Never `setState` in animation loops, use refs
 
 ## Coding Standards
 
@@ -90,13 +91,10 @@ const selected = useEditorStore.getState().selectedMeshes;
 
 ## Known Issues & Gotchas
 
-- **Coordinate systems:**
-  - **User/CAD Space:** Z-up, right-handed, millimeters (X=Right, Y=Forward, Z=Up)
-  - **URDF Files:** Z-up, right-handed, meters (ROS standard)
-  - **Babylon Scene:** Y-up, right-handed (via `scene.useRightHandedSystem = true`), meters
-  - **Rapier Physics:** Y-up, right-handed, meters
-  - **Conversion:** (x, y, z) Z-up → (x, z, y) Y-up, plus mm↔m scaling
-  - All conversions handled in `CoordinateSystem.ts` and URDF loaders
+- **Coordinate systems:** kinetiCORE uses Z-up (CAD/ROS standard) throughout
+  - See `COORDINATE_SYSTEM.md` for full details
+  - **When adding new loaders:** Load geometry as-is, NO coordinate conversion needed
+  - **Unit conversion only:** Use `CoordinateSystem.ts` for mm ↔ m conversion
 - **Disposal order:** Always dispose physics bodies BEFORE Babylon meshes
 - **localStorage:** Not supported in Claude artifacts - use in-memory state only
 - **World matrix:** Call `mesh.computeWorldMatrix(true)` before reading bounds for physics
@@ -155,6 +153,7 @@ npm run build
 
 ## Resources
 
+- **Coordinate System Standard:** `COORDINATE_SYSTEM.md` (READ THIS FIRST for loaders!)
 - Babylon.js Docs: https://doc.babylonjs.com
 - Rapier Docs: https://rapier.rs/docs/
 - Zustand Docs: https://docs.pmnd.rs/zustand/

@@ -3,8 +3,9 @@ export const APP_NAME = 'kinetiCORE';
 export const APP_VERSION = '0.1.0';
 
 // Unit system
-// USER SPACE: Engineers work in millimeters (mm) with Z-up
-// INTERNAL: Babylon.js/Rapier use meters (m) with Y-up
+// USER SPACE: Engineers work in Z-up, millimeters (CAD standard)
+// INTERNAL: Babylon.js/Rapier use Y-up, meters (engine native)
+// Conversion handled in CoordinateSystem.ts
 export const UNITS = {
   DISPLAY: 'mm',
   INTERNAL: 'm',
@@ -12,22 +13,23 @@ export const UNITS = {
   M_TO_MM: 1000,
 } as const;
 
-// Physics constants (internal units: meters, Y-up in Babylon space)
-// Note: In user space, gravity is on Z-axis, but internally it's Y-axis
-export const DEFAULT_GRAVITY = { x: 0, y: -9.81, z: 0 }; // Babylon Y-up
+// Physics constants (internal units: meters, Y-up)
+// Internal gravity points down Y-axis (Babylon/Rapier standard)
+// User sees this as Z-down via CoordinateSystem.ts
+export const DEFAULT_GRAVITY = { x: 0, y: -9.81, z: 0 }; // Y-up (internal)
 export const PHYSICS_TIMESTEP = 1 / 60; // 60 FPS
 
 // Scene constants (internal units: meters)
 export const GROUND_SIZE = 10; // 10 meters = 10,000mm
 export const AXIS_LENGTH = 2; // 2 meters = 2,000mm
 
-// Camera constants (internal units: meters)
+// Camera constants (internal units: meters, Y-up)
 export const CAMERA_MIN_RADIUS = 2; // 2m
 export const CAMERA_MAX_RADIUS = 50; // 50m
 export const CAMERA_WHEEL_PRECISION = 50;
 export const CAMERA_INERTIA = 0.9;
 export const CAMERA_DEFAULT_ALPHA = -Math.PI / 2; // Look from side
-export const CAMERA_DEFAULT_BETA = Math.PI / 4; // 45° angle
+export const CAMERA_DEFAULT_BETA = Math.PI / 4; // 45° angle from Y-axis
 export const CAMERA_DEFAULT_RADIUS = 15; // 15m distance
 
 // Command history
