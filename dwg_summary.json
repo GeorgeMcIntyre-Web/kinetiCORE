@@ -1,0 +1,18 @@
+{
+  "header": {},
+  "blockCount": 0,
+  "layerCount": 0,
+  "entityCount": 2539,
+  "entityTypes": [
+    "MTEXT",
+    "LWPOLYLINE",
+    "INSERT",
+    "HATCH",
+    "LINE",
+    "MLINE",
+    "SPLINE",
+    "POLYLINE",
+    "ATTDEF",
+    "DIMENSION"
+  ]
+}

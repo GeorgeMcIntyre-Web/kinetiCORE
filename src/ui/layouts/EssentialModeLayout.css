@@ -456,12 +456,12 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .sidebar-section:last-child {
   border-bottom: none;
-  flex: 2;
+  flex: 1;
 }
 
 .sidebar-title {

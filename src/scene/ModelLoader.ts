@@ -1,6 +1,6 @@
 // Model Loader - Import 3D files in various formats
 // Owner: Cole
-// Supports: glTF, GLB, OBJ, STL, Babylon, DXF, JT, CATIA, URDF
+// Supports: glTF, GLB, OBJ, STL, Babylon, DXF, DWG, JT, CATIA, URDF
 
 import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
@@ -22,6 +22,9 @@ import { loadCATIAFromFile } from '../loaders/catia/CATIALoader';
 // Import DXF loader
 import { DXFController } from '../dxf/DXFController';
 
+// Import DWG loader
+import { loadDWGFromFile } from '../loaders/dwg/DWGLoader';
+
 // Configure Draco decoder
 DracoCompression.Configuration = {
   decoder: {
@@ -41,6 +44,7 @@ export const SUPPORTED_FORMATS = {
   STL: '.stl',
   BABYLON: '.babylon',
   DXF: '.dxf',
+  DWG: '.dwg',
   JT: '.jt',
   CATPART: '.catpart',
   CATPRODUCT: '.catproduct',
@@ -75,6 +79,7 @@ function getMimeType(extension: string): string {
     '.stl': 'application/octet-stream',
     '.babylon': 'application/json',
     '.dxf': 'application/dxf',
+    '.dwg': 'application/dwg',
     '.jt': 'application/jt',
     '.catpart': 'application/catia',
     '.catproduct': 'application/catia',
@@ -110,6 +115,15 @@ export async function loadModelFromFile(
   // Handle DXF files
   if (extension === '.dxf') {
     return loadDXFFromFile(file, scene);
+  }
+
+  // Handle DWG files with millimeter to meter conversion
+  if (extension === '.dwg') {
+    return loadDWGFromFile(file, scene, {
+      unitScale: 0.001, // Convert mm to meters
+      onProgress: (progress) => console.log(`DWG Import: ${progress.message}`),
+      // Uncomment to limit entities for testing: maxEntities: 500
+    });
   }
 
   // Handle JT files
@@ -235,7 +249,7 @@ export function getAcceptedFileTypes(): string {
  * Get human-readable format description
  */
 export function getFormatDescription(): string {
-  return 'glTF (.gltf, .glb), Wavefront (.obj), STL (.stl), Babylon (.babylon), DXF (.dxf), JT (.jt), URDF (.urdf)';
+  return 'glTF (.gltf, .glb), Wavefront (.obj), STL (.stl), Babylon (.babylon), DXF (.dxf), DWG (.dwg), JT (.jt), URDF (.urdf)';
 }
 
 /**

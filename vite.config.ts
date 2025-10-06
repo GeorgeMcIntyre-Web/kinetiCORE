@@ -26,6 +26,7 @@ export default defineConfig({
     sourcemap: true,
   },
   optimizeDeps: {
-    exclude: ['@dimforge/rapier3d-compat'],
+    exclude: ['@dimforge/rapier3d-compat', '@mlightcad/libredwg-web'],
   },
+  assetsInclude: ['**/*.wasm'],
 });

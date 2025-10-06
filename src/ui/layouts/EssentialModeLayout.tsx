@@ -17,6 +17,7 @@ import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { SceneTree } from '../components/SceneTree';
 import { KinematicsPanel } from '../components/KinematicsPanel';
+import { FloorSelector } from '../components/FloorSelector';
 import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { EntityRegistry } from '../../entities/EntityRegistry';
@@ -242,6 +243,7 @@ export const EssentialModeLayout: React.FC = () => {
       <div className="viewport-controls">
         <button className="control-btn" onClick={handleResetView}>Reset View</button>
         <button className="control-btn" onClick={handleZoomFit}>Zoom Fit</button>
+        <FloorSelector />
       </div>
 
       {/* Transform Display */}
@@ -264,7 +266,7 @@ export const EssentialModeLayout: React.FC = () => {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".urdf,.stl,.obj,.dae,.gltf,.glb"
+        accept=".urdf,.stl,.obj,.dae,.gltf,.glb,.dxf,.dwg,.jt"
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />

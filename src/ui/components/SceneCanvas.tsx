@@ -45,6 +45,10 @@ export const SceneCanvas: React.FC = () => {
       const camera = sceneManager.getCamera();
       const scene = sceneManager.getScene();
 
+      // Expose SceneManager to window for easy floor changes via console
+      (window as any).sceneManager = sceneManager;
+      console.log('💡 Tip: Change floor via console with: sceneManager.setFloorType("epoxy-gray")');
+
       if (camera) {
         setCamera(camera);
       }

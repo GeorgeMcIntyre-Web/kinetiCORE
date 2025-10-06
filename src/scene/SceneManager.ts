@@ -2,6 +2,9 @@
 // Owner: Cole
 
 import * as BABYLON from '@babylonjs/core';
+import '@babylonjs/core/Materials/standardMaterial';
+import '@babylonjs/materials/grid';
+import { GridMaterial } from '@babylonjs/materials/grid';
 import {
   GROUND_SIZE,
   CAMERA_MIN_RADIUS,
@@ -12,6 +15,8 @@ import {
   CAMERA_DEFAULT_BETA,
   CAMERA_DEFAULT_RADIUS,
 } from '../core/constants';
+import { FloorType } from '../core/types';
+import { FloorMaterialManager } from './FloorMaterialManager';
 
 export class SceneManager {
   private static instance: SceneManager | null = null;
@@ -19,6 +24,9 @@ export class SceneManager {
   private scene: BABYLON.Scene | null = null;
   private camera: BABYLON.ArcRotateCamera | null = null;
   private ground: BABYLON.Mesh | null = null;
+  private floorMaterialManager: FloorMaterialManager | null = null;
+  private gridOverlay: BABYLON.Mesh | null = null;
+  private currentFloorType: FloorType = 'concrete-polished';
   private isInitialized: boolean = false;
   private isUsingWebGPU: boolean = false;
 
@@ -89,13 +97,22 @@ export class SceneManager {
     // Internal: Y-up (Babylon native)
     // User sees: Z-up (converted via CoordinateSystem.ts)
 
-    // Setup basic lighting (Y-up: light points down from above)
+    // Create realistic environment with HDR lighting
+    const hdrTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
+      'https://playground.babylonjs.com/textures/environment.env',
+      this.scene
+    );
+    this.scene.environmentTexture = hdrTexture;
+    this.scene.createDefaultSkybox(hdrTexture, true, 1000, 0.3);
+
+    // Setup realistic lighting (Y-up: light points down from above)
     const hemisphericLight = new BABYLON.HemisphericLight(
       'hemisphericLight',
       new BABYLON.Vector3(0, 1, 0), // Y-up: light from above
       this.scene
     );
-    hemisphericLight.intensity = 0.7;
+    hemisphericLight.intensity = 0.5;
+    hemisphericLight.groundColor = new BABYLON.Color3(0.3, 0.3, 0.35);
 
     // Directional light with shadows (Y-up: comes from above-side)
     const directionalLight = new BABYLON.DirectionalLight(
@@ -104,7 +121,9 @@ export class SceneManager {
       this.scene
     );
     directionalLight.position = new BABYLON.Vector3(10, 20, 10); // Y-up: positioned above
-    directionalLight.intensity = 0.5;
+    directionalLight.intensity = 0.8;
+    directionalLight.shadowMinZ = 1;
+    directionalLight.shadowMaxZ = 100;
 
     // Create ground plane (Y-up: XZ plane at Y=0)
     this.ground = BABYLON.MeshBuilder.CreateGround(
@@ -113,11 +132,18 @@ export class SceneManager {
       this.scene
     );
 
-    const groundMaterial = new BABYLON.StandardMaterial('groundMat', this.scene);
-    groundMaterial.diffuseColor = new BABYLON.Color3(0.3, 0.3, 0.3);
-    groundMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
-    this.ground.material = groundMaterial;
+    // Initialize floor material manager
+    this.floorMaterialManager = new FloorMaterialManager(this.scene);
+
+    // Apply default floor material (polished concrete)
+    const floorMaterial = this.floorMaterialManager.createFloorMaterial(
+      this.currentFloorType
+    );
+    this.ground.material = floorMaterial;
     this.ground.receiveShadows = true;
+
+    // Create grid overlay for spatial reference
+    this.gridOverlay = this.floorMaterialManager.createGridOverlay(this.ground, true);
 
     // Freeze ground world matrix for performance
     this.ground.freezeWorldMatrix();
@@ -202,6 +228,48 @@ export class SceneManager {
 
   getGround(): BABYLON.Mesh | null {
     return this.ground;
+  }
+
+  /**
+   * Change the floor material type
+   */
+  setFloorType(floorType: FloorType): void {
+    if (!this.floorMaterialManager || !this.ground) {
+      console.warn('Floor material manager or ground not initialized');
+      return;
+    }
+
+    this.currentFloorType = floorType;
+    const material = this.floorMaterialManager.createFloorMaterial(floorType);
+    this.ground.material = material;
+
+    console.log(`Floor changed to: ${floorType}`);
+  }
+
+  /**
+   * Get current floor type
+   */
+  getFloorType(): FloorType {
+    return this.currentFloorType;
+  }
+
+  /**
+   * Toggle grid overlay visibility
+   */
+  setGridOverlayVisible(visible: boolean): void {
+    if (!this.floorMaterialManager || !this.ground) {
+      console.warn('Floor material manager or ground not initialized');
+      return;
+    }
+
+    if (this.gridOverlay) {
+      this.gridOverlay.dispose();
+      this.gridOverlay = null;
+    }
+
+    if (visible) {
+      this.gridOverlay = this.floorMaterialManager.createGridOverlay(this.ground, true);
+    }
   }
 
   /**

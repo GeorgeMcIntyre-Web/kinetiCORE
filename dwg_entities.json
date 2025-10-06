@@ -1,0 +1,4326 @@
+[
+  {
+    "type": "MTEXT",
+    "handle": "34574145",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-MTLONST",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "insertionPoint": {
+      "x": -857560.8514616665,
+      "y": -253511.05110062408,
+      "z": -1.7763568394002505e-15
+    },
+    "textHeight": 100,
+    "rectHeight": 0,
+    "rectWidth": 4332.184091955097,
+    "extentsHeight": 104.02455661664393,
+    "extentsWidth": 732.1282401091405,
+    "attachmentPoint": 5,
+    "drawingDirection": 1,
+    "text": "{\\fArial|b0|i0|c0|p39;LIFT & TILT}",
+    "styleName": "ARIAL",
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "direction": {
+      "x": 1,
+      "y": 0,
+      "z": 0
+    },
+    "rotation": 0,
+    "lineSpacingStyle": 1,
+    "lineSpacing": 1,
+    "backgroundFill": 0,
+    "fillBoxScale": 0,
+    "backgroundFillColor": 0,
+    "backgroundFillTransparency": 0,
+    "columnType": 0,
+    "columnFlowReversed": 0,
+    "columnAutoHeight": 0,
+    "columnWidth": 0,
+    "columnGutter": 0,
+    "columnHeightCount": 0,
+    "columnHeights": []
+  },
+  {
+    "type": "MTEXT",
+    "handle": "34574323",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENPRTO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "insertionPoint": {
+      "x": -796054.2240456366,
+      "y": -268341.00723052025,
+      "z": 2.5
+    },
+    "textHeight": 152.39969519999624,
+    "rectHeight": 1006.953663075961,
+    "rectWidth": 1408.6549618705794,
+    "extentsHeight": 155.62233541227448,
+    "extentsWidth": 1003.2806673773287,
+    "attachmentPoint": 5,
+    "drawingDirection": 1,
+    "text": "{\\fArial|b0|i0|c0|p39;9X-200-2N}",
+    "styleName": "ARIAL",
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "direction": {
+      "x": 1,
+      "y": 0,
+      "z": 0
+    },
+    "rotation": 0,
+    "lineSpacingStyle": 1,
+    "lineSpacing": 1,
+    "backgroundFill": 0,
+    "fillBoxScale": 0,
+    "backgroundFillColor": 0,
+    "backgroundFillTransparency": 0,
+    "columnType": 0,
+    "columnFlowReversed": 0,
+    "columnAutoHeight": 0,
+    "columnWidth": 0,
+    "columnGutter": 0,
+    "columnHeightCount": 0,
+    "columnHeights": []
+  },
+  {
+    "type": "MTEXT",
+    "handle": "34574549",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENPRTO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "insertionPoint": {
+      "x": -856831.3399363287,
+      "y": -267860.22633790324,
+      "z": 0
+    },
+    "textHeight": 152.39969519999624,
+    "rectHeight": 1006.953663075961,
+    "rectWidth": 3892.0520056053683,
+    "extentsHeight": 199.8036931612502,
+    "extentsWidth": 1976.518011485354,
+    "attachmentPoint": 5,
+    "drawingDirection": 1,
+    "text": "\\fArial|b0|i0|c00|p39;Buffer Stand(4 Parts)",
+    "styleName": "ARIAL",
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "direction": {
+      "x": 1,
+      "y": 0,
+      "z": 0
+    },
+    "rotation": 0,
+    "lineSpacingStyle": 1,
+    "lineSpacing": 1,
+    "backgroundFill": 0,
+    "fillBoxScale": 0,
+    "backgroundFillColor": 0,
+    "backgroundFillTransparency": 0,
+    "columnType": 0,
+    "columnFlowReversed": 0,
+    "columnAutoHeight": 0,
+    "columnWidth": 0,
+    "columnGutter": 0,
+    "columnHeightCount": 0,
+    "columnHeights": []
+  },
+  {
+    "type": "LWPOLYLINE",
+    "handle": "34574668",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-MTLONST",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 500,
+    "isVisible": true,
+    "transparency": 0,
+    "numberOfVertices": 4,
+    "flag": 768,
+    "constantWidth": 0,
+    "elevation": 0,
+    "thickness": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "vertices": [
+      {
+        "id": 0,
+        "x": -856214.1707046872,
+        "y": -256472.78476360254,
+        "bulge": 0
+      },
+      {
+        "id": 1,
+        "x": -854573.1530581883,
+        "y": -256472.78476360254,
+        "bulge": 0
+      },
+      {
+        "id": 2,
+        "x": -854573.1530581883,
+        "y": -256033.0754104579,
+        "bulge": 0
+      },
+      {
+        "id": 3,
+        "x": -856214.1707046872,
+        "y": -256033.0754104579,
+        "bulge": 0
+      }
+    ]
+  },
+  {
+    "type": "LWPOLYLINE",
+    "handle": "34574669",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-MTLONST",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 500,
+    "isVisible": true,
+    "transparency": 0,
+    "numberOfVertices": 4,
+    "flag": 768,
+    "constantWidth": 0,
+    "elevation": 0,
+    "thickness": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "vertices": [
+      {
+        "id": 0,
+        "x": -854573.1530581883,
+        "y": -256472.7847636025,
+        "bulge": 0
+      },
+      {
+        "id": 1,
+        "x": -852932.1354116893,
+        "y": -256472.7847636025,
+        "bulge": 0
+      },
+      {
+        "id": 2,
+        "x": -852932.1354116893,
+        "y": -256033.0754104579,
+        "bulge": 0
+      },
+      {
+        "id": 3,
+        "x": -854573.1530581883,
+        "y": -256033.0754104579,
+        "bulge": 0
+      }
+    ]
+  },
+  {
+    "type": "MTEXT",
+    "handle": "34574670",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENWOPL",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 500,
+    "isVisible": true,
+    "transparency": 0,
+    "insertionPoint": {
+      "x": -855388.1404515817,
+      "y": -256240.16540772226,
+      "z": -1.7763568394002505e-15
+    },
+    "textHeight": 152.39969519999624,
+    "rectHeight": 0,
+    "rectWidth": 4332.184091955097,
+    "extentsHeight": 414.2998535268657,
+    "extentsWidth": 1683.049839896275,
+    "attachmentPoint": 5,
+    "drawingDirection": 1,
+    "text": "\\fArial|b0|i0|c00|p39;FRT CROSSMBR\\PPART RACK ",
+    "styleName": "ARIAL",
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "direction": {
+      "x": 1,
+      "y": 0,
+      "z": 0
+    },
+    "rotation": 0,
+    "lineSpacingStyle": 1,
+    "lineSpacing": 1,
+    "backgroundFill": 0,
+    "fillBoxScale": 0,
+    "backgroundFillColor": 0,
+    "backgroundFillTransparency": 0,
+    "columnType": 0,
+    "columnFlowReversed": 0,
+    "columnAutoHeight": 0,
+    "columnWidth": 0,
+    "columnGutter": 0,
+    "columnHeightCount": 0,
+    "columnHeights": []
+  },
+  {
+    "type": "MTEXT",
+    "handle": "34574671",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENWOPL",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 500,
+    "isVisible": true,
+    "transparency": 0,
+    "insertionPoint": {
+      "x": -853676.9320463935,
+      "y": -256240.16540772223,
+      "z": -1.7763568394002505e-15
+    },
+    "textHeight": 152.39969519999624,
+    "rectHeight": 0,
+    "rectWidth": 4332.184091955097,
+    "extentsHeight": 414.2998535268657,
+    "extentsWidth": 1861.750437473897,
+    "attachmentPoint": 5,
+    "drawingDirection": 1,
+    "text": "\\fArial|b0|i0|c00|p39;DASH CROSSMBR\\PPART RACK ",
+    "styleName": "ARIAL",
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "direction": {
+      "x": 1,
+      "y": 0,
+      "z": 0
+    },
+    "rotation": 0,
+    "lineSpacingStyle": 1,
+    "lineSpacing": 1,
+    "backgroundFill": 0,
+    "fillBoxScale": 0,
+    "backgroundFillColor": 0,
+    "backgroundFillTransparency": 0,
+    "columnType": 0,
+    "columnFlowReversed": 0,
+    "columnAutoHeight": 0,
+    "columnWidth": 0,
+    "columnGutter": 0,
+    "columnHeightCount": 0,
+    "columnHeights": []
+  },
+  {
+    "type": "MTEXT",
+    "handle": "34575025",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENPRTO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "insertionPoint": {
+      "x": -839924.7353843295,
+      "y": -251438.79622731783,
+      "z": -2.131628207280301e-15
+    },
+    "textHeight": 76.19999999999999,
+    "rectHeight": 0,
+    "rectWidth": 1519.3489676289346,
+    "extentsHeight": 206.16275579809,
+    "extentsWidth": 1316.9189631650747,
+    "attachmentPoint": 2,
+    "drawingDirection": 1,
+    "text": "PROJECTION BOLT WELD\\P9B-140-05W",
+    "styleName": "ARIAL",
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "direction": {
+      "x": 0.9999975139908985,
+      "y": 0.00222980089305273,
+      "z": 0
+    },
+    "rotation": 0,
+    "lineSpacingStyle": 1,
+    "lineSpacing": 1,
+    "backgroundFill": 0,
+    "fillBoxScale": 0,
+    "backgroundFillColor": 0,
+    "backgroundFillTransparency": 0,
+    "columnType": 0,
+    "columnFlowReversed": 0,
+    "columnAutoHeight": 0,
+    "columnWidth": 0,
+    "columnGutter": 0,
+    "columnHeightCount": 0,
+    "columnHeights": []
+  },
+  {
+    "type": "INSERT",
+    "handle": "34575026",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENPRTO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "PROSTUD",
+    "insertionPoint": {
+      "x": -837041.7887320983,
+      "y": -267228.94345020177,
+      "z": 0
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0.17805128707211385,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "MTEXT",
+    "handle": "34575031",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENPRTO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "insertionPoint": {
+      "x": -839669.4462747795,
+      "y": -247989.11427154602,
+      "z": -1.7763568394002505e-15
+    },
+    "textHeight": 76.19999999999997,
+    "rectHeight": 278.3312524155752,
+    "rectWidth": 1519.3489676289328,
+    "extentsHeight": 206.16275579808996,
+    "extentsWidth": 936.0229195088674,
+    "attachmentPoint": 2,
+    "drawingDirection": 1,
+    "text": "STUD WELD PEDS\\P9B-130-07WA",
+    "styleName": "ARIAL",
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "direction": {
+      "x": 0.9999180815739189,
+      "y": -0.012799614897880118,
+      "z": 0
+    },
+    "rotation": 0,
+    "lineSpacingStyle": 1,
+    "lineSpacing": 1,
+    "backgroundFill": 0,
+    "fillBoxScale": 0,
+    "backgroundFillColor": 0,
+    "backgroundFillTransparency": 0,
+    "columnType": 0,
+    "columnFlowReversed": 0,
+    "columnAutoHeight": 0,
+    "columnWidth": 0,
+    "columnGutter": 0,
+    "columnHeightCount": 0,
+    "columnHeights": []
+  },
+  {
+    "type": "MTEXT",
+    "handle": "34575032",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENPRTO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "insertionPoint": {
+      "x": -841582.7963189277,
+      "y": -255151.9126065883,
+      "z": -1.7763568394002505e-15
+    },
+    "textHeight": 76.19999999999997,
+    "rectHeight": 278.3312524155752,
+    "rectWidth": 1519.3489676289328,
+    "extentsHeight": 206.11077762619362,
+    "extentsWidth": 936.0229195088674,
+    "attachmentPoint": 2,
+    "drawingDirection": 1,
+    "text": "STUD WELD PEDS \\P9B-150-07WA",
+    "styleName": "ARIAL",
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "direction": {
+      "x": 0.9999796382128631,
+      "y": -0.006381470024338165,
+      "z": 0
+    },
+    "rotation": 0,
+    "lineSpacingStyle": 1,
+    "lineSpacing": 1,
+    "backgroundFill": 0,
+    "fillBoxScale": 0,
+    "backgroundFillColor": 0,
+    "backgroundFillTransparency": 0,
+    "columnType": 0,
+    "columnFlowReversed": 0,
+    "columnAutoHeight": 0,
+    "columnWidth": 0,
+    "columnGutter": 0,
+    "columnHeightCount": 0,
+    "columnHeights": []
+  },
+  {
+    "type": "INSERT",
+    "handle": "34578440",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENRO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U1174",
+    "insertionPoint": {
+      "x": -832273.0624389732,
+      "y": -240081.5137329102,
+      "z": -0.0005693299626128301
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "HATCH",
+    "handle": "34585478",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENWOPL",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "patternName": "HONEY",
+    "solidFill": 0,
+    "associativity": 1,
+    "numberOfBoundaryPaths": 1,
+    "boundaryPaths": [
+      {
+        "boundaryPathTypeFlag": 23,
+        "hasBulge": 0,
+        "isClosed": 1,
+        "numberOfVertices": 4,
+        "vertices": [
+          {
+            "x": -827404.3421822418,
+            "y": -242343.8857201891
+          },
+          {
+            "x": -827404.3421822413,
+            "y": -240784.4126925364
+          },
+          {
+            "x": -829899.2021402589,
+            "y": -240785.05479188607
+          },
+          {
+            "x": -829902.1905132341,
+            "y": -242344.52781953884
+          }
+        ]
+      }
+    ],
+    "hatchStyle": 1,
+    "patternType": 2,
+    "patternAngle": 0,
+    "patternScale": 1,
+    "numberOfDefinitionLines": 3,
+    "definitionLines": [
+      {
+        "angle": 1.5707963267948966,
+        "base": {
+          "x": -903333.733353,
+          "y": -2430.6965609999997
+        },
+        "offset": {
+          "x": -54.99261299999999,
+          "y": 95.25
+        },
+        "numberOfDashLengths": 2,
+        "dashLengths": [
+          63.5,
+          -127
+        ]
+      },
+      {
+        "angle": 3.6651914291880923,
+        "base": {
+          "x": -903333.733353,
+          "y": -2430.6965609999997
+        },
+        "offset": {
+          "x": -54.99261321046778,
+          "y": -95.24999987848636
+        },
+        "numberOfDashLengths": 2,
+        "dashLengths": [
+          63.5,
+          -127
+        ]
+      },
+      {
+        "angle": 2.6179938779914944,
+        "base": {
+          "x": -903333.733353,
+          "y": -2430.6965609999997
+        },
+        "offset": {
+          "x": -109.98522621046777,
+          "y": 1.215136222754154e-7
+        },
+        "numberOfDashLengths": 2,
+        "dashLengths": [
+          -127,
+          63.5
+        ]
+      }
+    ],
+    "pixelSize": 0.05,
+    "numberOfSeedPoints": 1,
+    "seedPoints": [
+      {
+        "x": -493953.54736546625,
+        "y": -431142.1486054298
+      }
+    ]
+  },
+  {
+    "type": "LWPOLYLINE",
+    "handle": "34585479",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENWOPL",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 25.399999999999995,
+    "isVisible": true,
+    "transparency": 0,
+    "numberOfVertices": 4,
+    "flag": 768,
+    "constantWidth": 0,
+    "elevation": 0,
+    "thickness": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "vertices": [
+      {
+        "id": 0,
+        "x": -827404.3421822413,
+        "y": -240784.41269253637,
+        "bulge": 0
+      },
+      {
+        "id": 1,
+        "x": -827404.3421822418,
+        "y": -242343.8857201891,
+        "bulge": 0
+      },
+      {
+        "id": 2,
+        "x": -829902.1905132341,
+        "y": -242344.52781953887,
+        "bulge": 0
+      },
+      {
+        "id": 3,
+        "x": -829899.2021402589,
+        "y": -240785.0547918861,
+        "bulge": 0
+      }
+    ]
+  },
+  {
+    "type": "INSERT",
+    "handle": "34585492",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENEQSA",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U203",
+    "insertionPoint": {
+      "x": -827552.2953982569,
+      "y": -241727.0386267198,
+      "z": 0
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 4.71238898038469,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "HATCH",
+    "handle": "34586023",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENWOPL",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "patternName": "HONEY",
+    "solidFill": 0,
+    "associativity": 1,
+    "numberOfBoundaryPaths": 1,
+    "boundaryPaths": [
+      {
+        "boundaryPathTypeFlag": 23,
+        "hasBulge": 0,
+        "isClosed": 1,
+        "numberOfVertices": 5,
+        "vertices": [
+          {
+            "x": -827404.0820453549,
+            "y": -246881.41981489697
+          },
+          {
+            "x": -827404.0820453549,
+            "y": -244981.89398243977
+          },
+          {
+            "x": -828258.0781241214,
+            "y": -244981.94599583876
+          },
+          {
+            "x": -829902.1930143429,
+            "y": -244982.53621816862
+          },
+          {
+            "x": -829905.1813873175,
+            "y": -246882.06205062583
+          }
+        ]
+      }
+    ],
+    "hatchStyle": 1,
+    "patternType": 2,
+    "patternAngle": 0,
+    "patternScale": 1,
+    "numberOfDefinitionLines": 3,
+    "definitionLines": [
+      {
+        "angle": 1.5707963267948966,
+        "base": {
+          "x": -903336.724227,
+          "y": -6749.161687999999
+        },
+        "offset": {
+          "x": -54.99261299999999,
+          "y": 95.25
+        },
+        "numberOfDashLengths": 2,
+        "dashLengths": [
+          63.5,
+          -127
+        ]
+      },
+      {
+        "angle": 3.6651914291880923,
+        "base": {
+          "x": -903336.724227,
+          "y": -6749.161687999999
+        },
+        "offset": {
+          "x": -54.99261321046778,
+          "y": -95.24999987848636
+        },
+        "numberOfDashLengths": 2,
+        "dashLengths": [
+          63.5,
+          -127
+        ]
+      },
+      {
+        "angle": 2.6179938779914944,
+        "base": {
+          "x": -903336.724227,
+          "y": -6749.161687999999
+        },
+        "offset": {
+          "x": -109.98522621046777,
+          "y": 1.215136222754154e-7
+        },
+        "numberOfDashLengths": 2,
+        "dashLengths": [
+          -127,
+          63.5
+        ]
+      }
+    ],
+    "pixelSize": 0.05,
+    "numberOfSeedPoints": 1,
+    "seedPoints": [
+      {
+        "x": -493956.5382395504,
+        "y": -435460.6137324313
+      }
+    ]
+  },
+  {
+    "type": "LWPOLYLINE",
+    "handle": "34586024",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENWOPL",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 25.399999999999995,
+    "isVisible": true,
+    "transparency": 0,
+    "numberOfVertices": 5,
+    "flag": 768,
+    "constantWidth": 0,
+    "elevation": 0,
+    "thickness": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "vertices": [
+      {
+        "id": 0,
+        "x": -827404.0820453549,
+        "y": -244981.89398243977,
+        "bulge": 0
+      },
+      {
+        "id": 1,
+        "x": -827404.0820453549,
+        "y": -246881.41981489697,
+        "bulge": 0
+      },
+      {
+        "id": 2,
+        "x": -829905.1813873175,
+        "y": -246882.06205062583,
+        "bulge": 0
+      },
+      {
+        "id": 3,
+        "x": -829902.1930143429,
+        "y": -244982.53621816865,
+        "bulge": 0
+      },
+      {
+        "id": 4,
+        "x": -828258.0781241214,
+        "y": -244981.94599583876,
+        "bulge": 0
+      }
+    ]
+  },
+  {
+    "type": "INSERT",
+    "handle": "34586037",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENEQSA",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U395",
+    "insertionPoint": {
+      "x": -827553.5739400889,
+      "y": -245909.84490943784,
+      "z": -3.5703653051110406e-14
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 4.71238898038469,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34586080",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U204",
+    "insertionPoint": {
+      "x": -830032.1922343443,
+      "y": -245102.11196799256,
+      "z": -7.550716956064322e-12
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 1.5707963267948966,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34586100",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U248",
+    "insertionPoint": {
+      "x": -828902.1918523118,
+      "y": -244832.11069684607,
+      "z": -7.511196986688405e-12
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 1.5707963267948966,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34586177",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U142",
+    "insertionPoint": {
+      "x": -829032.191090825,
+      "y": -244832.1109142034,
+      "z": -7.511196917086037e-12
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 1.5707963267948966,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "HATCH",
+    "handle": "34611410",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENWOPL",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "patternName": "HONEY",
+    "solidFill": 0,
+    "associativity": 1,
+    "numberOfBoundaryPaths": 1,
+    "boundaryPaths": [
+      {
+        "boundaryPathTypeFlag": 23,
+        "hasBulge": 0,
+        "isClosed": 1,
+        "numberOfVertices": 4,
+        "vertices": [
+          {
+            "x": -850989.8380243392,
+            "y": -256002.0359700414
+          },
+          {
+            "x": -852745.9729836796,
+            "y": -256002.03596530523
+          },
+          {
+            "x": -852745.6011315968,
+            "y": -258148.93402720068
+          },
+          {
+            "x": -850989.4661722564,
+            "y": -258148.93403193686
+          }
+        ]
+      }
+    ],
+    "hatchStyle": 1,
+    "patternType": 2,
+    "patternAngle": 0,
+    "patternScale": 1,
+    "numberOfDefinitionLines": 3,
+    "definitionLines": [
+      {
+        "angle": 3.141592653589793,
+        "base": {
+          "x": -1091122.366534,
+          "y": -331580.47687199997
+        },
+        "offset": {
+          "x": -95.25,
+          "y": -54.992612999999984
+        },
+        "numberOfDashLengths": 2,
+        "dashLengths": [
+          63.5,
+          -127
+        ]
+      },
+      {
+        "angle": 5.235987755982989,
+        "base": {
+          "x": -1091122.366534,
+          "y": -331580.47687199997
+        },
+        "offset": {
+          "x": 95.24999987848636,
+          "y": -54.99261321046778
+        },
+        "numberOfDashLengths": 2,
+        "dashLengths": [
+          63.5,
+          -127
+        ]
+      },
+      {
+        "angle": 4.1887902047863905,
+        "base": {
+          "x": -1091122.366534,
+          "y": -331580.47687199997
+        },
+        "offset": {
+          "x": -1.2151368622426162e-7,
+          "y": -109.9852262104678
+        },
+        "numberOfDashLengths": 2,
+        "dashLengths": [
+          -127,
+          63.5
+        ]
+      }
+    ],
+    "pixelSize": 0.05,
+    "numberOfSeedPoints": 1,
+    "seedPoints": [
+      {
+        "x": -662410.914490451,
+        "y": 77799.70911583002
+      }
+    ]
+  },
+  {
+    "type": "LWPOLYLINE",
+    "handle": "34611411",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENWOPL",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 25.399999999999995,
+    "isVisible": true,
+    "transparency": 0,
+    "numberOfVertices": 4,
+    "flag": 768,
+    "constantWidth": 0,
+    "elevation": 0,
+    "thickness": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "vertices": [
+      {
+        "id": 0,
+        "x": -850989.8380243392,
+        "y": -256002.03597004144,
+        "bulge": 0
+      },
+      {
+        "id": 1,
+        "x": -850989.4661722564,
+        "y": -258148.93403193692,
+        "bulge": 0
+      },
+      {
+        "id": 2,
+        "x": -852745.6011315968,
+        "y": -258148.93402720068,
+        "bulge": 0
+      },
+      {
+        "id": 3,
+        "x": -852745.9729836796,
+        "y": -256002.0359653052,
+        "bulge": 0
+      }
+    ]
+  },
+  {
+    "type": "INSERT",
+    "handle": "34611424",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENEQSA",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U28",
+    "insertionPoint": {
+      "x": -851824.5321638437,
+      "y": -256135.6366451765,
+      "z": -3.5703653051110406e-14
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34611447",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U44",
+    "insertionPoint": {
+      "x": -856032.1300908774,
+      "y": -258232.03660616354,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 3.141592653589793,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34611467",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U171",
+    "insertionPoint": {
+      "x": -857202.1308523633,
+      "y": -258232.03507106897,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 3.141592653589793,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34611524",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U25",
+    "insertionPoint": {
+      "x": -855902.1308708759,
+      "y": -258232.0357795741,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 3.141592653589793,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34611544",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U206",
+    "insertionPoint": {
+      "x": -856032.1282896777,
+      "y": -257432.03662467632,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 3.141592653589793,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "HATCH",
+    "handle": "34621235",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENWOPL",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "patternName": "HONEY",
+    "solidFill": 0,
+    "associativity": 1,
+    "numberOfBoundaryPaths": 1,
+    "boundaryPaths": [
+      {
+        "boundaryPathTypeFlag": 23,
+        "hasBulge": 0,
+        "isClosed": 1,
+        "numberOfVertices": 4,
+        "vertices": [
+          {
+            "x": -856190.2127858043,
+            "y": -256406.78132483334
+          },
+          {
+            "x": -857950.2482576047,
+            "y": -256406.78132483328
+          },
+          {
+            "x": -857949.730978757,
+            "y": -258167.0345190809
+          },
+          {
+            "x": -856189.6965155052,
+            "y": -258167.03593142942
+          }
+        ]
+      }
+    ],
+    "hatchStyle": 1,
+    "patternType": 2,
+    "patternAngle": 0,
+    "patternScale": 1,
+    "numberOfDefinitionLines": 3,
+    "definitionLines": [
+      {
+        "angle": 3.141592653589793,
+        "base": {
+          "x": -1096219.2218,
+          "y": -331601.565732
+        },
+        "offset": {
+          "x": -95.25,
+          "y": -54.992612999999984
+        },
+        "numberOfDashLengths": 2,
+        "dashLengths": [
+          63.5,
+          -127
+        ]
+      },
+      {
+        "angle": 5.235987755982989,
+        "base": {
+          "x": -1096219.2218,
+          "y": -331601.565732
+        },
+        "offset": {
+          "x": 95.24999987848636,
+          "y": -54.99261321046778
+        },
+        "numberOfDashLengths": 2,
+        "dashLengths": [
+          63.5,
+          -127
+        ]
+      },
+      {
+        "angle": 4.1887902047863905,
+        "base": {
+          "x": -1096219.2218,
+          "y": -331601.565732
+        },
+        "offset": {
+          "x": -1.2151368622426162e-7,
+          "y": -109.9852262104678
+        },
+        "numberOfDashLengths": 2,
+        "dashLengths": [
+          -127,
+          63.5
+        ]
+      }
+    ],
+    "pixelSize": 0.05,
+    "numberOfSeedPoints": 1,
+    "seedPoints": [
+      {
+        "x": -667507.7697556447,
+        "y": 77778.62025571159
+      }
+    ]
+  },
+  {
+    "type": "LWPOLYLINE",
+    "handle": "34621236",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENWOPL",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 25.399999999999995,
+    "isVisible": true,
+    "transparency": 0,
+    "numberOfVertices": 4,
+    "flag": 768,
+    "constantWidth": 0,
+    "elevation": 0,
+    "thickness": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "vertices": [
+      {
+        "id": 0,
+        "x": -857950.2482576047,
+        "y": -256406.7813248333,
+        "bulge": 0
+      },
+      {
+        "id": 1,
+        "x": -856190.2127858043,
+        "y": -256406.78132483334,
+        "bulge": 0
+      },
+      {
+        "id": 2,
+        "x": -856189.6965155052,
+        "y": -258167.03593142942,
+        "bulge": 0
+      },
+      {
+        "id": 3,
+        "x": -857949.730978757,
+        "y": -258167.03451908092,
+        "bulge": 0
+      }
+    ]
+  },
+  {
+    "type": "INSERT",
+    "handle": "34621249",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENEQSA",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U166",
+    "insertionPoint": {
+      "x": -857020.41704291,
+      "y": -256698.62181193495,
+      "z": -3.5703653051110406e-14
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34621272",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U54",
+    "insertionPoint": {
+      "x": -850732.1300908774,
+      "y": -258232.03660616354,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 3.141592653589793,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34621292",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U782",
+    "insertionPoint": {
+      "x": -853032.1300723642,
+      "y": -258232.03507106897,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 3.141592653589793,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34621312",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U46",
+    "insertionPoint": {
+      "x": -852902.1308523741,
+      "y": -258232.03355477043,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 3.141592653589793,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34621349",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U25",
+    "insertionPoint": {
+      "x": -850602.1308708759,
+      "y": -258232.0357795741,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 3.141592653589793,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34621369",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U56",
+    "insertionPoint": {
+      "x": -850732.1282896777,
+      "y": -257432.03662467632,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 3.141592653589793,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34621389",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U48",
+    "insertionPoint": {
+      "x": -852902.1321899658,
+      "y": -257432.03357328387,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 3.141592653589793,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34623859",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENRO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U1170",
+    "insertionPoint": {
+      "x": -818272.0000125462,
+      "y": -261344.9962165519,
+      "z": 4.750002440011127
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34623876",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENRO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U1169",
+    "insertionPoint": {
+      "x": -818158.0224483913,
+      "y": -265565.98992846766,
+      "z": -0.24999755998887283
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34626736",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENRO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U1184",
+    "insertionPoint": {
+      "x": -813965.8638597112,
+      "y": -260467.72492608434,
+      "z": -0.24999755998887424
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34626753",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENRO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U1173",
+    "insertionPoint": {
+      "x": -813966.0211784677,
+      "y": -265253.00880160875,
+      "z": -0.24999755998887385
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34626787",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENRO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U1183",
+    "insertionPoint": {
+      "x": -810515.76866986,
+      "y": -260638.53300747336,
+      "z": -0.24999755998887385
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34626804",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENRO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U1172",
+    "insertionPoint": {
+      "x": -810515.7729031472,
+      "y": -265908.6736970492,
+      "z": -0.24999755998887424
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34629680",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENRO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U1171",
+    "insertionPoint": {
+      "x": -805140.0811774894,
+      "y": -260864.07988247336,
+      "z": -0.24999755998887174
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34629697",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENRO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U1181",
+    "insertionPoint": {
+      "x": -805190.0624874538,
+      "y": -265454.91003344813,
+      "z": 4.750002916848286
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34632557",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENRO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U1166",
+    "insertionPoint": {
+      "x": -802563.875,
+      "y": -260443.34375,
+      "z": -0.24999755998887424
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34632574",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENRO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U1185",
+    "insertionPoint": {
+      "x": -802663.1574193183,
+      "y": -264472.7848469318,
+      "z": -0.24999755998887385
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34633014",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENRO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U1168",
+    "insertionPoint": {
+      "x": -794475.6250125462,
+      "y": -260059.6837165519,
+      "z": 4.7500029168482865
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34633031",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENRO",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U1167",
+    "insertionPoint": {
+      "x": -794476.0624874538,
+      "y": -265641.78503344813,
+      "z": 4.7500033936854456
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "HATCH",
+    "handle": "34633366",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENWOPL",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "patternName": "HONEY",
+    "solidFill": 0,
+    "associativity": 1,
+    "numberOfBoundaryPaths": 1,
+    "boundaryPaths": [
+      {
+        "boundaryPathTypeFlag": 23,
+        "hasBulge": 0,
+        "isClosed": 1,
+        "numberOfVertices": 4,
+        "vertices": [
+          {
+            "x": -814145.2683606223,
+            "y": -271432.07550641056
+          },
+          {
+            "x": -811294.9070614739,
+            "y": -271432.07550233696
+          },
+          {
+            "x": -811295.475737772,
+            "y": -269227.61440152104
+          },
+          {
+            "x": -814145.8370369206,
+            "y": -269224.62603262044
+          }
+        ]
+      }
+    ],
+    "hatchStyle": 1,
+    "patternType": 2,
+    "patternAngle": 0,
+    "patternScale": 1,
+    "numberOfDefinitionLines": 3,
+    "definitionLines": [
+      {
+        "angle": 0,
+        "base": {
+          "x": -573092.055254,
+          "y": -195793.083193
+        },
+        "offset": {
+          "x": 95.25,
+          "y": 54.992613
+        },
+        "numberOfDashLengths": 2,
+        "dashLengths": [
+          63.5,
+          -127
+        ]
+      },
+      {
+        "angle": 2.0943951023931953,
+        "base": {
+          "x": -573092.055254,
+          "y": -195793.083193
+        },
+        "offset": {
+          "x": -95.24999987848635,
+          "y": 54.992613210467795
+        },
+        "numberOfDashLengths": 2,
+        "dashLengths": [
+          63.49999999999999,
+          -126.99999999999999
+        ]
+      },
+      {
+        "angle": 1.0471975511965976,
+        "base": {
+          "x": -573092.055254,
+          "y": -195793.083193
+        },
+        "offset": {
+          "x": 1.2151364359169747e-7,
+          "y": 109.98522621046779
+        },
+        "numberOfDashLengths": 2,
+        "dashLengths": [
+          -127,
+          63.5
+        ]
+      }
+    ],
+    "pixelSize": 0.05,
+    "numberOfSeedPoints": 1,
+    "seedPoints": [
+      {
+        "x": -1001803.5072980752,
+        "y": -605173.2691803873
+      }
+    ]
+  },
+  {
+    "type": "LWPOLYLINE",
+    "handle": "34633367",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENWOPL",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 25.399999999999995,
+    "isVisible": true,
+    "transparency": 0,
+    "numberOfVertices": 4,
+    "flag": 768,
+    "constantWidth": 0,
+    "elevation": 0,
+    "thickness": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "vertices": [
+      {
+        "id": 0,
+        "x": -811294.9070614739,
+        "y": -271432.0755023369,
+        "bulge": 0
+      },
+      {
+        "id": 1,
+        "x": -814145.2683606223,
+        "y": -271432.0755064106,
+        "bulge": 0
+      },
+      {
+        "id": 2,
+        "x": -814145.8370369206,
+        "y": -269224.6260326204,
+        "bulge": 0
+      },
+      {
+        "id": 3,
+        "x": -811295.475737772,
+        "y": -269227.6144015211,
+        "bulge": 0
+      }
+    ]
+  },
+  {
+    "type": "INSERT",
+    "handle": "34633380",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENEQSA",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U229",
+    "insertionPoint": {
+      "x": -812208.0412558103,
+      "y": -271198.47849493584,
+      "z": -3.5703653051110406e-14
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 3.141592653589793,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34633403",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U72",
+    "insertionPoint": {
+      "x": -814302.4795928454,
+      "y": -269102.0758744798,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34633423",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U26",
+    "insertionPoint": {
+      "x": -813132.4788313597,
+      "y": -269102.07740957435,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34633443",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U401",
+    "insertionPoint": {
+      "x": -811132.4788313489,
+      "y": -269102.07892587286,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34633475",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "N-MAN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 0,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "worker01",
+    "insertionPoint": {
+      "x": -761284.0697444944,
+      "y": -33678.33367327292,
+      "z": 4.699335687595884
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 3.141592653589793,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "MTEXT",
+    "handle": "34633478",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "N-MAN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "insertionPoint": {
+      "x": -812544.0389663138,
+      "y": -271761.66599861404,
+      "z": -1.7763568394002505e-15
+    },
+    "textHeight": 200,
+    "rectHeight": 0,
+    "rectWidth": 1454.9589671753538,
+    "extentsHeight": 204.22919508867668,
+    "extentsWidth": 567.1214188267394,
+    "attachmentPoint": 5,
+    "drawingDirection": 1,
+    "text": "\\pt600;{\\fArial|b1|i0|c0|p34;W04}",
+    "styleName": "ARIAL",
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "direction": {
+      "x": 1,
+      "y": 0,
+      "z": 0
+    },
+    "rotation": 0,
+    "lineSpacingStyle": 1,
+    "lineSpacing": 1,
+    "backgroundFill": 0,
+    "fillBoxScale": 0,
+    "backgroundFillColor": 0,
+    "backgroundFillTransparency": 0,
+    "columnType": 0,
+    "columnFlowReversed": 0,
+    "columnAutoHeight": 0,
+    "columnWidth": 0,
+    "columnGutter": 0,
+    "columnHeightCount": 0,
+    "columnHeights": []
+  },
+  {
+    "type": "INSERT",
+    "handle": "34633480",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U25",
+    "insertionPoint": {
+      "x": -814432.4788128469,
+      "y": -269102.0767010692,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34633500",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U74",
+    "insertionPoint": {
+      "x": -814302.4818600365,
+      "y": -270002.0751972119,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34633520",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U76",
+    "insertionPoint": {
+      "x": -811132.477326558,
+      "y": -270002.078925871,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "HATCH",
+    "handle": "34645463",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENWOPL",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "patternName": "HONEY",
+    "solidFill": 0,
+    "associativity": 1,
+    "numberOfBoundaryPaths": 1,
+    "boundaryPaths": [
+      {
+        "boundaryPathTypeFlag": 23,
+        "hasBulge": 0,
+        "isClosed": 1,
+        "numberOfVertices": 5,
+        "vertices": [
+          {
+            "x": -811271.8282905605,
+            "y": -254401.3221412858
+          },
+          {
+            "x": -814116.091109357,
+            "y": -254401.32214128564
+          },
+          {
+            "x": -814116.091109357,
+            "y": -254902.03796207113
+          },
+          {
+            "x": -814115.6561485305,
+            "y": -256545.94493961515
+          },
+          {
+            "x": -811271.3933297341,
+            "y": -256548.93331258977
+          }
+        ]
+      }
+    ],
+    "hatchStyle": 1,
+    "patternType": 2,
+    "patternAngle": 0,
+    "patternScale": 1,
+    "numberOfDefinitionLines": 3,
+    "definitionLines": [
+      {
+        "angle": 3.141592653589793,
+        "base": {
+          "x": -1052385.1469700001,
+          "y": -329980.476153
+        },
+        "offset": {
+          "x": -95.25,
+          "y": -54.992612999999984
+        },
+        "numberOfDashLengths": 2,
+        "dashLengths": [
+          63.5,
+          -127
+        ]
+      },
+      {
+        "angle": 5.235987755982989,
+        "base": {
+          "x": -1052385.1469700001,
+          "y": -329980.476153
+        },
+        "offset": {
+          "x": 95.24999987848636,
+          "y": -54.99261321046778
+        },
+        "numberOfDashLengths": 2,
+        "dashLengths": [
+          63.5,
+          -127
+        ]
+      },
+      {
+        "angle": 4.1887902047863905,
+        "base": {
+          "x": -1052385.1469700001,
+          "y": -329980.476153
+        },
+        "offset": {
+          "x": -1.2151368622426162e-7,
+          "y": -109.9852262104678
+        },
+        "numberOfDashLengths": 2,
+        "dashLengths": [
+          -127,
+          63.5
+        ]
+      }
+    ],
+    "pixelSize": 0.05,
+    "numberOfSeedPoints": 1,
+    "seedPoints": [
+      {
+        "x": -623673.6949254182,
+        "y": 79399.70983517717
+      }
+    ]
+  },
+  {
+    "type": "LWPOLYLINE",
+    "handle": "34645464",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENWOPL",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 25.399999999999995,
+    "isVisible": true,
+    "transparency": 0,
+    "numberOfVertices": 5,
+    "flag": 768,
+    "constantWidth": 0,
+    "elevation": 0,
+    "thickness": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "vertices": [
+      {
+        "id": 0,
+        "x": -814116.091109357,
+        "y": -254401.32214128564,
+        "bulge": 0
+      },
+      {
+        "id": 1,
+        "x": -811271.8282905605,
+        "y": -254401.32214128572,
+        "bulge": 0
+      },
+      {
+        "id": 2,
+        "x": -811271.3933297341,
+        "y": -256548.93331258974,
+        "bulge": 0
+      },
+      {
+        "id": 3,
+        "x": -814115.6561485305,
+        "y": -256545.94493961526,
+        "bulge": 0
+      },
+      {
+        "id": 4,
+        "x": -814116.091109357,
+        "y": -254902.03796207113,
+        "bulge": 0
+      }
+    ]
+  },
+  {
+    "type": "INSERT",
+    "handle": "34645477",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENEQSA",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U222",
+    "insertionPoint": {
+      "x": -813224.4636993413,
+      "y": -254535.6361905994,
+      "z": -3.5703653051110406e-14
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34645500",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U88",
+    "insertionPoint": {
+      "x": -811132.2680653447,
+      "y": -256632.03768302855,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 3.141592653589793,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34645520",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U26",
+    "insertionPoint": {
+      "x": -813302.2688268304,
+      "y": -256632.03614793398,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 3.141592653589793,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34645540",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U84",
+    "insertionPoint": {
+      "x": -814302.2688268414,
+      "y": -256632.03463163544,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 3.141592653589793,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34645572",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "N-MAN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 0,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "worker01",
+    "insertionPoint": {
+      "x": -864003.6028114901,
+      "y": -491797.2644792851,
+      "z": 4.699335687595884
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "MTEXT",
+    "handle": "34645575",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "N-MAN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "insertionPoint": {
+      "x": -812749.4847747285,
+      "y": -254289.94718160245,
+      "z": -1.7763568394002505e-15
+    },
+    "textHeight": 200,
+    "rectHeight": 0,
+    "rectWidth": 1454.9589671753538,
+    "extentsHeight": 204.22919508867668,
+    "extentsWidth": 561.5279672578445,
+    "attachmentPoint": 5,
+    "drawingDirection": 1,
+    "text": "\\pt600;{\\fArial|b1|i0|c0|p34;W03}",
+    "styleName": "ARIAL",
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "direction": {
+      "x": -1,
+      "y": 1.0106430996148606e-15,
+      "z": 0
+    },
+    "rotation": 0,
+    "lineSpacingStyle": 1,
+    "lineSpacing": 1,
+    "backgroundFill": 0,
+    "fillBoxScale": 0,
+    "backgroundFillColor": 0,
+    "backgroundFillTransparency": 0,
+    "columnType": 0,
+    "columnFlowReversed": 0,
+    "columnAutoHeight": 0,
+    "columnWidth": 0,
+    "columnGutter": 0,
+    "columnHeightCount": 0,
+    "columnHeights": []
+  },
+  {
+    "type": "INSERT",
+    "handle": "34645577",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U25",
+    "insertionPoint": {
+      "x": -811002.2688453431,
+      "y": -256632.0368564391,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 3.141592653589793,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34645597",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U90",
+    "insertionPoint": {
+      "x": -811132.2662641448,
+      "y": -255832.03770154133,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 3.141592653589793,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34645617",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U86",
+    "insertionPoint": {
+      "x": -814302.270164433,
+      "y": -255832.03465014888,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 3.141592653589793,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34672163",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U31",
+    "insertionPoint": {
+      "x": -862732.0681704903,
+      "y": -253402.0474730076,
+      "z": 9.167706593871381e-11
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34672183",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U31",
+    "insertionPoint": {
+      "x": -862732.066635396,
+      "y": -254702.047454495,
+      "z": 9.167706593871381e-11
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34673427",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U160",
+    "insertionPoint": {
+      "x": -862732.066635396,
+      "y": -252102.0474915203,
+      "z": 9.167706593871381e-11
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34673503",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U24",
+    "insertionPoint": {
+      "x": -860232.0621190493,
+      "y": -257432.04710980813,
+      "z": 1.1131772028488263e-12
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34673978",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U33",
+    "insertionPoint": {
+      "x": -862732.0681704903,
+      "y": -253532.04669300927,
+      "z": 9.167706593871381e-11
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34674616",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENCOPA",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "controller",
+    "insertionPoint": {
+      "x": -230605.20802287833,
+      "y": -427320.6633275992,
+      "z": 6.851005227182937e-11
+    },
+    "xScale": 0.999996000004,
+    "yScale": 0.999996000004,
+    "zScale": 0.999996000004,
+    "rotation": 1.5707963267948963,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 1.1063804264456247e-30,
+      "y": 4.4400696967760107e-16,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34674617",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENCOPA",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "robot contrlr",
+    "insertionPoint": {
+      "x": -850953.3435114054,
+      "y": -272858.4662988668,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 0.999992000024,
+    "yScale": 0.999992000024,
+    "zScale": 0.999992000024,
+    "rotation": 1.5707963267948963,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "MTEXT",
+    "handle": "34674618",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENCOPA",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "insertionPoint": {
+      "x": -850113.8735622698,
+      "y": -272968.9152739234,
+      "z": -1.7763568394002505e-15
+    },
+    "textHeight": 99.99920000240002,
+    "rectHeight": 0,
+    "rectWidth": 0,
+    "extentsHeight": 133.33226666986667,
+    "extentsWidth": 776.8696376721241,
+    "attachmentPoint": 7,
+    "drawingDirection": 1,
+    "text": "9X-110-04W",
+    "styleName": "ARIAL",
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "direction": {
+      "x": -1,
+      "y": 1.255572459444331e-15,
+      "z": 0
+    },
+    "rotation": 0,
+    "lineSpacingStyle": 2,
+    "lineSpacing": 0.72,
+    "backgroundFill": 0,
+    "fillBoxScale": 0,
+    "backgroundFillColor": 0,
+    "backgroundFillTransparency": 0,
+    "columnType": 0,
+    "columnFlowReversed": 0,
+    "columnAutoHeight": 0,
+    "columnWidth": 0,
+    "columnGutter": 0,
+    "columnHeightCount": 0,
+    "columnHeights": []
+  },
+  {
+    "type": "INSERT",
+    "handle": "34674620",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENCOPA",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "robot contrlr",
+    "insertionPoint": {
+      "x": -862273.4405924948,
+      "y": -254913.36726736865,
+      "z": 4.999998150370043
+    },
+    "xScale": 0.999992000024,
+    "yScale": 0.999992000024,
+    "zScale": 0.999992000024,
+    "rotation": 1.5707963267948966,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "MTEXT",
+    "handle": "34674621",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENCOPA",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "insertionPoint": {
+      "x": -861433.9706433592,
+      "y": -254775.303750034,
+      "z": 4.999998150370043
+    },
+    "textHeight": 99.99920000240002,
+    "rectHeight": 133.33226666986667,
+    "rectWidth": 0,
+    "extentsHeight": 133.33226666986667,
+    "extentsWidth": 732.2588076574108,
+    "attachmentPoint": 7,
+    "drawingDirection": 1,
+    "text": "9X-100-01E",
+    "styleName": "ARIAL",
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "direction": {
+      "x": -1,
+      "y": 1.0106430996148606e-15,
+      "z": 0
+    },
+    "rotation": 0,
+    "lineSpacingStyle": 2,
+    "lineSpacing": 0.72,
+    "backgroundFill": 0,
+    "fillBoxScale": 0,
+    "backgroundFillColor": 0,
+    "backgroundFillTransparency": 0,
+    "columnType": 0,
+    "columnFlowReversed": 0,
+    "columnAutoHeight": 0,
+    "columnWidth": 0,
+    "columnGutter": 0,
+    "columnHeightCount": 0,
+    "columnHeights": []
+  },
+  {
+    "type": "INSERT",
+    "handle": "34677892",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENCOPA",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "robot contrlr",
+    "insertionPoint": {
+      "x": -862243.0863061594,
+      "y": -270333.4798192147,
+      "z": 9.167706566342547e-11
+    },
+    "xScale": 0.999992000024,
+    "yScale": 0.999992000024,
+    "zScale": 0.999992000024,
+    "rotation": 1.5707963267948963,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "MTEXT",
+    "handle": "34677893",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENCOPA",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "insertionPoint": {
+      "x": -861400.5939913817,
+      "y": -270220.36314755207,
+      "z": 9.167706566342547e-11
+    },
+    "textHeight": 99.99920000240002,
+    "rectHeight": 0,
+    "rectWidth": 0,
+    "extentsHeight": 133.33226666986667,
+    "extentsWidth": 732.2588076574108,
+    "attachmentPoint": 7,
+    "drawingDirection": 1,
+    "text": "9X-100-02E",
+    "styleName": "ARIAL",
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "direction": {
+      "x": -1,
+      "y": 1.0106430996148606e-15,
+      "z": 0
+    },
+    "rotation": 0,
+    "lineSpacingStyle": 2,
+    "lineSpacing": 0.72,
+    "backgroundFill": 0,
+    "fillBoxScale": 0,
+    "backgroundFillColor": 0,
+    "backgroundFillTransparency": 0,
+    "columnType": 0,
+    "columnFlowReversed": 0,
+    "columnAutoHeight": 0,
+    "columnWidth": 0,
+    "columnGutter": 0,
+    "columnHeightCount": 0,
+    "columnHeights": []
+  },
+  {
+    "type": "INSERT",
+    "handle": "34677894",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U213",
+    "insertionPoint": {
+      "x": -849532.1266479187,
+      "y": -269102.0442788251,
+      "z": 1.1131772028488263e-12
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34680000",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U412",
+    "insertionPoint": {
+      "x": -851302.1269147097,
+      "y": -269102.0446905335,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34680108",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U263",
+    "insertionPoint": {
+      "x": -850002.1279479134,
+      "y": -269102.04457778955,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34680128",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U382",
+    "insertionPoint": {
+      "x": -847802.197180535,
+      "y": -269102.0476773295,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34680148",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U39",
+    "insertionPoint": {
+      "x": -845332.1964375637,
+      "y": -269102.05107378686,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34680188",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "C-FEN",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "*U39",
+    "insertionPoint": {
+      "x": -841832.2661270911,
+      "y": -269102.16520829377,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 1,
+    "yScale": 1,
+    "zScale": 1,
+    "rotation": 0,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "MTEXT",
+    "handle": "34680307",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "A-ANNOT-T",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "insertionPoint": {
+      "x": -860372.1768817634,
+      "y": -278912.5102994998,
+      "z": -1.7763568394002505e-15
+    },
+    "textHeight": 457.20000000000005,
+    "rectHeight": 2019.3775967413437,
+    "rectWidth": 6502.418511896879,
+    "extentsHeight": 1239.7833560709414,
+    "extentsWidth": 3770.4965893588005,
+    "attachmentPoint": 5,
+    "drawingDirection": 1,
+    "text": "\\pt1371.6;9X-100\\PLOAD & ADH ",
+    "styleName": "ARIAL",
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "direction": {
+      "x": 1,
+      "y": 0,
+      "z": 0
+    },
+    "rotation": 0,
+    "lineSpacingStyle": 1,
+    "lineSpacing": 1,
+    "backgroundFill": 0,
+    "fillBoxScale": 0,
+    "backgroundFillColor": 0,
+    "backgroundFillTransparency": 0,
+    "columnType": 0,
+    "columnFlowReversed": 0,
+    "columnAutoHeight": 0,
+    "columnWidth": 0,
+    "columnGutter": 0,
+    "columnHeightCount": 0,
+    "columnHeights": []
+  },
+  {
+    "type": "LINE",
+    "handle": "34680309",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "A-ANNOT-T",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "startPoint": {
+      "x": -860398.1548519077,
+      "y": -262009.4258412297,
+      "z": -2.252338018623364e-11
+    },
+    "endPoint": {
+      "x": -860398.1548519077,
+      "y": -277686.447669083,
+      "z": 2.251982747255484e-11
+    },
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "MTEXT",
+    "handle": "34680311",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "A-ANNOT-T",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "insertionPoint": {
+      "x": -853873.8076190716,
+      "y": -278912.5102994998,
+      "z": -1.7763568394002505e-15
+    },
+    "textHeight": 457.20000000000005,
+    "rectHeight": 2019.3775967413437,
+    "rectWidth": 6502.418511896879,
+    "extentsHeight": 1239.7833560709414,
+    "extentsWidth": 3864.3691678035475,
+    "attachmentPoint": 5,
+    "drawingDirection": 1,
+    "text": "\\pt1371.6;9X-110\\PLOAD & GEO ",
+    "styleName": "ARIAL",
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "direction": {
+      "x": 1,
+      "y": 0,
+      "z": 0
+    },
+    "rotation": 0,
+    "lineSpacingStyle": 1,
+    "lineSpacing": 1,
+    "backgroundFill": 0,
+    "fillBoxScale": 0,
+    "backgroundFillColor": 0,
+    "backgroundFillTransparency": 0,
+    "columnType": 0,
+    "columnFlowReversed": 0,
+    "columnAutoHeight": 0,
+    "columnWidth": 0,
+    "columnGutter": 0,
+    "columnHeightCount": 0,
+    "columnHeights": []
+  },
+  {
+    "type": "LINE",
+    "handle": "34680313",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "A-ANNOT-T",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "startPoint": {
+      "x": -853922.5898094556,
+      "y": -262009.4258412297,
+      "z": -2.2523380186228344e-11
+    },
+    "endPoint": {
+      "x": -853922.5898094556,
+      "y": -277686.447669083,
+      "z": 2.2519827472549544e-11
+    },
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "MLINE",
+    "handle": "34680315",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "E-CTRY-FLR",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "scale": 1,
+    "flags": 1,
+    "justification": 2,
+    "startPoint": {
+      "x": -848402.1971805324,
+      "y": -269102.04797629395,
+      "z": -1.7763568394002505e-15
+    },
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "numberOfLines": 3,
+    "numberOfVertices": 2,
+    "vertices": [
+      {
+        "vertex": {
+          "x": -848402.1971805324,
+          "y": -269102.04797629395,
+          "z": -1.7763568394002505e-15
+        },
+        "vertexDirection": {
+          "x": 0.9999999999997593,
+          "y": -6.939475090311803e-7,
+          "z": 0
+        },
+        "miterDirection": {
+          "x": 6.939475092337943e-7,
+          "y": 0.9999999999997592,
+          "z": 0
+        },
+        "numberOfLines": 3,
+        "lines": [
+          {
+            "numberOfSegmentParams": 2,
+            "segmentParams": [
+              600,
+              0
+            ],
+            "numberOfAreaFillParams": 0
+          },
+          {
+            "numberOfSegmentParams": 2,
+            "segmentParams": [
+              300,
+              0
+            ],
+            "numberOfAreaFillParams": 0
+          },
+          {
+            "numberOfSegmentParams": 2,
+            "segmentParams": [
+              0,
+              0
+            ],
+            "numberOfAreaFillParams": 0
+          }
+        ]
+      },
+      {
+        "vertex": {
+          "x": -839232.1964670457,
+          "y": -269102.0543397931,
+          "z": -1.7763568394002505e-15
+        },
+        "vertexDirection": {
+          "x": 0.9999999999997593,
+          "y": -6.939475090311803e-7,
+          "z": 0
+        },
+        "miterDirection": {
+          "x": 6.939475092337943e-7,
+          "y": 0.9999999999997592,
+          "z": 0
+        },
+        "numberOfLines": 3,
+        "lines": [
+          {
+            "numberOfSegmentParams": 2,
+            "segmentParams": [
+              600,
+              0
+            ],
+            "numberOfAreaFillParams": 0
+          },
+          {
+            "numberOfSegmentParams": 2,
+            "segmentParams": [
+              300,
+              0
+            ],
+            "numberOfAreaFillParams": 0
+          },
+          {
+            "numberOfSegmentParams": 2,
+            "segmentParams": [
+              0,
+              0
+            ],
+            "numberOfAreaFillParams": 0
+          }
+        ]
+      }
+    ],
+    "mlineStyle": ""
+  },
+  {
+    "type": "MTEXT",
+    "handle": "34680317",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "A-ANNOT-T",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "insertionPoint": {
+      "x": -856840.7565592275,
+      "y": -281003.88532404054,
+      "z": -1.7763568394002505e-15
+    },
+    "textHeight": 457.20000000000005,
+    "rectHeight": 2019.3775967413437,
+    "rectWidth": 6502.418511896879,
+    "extentsHeight": 2009.580081855389,
+    "extentsWidth": 3656.9762619372445,
+    "attachmentPoint": 5,
+    "drawingDirection": 1,
+    "text": "\\pt1371.6;9X-010\\PAUTO LOAD\\P& ADH ",
+    "styleName": "ARIAL",
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "direction": {
+      "x": 1,
+      "y": 0,
+      "z": 0
+    },
+    "rotation": 0,
+    "lineSpacingStyle": 1,
+    "lineSpacing": 1,
+    "backgroundFill": 0,
+    "fillBoxScale": 0,
+    "backgroundFillColor": 0,
+    "backgroundFillTransparency": 0,
+    "columnType": 0,
+    "columnFlowReversed": 0,
+    "columnAutoHeight": 0,
+    "columnWidth": 0,
+    "columnGutter": 0,
+    "columnHeightCount": 0,
+    "columnHeights": []
+  },
+  {
+    "type": "LINE",
+    "handle": "34680319",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "A-ANNOT-T",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "startPoint": {
+      "x": -856714.4032673646,
+      "y": -272843.7115515239,
+      "z": -2.2523380187843e-11
+    },
+    "endPoint": {
+      "x": -856714.4032673645,
+      "y": -279397.06390849454,
+      "z": 2.25198274741642e-11
+    },
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "MTEXT",
+    "handle": "34680320",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "A-ANNOT-T",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "insertionPoint": {
+      "x": -847561.6699081053,
+      "y": -278912.5102994998,
+      "z": -1.7763568394002505e-15
+    },
+    "textHeight": 457.20000000000005,
+    "rectHeight": 2019.3775967413437,
+    "rectWidth": 6502.418511896879,
+    "extentsHeight": 1236.9765347885404,
+    "extentsWidth": 2563.2515688949525,
+    "attachmentPoint": 5,
+    "drawingDirection": 1,
+    "text": "\\pt1371.6;9X-120\\PRESPOT ",
+    "styleName": "ARIAL",
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "direction": {
+      "x": 1,
+      "y": 0,
+      "z": 0
+    },
+    "rotation": 0,
+    "lineSpacingStyle": 1,
+    "lineSpacing": 1,
+    "backgroundFill": 0,
+    "fillBoxScale": 0,
+    "backgroundFillColor": 0,
+    "backgroundFillTransparency": 0,
+    "columnType": 0,
+    "columnFlowReversed": 0,
+    "columnAutoHeight": 0,
+    "columnWidth": 0,
+    "columnGutter": 0,
+    "columnHeightCount": 0,
+    "columnHeights": []
+  },
+  {
+    "type": "LINE",
+    "handle": "34680322",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "A-ANNOT-T",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "startPoint": {
+      "x": -847587.6478782494,
+      "y": -262009.4258412297,
+      "z": -2.252338018623364e-11
+    },
+    "endPoint": {
+      "x": -847587.6478782494,
+      "y": -277686.447669083,
+      "z": 2.251982747255484e-11
+    },
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34680384",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENCOPA",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "controller",
+    "insertionPoint": {
+      "x": -230457.77776148813,
+      "y": -424346.99316229543,
+      "z": 6.851005227182938e-11
+    },
+    "xScale": 0.999996000004,
+    "yScale": 0.999996000004,
+    "zScale": 0.999996000004,
+    "rotation": 1.5707963267948966,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 9.976300836026666e-31,
+      "y": 4.4400696967760107e-16,
+      "z": 1
+    }
+  },
+  {
+    "type": "INSERT",
+    "handle": "34680385",
+    "ownerBlockRecordSoftId": "21231972",
+    "layer": "Q-GENCOPA",
+    "color": 0,
+    "colorIndex": 256,
+    "colorName": "",
+    "lineType": "",
+    "lineweight": 29,
+    "lineTypeScale": 1,
+    "isVisible": true,
+    "transparency": 0,
+    "name": "robot contrlr",
+    "insertionPoint": {
+      "x": -850805.9132500154,
+      "y": -269884.796133563,
+      "z": -1.7763568394002505e-15
+    },
+    "xScale": 0.999992000024,
+    "yScale": 0.999992000024,
+    "zScale": 0.999992000024,
+    "rotation": 1.5707963267948966,
+    "columnCount": 0,
+    "rowCount": 0,
+    "columnSpacing": 0,
+    "rowSpacing": 0,
+    "extrusionDirection": {
+      "x": 0,
+      "y": 0,
+      "z": 0.9999999999999999
+    }
+  }
+]

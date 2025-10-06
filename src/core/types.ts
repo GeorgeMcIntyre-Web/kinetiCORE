@@ -98,6 +98,20 @@ export interface CollisionResult {
 export type TransformMode = 'translate' | 'rotate' | 'scale';
 
 /**
+ * Floor material types for industrial environments
+ */
+export type FloorType =
+  | 'concrete-polished'    // Polished concrete (default)
+  | 'concrete-raw'         // Raw concrete with texture
+  | 'epoxy-gray'           // Epoxy coated floor - gray
+  | 'epoxy-white'          // Epoxy coated floor - white
+  | 'tiles-ceramic'        // Ceramic tile floor
+  | 'metal-checker'        // Metal checker plate
+  | 'asphalt'              // Asphalt surface
+  | 'wood-industrial'      // Industrial wood flooring
+  | 'grid-only';           // Grid lines only (no texture)
+
+/**
  * Reference frame for transforms
  */
 export type ReferenceFrameType = 'local' | 'world' | 'custom';

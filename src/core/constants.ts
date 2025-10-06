@@ -20,7 +20,7 @@ export const DEFAULT_GRAVITY = { x: 0, y: -9.81, z: 0 }; // Y-up (internal)
 export const PHYSICS_TIMESTEP = 1 / 60; // 60 FPS
 
 // Scene constants (internal units: meters)
-export const GROUND_SIZE = 10; // 10 meters = 10,000mm
+export const GROUND_SIZE = 50; // 50 meters = 50,000mm
 export const AXIS_LENGTH = 2; // 2 meters = 2,000mm
 
 // Camera constants (internal units: meters, Y-up)
