@@ -59,7 +59,14 @@
       "Bash(curl:*)",
       "Bash(git clone:*)",
       "Read(//c/Users/George/source/repos/kinetiCORE_data/**)",
-      "Read(//c/Users/George/source/repos/**)"
+      "Read(//c/Users/George/source/repos/**)",
+      "Read(//c/Users/georgem/source/repos/**)",
+      "Bash(findstr:*)",
+      "Bash(where vcpkg)",
+      "Bash(\"C:\\Users\\georgem\\source\\repos\\vcpkg\\vcpkg.exe\" version)",
+      "Bash(timeout 5 npm run type-check)",
+      "Bash(timeout 10 npm run type-check)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []
