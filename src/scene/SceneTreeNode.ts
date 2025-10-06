@@ -114,6 +114,7 @@ export interface SceneNode {
 
   // === 3D Object References ===
   babylonMeshId?: string; // Reference to Babylon.Mesh.uniqueId
+  babylonTransformNodeId?: string; // Reference to Babylon.TransformNode.uniqueId (for URDF links)
   entityId?: string; // Reference to SceneEntity in EntityRegistry
 
   // === Type-Specific Data ===

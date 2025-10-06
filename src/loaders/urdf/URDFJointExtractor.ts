@@ -255,7 +255,9 @@ export async function createKinematicsFromURDF(
     const axis = urdfToBabylonAxis(urdfJoint.axis.xyz);
 
     // Create joint with URDF limits
+    // Include robotRootNodeId in joint ID to ensure uniqueness across multiple robots
     const joint = kinematicsManager.createJoint({
+      id: `${robotRootNodeId}_joint_${urdfJoint.name}`,
       name: urdfJoint.name,
       type: jointType,
       parentNodeId,
@@ -286,8 +288,11 @@ export async function createKinematicsFromURDF(
   if (baseLink) {
     const baseLinkNodeId = linkNameToNodeId.get(baseLink);
     if (baseLinkNodeId) {
-      const robotName = sceneTreeManager.getNode(robotRootNodeId)?.name || 'Robot';
-      kinematicsManager.createChain(robotName, baseLinkNodeId, 'serial');
+      const robotNode = sceneTreeManager.getNode(robotRootNodeId);
+      const robotName = robotNode?.name || 'Robot';
+      // Make chain name unique by including robot collection ID
+      const uniqueChainName = `${robotName}_${robotRootNodeId}`;
+      kinematicsManager.createChain(uniqueChainName, baseLinkNodeId, 'serial');
     }
   }
 

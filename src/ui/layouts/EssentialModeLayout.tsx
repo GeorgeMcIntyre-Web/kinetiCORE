@@ -31,8 +31,6 @@ export const EssentialModeLayout: React.FC = () => {
   const saveWorld = useEditorStore((state) => state.saveWorld);
   const zoomFit = useEditorStore((state) => state.zoomFit);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
-  const transformMode = useEditorStore((state) => state.transformMode);
-  const setTransformMode = useEditorStore((state) => state.setTransformMode);
 
   const [transform, setTransform] = useState<{
     x: number;
@@ -78,7 +76,6 @@ export const EssentialModeLayout: React.FC = () => {
     const sceneManager = SceneManager.getInstance();
     const camera = sceneManager.getCamera();
     if (camera) {
-      // Reset to default camera position
       camera.alpha = -Math.PI / 2;
       camera.beta = Math.PI / 3;
       camera.radius = 10;
@@ -90,7 +87,7 @@ export const EssentialModeLayout: React.FC = () => {
     zoomFit();
   };
 
-  // Update transform display when selection changes or object moves
+  // Update transform display when selection changes
   useEffect(() => {
     if (!selectedNodeId) {
       setTransform(null);
@@ -114,17 +111,13 @@ export const EssentialModeLayout: React.FC = () => {
       let babylonNode: BABYLON.TransformNode | null = null;
       const registry = EntityRegistry.getInstance();
 
-      // Get Babylon node (mesh or TransformNode)
       if (node.babylonMeshId) {
         const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
         if (mesh) {
-          // Check if this mesh belongs to a device entity
           const entity = registry.getByMesh(mesh);
           if (entity && entity.getIsDevice()) {
-            // For device entities, use the root transform node
             babylonNode = entity.getRootTransformNode();
           } else {
-            // For regular meshes, use the mesh itself
             babylonNode = mesh;
           }
         }
@@ -133,14 +126,11 @@ export const EssentialModeLayout: React.FC = () => {
       }
 
       if (babylonNode) {
-        // Get position in user space (Z-up, mm)
         const userPos = babylonToUser(babylonNode.position);
-
-        // Get rotation in degrees
         const rotation = babylonNode.rotation;
 
         const newTransform = {
-          x: Math.round(userPos.x * 10) / 10,  // Round to 1 decimal
+          x: Math.round(userPos.x * 10) / 10,
           y: Math.round(userPos.y * 10) / 10,
           z: Math.round(userPos.z * 10) / 10,
           rx: Math.round((rotation.x * 180 / Math.PI) * 10) / 10,
@@ -148,7 +138,6 @@ export const EssentialModeLayout: React.FC = () => {
           rz: Math.round((rotation.z * 180 / Math.PI) * 10) / 10,
         };
 
-        // Only update state if values actually changed
         const newTransformStr = JSON.stringify(newTransform);
         if (newTransformStr !== lastTransform) {
           lastTransform = newTransformStr;
@@ -159,14 +148,11 @@ export const EssentialModeLayout: React.FC = () => {
       }
     };
 
-    // Initial update
     updateTransform();
 
-    // Update on scene tree changes (when objects move)
     const handleSceneUpdate = () => updateTransform();
     window.addEventListener('scenetree-update', handleSceneUpdate);
 
-    // Update on render loop (for real-time updates during dragging)
     const observer = scene?.onBeforeRenderObservable.add(() => {
       updateTransform();
     });
@@ -187,9 +173,7 @@ export const EssentialModeLayout: React.FC = () => {
           <h1 className="logo">kinetiCORE</h1>
           <span className="mode-badge">Essential</span>
         </div>
-        <div className="header-center">
-          {/* Toolbar moved to viewport */}
-        </div>
+        <div className="header-center"></div>
         <div className="header-right">
           <select
             value={userLevel}
@@ -210,114 +194,86 @@ export const EssentialModeLayout: React.FC = () => {
 
       {/* Main Content */}
       <div className="essential-content">
-        {/* Left Sidebar - Scene Tree and Kinematics */}
-        <aside className="essential-left-sidebar">
+        {/* Left Sidebar */}
+        <aside className="essential-sidebar">
           <div className="sidebar-section">
-            <h3 className="sidebar-title">Scene</h3>
+            <h3 className="sidebar-title">Scene Tree</h3>
             <SceneTree />
           </div>
           <div className="sidebar-section">
             <h3 className="sidebar-title">Kinematics</h3>
-            <KinematicsPanel onClose={() => {}} />
+            <KinematicsPanel />
           </div>
         </aside>
 
         {/* Main Viewport */}
-        <main className="essential-viewport">
-          {/* Floating Toolbar */}
-          <div className="floating-toolbar">
-            <button
-              className="toolbar-btn active"
-              onClick={() => {}}
-              title="Move & Rotate (Combined)"
-            >
-              <div style={{ position: 'relative', width: 14, height: 14 }}>
-                <Move size={12} style={{ position: 'absolute', top: 0, left: 0 }} />
-                <RotateCw size={9} style={{ position: 'absolute', bottom: 0, right: 0 }} />
-              </div>
-            </button>
-            <button className="toolbar-btn" onClick={() => createObject('box')} title="Create Box">
-              <Box size={14} />
-            </button>
-            <button className="toolbar-btn" onClick={() => createObject('sphere')} title="Create Sphere">
-              <Circle size={14} />
-            </button>
-            <button className="toolbar-btn" onClick={() => createObject('cylinder')} title="Create Cylinder">
-              <Cylinder size={14} />
-            </button>
-            <button className="toolbar-btn" onClick={handleFileImport} title="Import Model">
-              <Upload size={14} />
-            </button>
-            <button className="toolbar-btn" onClick={handleLoadWorld} title="Load World">
-              <FolderOpen size={14} />
-            </button>
-            <button className="toolbar-btn" onClick={saveWorld} title="Save World">
-              <Save size={14} />
-            </button>
-          </div>
-
-          {/* Viewport Controls */}
-          <div className="viewport-controls">
-            <button className="control-btn" title="Reset View" onClick={handleResetView}>
-              Reset View
-            </button>
-            <button className="control-btn" title="Zoom to Fit" onClick={handleZoomFit}>
-              Zoom Fit
-            </button>
-          </div>
-
-          {/* Transform Display */}
-          {transform && (
-            <div className="transform-display">
-              <h4>Position & Rotation</h4>
-              <div className="transform-grid">
-                <div className="transform-value">
-                  <span className="transform-label">X</span>
-                  <span className="transform-number">{transform.x} mm</span>
-                </div>
-                <div className="transform-value">
-                  <span className="transform-label">Y</span>
-                  <span className="transform-number">{transform.y} mm</span>
-                </div>
-                <div className="transform-value">
-                  <span className="transform-label">Z</span>
-                  <span className="transform-number">{transform.z} mm</span>
-                </div>
-                <div className="transform-value">
-                  <span className="transform-label">Rx</span>
-                  <span className="transform-number">{transform.rx}°</span>
-                </div>
-                <div className="transform-value">
-                  <span className="transform-label">Ry</span>
-                  <span className="transform-number">{transform.ry}°</span>
-                </div>
-                <div className="transform-value">
-                  <span className="transform-label">Rz</span>
-                  <span className="transform-number">{transform.rz}°</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Viewport container - SceneCanvas will overlay this */}
-          <div id="viewport-essential" className="viewport-canvas"></div>
-        </main>
+        <main id="viewport-essential" className="essential-viewport"></main>
       </div>
+
+      {/* Floating Toolbar */}
+      <div className="floating-toolbar">
+        <button className="toolbar-btn active" onClick={() => {}} title="Move & Rotate (Combined)">
+          <div style={{ position: 'relative', width: 14, height: 14 }}>
+            <Move size={12} style={{ position: 'absolute', top: 0, left: 0 }} />
+            <RotateCw size={9} style={{ position: 'absolute', bottom: 0, right: 0 }} />
+          </div>
+        </button>
+        <button className="toolbar-btn" onClick={() => createObject('box')} title="Create Box">
+          <Box size={14} />
+        </button>
+        <button className="toolbar-btn" onClick={() => createObject('sphere')} title="Create Sphere">
+          <Circle size={14} />
+        </button>
+        <button className="toolbar-btn" onClick={() => createObject('cylinder')} title="Create Cylinder">
+          <Cylinder size={14} />
+        </button>
+        <button className="toolbar-btn" onClick={handleFileImport} title="Import Model">
+          <Upload size={14} />
+        </button>
+        <button className="toolbar-btn" onClick={handleLoadWorld} title="Load World">
+          <FolderOpen size={14} />
+        </button>
+        <button className="toolbar-btn" onClick={saveWorld} title="Save World">
+          <Save size={14} />
+        </button>
+      </div>
+
+      {/* Viewport Controls */}
+      <div className="viewport-controls">
+        <button className="control-btn" onClick={handleResetView}>Reset View</button>
+        <button className="control-btn" onClick={handleZoomFit}>Zoom Fit</button>
+      </div>
+
+      {/* Transform Display */}
+      {transform && (
+        <div className="transform-display">
+          <div className="transform-row">
+            <span className="transform-value">X:{transform.x}</span>
+            <span className="transform-value">Y:{transform.y}</span>
+            <span className="transform-value">Z:{transform.z}</span>
+          </div>
+          <div className="transform-row">
+            <span className="transform-value">RX:{transform.rx}°</span>
+            <span className="transform-value">RY:{transform.ry}°</span>
+            <span className="transform-value">RZ:{transform.rz}°</span>
+          </div>
+        </div>
+      )}
 
       {/* Hidden file inputs */}
       <input
         ref={fileInputRef}
         type="file"
-        accept=".urdf,.stl,.obj,.dxf,.jt,.catpart,.catproduct,.catdrawing,.glb,.gltf"
-        onChange={handleFileChange}
+        accept=".urdf,.stl,.obj,.dae,.gltf,.glb"
         style={{ display: 'none' }}
+        onChange={handleFileChange}
       />
       <input
         ref={loadFileInputRef}
         type="file"
         accept=".json"
-        onChange={handleLoadFileChange}
         style={{ display: 'none' }}
+        onChange={handleLoadFileChange}
       />
     </div>
   );

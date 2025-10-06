@@ -4,34 +4,50 @@
   width: 100%;
   height: 100%;
   position: relative;
-  background: #1a1a1a;
+  background: transparent;
+  pointer-events: auto;
+  overflow: hidden;
 }
 
 /* Custom theme for kinetiCORE */
 .dockview-theme-kineticore {
-  --dv-activegroup-visiblepanel-tab-background-color: #2d2d2d;
-  --dv-activegroup-hiddenpanel-tab-background-color: #1e1e1e;
-  --dv-group-view-background-color: #1a1a1a;
-  --dv-tabs-and-actions-container-background-color: #252525;
-  --dv-tabs-container-scrollbar-color: #646cff;
-  --dv-separator-border: 1px solid #3f3f3f;
-  --dv-activegroup-visiblepanel-tab-color: #ffffff;
-  --dv-activegroup-hiddenpanel-tab-color: #a0a0a0;
-  --dv-inactivegroup-visiblepanel-tab-color: #c0c0c0;
-  --dv-inactivegroup-hiddenpanel-tab-color: #808080;
-  --dv-drag-over-background-color: rgba(100, 108, 255, 0.2);
-  --dv-paneview-header-border-color: #3f3f3f;
-  --dv-icon-hover-background-color: #3f3f3f;
-  --dv-activegroup-visiblepanel-tab-border-bottom: 2px solid #646cff;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  --dv-activegroup-visiblepanel-tab-background-color: #2d3748;
+  --dv-activegroup-hiddenpanel-tab-background-color: #1a202c;
+  --dv-group-view-background-color: #2d3748;
+  --dv-tabs-and-actions-container-background-color: #1a202c;
+  --dv-tabs-container-scrollbar-color: #48bb78;
+  --dv-separator-border: 1px solid #4a5568;
+  --dv-activegroup-visiblepanel-tab-color: #e2e8f0;
+  --dv-activegroup-hiddenpanel-tab-color: #a0aec0;
+  --dv-inactivegroup-visiblepanel-tab-color: #cbd5e0;
+  --dv-inactivegroup-hiddenpanel-tab-color: #718096;
+  --dv-drag-over-background-color: rgba(72, 187, 120, 0.2);
+  --dv-paneview-header-border-color: #4a5568;
+  --dv-icon-hover-background-color: #4a5568;
+  --dv-activegroup-visiblepanel-tab-border-bottom: 2px solid #48bb78;
 }
 
 /* Panel content styling */
 .dockview-theme-kineticore .panel-content {
-  padding: 12px;
+  padding: 0;
   height: 100%;
   overflow: auto;
-  background: #1a1a1a;
-  color: #e0e0e0;
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+/* Ensure dockview groups are visible and have background */
+.dockview-theme-kineticore .dv-group {
+  background: #2d3748 !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.dockview-theme-kineticore .content-container {
+  background: #2d3748 !important;
 }
 
 /* Override dockview default styles */
@@ -57,12 +73,11 @@
 
 /* Watermark (main content area) */
 .dockview-theme-kineticore .watermark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   width: 100%;
   height: 100%;
-  background: #1a1a1a;
+  background: transparent;
+  position: relative;
 }
 
 /* Panel header icons */

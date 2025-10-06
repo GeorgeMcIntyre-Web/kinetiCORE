@@ -17,11 +17,12 @@ type JogMode = 'joint' | 'tcp';
 type JogAxis = 'X' | 'Y' | 'Z' | 'Rx' | 'Ry' | 'Rz';
 
 interface RobotJoggingPanelProps {
-  joints: any[]; // DEPRECATED - not used, fetching directly from KinematicsManager
+  joints: any[]; // Filtered joints for this specific robot
   fkSolver: ForwardKinematicsSolver;
+  robotId: string; // Robot collection ID for filtering
 }
 
-export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ fkSolver }) => {
+export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: propsJoints, fkSolver, robotId }) => {
   const [jogMode, setJogMode] = useState<JogMode>('joint');
   const [jogStepJoint, setJogStepJoint] = useState(5); // degrees
   const [jogStepTcp, setJogStepTcp] = useState(10); // mm for linear, 5 deg for rotary
@@ -29,17 +30,28 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ fkSolver }
   const [tcpPosition, setTcpPosition] = useState<string>('—');
   const [ikSolver] = useState(() => InverseKinematicsSolver.getInstance());
 
-  // Fetch joints directly from KinematicsManager - bypassing React props issue
+  // Use filtered joints from props
+  useEffect(() => {
+    // Filter to only show movable joints (not fixed joints)
+    const movableJoints = propsJoints.filter(j =>
+      j.type === 'revolute' || j.type === 'prismatic' || j.type === 'continuous'
+    );
+    setJoints(movableJoints);
+  }, [propsJoints]);
+
+  // Update TCP position display
   useEffect(() => {
     const kinematicsManager = KinematicsManager.getInstance();
-    const updateJoints = () => {
-      const allJoints = kinematicsManager.getAllJoints();
-      setJoints(allJoints);
-
-      // Update TCP position display
+    const updateTcpPosition = () => {
       const chains = kinematicsManager.getAllChains();
-      if (chains.length > 0) {
-        const endEffectorPose = fkSolver.getEndEffectorPose(chains[0].name);
+      // Find the chain for this specific robot
+      const robotChain = chains.find(chain => {
+        // Check if this chain belongs to this robot by checking joint IDs
+        return chain.joints.some((joint: any) => joint.id.startsWith(robotId));
+      });
+
+      if (robotChain) {
+        const endEffectorPose = fkSolver.getEndEffectorPose(robotChain.name);
         if (endEffectorPose) {
           const pos = endEffectorPose.position;
           setTcpPosition(
@@ -50,17 +62,20 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ fkSolver }
       }
     };
 
-    updateJoints();
-    const interval = setInterval(updateJoints, 500); // Poll every 500ms (reduced from 100ms)
+    updateTcpPosition();
+    const interval = setInterval(updateTcpPosition, 500);
     return () => clearInterval(interval);
-  }, [fkSolver]);
+  }, [fkSolver, robotId]);
 
   // Filter to only show revolute joints (exclude fixed joints)
   const revoluteJoints = joints.filter(j => j.type === 'revolute');
 
   const handleJogJoint = (jointId: string, direction: number) => {
     const joint = joints.find(j => j.id === jointId);
-    if (!joint) return;
+    if (!joint) {
+      console.error('Joint not found:', jointId);
+      return;
+    }
 
     const stepRadians = (jogStepJoint * Math.PI) / 180;
     const newValue = joint.position + (stepRadians * direction);
@@ -76,7 +91,17 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ fkSolver }
       return;
     }
 
-    const chainName = chains[0].name;
+    // Find the chain for this specific robot
+    const robotChain = chains.find(chain =>
+      chain.joints.some((joint: any) => joint.id.startsWith(robotId))
+    );
+
+    if (!robotChain) {
+      console.warn('No kinematic chain found for this robot');
+      return;
+    }
+
+    const chainName = robotChain.name;
 
     // Convert mm to meters for position deltas
     const stepMeters = jogStepTcp / 1000.0;

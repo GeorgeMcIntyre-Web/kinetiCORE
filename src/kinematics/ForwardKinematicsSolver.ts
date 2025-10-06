@@ -261,7 +261,13 @@ export class ForwardKinematicsSolver {
       if (mesh) return mesh;
     }
 
-    // Try as TransformNode (collection)
+    // Try as TransformNode (collection) using uniqueId
+    if (node.babylonTransformNodeId) {
+      const transformNode = scene.transformNodes.find(tn => tn.uniqueId === parseInt(node.babylonTransformNodeId!));
+      if (transformNode) return transformNode;
+    }
+
+    // Fallback: Try as TransformNode (collection) by name (for backward compatibility)
     if (node.type === 'collection') {
       const transformNode = scene.transformNodes.find(tn => tn.name === node.name);
       if (transformNode) return transformNode;

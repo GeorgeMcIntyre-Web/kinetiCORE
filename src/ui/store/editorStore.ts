@@ -804,6 +804,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
               treeNode.entityId = linkEntity.getId();
             }
           }
+        } else {
+          // Link to TransformNode for collections (URDF links)
+          treeNode.babylonTransformNodeId = node.uniqueId.toString();
         }
 
         // Recursively process all children
@@ -947,6 +950,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
               treeNode.entityId = linkEntity.getId();
             }
           }
+        } else {
+          // Link to TransformNode for collections (URDF links)
+          treeNode.babylonTransformNodeId = node.uniqueId.toString();
         }
 
         // Recursively process all children
