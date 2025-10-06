@@ -8,6 +8,7 @@ import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { SceneManager } from '../../scene/SceneManager';
 import * as BABYLON from '@babylonjs/core';
 import { babylonToUser } from '../../core/CoordinateSystem';
+import { useEditorStore } from '../../ui/store/editorStore';
 
 interface MeshSnapshot {
   nodeId: string;
@@ -184,7 +185,6 @@ export class BooleanOperationCommand extends Command {
         newNode.entityId = entity.getId();
 
         // Restore transform
-        const { useEditorStore } = require('../../ui/store/editorStore');
         const { updateNodePosition, updateNodeRotation, updateNodeScale } = useEditorStore.getState();
         updateNodePosition(newNode.id, snapshot.position);
         updateNodeRotation(newNode.id, snapshot.rotation);

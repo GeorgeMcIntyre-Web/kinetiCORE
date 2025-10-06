@@ -18,6 +18,7 @@ import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { SceneTree } from '../components/SceneTree';
 import { KinematicsPanel } from '../components/KinematicsPanel';
+import { SceneManager } from '../../scene/SceneManager';
 import './EssentialModeLayout.css';
 
 interface ActionCard {
@@ -85,7 +86,7 @@ export const EssentialModeLayout: React.FC = () => {
   };
 
   const handleResetView = () => {
-    const sceneManager = require('../../scene/SceneManager').SceneManager.getInstance();
+    const sceneManager = SceneManager.getInstance();
     const camera = sceneManager.getCamera();
     if (camera) {
       // Reset to default camera position

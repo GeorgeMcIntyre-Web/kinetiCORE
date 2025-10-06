@@ -102,7 +102,7 @@ export async function loadURDFWithMeshes(
         console.log(`Looking for mesh: ${cleanMeshPath}`);
 
         // Try to find the file
-        let meshFile = findMeshFile(cleanMeshPath, fileMap);
+        const meshFile = findMeshFile(cleanMeshPath, fileMap);
 
         if (meshFile) {
           console.log(`✓ Found mesh file: ${meshFile.name}`);

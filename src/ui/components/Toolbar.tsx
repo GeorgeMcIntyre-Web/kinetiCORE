@@ -189,7 +189,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
           <input
             ref={folderInputRef}
             type="file"
-            /* @ts-ignore - webkitdirectory is not in TS types */
+            /* @ts-expect-error - webkitdirectory is not in TS types */
             webkitdirectory=""
             directory=""
             multiple

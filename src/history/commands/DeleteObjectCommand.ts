@@ -7,6 +7,7 @@ import { EntityRegistry } from '../../entities/EntityRegistry';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { SceneManager } from '../../scene/SceneManager';
 import { babylonToUser } from '../../core/CoordinateSystem';
+import { useEditorStore } from '../../ui/store/editorStore';
 
 interface ObjectSnapshot {
   meshData: {
@@ -95,7 +96,6 @@ export class DeleteObjectCommand extends Command {
     }
 
     // Recreate the object using editorStore
-    const { useEditorStore } = require('../../ui/store/editorStore');
     const createObject = useEditorStore.getState().createObject;
 
     // This will create a new object - we'll need to update its properties

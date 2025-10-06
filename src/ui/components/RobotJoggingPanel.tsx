@@ -81,6 +81,7 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ fkSolver }
     // Convert mm to meters for position deltas
     const stepMeters = jogStepTcp / 1000.0;
 
+    // eslint-disable-next-line prefer-const -- object properties are mutated below
     let positionDelta = new BABYLON.Vector3(0, 0, 0);
 
     // Linear motion
