@@ -19,6 +19,10 @@ export interface SceneEntityConfig {
     height?: number; // For cylinder, capsule
   };
   metadata?: Partial<EntityMetadata>;
+  // Device-specific config
+  isDevice?: boolean;
+  rootTransformNode?: BABYLON.TransformNode;
+  joints?: any[]; // URDF joint data
 }
 
 /**
@@ -32,11 +36,23 @@ export class SceneEntity {
   private physicsConfig: SceneEntityConfig['physics'] | null = null;
   private physicsEnabled: boolean = false;
 
+  // Device-specific properties
+  private isDevice: boolean = false;
+  private rootTransformNode: BABYLON.TransformNode | null = null;
+  private children: SceneEntity[] = [];
+  private parent: SceneEntity | null = null;
+  private joints: any[] = [];
+
   constructor(config: SceneEntityConfig) {
     this.mesh = config.mesh;
 
     // Store physics config for later use
     this.physicsConfig = config.physics || null;
+
+    // Device-specific setup
+    this.isDevice = config.isDevice || false;
+    this.rootTransformNode = config.rootTransformNode || null;
+    this.joints = config.joints || [];
 
     // Initialize metadata
     this.metadata = {
@@ -45,6 +61,9 @@ export class SceneEntity {
       type: config.metadata?.type || 'object',
       tags: config.metadata?.tags || [],
       customProperties: config.metadata?.customProperties || {},
+      isDevice: this.isDevice,
+      deviceType: config.metadata?.deviceType,
+      urdfPath: config.metadata?.urdfPath,
     };
 
     // Store metadata on mesh for easy access
@@ -236,16 +255,104 @@ export class SceneEntity {
   }
 
   /**
+   * Device hierarchy methods
+   *
+   * These methods enable unified device entity selection and manipulation:
+   * - Device entities represent complete kinematic assemblies (robots, fixtures, etc.)
+   * - Link entities are children of device entities
+   * - Clicking any link selects the entire device
+   * - Moving a device moves all its children together
+   */
+
+  /**
+   * Check if this entity is a device (parent entity representing an assembly)
+   */
+  getIsDevice(): boolean {
+    return this.isDevice;
+  }
+
+  /**
+   * Get the root TransformNode for this device (used for gizmo attachment)
+   */
+  getRootTransformNode(): BABYLON.TransformNode | null {
+    return this.rootTransformNode;
+  }
+
+  /**
+   * Get all child entities (e.g., link entities for a device)
+   */
+  getChildren(): SceneEntity[] {
+    return this.children;
+  }
+
+  /**
+   * Get parent entity (e.g., device entity for a link)
+   */
+  getParent(): SceneEntity | null {
+    return this.parent;
+  }
+
+  /**
+   * Add a child entity (e.g., add link entity to device)
+   */
+  addChild(child: SceneEntity): void {
+    if (!this.children.includes(child)) {
+      this.children.push(child);
+      child.parent = this;
+      // Update child metadata to reference parent device
+      if (this.isDevice) {
+        child.getMetadata().parentDeviceId = this.metadata.id;
+      }
+    }
+  }
+
+  removeChild(child: SceneEntity): void {
+    const index = this.children.indexOf(child);
+    if (index !== -1) {
+      this.children.splice(index, 1);
+      child.parent = null;
+      // Clear parent device reference
+      if (child.getMetadata().parentDeviceId === this.metadata.id) {
+        delete child.getMetadata().parentDeviceId;
+      }
+    }
+  }
+
+  getJoints(): any[] {
+    return this.joints;
+  }
+
+  /**
+   * Get the root device entity (if this is part of a device)
+   */
+  getRootDevice(): SceneEntity | null {
+    if (this.isDevice) return this;
+    return this.parent?.getRootDevice() || null;
+  }
+
+  /**
    * Dispose entity and clean up resources
    */
   dispose(): void {
-    // Dispose physics first
+    // Dispose children first
+    for (const child of this.children) {
+      child.dispose();
+    }
+    this.children = [];
+
+    // Dispose physics
     if (this.physicsEngine && this.physicsHandle) {
       this.physicsEngine.removeRigidBody(this.physicsHandle);
       this.physicsHandle = null;
     }
 
-    // Then dispose mesh
+    // Dispose root transform node if this is a device
+    if (this.rootTransformNode) {
+      this.rootTransformNode.dispose();
+      this.rootTransformNode = null;
+    }
+
+    // Dispose mesh
     this.mesh.dispose();
   }
 }

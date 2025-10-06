@@ -41,6 +41,11 @@ export interface EntityMetadata {
   type: string;
   tags?: string[];
   customProperties?: Record<string, unknown>;
+  // Device hierarchy
+  isDevice?: boolean;
+  deviceType?: 'urdf' | 'assembly' | 'mechanism';
+  parentDeviceId?: string;
+  urdfPath?: string;
 }
 
 /**

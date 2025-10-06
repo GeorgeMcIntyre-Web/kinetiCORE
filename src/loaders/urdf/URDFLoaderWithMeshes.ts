@@ -1,6 +1,13 @@
 // URDF Loader with Mesh Loading Support
 // Owner: George
 // Loads URDF with referenced STL/DAE files from a file map
+//
+// DEVICE ENTITY HIERARCHY:
+// - Use loadURDFAsDeviceEntity() to create a device entity with child link entities
+// - Device entity represents the whole robot/mechanism
+// - Link entities represent individual links
+// - Selection: Click any link → selects whole device (Alt+Click for individual link)
+// - Transform gizmo: Attached to device root, moves entire device
 
 import * as BABYLON from '@babylonjs/core';
 import { parseURDF } from './URDFLoader';
@@ -215,23 +222,139 @@ export async function loadURDFWithMeshes(
 
   console.log(`✓ URDF loaded: ${meshes.length} meshes created`);
 
-  // Debug: Print hierarchy
-  console.log('=== URDF Hierarchy Debug ===');
-  function printHierarchy(node: BABYLON.TransformNode, indent: string = '') {
-    const children = node.getChildTransformNodes(false);
-    const meshChildren = node.getChildMeshes(false);
-    console.log(`${indent}${node.name} (${node.constructor.name}) - ${children.length} transform children, ${meshChildren.length} mesh children`);
-    for (const child of children) {
-      printHierarchy(child, indent + '  ');
+  return { meshes, rootNodes: [robotRoot] };
+}
+
+/**
+ * Load URDF with meshes and create device entity hierarchy
+ *
+ * Creates a unified device entity architecture for kinematic devices:
+ * - Device entity: Parent entity representing the entire robot/device
+ * - Link entities: Child entities for each URDF link, properly mapped to their meshes
+ *
+ * Key benefits:
+ * - Select entire device by clicking any link in viewport
+ * - Select entire device by clicking device node in tree
+ * - Move entire device as unified assembly with transform gizmo
+ * - Highlight all device links together (green glow)
+ * - Alt+Click to select individual links when needed
+ *
+ * @param urdfFile - The URDF XML file
+ * @param files - All files from the folder (including STL/DAE meshes)
+ * @param scene - Babylon.js scene
+ * @param registry - Entity registry to create device entities
+ * @returns Device entity (parent), link entities (children), meshes, and root nodes
+ */
+export async function loadURDFAsDeviceEntity(
+  urdfFile: File,
+  files: File[],
+  scene: BABYLON.Scene,
+  registry: any // EntityRegistry
+): Promise<{
+  deviceEntity: any; // SceneEntity (device root)
+  linkEntities: any[]; // SceneEntity[] (all link entities)
+  meshes: BABYLON.AbstractMesh[];
+  rootNodes: BABYLON.TransformNode[];
+}> {
+  try {
+    // First load the URDF normally
+    const { meshes, rootNodes } = await loadURDFWithMeshes(urdfFile, files, scene);
+
+  if (rootNodes.length === 0) {
+    throw new Error('No root nodes created from URDF');
+  }
+
+  const robotRoot = rootNodes[0];
+  const urdfText = await urdfFile.text();
+  const urdf = parseURDF(urdfText);
+
+  // Create a dummy mesh for the device entity (invisible root)
+  const deviceMesh = BABYLON.MeshBuilder.CreateBox(
+    `${urdf.robotName}_device_root`,
+    { size: 0.01 },
+    scene
+  );
+  deviceMesh.isVisible = false;
+  deviceMesh.parent = robotRoot;
+  deviceMesh.position = BABYLON.Vector3.Zero();
+
+  // Create the device entity
+  const deviceEntity = registry.create({
+    mesh: deviceMesh,
+    isDevice: true,
+    rootTransformNode: robotRoot,
+    joints: urdf.joints,
+    metadata: {
+      name: urdf.robotName,
+      type: 'device',
+      deviceType: 'urdf',
+      urdfPath: urdfFile.name,
+    },
+  });
+
+  // Create link entities as children of the device
+  const linkEntities: any[] = [];
+  const linkNodes = new Map<string, BABYLON.TransformNode>();
+
+  // Build map of link nodes
+  function collectLinkNodes(node: BABYLON.TransformNode): void {
+    if (node.metadata?.isURDFLink) {
+      linkNodes.set(node.name, node);
     }
-    for (const mesh of meshChildren) {
-      console.log(`${indent}  ${mesh.name} (Mesh)`);
+    const children = node.getChildTransformNodes(false);
+    for (const child of children) {
+      collectLinkNodes(child);
     }
   }
-  printHierarchy(robotRoot);
-  console.log('=== End Hierarchy ===');
+  collectLinkNodes(robotRoot);
 
-  return { meshes, rootNodes: [robotRoot] };
+  // Create entities for each link
+  for (const [linkName, linkNode] of linkNodes.entries()) {
+    // Find the visual mesh for this link from the loaded meshes array
+    // Meshes are named like "link_1_link_1.stl_0", so we search for the link name
+    let linkMesh: BABYLON.Mesh | null = null;
+
+    for (const mesh of meshes) {
+      // Check if mesh name starts with the link name (e.g., "base_link_base_link.stl_0" matches "base_link")
+      if (mesh.name.startsWith(linkName + '_') && mesh instanceof BABYLON.Mesh) {
+        linkMesh = mesh as BABYLON.Mesh;
+        break;
+      }
+    }
+
+    if (!linkMesh) {
+      // Create dummy mesh if no visual mesh exists
+      linkMesh = BABYLON.MeshBuilder.CreateBox(
+        `${linkName}_dummy`,
+        { size: 0.01 },
+        scene
+      );
+      linkMesh.isVisible = false;
+      linkMesh.parent = linkNode;
+      linkMesh.position = BABYLON.Vector3.Zero();
+    }
+
+    // Create link entity
+    const linkEntity = registry.create({
+      mesh: linkMesh,
+      metadata: {
+        name: linkName,
+        type: 'link',
+      },
+    });
+
+    // Add as child of device entity
+    deviceEntity.addChild(linkEntity);
+    linkEntities.push(linkEntity);
+  }
+
+    console.log(`✓ Created device entity for ${urdf.robotName} with ${linkEntities.length} link entities`);
+
+    return { deviceEntity, linkEntities, meshes, rootNodes };
+  } catch (error) {
+    console.error('❌ [loadURDFAsDeviceEntity] ERROR:', error);
+    throw error;
+  }
 }
 
 /**

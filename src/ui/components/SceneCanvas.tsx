@@ -4,7 +4,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import { SceneManager } from '../../scene/SceneManager';
-import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { RapierPhysicsEngine } from '../../physics/RapierPhysicsEngine';
 import { EntityRegistry } from '../../entities/EntityRegistry';
 import { TransformGizmo } from '../../manipulation/TransformGizmo';
@@ -99,6 +98,12 @@ export const SceneCanvas: React.FC = () => {
                 !mesh.name.startsWith('label') &&
                 mesh instanceof BABYLON.Mesh
               ) {
+                // Check if this mesh belongs to a device entity
+                const deviceEntity = registry.getDeviceByMesh(mesh);
+
+                // Alt+Click to select individual link instead of device
+                const selectIndividualLink = evt.altKey;
+
                 // Ctrl+Click for multi-selection
                 if (evt.ctrlKey || evt.metaKey) {
                   // For now, just add to mesh selection
@@ -107,7 +112,15 @@ export const SceneCanvas: React.FC = () => {
                 } else {
                   // Regular click - replace selection
                   clearSelection();
-                  selectMesh(mesh);
+
+                  // If part of a device and not Alt+Click, select the device root mesh
+                  if (deviceEntity && !selectIndividualLink) {
+                    const deviceMesh = deviceEntity.getMesh();
+                    selectMesh(deviceMesh);
+                  } else {
+                    // Select the individual mesh
+                    selectMesh(mesh);
+                  }
                 }
               }
             } else {
@@ -149,11 +162,24 @@ export const SceneCanvas: React.FC = () => {
   // Update gizmo when selection or mode changes
   useEffect(() => {
     if (!gizmoRef.current) return;
+    const registry = EntityRegistry.getInstance();
 
     if (selectedMeshes.length > 0) {
-      // Attach gizmo to first selected mesh
-      gizmoRef.current.attachToMesh(selectedMeshes[0]);
-      gizmoRef.current.setMode(transformMode);
+      const selectedMesh = selectedMeshes[0];
+      const entity = registry.getByMesh(selectedMesh);
+
+      // If this is a device entity, attach gizmo to the root transform node
+      if (entity && entity.getIsDevice()) {
+        const rootNode = entity.getRootTransformNode();
+        if (rootNode) {
+          gizmoRef.current.attachToNode(rootNode);
+          gizmoRef.current.setMode(transformMode);
+        }
+      } else {
+        // Regular mesh - attach directly
+        gizmoRef.current.attachToMesh(selectedMesh);
+        gizmoRef.current.setMode(transformMode);
+      }
     } else {
       // Detach gizmo when nothing selected
       gizmoRef.current.attachToMesh(null);
@@ -167,31 +193,38 @@ export const SceneCanvas: React.FC = () => {
     const highlightLayer = highlightLayerRef.current;
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
+    const registry = EntityRegistry.getInstance();
     if (!scene) return;
 
     // Clear all highlights
     highlightLayer.removeAllMeshes();
 
-    // Get all selected node IDs (includes multi-selection)
-    const allSelectedIds = selectedNodeIds.length > 0 ? selectedNodeIds :
-                           (selectedMeshes.length > 0 ? [useEditorStore.getState().selectedNodeId].filter(Boolean) : []);
+    // Highlight selected meshes
+    if (selectedMeshes.length > 0) {
+      selectedMeshes.forEach((mesh, index) => {
+        const entity = registry.getByMesh(mesh);
 
-    if (allSelectedIds.length > 0) {
-      const tree = SceneTreeManager.getInstance();
+        // If this is a device entity, highlight all child link entity meshes
+        if (entity && entity.getIsDevice()) {
+          const linkEntities = entity.getChildren();
 
-      // Highlight all selected meshes
-      allSelectedIds.forEach((nodeId, index) => {
-        if (!nodeId) return;
-        const node = tree.getNode(nodeId);
-        if (!node || node.type !== 'mesh' || !node.babylonMeshId) return;
-
-        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
-        if (mesh && mesh instanceof BABYLON.Mesh) {
-          // Use different colors for multi-selection: first = green, others = orange
           const color = index === 0
             ? new BABYLON.Color3(0.28, 0.73, 0.47) // Green for primary selection
             : new BABYLON.Color3(1.0, 0.6, 0.0);    // Orange for additional selections
 
+          linkEntities.forEach(linkEntity => {
+            const linkMesh = linkEntity.getMesh();
+            // Skip invisible meshes and dummy meshes
+            if (linkMesh && linkMesh.isVisible &&
+                !linkMesh.name.includes('_dummy')) {
+              highlightLayer.addMesh(linkMesh, color);
+            }
+          });
+        } else if (mesh && mesh.isVisible) {
+          // Regular mesh - highlight directly
+          const color = index === 0
+            ? new BABYLON.Color3(0.28, 0.73, 0.47)
+            : new BABYLON.Color3(1.0, 0.6, 0.0);
           highlightLayer.addMesh(mesh, color);
         }
       });

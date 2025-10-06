@@ -120,4 +120,31 @@ export class EntityRegistry {
   count(): number {
     return this.entities.size;
   }
+
+  /**
+   * Get entity by mesh
+   */
+  getByMesh(mesh: any): SceneEntity | undefined {
+    const entityId = mesh.metadata?.entityId;
+    if (entityId) {
+      return this.entities.get(entityId);
+    }
+    return undefined;
+  }
+
+  /**
+   * Get all device entities
+   */
+  getDevices(): SceneEntity[] {
+    return this.getAll().filter(entity => entity.getIsDevice());
+  }
+
+  /**
+   * Get device entity by mesh (traverse up hierarchy)
+   */
+  getDeviceByMesh(mesh: any): SceneEntity | null {
+    const entity = this.getByMesh(mesh);
+    if (!entity) return null;
+    return entity.getRootDevice();
+  }
 }

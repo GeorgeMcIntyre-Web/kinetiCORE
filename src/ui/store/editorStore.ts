@@ -10,7 +10,6 @@ import { EntityRegistry } from '../../entities/EntityRegistry';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { userToBabylon, babylonToUser } from '../../core/CoordinateSystem';
 import { loadModelFromFile, getAllChildren } from '../../scene/ModelLoader';
-import { loadURDFWithMeshes } from '../../loaders/urdf/URDFLoaderWithMeshes';
 import { createKinematicsFromURDF } from '../../loaders/urdf/URDFJointExtractor';
 import { saveWorldToFile, loadWorldFromFile, restoreWorldState } from '../../scene/WorldSerializer';
 import { CustomFrameHelper } from '../../scene/CustomFrameHelper';
@@ -36,6 +35,7 @@ interface EditorState {
   customFrame: CustomFrameFeature | null;
   coordinateFrameWidget: CoordinateFrameWidget | null;
   commandManager: CommandManager;
+  panelLayout: any | null; // Dockview panel layout state
 
   // Actions
   undo: () => void;
@@ -73,6 +73,8 @@ interface EditorState {
   setCustomFrame: (frame: CustomFrameFeature | null) => void;
   handleSceneClickForCustomFrame: (pickInfo: BABYLON.PickingInfo) => void;
   initializeCoordinateFrameWidget: () => void;
+  savePanelLayout: (layout: any) => void;
+  loadPanelLayout: () => any | null;
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -87,6 +89,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   customFrame: null,
   coordinateFrameWidget: null,
   commandManager: new CommandManager(),
+  panelLayout: null,
 
   // Undo/Redo actions
   undo: () => {
@@ -133,10 +136,26 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const node = tree.getNode(nodeId);
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
+    const registry = EntityRegistry.getInstance();
     const { coordinateFrameWidget } = get();
 
-    // If it's a mesh node with babylonMeshId
-    if (node && node.babylonMeshId && scene) {
+    // Check if this node has an entity ID (device or link entity)
+    if (node && node.entityId) {
+      const entity = registry.get(node.entityId);
+
+      if (entity) {
+        // If it's a device entity, select the device mesh (triggers device highlighting)
+        if (entity.getIsDevice()) {
+          set({ selectedMeshes: [entity.getMesh()] });
+        } else {
+          // Check if this entity is a child of a device (it's a link)
+          // For links, select the link mesh directly
+          set({ selectedMeshes: [entity.getMesh()] });
+        }
+      }
+    }
+    // If it's a mesh node with babylonMeshId (legacy/non-device meshes)
+    else if (node && node.babylonMeshId && scene) {
       const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
       if (mesh && mesh instanceof BABYLON.Mesh) {
         set({ selectedMeshes: [mesh] });
@@ -668,6 +687,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     const tree = SceneTreeManager.getInstance();
     const assetsNode = tree.getAssetsNode();
+    const registry = EntityRegistry.getInstance();
 
     loading.start('Loading model...', 'uploading');
 
@@ -691,9 +711,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       }
 
       // Load model - now returns both meshes and root nodes
-      const { meshes, rootNodes } = isURDF && meshFilesToUse.length > 0
-        ? await (await import('../../loaders/urdf/URDFLoaderWithMeshes')).loadURDFWithMeshes(file, meshFilesToUse, scene)
-        : await loadModelFromFile(file, scene);
+      let meshes: BABYLON.AbstractMesh[];
+      let rootNodes: BABYLON.TransformNode[];
+      let deviceEntity: any = null;
+
+      if (isURDF && meshFilesToUse.length > 0) {
+        // Load URDF as device entity
+        const urdfLoader = await import('../../loaders/urdf/URDFLoaderWithMeshes');
+        const result = await urdfLoader.loadURDFAsDeviceEntity(file, meshFilesToUse, scene, registry);
+        meshes = result.meshes;
+        rootNodes = result.rootNodes;
+        deviceEntity = result.deviceEntity;
+      } else {
+        const result = await loadModelFromFile(file, scene);
+        meshes = result.meshes;
+        rootNodes = result.rootNodes;
+      }
 
       loading.update('Processing geometry...', 50);
 
@@ -713,12 +746,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Get the model name from the file
       const modelName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
 
-      // Create a collection for this model
+      // Create a collection for this model (or device node for URDF)
+      const nodeType = deviceEntity ? 'collection' : 'collection'; // Use 'device' type when available
       const modelCollection = tree.createNode(
-        'collection',
+        nodeType,
         modelName,
         assetsNode?.id || null
       );
+
+      // Link device entity to tree node
+      if (deviceEntity) {
+        modelCollection.entityId = deviceEntity.getId();
+      }
 
       // Recursive function - creates tree nodes for all nodes (TransformNodes and Meshes)
       const buildTreeForNode = (node: BABYLON.TransformNode, parentNodeId: string | null, depth: number = 0): void => {
@@ -754,6 +793,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         // Link to mesh if applicable
         if (isMesh) {
           treeNode.babylonMeshId = node.uniqueId.toString();
+
+          // If this is a device entity, link to the corresponding link entity
+          if (deviceEntity) {
+            const linkEntity = deviceEntity.getChildren().find((child: any) => {
+              const childMesh = child.getMesh();
+              return childMesh && childMesh.uniqueId === node.uniqueId;
+            });
+            if (linkEntity) {
+              treeNode.entityId = linkEntity.getId();
+            }
+          }
         }
 
         // Recursively process all children
@@ -814,6 +864,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     const tree = SceneTreeManager.getInstance();
     const assetsNode = tree.getAssetsNode();
+    const registry = EntityRegistry.getInstance();
 
     loading.start('Loading URDF folder...', 'uploading');
 
@@ -827,8 +878,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       console.log(`Found URDF: ${urdfFile.name}`);
       console.log(`Total files: ${files.length}`);
 
-      // Load URDF with meshes
-      const { meshes, rootNodes } = await loadURDFWithMeshes(urdfFile, files, scene);
+      // Load URDF as device entity
+      const { meshes, rootNodes, deviceEntity } = await (await import('../../loaders/urdf/URDFLoaderWithMeshes')).loadURDFAsDeviceEntity(
+        urdfFile,
+        files,
+        scene,
+        registry
+      );
       loading.update('Processing geometry...', 50);
 
       // Get the model name from the file
@@ -840,6 +896,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         modelName,
         assetsNode?.id || null
       );
+
+      // Link device entity to tree node
+      if (deviceEntity) {
+        modelCollection.entityId = deviceEntity.getId();
+      }
 
       // Recursive function - creates tree nodes for all nodes (TransformNodes and Meshes)
       const buildTreeForNode = (node: BABYLON.TransformNode, parentNodeId: string | null, depth: number = 0): void => {
@@ -875,6 +936,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         // Link to mesh if applicable
         if (isMesh) {
           treeNode.babylonMeshId = node.uniqueId.toString();
+
+          // If this is a device entity, link to the corresponding link entity
+          if (deviceEntity) {
+            const linkEntity = deviceEntity.getChildren().find((child: any) => {
+              const childMesh = child.getMesh();
+              return childMesh && childMesh.uniqueId === node.uniqueId;
+            });
+            if (linkEntity) {
+              treeNode.entityId = linkEntity.getId();
+            }
+          }
         }
 
         // Recursively process all children
@@ -1161,5 +1233,29 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     } catch (error) {
       console.error('Error calculating custom frame:', error);
     }
+  },
+
+  // Panel layout persistence
+  savePanelLayout: (layout) => {
+    try {
+      localStorage.setItem('kineticore-panel-layout', JSON.stringify(layout));
+      set({ panelLayout: layout });
+    } catch (error) {
+      console.error('Failed to save panel layout:', error);
+    }
+  },
+
+  loadPanelLayout: () => {
+    try {
+      const saved = localStorage.getItem('kineticore-panel-layout');
+      if (saved) {
+        const layout = JSON.parse(saved);
+        set({ panelLayout: layout });
+        return layout;
+      }
+    } catch (error) {
+      console.error('Failed to load panel layout:', error);
+    }
+    return null;
   },
 }));
