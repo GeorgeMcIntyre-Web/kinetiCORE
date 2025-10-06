@@ -30,21 +30,34 @@
 
 import * as BABYLON from '@babylonjs/core';
 import { DWGParserService } from './DWGParserService';
+import { DWGDatabaseParser } from './DWGDatabaseParser';
 import { DWGToBabylonConverter } from './DWGToBabylonConverter';
+import { DWGDatabaseToBabylonConverter } from './DWGDatabaseToBabylonConverter';
 import { DWGImportError } from './errors';
 import { DWGLoaderOptions, DWGImportProgress } from './types';
 
-// Singleton parser instance (WASM module is expensive to initialize)
+// Singleton parser instances (WASM module is expensive to initialize)
 let parserInstance: DWGParserService | null = null;
+let databaseParserInstance: DWGDatabaseParser | null = null;
 
 /**
- * Get or create DWG parser instance
+ * Get or create DWG parser instance (legacy)
  */
 function getParser(): DWGParserService {
   if (!parserInstance) {
     parserInstance = new DWGParserService();
   }
   return parserInstance;
+}
+
+/**
+ * Get or create DWG database parser instance (new - with block support)
+ */
+function getDatabaseParser(): DWGDatabaseParser {
+  if (!databaseParserInstance) {
+    databaseParserInstance = new DWGDatabaseParser();
+  }
+  return databaseParserInstance;
 }
 
 /**
@@ -79,8 +92,8 @@ export async function loadDWGFromFile(
   });
 
   try {
-    // Parse DWG file
-    const parser = getParser();
+    // Use new database parser with block support
+    const parser = getDatabaseParser();
     const parseResult = await parser.parseDWG(file, onProgress);
 
     // Log warnings if any
@@ -92,20 +105,52 @@ export async function loadDWGFromFile(
     console.log('[DWG Loader] Parse result:', {
       entities: parseResult.entityCount,
       types: parseResult.entityTypes,
+      blocks: parseResult.blockCount,
+      blockNames: parseResult.blockNames,
       layers: parseResult.layers.size,
       warnings: parseResult.warnings.length
     });
 
-    // Convert to Babylon meshes
-    const converter = new DWGToBabylonConverter(scene, options);
-    const result = await converter.convert(parseResult.database, onProgress);
-
-    console.log(`[DWG Loader] Successfully loaded ${file.name}:`, {
-      meshes: result.meshes.length,
-      rootNodes: result.rootNodes.length
+    // Convert to Babylon meshes using new database converter
+    const converter = new DWGDatabaseToBabylonConverter({
+      scene,
+      unitScale: options.unitScale || 0.001,
+      batchByColor: true,
+      expandBlocks: true,
+      debugLogging: true
     });
 
-    return result;
+    onProgress?.({
+      percent: 75,
+      message: 'Converting geometry to 3D meshes...',
+      stage: 'converting'
+    });
+
+    const conversionResult = await converter.convert(parseResult.database);
+
+    onProgress?.({
+      percent: 100,
+      message: 'Complete',
+      stage: 'converting'
+    });
+
+    console.log(`[DWG Loader] Successfully loaded ${file.name}:`, {
+      meshes: conversionResult.meshes.length,
+      entities: conversionResult.entityCount,
+      blockInstances: conversionResult.blockInstanceCount,
+      conversionTime: `${conversionResult.conversionTime.toFixed(2)}ms`
+    });
+
+    // Create root node for organization
+    const rootNode = new BABYLON.TransformNode(`dwg_${file.name}`, scene);
+    conversionResult.meshes.forEach(mesh => {
+      mesh.parent = rootNode;
+    });
+
+    return {
+      meshes: conversionResult.meshes,
+      rootNodes: [rootNode]
+    };
   } catch (error) {
     if (error instanceof DWGImportError) {
       console.error('[DWG Loader] Import failed:', error.getUserMessage());
