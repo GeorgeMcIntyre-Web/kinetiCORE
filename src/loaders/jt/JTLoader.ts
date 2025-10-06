@@ -1,6 +1,29 @@
 /**
  * JT file loader using PyOpenJt backend conversion service
  * Supports JT versions 8.0, 9.0, and 10.x via JT → GLB conversion
+ *
+ * IMPORTANT: Tree Structure Preservation
+ * ======================================
+ * This loader preserves the full hierarchical tree structure from JT files.
+ * The assembly hierarchy (Parts, Subassemblies, Components) is maintained
+ * exactly as authored in the CAD system.
+ *
+ * Tree structure example from JT file:
+ *   9X_200_2E1_TEST
+ *   ├─ 9X_200_2E1
+ *   │  ├─ UNIT_104
+ *   │  │  └─ RH
+ *   │  │     └─ FIXED
+ *   │  ├─ UNIT_102
+ *   │  │  ├─ RH
+ *   │  │  │  ├─ MOVING
+ *   │  │  │  ├─ FIXED
+ *   │  │  │  └─ CoSys
+ *   │  │  └─ WIRE
+ *   │  │     └─ OPEN
+ *   │  └─ UNIT_106...
+ *
+ * All transform nodes and their parent-child relationships are preserved.
  */
 
 import * as BABYLON from '@babylonjs/core';
@@ -85,57 +108,118 @@ export async function loadJTFromFile(
             '.gltf'
         );
 
-        console.log(`[JT Import] Loaded ${result.meshes.length} meshes from ${file.name}`);
+        console.log(
+            `[JT Import] Loaded ${result.meshes.length} meshes, ` +
+            `${result.transformNodes.length} transform nodes from ${file.name}`
+        );
 
-        // Flatten hierarchy: Move all meshes to root level
-        const flattenedMeshes: BABYLON.AbstractMesh[] = [];
-        const rootNode = new BABYLON.TransformNode(file.name.replace('.jt', ''), scene);
+        // Validate that we have content to load
+        if (result.meshes.length === 0 && result.transformNodes.length === 0) {
+            throw new JTImportError(
+                JTErrorType.MissingGeometry,
+                'JT file contains no geometry or structure data',
+                false
+            );
+        }
 
+        // Preserve hierarchical tree structure
+        // Previous implementation flattened all meshes to root level, losing assembly structure
+        // New approach: Keep all parent-child relationships intact for CAD assembly workflows
+        const processedMeshes: BABYLON.AbstractMesh[] = [];
+        const rootNodes: BABYLON.TransformNode[] = [];
+
+        // Create a single root node for the entire JT assembly
+        const assemblyRoot = new BABYLON.TransformNode(
+            file.name.replace('.jt', ''),
+            scene
+        );
+
+        // Find actual root nodes (nodes with no parent or __root__ parent)
+        const findRootNodes = () => {
+            const roots: BABYLON.Node[] = [];
+
+            // Collect all meshes and transform nodes
+            const allNodes = [...result.meshes, ...result.transformNodes];
+
+            for (const node of allNodes) {
+                // Check if this is a root-level node
+                const isRootLevel = !node.parent ||
+                                  node.parent.name === '__root__' ||
+                                  !node.parent.name;
+
+                const isNotRootNode = node.name !== '__root__';
+
+                if (isRootLevel && isNotRootNode) {
+                    roots.push(node);
+                }
+            }
+
+            return roots;
+        };
+
+        const roots = findRootNodes();
+
+        // If no roots found, all nodes might be children - find top-level hierarchy
+        if (roots.length === 0) {
+            console.warn('[JT Import] No root nodes found, using all top-level nodes');
+            // Use all nodes that don't have __root__ name
+            const allNodes = [...result.meshes, ...result.transformNodes];
+            roots.push(...allNodes.filter(n => n.name !== '__root__'));
+        }
+
+        // Reparent root nodes to our assembly root
+        roots.forEach(rootNode => {
+            if (rootNode instanceof BABYLON.TransformNode || rootNode instanceof BABYLON.Mesh) {
+                rootNode.setParent(assemblyRoot);
+            }
+        });
+
+        // Add JT metadata to all meshes and preserve hierarchy
         result.meshes.forEach(mesh => {
-            // Skip root __root__ nodes that Babylon creates
-            if (mesh.name === '__root__') {
-                return;
+            if (mesh.name !== '__root__') {
+                // Add JT metadata
+                if (!mesh.metadata) {
+                    mesh.metadata = {};
+                }
+                mesh.metadata.sourceFormat = 'jt';
+                mesh.metadata.originalFile = file.name;
+                mesh.metadata.convertedVia = 'pyopenjt';
+
+                processedMeshes.push(mesh);
             }
-
-            // Bake the transform from the hierarchy
-            if (mesh.parent) {
-                // Compute world matrix
-                mesh.computeWorldMatrix(true);
-                const worldMatrix = mesh.getWorldMatrix();
-
-                // Remove from parent
-                mesh.setParent(null);
-
-                // Apply the baked transform
-                worldMatrix.decompose(mesh.scaling, mesh.rotationQuaternion!, mesh.position);
-            }
-
-            // Attach to our flat root node
-            mesh.setParent(rootNode);
-
-            // Add JT metadata
-            if (!mesh.metadata) {
-                mesh.metadata = {};
-            }
-            mesh.metadata.sourceFormat = 'jt';
-            mesh.metadata.originalFile = file.name;
-            mesh.metadata.convertedVia = 'pyopenjt';
-
-            flattenedMeshes.push(mesh);
         });
 
-        // Clean up old transform nodes
+        // Add metadata to transform nodes as well
         result.transformNodes.forEach(node => {
-            if (node.name !== '__root__' && node !== rootNode) {
-                node.dispose();
+            if (node.name !== '__root__' && node !== assemblyRoot) {
+                if (!node.metadata) {
+                    node.metadata = {};
+                }
+                node.metadata.sourceFormat = 'jt';
+                node.metadata.originalFile = file.name;
+                node.metadata.convertedVia = 'pyopenjt';
             }
         });
 
-        console.log(`[JT Import] Flattened to ${flattenedMeshes.length} meshes under root node`);
+        // Clean up only the __root__ node if it exists
+        const babylonRoot = result.meshes.find(m => m.name === '__root__');
+        if (babylonRoot) {
+            babylonRoot.dispose();
+        }
+
+        console.log(
+            `[JT Import] Preserved hierarchy: ${processedMeshes.length} meshes, ` +
+            `${result.transformNodes.length} transform nodes under assembly root`
+        );
+
+        // Log tree structure for debugging
+        logTreeStructure(assemblyRoot, 0);
+
+        rootNodes.push(assemblyRoot);
 
         return {
-            meshes: flattenedMeshes,
-            rootNodes: [rootNode]
+            meshes: processedMeshes,
+            rootNodes: rootNodes
         };
 
     } catch (error) {
@@ -367,4 +451,33 @@ export class JTLoader {
 
         return babylonMesh;
     }
+}
+
+/**
+ * Log hierarchical tree structure for debugging
+ * @param node - Root node to start logging from
+ * @param depth - Current depth level
+ * @param prefix - Prefix for tree visualization
+ */
+function logTreeStructure(
+    node: BABYLON.Node,
+    depth: number = 0,
+    prefix: string = ''
+): void {
+    const indent = '  '.repeat(depth);
+    const nodeType = node instanceof BABYLON.Mesh ? 'Mesh' :
+                    node instanceof BABYLON.TransformNode ? 'Transform' : 'Node';
+
+    console.log(
+        `${indent}${prefix}${node.name} [${nodeType}] ` +
+        `(children: ${node.getChildren().length})`
+    );
+
+    // Recursively log children
+    const children = node.getChildren();
+    children.forEach((child, index) => {
+        const isLast = index === children.length - 1;
+        const childPrefix = isLast ? '└─ ' : '├─ ';
+        logTreeStructure(child, depth + 1, childPrefix);
+    });
 }
