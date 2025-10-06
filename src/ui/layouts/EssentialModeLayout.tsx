@@ -188,39 +188,7 @@ export const EssentialModeLayout: React.FC = () => {
           <span className="mode-badge">Essential</span>
         </div>
         <div className="header-center">
-          {/* Toolbar */}
-          <div className="essential-toolbar">
-            <button
-              className="toolbar-btn active"
-              onClick={() => {}}
-              title="Move & Rotate (Combined)"
-            >
-              <div style={{ position: 'relative', width: 20, height: 20 }}>
-                <Move size={16} style={{ position: 'absolute', top: 0, left: 0 }} />
-                <RotateCw size={12} style={{ position: 'absolute', bottom: 0, right: 0 }} />
-              </div>
-            </button>
-            <div className="toolbar-separator"></div>
-            <button className="toolbar-btn" onClick={() => createObject('box')} title="Create Box">
-              <Box size={20} />
-            </button>
-            <button className="toolbar-btn" onClick={() => createObject('sphere')} title="Create Sphere">
-              <Circle size={20} />
-            </button>
-            <button className="toolbar-btn" onClick={() => createObject('cylinder')} title="Create Cylinder">
-              <Cylinder size={20} />
-            </button>
-            <div className="toolbar-separator"></div>
-            <button className="toolbar-btn" onClick={handleFileImport} title="Import Model">
-              <Upload size={20} />
-            </button>
-            <button className="toolbar-btn" onClick={handleLoadWorld} title="Load World">
-              <FolderOpen size={20} />
-            </button>
-            <button className="toolbar-btn" onClick={saveWorld} title="Save World">
-              <Save size={20} />
-            </button>
-          </div>
+          {/* Toolbar moved to viewport */}
         </div>
         <div className="header-right">
           <select
@@ -256,6 +224,38 @@ export const EssentialModeLayout: React.FC = () => {
 
         {/* Main Viewport */}
         <main className="essential-viewport">
+          {/* Floating Toolbar */}
+          <div className="floating-toolbar">
+            <button
+              className="toolbar-btn active"
+              onClick={() => {}}
+              title="Move & Rotate (Combined)"
+            >
+              <div style={{ position: 'relative', width: 14, height: 14 }}>
+                <Move size={12} style={{ position: 'absolute', top: 0, left: 0 }} />
+                <RotateCw size={9} style={{ position: 'absolute', bottom: 0, right: 0 }} />
+              </div>
+            </button>
+            <button className="toolbar-btn" onClick={() => createObject('box')} title="Create Box">
+              <Box size={14} />
+            </button>
+            <button className="toolbar-btn" onClick={() => createObject('sphere')} title="Create Sphere">
+              <Circle size={14} />
+            </button>
+            <button className="toolbar-btn" onClick={() => createObject('cylinder')} title="Create Cylinder">
+              <Cylinder size={14} />
+            </button>
+            <button className="toolbar-btn" onClick={handleFileImport} title="Import Model">
+              <Upload size={14} />
+            </button>
+            <button className="toolbar-btn" onClick={handleLoadWorld} title="Load World">
+              <FolderOpen size={14} />
+            </button>
+            <button className="toolbar-btn" onClick={saveWorld} title="Save World">
+              <Save size={14} />
+            </button>
+          </div>
+
           {/* Viewport Controls */}
           <div className="viewport-controls">
             <button className="control-btn" title="Reset View" onClick={handleResetView}>
