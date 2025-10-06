@@ -8,9 +8,9 @@
 
 import { createModule } from '@mlightcad/libredwg-web';
 import { AcDbLibreDwgConverter } from '@mlightcad/libredwg-converter';
-import { AcDbDatabaseConverterManager, AcDbFileType } from '@mlightcad/data-model';
+import { AcDbDatabase } from '@mlightcad/data-model';
 import { DWGImportError } from './errors';
-import { DWGErrorType, DWGImportProgress, LIBREDWG_ERROR_CODES } from './types';
+import { DWGErrorType, DWGImportProgress } from './types';
 
 /**
  * Result of DWG database parsing
@@ -60,11 +60,8 @@ export class DWGDatabaseParser {
         }
       });
 
-      // Create converter
-      this.converter = new AcDbLibreDwgConverter(this.libredwgModule);
-
-      // Register converter with manager
-      AcDbDatabaseConverterManager.instance.register(AcDbFileType.DWG, this.converter);
+      // Create converter (no need to register with manager, we'll use it directly)
+      this.converter = new AcDbLibreDwgConverter();
 
       this.isInitialized = true;
       console.log('[DWG Database Parser] Converter initialized successfully');
@@ -116,11 +113,27 @@ export class DWGDatabaseParser {
         stage: 'parsing'
       });
 
-      // Convert to database using converter manager
+      // Create new database and use converter to populate it
       console.log(`[DWG Database Parser] Converting ${fileName}...`);
-      const database = await AcDbDatabaseConverterManager.instance.read(
-        AcDbFileType.DWG,
-        new Uint8Array(fileBuffer)
+      const database = new AcDbDatabase();
+
+      // Convert using the converter's read method
+      await this.converter!.read(
+        fileBuffer,
+        database,
+        100, // minimumChunkSize for batch processing
+        async (percentage, stage, stageStatus, data, error) => {
+          // Map converter progress to our progress format
+          onProgress?.({
+            percent: Math.floor(30 + (percentage * 0.4)), // 30-70% range
+            message: `${stage}: ${stageStatus}`,
+            stage: 'converting'
+          });
+
+          if (error) {
+            console.warn(`[DWG Database Parser] ${stage} warning:`, error);
+          }
+        }
       );
 
       // Report progress: Analyzing
