@@ -173,12 +173,12 @@ export const SceneCanvas: React.FC = () => {
         const rootNode = entity.getRootTransformNode();
         if (rootNode) {
           gizmoRef.current.attachToNode(rootNode);
-          gizmoRef.current.setMode(transformMode);
+          gizmoRef.current.setMode('combined');
         }
       } else {
         // Regular mesh - attach directly
         gizmoRef.current.attachToMesh(selectedMesh);
-        gizmoRef.current.setMode(transformMode);
+        gizmoRef.current.setMode('combined');
       }
     } else {
       // Detach gizmo when nothing selected

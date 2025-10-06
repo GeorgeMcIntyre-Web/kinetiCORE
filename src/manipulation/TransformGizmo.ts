@@ -28,19 +28,19 @@ export class TransformGizmo {
   }
 
   /**
-   * Set the transform mode (translate, rotate, scale)
+   * Set the transform mode (translate, rotate, scale, or combined)
    */
-  setMode(mode: TransformMode): void {
+  setMode(mode: TransformMode | 'combined'): void {
     if (!this.gizmoManager) return;
 
-    this.currentMode = mode;
+    this.currentMode = mode === 'combined' ? 'translate' : mode;
 
     // Disable all gizmos first
     this.gizmoManager.positionGizmoEnabled = false;
     this.gizmoManager.rotationGizmoEnabled = false;
     this.gizmoManager.scaleGizmoEnabled = false;
 
-    // Enable the selected gizmo
+    // Enable the selected gizmo(s)
     switch (mode) {
       case 'translate':
         this.gizmoManager.positionGizmoEnabled = true;
@@ -50,6 +50,11 @@ export class TransformGizmo {
         break;
       case 'scale':
         this.gizmoManager.scaleGizmoEnabled = true;
+        break;
+      case 'combined':
+        // Show both translation and rotation gizmos
+        this.gizmoManager.positionGizmoEnabled = true;
+        this.gizmoManager.rotationGizmoEnabled = true;
         break;
     }
   }
@@ -64,6 +69,19 @@ export class TransformGizmo {
       this.gizmoManager.attachToMesh(mesh);
     } else {
       this.gizmoManager.attachToMesh(null);
+    }
+  }
+
+  /**
+   * Attach gizmo to a transform node (for device entities)
+   */
+  attachToNode(node: BABYLON.TransformNode | null): void {
+    if (!this.gizmoManager) return;
+
+    if (node) {
+      this.gizmoManager.attachToNode(node);
+    } else {
+      this.gizmoManager.attachToNode(null);
     }
   }
 

@@ -27,6 +27,52 @@
   gap: 16px;
 }
 
+.header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.essential-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: #1a202c;
+  border-radius: 8px;
+  border: 1px solid #4a5568;
+}
+
+.toolbar-btn {
+  padding: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbar-btn:hover {
+  background: #48bb78;
+  color: white;
+}
+
+.toolbar-btn.active {
+  background: #48bb78;
+  color: white;
+}
+
+.toolbar-separator {
+  width: 1px;
+  height: 24px;
+  background: #4a5568;
+}
+
 .header-right {
   display: flex;
   align-items: center;
@@ -370,11 +416,11 @@
   opacity: 0.3;
 }
 
-/* Right Sidebar - Scene Tree & Kinematics */
-.essential-right-sidebar {
+/* Left Sidebar - Scene Tree & Kinematics */
+.essential-left-sidebar {
   width: 320px;
   background: #2d3748;
-  border-left: 1px solid #4a5568;
+  border-right: 1px solid #4a5568;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -407,9 +453,58 @@
   z-index: 10;
 }
 
+/* Transform Display */
+.transform-display {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  background: rgba(45, 55, 72, 0.95);
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 16px;
+  min-width: 280px;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+}
+
+.transform-display h4 {
+  margin: 0 0 12px 0;
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.transform-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.transform-value {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.transform-label {
+  font-size: 11px;
+  color: #a0aec0;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.transform-number {
+  font-size: 14px;
+  color: #e2e8f0;
+  font-family: 'Courier New', monospace;
+  font-weight: 500;
+}
+
 /* Responsive */
 @media (max-width: 1400px) {
-  .essential-right-sidebar {
+  .essential-left-sidebar {
     width: 280px;
   }
 }
@@ -418,7 +513,7 @@
   .essential-sidebar {
     width: 300px;
   }
-  .essential-right-sidebar {
+  .essential-left-sidebar {
     display: none; /* Hide on smaller screens */
   }
 }
