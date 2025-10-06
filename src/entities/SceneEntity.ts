@@ -334,17 +334,18 @@ export class SceneEntity {
    * Dispose entity and clean up resources
    */
   dispose(): void {
-    // Dispose children first
-    for (const child of this.children) {
-      child.dispose();
-    }
-    this.children = [];
-
-    // Dispose physics
+    // Dispose physics FIRST to avoid Rapier's "recursive use" errors
+    // This must happen before disposing children to prevent cascading physics issues
     if (this.physicsEngine && this.physicsHandle) {
       this.physicsEngine.removeRigidBody(this.physicsHandle);
       this.physicsHandle = null;
     }
+
+    // Then dispose children
+    for (const child of this.children) {
+      child.dispose();
+    }
+    this.children = [];
 
     // Dispose root transform node if this is a device
     if (this.rootTransformNode) {
@@ -352,7 +353,7 @@ export class SceneEntity {
       this.rootTransformNode = null;
     }
 
-    // Dispose mesh
+    // Dispose mesh last
     this.mesh.dispose();
   }
 }

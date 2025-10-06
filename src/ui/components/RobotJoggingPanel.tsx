@@ -11,6 +11,7 @@ import * as BABYLON from '@babylonjs/core';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import type { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
 import { InverseKinematicsSolver } from '../../kinematics/InverseKinematicsSolver';
+import { babylonToUser, userToBabylon } from '../../core/CoordinateSystem';
 import './RobotJoggingPanel.css';
 
 type JogMode = 'joint' | 'tcp';
@@ -53,10 +54,10 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
       if (robotChain) {
         const endEffectorPose = fkSolver.getEndEffectorPose(robotChain.name);
         if (endEffectorPose) {
-          const pos = endEffectorPose.position;
+          // Convert from Babylon space (Y-up, meters) to User space (Z-up, mm)
+          const userPos = babylonToUser(endEffectorPose.position);
           setTcpPosition(
-            `X:${(pos.x * 1000).toFixed(1)} Y:${(pos.y * 1000).toFixed(1)} ` +
-            `Z:${(pos.z * 1000).toFixed(1)} mm`
+            `X:${userPos.x.toFixed(1)} Y:${userPos.y.toFixed(1)} Z:${userPos.z.toFixed(1)} mm`
           );
         }
       }
@@ -103,20 +104,20 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
 
     const chainName = robotChain.name;
 
-    // Convert mm to meters for position deltas
-    const stepMeters = jogStepTcp / 1000.0;
+    // Create delta in USER space (Z-up, mm)
+    let userDelta = { x: 0, y: 0, z: 0 };
 
-    // eslint-disable-next-line prefer-const -- object properties are mutated below
-    let positionDelta = new BABYLON.Vector3(0, 0, 0);
-
-    // Linear motion
+    // Linear motion in USER space
     if (axis === 'X') {
-      positionDelta.x = stepMeters * direction;
+      userDelta.x = jogStepTcp * direction; // mm
     } else if (axis === 'Y') {
-      positionDelta.y = stepMeters * direction;
+      userDelta.y = jogStepTcp * direction; // mm
     } else if (axis === 'Z') {
-      positionDelta.z = stepMeters * direction;
+      userDelta.z = jogStepTcp * direction; // mm
     }
+
+    // Convert USER delta (Z-up, mm) to BABYLON delta (Y-up, meters)
+    const positionDelta = userToBabylon(userDelta);
 
     // Rotary motion (TODO: requires orientation IK)
     if (axis.startsWith('R')) {
@@ -126,11 +127,17 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
       return;
     }
 
-    // Solve IK for new position
-    const success = ikSolver.moveEndEffector(chainName, positionDelta, 'jacobian');
+    // Try CCD first (more robust), fallback to Jacobian
+    let success = ikSolver.moveEndEffector(chainName, positionDelta, 'ccd');
+
+    if (!success) {
+      console.log('CCD failed, trying Jacobian method...');
+      success = ikSolver.moveEndEffector(chainName, positionDelta, 'jacobian');
+    }
 
     if (!success) {
       console.warn(`IK failed for TCP jog: ${axis} ${direction > 0 ? '+' : '-'}`);
+      console.warn('Target may be out of reach or robot in singular configuration');
     }
   };
 

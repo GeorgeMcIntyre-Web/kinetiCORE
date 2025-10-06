@@ -54,14 +54,16 @@ export class InverseKinematicsSolver {
       stepSize?: number;
       positionWeight?: number;
       orientationWeight?: number;
+      damping?: number;
     } = {}
   ): IKSolution {
     const {
-      maxIterations = 100,
-      tolerance = 0.001,
-      stepSize = 0.1,
+      maxIterations = 300,
+      tolerance = 0.001, // 1mm tolerance - tighter than jog step
+      stepSize = 0.5,
       positionWeight = 1.0,
       orientationWeight = 0.5,
+      damping = 0.01,
     } = options;
 
     const chain = this.kinematicsManager.getChain(chainName);
@@ -79,7 +81,10 @@ export class InverseKinematicsSolver {
     for (iteration = 0; iteration < maxIterations; iteration++) {
       // Compute current end-effector pose
       const currentPose = this.fkSolver.solve(chainName, jointAngles);
-      if (!currentPose) break;
+      if (!currentPose) {
+        console.error('[IK Jacobian] FK solve failed at iteration', iteration);
+        break;
+      }
 
       // Compute position error
       const positionError = target.position.subtract(currentPose.position);
@@ -133,8 +138,8 @@ export class InverseKinematicsSolver {
         orientationError.z * orientationWeight,
       ];
 
-      // Compute joint angle deltas using Jacobian transpose
-      // Δθ = α * J^T * e
+      // Compute joint angle deltas using damped Jacobian transpose
+      // Δθ = α * J^T * (J*J^T + λ²I)^-1 * e (simplified: α * J^T * e with damping)
       const deltaAngles: number[] = Array(jointAngles.length).fill(0);
 
       for (let i = 0; i < jointAngles.length; i++) {
@@ -142,12 +147,17 @@ export class InverseKinematicsSolver {
         for (let j = 0; j < 6; j++) {
           delta += jacobian[j][i] * errorVector[j];
         }
-        deltaAngles[i] = stepSize * delta;
+        // Apply damping to prevent overshoot
+        const dampingFactor = 1.0 / (1.0 + damping * Math.abs(delta));
+        deltaAngles[i] = stepSize * delta * dampingFactor;
       }
+
+      // Adaptive step size based on error magnitude
+      const adaptiveStep = Math.min(1.0, error / 0.1) * stepSize;
 
       // Update joint angles
       for (let i = 0; i < jointAngles.length; i++) {
-        jointAngles[i] += deltaAngles[i];
+        jointAngles[i] += adaptiveStep * deltaAngles[i];
       }
     }
 
@@ -178,11 +188,13 @@ export class InverseKinematicsSolver {
     options: {
       maxIterations?: number;
       tolerance?: number;
+      damping?: number;
     } = {}
   ): IKSolution {
     const {
-      maxIterations = 100,
-      tolerance = 0.001,
+      maxIterations = 300,
+      tolerance = 0.001, // 1mm tolerance - tighter than jog step
+      damping = 0.5,
     } = options;
 
     const chain = this.kinematicsManager.getChain(chainName);
@@ -222,9 +234,8 @@ export class InverseKinematicsSolver {
         const endEffectorPose = this.fkSolver.solve(chainName, jointAngles);
         if (!endEffectorPose) continue;
 
-        // Get joint position (need to solve FK up to this joint)
-        const partialAngles = jointAngles.slice(0, i + 1);
-        const jointPose = this.fkSolver.solve(chainName, partialAngles);
+        // Get joint position (solve FK up to this joint using full joint angles)
+        const jointPose = this.fkSolver.solveUpToJoint(chainName, jointAngles, i);
         if (!jointPose) continue;
 
         const jointPosition = jointPose.position;
@@ -265,8 +276,8 @@ export class InverseKinematicsSolver {
         const cross = BABYLON.Vector3.Cross(toEndEffectorNorm, toTargetNorm);
         const direction = BABYLON.Vector3.Dot(cross, worldAxis);
 
-        // Update joint angle
-        const deltaAngle = angle * Math.sign(direction);
+        // Update joint angle with damping to prevent oscillation
+        const deltaAngle = angle * Math.sign(direction) * damping;
         jointAngles[i] += deltaAngle;
 
         // Clamp to joint limits
@@ -335,7 +346,10 @@ export class InverseKinematicsSolver {
   ): boolean {
     // Get current end-effector pose
     const currentPose = this.fkSolver.getEndEffectorPose(chainName);
-    if (!currentPose) return false;
+    if (!currentPose) {
+      console.error('[IK] Failed to get current end-effector pose');
+      return false;
+    }
 
     // Compute new target position
     const targetPosition = currentPose.position.add(positionDelta);

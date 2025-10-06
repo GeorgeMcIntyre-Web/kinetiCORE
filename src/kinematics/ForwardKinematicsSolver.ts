@@ -348,6 +348,118 @@ export class ForwardKinematicsSolver {
   }
 
   /**
+   * Compute forward kinematics up to a specific joint index
+   * Returns pose at the specified joint given joint angles
+   * @param chainName - Name of the kinematic chain
+   * @param jointAngles - Array of all joint angles
+   * @param upToJointIndex - Compute FK only up to this joint index (inclusive)
+   */
+  solveUpToJoint(
+    chainName: string,
+    jointAngles: number[],
+    upToJointIndex: number
+  ): {
+    position: BABYLON.Vector3;
+    rotation: BABYLON.Quaternion;
+  } | null {
+    const chain = this.kinematicsManager.getChain(chainName);
+    if (!chain) {
+      console.error(`Chain not found: ${chainName}`);
+      return null;
+    }
+
+    const joints = this.kinematicsManager.getChainJoints(chain.id);
+    if (joints.length !== jointAngles.length) {
+      console.error(
+        `Joint count mismatch: expected ${joints.length}, got ${jointAngles.length}`
+      );
+      return null;
+    }
+
+    if (upToJointIndex < 0 || upToJointIndex >= joints.length) {
+      console.error(
+        `Invalid joint index: ${upToJointIndex} (chain has ${joints.length} joints)`
+      );
+      return null;
+    }
+
+    // Start with identity transform at base
+    let accumulatedTransform = BABYLON.Matrix.Identity();
+
+    // Build transformation chain from base up to specified joint
+    for (let i = 0; i <= upToJointIndex; i++) {
+      const joint = joints[i];
+      const angle = jointAngles[i];
+
+      // Create origin translation matrix
+      const originTranslation = BABYLON.Matrix.Translation(
+        joint.origin.x,
+        joint.origin.y,
+        joint.origin.z
+      );
+
+      // Create origin rotation matrix
+      let originRotation = BABYLON.Matrix.Identity();
+      if (joint.originRotation) {
+        const quat = new BABYLON.Quaternion(
+          joint.originRotation.x,
+          joint.originRotation.y,
+          joint.originRotation.z,
+          joint.originRotation.w
+        );
+        originRotation = BABYLON.Matrix.FromQuaternionToRef(
+          quat,
+          new BABYLON.Matrix()
+        );
+      }
+
+      // Create joint rotation/translation matrix based on type
+      let jointTransform = BABYLON.Matrix.Identity();
+
+      if (joint.type === 'revolute') {
+        // Rotation around axis
+        const axis = new BABYLON.Vector3(
+          joint.axis.x,
+          joint.axis.y,
+          joint.axis.z
+        ).normalize();
+        jointTransform = BABYLON.Matrix.RotationAxis(axis, angle);
+      } else if (joint.type === 'prismatic') {
+        // Translation along axis
+        const axis = new BABYLON.Vector3(
+          joint.axis.x,
+          joint.axis.y,
+          joint.axis.z
+        ).normalize();
+        const translation = axis.scale(angle);
+        jointTransform = BABYLON.Matrix.Translation(
+          translation.x,
+          translation.y,
+          translation.z
+        );
+      }
+
+      // Combine: T = T_prev * T_origin * R_origin * T_joint
+      const linkTransform = originTranslation
+        .multiply(originRotation)
+        .multiply(jointTransform);
+
+      accumulatedTransform = accumulatedTransform.multiply(linkTransform);
+    }
+
+    // Extract position and rotation from accumulated transform
+    const position = new BABYLON.Vector3(
+      accumulatedTransform.m[12],
+      accumulatedTransform.m[13],
+      accumulatedTransform.m[14]
+    );
+
+    const rotation = BABYLON.Quaternion.FromRotationMatrix(accumulatedTransform);
+
+    return { position, rotation };
+  }
+
+  /**
    * Compute forward kinematics for a kinematic chain
    * Returns end-effector pose given joint angles
    */
