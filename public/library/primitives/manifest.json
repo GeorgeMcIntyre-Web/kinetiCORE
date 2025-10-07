@@ -1,0 +1,67 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-10-07T00:00:00Z",
+  "totalAssets": 3,
+  "assets": [
+    {
+      "id": "primitive-box",
+      "name": "Box",
+      "domain": "primitives",
+      "assetClass": "primitives",
+      "assetType": "box",
+      "loaderType": "primitive",
+      "filePath": "",
+      "source": "generated",
+      "tags": ["primitive", "cube", "box", "geometry"],
+      "searchKeywords": ["cube", "rectangular", "prism"],
+      "description": "Basic box primitive (1m x 1m x 1m)",
+      "capabilities": {
+        "dimensions": {
+          "length": 1000,
+          "width": 1000,
+          "height": 1000
+        }
+      }
+    },
+    {
+      "id": "primitive-sphere",
+      "name": "Sphere",
+      "domain": "primitives",
+      "assetClass": "primitives",
+      "assetType": "sphere",
+      "loaderType": "primitive",
+      "filePath": "",
+      "source": "generated",
+      "tags": ["primitive", "sphere", "ball", "geometry"],
+      "searchKeywords": ["ball", "round", "circular"],
+      "description": "Basic sphere primitive (1m diameter)",
+      "capabilities": {
+        "dimensions": {
+          "length": 1000,
+          "width": 1000,
+          "height": 1000
+        }
+      }
+    },
+    {
+      "id": "primitive-cylinder",
+      "name": "Cylinder",
+      "domain": "primitives",
+      "assetClass": "primitives",
+      "assetType": "cylinder",
+      "loaderType": "primitive",
+      "filePath": "",
+      "source": "generated",
+      "tags": ["primitive", "cylinder", "tube", "geometry"],
+      "searchKeywords": ["tube", "pipe", "column"],
+      "description": "Basic cylinder primitive (0.5m diameter, 1m height)",
+      "capabilities": {
+        "dimensions": {
+          "length": 500,
+          "width": 500,
+          "height": 1000
+        }
+      }
+    }
+  ]
+}

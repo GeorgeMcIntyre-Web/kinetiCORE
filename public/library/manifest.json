@@ -1,0 +1,37 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-10-07T00:00:00Z",
+  "totalAssets": 0,
+  "domains": [
+    {
+      "id": "manufacturing",
+      "name": "Manufacturing & Robotics",
+      "assetCount": 0,
+      "manifestPath": "manufacturing/manifest.json"
+    },
+    {
+      "id": "logistics",
+      "name": "Warehousing & Logistics",
+      "assetCount": 0,
+      "manifestPath": "logistics/manifest.json"
+    },
+    {
+      "id": "medical",
+      "name": "Medical & Healthcare",
+      "assetCount": 0,
+      "manifestPath": "medical/manifest.json"
+    },
+    {
+      "id": "construction",
+      "name": "Construction & Architecture",
+      "assetCount": 0,
+      "manifestPath": "construction/manifest.json"
+    },
+    {
+      "id": "primitives",
+      "name": "Primitive Shapes",
+      "assetCount": 3,
+      "manifestPath": "primitives/manifest.json"
+    }
+  ]
+}

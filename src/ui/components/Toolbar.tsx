@@ -15,10 +15,13 @@ import {
   FolderOpen,
   Zap,
   Download,
+  Layers,
 } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import { TransformMode } from '../../core/types';
 import { getAcceptedFileTypes } from '../../scene/ModelLoader';
+import { CreateProjectionViewCommand } from '../../history/commands/CreateProjectionViewCommand';
+import { toast } from './ToastNotifications';
 import './Toolbar.css';
 
 interface ToolbarProps {
@@ -34,6 +37,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
   const importURDFFolder = useEditorStore((state) => state.importURDFFolder);
   const saveWorld = useEditorStore((state) => state.saveWorld);
   const loadWorld = useEditorStore((state) => state.loadWorld);
+  const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
+  const commandManager = useEditorStore((state) => state.commandManager);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const worldLoadInputRef = useRef<HTMLInputElement>(null);
@@ -96,6 +101,58 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
       if (worldLoadInputRef.current) {
         worldLoadInputRef.current.value = '';
       }
+    }
+  };
+
+  const handleCreateProjectionView = () => {
+    // Need 2 selected objects: source mesh and target plane
+    if (selectedNodeIds.length !== 2) {
+      toast.warning('Please select exactly 2 objects: 1 mesh and 1 plane');
+      return;
+    }
+
+    const { SceneTreeManager } = require('../../scene/SceneTreeManager');
+    const { SceneManager } = require('../../scene/SceneManager');
+    const tree = SceneTreeManager.getInstance();
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+
+    if (!scene) {
+      toast.error('Scene not initialized');
+      return;
+    }
+
+    // Get both nodes
+    const node1 = tree.getNode(selectedNodeIds[0]);
+    const node2 = tree.getNode(selectedNodeIds[1]);
+
+    if (!node1 || !node2) {
+      toast.error('Selected nodes not found');
+      return;
+    }
+
+    // Get meshes
+    const mesh1 = node1.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node1.babylonMeshId)) : null;
+    const mesh2 = node2.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node2.babylonMeshId)) : null;
+
+    if (!mesh1 || !mesh2) {
+      toast.error('Please select 2 mesh objects');
+      return;
+    }
+
+    // Create projection view command - auto-detect which is source and which is plane
+    // For simplicity, assume first selected is source, second is target plane
+    try {
+      const command = new CreateProjectionViewCommand(
+        mesh1.name,
+        mesh2.name,
+        'auto'
+      );
+      commandManager.execute(command);
+      toast.success('Projection view created!');
+    } catch (error) {
+      console.error('Failed to create projection view:', error);
+      toast.error(`Failed to create projection: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -247,6 +304,25 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
             onChange={handleWorldFileChange}
             style={{ display: 'none' }}
           />
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="toolbar-divider" />
+
+      {/* Projection View */}
+      <div className="toolbar-section">
+        <h3>Views</h3>
+        <div className="button-group">
+          <button
+            className="toolbar-button-icon"
+            onClick={handleCreateProjectionView}
+            title="Create Projection View (Select 1 mesh + 1 plane)"
+            disabled={selectedNodeIds.length !== 2}
+          >
+            <Layers size={16} />
+            <span className="button-label">Project</span>
+          </button>
         </div>
       </div>
 
