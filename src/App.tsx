@@ -13,12 +13,13 @@ import { ProfessionalModeLayout } from './ui/layouts/ProfessionalModeLayout';
 import { ExpertModeLayout } from './ui/layouts/ExpertModeLayout';
 import { AssetLibraryPanel } from './ui/components/AssetLibrary/AssetLibraryPanel';
 import { useAssetLibrary } from './ui/hooks/useAssetLibrary';
+import { useAssetLibraryStore } from './ui/store/assetLibraryStore';
 
 // Main app content that switches layouts based on user level
 const AppContent: React.FC = () => {
   const { userLevel } = useUserLevel();
   const [showKinematicsPanel, setShowKinematicsPanel] = useState(false);
-  const [showAssetLibrary] = useState(true);
+  const showAssetLibrary = useAssetLibraryStore((state) => state.isVisible);
   const {
     handleAssetSelect,
     handleAssetDragStart,

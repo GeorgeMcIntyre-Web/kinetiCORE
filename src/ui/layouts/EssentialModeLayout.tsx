@@ -13,9 +13,11 @@ import {
   Move,
   RotateCw,
   Layers,
+  Library,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
+import { useAssetLibraryStore } from '../store/assetLibraryStore';
 import { SceneTree } from '../components/SceneTree';
 import { KinematicsPanel } from '../components/KinematicsPanel';
 import { FloorSelector } from '../components/FloorSelector';
@@ -37,6 +39,7 @@ export const EssentialModeLayout: React.FC = () => {
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
   const commandManager = useEditorStore((state) => state.commandManager);
+  const toggleLibrary = useAssetLibraryStore((state) => state.toggleVisibility);
 
   const [transform, setTransform] = useState<{
     x: number;
@@ -284,6 +287,9 @@ export const EssentialModeLayout: React.FC = () => {
           <Layers size={18} />
         </button>
         <div className="toolbar-separator" />
+        <button className="toolbar-btn" onClick={toggleLibrary} title="Asset Library">
+          <Library size={18} />
+        </button>
         <button className="toolbar-btn" onClick={handleFileImport} title="Import Model">
           <Upload size={18} />
         </button>

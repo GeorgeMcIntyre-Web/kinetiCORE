@@ -307,6 +307,11 @@ export class DWGDatabaseToBabylonConverter {
         this.linesByColor.set(colorKey, []);
       }
       this.linesByColor.get(colorKey)!.push(vertices);
+
+      // Debug: log batching progress
+      if (this.entityCount <= 5) {
+        this.log(`[DWG Database Converter] Added polyline (${vertices.length} vertices) to ${colorKey}. Total in group: ${this.linesByColor.get(colorKey)!.length}`);
+      }
     } else if (this.entityCount <= 5) {
       this.log(`[DWG Database Converter] Polyline has insufficient vertices: ${vertices.length}`);
     }
@@ -396,14 +401,84 @@ export class DWGDatabaseToBabylonConverter {
    * Process BLOCK REFERENCE (INSERT) entity
    */
   private async processBlockReference(
-    _entity: any,
-    _parentTransform: BABYLON.Matrix | null
+    entity: any,
+    parentTransform: BABYLON.Matrix | null
   ): Promise<void> {
     this.blockInstanceCount++;
 
-    // TODO: Implement block reference expansion
-    // For now, skip INSERT entities - will implement when we have block table iteration
-    this.log('[DWG Database Converter] Skipping INSERT entity (block expansion not yet implemented)');
+    // Get block name
+    const blockName = entity._blockName;
+    if (!blockName) {
+      if (this.entityCount <= 10) {
+        this.log('[DWG Database Converter] INSERT entity missing block name');
+      }
+      return;
+    }
+
+    if (this.entityCount <= 10) {
+      this.log(`[DWG Database Converter] Processing INSERT: block="${blockName}"`);
+    }
+
+    // Get transformation from INSERT entity
+    const position = entity._position; // Vector3
+    const rotation = entity._rotation || 0; // Rotation angle in radians
+    const scale = entity._scaleFactors || { x: 1, y: 1, z: 1 }; // Scale factors
+
+    // Build transformation matrix
+    const transform = BABYLON.Matrix.Identity();
+
+    // Apply scale
+    const scaleMatrix = BABYLON.Matrix.Scaling(scale.x || 1, scale.y || 1, scale.z || 1);
+
+    // Apply rotation (around Z axis)
+    const rotationMatrix = BABYLON.Matrix.RotationZ(rotation);
+
+    // Apply translation
+    const translationMatrix = BABYLON.Matrix.Translation(
+      (position?.x || 0) * this.unitScale,
+      (position?.y || 0) * this.unitScale,
+      (position?.z || 0) * this.unitScale
+    );
+
+    // Combine: Scale * Rotation * Translation
+    scaleMatrix.multiplyToRef(rotationMatrix, transform);
+    transform.multiplyToRef(translationMatrix, transform);
+
+    // Combine with parent transform if exists
+    const finalTransform = parentTransform
+      ? transform.multiply(parentTransform)
+      : transform;
+
+    // Get block definition from database
+    const database = entity._database;
+    if (!database || !database._tables || !database._tables.blockTable) {
+      if (this.entityCount <= 10) {
+        this.log('[DWG Database Converter] INSERT entity missing database reference');
+      }
+      return;
+    }
+
+    const blockTable = database._tables.blockTable;
+    const blockRecord = blockTable._recordsByName?.get(blockName);
+
+    if (!blockRecord || !blockRecord._entities) {
+      if (this.entityCount <= 10) {
+        this.log(`[DWG Database Converter] Block "${blockName}" not found or has no entities`);
+      }
+      return;
+    }
+
+    // Process all entities in the block with the transformation
+    const blockEntities = blockRecord._entities as Map<any, any>;
+    if (this.entityCount <= 10) {
+      this.log(`[DWG Database Converter] Expanding block "${blockName}" with ${blockEntities.size} entities`);
+    }
+
+    for (const [id, blockEntity] of blockEntities) {
+      if (blockEntity) {
+        await this.processEntity(blockEntity, finalTransform);
+      }
+    }
   }
 
   /**
@@ -449,8 +524,17 @@ export class DWGDatabaseToBabylonConverter {
       `[DWG Database Converter] Creating batched meshes from ${this.linesByColor.size} color groups...`
     );
 
+    // Debug: Show detailed breakdown of what we have
+    for (const [colorKey, lineArrays] of this.linesByColor.entries()) {
+      this.log(`[DWG Database Converter] Color group ${colorKey}: ${lineArrays.length} polylines`);
+    }
+
     for (const [colorKey, lineArrays] of this.linesByColor.entries()) {
       if (lineArrays.length === 0) continue;
+
+      this.log(
+        `[DWG Database Converter] Creating mesh ${colorKey} with ${lineArrays.length} line segments...`
+      );
 
       const mesh = BABYLON.MeshBuilder.CreateLineSystem(
         `dwg_lines_${colorKey}`,
@@ -469,9 +553,11 @@ export class DWGDatabaseToBabylonConverter {
       meshes.push(mesh);
 
       this.log(
-        `[DWG Database Converter] Created batched mesh ${colorKey}: ${lineArrays.length} line segments`
+        `[DWG Database Converter] Created batched mesh ${colorKey}: ${lineArrays.length} line segments -> ${mesh.name}`
       );
     }
+
+    this.log(`[DWG Database Converter] Total meshes created: ${meshes.length}`);
 
     return meshes;
   }
