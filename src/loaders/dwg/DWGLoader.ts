@@ -16,16 +16,25 @@
  * - Partial support for newer versions (may show warnings)
  *
  * Supported Entities:
- * - LINE, LWPOLYLINE, POLYLINE
- * - CIRCLE, ARC, ELLIPSE
- * - SPLINE
- * - TEXT, MTEXT (placeholder boxes for now)
+ * - LINE (Wa2) - Full support
+ * - LWPOLYLINE/POLYLINE (Ta2, Ma2) - Full support
+ * - CIRCLE (Ua2) - Full support
+ * - ARC (Va2, xa2) - Full support with 5km sanity checks
+ * - ELLIPSE (ya2) - Full support with 5km sanity checks
+ * - SPLINE (bb2) - Full support
+ * - INSERT (_a2) - Block references with transform support
+ * - HATCH (Pa2) - Solid fills and patterns
  *
- * Not Yet Supported:
- * - INSERT (blocks) - needs block definition system
- * - HATCH - complex pattern fills
- * - DIMENSION - needs dimension rendering
- * - 3DFACE, 3DSOLID - 3D entities
+ * Entities Under Investigation:
+ * - TEXT (Sa2) - ~1,781 entities - logging enabled
+ * - MTEXT (ba2) - ~14,035 entities - logging enabled
+ * - DIMENSION (Da2) - ~1,026 entities - needs complex rendering
+ * - Unknown types: Ia2 (~50,763), ka2, wa2, Na2
+ *
+ * Performance (Typical 1.2M entity file):
+ * - Parse: ~30s (87%) - LibreDWG WASM
+ * - Conversion: ~4s (13%) - Entity processing + mesh batching
+ * - Total: ~35s
  */
 
 import * as BABYLON from '@babylonjs/core';

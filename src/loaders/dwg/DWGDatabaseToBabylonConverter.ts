@@ -213,13 +213,51 @@ export class DWGDatabaseToBabylonConverter {
           this.processHatch(entity, parentTransform);
           break;
 
-        case 'ba2': // Unknown entity type - need to investigate
-        case 'Ia2': // Unknown entity type - need to investigate
-          // Log first occurrence to understand structure
-          if (this.entityTypeStats.get(entityType) === 1 && this.entityCount <= 100) {
-            this.log(`[DWG Database Converter] Unknown entity ${entityType}:`, entity);
+        case 'AcDbText':
+        case 'Sa2': // TEXT entity in LibreDWG - log for investigation
+          if (this.entityTypeStats.get('Sa2') === 1) {
+            console.log('[DWG Converter] Found TEXT entity (Sa2):');
+            console.log('  Properties:', Object.keys(entity));
+            console.log('  _geo keys:', entity._geo ? Object.keys(entity._geo) : 'no _geo');
+            if (entity._geo) {
+              console.log('  _geo values:', entity._geo);
+            }
           }
           break;
+
+        case 'AcDbMText':
+        case 'ba2': // MTEXT entity in LibreDWG - log for investigation
+          if (this.entityTypeStats.get('ba2') === 1) {
+            console.log('[DWG Converter] Found MTEXT entity (ba2):');
+            console.log('  Properties:', Object.keys(entity));
+            console.log('  _geo keys:', entity._geo ? Object.keys(entity._geo) : 'no _geo');
+            if (entity._geo) {
+              console.log('  _geo values:', entity._geo);
+            }
+          }
+          break;
+
+        case 'AcDbDimension':
+        case 'Da2': // DIMENSION entity - skip for now (complex rendering)
+          break;
+
+        case 'Ia2': // Unknown entity type - need to investigate
+        case 'ka2': // Unknown entity type
+        case 'wa2': // Unknown entity type
+        case 'Na2': // Unknown entity type
+          // Log first occurrence to understand structure
+          if (this.entityTypeStats.get(entityType) === 1 && this.entityCount <= 100) {
+            console.log(`[DWG Converter] Unknown entity ${entityType}:`, entity);
+            console.log(`  Properties:`, Object.keys(entity));
+            console.log(`  _geo keys:`, entity._geo ? Object.keys(entity._geo) : 'no _geo');
+          }
+          break;
+
+        case 'AcDbBlockBegin':
+        case 'AcDbBlockEnd':
+        case 'qa2': // BLOCK markers - skip these, they're structural
+        case 'ra2':
+          break; // Skip block markers
 
         default:
           // Skip unsupported entity types (only log once per type)
