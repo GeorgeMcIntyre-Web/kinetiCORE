@@ -394,6 +394,13 @@ export class DWGDatabaseToBabylonConverter {
 
     const center = this.convertPoint(centerPoint, transform);
 
+    // Sanity check: Skip arcs with center far from origin (>5km) or excessive radius (>5km)
+    // Most industrial layouts are <5km, anything larger is likely construction/reference geometry
+    const distanceFromOrigin = Math.sqrt(center.x * center.x + center.y * center.y + center.z * center.z);
+    if (distanceFromOrigin > 5000 || radius > 5000) {
+      return; // Silently skip bad geometry
+    }
+
     // Create arc as polyline approximation
     const segments = 24;
     const points: BABYLON.Vector3[] = [];
@@ -429,6 +436,13 @@ export class DWGDatabaseToBabylonConverter {
     }
 
     const center = this.convertPoint(centerPoint, transform);
+
+    // Sanity check: Skip ellipses with center far from origin (>5km) or excessive size (>5km)
+    // Most industrial layouts are <5km, anything larger is likely construction/reference geometry
+    const distanceFromOrigin = Math.sqrt(center.x * center.x + center.y * center.y + center.z * center.z);
+    if (distanceFromOrigin > 5000 || majorAxisRadius > 5000 || minorAxisRadius > 5000) {
+      return; // Silently skip bad geometry
+    }
 
     // Create ellipse as polyline approximation
     const segments = 32;

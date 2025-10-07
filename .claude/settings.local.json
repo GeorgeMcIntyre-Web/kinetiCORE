@@ -70,7 +70,8 @@
       "Bash(npx tsx:*)",
       "Bash(node:*)",
       "Bash(pkill:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
