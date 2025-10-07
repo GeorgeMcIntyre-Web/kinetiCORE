@@ -47,6 +47,7 @@ export class DWGDatabaseToBabylonConverter {
   private linesByColor = new Map<string, BABYLON.Vector3[][]>();
   private entityCount = 0;
   private blockInstanceCount = 0;
+  private entityTypeStats = new Map<string, number>(); // Track entity types encountered
 
   constructor(options: DWGDatabaseConversionOptions) {
     this.scene = options.scene;
@@ -69,6 +70,7 @@ export class DWGDatabaseToBabylonConverter {
     this.linesByColor.clear();
     this.entityCount = 0;
     this.blockInstanceCount = 0;
+    this.entityTypeStats.clear();
 
     const meshes: BABYLON.Mesh[] = [];
 
@@ -129,6 +131,18 @@ export class DWGDatabaseToBabylonConverter {
     }
 
     this.log(`[DWG Database Converter] Processed ${this.entityCount} entities from modelSpace`);
+
+    // Log entity type statistics
+    this.log(`[DWG Database Converter] Entity type breakdown:`);
+    const sortedStats = Array.from(this.entityTypeStats.entries()).sort((a, b) => b[1] - a[1]);
+    for (const [type, count] of sortedStats) {
+      this.log(`[DWG Database Converter]   ${type}: ${count}`);
+    }
+
+    const totalPolylines = Array.from(this.linesByColor.values()).reduce((sum, lines) => sum + lines.length, 0);
+    this.log(`[DWG Database Converter] Geometry extracted:`);
+    this.log(`[DWG Database Converter]   Total polylines: ${totalPolylines}`);
+    this.log(`[DWG Database Converter]   Layer groups: ${this.linesByColor.size}`);
   }
 
   /**
@@ -149,6 +163,10 @@ export class DWGDatabaseToBabylonConverter {
     }
 
     this.entityCount++;
+
+    // Track entity type statistics
+    const currentCount = this.entityTypeStats.get(entityType) || 0;
+    this.entityTypeStats.set(entityType, currentCount + 1);
 
     // Log first few entities to understand the structure
     if (this.entityCount <= 3) {
@@ -196,6 +214,29 @@ export class DWGDatabaseToBabylonConverter {
         case 'AcDbSpline':
         case 'bb2': // SPLINE entity in LibreDWG
           this.processSpline(entity, parentTransform);
+          break;
+
+        case 'AcDbHatch':
+        case 'Pa2': // HATCH entity (solid fills and patterns)
+          this.processHatch(entity, parentTransform);
+          break;
+
+        case 'AcDbText':
+        case 'xa2': // TEXT entity (single-line text)
+          // Skip text entities for now (can add later if needed)
+          break;
+
+        case 'AcDbMText':
+        case 'ya2': // MTEXT entity (multiline text)
+          // Skip text entities for now (can add later if needed)
+          break;
+
+        case 'ba2': // Unknown entity type - need to investigate
+        case 'Ia2': // Unknown entity type - need to investigate
+          // Log first occurrence to understand structure
+          if (this.entityTypeStats.get(entityType) === 1 && this.entityCount <= 100) {
+            this.log(`[DWG Database Converter] Unknown entity ${entityType}:`, entity);
+          }
           break;
 
         default:
@@ -372,6 +413,90 @@ export class DWGDatabaseToBabylonConverter {
   }
 
   /**
+   * Process HATCH entity (solid fills and patterns)
+   */
+  private processHatch(entity: any, transform: BABYLON.Matrix | null): void {
+    // Hatch entities have boundary loops that define the filled area
+    // For now, extract the boundary as polylines
+
+    // Try to access boundary loops via _geo._boundaryPaths or similar
+    if (entity._geo && entity._geo._boundaryPaths && Array.isArray(entity._geo._boundaryPaths)) {
+      // Process each boundary path as a polyline
+      for (const boundaryPath of entity._geo._boundaryPaths) {
+        if (boundaryPath._edges && Array.isArray(boundaryPath._edges)) {
+          const vertices: BABYLON.Vector3[] = [];
+
+          // Extract vertices from edges
+          for (const edge of boundaryPath._edges) {
+            // Edges could be lines, arcs, ellipses, etc.
+            // For now, just extract start/end points
+            if (edge._startPoint) {
+              const pt = {
+                x: edge._startPoint.x || 0,
+                y: edge._startPoint.y || 0,
+                z: entity._elevation || 0
+              };
+              vertices.push(this.convertPoint(pt, transform));
+            }
+          }
+
+          if (vertices.length >= 2) {
+            const colorKey = this.getEntityColorKey(entity);
+            if (!this.linesByColor.has(colorKey)) {
+              this.linesByColor.set(colorKey, []);
+            }
+            this.linesByColor.get(colorKey)!.push(vertices);
+          }
+        } else if (boundaryPath._vertices && Array.isArray(boundaryPath._vertices)) {
+          // Boundary defined by vertices directly
+          const vertices: BABYLON.Vector3[] = [];
+          for (const vertex of boundaryPath._vertices) {
+            const pt = { x: vertex.x || 0, y: vertex.y || 0, z: entity._elevation || 0 };
+            vertices.push(this.convertPoint(pt, transform));
+          }
+
+          if (vertices.length >= 2) {
+            const colorKey = this.getEntityColorKey(entity);
+            if (!this.linesByColor.has(colorKey)) {
+              this.linesByColor.set(colorKey, []);
+            }
+            this.linesByColor.get(colorKey)!.push(vertices);
+          }
+        }
+      }
+    } else if (entity._geo && entity._geo._loops && Array.isArray(entity._geo._loops)) {
+      // Alternative structure: _loops instead of _boundaryPaths
+      for (const loop of entity._geo._loops) {
+        if (loop._vertices && Array.isArray(loop._vertices)) {
+          const vertices: BABYLON.Vector3[] = [];
+          for (const vertex of loop._vertices) {
+            const pt = { x: vertex.x || 0, y: vertex.y || 0, z: entity._elevation || 0 };
+            vertices.push(this.convertPoint(pt, transform));
+          }
+
+          if (vertices.length >= 2) {
+            const colorKey = this.getEntityColorKey(entity);
+            if (!this.linesByColor.has(colorKey)) {
+              this.linesByColor.set(colorKey, []);
+            }
+            this.linesByColor.get(colorKey)!.push(vertices);
+          }
+        }
+      }
+    }
+
+    // Log first few hatches to understand structure
+    if (this.entityTypeStats.get('Pa2') <= 3) {
+      this.log(`[DWG Database Converter] HATCH #${this.entityTypeStats.get('Pa2')} entity:`, entity);
+      this.log(`[DWG Database Converter] HATCH #${this.entityTypeStats.get('Pa2')} entity._geo:`, entity._geo);
+      this.log(`[DWG Database Converter] HATCH #${this.entityTypeStats.get('Pa2')} keys:`, Object.keys(entity));
+      if (entity._geo) {
+        this.log(`[DWG Database Converter] HATCH #${this.entityTypeStats.get('Pa2')} _geo keys:`, Object.keys(entity._geo));
+      }
+    }
+  }
+
+  /**
    * Process SPLINE entity
    */
   private processSpline(entity: any, transform: BABYLON.Matrix | null): void {
@@ -500,10 +625,27 @@ export class DWGDatabaseToBabylonConverter {
   }
 
   /**
-   * Get entity color as string key for batching
+   * Get entity color/layer as string key for batching
    */
   private getEntityColorKey(entity: any): string {
+    // Try to use layer name for grouping (most reliable in DWG files)
+    if (entity._layer && typeof entity._layer === 'string') {
+      return `layer_${entity._layer}`;
+    }
+
+    // Fallback: try to get color
     try {
+      // Try _color property first
+      if (entity._color) {
+        const color = entity._color;
+        if (typeof color.colorIndex === 'function') {
+          return `color_${color.colorIndex()}`;
+        } else if (typeof color.colorIndex === 'number') {
+          return `color_${color.colorIndex}`;
+        }
+      }
+
+      // Try color() method
       const color = entity.color?.();
       if (color && typeof color.colorIndex === 'function') {
         return `color_${color.colorIndex()}`;
@@ -511,7 +653,8 @@ export class DWGDatabaseToBabylonConverter {
     } catch (e) {
       // Ignore color errors
     }
-    return 'color_7'; // Default white
+
+    return 'layer_0'; // Default layer
   }
 
   /**
@@ -552,8 +695,18 @@ export class DWGDatabaseToBabylonConverter {
 
       meshes.push(mesh);
 
+      // Calculate bounding box for debugging
+      mesh.computeWorldMatrix(true);
+      const boundingInfo = mesh.getBoundingInfo();
+      const min = boundingInfo.minimum;
+      const max = boundingInfo.maximum;
+      const size = max.subtract(min);
+
       this.log(
         `[DWG Database Converter] Created batched mesh ${colorKey}: ${lineArrays.length} line segments -> ${mesh.name}`
+      );
+      this.log(
+        `[DWG Database Converter] Bounding box: min(${min.x.toFixed(2)}, ${min.y.toFixed(2)}, ${min.z.toFixed(2)}) max(${max.x.toFixed(2)}, ${max.y.toFixed(2)}, ${max.z.toFixed(2)}) size(${size.x.toFixed(2)}, ${size.y.toFixed(2)}, ${size.z.toFixed(2)})`
       );
     }
 

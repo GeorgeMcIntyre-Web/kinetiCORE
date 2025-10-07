@@ -32,15 +32,15 @@
   max-width: 900px;
   max-height: 90vh;
 
-  /* Enhanced Glassmorphism */
+  /* Enhanced Glassmorphism - See-through */
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.15) 0%,
-    rgba(255, 255, 255, 0.08) 100%
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.03) 100%
   );
-  backdrop-filter: blur(30px) saturate(180%);
-  -webkit-backdrop-filter: blur(30px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 16px;
   box-shadow:
     0 20px 60px rgba(0, 0, 0, 0.15),
@@ -140,12 +140,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.1) 0%,
-    rgba(255, 255, 255, 0.05) 100%
-  );
-  backdrop-filter: blur(10px);
+  background: transparent;
 }
 
 .asset-library-title {
@@ -165,7 +160,7 @@
 }
 
 .asset-library-control-btn {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 6px;
   cursor: pointer;
@@ -192,16 +187,16 @@
 .asset-library-search {
   padding: 16px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
+  background: transparent;
 }
 
 .asset-library-search-input {
   width: 100%;
   padding: 12px 14px 12px 40px;
-  border: 1.5px solid rgba(59, 130, 246, 0.2);
+  border: 1.5px solid rgba(59, 130, 246, 0.25);
   border-radius: 10px;
   font-size: 14px;
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.18);
   color: rgba(0, 0, 0, 0.9);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -247,18 +242,14 @@
   gap: 10px;
   align-items: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.02) 100%
-  );
+  background: transparent;
 }
 
 .filter-dropdown {
   padding: 8px 14px;
-  border: 1.5px solid rgba(59, 130, 246, 0.2);
+  border: 1.5px solid rgba(59, 130, 246, 0.25);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.12);
   color: rgba(0, 0, 0, 0.9);
   font-size: 13px;
   font-weight: 500;
@@ -278,7 +269,7 @@
   margin-left: auto;
   display: flex;
   gap: 0;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   padding: 2px;
 }
@@ -312,7 +303,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.02);
+  background: transparent;
 }
 
 /* Premium Asset Grid */
@@ -331,10 +322,10 @@
 .asset-card {
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.25) 0%,
-    rgba(255, 255, 255, 0.15) 100%
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.08) 100%
   );
-  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   padding: 10px;
   cursor: grab;
@@ -367,8 +358,8 @@
 .asset-card:hover {
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.35) 0%,
-    rgba(255, 255, 255, 0.25) 100%
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.15) 100%
   );
   border-color: #3b82f6;
   transform: translateY(-4px) scale(1.02);
@@ -387,8 +378,8 @@
   aspect-ratio: 1;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.5) 0%,
-    rgba(255, 255, 255, 0.3) 100%
+    rgba(255, 255, 255, 0.25) 0%,
+    rgba(255, 255, 255, 0.15) 100%
   );
   border-radius: 8px;
   display: flex;
@@ -471,10 +462,10 @@
 .asset-list-item {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.25) 0%,
-    rgba(255, 255, 255, 0.15) 100%
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.08) 100%
   );
-  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   padding: 12px;
   display: flex;
@@ -487,8 +478,8 @@
 .asset-list-item:hover {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.35) 0%,
-    rgba(255, 255, 255, 0.25) 100%
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.15) 100%
   );
   border-color: #3b82f6;
   transform: translateX(4px);
@@ -500,8 +491,8 @@
   height: 52px;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.5) 0%,
-    rgba(255, 255, 255, 0.3) 100%
+    rgba(255, 255, 255, 0.25) 0%,
+    rgba(255, 255, 255, 0.15) 100%
   );
   border-radius: 10px;
   flex-shrink: 0;

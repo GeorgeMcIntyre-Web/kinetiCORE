@@ -105,9 +105,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
   };
 
   const handleCreateProjectionView = () => {
-    // Need 2 selected objects: source mesh and target plane
-    if (selectedNodeIds.length !== 2) {
-      toast.warning('Please select exactly 2 objects: 1 mesh and 1 plane');
+    console.log('Selected node IDs:', selectedNodeIds, 'Count:', selectedNodeIds.length);
+
+    // Need at least 1 object selected
+    if (selectedNodeIds.length === 0) {
+      toast.warning('Please select an object to project');
       return;
     }
 
@@ -122,37 +124,63 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
       return;
     }
 
-    // Get both nodes
-    const node1 = tree.getNode(selectedNodeIds[0]);
-    const node2 = tree.getNode(selectedNodeIds[1]);
+    let sourceMesh: any = null;
+    let targetMesh: any = null;
 
-    if (!node1 || !node2) {
-      toast.error('Selected nodes not found');
+    if (selectedNodeIds.length === 1) {
+      // Single selection: project onto ground
+      const node = tree.getNode(selectedNodeIds[0]);
+      if (!node) {
+        toast.error('Selected node not found');
+        return;
+      }
+
+      sourceMesh = node.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node.babylonMeshId)) : null;
+      targetMesh = scene.getMeshByName('ground');
+
+      if (!sourceMesh) {
+        toast.error('Please select a mesh object');
+        return;
+      }
+
+      if (!targetMesh) {
+        toast.error('Ground plane not found');
+        return;
+      }
+    } else if (selectedNodeIds.length === 2) {
+      // Two selections: project first onto second
+      const node1 = tree.getNode(selectedNodeIds[0]);
+      const node2 = tree.getNode(selectedNodeIds[1]);
+
+      if (!node1 || !node2) {
+        toast.error('Selected nodes not found');
+        return;
+      }
+
+      sourceMesh = node1.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node1.babylonMeshId)) : null;
+      targetMesh = node2.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node2.babylonMeshId)) : null;
+
+      if (!sourceMesh || !targetMesh) {
+        toast.error('Please select 2 mesh objects');
+        return;
+      }
+    } else {
+      toast.warning('Select 1 object (projects to ground) or 2 objects (custom target)');
       return;
     }
 
-    // Get meshes
-    const mesh1 = node1.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node1.babylonMeshId)) : null;
-    const mesh2 = node2.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node2.babylonMeshId)) : null;
-
-    if (!mesh1 || !mesh2) {
-      toast.error('Please select 2 mesh objects');
-      return;
-    }
-
-    // Create projection view command - auto-detect which is source and which is plane
-    // For simplicity, assume first selected is source, second is target plane
+    // Create projection view command
     try {
       const command = new CreateProjectionViewCommand(
-        mesh1.name,
-        mesh2.name,
+        sourceMesh.name,
+        targetMesh.name,
         'auto'
       );
       commandManager.execute(command);
-      toast.success('Projection view created!');
+      toast.success('Projection created!');
     } catch (error) {
       console.error('Failed to create projection view:', error);
-      toast.error(`Failed to create projection: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -317,8 +345,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
           <button
             className="toolbar-button-icon"
             onClick={handleCreateProjectionView}
-            title="Create Projection View (Select 1 mesh + 1 plane)"
-            disabled={selectedNodeIds.length !== 2}
+            title="Create Projection View (Select 1 object or 2 objects)"
+            disabled={selectedNodeIds.length === 0 || selectedNodeIds.length > 2}
           >
             <Layers size={16} />
             <span className="button-label">Project</span>
