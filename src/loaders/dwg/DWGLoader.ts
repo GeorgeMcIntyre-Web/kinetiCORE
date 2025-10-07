@@ -25,9 +25,11 @@
  * - INSERT (_a2) - Block references with transform support
  * - HATCH (Pa2, wa2) - Solid fills and patterns
  *
- * Not Yet Supported:
- * - TEXT (Sa2) - 1,781 entities - needs font rendering system
+ * TEXT Rendering:
+ * - TEXT (Sa2) - ✅ NOW SUPPORTED via MSDF TextRenderer - crisp, scalable labels
  * - MTEXT - No entities found (ba2 was CIRCLE, not MTEXT)
+ *
+ * Not Yet Supported:
  * - DIMENSION (Da2) - 1,026 entities - needs dimension rendering
  * - Unknown types: Ia2 (~50,763), ka2, Na2 - under investigation
  *
@@ -42,6 +44,7 @@ import { DWGParserService } from './DWGParserService';
 import { DWGDatabaseParser } from './DWGDatabaseParser';
 import { DWGToBabylonConverter } from './DWGToBabylonConverter';
 import { DWGDatabaseToBabylonConverter } from './DWGDatabaseToBabylonConverter';
+import { getDWGTextRenderer } from './DWGTextRenderer';
 import { DWGImportError } from './errors';
 import { DWGLoaderOptions, DWGImportProgress } from './types';
 
@@ -140,6 +143,25 @@ export async function loadDWGFromFile(
 
     const conversionResult = await converter.convert(parseResult.database);
 
+    // Initialize and render TEXT entities if any
+    if (conversionResult.textEntities.length > 0) {
+      onProgress?.({
+        percent: 90,
+        message: `Rendering ${conversionResult.textEntities.length} TEXT labels...`,
+        stage: 'converting'
+      });
+
+      try {
+        const textRenderer = getDWGTextRenderer();
+        const engine = scene.getEngine() as BABYLON.Engine; // Cast AbstractEngine to Engine
+        await textRenderer.initialize(engine);
+        textRenderer.addTexts(conversionResult.textEntities);
+      } catch (textError) {
+        console.warn('[DWG Loader] Failed to render TEXT entities:', textError);
+        // Continue without text - don't fail the entire import
+      }
+    }
+
     onProgress?.({
       percent: 100,
       message: 'Complete',
@@ -156,6 +178,7 @@ export async function loadDWGFromFile(
     console.log(`Entities processed: ${conversionResult.entityCount}`);
     console.log(`Meshes created: ${conversionResult.meshes.length}`);
     console.log(`Block instances: ${conversionResult.blockInstanceCount}`);
+    console.log(`TEXT labels: ${conversionResult.textEntities.length}`);
     console.log(`==========================================\n`);
 
     // Create root node for organization

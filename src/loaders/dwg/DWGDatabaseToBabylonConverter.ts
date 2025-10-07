@@ -7,7 +7,7 @@
  */
 
 import * as BABYLON from '@babylonjs/core';
-import { CoordinateSystem } from '../../core/CoordinateSystem';
+import { DWGTextEntity } from './DWGTextRenderer';
 
 /**
  * Options for DWG database conversion
@@ -25,6 +25,7 @@ export interface DWGDatabaseConversionOptions {
  */
 export interface DWGDatabaseConversionResult {
   meshes: BABYLON.Mesh[];
+  textEntities: DWGTextEntity[]; // TEXT entities for rendering
   entityCount: number;
   blockInstanceCount: number;
   conversionTime: number;
@@ -45,6 +46,7 @@ export class DWGDatabaseToBabylonConverter {
 
   // Batching structures
   private linesByColor = new Map<string, BABYLON.Vector3[][]>();
+  private textEntities: DWGTextEntity[] = []; // Collected TEXT entities
   private entityCount = 0;
   private blockInstanceCount = 0;
   private entityTypeStats = new Map<string, number>(); // Track entity types encountered
@@ -68,6 +70,7 @@ export class DWGDatabaseToBabylonConverter {
     // Reset state
     this.blockDefinitions.clear();
     this.linesByColor.clear();
+    this.textEntities = [];
     this.entityCount = 0;
     this.blockInstanceCount = 0;
     this.entityTypeStats.clear();
@@ -107,6 +110,7 @@ export class DWGDatabaseToBabylonConverter {
 
       return {
         meshes,
+        textEntities: this.textEntities,
         entityCount: this.entityCount,
         blockInstanceCount: this.blockInstanceCount,
         conversionTime
@@ -217,8 +221,7 @@ export class DWGDatabaseToBabylonConverter {
 
         case 'AcDbText':
         case 'Sa2': // TEXT entity (has _contents, _height, _width, _location)
-          // TEXT rendering not yet implemented - would need font system
-          // Currently skipping 1,781 TEXT entities
+          this.processText(entity, parentTransform);
           break;
 
         case 'AcDbMText':
@@ -599,6 +602,47 @@ export class DWGDatabaseToBabylonConverter {
       }
       this.linesByColor.get(colorKey)!.push(points);
     }
+  }
+
+  /**
+   * Process TEXT entity
+   */
+  private processText(entity: any, transform: BABYLON.Matrix | null): void {
+    // Extract TEXT properties from Sa2 entity
+    // Sa2 entities have: _contents, _location, _height, _rotation, _layer
+
+    const contents = entity._contents || '';
+    if (!contents || contents.trim().length === 0) {
+      return; // Skip empty text
+    }
+
+    // Get text location
+    let locationPoint = entity._location;
+    if (!locationPoint) {
+      return; // Skip text without position
+    }
+
+    const position = this.convertPoint(locationPoint, transform);
+
+    // Get text height (in world units after scaling)
+    const height = (entity._height || 1.0) * this.unitScale;
+
+    // Get rotation (in radians)
+    const rotation = entity._rotation || 0;
+
+    // Get layer for grouping/styling
+    const layer = entity._layer || '0';
+
+    // Create text entity data
+    const textEntity: DWGTextEntity = {
+      contents,
+      position,
+      height,
+      rotation,
+      layer
+    };
+
+    this.textEntities.push(textEntity);
   }
 
   /**
