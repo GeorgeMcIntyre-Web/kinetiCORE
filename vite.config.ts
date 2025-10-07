@@ -29,4 +29,8 @@ export default defineConfig({
     exclude: ['@dimforge/rapier3d-compat', '@mlightcad/libredwg-web'],
   },
   assetsInclude: ['**/*.wasm'],
+  worker: {
+    format: 'es',
+    plugins: () => [],
+  },
 });

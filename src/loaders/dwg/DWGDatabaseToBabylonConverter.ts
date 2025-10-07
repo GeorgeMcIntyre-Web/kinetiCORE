@@ -73,19 +73,16 @@ export class DWGDatabaseToBabylonConverter {
     const meshes: BABYLON.Mesh[] = [];
 
     try {
-      // Step 1: Process block definitions first
-      await this.processBlockDefinitions(database);
-
-      // Step 2: Process modelspace entities
-      await this.processBlockRecord(database.modelspace(), 'ModelSpace', null);
-
-      // Step 3: Process paperspace entities (optional)
-      const paperspace = database.paperspace();
-      if (paperspace) {
-        await this.processBlockRecord(paperspace, 'PaperSpace', null);
+      // Step 1: Process modelspace entities using correct API
+      // Note: database.tables.blockTable.modelSpace is the correct path
+      const modelSpace = database.tables?.blockTable?.modelSpace;
+      if (modelSpace) {
+        await this.processModelSpace(modelSpace);
+      } else {
+        console.warn('[DWG Database Converter] No modelSpace found in database');
       }
 
-      // Step 4: Create batched meshes from accumulated geometry
+      // Step 2: Create batched meshes from accumulated geometry
       const batchedMeshes = this.createBatchedMeshes();
       meshes.push(...batchedMeshes);
 
@@ -111,61 +108,24 @@ export class DWGDatabaseToBabylonConverter {
   }
 
   /**
-   * Process all block definitions and cache them
+   * Process modelSpace entities
    */
-  private async processBlockDefinitions(database: any): Promise<void> {
-    const blockTable = database.blockTable();
-    if (!blockTable) {
-      this.log('[DWG Database Converter] No block table found');
+  private async processModelSpace(modelSpace: any): Promise<void> {
+    if (!modelSpace || !modelSpace.entities) {
+      this.log('[DWG Database Converter] No entities in modelSpace');
       return;
     }
 
-    const blockIterator = blockTable.newIterator();
-    let blockCount = 0;
+    this.log(`[DWG Database Converter] Processing ${modelSpace.entities.length} entities...`);
 
-    while (!blockIterator.done()) {
-      const blockRecord = blockIterator.getRecord();
-      if (blockRecord) {
-        const blockName = blockRecord.name();
-
-        // Skip system blocks (modelspace, paperspace)
-        if (!blockName.startsWith('*')) {
-          blockCount++;
-          this.log(`[DWG Database Converter] Processing block definition: ${blockName}`);
-
-          // Process block entities and cache geometry
-          await this.processBlockRecord(blockRecord, blockName, null);
-        }
-      }
-      blockIterator.step();
-    }
-
-    this.log(`[DWG Database Converter] Processed ${blockCount} block definitions`);
-  }
-
-  /**
-   * Process all entities in a block record
-   */
-  private async processBlockRecord(
-    blockRecord: any,
-    blockName: string,
-    transform: BABYLON.Matrix | null
-  ): Promise<void> {
-    if (!blockRecord) return;
-
-    const iterator = blockRecord.newIterator();
-    let entityCount = 0;
-
-    while (!iterator.done()) {
-      const entity = iterator.entity();
+    // Process all entities in modelSpace
+    for (const entity of modelSpace.entities) {
       if (entity) {
-        await this.processEntity(entity, transform);
-        entityCount++;
+        await this.processEntity(entity, null);
       }
-      iterator.step();
     }
 
-    this.log(`[DWG Database Converter] Processed ${entityCount} entities in block: ${blockName}`);
+    this.log(`[DWG Database Converter] Processed ${this.entityCount} entities from modelSpace`);
   }
 
   /**
@@ -343,35 +303,9 @@ export class DWGDatabaseToBabylonConverter {
   ): Promise<void> {
     this.blockInstanceCount++;
 
-    // Get block name
-    const blockTableRecord = entity.blockTableRecord();
-    if (!blockTableRecord) {
-      console.warn('[DWG Database Converter] Block reference has no table record');
-      return;
-    }
-
-    const blockName = blockTableRecord.name();
-    this.log(`[DWG Database Converter] Processing INSERT: ${blockName}`);
-
-    // Get transformation
-    const position = entity.position();
-    const scale = entity.scaleFactors?.() || { x: 1, y: 1, z: 1 };
-    const rotation = entity.rotation?.() || 0;
-
-    // Build transformation matrix
-    const transform = BABYLON.Matrix.Compose(
-      new BABYLON.Vector3(scale.x, scale.y, scale.z),
-      BABYLON.Quaternion.RotationAxis(BABYLON.Vector3.Up(), rotation),
-      this.convertPoint(position, null)
-    );
-
-    // Combine with parent transform if exists
-    const combinedTransform = parentTransform
-      ? transform.multiply(parentTransform)
-      : transform;
-
-    // Process block entities with transformation
-    await this.processBlockRecord(blockTableRecord, blockName, combinedTransform);
+    // TODO: Implement block reference expansion
+    // For now, skip INSERT entities - will implement when we have block table iteration
+    this.log('[DWG Database Converter] Skipping INSERT entity (block expansion not yet implemented)');
   }
 
   /**
