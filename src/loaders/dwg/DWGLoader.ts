@@ -143,6 +143,12 @@ export async function loadDWGFromFile(
 
     const conversionResult = await converter.convert(parseResult.database);
 
+    // Create root node for organization FIRST (before text rendering)
+    const rootNode = new BABYLON.TransformNode(`dwg_${file.name}`, scene);
+    conversionResult.meshes.forEach(mesh => {
+      mesh.parent = rootNode;
+    });
+
     // Initialize and render TEXT entities if any
     if (conversionResult.textEntities.length > 0) {
       onProgress?.({
@@ -154,8 +160,52 @@ export async function loadDWGFromFile(
       try {
         const textRenderer = getDWGTextRenderer();
         const engine = scene.getEngine() as BABYLON.Engine; // Cast AbstractEngine to Engine
-        await textRenderer.initialize(engine);
-        textRenderer.addTexts(conversionResult.textEntities);
+        await textRenderer.initialize(engine, scene);
+
+        // Apply DWG Z-up to Babylon Y-up transformation to TEXT positions
+        // This matches the -90° X rotation applied to the root node
+
+        // Calculate appropriate text scale based on model size
+        // DWG text heights are in model units, but might be too small for large models
+        const modelBounds = conversionResult.meshes[0]?.getBoundingInfo().boundingBox;
+        const modelSize = modelBounds ? modelBounds.extendSize.length() : 1000;
+        const textScale = Math.max(10, modelSize / 100); // Scale text to be ~1% of model size
+
+        console.log(`[DWG Loader] Model size: ${modelSize.toFixed(2)}m, Text scale multiplier: ${textScale.toFixed(2)}x`);
+
+        const transformedTextEntities = conversionResult.textEntities.map((textEntity, index) => {
+          // Create rotation matrix for -90° around X axis (Z-up to Y-up)
+          const rotationMatrix = BABYLON.Matrix.RotationX(-Math.PI / 2);
+
+          // Transform position
+          const originalPos = textEntity.position;
+          const transformedPos = BABYLON.Vector3.TransformCoordinates(originalPos, rotationMatrix);
+
+          // Scale text height to be visible
+          const scaledHeight = textEntity.height * textScale;
+
+          // Debug first 3 text entities
+          if (index < 3) {
+            console.log(`[DWG Loader] TEXT #${index + 1}:`, {
+              contents: textEntity.contents,
+              originalPos: originalPos.toString(),
+              transformedPos: transformedPos.toString(),
+              originalHeight: textEntity.height,
+              scaledHeight: scaledHeight,
+              rotation: textEntity.rotation
+            });
+          }
+
+          return {
+            ...textEntity,
+            position: transformedPos,
+            height: scaledHeight,
+            // Rotation also needs to be adjusted, but for now keep original
+            // (TEXT rotation in DWG is around Z, which becomes Y after transform)
+          };
+        });
+
+        textRenderer.addTexts(transformedTextEntities);
       } catch (textError) {
         console.warn('[DWG Loader] Failed to render TEXT entities:', textError);
         // Continue without text - don't fail the entire import
@@ -180,12 +230,6 @@ export async function loadDWGFromFile(
     console.log(`Block instances: ${conversionResult.blockInstanceCount}`);
     console.log(`TEXT labels: ${conversionResult.textEntities.length}`);
     console.log(`==========================================\n`);
-
-    // Create root node for organization
-    const rootNode = new BABYLON.TransformNode(`dwg_${file.name}`, scene);
-    conversionResult.meshes.forEach(mesh => {
-      mesh.parent = rootNode;
-    });
 
     // DWG files use Z-up coordinate system, rotate to Y-up (Babylon standard)
     // Rotate -90 degrees around X axis to make Z-up become Y-up

@@ -14,12 +14,15 @@ import {
   RotateCw,
   Layers,
   Library,
+  Cog,
+  Settings,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { useAssetLibraryStore } from '../store/assetLibraryStore';
 import { SceneTree } from '../components/SceneTree';
 import { KinematicsPanel } from '../components/KinematicsPanel';
+import { ActuatorControlPanel } from '../components/ActuatorControlPanel';
 import { FloorSelector } from '../components/FloorSelector';
 import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
@@ -49,6 +52,9 @@ export const EssentialModeLayout: React.FC = () => {
     ry: number;
     rz: number;
   } | null>(null);
+
+  const [showKinematicsPanel, setShowKinematicsPanel] = useState(false);
+  const [showActuatorPanel, setShowActuatorPanel] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadFileInputRef = useRef<HTMLInputElement>(null);
@@ -304,13 +310,11 @@ export const EssentialModeLayout: React.FC = () => {
       <div className="essential-content">
         {/* Left Sidebar */}
         <aside className="essential-sidebar">
-          <div className="sidebar-section">
-            <h3 className="sidebar-title">Scene Tree</h3>
-            <SceneTree />
-          </div>
-          <div className="sidebar-section">
-            <h3 className="sidebar-title">Kinematics</h3>
-            <KinematicsPanel />
+          <div className="sidebar-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0 }}>
+            <h3 className="sidebar-title" style={{ padding: '12px 8px' }}>Scene Tree</h3>
+            <div style={{ flex: 1, overflow: 'auto', padding: 0 }}>
+              <SceneTree />
+            </div>
           </div>
         </aside>
 
@@ -348,6 +352,13 @@ export const EssentialModeLayout: React.FC = () => {
         <button className="toolbar-btn" onClick={toggleLibrary} title="Asset Library">
           <Library size={18} />
         </button>
+        <button className="toolbar-btn" onClick={() => setShowKinematicsPanel(!showKinematicsPanel)} title="Kinematics">
+          <Cog size={18} />
+        </button>
+        <button className="toolbar-btn" onClick={() => setShowActuatorPanel(!showActuatorPanel)} title="Actuator Control">
+          <Settings size={18} />
+        </button>
+        <div className="toolbar-separator" />
         <button className="toolbar-btn" onClick={handleFileImport} title="Import Model">
           <Upload size={18} />
         </button>
@@ -378,6 +389,62 @@ export const EssentialModeLayout: React.FC = () => {
             <span className="transform-value">RX:{transform.rx}°</span>
             <span className="transform-value">RY:{transform.ry}°</span>
             <span className="transform-value">RZ:{transform.rz}°</span>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Panels */}
+      {showKinematicsPanel && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '500px',
+          height: '600px',
+          background: '#1a1a1a',
+          borderRadius: '12px',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+          zIndex: 1000,
+          overflow: 'hidden'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: '#252526', borderBottom: '2px solid #646cff' }}>
+            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#ffffff' }}>Kinematics</h2>
+            <button onClick={() => setShowKinematicsPanel(false)} style={{
+              background: 'none', border: 'none', color: '#888', fontSize: '1.5rem', cursor: 'pointer',
+              width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '4px', transition: 'all 0.15s'
+            }}>×</button>
+          </div>
+          <div style={{ height: 'calc(100% - 60px)', overflow: 'auto' }}>
+            <KinematicsPanel />
+          </div>
+        </div>
+      )}
+      {showActuatorPanel && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '600px',
+          height: '700px',
+          background: '#1a1a1a',
+          borderRadius: '12px',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+          zIndex: 1000,
+          overflow: 'hidden'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: '#252526', borderBottom: '2px solid #646cff' }}>
+            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#ffffff' }}>Actuator Control</h2>
+            <button onClick={() => setShowActuatorPanel(false)} style={{
+              background: 'none', border: 'none', color: '#888', fontSize: '1.5rem', cursor: 'pointer',
+              width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '4px', transition: 'all 0.15s'
+            }}>×</button>
+          </div>
+          <div style={{ height: 'calc(100% - 60px)', overflow: 'auto' }}>
+            <ActuatorControlPanel />
           </div>
         </div>
       )}

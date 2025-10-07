@@ -31,7 +31,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 8px 4px;
   background: #252526;
   border-bottom: 1px solid #333;
   position: relative;
@@ -87,7 +87,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: 8px 4px;
   background: #2d2d30;
   border-bottom: 1px solid #333;
   animation: slideDown 0.2s ease;
@@ -144,8 +144,8 @@
 .scene-tree-content {
   flex: 1;
   overflow-y: auto;
-  overflow-x: auto;
-  padding: 4px 0;
+  overflow-x: hidden;
+  padding: 0;
 }
 
 /* Tree Node */
@@ -158,8 +158,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 8px;
-  padding-right: 4px;
+  padding: 4px 4px;
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
@@ -237,7 +236,8 @@
   font-size: 13px;
   white-space: nowrap;
   color: #cccccc;
-  min-width: fit-content;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tree-node-count {

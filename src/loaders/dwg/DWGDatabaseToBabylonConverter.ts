@@ -235,7 +235,6 @@ export class DWGDatabaseToBabylonConverter {
 
         case 'Ia2': // Unknown entity type - need to investigate
         case 'ka2': // Unknown entity type
-        case 'wa2': // Unknown entity type
         case 'Na2': // Unknown entity type
           // Log first occurrence to understand structure
           if (this.entityTypeStats.get(entityType) === 1 && this.entityCount <= 100) {
@@ -386,26 +385,43 @@ export class DWGDatabaseToBabylonConverter {
    * Process CIRCLE entity
    */
   private processCircle(entity: any, transform: BABYLON.Matrix | null): void {
-    const center = this.convertPoint(entity.center(), transform);
-    const radius = entity.radius() * this.unitScale;
-    const normal = entity.normal();
+    // Only process circles with method API (top-level entities)
+    // Block entities with different API are skipped to avoid wrong coordinates
+    try {
+      if (typeof entity.center !== 'function' || typeof entity.radius !== 'function') {
+        return; // Skip - wrong API type
+      }
 
-    // Create circle as polyline approximation
-    const segments = 32;
-    const points: BABYLON.Vector3[] = [];
+      const centerPoint = entity.center();
+      const radiusValue = entity.radius();
 
-    for (let i = 0; i <= segments; i++) {
-      const angle = (i / segments) * Math.PI * 2;
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
-      points.push(center.add(new BABYLON.Vector3(x, y, 0)));
+      if (!centerPoint || radiusValue === undefined) {
+        return; // Skip invalid geometry
+      }
+
+      const center = this.convertPoint(centerPoint, transform);
+      const radius = radiusValue * this.unitScale;
+
+      // Create circle as polyline approximation
+      const segments = 32;
+      const points: BABYLON.Vector3[] = [];
+
+      for (let i = 0; i <= segments; i++) {
+        const angle = (i / segments) * Math.PI * 2;
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+        points.push(center.add(new BABYLON.Vector3(x, y, 0)));
+      }
+
+      const colorKey = this.getEntityColorKey(entity);
+      if (!this.linesByColor.has(colorKey)) {
+        this.linesByColor.set(colorKey, []);
+      }
+      this.linesByColor.get(colorKey)!.push(points);
+    } catch (error) {
+      // Skip circles that fail to process
+      return;
     }
-
-    const colorKey = this.getEntityColorKey(entity);
-    if (!this.linesByColor.has(colorKey)) {
-      this.linesByColor.set(colorKey, []);
-    }
-    this.linesByColor.get(colorKey)!.push(points);
   }
 
   /**
@@ -622,7 +638,15 @@ export class DWGDatabaseToBabylonConverter {
       return; // Skip text without position
     }
 
-    const position = this.convertPoint(locationPoint, transform);
+    let position = this.convertPoint(locationPoint, transform);
+
+    // Apply DWG Z-up to Babylon Y-up rotation (-90° around X)
+    // This matches the root node rotation applied in DWGLoader
+    const rotatedPosition = new BABYLON.Vector3(
+      position.x,
+      -position.z,  // Y becomes -Z
+      position.y    // Z becomes Y
+    );
 
     // Get text height (in world units after scaling)
     const height = (entity._height || 1.0) * this.unitScale;
@@ -636,7 +660,7 @@ export class DWGDatabaseToBabylonConverter {
     // Create text entity data
     const textEntity: DWGTextEntity = {
       contents,
-      position,
+      position: rotatedPosition,
       height,
       rotation,
       layer

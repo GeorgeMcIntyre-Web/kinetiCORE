@@ -6,6 +6,7 @@ import * as BABYLON from '@babylonjs/core';
 import { SceneTreeManager } from '../scene/SceneTreeManager';
 import type { SceneNode } from '../scene/SceneTreeNode';
 import type { JointType } from '../scene/SceneTreeNode';
+import { ActuatorSystem } from './actuation/ActuatorSystem';
 
 // Re-export JointType for convenience
 export type { JointType };
@@ -86,6 +87,7 @@ export class KinematicsManager {
   private chains = new Map<string, KinematicChain>();
   private groundedNodes = new Set<string>();
   private joints = new Map<string, JointConfig>();
+  private actuatorSystem: ActuatorSystem | null = null;
 
   // Visual helpers
   private jointAxisVisualizers = new Map<string, BABYLON.Mesh[]>();
@@ -98,6 +100,16 @@ export class KinematicsManager {
       KinematicsManager.instance = new KinematicsManager();
     }
     return KinematicsManager.instance;
+  }
+
+  /**
+   * Get the actuator system for hardware control
+   */
+  getActuatorSystem(): ActuatorSystem {
+    if (!this.actuatorSystem) {
+      this.actuatorSystem = new ActuatorSystem();
+    }
+    return this.actuatorSystem;
   }
 
   /**

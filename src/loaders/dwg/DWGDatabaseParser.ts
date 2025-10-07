@@ -420,7 +420,7 @@ export class DWGDatabaseParser {
               color: colorIndex,
               frozen: (typeof layerRecord.isFrozen === 'function' ? layerRecord.isFrozen() : layerRecord.isFrozen) || false,
               locked: (typeof layerRecord.isLocked === 'function' ? layerRecord.isLocked() : layerRecord.isLocked) || false,
-              visible: typeof layerRecord.isOff === 'function' ? !layerRecord.isOff() : !layerRecord.isOff ?? true
+              visible: (typeof layerRecord.isOff === 'function' ? !layerRecord.isOff() : (!layerRecord.isOff ?? true))
             });
           }
         }

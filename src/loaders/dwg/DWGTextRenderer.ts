@@ -33,7 +33,7 @@ export class DWGTextRenderer {
   /**
    * Initialize MSDF text renderer (async, call once)
    */
-  async initialize(engine: BABYLON.Engine): Promise<void> {
+  async initialize(engine: BABYLON.Engine, _scene: BABYLON.Scene): Promise<void> {
     // Return existing initialization promise if already initializing
     if (this.initPromise) {
       return this.initPromise;
