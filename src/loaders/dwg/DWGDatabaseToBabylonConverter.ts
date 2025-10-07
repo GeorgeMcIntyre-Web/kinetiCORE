@@ -392,14 +392,6 @@ export class DWGDatabaseToBabylonConverter {
       return;
     }
 
-    // Sanity check: Skip arcs with unreasonably large radius (>10km = 10,000m)
-    if (radius > 10000) {
-      if (this.entityCount <= 10) {
-        console.warn(`[DWG] Skipping ARC with excessive radius: ${radius.toFixed(2)}m`);
-      }
-      return;
-    }
-
     const center = this.convertPoint(centerPoint, transform);
 
     // Create arc as polyline approximation
@@ -433,14 +425,6 @@ export class DWGDatabaseToBabylonConverter {
     const endAngle = entity._geo?._endAngle ?? Math.PI * 2;
 
     if (!centerPoint || !majorAxisRadius || !minorAxisRadius) {
-      return;
-    }
-
-    // Sanity check: Skip ellipses with unreasonably large axes (>10km = 10,000m)
-    if (majorAxisRadius > 10000 || minorAxisRadius > 10000) {
-      if (this.entityCount <= 10) {
-        console.warn(`[DWG] Skipping ELLIPSE with excessive size: ${majorAxisRadius.toFixed(2)}m × ${minorAxisRadius.toFixed(2)}m`);
-      }
       return;
     }
 
