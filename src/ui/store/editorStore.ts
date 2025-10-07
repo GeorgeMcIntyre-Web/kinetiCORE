@@ -857,6 +857,42 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         }
       } else {
         loading.update('Finalizing...', 90);
+
+        // Auto-resize floor for DWG files (common for large layouts)
+        if (file.name.toLowerCase().endsWith('.dwg')) {
+          // Calculate bounding box of all imported meshes
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          for (const mesh of meshes) {
+            mesh.computeWorldMatrix(true);
+            const boundingInfo = mesh.getBoundingInfo();
+            const min = boundingInfo.minimum;
+            const max = boundingInfo.maximum;
+
+            minX = Math.min(minX, min.x);
+            minY = Math.min(minY, min.y);
+            maxX = Math.max(maxX, max.x);
+            maxY = Math.max(maxY, max.y);
+          }
+
+          // Resize floor to fit the layout with 20% margin
+          const width = maxX - minX;
+          const depth = maxY - minY;
+          const margin = 1.2; // 20% margin for comfortable navigation
+
+          if (isFinite(width) && isFinite(depth) && width > 10 && depth > 10) {
+            const floorWidth = width * margin;
+            const floorDepth = depth * margin;
+            sceneManager.resizeFloor(floorWidth, floorDepth);
+            console.log(`Auto-resized floor to ${floorWidth.toFixed(1)}m × ${floorDepth.toFixed(1)}m for DWG layout`);
+          }
+        }
+
+        // Zoom camera to fit imported DWG geometry
+        if (file.name.toLowerCase().endsWith('.dwg')) {
+          console.log('[DWG Import] Zooming to fit imported geometry...');
+          get().zoomFit();
+        }
+
         loading.end();
         toast.success(`Imported ${meshes.length} meshes from ${file.name}`);
         console.log(`Imported ${meshes.length} meshes with ${rootNodes.length} root nodes`);

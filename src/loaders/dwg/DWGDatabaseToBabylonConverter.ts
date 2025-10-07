@@ -255,19 +255,31 @@ export class DWGDatabaseToBabylonConverter {
    * Process LINE entity
    */
   private processLine(entity: any, transform: BABYLON.Matrix | null): void {
-    // Get start and end points - could be methods or properties
-    const startPoint = typeof entity.startPoint === 'function' ? entity.startPoint() :
-                       (entity.startPoint || entity._startPoint);
-    const endPoint = typeof entity.endPoint === 'function' ? entity.endPoint() :
-                     (entity.endPoint || entity._endPoint);
+    // LibreDWG stores LINE data in _geo._start and _geo._end
+    let startPoint, endPoint;
+
+    if (entity._geo && entity._geo._start && entity._geo._end) {
+      // LibreDWG format: _geo._start and _geo._end
+      startPoint = entity._geo._start;
+      endPoint = entity._geo._end;
+    } else {
+      // Fallback: try method-based or direct property access
+      startPoint = typeof entity.startPoint === 'function' ? entity.startPoint() :
+                   (entity.startPoint || entity._startPoint);
+      endPoint = typeof entity.endPoint === 'function' ? entity.endPoint() :
+                 (entity.endPoint || entity._endPoint);
+    }
 
     if (!startPoint || !endPoint) {
-      this.log(`[DWG Database Converter] LINE entity missing start/end points`);
+      if (this.entityCount <= 10) {
+        this.log(`[DWG Database Converter] LINE entity missing start/end points`);
+      }
       return;
     }
 
     const startPt = this.convertPoint(startPoint, transform);
     const endPt = this.convertPoint(endPoint, transform);
+
     const colorKey = this.getEntityColorKey(entity);
 
     if (!this.linesByColor.has(colorKey)) {

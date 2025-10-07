@@ -85,12 +85,42 @@ export const SceneCanvas: React.FC = () => {
         highlightLayerRef.current.innerGlow = false;
         highlightLayerRef.current.outerGlow = true;
 
+        // Double-click detection
+        let lastClickTime = 0;
+        const DOUBLE_CLICK_THRESHOLD = 300; // ms
+
         // Add click selection
         scene.onPointerDown = (evt, pickResult) => {
           if (evt.button === 0) {
             // Left click - always close context menu
             hideContextMenu();
 
+            // Detect double-click
+            const currentTime = Date.now();
+            const isDoubleClick = currentTime - lastClickTime < DOUBLE_CLICK_THRESHOLD;
+            lastClickTime = currentTime;
+
+            // Handle double-click to set camera rotation center
+            if (isDoubleClick && pickResult.hit && pickResult.pickedPoint) {
+              const pickedPoint = pickResult.pickedPoint.clone();
+
+              // Set camera target to the picked point
+              if (camera instanceof BABYLON.ArcRotateCamera) {
+                BABYLON.Animation.CreateAndStartAnimation(
+                  'setCameraTarget',
+                  camera,
+                  'target',
+                  60,
+                  30,
+                  camera.target,
+                  pickedPoint,
+                  BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+                );
+              }
+              return; // Don't process as selection
+            }
+
+            // Single-click selection logic
             if (pickResult.hit && pickResult.pickedMesh) {
               const mesh = pickResult.pickedMesh;
 

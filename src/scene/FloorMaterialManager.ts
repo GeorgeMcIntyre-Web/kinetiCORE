@@ -19,45 +19,55 @@ export class FloorMaterialManager {
 
   /**
    * Create material for specified floor type
+   * @param floorType Type of floor material
+   * @param floorWidth Width of floor (for texture scaling), defaults to GROUND_SIZE
+   * @param floorDepth Depth of floor (for texture scaling), defaults to floorWidth
    */
-  public createFloorMaterial(floorType: FloorType): BABYLON.Material {
+  public createFloorMaterial(
+    floorType: FloorType,
+    floorWidth: number = GROUND_SIZE,
+    floorDepth?: number
+  ): BABYLON.Material {
     // Dispose old material if exists
     if (this.currentMaterial) {
       this.currentMaterial.dispose();
     }
 
+    const depth = floorDepth ?? floorWidth;
+    const avgSize = (floorWidth + depth) / 2;
+
     let material: BABYLON.Material;
 
     switch (floorType) {
       case 'concrete-polished':
-        material = this.createPolishedConcrete();
+        material = this.createPolishedConcrete(avgSize);
         break;
       case 'concrete-raw':
-        material = this.createRawConcrete();
+        material = this.createRawConcrete(avgSize);
         break;
       case 'epoxy-gray':
-        material = this.createEpoxyFloor(new BABYLON.Color3(0.5, 0.5, 0.52));
+        material = this.createEpoxyFloor(new BABYLON.Color3(0.5, 0.5, 0.52), avgSize);
         break;
       case 'epoxy-white':
-        material = this.createEpoxyFloor(new BABYLON.Color3(0.9, 0.9, 0.92));
+        material = this.createEpoxyFloor(new BABYLON.Color3(0.9, 0.9, 0.92), avgSize);
         break;
       case 'tiles-ceramic':
-        material = this.createCeramicTiles();
+        material = this.createCeramicTiles(avgSize);
         break;
       case 'metal-checker':
-        material = this.createMetalCheckerPlate();
+        material = this.createMetalCheckerPlate(avgSize);
         break;
       case 'asphalt':
-        material = this.createAsphalt();
+        material = this.createAsphalt(avgSize);
         break;
       case 'wood-industrial':
-        material = this.createIndustrialWood();
+        material = this.createIndustrialWood(avgSize);
         break;
       case 'grid-only':
         material = this.createGridOnly();
         break;
       default:
-        material = this.createPolishedConcrete();
+        material = this.createPolishedConcrete(avgSize);
     }
 
     this.currentMaterial = material;
@@ -78,18 +88,24 @@ export class FloorMaterialManager {
       return ground; // Return ground without overlay
     }
 
+    // Get ground dimensions from the actual ground mesh
+    const groundBounds = ground.getBoundingInfo();
+    const groundSize = groundBounds.boundingBox.extendSize;
+    const groundWidth = groundSize.x * 2;
+    const groundDepth = groundSize.z * 2;
+
     const gridMaterial = new GridMaterial('gridOverlay', this.scene);
     gridMaterial.majorUnitFrequency = 10;
     gridMaterial.minorUnitVisibility = 0.15;
     gridMaterial.gridRatio = 1; // 1m grid
     gridMaterial.backFaceCulling = false;
-    gridMaterial.mainColor = new BABYLON.Color3(0.4, 0.4, 0.42);
-    gridMaterial.lineColor = new BABYLON.Color3(0.2, 0.2, 0.22);
-    gridMaterial.opacity = 0.25;
+    gridMaterial.mainColor = new BABYLON.Color3(0.2, 0.2, 0.22); // Darker main color
+    gridMaterial.lineColor = new BABYLON.Color3(0.1, 0.1, 0.12); // Darker line color
+    gridMaterial.opacity = 0.6; // Increased opacity for more visible lines
 
     const gridOverlay = BABYLON.MeshBuilder.CreateGround(
       'gridOverlay',
-      { width: GROUND_SIZE, height: GROUND_SIZE },
+      { width: groundWidth, height: groundDepth },
       this.scene
     );
     gridOverlay.position.y = 0.001; // Slightly above ground to avoid z-fighting
@@ -103,7 +119,7 @@ export class FloorMaterialManager {
   /**
    * Polished concrete floor (current default)
    */
-  private createPolishedConcrete(): BABYLON.PBRMetallicRoughnessMaterial {
+  private createPolishedConcrete(avgSize: number = GROUND_SIZE): BABYLON.PBRMetallicRoughnessMaterial {
     const material = new BABYLON.PBRMetallicRoughnessMaterial(
       'floor-concrete-polished',
       this.scene
@@ -116,8 +132,8 @@ export class FloorMaterialManager {
       'https://www.babylonjs-playground.com/textures/floor.png',
       this.scene
     );
-    texture.uScale = GROUND_SIZE / 5;
-    texture.vScale = GROUND_SIZE / 5;
+    texture.uScale = avgSize / 5;
+    texture.vScale = avgSize / 5;
     material.baseTexture = texture;
 
     material._environmentIntensity = 0.4;
@@ -127,7 +143,7 @@ export class FloorMaterialManager {
   /**
    * Raw concrete with rougher texture
    */
-  private createRawConcrete(): BABYLON.PBRMetallicRoughnessMaterial {
+  private createRawConcrete(avgSize: number = GROUND_SIZE): BABYLON.PBRMetallicRoughnessMaterial {
     const material = new BABYLON.PBRMetallicRoughnessMaterial(
       'floor-concrete-raw',
       this.scene
@@ -141,8 +157,8 @@ export class FloorMaterialManager {
       'https://www.babylonjs-playground.com/textures/rock.png',
       this.scene
     );
-    texture.uScale = GROUND_SIZE / 3;
-    texture.vScale = GROUND_SIZE / 3;
+    texture.uScale = avgSize / 3;
+    texture.vScale = avgSize / 3;
     material.baseTexture = texture;
 
     material._environmentIntensity = 0.2;
@@ -152,7 +168,7 @@ export class FloorMaterialManager {
   /**
    * Epoxy coated floor (smooth, reflective)
    */
-  private createEpoxyFloor(color: BABYLON.Color3): BABYLON.PBRMetallicRoughnessMaterial {
+  private createEpoxyFloor(color: BABYLON.Color3, avgSize: number = GROUND_SIZE): BABYLON.PBRMetallicRoughnessMaterial {
     const material = new BABYLON.PBRMetallicRoughnessMaterial(
       'floor-epoxy',
       this.scene
@@ -168,7 +184,7 @@ export class FloorMaterialManager {
   /**
    * Ceramic tile floor
    */
-  private createCeramicTiles(): BABYLON.PBRMetallicRoughnessMaterial {
+  private createCeramicTiles(avgSize: number = GROUND_SIZE): BABYLON.PBRMetallicRoughnessMaterial {
     const material = new BABYLON.PBRMetallicRoughnessMaterial(
       'floor-tiles-ceramic',
       this.scene
@@ -182,8 +198,8 @@ export class FloorMaterialManager {
       'https://www.babylonjs-playground.com/textures/floor.png',
       this.scene
     );
-    texture.uScale = GROUND_SIZE / 2; // Smaller tiles
-    texture.vScale = GROUND_SIZE / 2;
+    texture.uScale = avgSize / 2; // Smaller tiles
+    texture.vScale = avgSize / 2;
     material.baseTexture = texture;
 
     material._environmentIntensity = 0.5;
@@ -193,7 +209,7 @@ export class FloorMaterialManager {
   /**
    * Metal checker plate (diamond plate)
    */
-  private createMetalCheckerPlate(): BABYLON.PBRMetallicRoughnessMaterial {
+  private createMetalCheckerPlate(avgSize: number = GROUND_SIZE): BABYLON.PBRMetallicRoughnessMaterial {
     const material = new BABYLON.PBRMetallicRoughnessMaterial(
       'floor-metal-checker',
       this.scene
@@ -209,7 +225,7 @@ export class FloorMaterialManager {
   /**
    * Asphalt surface
    */
-  private createAsphalt(): BABYLON.PBRMetallicRoughnessMaterial {
+  private createAsphalt(avgSize: number = GROUND_SIZE): BABYLON.PBRMetallicRoughnessMaterial {
     const material = new BABYLON.PBRMetallicRoughnessMaterial(
       'floor-asphalt',
       this.scene
@@ -223,8 +239,8 @@ export class FloorMaterialManager {
       'https://www.babylonjs-playground.com/textures/rock.png',
       this.scene
     );
-    texture.uScale = GROUND_SIZE / 4;
-    texture.vScale = GROUND_SIZE / 4;
+    texture.uScale = avgSize / 4;
+    texture.vScale = avgSize / 4;
     material.baseTexture = texture;
 
     material._environmentIntensity = 0.1;
@@ -234,7 +250,7 @@ export class FloorMaterialManager {
   /**
    * Industrial wood flooring
    */
-  private createIndustrialWood(): BABYLON.PBRMetallicRoughnessMaterial {
+  private createIndustrialWood(avgSize: number = GROUND_SIZE): BABYLON.PBRMetallicRoughnessMaterial {
     const material = new BABYLON.PBRMetallicRoughnessMaterial(
       'floor-wood-industrial',
       this.scene
@@ -248,8 +264,8 @@ export class FloorMaterialManager {
       'https://www.babylonjs-playground.com/textures/floor.png',
       this.scene
     );
-    texture.uScale = GROUND_SIZE / 8;
-    texture.vScale = GROUND_SIZE / 8;
+    texture.uScale = avgSize / 8;
+    texture.vScale = avgSize / 8;
     material.baseTexture = texture;
 
     material._environmentIntensity = 0.3;

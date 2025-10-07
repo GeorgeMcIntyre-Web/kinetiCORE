@@ -26,7 +26,7 @@ export class SceneManager {
   private ground: BABYLON.Mesh | null = null;
   private floorMaterialManager: FloorMaterialManager | null = null;
   private gridOverlay: BABYLON.Mesh | null = null;
-  private currentFloorType: FloorType = 'concrete-polished';
+  private currentFloorType: FloorType = 'grid-only';
   private isInitialized: boolean = false;
   private isUsingWebGPU: boolean = false;
 
@@ -166,6 +166,20 @@ export class SceneManager {
     this.camera.wheelPrecision = CAMERA_WHEEL_PRECISION;
     this.camera.inertia = CAMERA_INERTIA;
 
+    // Panning settings for large worlds
+    this.camera.panningSensibility = 50; // Lower = faster panning
+    this.camera.panningInertia = 0.9; // Smooth panning
+    this.camera.panningDistanceLimit = null; // No distance limit for panning
+
+    // Allow full rotation range (no limits)
+    this.camera.lowerBetaLimit = 0.1; // Nearly straight down (avoid gimbal lock)
+    this.camera.upperBetaLimit = Math.PI - 0.1; // Nearly straight up (avoid gimbal lock)
+    this.camera.lowerAlphaLimit = null; // No limit on horizontal rotation
+    this.camera.upperAlphaLimit = null; // No limit on horizontal rotation
+
+    // Disable camera collisions for large scenes
+    this.camera.checkCollisions = false;
+
     // Set camera up vector to Y-up (Babylon native)
     this.camera.upVector = new BABYLON.Vector3(0, 1, 0);
 
@@ -254,6 +268,50 @@ export class SceneManager {
   }
 
   /**
+   * Resize the floor to accommodate large layouts (e.g., DWG imports)
+   * @param width Floor width (X-axis)
+   * @param depth Floor depth (Y-axis), optional - defaults to width for square floor
+   */
+  resizeFloor(width: number, depth?: number): void {
+    if (!this.ground || !this.scene) {
+      console.warn('Ground or scene not initialized');
+      return;
+    }
+
+    const floorDepth = depth ?? width; // Default to square if depth not provided
+
+    // Dispose old ground
+    this.ground.dispose();
+
+    // Create new ground with new size (width = X, height = Y in Babylon ground)
+    this.ground = BABYLON.MeshBuilder.CreateGround(
+      'ground',
+      { width: width, height: floorDepth },
+      this.scene
+    );
+
+    // Reapply material with proper scaling for large floors
+    const material = this.floorMaterialManager.createFloorMaterial(
+      this.currentFloorType,
+      width,
+      floorDepth
+    );
+    this.ground.material = material;
+    this.ground.receiveShadows = true;
+
+    // Recreate grid overlay with new size
+    if (this.gridOverlay) {
+      this.gridOverlay.dispose();
+    }
+    this.gridOverlay = this.floorMaterialManager.createGridOverlay(this.ground, true);
+
+    // Freeze for performance
+    this.ground.freezeWorldMatrix();
+
+    console.log(`Floor resized to ${width.toFixed(1)}m × ${floorDepth.toFixed(1)}m`);
+  }
+
+  /**
    * Toggle grid overlay visibility
    */
   setGridOverlayVisible(visible: boolean): void {
@@ -296,26 +354,10 @@ export class SceneManager {
     const boundingInfo = mesh.getBoundingInfo();
     const boundingBox = boundingInfo.boundingBox;
     const center = boundingBox.centerWorld;
-    const size = boundingBox.extendSizeWorld;
 
-    // Calculate required radius to fit the object
-    const maxDimension = Math.max(size.x, size.y, size.z) * 2;
-    const targetRadius = Math.max(maxDimension * 1.5, CAMERA_MIN_RADIUS);
-
-    // Animate camera to new position
+    // Only animate the target (rotation center), not the radius (zoom)
     BABYLON.Animation.CreateAndStartAnimation(
-      'zoomToMesh',
-      this.camera,
-      'radius',
-      60,
-      30,
-      this.camera.radius,
-      Math.min(targetRadius, CAMERA_MAX_RADIUS),
-      BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
-    );
-
-    BABYLON.Animation.CreateAndStartAnimation(
-      'panToMesh',
+      'setCameraTarget',
       this.camera,
       'target',
       60,
@@ -357,35 +399,16 @@ export class SceneManager {
       maxZ = Math.max(maxZ, max.z);
     });
 
-    // Calculate center and size
+    // Calculate center
     const center = new BABYLON.Vector3(
       (minX + maxX) / 2,
       (minY + maxY) / 2,
       (minZ + maxZ) / 2
     );
 
-    const sizeX = maxX - minX;
-    const sizeY = maxY - minY;
-    const sizeZ = maxZ - minZ;
-
-    // Calculate required radius to fit all objects
-    const maxDimension = Math.max(sizeX, sizeY, sizeZ) * 2;
-    const targetRadius = Math.max(maxDimension * 1.5, CAMERA_MIN_RADIUS);
-
-    // Animate camera to new position
+    // Only animate the target (rotation center), not the radius (zoom)
     BABYLON.Animation.CreateAndStartAnimation(
-      'zoomToNode',
-      this.camera,
-      'radius',
-      60,
-      30,
-      this.camera.radius,
-      Math.min(targetRadius, CAMERA_MAX_RADIUS),
-      BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
-    );
-
-    BABYLON.Animation.CreateAndStartAnimation(
-      'panToNode',
+      'setCameraTarget',
       this.camera,
       'target',
       60,

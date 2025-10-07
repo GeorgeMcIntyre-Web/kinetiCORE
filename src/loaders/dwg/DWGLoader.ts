@@ -147,6 +147,10 @@ export async function loadDWGFromFile(
       mesh.parent = rootNode;
     });
 
+    // DWG files use Z-up coordinate system, rotate to Y-up (Babylon standard)
+    // Rotate -90 degrees around X axis to make Z-up become Y-up
+    rootNode.rotation.x = -Math.PI / 2;
+
     return {
       meshes: conversionResult.meshes,
       rootNodes: [rootNode]
