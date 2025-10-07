@@ -47,13 +47,14 @@ export const CoordinateFrame: React.FC<CoordinateFrameProps> = ({ camera }) => {
       // Recalculate up to ensure orthogonal (in case of drift)
       const trueUp = BABYLON.Vector3.Cross(forward, right).normalize();
 
-      // Define world axes in Babylon's coordinate system (Y-up)
+      // Define world axes in USER coordinate system (Z-up CAD convention)
       // User space: X=right, Y=forward, Z=up
       // Babylon space: X=right, Y=up, Z=forward
+      // Compass shows USER axes, so we map Babylon vectors to USER labels correctly
       const worldAxes = [
-        { dir: new BABYLON.Vector3(1, 0, 0), color: '#FF4444', label: 'X' }, // User X (Right)
-        { dir: new BABYLON.Vector3(0, 0, 1), color: '#4444FF', label: 'Y' }, // User Y (Forward) = Babylon Z
-        { dir: new BABYLON.Vector3(0, 1, 0), color: '#44FF44', label: 'Z' }, // User Z (Up) = Babylon Y
+        { dir: new BABYLON.Vector3(1, 0, 0), color: '#FF4444', label: 'X' }, // X = right (same in both)
+        { dir: new BABYLON.Vector3(0, 0, 1), color: '#44FF44', label: 'Y' }, // Y = forward (Babylon +Z)
+        { dir: new BABYLON.Vector3(0, 1, 0), color: '#4444FF', label: 'Z' }, // Z = up (Babylon +Y)
       ];
 
       // Project each axis to camera space
