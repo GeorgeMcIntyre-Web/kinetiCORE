@@ -183,17 +183,18 @@ export class DWGDatabaseToBabylonConverter {
 
         case 'AcDbCircle':
         case 'Ua2': // CIRCLE entity in LibreDWG
+        case 'ba2': // CIRCLE entity (ba2 has _geo with _center, _radius, full arc)
           this.processCircle(entity, parentTransform);
           break;
 
         case 'AcDbArc':
         case 'Va2': // ARC entity in LibreDWG
-        case 'xa2': // ARC entity (xa2 is actually ARC, not TEXT!)
+        case 'xa2': // ARC entity (xa2 has _geo with _center, _radius, partial arc)
           this.processArc(entity, parentTransform);
           break;
 
         case 'AcDbEllipse':
-        case 'ya2': // ELLIPSE entity (ya2 is actually ELLIPSE, not MTEXT!)
+        case 'ya2': // ELLIPSE entity (ya2 has _geo with major/minor axis)
           this.processEllipse(entity, parentTransform);
           break;
 
@@ -210,31 +211,19 @@ export class DWGDatabaseToBabylonConverter {
 
         case 'AcDbHatch':
         case 'Pa2': // HATCH entity (solid fills and patterns)
+        case 'wa2': // HATCH entity (wa2 has _loops, _patternName, _patternType)
           this.processHatch(entity, parentTransform);
           break;
 
         case 'AcDbText':
-        case 'Sa2': // TEXT entity in LibreDWG - log for investigation
-          if (this.entityTypeStats.get('Sa2') === 1) {
-            console.log('[DWG Converter] Found TEXT entity (Sa2):');
-            console.log('  Properties:', Object.keys(entity));
-            console.log('  _geo keys:', entity._geo ? Object.keys(entity._geo) : 'no _geo');
-            if (entity._geo) {
-              console.log('  _geo values:', entity._geo);
-            }
-          }
+        case 'Sa2': // TEXT entity (has _contents, _height, _width, _location)
+          // TEXT rendering not yet implemented - would need font system
+          // Currently skipping 1,781 TEXT entities
           break;
 
         case 'AcDbMText':
-        case 'ba2': // MTEXT entity in LibreDWG - log for investigation
-          if (this.entityTypeStats.get('ba2') === 1) {
-            console.log('[DWG Converter] Found MTEXT entity (ba2):');
-            console.log('  Properties:', Object.keys(entity));
-            console.log('  _geo keys:', entity._geo ? Object.keys(entity._geo) : 'no _geo');
-            if (entity._geo) {
-              console.log('  _geo values:', entity._geo);
-            }
-          }
+          // MTEXT rendering not yet implemented - would need font system
+          // No MTEXT entities found in this file (ba2 was actually CIRCLE)
           break;
 
         case 'AcDbDimension':

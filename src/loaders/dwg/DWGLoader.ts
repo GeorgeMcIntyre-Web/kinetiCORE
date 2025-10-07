@@ -15,21 +15,21 @@
  * - AutoCAD R13 (1994) through R2021
  * - Partial support for newer versions (may show warnings)
  *
- * Supported Entities:
+ * Supported Entities (LibreDWG internal codes):
  * - LINE (Wa2) - Full support
  * - LWPOLYLINE/POLYLINE (Ta2, Ma2) - Full support
- * - CIRCLE (Ua2) - Full support
+ * - CIRCLE (Ua2, ba2) - Full support ⚠️ ba2 is CIRCLE, not MTEXT!
  * - ARC (Va2, xa2) - Full support with 5km sanity checks
  * - ELLIPSE (ya2) - Full support with 5km sanity checks
  * - SPLINE (bb2) - Full support
  * - INSERT (_a2) - Block references with transform support
- * - HATCH (Pa2) - Solid fills and patterns
+ * - HATCH (Pa2, wa2) - Solid fills and patterns
  *
- * Entities Under Investigation:
- * - TEXT (Sa2) - ~1,781 entities - logging enabled
- * - MTEXT (ba2) - ~14,035 entities - logging enabled
- * - DIMENSION (Da2) - ~1,026 entities - needs complex rendering
- * - Unknown types: Ia2 (~50,763), ka2, wa2, Na2
+ * Not Yet Supported:
+ * - TEXT (Sa2) - 1,781 entities - needs font rendering system
+ * - MTEXT - No entities found (ba2 was CIRCLE, not MTEXT)
+ * - DIMENSION (Da2) - 1,026 entities - needs dimension rendering
+ * - Unknown types: Ia2 (~50,763), ka2, Na2 - under investigation
  *
  * Performance (Typical 1.2M entity file):
  * - Parse: ~30s (87%) - LibreDWG WASM
