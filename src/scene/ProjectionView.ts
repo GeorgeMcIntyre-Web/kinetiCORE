@@ -70,7 +70,7 @@ export class ProjectionView {
     // 4. Add edge rendering for technical drawing appearance
     if (showEdges) {
       projectedMesh.enableEdgesRendering();
-      projectedMesh.edgesWidth = edgeWidth;
+      projectedMesh.edgesWidth = edgeWidth * 2; // Make edges more visible
       projectedMesh.edgesColor = new BABYLON.Color4(
         edgeColor.r,
         edgeColor.g,
@@ -79,14 +79,17 @@ export class ProjectionView {
       );
     }
 
-    // 5. Optional: Apply flat/unlit material for technical drawing look
+    // 5. Make the mesh transparent to show only edges (technical drawing style)
     const projectionMaterial = new BABYLON.StandardMaterial(
       `${projectedMesh.name}_material`,
       scene
     );
-    projectionMaterial.diffuseColor = new BABYLON.Color3(0.9, 0.9, 0.9);
-    projectionMaterial.disableLighting = true; // Unlit for flat appearance
+    projectionMaterial.alpha = 0; // Fully transparent - only edges visible
+    projectionMaterial.disableLighting = true;
     projectedMesh.material = projectionMaterial;
+
+    // Ensure mesh renders with transparency
+    projectedMesh.visibility = 0; // Hide the mesh, show only edges
 
     // Cleanup function
     const cleanup = () => {
