@@ -1,0 +1,405 @@
+/**
+ * Asset Library Panel - Glassmorphic Floating Panel
+ * Modern transparent design with backdrop blur
+ */
+
+.asset-library-panel {
+  position: absolute;
+  width: 400px;
+  height: 600px;
+  min-width: 300px;
+  min-height: 400px;
+  max-width: 800px;
+  max-height: 90vh;
+
+  /* Glassmorphism effect */
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+
+  /* Initial position */
+  top: 80px;
+  right: 20px;
+
+  /* Make draggable */
+  cursor: move;
+  user-select: none;
+  z-index: 1000;
+
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  transition: opacity 0.3s ease;
+}
+
+.asset-library-panel.minimized {
+  width: 60px;
+  height: 60px;
+  border-radius: 30px;
+  cursor: pointer;
+}
+
+.asset-library-panel.docked-left {
+  left: 0;
+  top: 60px;
+  height: calc(100vh - 60px);
+  border-radius: 0 8px 0 0;
+}
+
+.asset-library-panel.docked-right {
+  right: 0;
+  top: 60px;
+  height: calc(100vh - 60px);
+  border-radius: 8px 0 0 0;
+}
+
+.asset-library-panel.docked-bottom {
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 300px;
+  border-radius: 8px 8px 0 0;
+}
+
+/* Increase opacity on hover for readability */
+.asset-library-panel:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.asset-library-panel.dragging {
+  opacity: 0.8;
+  cursor: grabbing;
+}
+
+/* Header */
+.asset-library-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.asset-library-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.9);
+  margin: 0;
+}
+
+.asset-library-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.asset-library-control-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.6);
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.asset-library-control-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: rgba(0, 0, 0, 0.9);
+}
+
+/* Search Section */
+.asset-library-search {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.asset-library-search-input {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.3);
+  color: rgba(0, 0, 0, 0.9);
+  transition: all 0.2s;
+}
+
+.asset-library-search-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.asset-library-search-input::placeholder {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.search-input-wrapper {
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+/* Filter Bar */
+.asset-library-filters {
+  padding: 8px 16px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.filter-dropdown {
+  padding: 6px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(0, 0, 0, 0.9);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-dropdown:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.view-toggle {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+
+.view-toggle-btn {
+  padding: 6px 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.2s;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.view-toggle-btn:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.view-toggle-btn:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.view-toggle-btn.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.view-toggle-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Content Area */
+.asset-library-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+}
+
+/* Asset Grid */
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+}
+
+.asset-grid.comfortable {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+/* Asset Card */
+.asset-card {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 8px;
+  cursor: grab;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.asset-card:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.asset-card:active {
+  cursor: grabbing;
+}
+
+.asset-card-thumbnail {
+  width: 100%;
+  aspect-ratio: 1;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.asset-card-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.asset-card-thumbnail-placeholder {
+  color: rgba(0, 0, 0, 0.3);
+  font-size: 32px;
+}
+
+.asset-card-name {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.9);
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 26px;
+}
+
+.asset-card-specs {
+  font-size: 10px;
+  color: rgba(0, 0, 0, 0.6);
+  margin-top: 4px;
+  line-height: 1.3;
+}
+
+/* Asset List */
+.asset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.asset-list-item {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 8px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  cursor: grab;
+  transition: all 0.2s;
+}
+
+.asset-list-item:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: #3b82f6;
+}
+
+.asset-list-thumbnail {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.asset-list-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.asset-list-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.9);
+  margin-bottom: 2px;
+}
+
+.asset-list-specs {
+  font-size: 10px;
+  color: rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Scrollbar styling */
+.asset-library-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.asset-library-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.asset-library-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.asset-library-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Tooltip */
+.asset-tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  pointer-events: none;
+  z-index: 10000;
+  max-width: 200px;
+  line-height: 1.4;
+}
+
+/* Accessibility */
+.asset-library-panel.solid-mode {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: none;
+}
+
+/* Empty state */
+.asset-library-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.asset-library-empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.3;
+}
+
+.asset-library-empty-text {
+  font-size: 14px;
+}
