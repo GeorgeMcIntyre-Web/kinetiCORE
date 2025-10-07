@@ -76,7 +76,7 @@ export class DWGDatabaseToBabylonConverter {
 
     try {
       // Step 1: Process modelspace entities using correct API
-      // Access database structure: database._tables.blockTable.modelSpace
+      const entityProcessingStart = performance.now();
       const tables = (database as any)._tables;
       const modelSpace = tables?.blockTable?.modelSpace;
       if (modelSpace) {
@@ -84,12 +84,19 @@ export class DWGDatabaseToBabylonConverter {
       } else {
         console.warn('[DWG Database Converter] No modelSpace found in database');
       }
+      const entityProcessingTime = performance.now() - entityProcessingStart;
 
       // Step 2: Create batched meshes from accumulated geometry
+      const meshCreationStart = performance.now();
       const batchedMeshes = this.createBatchedMeshes();
       meshes.push(...batchedMeshes);
+      const meshCreationTime = performance.now() - meshCreationStart;
 
       const conversionTime = performance.now() - startTime;
+
+      console.log(`[DWG Performance] Entity processing: ${entityProcessingTime.toFixed(2)}ms`);
+      console.log(`[DWG Performance] Mesh creation: ${meshCreationTime.toFixed(2)}ms`);
+      console.log(`[DWG Performance] Total conversion: ${conversionTime.toFixed(2)}ms`);
 
       this.log(`[DWG Database Converter] Conversion complete:`, {
         meshes: meshes.length,
@@ -149,35 +156,14 @@ export class DWGDatabaseToBabylonConverter {
    * Process a single entity
    */
   private async processEntity(entity: any, parentTransform: BABYLON.Matrix | null): Promise<void> {
-    // Get entity type - handle different API formats
-    let entityType = 'Unknown';
-    try {
-      if (entity.isA && typeof entity.isA === 'function') {
-        const typeObj = entity.isA();
-        entityType = typeObj?.name?.() || typeObj?.toString?.() || entity.constructor?.name || 'Unknown';
-      } else if (entity.constructor?.name) {
-        entityType = entity.constructor.name;
-      }
-    } catch (e) {
-      entityType = entity.constructor?.name || 'Unknown';
-    }
+    // Get entity type - optimized for speed
+    const entityType = entity.constructor?.name || 'Unknown';
 
     this.entityCount++;
 
     // Track entity type statistics
     const currentCount = this.entityTypeStats.get(entityType) || 0;
     this.entityTypeStats.set(entityType, currentCount + 1);
-
-    // Log first few entities to understand the structure
-    if (this.entityCount <= 3) {
-      this.log(`[DWG Database Converter] Entity ${this.entityCount}: ${entityType}`, entity);
-      this.log(`[DWG Database Converter] Entity ${this.entityCount} keys:`, Object.keys(entity));
-
-      // Check for common geometry methods/properties
-      const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(entity))
-        .filter(name => typeof entity[name] === 'function' && !name.startsWith('_'));
-      this.log(`[DWG Database Converter] Entity ${this.entityCount} methods:`, methods.slice(0, 20));
-    }
 
     try {
       switch (entityType) {
@@ -223,12 +209,12 @@ export class DWGDatabaseToBabylonConverter {
 
         case 'AcDbText':
         case 'xa2': // TEXT entity (single-line text)
-          // Skip text entities for now (can add later if needed)
+          this.processText(entity, parentTransform);
           break;
 
         case 'AcDbMText':
         case 'ya2': // MTEXT entity (multiline text)
-          // Skip text entities for now (can add later if needed)
+          this.processMText(entity, parentTransform);
           break;
 
         case 'ba2': // Unknown entity type - need to investigate
@@ -505,6 +491,95 @@ export class DWGDatabaseToBabylonConverter {
       if (entity._geo) {
         this.log(`[DWG Database Converter] HATCH #${this.entityTypeStats.get('Pa2')} _geo keys:`, Object.keys(entity._geo));
       }
+    }
+  }
+
+  /**
+   * Process TEXT entity (single-line text)
+   * Creates a bounding box placeholder for text
+   */
+  private processText(entity: any, transform: BABYLON.Matrix | null): void {
+    // Extract text properties
+    const textValue = entity._geo?._text || entity._text || '';
+    const insertionPoint = entity._geo?._insertionPoint || entity._insertionPoint;
+    const height = entity._geo?._height || entity._height || 2.5; // Default 2.5mm text height
+
+    if (!insertionPoint || !textValue) {
+      if (this.entityCount <= 10) {
+        this.log('[DWG Database Converter] TEXT entity missing insertion point or text value');
+      }
+      return;
+    }
+
+    // Create a simple bounding box to represent text location
+    // Width approximation: ~70% of height per character (typical CAD text aspect ratio)
+    const width = textValue.length * height * 0.7;
+
+    const pos = this.convertPoint(insertionPoint, transform);
+
+    // Create box corners
+    const corners = [
+      pos,
+      new BABYLON.Vector3(pos.x + width * this.unitScale, pos.y, pos.z),
+      new BABYLON.Vector3(pos.x + width * this.unitScale, pos.y + height * this.unitScale, pos.z),
+      new BABYLON.Vector3(pos.x, pos.y + height * this.unitScale, pos.z),
+      pos // Close the box
+    ];
+
+    const colorKey = this.getEntityColorKey(entity);
+    if (!this.linesByColor.has(colorKey)) {
+      this.linesByColor.set(colorKey, []);
+    }
+    this.linesByColor.get(colorKey)!.push(corners);
+
+    // Log first few text entities
+    if (this.entityTypeStats.get('xa2') <= 3) {
+      console.log(`[DWG TEXT #${this.entityTypeStats.get('xa2')}] Text: "${textValue}", Height: ${height}mm`);
+    }
+  }
+
+  /**
+   * Process MTEXT entity (multiline text)
+   * Creates a bounding box placeholder for multiline text
+   */
+  private processMText(entity: any, transform: BABYLON.Matrix | null): void {
+    // Extract mtext properties
+    const textValue = entity._geo?._text || entity._text || '';
+    const insertionPoint = entity._geo?._insertionPoint || entity._insertionPoint;
+    const height = entity._geo?._height || entity._height || 2.5; // Default 2.5mm text height
+    const width = entity._geo?._width || entity._width || height * 10; // Default width if not specified
+
+    if (!insertionPoint || !textValue) {
+      if (this.entityCount <= 10) {
+        this.log('[DWG Database Converter] MTEXT entity missing insertion point or text value');
+      }
+      return;
+    }
+
+    // Count lines (rough approximation)
+    const lineCount = textValue.split(/\n|\\P/).length;
+    const totalHeight = height * lineCount * 1.5; // 1.5x for line spacing
+
+    const pos = this.convertPoint(insertionPoint, transform);
+
+    // Create box corners for multiline text
+    const corners = [
+      pos,
+      new BABYLON.Vector3(pos.x + width * this.unitScale, pos.y, pos.z),
+      new BABYLON.Vector3(pos.x + width * this.unitScale, pos.y + totalHeight * this.unitScale, pos.z),
+      new BABYLON.Vector3(pos.x, pos.y + totalHeight * this.unitScale, pos.z),
+      pos // Close the box
+    ];
+
+    const colorKey = this.getEntityColorKey(entity);
+    if (!this.linesByColor.has(colorKey)) {
+      this.linesByColor.set(colorKey, []);
+    }
+    this.linesByColor.get(colorKey)!.push(corners);
+
+    // Log first few mtext entities
+    if (this.entityTypeStats.get('ya2') <= 3) {
+      console.log(`[DWG MTEXT #${this.entityTypeStats.get('ya2')}] Text: "${textValue.substring(0, 50)}...", Lines: ${lineCount}`);
     }
   }
 

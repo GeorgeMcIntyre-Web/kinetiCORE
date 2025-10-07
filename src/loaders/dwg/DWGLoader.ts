@@ -85,6 +85,7 @@ export async function loadDWGFromFile(
   scene: BABYLON.Scene,
   options: DWGLoaderOptions = {}
 ): Promise<{ meshes: BABYLON.AbstractMesh[]; rootNodes: BABYLON.TransformNode[] }> {
+  const totalStartTime = performance.now();
   console.log(`[DWG Loader] Loading ${file.name}...`);
 
   const onProgress = options.onProgress || ((progress: DWGImportProgress) => {
@@ -93,8 +94,10 @@ export async function loadDWGFromFile(
 
   try {
     // Use new database parser with block support
+    const parseStartTime = performance.now();
     const parser = getDatabaseParser();
     const parseResult = await parser.parseDWG(file, onProgress);
+    const parseTime = performance.now() - parseStartTime;
 
     // Log warnings if any
     if (parseResult.warnings.length > 0) {
@@ -134,12 +137,17 @@ export async function loadDWGFromFile(
       stage: 'converting'
     });
 
-    console.log(`[DWG Loader] Successfully loaded ${file.name}:`, {
-      meshes: conversionResult.meshes.length,
-      entities: conversionResult.entityCount,
-      blockInstances: conversionResult.blockInstanceCount,
-      conversionTime: `${conversionResult.conversionTime.toFixed(2)}ms`
-    });
+    const totalTime = performance.now() - totalStartTime;
+
+    console.log(`\n========== DWG LOAD PERFORMANCE ==========`);
+    console.log(`File: ${file.name}`);
+    console.log(`Parse time: ${parseTime.toFixed(2)}ms`);
+    console.log(`Conversion time: ${conversionResult.conversionTime.toFixed(2)}ms`);
+    console.log(`Total time: ${totalTime.toFixed(2)}ms`);
+    console.log(`Entities processed: ${conversionResult.entityCount}`);
+    console.log(`Meshes created: ${conversionResult.meshes.length}`);
+    console.log(`Block instances: ${conversionResult.blockInstanceCount}`);
+    console.log(`==========================================\n`);
 
     // Create root node for organization
     const rootNode = new BABYLON.TransformNode(`dwg_${file.name}`, scene);
