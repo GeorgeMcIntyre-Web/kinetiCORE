@@ -39,7 +39,15 @@ export function AssetLibraryPanel({
   const [isLoading, setIsLoading] = useState(true);
 
   const panelRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [position, setPosition] = useState(() => {
+    // Center panel on screen
+    const panelWidth = 450;
+    const panelHeight = 650;
+    return {
+      x: (window.innerWidth - panelWidth) / 2,
+      y: (window.innerHeight - panelHeight) / 2,
+    };
+  });
   const [isDragging, setIsDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
 
