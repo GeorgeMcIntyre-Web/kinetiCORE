@@ -97,8 +97,8 @@ export const EssentialModeLayout: React.FC = () => {
   };
 
   const handleCreateProjectionView = () => {
-    if (selectedNodeIds.length !== 2) {
-      toast.warning('Select 2 objects: source mesh + target plane');
+    if (selectedNodeIds.length === 0) {
+      toast.warning('Select object(s) to project');
       return;
     }
 
@@ -111,24 +111,82 @@ export const EssentialModeLayout: React.FC = () => {
       return;
     }
 
-    const node1 = tree.getNode(selectedNodeIds[0]);
-    const node2 = tree.getNode(selectedNodeIds[1]);
+    let sourceMesh: any = null;
+    let targetMesh: any = null;
 
-    if (!node1 || !node2) {
-      toast.error('Selected nodes not found');
-      return;
-    }
+    if (selectedNodeIds.length === 1) {
+      // Single selection: project onto ground
+      const node = tree.getNode(selectedNodeIds[0]);
+      if (!node) {
+        toast.error('Node not found');
+        return;
+      }
 
-    const mesh1 = node1.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node1.babylonMeshId)) : null;
-    const mesh2 = node2.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node2.babylonMeshId)) : null;
+      sourceMesh = node.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node.babylonMeshId)) : null;
+      targetMesh = scene.getMeshByName('ground');
 
-    if (!mesh1 || !mesh2) {
-      toast.error('Select 2 mesh objects');
+      if (!sourceMesh) {
+        toast.error('Select a mesh object');
+        return;
+      }
+
+      if (!targetMesh) {
+        toast.error('Ground not found');
+        return;
+      }
+    } else if (selectedNodeIds.length === 2) {
+      // Two selections: project first onto second
+      const node1 = tree.getNode(selectedNodeIds[0]);
+      const node2 = tree.getNode(selectedNodeIds[1]);
+
+      if (!node1 || !node2) {
+        toast.error('Nodes not found');
+        return;
+      }
+
+      sourceMesh = node1.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node1.babylonMeshId)) : null;
+      targetMesh = node2.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node2.babylonMeshId)) : null;
+
+      if (!sourceMesh || !targetMesh) {
+        toast.error('Select 2 meshes');
+        return;
+      }
+    } else {
+      // Multiple selections: project all onto ground
+      targetMesh = scene.getMeshByName('ground');
+      if (!targetMesh) {
+        toast.error('Ground not found');
+        return;
+      }
+
+      // Project each selected object onto ground
+      let successCount = 0;
+      for (const nodeId of selectedNodeIds) {
+        const node = tree.getNode(nodeId);
+        if (!node) continue;
+
+        sourceMesh = node.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node.babylonMeshId)) : null;
+        if (!sourceMesh) continue;
+
+        try {
+          const command = new CreateProjectionViewCommand(sourceMesh.name, targetMesh.name, 'auto');
+          commandManager.execute(command);
+          successCount++;
+        } catch (error) {
+          console.error('Failed to project:', error);
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`Created ${successCount} projections!`);
+      } else {
+        toast.error('No projections created');
+      }
       return;
     }
 
     try {
-      const command = new CreateProjectionViewCommand(mesh1.name, mesh2.name, 'auto');
+      const command = new CreateProjectionViewCommand(sourceMesh.name, targetMesh.name, 'auto');
       commandManager.execute(command);
       toast.success('Projection created!');
     } catch (error) {
@@ -281,8 +339,8 @@ export const EssentialModeLayout: React.FC = () => {
         <button
           className="toolbar-btn"
           onClick={handleCreateProjectionView}
-          title="Create Projection View (Select 2 objects)"
-          disabled={selectedNodeIds.length !== 2}
+          title="Create Projection View (Select 1+ objects)"
+          disabled={selectedNodeIds.length === 0}
         >
           <Layers size={18} />
         </button>

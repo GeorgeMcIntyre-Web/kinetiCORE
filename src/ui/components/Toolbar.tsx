@@ -165,7 +165,36 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
         return;
       }
     } else {
-      toast.warning('Select 1 object (projects to ground) or 2 objects (custom target)');
+      // Multiple selections: project all onto ground
+      targetMesh = scene.getMeshByName('ground');
+      if (!targetMesh) {
+        toast.error('Ground plane not found');
+        return;
+      }
+
+      // Project each selected object onto ground
+      let successCount = 0;
+      for (const nodeId of selectedNodeIds) {
+        const node = tree.getNode(nodeId);
+        if (!node) continue;
+
+        sourceMesh = node.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node.babylonMeshId)) : null;
+        if (!sourceMesh) continue;
+
+        try {
+          const command = new CreateProjectionViewCommand(sourceMesh.name, targetMesh.name, 'auto');
+          commandManager.execute(command);
+          successCount++;
+        } catch (error) {
+          console.error('Failed to project:', error);
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`Created ${successCount} projections!`);
+      } else {
+        toast.error('No projections created');
+      }
       return;
     }
 
@@ -345,8 +374,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
           <button
             className="toolbar-button-icon"
             onClick={handleCreateProjectionView}
-            title="Create Projection View (Select 1 object or 2 objects)"
-            disabled={selectedNodeIds.length === 0 || selectedNodeIds.length > 2}
+            title="Create Projection View (Select 1+ objects)"
+            disabled={selectedNodeIds.length === 0}
           >
             <Layers size={16} />
             <span className="button-label">Project</span>
