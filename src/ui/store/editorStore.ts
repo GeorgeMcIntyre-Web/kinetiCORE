@@ -11,7 +11,14 @@ import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { userToBabylon, babylonToUser } from '../../core/CoordinateSystem';
 import { loadModelFromFile, getAllChildren } from '../../scene/ModelLoader';
 import { createKinematicsFromURDF } from '../../loaders/urdf/URDFJointExtractor';
-import { saveWorldToFile, loadWorldFromFile, restoreWorldState } from '../../scene/WorldSerializer';
+import {
+  saveWorldToFile,
+  loadWorldFromFile,
+  restoreWorldState,
+  saveBabylonWorldToFile,
+  loadBabylonWorldFromFile,
+  restoreBabylonWorld
+} from '../../scene/WorldSerializer';
 import { CustomFrameHelper } from '../../scene/CustomFrameHelper';
 import { CoordinateFrameWidget } from '../../scene/CoordinateFrameWidget';
 import type { NodeType } from '../../scene/SceneTreeNode';
@@ -60,6 +67,8 @@ interface EditorState {
   moveNode: (nodeId: string, newParentId: string | null) => void;
   saveWorld: () => void;
   loadWorld: (file: File) => Promise<void>;
+  saveBabylonWorld: () => void;
+  loadBabylonWorld: (file: File) => Promise<void>;
   setTransformMode: (mode: TransformMode) => void;
   setCamera: (camera: BABYLON.Camera) => void;
   togglePlayback: () => void;
@@ -1010,12 +1019,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 
-  // Load world from file
+  // Load world from file (metadata only - lightweight)
   loadWorld: async (file: File) => {
     try {
       const worldData = await loadWorldFromFile(file);
       if (!worldData) {
-        alert('Failed to load world file. Invalid format.');
+        toast.error('Failed to load world file. Invalid format.');
         return;
       }
 
@@ -1023,13 +1032,53 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const success = restoreWorldState(worldData);
       if (success) {
         console.log('World loaded successfully');
+        toast.success('World metadata loaded');
         window.dispatchEvent(new Event('scenetree-update'));
       } else {
-        alert('Failed to restore world state.');
+        toast.error('Failed to restore world state.');
       }
     } catch (error) {
       console.error('Failed to load world:', error);
-      alert('Failed to load world. Check console for details.');
+      toast.error('Failed to load world. Check console for details.');
+    }
+  },
+
+  // Save complete Babylon scene (geometry + materials + metadata)
+  saveBabylonWorld: () => {
+    try {
+      saveBabylonWorldToFile();
+      toast.success('Babylon world saved successfully');
+    } catch (error) {
+      console.error('Failed to save Babylon world:', error);
+      toast.error('Failed to save Babylon world. Check console for details.');
+    }
+  },
+
+  // Load complete Babylon world from .babylon file
+  loadBabylonWorld: async (file: File) => {
+    try {
+      loading.start('Loading Babylon world...', 'loading');
+      const babylonData = await loadBabylonWorldFromFile(file);
+      if (!babylonData) {
+        toast.error('Failed to load Babylon world file. Invalid format.');
+        loading.end();
+        return;
+      }
+
+      // Restore complete scene
+      const success = await restoreBabylonWorld(babylonData);
+      loading.end();
+
+      if (success) {
+        toast.success('Babylon world loaded successfully');
+        window.dispatchEvent(new Event('scenetree-update'));
+      } else {
+        toast.error('Failed to restore Babylon world.');
+      }
+    } catch (error) {
+      console.error('Failed to load Babylon world:', error);
+      loading.end();
+      toast.error('Failed to load Babylon world. Check console for details.');
     }
   },
 
