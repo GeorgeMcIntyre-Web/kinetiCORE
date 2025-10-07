@@ -68,7 +68,9 @@
       "Bash(timeout 10 npm run type-check)",
       "Bash(git restore:*)",
       "Bash(npx tsx:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(pkill:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

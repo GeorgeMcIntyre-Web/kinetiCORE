@@ -5,7 +5,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Search,
-  X,
   Minimize2,
   Maximize2,
   Settings,
@@ -36,7 +35,6 @@ export function AssetLibraryPanel({
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDomain, setSelectedDomain] = useState<string>('all');
-  const [assets, setAssets] = useState<LibraryAsset[]>([]);
   const [filteredAssets, setFilteredAssets] = useState<LibraryAsset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -53,7 +51,6 @@ export function AssetLibraryPanel({
       try {
         await libraryManager.initialize();
         const allAssets = libraryManager.getAllAssets();
-        setAssets(allAssets);
         setFilteredAssets(allAssets);
         setIsLoading(false);
       } catch (error) {

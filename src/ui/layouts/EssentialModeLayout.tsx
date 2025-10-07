@@ -12,6 +12,7 @@ import {
   FolderOpen,
   Move,
   RotateCw,
+  Layers,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
@@ -22,6 +23,8 @@ import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { EntityRegistry } from '../../entities/EntityRegistry';
 import { babylonToUser } from '../../core/CoordinateSystem';
+import { CreateProjectionViewCommand } from '../../history/commands/CreateProjectionViewCommand';
+import { toast } from '../components/ToastNotifications';
 import './EssentialModeLayout.css';
 
 export const EssentialModeLayout: React.FC = () => {
@@ -32,6 +35,8 @@ export const EssentialModeLayout: React.FC = () => {
   const saveWorld = useEditorStore((state) => state.saveWorld);
   const zoomFit = useEditorStore((state) => state.zoomFit);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+  const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
+  const commandManager = useEditorStore((state) => state.commandManager);
 
   const [transform, setTransform] = useState<{
     x: number;
@@ -86,6 +91,47 @@ export const EssentialModeLayout: React.FC = () => {
 
   const handleZoomFit = () => {
     zoomFit();
+  };
+
+  const handleCreateProjectionView = () => {
+    if (selectedNodeIds.length !== 2) {
+      toast.warning('Select 2 objects: source mesh + target plane');
+      return;
+    }
+
+    const tree = SceneTreeManager.getInstance();
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+
+    if (!scene) {
+      toast.error('Scene not initialized');
+      return;
+    }
+
+    const node1 = tree.getNode(selectedNodeIds[0]);
+    const node2 = tree.getNode(selectedNodeIds[1]);
+
+    if (!node1 || !node2) {
+      toast.error('Selected nodes not found');
+      return;
+    }
+
+    const mesh1 = node1.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node1.babylonMeshId)) : null;
+    const mesh2 = node2.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node2.babylonMeshId)) : null;
+
+    if (!mesh1 || !mesh2) {
+      toast.error('Select 2 mesh objects');
+      return;
+    }
+
+    try {
+      const command = new CreateProjectionViewCommand(mesh1.name, mesh2.name, 'auto');
+      commandManager.execute(command);
+      toast.success('Projection created!');
+    } catch (error) {
+      console.error('Failed to create projection:', error);
+      toast.error(`Failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   // Update transform display when selection changes
@@ -214,28 +260,38 @@ export const EssentialModeLayout: React.FC = () => {
       {/* Floating Toolbar */}
       <div className="floating-toolbar">
         <button className="toolbar-btn active" onClick={() => {}} title="Move & Rotate (Combined)">
-          <div style={{ position: 'relative', width: 14, height: 14 }}>
-            <Move size={12} style={{ position: 'absolute', top: 0, left: 0 }} />
-            <RotateCw size={9} style={{ position: 'absolute', bottom: 0, right: 0 }} />
+          <div style={{ position: 'relative', width: 18, height: 18 }}>
+            <Move size={16} style={{ position: 'absolute', top: 0, left: 0 }} />
+            <RotateCw size={12} style={{ position: 'absolute', bottom: 0, right: 0 }} />
           </div>
         </button>
         <button className="toolbar-btn" onClick={() => createObject('box')} title="Create Box">
-          <Box size={14} />
+          <Box size={18} />
         </button>
         <button className="toolbar-btn" onClick={() => createObject('sphere')} title="Create Sphere">
-          <Circle size={14} />
+          <Circle size={18} />
         </button>
         <button className="toolbar-btn" onClick={() => createObject('cylinder')} title="Create Cylinder">
-          <Cylinder size={14} />
+          <Cylinder size={18} />
         </button>
+        <div className="toolbar-separator" />
+        <button
+          className="toolbar-btn"
+          onClick={handleCreateProjectionView}
+          title="Create Projection View (Select 2 objects)"
+          disabled={selectedNodeIds.length !== 2}
+        >
+          <Layers size={18} />
+        </button>
+        <div className="toolbar-separator" />
         <button className="toolbar-btn" onClick={handleFileImport} title="Import Model">
-          <Upload size={14} />
+          <Upload size={18} />
         </button>
         <button className="toolbar-btn" onClick={handleLoadWorld} title="Load World">
-          <FolderOpen size={14} />
+          <FolderOpen size={18} />
         </button>
         <button className="toolbar-btn" onClick={saveWorld} title="Save World">
-          <Save size={14} />
+          <Save size={18} />
         </button>
       </div>
 

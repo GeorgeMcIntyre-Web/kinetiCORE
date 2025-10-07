@@ -120,7 +120,7 @@ export class FloorMaterialManager {
     texture.vScale = GROUND_SIZE / 5;
     material.baseTexture = texture;
 
-    material.environmentIntensity = 0.4;
+    material._environmentIntensity = 0.4;
     return material;
   }
 
@@ -145,7 +145,7 @@ export class FloorMaterialManager {
     texture.vScale = GROUND_SIZE / 3;
     material.baseTexture = texture;
 
-    material.environmentIntensity = 0.2;
+    material._environmentIntensity = 0.2;
     return material;
   }
 
@@ -160,7 +160,7 @@ export class FloorMaterialManager {
     material.baseColor = color;
     material.metallic = 0.1; // Slight metallic for reflectivity
     material.roughness = 0.3; // Smooth, glossy finish
-    material.environmentIntensity = 0.6; // More reflective
+    material._environmentIntensity = 0.6; // More reflective
 
     return material;
   }
@@ -186,7 +186,7 @@ export class FloorMaterialManager {
     texture.vScale = GROUND_SIZE / 2;
     material.baseTexture = texture;
 
-    material.environmentIntensity = 0.5;
+    material._environmentIntensity = 0.5;
     return material;
   }
 
@@ -202,7 +202,7 @@ export class FloorMaterialManager {
     material.metallic = 0.8; // Very metallic
     material.roughness = 0.4; // Brushed metal
 
-    material.environmentIntensity = 0.7; // Reflective metal
+    material._environmentIntensity = 0.7; // Reflective metal
     return material;
   }
 
@@ -227,7 +227,7 @@ export class FloorMaterialManager {
     texture.vScale = GROUND_SIZE / 4;
     material.baseTexture = texture;
 
-    material.environmentIntensity = 0.1;
+    material._environmentIntensity = 0.1;
     return material;
   }
 
@@ -252,7 +252,7 @@ export class FloorMaterialManager {
     texture.vScale = GROUND_SIZE / 8;
     material.baseTexture = texture;
 
-    material.environmentIntensity = 0.3;
+    material._environmentIntensity = 0.3;
     return material;
   }
 

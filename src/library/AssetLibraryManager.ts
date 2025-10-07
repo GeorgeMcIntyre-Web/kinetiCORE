@@ -10,7 +10,6 @@ import type {
   LibraryManifest,
   LibraryFilters,
   SearchResult,
-  AssetInsertionConfig,
 } from './types';
 
 /**

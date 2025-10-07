@@ -6,14 +6,14 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useSceneContext } from '../core/SceneContext';
+import { SceneManager } from '../../scene/SceneManager';
 import { AssetLoader } from '../../library/AssetLoader';
 import type { LibraryAsset, AssetInsertionConfig } from '../../library/types';
-import { useToast } from '../store/toastStore';
+import { useToastStore } from '../components/ToastNotifications';
 
 export function useAssetLibrary() {
-  const { scene } = useSceneContext();
-  const { addToast } = useToast();
+  const addToast = useToastStore((state) => state.addToast);
+  const scene = SceneManager.getInstance().getScene();
   const [isDraggingAsset, setIsDraggingAsset] = useState(false);
   const [draggedAsset, setDraggedAsset] = useState<LibraryAsset | null>(null);
 
@@ -24,7 +24,6 @@ export function useAssetLibrary() {
     async (asset: LibraryAsset) => {
       if (!scene) {
         addToast({
-          id: Date.now().toString(),
           type: 'error',
           message: 'Scene not ready',
         });
@@ -32,7 +31,6 @@ export function useAssetLibrary() {
       }
 
       addToast({
-        id: Date.now().toString(),
         type: 'info',
         message: `Loading ${asset.name}...`,
       });
@@ -49,20 +47,17 @@ export function useAssetLibrary() {
 
         if (result.success) {
           addToast({
-            id: Date.now().toString(),
             type: 'success',
             message: `Added ${asset.name} to scene`,
           });
         } else {
           addToast({
-            id: Date.now().toString(),
             type: 'error',
             message: `Failed to load ${asset.name}: ${result.error}`,
           });
         }
       } catch (error) {
         addToast({
-          id: Date.now().toString(),
           type: 'error',
           message: `Error loading ${asset.name}`,
         });
@@ -108,7 +103,6 @@ export function useAssetLibrary() {
 
         if (result.success) {
           addToast({
-            id: Date.now().toString(),
             type: 'success',
             message: `Added ${draggedAsset.name}`,
           });

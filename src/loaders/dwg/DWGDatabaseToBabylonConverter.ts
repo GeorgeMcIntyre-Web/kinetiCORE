@@ -74,8 +74,9 @@ export class DWGDatabaseToBabylonConverter {
 
     try {
       // Step 1: Process modelspace entities using correct API
-      // Note: database.tables.blockTable.modelSpace is the correct path
-      const modelSpace = database.tables?.blockTable?.modelSpace;
+      // Access database structure: database._tables.blockTable.modelSpace
+      const tables = (database as any)._tables;
+      const modelSpace = tables?.blockTable?.modelSpace;
       if (modelSpace) {
         await this.processModelSpace(modelSpace);
       } else {
@@ -111,15 +112,17 @@ export class DWGDatabaseToBabylonConverter {
    * Process modelSpace entities
    */
   private async processModelSpace(modelSpace: any): Promise<void> {
-    if (!modelSpace || !modelSpace.entities) {
+    // modelSpace._entities is a Map, not an array
+    if (!modelSpace || !modelSpace._entities) {
       this.log('[DWG Database Converter] No entities in modelSpace');
       return;
     }
 
-    this.log(`[DWG Database Converter] Processing ${modelSpace.entities.length} entities...`);
+    const entitiesMap = modelSpace._entities as Map<any, any>;
+    this.log(`[DWG Database Converter] Processing ${entitiesMap.size} entities...`);
 
-    // Process all entities in modelSpace
-    for (const entity of modelSpace.entities) {
+    // Process all entities in modelSpace (iterate Map)
+    for (const [id, entity] of entitiesMap) {
       if (entity) {
         await this.processEntity(entity, null);
       }
@@ -132,12 +135,36 @@ export class DWGDatabaseToBabylonConverter {
    * Process a single entity
    */
   private async processEntity(entity: any, parentTransform: BABYLON.Matrix | null): Promise<void> {
-    const entityType = entity.isA().name();
+    // Get entity type - handle different API formats
+    let entityType = 'Unknown';
+    try {
+      if (entity.isA && typeof entity.isA === 'function') {
+        const typeObj = entity.isA();
+        entityType = typeObj?.name?.() || typeObj?.toString?.() || entity.constructor?.name || 'Unknown';
+      } else if (entity.constructor?.name) {
+        entityType = entity.constructor.name;
+      }
+    } catch (e) {
+      entityType = entity.constructor?.name || 'Unknown';
+    }
+
     this.entityCount++;
+
+    // Log first few entities to understand the structure
+    if (this.entityCount <= 3) {
+      this.log(`[DWG Database Converter] Entity ${this.entityCount}: ${entityType}`, entity);
+      this.log(`[DWG Database Converter] Entity ${this.entityCount} keys:`, Object.keys(entity));
+
+      // Check for common geometry methods/properties
+      const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(entity))
+        .filter(name => typeof entity[name] === 'function' && !name.startsWith('_'));
+      this.log(`[DWG Database Converter] Entity ${this.entityCount} methods:`, methods.slice(0, 20));
+    }
 
     try {
       switch (entityType) {
         case 'AcDbLine':
+        case 'Wa2': // LINE entity in LibreDWG
           this.processLine(entity, parentTransform);
           break;
 
@@ -145,27 +172,37 @@ export class DWGDatabaseToBabylonConverter {
         case 'AcDb2dPolyline':
         case 'AcDb3dPolyline':
         case 'AcDbLWPolyline':
+        case 'Ta2': // LWPOLYLINE entity in LibreDWG (has getPoint2dAt/getPoint3dAt)
+        case 'Ma2': // POLYLINE entity
           this.processPolyline(entity, parentTransform);
           break;
 
         case 'AcDbCircle':
+        case 'Ua2': // CIRCLE entity in LibreDWG
           this.processCircle(entity, parentTransform);
           break;
 
         case 'AcDbArc':
+        case 'Va2': // ARC entity in LibreDWG
           this.processArc(entity, parentTransform);
           break;
 
         case 'AcDbBlockReference':
+        case 'AcDbInsert':
+        case '_a2': // INSERT entity in LibreDWG (has _blockName, _position, _rotation)
           await this.processBlockReference(entity, parentTransform);
           break;
 
         case 'AcDbSpline':
+        case 'bb2': // SPLINE entity in LibreDWG
           this.processSpline(entity, parentTransform);
           break;
 
         default:
-          // Skip unsupported entity types
+          // Skip unsupported entity types (only log once per type)
+          if (this.entityCount <= 10) {
+            this.log(`[DWG Database Converter] Skipping unsupported entity type: ${entityType}`);
+          }
           break;
       }
     } catch (error) {
@@ -177,8 +214,19 @@ export class DWGDatabaseToBabylonConverter {
    * Process LINE entity
    */
   private processLine(entity: any, transform: BABYLON.Matrix | null): void {
-    const startPt = this.convertPoint(entity.startPoint(), transform);
-    const endPt = this.convertPoint(entity.endPoint(), transform);
+    // Get start and end points - could be methods or properties
+    const startPoint = typeof entity.startPoint === 'function' ? entity.startPoint() :
+                       (entity.startPoint || entity._startPoint);
+    const endPoint = typeof entity.endPoint === 'function' ? entity.endPoint() :
+                     (entity.endPoint || entity._endPoint);
+
+    if (!startPoint || !endPoint) {
+      this.log(`[DWG Database Converter] LINE entity missing start/end points`);
+      return;
+    }
+
+    const startPt = this.convertPoint(startPoint, transform);
+    const endPt = this.convertPoint(endPoint, transform);
     const colorKey = this.getEntityColorKey(entity);
 
     if (!this.linesByColor.has(colorKey)) {
@@ -194,8 +242,56 @@ export class DWGDatabaseToBabylonConverter {
   private processPolyline(entity: any, transform: BABYLON.Matrix | null): void {
     const vertices: BABYLON.Vector3[] = [];
 
-    // Try different methods to get vertices depending on polyline type
-    if (typeof entity.numVertices === 'function') {
+    // Debug first polyline
+    if (this.entityCount <= 5) {
+      this.log('[DWG Database Converter] Polyline entity._geo:', entity._geo);
+    }
+
+    // LibreDWG polylines have _geo._vertices array (preferred) or getPoint2dAt/getPoint3dAt methods
+    if (entity._geo && entity._geo._vertices && Array.isArray(entity._geo._vertices)) {
+      // Direct access to _vertices array (most reliable)
+      if (this.entityCount <= 5) {
+        this.log(`[DWG Database Converter] Using _geo._vertices (${entity._geo._vertices.length} vertices)`);
+      }
+      for (const vertex of entity._geo._vertices) {
+        // Vertices are Vector2 objects with x, y properties
+        const point = { x: vertex.x || 0, y: vertex.y || 0, z: entity._elevation || 0 };
+        vertices.push(this.convertPoint(point, transform));
+      }
+    } else if (entity._geo && entity._geo.vertices && Array.isArray(entity._geo.vertices)) {
+      // Fallback: try .vertices (without underscore)
+      if (this.entityCount <= 5) {
+        this.log(`[DWG Database Converter] Using _geo.vertices (${entity._geo.vertices.length} vertices)`);
+      }
+      for (const vertex of entity._geo.vertices) {
+        const point = { x: vertex.x || vertex[0] || 0, y: vertex.y || vertex[1] || 0, z: vertex.z || vertex[2] || 0 };
+        vertices.push(this.convertPoint(point, transform));
+      }
+    } else if (typeof entity.getPoint3dAt === 'function') {
+      // Use getPoint3dAt method (Ta2 LWPOLYLINE)
+      let i = 0;
+      try {
+        while (true) {
+          const point = entity.getPoint3dAt(i);
+          if (!point) break;
+          if (i === 0 && this.entityCount <= 5) {
+            this.log('[DWG Database Converter] First point from getPoint3dAt:', point);
+          }
+          vertices.push(this.convertPoint(point, transform));
+          i++;
+          if (i > 10000) break; // Safety limit
+        }
+        if (this.entityCount <= 5) {
+          this.log(`[DWG Database Converter] getPoint3dAt extracted ${i} vertices`);
+        }
+      } catch (e) {
+        // End of vertices
+        if (this.entityCount <= 5) {
+          this.log('[DWG Database Converter] getPoint3dAt threw exception:', e);
+        }
+      }
+    } else if (typeof entity.numVertices === 'function') {
+      // Legacy method
       const numVerts = entity.numVertices();
       for (let i = 0; i < numVerts; i++) {
         if (typeof entity.vertexAt === 'function') {
@@ -211,6 +307,8 @@ export class DWGDatabaseToBabylonConverter {
         this.linesByColor.set(colorKey, []);
       }
       this.linesByColor.get(colorKey)!.push(vertices);
+    } else if (this.entityCount <= 5) {
+      this.log(`[DWG Database Converter] Polyline has insufficient vertices: ${vertices.length}`);
     }
   }
 
@@ -298,8 +396,8 @@ export class DWGDatabaseToBabylonConverter {
    * Process BLOCK REFERENCE (INSERT) entity
    */
   private async processBlockReference(
-    entity: any,
-    parentTransform: BABYLON.Matrix | null
+    _entity: any,
+    _parentTransform: BABYLON.Matrix | null
   ): Promise<void> {
     this.blockInstanceCount++;
 

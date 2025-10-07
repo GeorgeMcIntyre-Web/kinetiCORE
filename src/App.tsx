@@ -18,7 +18,7 @@ import { useAssetLibrary } from './ui/hooks/useAssetLibrary';
 const AppContent: React.FC = () => {
   const { userLevel } = useUserLevel();
   const [showKinematicsPanel, setShowKinematicsPanel] = useState(false);
-  const [showAssetLibrary, setShowAssetLibrary] = useState(true);
+  const [showAssetLibrary] = useState(true);
   const {
     handleAssetSelect,
     handleAssetDragStart,

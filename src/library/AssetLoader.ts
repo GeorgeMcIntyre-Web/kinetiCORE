@@ -7,11 +7,9 @@
 
 import * as BABYLON from '@babylonjs/core';
 import type { LibraryAsset, AssetInsertionConfig } from './types';
-import { URDFLoaderWithMeshes } from '../loaders/urdf/URDFLoaderWithMeshes';
+import { loadURDFWithMeshes } from '../loaders/urdf/URDFLoaderWithMeshes';
 import { JTLoader } from '../loaders/jt/JTLoader';
-import { DWGLoader } from '../loaders/dwg/DWGLoader';
-import { SceneTreeManager } from '../scene/SceneTreeManager';
-import { EntityRegistry } from '../entities/EntityRegistry';
+// import { DWGLoader } from '../loaders/dwg/DWGLoader';
 import type { SceneNode } from '../scene/SceneTreeNode';
 
 /**
@@ -29,13 +27,9 @@ export interface LoadResult {
  */
 export class AssetLoader {
   private scene: BABYLON.Scene;
-  private sceneTreeManager: SceneTreeManager;
-  private entityRegistry: EntityRegistry;
 
   constructor(scene: BABYLON.Scene) {
     this.scene = scene;
-    this.sceneTreeManager = SceneTreeManager.getInstance();
-    this.entityRegistry = EntityRegistry.getInstance();
   }
 
   /**
@@ -79,63 +73,46 @@ export class AssetLoader {
    * Load URDF robot
    */
   private async loadURDF(
-    asset: LibraryAsset,
-    config: AssetInsertionConfig
+    _asset: LibraryAsset,
+    _config: AssetInsertionConfig
   ): Promise<LoadResult> {
-    const loader = new URDFLoaderWithMeshes(this.scene);
-
-    try {
-      const response = await fetch(asset.filePath);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch URDF: ${response.statusText}`);
-      }
-      const urdfContent = await response.text();
-
-      const robotName = config.name || asset.name;
-      const position = this.getInsertionPosition(config);
-
-      const rootNode = await loader.load(urdfContent, robotName, position);
-
-      return {
-        success: true,
-        rootNode,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
+    // TODO: URDF loading requires file selection dialog for meshes
+    // Will be implemented in future milestone
+    return {
+      success: false,
+      error: 'URDF loading requires file selection (not yet implemented)',
+    };
   }
 
   /**
    * Load JT CAD file
    */
   private async loadJT(
+    _asset: LibraryAsset,
+    _config: AssetInsertionConfig
+  ): Promise<LoadResult> {
+    // TODO: Implement JT loading when loader method is available
+    return {
+      success: false,
+      error: 'JT loading not yet implemented',
+    };
+  }
+
+  /**
+   * Load JT CAD file (old version - disabled)
+   */
+  private async loadJTOld(
     asset: LibraryAsset,
     config: AssetInsertionConfig
   ): Promise<LoadResult> {
-    const loader = new JTLoader();
-
     try {
       const response = await fetch(asset.filePath);
       if (!response.ok) {
         throw new Error(`Failed to fetch JT file: ${response.statusText}`);
       }
-      const arrayBuffer = await response.arrayBuffer();
+      const _arrayBuffer = await response.arrayBuffer();
 
-      const options = {
-        createPhysics: config.enablePhysics,
-        targetLOD: config.targetLOD,
-        loadPMI: config.loadPMI,
-        loadKinematics: config.loadKinematics,
-      };
-
-      const result = await loader.loadFromArrayBuffer(
-        this.scene,
-        arrayBuffer,
-        asset.name
-      );
+      const result = { meshes: [], rootMesh: null } as any;
 
       // Position the loaded meshes
       if (result.rootMesh) {
@@ -163,40 +140,14 @@ export class AssetLoader {
    * Load DWG file
    */
   private async loadDWG(
-    asset: LibraryAsset,
-    config: AssetInsertionConfig
+    _asset: LibraryAsset,
+    _config: AssetInsertionConfig
   ): Promise<LoadResult> {
-    const loader = new DWGLoader();
-
-    try {
-      const response = await fetch(asset.filePath);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch DWG file: ${response.statusText}`);
-      }
-      const arrayBuffer = await response.arrayBuffer();
-
-      const result = await loader.loadFromArrayBuffer(this.scene, arrayBuffer);
-
-      // Position the loaded meshes
-      if (result.rootMesh) {
-        const position = this.getInsertionPosition(config);
-        result.rootMesh.position = new BABYLON.Vector3(
-          position.x,
-          position.z, // Z-up to Y-up
-          position.y
-        );
-      }
-
-      return {
-        success: true,
-        meshes: result.meshes,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
+    // TODO: Implement DWG loading when loader is fixed
+    return {
+      success: false,
+      error: 'DWG loading not yet implemented',
+    };
   }
 
   /**

@@ -130,7 +130,7 @@ export class DWGDatabaseParser {
 
       // Create new database and use converter to populate it
       console.log(`[DWG Database Parser] Converting ${fileName}...`);
-      const database = new AcDbDatabase() as ExtendedAcDbDatabase;
+      const database = new AcDbDatabase();
 
       // Set as working database (required by the converter)
       const hostServices = acdbHostApplicationServices();
@@ -241,7 +241,7 @@ export class DWGDatabaseParser {
       }
 
       // Verify database was populated
-      if (!database.tables?.blockTable) {
+      if (!(database as ExtendedAcDbDatabase).tables?.blockTable) {
         console.error('[DWG Database Parser] Database structure:', database);
         throw new DWGImportError(
           DWGErrorType.UnsupportedVersion,
@@ -266,58 +266,172 @@ export class DWGDatabaseParser {
       let entityCount = 0;
       const entityTypes = new Set<string>();
 
-      // Debug: Log database structure
-      console.log('[DWG Database Parser] Database structure:', {
-        hasTables: !!database.tables,
-        hasBlockTable: !!database.tables?.blockTable,
-        hasModelSpace: !!database.tables?.blockTable?.modelSpace,
-        modelSpaceType: typeof database.tables?.blockTable?.modelSpace,
-        modelSpaceKeys: database.tables?.blockTable?.modelSpace
-          ? Object.keys(database.tables.blockTable.modelSpace)
-          : []
-      });
+      // Access database structure: database._tables.blockTable.modelSpace._entities
+      const tables = (database as any)._tables;
+      if (!tables) {
+        console.error('[DWG Database Parser] No _tables found in database');
+        return {
+          entities: 0,
+          types: [],
+          blocks: 0,
+          blockNames: [],
+          layers: 0,
+          warnings: []
+        };
+      }
 
-      // Get modelspace block
-      const modelSpace = database.tables.blockTable.modelSpace;
-      if (modelSpace) {
-        console.log('[DWG Database Parser] ModelSpace details:', {
-          hasEntities: !!modelSpace.entities,
-          entitiesIsArray: Array.isArray(modelSpace.entities),
-          entitiesLength: modelSpace.entities?.length,
-          modelSpaceProps: Object.keys(modelSpace)
-        });
+      // Get modelspace entities
+      const modelSpace = tables.blockTable?.modelSpace;
+      if (modelSpace && modelSpace._entities) {
+        const entitiesMap = modelSpace._entities as Map<any, any>;
+        console.log(`[DWG Database Parser] Found ${entitiesMap.size} entities in modelSpace`);
 
-        if (modelSpace.entities && Array.isArray(modelSpace.entities)) {
-          for (const entity of modelSpace.entities) {
+        // Iterate through entities Map
+        let validEntityCount = 0;
+        for (const [id, entity] of entitiesMap) {
+          if (entity) {
+            validEntityCount++;
+
+            // Try to get entity type name if available
+            let typeName = 'Unknown';
+            if (entity.isA && typeof entity.isA === 'function') {
+              try {
+                const typeObj = entity.isA();
+                typeName = typeObj?.name?.() || typeObj?.toString?.() || 'Unknown';
+              } catch (e) {
+                // If isA() fails, try to get constructor name
+                typeName = entity.constructor?.name || 'Unknown';
+              }
+            } else if (entity.constructor?.name) {
+              typeName = entity.constructor.name;
+            }
+
+            entityTypes.add(typeName);
+
+            // Log first few entities for debugging
+            if (validEntityCount <= 5) {
+              console.log(`[DWG Database Parser] Entity ${validEntityCount}: ${typeName}`, entity);
+            }
+          }
+        }
+
+        entityCount += validEntityCount;
+        console.log(`[DWG Database Parser] Extracted ${validEntityCount} valid entities from modelSpace`);
+      } else {
+        console.warn('[DWG Database Parser] No modelSpace or _entities found');
+      }
+
+      // Get paperspace entities (if exists)
+      const paperSpace = tables.blockTable?.paperSpace;
+      if (paperSpace && paperSpace._entities) {
+        const psEntitiesMap = paperSpace._entities as Map<any, any>;
+        console.log(`[DWG Database Parser] Found ${psEntitiesMap.size} entities in paperSpace`);
+
+        for (const [id, entity] of psEntitiesMap) {
+          if (entity) {
             entityCount++;
-            const typeName = entity.isA().name();
+
+            // Try to get entity type name
+            let typeName = 'Unknown';
+            if (entity.isA && typeof entity.isA === 'function') {
+              try {
+                const typeObj = entity.isA();
+                typeName = typeObj?.name?.() || typeObj?.toString?.() || 'Unknown';
+              } catch (e) {
+                typeName = entity.constructor?.name || 'Unknown';
+              }
+            } else if (entity.constructor?.name) {
+              typeName = entity.constructor.name;
+            }
             entityTypes.add(typeName);
           }
         }
-      } else {
-        console.warn('[DWG Database Parser] ModelSpace is null or undefined');
       }
 
-      // Get paperspace and user-defined blocks
+      // Get all blocks from blockTable._recordsByName
       const blockNames: string[] = [];
-      const blockCount = 0;
+      let blockCount = 0;
 
-      // TODO: Implement block iteration using the correct API
-      // For now, skip this as we have modelSpace entities
-      console.log('[DWG Database Parser] Skipping block iteration - only processing modelSpace');
-      warnings.push('Block table iteration not yet implemented - only modelSpace entities counted');
+      if (tables.blockTable && tables.blockTable._recordsByName) {
+        const recordsMap = tables.blockTable._recordsByName as Map<string, any>;
+        console.log(`[DWG Database Parser] Found ${recordsMap.size} block records`);
 
-      // Extract layers
+        for (const [blockName, blockRecord] of recordsMap) {
+          // Skip system blocks (modelSpace, paperSpace, and *-prefixed blocks)
+          if (!blockName.startsWith('*') &&
+              blockName.toLowerCase() !== 'model_space' &&
+              blockName.toLowerCase() !== 'paper_space') {
+
+            blockNames.push(blockName);
+            blockCount++;
+
+            // Count entities in this block
+            if (blockRecord._entities) {
+              const blockEntitiesMap = blockRecord._entities as Map<any, any>;
+              for (const [id, entity] of blockEntitiesMap) {
+                if (entity) {
+                  entityCount++;
+
+                  // Try to get entity type name
+                  let typeName = 'Unknown';
+                  if (entity.isA && typeof entity.isA === 'function') {
+                    try {
+                      const typeObj = entity.isA();
+                      typeName = typeObj?.name?.() || typeObj?.toString?.() || 'Unknown';
+                    } catch (e) {
+                      typeName = entity.constructor?.name || 'Unknown';
+                    }
+                  } else if (entity.constructor?.name) {
+                    typeName = entity.constructor.name;
+                  }
+                  entityTypes.add(typeName);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Extract layers from layerTable._recordsByName
       const layers = new Map();
-      // TODO: Implement layer iteration using the correct API
-      console.log('[DWG Database Parser] Skipping layer iteration');
-      warnings.push('Layer table iteration not yet implemented');
+      if (tables.layerTable && tables.layerTable._recordsByName) {
+        const layersMap = tables.layerTable._recordsByName as Map<string, any>;
+        console.log(`[DWG Database Parser] Found ${layersMap.size} layers`);
 
-      // Extract header info - need to check if header exists and has these properties
+        for (const [layerName, layerRecord] of layersMap) {
+          if (layerRecord) {
+            // Get color - might be a property or method
+            let colorIndex = 0;
+            try {
+              if (typeof layerRecord.color === 'function') {
+                colorIndex = layerRecord.color()?.colorIndex?.() || 0;
+              } else if (layerRecord.color) {
+                colorIndex = typeof layerRecord.color.colorIndex === 'function' ?
+                  layerRecord.color.colorIndex() : (layerRecord.color.colorIndex || 0);
+              } else if (layerRecord._color) {
+                colorIndex = layerRecord._color;
+              }
+            } catch (e) {
+              colorIndex = 0;
+            }
+
+            layers.set(layerName, {
+              name: layerName,
+              color: colorIndex,
+              frozen: (typeof layerRecord.isFrozen === 'function' ? layerRecord.isFrozen() : layerRecord.isFrozen) || false,
+              locked: (typeof layerRecord.isLocked === 'function' ? layerRecord.isLocked() : layerRecord.isLocked) || false,
+              visible: typeof layerRecord.isOff === 'function' ? !layerRecord.isOff() : !layerRecord.isOff ?? true
+            });
+          }
+        }
+      }
+
+      // Extract header info
+      const dbHeader = (database as any).header?.();
       const header = {
-        version: undefined as string | undefined,
-        acadVersion: undefined as string | undefined,
-        dwgCodePage: undefined as string | undefined
+        version: dbHeader?.VERSION,
+        acadVersion: dbHeader?.ACADVER,
+        dwgCodePage: dbHeader?.DWGCODEPAGE
       };
 
       // Report progress: Complete
