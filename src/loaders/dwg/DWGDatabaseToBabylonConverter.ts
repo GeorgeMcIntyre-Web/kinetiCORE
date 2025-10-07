@@ -188,7 +188,13 @@ export class DWGDatabaseToBabylonConverter {
 
         case 'AcDbArc':
         case 'Va2': // ARC entity in LibreDWG
+        case 'xa2': // ARC entity (xa2 is actually ARC, not TEXT!)
           this.processArc(entity, parentTransform);
+          break;
+
+        case 'AcDbEllipse':
+        case 'ya2': // ELLIPSE entity (ya2 is actually ELLIPSE, not MTEXT!)
+          this.processEllipse(entity, parentTransform);
           break;
 
         case 'AcDbBlockReference':
@@ -205,16 +211,6 @@ export class DWGDatabaseToBabylonConverter {
         case 'AcDbHatch':
         case 'Pa2': // HATCH entity (solid fills and patterns)
           this.processHatch(entity, parentTransform);
-          break;
-
-        case 'AcDbText':
-        case 'xa2': // TEXT entity (single-line text)
-          this.processText(entity, parentTransform);
-          break;
-
-        case 'AcDbMText':
-        case 'ya2': // MTEXT entity (multiline text)
-          this.processMText(entity, parentTransform);
           break;
 
         case 'ba2': // Unknown entity type - need to investigate
@@ -386,10 +382,17 @@ export class DWGDatabaseToBabylonConverter {
    * Process ARC entity
    */
   private processArc(entity: any, transform: BABYLON.Matrix | null): void {
-    const center = this.convertPoint(entity.center(), transform);
-    const radius = entity.radius() * this.unitScale;
-    const startAngle = entity.startAngle();
-    const endAngle = entity.endAngle();
+    // Extract arc properties from _geo
+    const centerPoint = entity._geo?._center || entity.center?.();
+    const radius = (entity._geo?._radius || entity.radius?.()) * this.unitScale;
+    const startAngle = entity._geo?._startAngle ?? entity.startAngle?.();
+    const endAngle = entity._geo?._endAngle ?? entity.endAngle?.();
+
+    if (!centerPoint || radius === undefined || startAngle === undefined || endAngle === undefined) {
+      return;
+    }
+
+    const center = this.convertPoint(centerPoint, transform);
 
     // Create arc as polyline approximation
     const segments = 24;
@@ -400,6 +403,42 @@ export class DWGDatabaseToBabylonConverter {
       const angle = startAngle + (endAngle - startAngle) * t;
       const x = Math.cos(angle) * radius;
       const y = Math.sin(angle) * radius;
+      points.push(center.add(new BABYLON.Vector3(x, y, 0)));
+    }
+
+    const colorKey = this.getEntityColorKey(entity);
+    if (!this.linesByColor.has(colorKey)) {
+      this.linesByColor.set(colorKey, []);
+    }
+    this.linesByColor.get(colorKey)!.push(points);
+  }
+
+  /**
+   * Process ELLIPSE entity
+   */
+  private processEllipse(entity: any, transform: BABYLON.Matrix | null): void {
+    // Extract ellipse properties from _geo
+    const centerPoint = entity._geo?._center;
+    const majorAxisRadius = entity._geo?._majorAxisRadius * this.unitScale;
+    const minorAxisRadius = entity._geo?._minorAxisRadius * this.unitScale;
+    const startAngle = entity._geo?._startAngle ?? 0;
+    const endAngle = entity._geo?._endAngle ?? Math.PI * 2;
+
+    if (!centerPoint || !majorAxisRadius || !minorAxisRadius) {
+      return;
+    }
+
+    const center = this.convertPoint(centerPoint, transform);
+
+    // Create ellipse as polyline approximation
+    const segments = 32;
+    const points: BABYLON.Vector3[] = [];
+
+    for (let i = 0; i <= segments; i++) {
+      const t = i / segments;
+      const angle = startAngle + (endAngle - startAngle) * t;
+      const x = Math.cos(angle) * majorAxisRadius;
+      const y = Math.sin(angle) * minorAxisRadius;
       points.push(center.add(new BABYLON.Vector3(x, y, 0)));
     }
 
@@ -494,94 +533,6 @@ export class DWGDatabaseToBabylonConverter {
     }
   }
 
-  /**
-   * Process TEXT entity (single-line text)
-   * Creates a bounding box placeholder for text
-   */
-  private processText(entity: any, transform: BABYLON.Matrix | null): void {
-    // Extract text properties
-    const textValue = entity._geo?._text || entity._text || '';
-    const insertionPoint = entity._geo?._insertionPoint || entity._insertionPoint;
-    const height = entity._geo?._height || entity._height || 2.5; // Default 2.5mm text height
-
-    if (!insertionPoint || !textValue) {
-      if (this.entityCount <= 10) {
-        this.log('[DWG Database Converter] TEXT entity missing insertion point or text value');
-      }
-      return;
-    }
-
-    // Create a simple bounding box to represent text location
-    // Width approximation: ~70% of height per character (typical CAD text aspect ratio)
-    const width = textValue.length * height * 0.7;
-
-    const pos = this.convertPoint(insertionPoint, transform);
-
-    // Create box corners
-    const corners = [
-      pos,
-      new BABYLON.Vector3(pos.x + width * this.unitScale, pos.y, pos.z),
-      new BABYLON.Vector3(pos.x + width * this.unitScale, pos.y + height * this.unitScale, pos.z),
-      new BABYLON.Vector3(pos.x, pos.y + height * this.unitScale, pos.z),
-      pos // Close the box
-    ];
-
-    const colorKey = this.getEntityColorKey(entity);
-    if (!this.linesByColor.has(colorKey)) {
-      this.linesByColor.set(colorKey, []);
-    }
-    this.linesByColor.get(colorKey)!.push(corners);
-
-    // Log first few text entities
-    if (this.entityTypeStats.get('xa2') <= 3) {
-      console.log(`[DWG TEXT #${this.entityTypeStats.get('xa2')}] Text: "${textValue}", Height: ${height}mm`);
-    }
-  }
-
-  /**
-   * Process MTEXT entity (multiline text)
-   * Creates a bounding box placeholder for multiline text
-   */
-  private processMText(entity: any, transform: BABYLON.Matrix | null): void {
-    // Extract mtext properties
-    const textValue = entity._geo?._text || entity._text || '';
-    const insertionPoint = entity._geo?._insertionPoint || entity._insertionPoint;
-    const height = entity._geo?._height || entity._height || 2.5; // Default 2.5mm text height
-    const width = entity._geo?._width || entity._width || height * 10; // Default width if not specified
-
-    if (!insertionPoint || !textValue) {
-      if (this.entityCount <= 10) {
-        this.log('[DWG Database Converter] MTEXT entity missing insertion point or text value');
-      }
-      return;
-    }
-
-    // Count lines (rough approximation)
-    const lineCount = textValue.split(/\n|\\P/).length;
-    const totalHeight = height * lineCount * 1.5; // 1.5x for line spacing
-
-    const pos = this.convertPoint(insertionPoint, transform);
-
-    // Create box corners for multiline text
-    const corners = [
-      pos,
-      new BABYLON.Vector3(pos.x + width * this.unitScale, pos.y, pos.z),
-      new BABYLON.Vector3(pos.x + width * this.unitScale, pos.y + totalHeight * this.unitScale, pos.z),
-      new BABYLON.Vector3(pos.x, pos.y + totalHeight * this.unitScale, pos.z),
-      pos // Close the box
-    ];
-
-    const colorKey = this.getEntityColorKey(entity);
-    if (!this.linesByColor.has(colorKey)) {
-      this.linesByColor.set(colorKey, []);
-    }
-    this.linesByColor.get(colorKey)!.push(corners);
-
-    // Log first few mtext entities
-    if (this.entityTypeStats.get('ya2') <= 3) {
-      console.log(`[DWG MTEXT #${this.entityTypeStats.get('ya2')}] Text: "${textValue.substring(0, 50)}...", Lines: ${lineCount}`);
-    }
-  }
 
   /**
    * Process SPLINE entity
