@@ -44,6 +44,15 @@ export interface ROSBridgeOptions {
 
   /** Connection timeout in milliseconds (default: 5000) */
   connectionTimeout?: number;
+
+  /** Enable message compression (default: false) */
+  compression?: boolean;
+
+  /** Service call timeout in milliseconds (default: 30000) */
+  serviceCallTimeout?: number;
+
+  /** Queue messages when offline (default: true) */
+  queueOfflineMessages?: boolean;
 }
 
 /**
@@ -61,13 +70,24 @@ export class ROSBridgeClient {
   private options: Required<ROSBridgeOptions>;
   private reconnectAttempts: number = 0;
   private reconnectTimer: number | null = null;
+  private messageQueue: ROSBridgeMessage[] = [];
+  private metrics = {
+    messagesSent: 0,
+    messagesReceived: 0,
+    bytesReceived: 0,
+    bytesSent: 0,
+    errors: 0
+  };
 
   constructor(options: ROSBridgeOptions = {}) {
     this.options = {
       autoReconnect: options.autoReconnect ?? true,
       reconnectDelay: options.reconnectDelay ?? 3000,
       maxReconnectAttempts: options.maxReconnectAttempts ?? 10,
-      connectionTimeout: options.connectionTimeout ?? 5000
+      connectionTimeout: options.connectionTimeout ?? 5000,
+      compression: options.compression ?? false,
+      serviceCallTimeout: options.serviceCallTimeout ?? 30000,
+      queueOfflineMessages: options.queueOfflineMessages ?? true
     };
   }
 
@@ -94,6 +114,10 @@ export class ROSBridgeClient {
           this.connected = true;
           this.reconnectAttempts = 0;
           console.log('[ROSBridge] Connected to', url);
+
+          // Flush queued messages
+          this.flushMessageQueue();
+
           resolve();
         };
 
@@ -118,9 +142,13 @@ export class ROSBridgeClient {
 
         this.ws.onmessage = (event) => {
           try {
+            this.metrics.messagesReceived++;
+            this.metrics.bytesReceived += event.data.length;
+
             const msg = JSON.parse(event.data) as ROSBridgeMessage;
             this.handleMessage(msg);
           } catch (error) {
+            this.metrics.errors++;
             console.error('[ROSBridge] Failed to parse message:', error);
           }
         };
@@ -184,10 +212,49 @@ export class ROSBridgeClient {
    */
   private send(message: ROSBridgeMessage): void {
     if (!this.isConnected()) {
+      if (this.options.queueOfflineMessages) {
+        this.messageQueue.push(message);
+        return;
+      }
       throw new Error('Not connected to rosbridge server');
     }
 
-    this.ws!.send(JSON.stringify(message));
+    try {
+      const jsonStr = JSON.stringify(message);
+
+      // Add compression header if enabled
+      if (this.options.compression) {
+        message['compression'] = 'none'; // Placeholder for future compression
+      }
+
+      this.ws!.send(jsonStr);
+      this.metrics.messagesSent++;
+      this.metrics.bytesSent += jsonStr.length;
+    } catch (error) {
+      this.metrics.errors++;
+      console.error('[ROSBridge] Failed to send message:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Flush queued messages after reconnection
+   */
+  private flushMessageQueue(): void {
+    if (this.messageQueue.length === 0) return;
+
+    console.log(`[ROSBridge] Flushing ${this.messageQueue.length} queued messages`);
+
+    const queue = [...this.messageQueue];
+    this.messageQueue = [];
+
+    queue.forEach((message) => {
+      try {
+        this.send(message);
+      } catch (error) {
+        console.error('[ROSBridge] Failed to flush message:', error);
+      }
+    });
   }
 
   /**
@@ -290,13 +357,14 @@ export class ROSBridgeClient {
         args
       });
 
-      // Timeout after 30 seconds
+      // Configurable timeout
       setTimeout(() => {
         if (this.serviceCallbacks.has(id)) {
           this.serviceCallbacks.delete(id);
+          this.metrics.errors++;
           reject(new Error(`Service call timeout: ${service}`));
         }
-      }, 30000);
+      }, this.options.serviceCallTimeout);
     });
   }
 
@@ -364,13 +432,34 @@ export class ROSBridgeClient {
     reconnectAttempts: number;
     activeSubscriptions: number;
     pendingServiceCalls: number;
+    queuedMessages: number;
+    messagesSent: number;
+    messagesReceived: number;
+    bytesSent: number;
+    bytesReceived: number;
+    errors: number;
   } {
     return {
       connected: this.connected,
       url: this.url,
       reconnectAttempts: this.reconnectAttempts,
       activeSubscriptions: this.subscribers.size,
-      pendingServiceCalls: this.serviceCallbacks.size
+      pendingServiceCalls: this.serviceCallbacks.size,
+      queuedMessages: this.messageQueue.length,
+      ...this.metrics
+    };
+  }
+
+  /**
+   * Clear performance metrics
+   */
+  clearMetrics(): void {
+    this.metrics = {
+      messagesSent: 0,
+      messagesReceived: 0,
+      bytesReceived: 0,
+      bytesSent: 0,
+      errors: 0
     };
   }
 }
