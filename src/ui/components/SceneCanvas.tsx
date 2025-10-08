@@ -12,6 +12,9 @@ import { useUserLevel } from '../core/UserLevelContext';
 import { CoordinateFrame } from './CoordinateFrame';
 import { ContextMenu, useViewportContextMenu } from './ContextMenu';
 import { CameraViewControls } from './CameraViewControls';
+import { TransformHUD } from './TransformHUD';
+import { TransformSettings } from './TransformSettings';
+import { TemporaryOrigin } from './TemporaryOrigin';
 
 export const SceneCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -355,6 +358,15 @@ export const SceneCanvas: React.FC = () => {
 
       {/* Camera view controls */}
       <CameraViewControls />
+
+      {/* Transform HUD - Bottom right position/rotation display */}
+      <TransformHUD />
+
+      {/* Transform Settings - Top right panel */}
+      <div className="absolute top-4 right-4 w-72 z-10">
+        <TransformSettings />
+        <TemporaryOrigin />
+      </div>
 
       {/* Multi-selection indicator */}
       {selectedNodeIds.length > 1 && (

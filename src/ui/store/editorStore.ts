@@ -44,6 +44,19 @@ interface EditorState {
   commandManager: CommandManager;
   panelLayout: any | null; // Dockview panel layout state
 
+  // Transform settings
+  positionIncrement: number; // mm
+  rotationIncrement: number; // degrees
+  snapEnabled: boolean;
+  snapToGrid: boolean;
+  snapToVertex: boolean;
+  snapToEdge: boolean;
+  snapToFace: boolean;
+  snapToCenter: boolean;
+  gridSize: number; // mm
+  snapDistance: number; // mm - how close to snap
+  temporaryOrigin: { x: number; y: number; z: number } | null;
+
   // Actions
   undo: () => void;
   redo: () => void;
@@ -84,6 +97,20 @@ interface EditorState {
   initializeCoordinateFrameWidget: () => void;
   savePanelLayout: (layout: any) => void;
   loadPanelLayout: () => any | null;
+
+  // Transform settings actions
+  setPositionIncrement: (value: number) => void;
+  setRotationIncrement: (value: number) => void;
+  setSnapEnabled: (enabled: boolean) => void;
+  setSnapToGrid: (enabled: boolean) => void;
+  setSnapToVertex: (enabled: boolean) => void;
+  setSnapToEdge: (enabled: boolean) => void;
+  setSnapToFace: (enabled: boolean) => void;
+  setSnapToCenter: (enabled: boolean) => void;
+  setGridSize: (size: number) => void;
+  setSnapDistance: (distance: number) => void;
+  setTemporaryOrigin: (origin: { x: number; y: number; z: number } | null) => void;
+  clearTemporaryOrigin: () => void;
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -99,6 +126,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   coordinateFrameWidget: null,
   commandManager: new CommandManager(),
   panelLayout: null,
+
+  // Transform settings defaults
+  positionIncrement: 10, // 10mm default
+  rotationIncrement: 15, // 15 degrees default
+  snapEnabled: false,
+  snapToGrid: true,
+  snapToVertex: true,
+  snapToEdge: true,
+  snapToFace: true,
+  snapToCenter: true,
+  gridSize: 100, // 100mm grid
+  snapDistance: 10, // 10mm snap threshold
+  temporaryOrigin: null,
 
   // Undo/Redo actions
   undo: () => {
@@ -1349,4 +1389,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
     return null;
   },
+
+  // Transform settings setters
+  setPositionIncrement: (value: number) => set({ positionIncrement: value }),
+  setRotationIncrement: (value: number) => set({ rotationIncrement: value }),
+  setSnapEnabled: (enabled: boolean) => set({ snapEnabled: enabled }),
+  setSnapToGrid: (enabled: boolean) => set({ snapToGrid: enabled }),
+  setSnapToVertex: (enabled: boolean) => set({ snapToVertex: enabled }),
+  setSnapToEdge: (enabled: boolean) => set({ snapToEdge: enabled }),
+  setSnapToFace: (enabled: boolean) => set({ snapToFace: enabled }),
+  setSnapToCenter: (enabled: boolean) => set({ snapToCenter: enabled }),
+  setGridSize: (size: number) => set({ gridSize: size }),
+  setSnapDistance: (distance: number) => set({ snapDistance: distance }),
+  setTemporaryOrigin: (origin: { x: number; y: number; z: number } | null) =>
+    set({ temporaryOrigin: origin }),
+  clearTemporaryOrigin: () => set({ temporaryOrigin: null }),
 }));

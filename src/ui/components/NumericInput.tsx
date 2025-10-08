@@ -16,6 +16,8 @@ interface NumericInputProps {
   unit?: string;
   axisColor?: 'red' | 'green' | 'blue' | 'default';
   disabled?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 export const NumericInput: React.FC<NumericInputProps> = ({
@@ -29,6 +31,8 @@ export const NumericInput: React.FC<NumericInputProps> = ({
   unit = '',
   axisColor = 'default',
   disabled = false,
+  onFocus,
+  onBlur,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -95,6 +99,7 @@ export const NumericInput: React.FC<NumericInputProps> = ({
   const handleInputFocus = () => {
     setIsEditing(true);
     setEditValue(value.toFixed(precision));
+    onFocus?.();
   };
 
   const handleInputBlur = () => {
@@ -103,6 +108,7 @@ export const NumericInput: React.FC<NumericInputProps> = ({
     if (!isNaN(numValue)) {
       onChange(Math.max(min, Math.min(max, numValue)));
     }
+    onBlur?.();
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
