@@ -26,11 +26,12 @@ export const Inspector: React.FC = () => {
   const setCustomFrameSelectionMode = useEditorStore((state) => state.setCustomFrameSelectionMode);
   const customFrame = useEditorStore((state) => state.customFrame);
   const setCustomFrame = useEditorStore((state) => state.setCustomFrame);
+  const positionIncrement = useEditorStore((state) => state.positionIncrement);
+  const rotationIncrement = useEditorStore((state) => state.rotationIncrement);
 
   const [coordinateMode, setCoordinateMode] = useState<ReferenceFrameType>('local');
   const [isSelectingCustomFrame, setIsSelectingCustomFrame] = useState(false);
   const [featureType, setFeatureType] = useState<CustomFrameFeatureType>('object');
-  const [posIncrement] = useState(10); // mm - configurable increment for position
   const [, forceUpdate] = useState({});
 
   // Listen for scene tree updates to trigger re-render
@@ -345,7 +346,7 @@ export const Inspector: React.FC = () => {
                 <XNumericInput
                   value={displayPos.x}
                   onChange={(val) => handlePositionChange('x', val.toString())}
-                  step={posIncrement}
+                  step={positionIncrement}
                   precision={1}
                   unit="mm"
                 />
@@ -356,7 +357,7 @@ export const Inspector: React.FC = () => {
                 <YNumericInput
                   value={displayPos.y}
                   onChange={(val) => handlePositionChange('y', val.toString())}
-                  step={posIncrement}
+                  step={positionIncrement}
                   precision={1}
                   unit="mm"
                 />
@@ -367,7 +368,7 @@ export const Inspector: React.FC = () => {
                 <ZNumericInput
                   value={displayPos.z}
                   onChange={(val) => handlePositionChange('z', val.toString())}
-                  step={posIncrement}
+                  step={positionIncrement}
                   precision={1}
                   unit="mm"
                 />
@@ -387,7 +388,7 @@ export const Inspector: React.FC = () => {
                 <XNumericInput
                   value={rotationDegrees.x}
                   onChange={(val) => handleRotationChange('x', val.toString())}
-                  step={5}
+                  step={rotationIncrement}
                   precision={1}
                   unit="°"
                 />
@@ -398,7 +399,7 @@ export const Inspector: React.FC = () => {
                 <YNumericInput
                   value={rotationDegrees.y}
                   onChange={(val) => handleRotationChange('y', val.toString())}
-                  step={5}
+                  step={rotationIncrement}
                   precision={1}
                   unit="°"
                 />
@@ -409,7 +410,7 @@ export const Inspector: React.FC = () => {
                 <ZNumericInput
                   value={rotationDegrees.z}
                   onChange={(val) => handleRotationChange('z', val.toString())}
-                  step={5}
+                  step={rotationIncrement}
                   precision={1}
                   unit="°"
                 />

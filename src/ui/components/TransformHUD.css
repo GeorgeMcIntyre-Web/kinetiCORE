@@ -1,0 +1,128 @@
+/* Transform HUD - Bottom-right overlay */
+
+.transform-hud {
+  position: absolute;
+  bottom: 80px;
+  right: 20px;
+  background: rgba(20, 20, 20, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 280px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  pointer-events: auto;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.transform-hud-header {
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 12px;
+}
+
+.transform-hud-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.transform-hud-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.transform-hud-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.transform-hud-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.transform-hud-inputs {
+  display: flex;
+  gap: 8px;
+}
+
+.transform-hud-input-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.transform-hud-input-group .axis-label-x,
+.transform-hud-input-group .axis-label-y,
+.transform-hud-input-group .axis-label-z {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-align: center;
+  width: fit-content;
+}
+
+.axis-label-x {
+  background: rgba(255, 68, 68, 0.2);
+  color: #ff4444;
+}
+
+.axis-label-y {
+  background: rgba(68, 255, 68, 0.2);
+  color: #44ff44;
+}
+
+.axis-label-z {
+  background: rgba(68, 68, 255, 0.2);
+  color: #4444ff;
+}
+
+/* Numeric input styling for HUD */
+.transform-hud .numeric-input {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.transform-hud .numeric-input:focus {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: #3b82f6;
+  outline: none;
+}
+
+.transform-hud .numeric-input:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Animation */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.transform-hud {
+  animation: slide-in-right 0.2s ease-out;
+}

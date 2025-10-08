@@ -1,0 +1,92 @@
+/* Transform Settings Panel Styles - TOOLBAR STYLE */
+
+.transform-settings-panel {
+  position: relative;
+}
+
+.transform-settings-header {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: rgba(26, 32, 44, 0.95);
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  transition: all 0.2s;
+  backdrop-filter: blur(8px);
+}
+
+.transform-settings-header:hover {
+  background: #48bb78;
+}
+
+.transform-settings-header svg {
+  color: #e2e8f0;
+  width: 18px;
+  height: 18px;
+}
+
+.transform-settings-header:hover svg {
+  color: white;
+}
+
+.transform-settings-content {
+  position: absolute;
+  left: 52px;
+  top: 0;
+  background: rgba(26, 32, 44, 0.95);
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 6px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setting-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.setting-icon {
+  color: #48bb78;
+  margin-right: 4px;
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(45, 55, 72, 0.8);
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.icon-btn:hover {
+  background: #48bb78;
+  color: white;
+  border-color: #48bb78;
+}
+
+.icon-btn.active {
+  background: #48bb78;
+  border-color: #48bb78;
+  color: white;
+}
+
+.icon-btn.snap-toggle {
+  width: 32px;
+}

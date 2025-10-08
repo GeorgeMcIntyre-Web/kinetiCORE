@@ -44,6 +44,48 @@ interface EditorState {
   commandManager: CommandManager;
   panelLayout: any | null; // Dockview panel layout state
 
+  // UI state - which toolbar popup is currently open (only one at a time)
+  openToolbarPopup: 'transform-settings' | 'snap-geometric' | 'snap-object' | 'snap-auxiliary' | null;
+  setOpenToolbarPopup: (popup: 'transform-settings' | 'snap-geometric' | 'snap-object' | 'snap-auxiliary' | null) => void;
+
+  // Transform settings
+  positionIncrement: number; // mm
+  rotationIncrement: number; // degrees
+  snapEnabled: boolean;
+  snapToGrid: boolean;
+  snapToVertex: boolean;
+  snapToEdge: boolean;
+  snapToFace: boolean;
+  snapToCenter: boolean;
+  snapToObject: boolean;
+  snapToMidpoint: boolean;
+  snapToIntersection: boolean;
+  snapToPerpendicular: boolean;
+  snapToTangent: boolean;
+  snapAlong: boolean;
+  snapToNormal: boolean;
+  snapToPlane: boolean;
+  snapToAxis: boolean;
+  snapToCurve: boolean;
+  snapToSurface: boolean;
+  snapObjectToVertex: boolean;
+  snapPointOnEdge: boolean;
+  snapBBoxCorner: boolean;
+  gridSize: number; // mm
+  snapDistance: number; // mm - how close to snap
+  temporaryOrigin: { x: number; y: number; z: number } | null;
+
+  // Align tool state
+  alignMode: 'vertex' | 'edge' | 'face' | 'center' | null;
+  alignFirstPoint: {
+    mesh: BABYLON.Mesh;
+    position: BABYLON.Vector3;
+    vertexIndex?: number;
+    frame?: { xAxis: BABYLON.Vector3; yAxis: BABYLON.Vector3; zAxis: BABYLON.Vector3 };
+  } | null;
+  alignMarkers: BABYLON.Mesh[];
+  alignFrameWidgets: CoordinateFrameWidget[];
+
   // Actions
   undo: () => void;
   redo: () => void;
@@ -84,6 +126,45 @@ interface EditorState {
   initializeCoordinateFrameWidget: () => void;
   savePanelLayout: (layout: any) => void;
   loadPanelLayout: () => any | null;
+
+  // Transform settings actions
+  setPositionIncrement: (value: number) => void;
+  setRotationIncrement: (value: number) => void;
+  setSnapEnabled: (enabled: boolean) => void;
+  setSnapToGrid: (enabled: boolean) => void;
+  setSnapToVertex: (enabled: boolean) => void;
+  setSnapToEdge: (enabled: boolean) => void;
+  setSnapToFace: (enabled: boolean) => void;
+  setSnapToCenter: (enabled: boolean) => void;
+  setSnapToObject: (enabled: boolean) => void;
+  setSnapToMidpoint: (enabled: boolean) => void;
+  setSnapToIntersection: (enabled: boolean) => void;
+  setSnapToPerpendicular: (enabled: boolean) => void;
+  setSnapToTangent: (enabled: boolean) => void;
+  setSnapAlong: (enabled: boolean) => void;
+  setSnapToNormal: (enabled: boolean) => void;
+  setSnapToPlane: (enabled: boolean) => void;
+  setSnapToAxis: (enabled: boolean) => void;
+  setSnapToCurve: (enabled: boolean) => void;
+  setSnapToSurface: (enabled: boolean) => void;
+  setSnapObjectToVertex: (enabled: boolean) => void;
+  setSnapPointOnEdge: (enabled: boolean) => void;
+  setSnapBBoxCorner: (enabled: boolean) => void;
+  setGridSize: (size: number) => void;
+  setSnapDistance: (distance: number) => void;
+  setTemporaryOrigin: (origin: { x: number; y: number; z: number } | null) => void;
+  clearTemporaryOrigin: () => void;
+
+  // Align tool actions
+  setAlignMode: (mode: 'vertex' | 'edge' | 'face' | 'center' | null) => void;
+  setAlignFirstPoint: (point: {
+    mesh: BABYLON.Mesh;
+    position: BABYLON.Vector3;
+    vertexIndex?: number;
+    frame?: { xAxis: BABYLON.Vector3; yAxis: BABYLON.Vector3; zAxis: BABYLON.Vector3 };
+  } | null) => void;
+  handleAlignClick: (pickInfo: BABYLON.PickingInfo) => void;
+  cancelAlignment: () => void;
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -99,6 +180,43 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   coordinateFrameWidget: null,
   commandManager: new CommandManager(),
   panelLayout: null,
+
+  // UI state defaults
+  openToolbarPopup: null,
+  setOpenToolbarPopup: (popup) => set({ openToolbarPopup: popup }),
+
+  // Transform settings defaults
+  positionIncrement: 10, // 10mm default
+  rotationIncrement: 15, // 15 degrees default
+  snapEnabled: false,
+  snapToGrid: false,
+  snapToVertex: false,
+  snapToEdge: false,
+  snapToFace: false,
+  snapToCenter: false,
+  snapToObject: false,
+  snapToMidpoint: false,
+  snapToIntersection: false,
+  snapToPerpendicular: false,
+  snapToTangent: false,
+  snapAlong: false,
+  snapToNormal: false,
+  snapToPlane: false,
+  snapToAxis: false,
+  snapToCurve: false,
+  snapToSurface: false,
+  snapObjectToVertex: false,
+  snapPointOnEdge: false,
+  snapBBoxCorner: false,
+  gridSize: 100, // 100mm grid
+  snapDistance: 10, // 10mm snap threshold
+  temporaryOrigin: null,
+
+  // Align tool defaults
+  alignMode: null,
+  alignFirstPoint: null,
+  alignMarkers: [],
+  alignFrameWidgets: [],
 
   // Undo/Redo actions
   undo: () => {
@@ -1348,5 +1466,481 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       console.error('Failed to load panel layout:', error);
     }
     return null;
+  },
+
+  // Transform settings setters
+  setPositionIncrement: (value: number) => set({ positionIncrement: value }),
+  setRotationIncrement: (value: number) => set({ rotationIncrement: value }),
+  setSnapEnabled: (enabled: boolean) => set({ snapEnabled: enabled }),
+  setSnapToGrid: (enabled: boolean) => set({ snapToGrid: enabled }),
+  setSnapToVertex: (enabled: boolean) => set({ snapToVertex: enabled }),
+  setSnapToEdge: (enabled: boolean) => set({ snapToEdge: enabled }),
+  setSnapToFace: (enabled: boolean) => set({ snapToFace: enabled }),
+  setSnapToCenter: (enabled: boolean) => set({ snapToCenter: enabled }),
+  setSnapToObject: (enabled: boolean) => set({ snapToObject: enabled }),
+  setSnapToMidpoint: (enabled: boolean) => set({ snapToMidpoint: enabled }),
+  setSnapToIntersection: (enabled: boolean) => set({ snapToIntersection: enabled }),
+  setSnapToPerpendicular: (enabled: boolean) => set({ snapToPerpendicular: enabled }),
+  setSnapToTangent: (enabled: boolean) => set({ snapToTangent: enabled }),
+  setSnapAlong: (enabled: boolean) => set({ snapAlong: enabled }),
+  setSnapToNormal: (enabled: boolean) => set({ snapToNormal: enabled }),
+  setSnapToPlane: (enabled: boolean) => set({ snapToPlane: enabled }),
+  setSnapToAxis: (enabled: boolean) => set({ snapToAxis: enabled }),
+  setSnapToCurve: (enabled: boolean) => set({ snapToCurve: enabled }),
+  setSnapToSurface: (enabled: boolean) => set({ snapToSurface: enabled }),
+  setSnapObjectToVertex: (enabled: boolean) => set({ snapObjectToVertex: enabled }),
+  setSnapPointOnEdge: (enabled: boolean) => set({ snapPointOnEdge: enabled }),
+  setSnapBBoxCorner: (enabled: boolean) => set({ snapBBoxCorner: enabled }),
+  setGridSize: (size: number) => set({ gridSize: size }),
+  setSnapDistance: (distance: number) => set({ snapDistance: distance }),
+  setTemporaryOrigin: (origin: { x: number; y: number; z: number } | null) =>
+    set({ temporaryOrigin: origin }),
+  clearTemporaryOrigin: () => set({ temporaryOrigin: null }),
+
+  // Align tool setters
+  setAlignMode: (mode) => {
+    // Clear existing markers and frame widgets
+    const { alignMarkers, alignFrameWidgets } = get();
+    alignMarkers.forEach(marker => marker.dispose());
+    alignFrameWidgets.forEach(widget => widget.dispose());
+    set({ alignMode: mode, alignFirstPoint: null, alignMarkers: [], alignFrameWidgets: [] });
+  },
+
+  setAlignFirstPoint: (point) => {
+    // When clearing the first point (restart), also clear markers and widgets
+    if (point === null) {
+      const { alignMarkers, alignFrameWidgets } = get();
+      alignMarkers.forEach(marker => marker.dispose());
+      alignFrameWidgets.forEach(widget => widget.dispose());
+      set({ alignFirstPoint: null, alignMarkers: [], alignFrameWidgets: [] });
+    } else {
+      set({ alignFirstPoint: point });
+    }
+  },
+
+  cancelAlignment: () => {
+    // Clear markers and frame widgets when canceling
+    const { alignMarkers, alignFrameWidgets } = get();
+    alignMarkers.forEach(marker => marker.dispose());
+    alignFrameWidgets.forEach(widget => widget.dispose());
+    set({ alignMode: null, alignFirstPoint: null, alignMarkers: [], alignFrameWidgets: [] });
+  },
+
+  handleAlignClick: (pickInfo) => {
+    const { alignMode, alignFirstPoint, alignMarkers, alignFrameWidgets } = get();
+
+    if (!alignMode || !pickInfo.hit || !pickInfo.pickedMesh || !pickInfo.pickedPoint) {
+      return;
+    }
+
+    const pickedMesh = pickInfo.pickedMesh as BABYLON.Mesh;
+    const pickPoint = pickInfo.pickedPoint;
+
+    // Ignore ground
+    if (pickedMesh.name === 'ground') {
+      return;
+    }
+
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    if (!scene) return;
+
+    // First click - select source vertex/edge/face/center
+    if (!alignFirstPoint) {
+      let firstPoint: { mesh: BABYLON.Mesh; position: BABYLON.Vector3; vertexIndex?: number; frame?: { xAxis: BABYLON.Vector3; yAxis: BABYLON.Vector3; zAxis: BABYLON.Vector3 } } | null = null;
+
+      switch (alignMode) {
+        case 'vertex': {
+          // Find closest vertex
+          const positions = pickedMesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+          if (!positions) break;
+
+          const worldMatrix = pickedMesh.computeWorldMatrix(true);
+          let closestVertex: BABYLON.Vector3 | null = null;
+          let closestDistance = Infinity;
+          let closestIndex = -1;
+
+          for (let i = 0; i < positions.length; i += 3) {
+            const localVertex = new BABYLON.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+            const worldVertex = BABYLON.Vector3.TransformCoordinates(localVertex, worldMatrix);
+            const distance = BABYLON.Vector3.Distance(pickPoint, worldVertex);
+
+            if (distance < closestDistance) {
+              closestDistance = distance;
+              closestVertex = worldVertex;
+              closestIndex = i / 3;
+            }
+          }
+
+          if (closestVertex) {
+            // Create visual marker for first vertex (green)
+            const marker = BABYLON.MeshBuilder.CreateSphere(
+              'alignMarker1',
+              { diameter: 0.05 },
+              scene
+            );
+            marker.position = closestVertex.clone();
+            const mat = new BABYLON.StandardMaterial('alignMarkerMat1', scene);
+            mat.emissiveColor = new BABYLON.Color3(0, 1, 0); // Green
+            mat.disableLighting = true;
+            marker.material = mat;
+
+            firstPoint = { mesh: pickedMesh, position: closestVertex, vertexIndex: closestIndex };
+            set({ alignMarkers: [marker] });
+            toast.info('First vertex selected. Click target vertex...');
+          }
+          break;
+        }
+
+        case 'center': {
+          const worldPos = pickedMesh.getAbsolutePosition();
+          const worldRotation = pickedMesh.rotationQuaternion || BABYLON.Quaternion.FromEulerAngles(
+            pickedMesh.rotation.x,
+            pickedMesh.rotation.y,
+            pickedMesh.rotation.z
+          );
+
+          // Calculate frame axes from mesh rotation
+          const rotMatrix = BABYLON.Matrix.Identity();
+          worldRotation.toRotationMatrix(rotMatrix);
+          const xAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Right(), rotMatrix);
+          const yAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Up(), rotMatrix);
+          const zAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Forward(), rotMatrix);
+
+          // Create coordinate frame widget for first center
+          const frameWidget = new CoordinateFrameWidget(scene);
+          const registry = EntityRegistry.getInstance();
+          const entity = registry.getByMesh(pickedMesh);
+          const frame: CustomFrameFeature = {
+            featureType: 'object',
+            nodeId: entity?.getId() || 'temp',
+            origin: babylonToUser(worldPos),
+            xAxis: { x: xAxis.x, y: xAxis.y, z: xAxis.z },
+            yAxis: { x: yAxis.x, y: yAxis.y, z: yAxis.z },
+            zAxis: { x: zAxis.x, y: zAxis.y, z: zAxis.z }
+          };
+          frameWidget.show(frame, 0.15); // 150mm axes
+
+          firstPoint = { mesh: pickedMesh, position: worldPos, frame: { xAxis, yAxis, zAxis } };
+          set({ alignFrameWidgets: [frameWidget] });
+          toast.info('First center selected. Click target center...');
+          break;
+        }
+
+        case 'edge': {
+          // For edge alignment, find the two closest vertices to define the edge
+          const positions = pickedMesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+          if (!positions) break;
+
+          const worldMatrix = pickedMesh.computeWorldMatrix(true);
+          const vertices: BABYLON.Vector3[] = [];
+
+          for (let i = 0; i < positions.length; i += 3) {
+            const localVertex = new BABYLON.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+            vertices.push(BABYLON.Vector3.TransformCoordinates(localVertex, worldMatrix));
+          }
+
+          // Find two closest vertices to click point
+          const sorted = vertices
+            .map((v, i) => ({ v, d: BABYLON.Vector3.Distance(pickPoint, v), i }))
+            .sort((a, b) => a.d - b.d);
+
+          if (sorted.length >= 2) {
+            const v1 = sorted[0].v;
+            const v2 = sorted[1].v;
+            const edgeCenter = v1.add(v2).scale(0.5);
+            const edgeDir = v2.subtract(v1).normalize();
+
+            // Create coordinate frame: Z along edge, X/Y perpendicular
+            const zAxis = edgeDir;
+            const xAxis = Math.abs(zAxis.y) < 0.9
+              ? BABYLON.Vector3.Cross(BABYLON.Vector3.Up(), zAxis).normalize()
+              : BABYLON.Vector3.Cross(BABYLON.Vector3.Right(), zAxis).normalize();
+            const yAxis = BABYLON.Vector3.Cross(zAxis, xAxis).normalize();
+
+            const frameWidget = new CoordinateFrameWidget(scene);
+            const registry = EntityRegistry.getInstance();
+            const entity = registry.getByMesh(pickedMesh);
+            const frame: CustomFrameFeature = {
+              featureType: 'edge',
+              nodeId: entity?.getId() || 'temp',
+              origin: babylonToUser(edgeCenter),
+              xAxis: { x: xAxis.x, y: xAxis.y, z: xAxis.z },
+              yAxis: { x: yAxis.x, y: yAxis.y, z: yAxis.z },
+              zAxis: { x: zAxis.x, y: zAxis.y, z: zAxis.z }
+            };
+            frameWidget.show(frame, 0.15);
+
+            firstPoint = { mesh: pickedMesh, position: edgeCenter, frame: { xAxis, yAxis, zAxis } };
+            set({ alignFrameWidgets: [frameWidget] });
+            toast.info('First edge selected. Click target edge...');
+          }
+          break;
+        }
+
+        case 'face': {
+          // For face alignment, use the picked face normal from the ray
+          if (!pickInfo.getNormal(true)) break;
+
+          const faceNormal = pickInfo.getNormal(true)!.normalize();
+          const faceCenter = pickPoint;
+
+          // Create coordinate frame: Z along normal, X/Y in plane
+          const zAxis = faceNormal;
+          const xAxis = Math.abs(zAxis.y) < 0.9
+            ? BABYLON.Vector3.Cross(BABYLON.Vector3.Up(), zAxis).normalize()
+            : BABYLON.Vector3.Cross(BABYLON.Vector3.Right(), zAxis).normalize();
+          const yAxis = BABYLON.Vector3.Cross(zAxis, xAxis).normalize();
+
+          const frameWidget = new CoordinateFrameWidget(scene);
+          const registry = EntityRegistry.getInstance();
+          const entity = registry.getByMesh(pickedMesh);
+          const frame: CustomFrameFeature = {
+            featureType: 'face',
+            nodeId: entity?.getId() || 'temp',
+            origin: babylonToUser(faceCenter),
+            xAxis: { x: xAxis.x, y: xAxis.y, z: xAxis.z },
+            yAxis: { x: yAxis.x, y: yAxis.y, z: yAxis.z },
+            zAxis: { x: zAxis.x, y: zAxis.y, z: zAxis.z }
+          };
+          frameWidget.show(frame, 0.15);
+
+          firstPoint = { mesh: pickedMesh, position: faceCenter, frame: { xAxis, yAxis, zAxis } };
+          set({ alignFrameWidgets: [frameWidget] });
+          toast.info('First face selected. Click target face...');
+          break;
+        }
+
+        default:
+          toast.warning(`${alignMode} alignment not yet implemented`);
+          get().cancelAlignment();
+          return;
+      }
+
+      if (firstPoint) {
+        set({ alignFirstPoint: firstPoint });
+      }
+      return;
+    }
+
+    // Second click - select target and perform alignment
+    let targetPoint: BABYLON.Vector3 | null = null;
+
+    switch (alignMode) {
+      case 'vertex': {
+        // Find closest vertex on target mesh
+        const positions = pickedMesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+        if (!positions) break;
+
+        const worldMatrix = pickedMesh.computeWorldMatrix(true);
+        let closestVertex: BABYLON.Vector3 | null = null;
+        let closestDistance = Infinity;
+
+        for (let i = 0; i < positions.length; i += 3) {
+          const localVertex = new BABYLON.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+          const worldVertex = BABYLON.Vector3.TransformCoordinates(localVertex, worldMatrix);
+          const distance = BABYLON.Vector3.Distance(pickPoint, worldVertex);
+
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestVertex = worldVertex;
+          }
+        }
+
+        if (closestVertex) {
+          // Create visual marker for target vertex (blue)
+          const marker = BABYLON.MeshBuilder.CreateSphere(
+            'alignMarker2',
+            { diameter: 0.05 },
+            scene
+          );
+          marker.position = closestVertex.clone();
+          const mat = new BABYLON.StandardMaterial('alignMarkerMat2', scene);
+          mat.emissiveColor = new BABYLON.Color3(0, 0.5, 1); // Blue
+          mat.disableLighting = true;
+          marker.material = mat;
+
+          set({ alignMarkers: [...alignMarkers, marker] });
+          targetPoint = closestVertex;
+        }
+        break;
+      }
+
+      case 'edge': {
+        // For edge alignment, find the two closest vertices to define the edge
+        const positions = pickedMesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+        if (!positions) break;
+
+        const worldMatrix = pickedMesh.computeWorldMatrix(true);
+        const vertices: BABYLON.Vector3[] = [];
+
+        for (let i = 0; i < positions.length; i += 3) {
+          const localVertex = new BABYLON.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+          vertices.push(BABYLON.Vector3.TransformCoordinates(localVertex, worldMatrix));
+        }
+
+        // Find two closest vertices to click point
+        const sorted = vertices
+          .map((v, i) => ({ v, d: BABYLON.Vector3.Distance(pickPoint, v), i }))
+          .sort((a, b) => a.d - b.d);
+
+        if (sorted.length >= 2) {
+          const v1 = sorted[0].v;
+          const v2 = sorted[1].v;
+          const edgeCenter = v1.add(v2).scale(0.5);
+          const edgeDir = v2.subtract(v1).normalize();
+
+          // Create coordinate frame: Z along edge, X/Y perpendicular
+          const zAxis = edgeDir;
+          const xAxis = Math.abs(zAxis.y) < 0.9
+            ? BABYLON.Vector3.Cross(BABYLON.Vector3.Up(), zAxis).normalize()
+            : BABYLON.Vector3.Cross(BABYLON.Vector3.Right(), zAxis).normalize();
+          const yAxis = BABYLON.Vector3.Cross(zAxis, xAxis).normalize();
+
+          const frameWidget = new CoordinateFrameWidget(scene);
+          const registry = EntityRegistry.getInstance();
+          const entity = registry.getByMesh(pickedMesh);
+          const frame: CustomFrameFeature = {
+            featureType: 'edge',
+            nodeId: entity?.getId() || 'temp',
+            origin: babylonToUser(edgeCenter),
+            xAxis: { x: xAxis.x, y: xAxis.y, z: xAxis.z },
+            yAxis: { x: yAxis.x, y: yAxis.y, z: yAxis.z },
+            zAxis: { x: zAxis.x, y: zAxis.y, z: zAxis.z }
+          };
+          frameWidget.show(frame, 0.15);
+
+          set({ alignFrameWidgets: [...alignFrameWidgets, frameWidget] });
+          targetPoint = edgeCenter;
+        }
+        break;
+      }
+
+      case 'face': {
+        // For face alignment, use the picked face normal from the ray
+        if (!pickInfo.getNormal(true)) break;
+
+        const faceNormal = pickInfo.getNormal(true)!.normalize();
+        const faceCenter = pickPoint;
+
+        // Create coordinate frame: Z along normal, X/Y in plane
+        const zAxis = faceNormal;
+        const xAxis = Math.abs(zAxis.y) < 0.9
+          ? BABYLON.Vector3.Cross(BABYLON.Vector3.Up(), zAxis).normalize()
+          : BABYLON.Vector3.Cross(BABYLON.Vector3.Right(), zAxis).normalize();
+        const yAxis = BABYLON.Vector3.Cross(zAxis, xAxis).normalize();
+
+        const frameWidget = new CoordinateFrameWidget(scene);
+        const registry = EntityRegistry.getInstance();
+        const entity = registry.getByMesh(pickedMesh);
+        const frame: CustomFrameFeature = {
+          featureType: 'face',
+          nodeId: entity?.getId() || 'temp',
+          origin: babylonToUser(faceCenter),
+          xAxis: { x: xAxis.x, y: xAxis.y, z: xAxis.z },
+          yAxis: { x: yAxis.x, y: yAxis.y, z: yAxis.z },
+          zAxis: { x: zAxis.x, y: zAxis.y, z: zAxis.z }
+        };
+        frameWidget.show(frame, 0.15);
+
+        set({ alignFrameWidgets: [...alignFrameWidgets, frameWidget] });
+        targetPoint = faceCenter;
+        break;
+      }
+
+      case 'center': {
+        const worldPos = pickedMesh.getAbsolutePosition();
+        const worldRotation = pickedMesh.rotationQuaternion || BABYLON.Quaternion.FromEulerAngles(
+          pickedMesh.rotation.x,
+          pickedMesh.rotation.y,
+          pickedMesh.rotation.z
+        );
+
+        // Calculate frame axes from mesh rotation
+        const rotMatrix = BABYLON.Matrix.Identity();
+        worldRotation.toRotationMatrix(rotMatrix);
+        const xAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Right(), rotMatrix);
+        const yAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Up(), rotMatrix);
+        const zAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Forward(), rotMatrix);
+
+        // Create coordinate frame widget for target center
+        const frameWidget = new CoordinateFrameWidget(scene);
+        const registry = EntityRegistry.getInstance();
+        const entity = registry.getByMesh(pickedMesh);
+        const frame: CustomFrameFeature = {
+          featureType: 'object',
+          nodeId: entity?.getId() || 'temp',
+          origin: babylonToUser(worldPos),
+          xAxis: { x: xAxis.x, y: xAxis.y, z: xAxis.z },
+          yAxis: { x: yAxis.x, y: yAxis.y, z: yAxis.z },
+          zAxis: { x: zAxis.x, y: zAxis.y, z: zAxis.z }
+        };
+        frameWidget.show(frame, 0.15); // 150mm axes
+
+        set({ alignFrameWidgets: [...alignFrameWidgets, frameWidget] });
+        targetPoint = worldPos;
+        break;
+      }
+    }
+
+    if (targetPoint) {
+      // Calculate offset needed to align first point to target point
+      const offset = targetPoint.subtract(alignFirstPoint.position);
+
+      const meshToMove = alignFirstPoint.mesh;
+      const registry = EntityRegistry.getInstance();
+      const tree = SceneTreeManager.getInstance();
+
+      // Check if this mesh belongs to a device entity
+      const deviceEntity = registry.getDeviceByMesh(meshToMove);
+
+      if (deviceEntity) {
+        // Move the entire device by moving its root transform node
+        const rootNode = deviceEntity.getRootTransformNode();
+        if (rootNode) {
+          rootNode.position.addInPlace(offset);
+
+          // Update scene tree for the device root node
+          const treeNode = tree.getNodeByEntityId(deviceEntity.getId());
+          if (treeNode) {
+            const newPos = babylonToUser(rootNode.position);
+            tree.setLocalPosition(treeNode.id, newPos);
+          }
+
+          // Sync all child link entities to physics
+          const linkEntities = deviceEntity.getChildren();
+          linkEntities.forEach(linkEntity => {
+            linkEntity.syncToPhysics();
+          });
+
+          toast.success(`Device ${alignMode} aligned successfully!`);
+        }
+      } else {
+        // Regular mesh - move just this mesh
+        meshToMove.position.addInPlace(offset);
+
+        // Sync to scene tree and physics
+        const node = tree.getNodeByBabylonMeshId(meshToMove.uniqueId.toString());
+        if (node) {
+          const newPos = babylonToUser(meshToMove.position);
+          tree.setLocalPosition(node.id, newPos);
+
+          // Sync to physics if entity exists
+          if (node.entityId) {
+            const entity = registry.get(node.entityId);
+            entity?.syncToPhysics();
+          }
+        }
+
+        toast.success(`${alignMode} aligned successfully!`);
+      }
+
+      window.dispatchEvent(new Event('scenetree-update'));
+    }
+
+    // Clear markers after a short delay to show the result
+    setTimeout(() => {
+      get().cancelAlignment();
+    }, 1500);
   },
 }));

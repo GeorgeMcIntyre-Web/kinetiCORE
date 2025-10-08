@@ -1,0 +1,89 @@
+/* Temporary Origin Panel - TOOLBAR STYLE */
+
+.temporary-origin-panel {
+  position: relative;
+}
+
+.temp-origin-header {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: rgba(26, 32, 44, 0.95);
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  transition: all 0.2s;
+  backdrop-filter: blur(8px);
+}
+
+.temp-origin-header:hover {
+  background: #48bb78;
+}
+
+.temp-origin-header svg {
+  color: #e2e8f0;
+  width: 18px;
+  height: 18px;
+}
+
+.temp-origin-header:hover svg {
+  color: white;
+}
+
+.temp-origin-popup {
+  position: absolute;
+  left: 52px;
+  top: 0;
+  background: rgba(26, 32, 44, 0.95);
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 6px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+
+.origin-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.origin-icon-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(45, 55, 72, 0.8);
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.origin-icon-btn:hover:not(:disabled) {
+  background: #48bb78;
+  color: white;
+  border-color: #48bb78;
+}
+
+.origin-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.origin-icon-btn.clear {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.origin-icon-btn.clear:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+  color: #ef4444;
+}

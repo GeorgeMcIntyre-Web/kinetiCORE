@@ -4,6 +4,8 @@
 
 import * as BABYLON from '@babylonjs/core';
 import { TransformMode } from '../core/types';
+import { SnapSettings } from './SnappingHelper';
+import { SnappingGizmoWrapper } from './SnappingGizmoWrapper';
 
 /**
  * TransformGizmo provides interactive 3D manipulation tools
@@ -12,6 +14,7 @@ export class TransformGizmo {
   private gizmoManager: BABYLON.GizmoManager | null = null;
   private scene: BABYLON.Scene;
   private currentMode: TransformMode = 'translate';
+  private snappingWrapper: SnappingGizmoWrapper | null = null;
 
   constructor(scene: BABYLON.Scene) {
     this.scene = scene;
@@ -22,6 +25,9 @@ export class TransformGizmo {
     // Create gizmo manager
     this.gizmoManager = new BABYLON.GizmoManager(this.scene);
     this.gizmoManager.usePointerToAttachGizmos = false;
+
+    // Initialize snapping wrapper for real-time snapping
+    this.snappingWrapper = new SnappingGizmoWrapper(this.scene, this.gizmoManager);
 
     // Set initial mode
     this.setMode('translate');
@@ -108,10 +114,31 @@ export class TransformGizmo {
   }
 
   /**
+   * Update snap settings
+   */
+  updateSnapSettings(settings: Partial<SnapSettings>): void {
+    if (this.snappingWrapper) {
+      this.snappingWrapper.updateSnapSettings(settings);
+    }
+  }
+
+  /**
+   * Enable/disable snapping
+   */
+  setSnappingEnabled(enabled: boolean): void {
+    if (this.snappingWrapper) {
+      this.snappingWrapper.setSnappingEnabled(enabled);
+    }
+  }
+
+  /**
    * Dispose gizmo manager
    */
   dispose(): void {
+    // TODO: Re-enable when snapping wrapper is fixed
+    // this.snappingWrapper?.dispose();
     this.gizmoManager?.dispose();
     this.gizmoManager = null;
+    // this.snappingWrapper = null;
   }
 }

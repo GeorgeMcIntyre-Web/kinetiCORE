@@ -12,6 +12,11 @@ import { useUserLevel } from '../core/UserLevelContext';
 import { CoordinateFrame } from './CoordinateFrame';
 import { ContextMenu, useViewportContextMenu } from './ContextMenu';
 import { CameraViewControls } from './CameraViewControls';
+import { TransformHUD } from './TransformHUD';
+import { TransformSettings } from './TransformSettings';
+import { TemporaryOrigin } from './TemporaryOrigin';
+import { AlignTool } from './AlignTool';
+import { SnapToolbar } from './SnapSettings';
 
 export const SceneCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -26,6 +31,19 @@ export const SceneCanvas: React.FC = () => {
   const clearSelection = useEditorStore((state) => state.clearSelection);
   const createObject = useEditorStore((state) => state.createObject);
   const initializeCoordinateFrameWidget = useEditorStore((state) => state.initializeCoordinateFrameWidget);
+  const handleAlignClick = useEditorStore((state) => state.handleAlignClick);
+  const handleSceneClickForCustomFrame = useEditorStore((state) => state.handleSceneClickForCustomFrame);
+  
+  // Snap settings
+  const snapEnabled = useEditorStore((state) => state.snapEnabled);
+  const snapToGrid = useEditorStore((state) => state.snapToGrid);
+  const snapToVertex = useEditorStore((state) => state.snapToVertex);
+  const snapToEdge = useEditorStore((state) => state.snapToEdge);
+  const snapToFace = useEditorStore((state) => state.snapToFace);
+  const snapToCenter = useEditorStore((state) => state.snapToCenter);
+  const snapToObject = useEditorStore((state) => state.snapToObject);
+  const gridSize = useEditorStore((state) => state.gridSize);
+  const snapDistance = useEditorStore((state) => state.snapDistance);
   const gizmoRef = useRef<TransformGizmo | null>(null);
   const highlightLayerRef = useRef<BABYLON.HighlightLayer | null>(null);
 
@@ -94,6 +112,22 @@ export const SceneCanvas: React.FC = () => {
           if (evt.button === 0) {
             // Left click - always close context menu
             hideContextMenu();
+
+            // Check if we're in alignment mode
+            const currentAlignMode = useEditorStore.getState().alignMode;
+            if (currentAlignMode) {
+              // Handle alignment clicks
+              handleAlignClick(pickResult);
+              return; // Don't process as normal selection
+            }
+
+            // Check if we're in custom frame selection mode
+            const currentCustomFrameMode = useEditorStore.getState().customFrameSelectionMode;
+            if (currentCustomFrameMode !== 'none') {
+              // Handle custom frame selection clicks
+              handleSceneClickForCustomFrame(pickResult);
+              return; // Don't process as normal selection
+            }
 
             // Detect double-click
             const currentTime = Date.now();
@@ -220,6 +254,23 @@ export const SceneCanvas: React.FC = () => {
     }
   }, [selectedMeshes, transformMode]);
 
+  // Update snap settings when they change
+  useEffect(() => {
+    if (!gizmoRef.current) return;
+
+    gizmoRef.current.updateSnapSettings({
+      enabled: snapEnabled,
+      snapToGrid,
+      snapToVertex,
+      snapToEdge,
+      snapToFace,
+      snapToCenter,
+      snapToObject,
+      gridSize,
+      snapDistance,
+    });
+  }, [snapEnabled, snapToGrid, snapToVertex, snapToEdge, snapToFace, snapToCenter, snapToObject, gridSize, snapDistance]);
+
   // Update highlight layer for multi-selection visual feedback
   useEffect(() => {
     if (!highlightLayerRef.current) return;
@@ -239,19 +290,21 @@ export const SceneCanvas: React.FC = () => {
         const entity = registry.getByMesh(mesh);
 
         // If this is a device entity, highlight all child link entity meshes
-        if (entity && entity.getIsDevice()) {
-          const linkEntities = entity.getChildren();
+        if (entity && typeof entity.getIsDevice === 'function' && entity.getIsDevice()) {
+          const linkEntities = typeof entity.getChildren === 'function' ? entity.getChildren() : [];
 
           const color = index === 0
             ? new BABYLON.Color3(0.28, 0.73, 0.47) // Green for primary selection
             : new BABYLON.Color3(1.0, 0.6, 0.0);    // Orange for additional selections
 
           linkEntities.forEach(linkEntity => {
-            const linkMesh = linkEntity.getMesh();
-            // Skip invisible meshes and dummy meshes
-            if (linkMesh && linkMesh.isVisible &&
-                !linkMesh.name.includes('_dummy')) {
-              highlightLayer.addMesh(linkMesh, color);
+            if (typeof linkEntity.getMesh === 'function') {
+              const linkMesh = linkEntity.getMesh();
+              // Skip invisible meshes and dummy meshes
+              if (linkMesh && linkMesh.isVisible &&
+                  !linkMesh.name.includes('_dummy')) {
+                highlightLayer.addMesh(linkMesh, color);
+              }
             }
           });
         } else if (mesh && mesh.isVisible) {
@@ -355,6 +408,17 @@ export const SceneCanvas: React.FC = () => {
 
       {/* Camera view controls */}
       <CameraViewControls />
+
+      {/* Transform HUD - Bottom right position/rotation display (only when object selected) */}
+      <TransformHUD />
+
+      {/* Transform Settings - Vertical icon strip on left side (ALWAYS VISIBLE) */}
+      <div className="absolute top-56 left-4 flex flex-col gap-1 z-50">
+        <TransformSettings />
+        <SnapToolbar />
+        <AlignTool />
+        <TemporaryOrigin />
+      </div>
 
       {/* Multi-selection indicator */}
       {selectedNodeIds.length > 1 && (
