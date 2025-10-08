@@ -1,4 +1,3 @@
-// @ts-nocheck - Work in progress: Uses incomplete path planning modules
 /**
  * Spot Welding Planner
  * High-level interface for automated spot welding path planning
@@ -16,26 +15,29 @@ import {
   RobotPose,
   WeldingProgram,
   SpotWeldingConfig,
-  // ViaPointOptions
 } from './types';
 import { ViaPointGenerator } from './ViaPointGenerator';
 import { TrajectoryOptimizer } from './TrajectoryOptimizer';
 import { TSPSolver } from './TSPSolver';
 import { KinematicsManager } from '../kinematics/KinematicsManager';
 
+/**
+ * Spot Welding Planner
+ * Generates optimized welding programs with collision-free paths
+ */
 export class SpotWeldingPlanner {
   private config: SpotWeldingConfig;
   private viaPointGenerator: ViaPointGenerator;
   private trajectoryOptimizer: TrajectoryOptimizer;
   private tspSolver: TSPSolver;
+  // TODO: Enable when KinematicsManager integration is needed for real-time validation
   // private kinematicsManager: KinematicsManager;
 
   constructor(
     config: SpotWeldingConfig,
     viaPointGenerator: ViaPointGenerator,
     trajectoryOptimizer: TrajectoryOptimizer,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    kinematicsManager: KinematicsManager
+    _kinematicsManager: KinematicsManager  // Reserved for future use
   ) {
     this.config = config;
     this.viaPointGenerator = viaPointGenerator;

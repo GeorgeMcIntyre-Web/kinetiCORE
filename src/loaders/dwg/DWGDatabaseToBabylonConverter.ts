@@ -37,6 +37,10 @@ export interface DWGDatabaseConversionResult {
 export class DWGDatabaseToBabylonConverter {
   private scene: BABYLON.Scene;
   private unitScale: number;
+  // TODO: Implement batching by color for performance optimization
+  // private batchByColor: boolean;
+  // TODO: Implement block expansion for complex assemblies
+  // private expandBlocks: boolean;
   private debugLogging: boolean;
 
   // Block definition cache: blockName -> mesh template
@@ -52,6 +56,7 @@ export class DWGDatabaseToBabylonConverter {
   constructor(options: DWGDatabaseConversionOptions) {
     this.scene = options.scene;
     this.unitScale = options.unitScale ?? 0.001; // Default: mm to meters
+    // TODO: Enable when batching/expansion features are implemented
     // this.batchByColor = options.batchByColor ?? true;
     // this.expandBlocks = options.expandBlocks ?? true;
     this.debugLogging = options.debugLogging ?? false;
@@ -333,7 +338,6 @@ export class DWGDatabaseToBabylonConverter {
       // Use getPoint3dAt method (Ta2 LWPOLYLINE)
       let i = 0;
       try {
-        // eslint-disable-next-line no-constant-condition
         while (true) {
           const point = entity.getPoint3dAt(i);
           if (!point) break;
@@ -633,12 +637,12 @@ export class DWGDatabaseToBabylonConverter {
     }
 
     // Get text location
-    const locationPoint = entity._location;
+    let locationPoint = entity._location;
     if (!locationPoint) {
       return; // Skip text without position
     }
 
-    const position = this.convertPoint(locationPoint, transform);
+    let position = this.convertPoint(locationPoint, transform);
 
     // Apply DWG Z-up to Babylon Y-up rotation (-90° around X)
     // This matches the root node rotation applied in DWGLoader

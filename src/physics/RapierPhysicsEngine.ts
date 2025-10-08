@@ -130,7 +130,8 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
 
     const rigidBody = this.bodies.get(handle);
     if (rigidBody) {
-      // Remove all colliders first to avoid Rapier's "recursive use" error
+      // Remove collider first to avoid Rapier's "recursive use" error
+      // Note: this.colliders is Map<string, Collider> (one collider per handle)
       const collider = this.colliders.get(handle);
       if (collider) {
         try {

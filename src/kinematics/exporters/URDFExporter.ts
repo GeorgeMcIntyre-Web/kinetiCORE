@@ -1,6 +1,6 @@
 /**
  * URDF Exporter
- * Export kinematic devices to URDF format with coordinate conversion
+ * Export kinematic devices to URDF format (ROS standard)
  * Includes ZIP packaging with meshes
  */
 
@@ -10,6 +10,9 @@ import {
   Joint,
   Link,
 } from '../device/UnifiedDeviceDefinition';
+
+// Note: Frame data is already in user space (Z-up, mm), so no coordinate conversion needed.
+// URDF also uses Z-up convention (ROS standard), we only need unit conversion (mm → m).
 
 export interface URDFExportResult {
   success: boolean;
@@ -127,7 +130,8 @@ export class URDFExporter {
     xml += `    <parent link="${parentLink.name}"/>\n`;
     xml += `    <child link="${childLink.name}"/>\n`;
 
-    // Use joint parentFrame directly (already in user space: Z-up, mm)
+    // Convert origin from user space (Z-up, mm) to URDF (Z-up, m)
+    // Frame is already in user space (Z-up, mm), just convert units
     const pos = joint.parentFrame.origin;
     const posM = { x: pos.x * 0.001, y: pos.y * 0.001, z: pos.z * 0.001 }; // mm to m
 

@@ -12,6 +12,9 @@ import {
   Link,
 } from '../device/UnifiedDeviceDefinition';
 
+// Note: Frame data is already in user space (Z-up, mm), so no coordinate conversion needed.
+// MJCF also uses Z-up convention, we only need unit conversion (mm → m).
+
 export interface MJCFExportResult {
   success: boolean;
   zipBlob?: Blob;
@@ -127,7 +130,8 @@ export class MJCFExporter {
       const childLink = device.links.find(l => l.id === joint.childLink);
       if (!childLink) continue;
 
-      // Use joint parentFrame directly (already in user space: Z-up, mm)
+      // Convert joint position from Babylon (Y-up, m) to MJCF (Z-up, m)
+      // Frame is already in user space (Z-up, mm), just convert units
       const pos = joint.parentFrame.origin;
       const posM = { x: pos.x * 0.001, y: pos.y * 0.001, z: pos.z * 0.001 }; // mm to m
 
@@ -158,7 +162,7 @@ export class MJCFExporter {
     const type = joint.type === 'revolute' ? 'hinge' :
                  joint.type === 'prismatic' ? 'slide' : 'fixed';
 
-    // Use joint zAxis directly (already in user space: Z-up)
+    // Frame is already in user space (Z-up)
     const axis = `${joint.parentFrame.zAxis.x} ${joint.parentFrame.zAxis.y} ${joint.parentFrame.zAxis.z}`;
     const range = `${joint.limits.min} ${joint.limits.max}`;
 

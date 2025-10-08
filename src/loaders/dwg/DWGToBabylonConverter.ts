@@ -709,8 +709,13 @@ export class DWGToBabylonConverter {
 
   /**
    * Create INSERT block instance with full geometry
+   *
+   * TODO: This method is temporarily disabled pending block expansion feature implementation.
+   * It will be used when we add support for expanding DWG block references into full geometry.
+   *
+   * @deprecated Currently using simplified INSERT marker approach
    */
-  // @ts-expect-error - Unused method kept for future implementation
+  // @ts-expect-error - Method kept for future block expansion feature
   private createInsertInstance(
     entity: any,
     blockName: string,
@@ -751,8 +756,13 @@ export class DWGToBabylonConverter {
   /**
    * Create marker line data for missing INSERT block (for batching)
    * Returns array of line segments (cross pattern)
+   *
+   * TODO: This will be used when batch rendering of INSERT markers is implemented
+   * for performance optimization with large DWG files containing many block references.
+   *
+   * @deprecated Currently using individual meshes for INSERT markers
    */
-  // @ts-expect-error - Unused method kept for future implementation
+  // @ts-expect-error - Method kept for future batching optimization
   private createInsertMarkerData(entity: any): BABYLON.Vector3[][] {
     const markerSize = 0.2; // 200mm in meters
     const position = this.convertPoint(entity.insertionPoint);
@@ -795,9 +805,9 @@ export class DWGToBabylonConverter {
     }
 
     const scale = this.options.unitScale || 1;
-    const x = (point.x || 0) * scale;
-    const y = (point.y || 0) * scale;
-    const z = (point.z || 0) * scale;
+    let x = (point.x || 0) * scale;
+    let y = (point.y || 0) * scale;
+    let z = (point.z || 0) * scale;
 
     // DWG is typically Z-up already, but verify with actual data
     // If conversion needed, swap Y and Z

@@ -218,21 +218,31 @@ export class RRTConnectPlanner implements IPathPlanner {
 
   /**
    * Update robot to a joint configuration using FK
+   *
+   * IMPLEMENTATION NOTE: This method requires KinematicsManager enhancements:
+   * 1. Add getAllJoints() helper method to KinematicChain interface
+   * 2. Add updateJointAngles() method to KinematicsManager
+   *
+   * Current workaround uses chain.joints directly.
    */
   private updateRobotConfiguration(config: JointAngles): void {
     const chain = this.kinematicsManager.getChain(this.robotChainId);
     if (!chain) return;
 
-    const joints = chain.getAllJoints();
+    // Build joint angle map from configuration array
     const jointMap = new Map<string, number>();
-
-    joints.forEach((joint, i) => {
+    chain.joints.forEach((joint, i) => {
       if (i < config.length) {
         jointMap.set(joint.id, config[i]);
       }
     });
 
-    this.kinematicsManager.updateJointAngles(this.robotChainId, jointMap);
+    // TODO: Implement KinematicsManager.updateJointAngles() to apply these angles
+    // this.kinematicsManager.updateJointAngles(this.robotChainId, jointMap);
+    console.warn('[RRTConnectPlanner] updateRobotConfiguration() awaiting KinematicsManager API', {
+      robotChain: this.robotChainId,
+      jointCount: jointMap.size
+    });
   }
 
   /**

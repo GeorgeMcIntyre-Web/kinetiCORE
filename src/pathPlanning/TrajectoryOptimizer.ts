@@ -58,15 +58,13 @@ export class TrajectoryOptimizer {
       const duration = durations[i];
 
       // Solve IK for both poses
-      const startIK = this.ikSolver.solve(
+      const startIK = this.ikSolver.solveJacobianTranspose(
         this.robotChainId,
-        startPose.position,
-        startPose.rotation
+        { position: startPose.position, rotation: startPose.rotation }
       );
-      const goalIK = this.ikSolver.solve(
+      const goalIK = this.ikSolver.solveJacobianTranspose(
         this.robotChainId,
-        goalPose.position,
-        goalPose.rotation
+        { position: goalPose.position, rotation: goalPose.rotation }
       );
 
       if (!startIK.success || !goalIK.success) {
@@ -162,15 +160,13 @@ export class TrajectoryOptimizer {
     maxVelocity: number = 1.0
   ): number {
     // Solve IK
-    const startIK = this.ikSolver.solve(
+    const startIK = this.ikSolver.solveJacobianTranspose(
       this.robotChainId,
-      startPose.position,
-      startPose.rotation
+      { position: startPose.position, rotation: startPose.rotation }
     );
-    const goalIK = this.ikSolver.solve(
+    const goalIK = this.ikSolver.solveJacobianTranspose(
       this.robotChainId,
-      goalPose.position,
-      goalPose.rotation
+      { position: goalPose.position, rotation: goalPose.rotation }
     );
 
     if (!startIK.success || !goalIK.success) {

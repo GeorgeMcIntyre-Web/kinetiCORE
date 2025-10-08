@@ -13,9 +13,10 @@ import {
   WeldSpot,
   MultiRobotProgram,
   WeldingProgram,
-  // SpotWeldingConfig
 } from './types';
 import { SpotWeldingPlanner } from './SpotWeldingPlanner';
+
+// TODO: Re-enable TSPSolver when task optimization is implemented
 // import { TSPSolver } from './TSPSolver';
 
 export interface RobotZone {
@@ -24,7 +25,12 @@ export interface RobotZone {
   radius: number;
 }
 
+/**
+ * Multi-Robot Coordinator
+ * Handles task allocation, zone management, and collision avoidance for multiple robots
+ */
 export class MultiRobotCoordinator {
+  // TODO: Enable when TSP-based task optimization is implemented
   // private tspSolver: TSPSolver;
   private minSeparation: number = 0.3; // 300mm minimum separation
 

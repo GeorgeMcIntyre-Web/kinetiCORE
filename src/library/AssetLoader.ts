@@ -7,10 +7,12 @@
 
 import * as BABYLON from '@babylonjs/core';
 import type { LibraryAsset, AssetInsertionConfig } from './types';
+import type { SceneNode } from '../scene/SceneTreeNode';
+
+// TODO: Re-enable when specialized loaders are implemented
 // import { loadURDFWithMeshes } from '../loaders/urdf/URDFLoaderWithMeshes';
 // import { JTLoader } from '../loaders/jt/JTLoader';
 // import { DWGLoader } from '../loaders/dwg/DWGLoader';
-import type { SceneNode } from '../scene/SceneTreeNode';
 
 /**
  * Result of asset loading operation
@@ -100,8 +102,13 @@ export class AssetLoader {
 
   /**
    * Load JT CAD file (old version - disabled)
+   *
+   * TODO: This is a legacy implementation kept for reference.
+   * Will be replaced with proper JTLoader integration when ready.
+   *
+   * @deprecated Use loadJT() instead (currently returns stub)
    */
-  // @ts-expect-error - Unused method kept for future implementation
+  // @ts-expect-error - Legacy method kept for future JT loader implementation
   private async loadJTOld(
     asset: LibraryAsset,
     config: AssetInsertionConfig
