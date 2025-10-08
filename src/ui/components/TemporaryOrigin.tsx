@@ -145,7 +145,11 @@ export const TemporaryOrigin: React.FC = () => {
         </div>
       ) : (
         <div className="temp-origin-options">
-          <button className="origin-option-btn" onClick={handleSetOriginFromSelection}>
+          <button
+            className="origin-option-btn"
+            onClick={handleSetOriginFromSelection}
+            disabled={!selectedNodeId}
+          >
             <Target size={14} />
             From Selection
           </button>
@@ -165,7 +169,11 @@ export const TemporaryOrigin: React.FC = () => {
       )}
 
       <div className="temp-origin-help">
-        <p>Set a temporary reference point for relative transforms</p>
+        {!selectedNodeId ? (
+          <p>Select an object to use "From Selection"</p>
+        ) : (
+          <p>Set a temporary reference point for relative transforms</p>
+        )}
       </div>
     </div>
   );

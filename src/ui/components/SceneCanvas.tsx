@@ -359,16 +359,14 @@ export const SceneCanvas: React.FC = () => {
       {/* Camera view controls */}
       <CameraViewControls />
 
-      {/* Transform HUD - Bottom right position/rotation display */}
+      {/* Transform HUD - Bottom right position/rotation display (only when object selected) */}
       <TransformHUD />
 
-      {/* Transform Settings - Top left below camera controls (only show when object selected) */}
-      {selectedNodeIds.length > 0 && (
-        <div className="absolute top-48 left-4 w-64 z-10 max-h-96 overflow-y-auto">
-          <TransformSettings />
-          <TemporaryOrigin />
-        </div>
-      )}
+      {/* Transform Settings - Top left below camera controls (ALWAYS VISIBLE) */}
+      <div className="absolute top-48 left-4 w-64 z-10 max-h-96 overflow-y-auto">
+        <TransformSettings />
+        <TemporaryOrigin />
+      </div>
 
       {/* Multi-selection indicator */}
       {selectedNodeIds.length > 1 && (
