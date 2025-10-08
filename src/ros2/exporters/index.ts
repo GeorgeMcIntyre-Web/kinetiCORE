@@ -3,3 +3,4 @@
  */
 
 export * from './TrajectoryExporter';
+export * from './LaunchFileExporter';

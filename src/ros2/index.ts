@@ -7,3 +7,5 @@ export * from './messages';
 export * from './exporters';
 export * from './utils';
 export * from './bridge';
+export * from './visualization';
+export * from './introspection';
