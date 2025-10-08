@@ -98,6 +98,10 @@ const selected = useEditorStore.getState().selectedMeshes;
 - **Disposal order:** Always dispose physics bodies BEFORE Babylon meshes
 - **localStorage:** Not supported in Claude artifacts - use in-memory state only
 - **World matrix:** Call `mesh.computeWorldMatrix(true)` before reading bounds for physics
+- **Flexbox layouts:** NEVER use `width: 100%; height: 100%` on flex children
+  - Use `flex: 1` with `min-width: 0; min-height: 0` instead
+  - See `docs/CSS_STYLE_GUIDE.md` for layout patterns
+  - Empty flex children will collapse without proper min-dimensions
 
 ## Current Sprint
 

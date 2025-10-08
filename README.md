@@ -481,8 +481,15 @@ gizmo.attachToMesh(selectedMesh);
 
 ## 📚 Documentation
 
+### Project Docs
 - **CLAUDE.md** - Full project context for AI tools
-- **COORDINATE_SYSTEM.md** - Coordinate system standard
+- **COORDINATE_SYSTEM.md** - Coordinate system standard (Z-up)
+- **docs/CSS_STYLE_GUIDE.md** - CSS/Flexbox layout rules & patterns
+- **docs/TESTING_CHECKLIST.md** - Pre-commit testing checklist
+- **docs/architecture.md** - System architecture
+- **docs/team_roadmap_3person_ai.md** - Development roadmap
+
+### External Resources
 - **Babylon.js Docs:** https://doc.babylonjs.com
 - **Rapier Docs:** https://rapier.rs/docs/
 - **Zustand Docs:** https://docs.pmnd.rs/zustand/
