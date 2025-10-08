@@ -1,159 +1,157 @@
-/* Transform Settings Panel Styles - ULTRA COMPACT */
+/* Transform Settings Panel Styles - TOOLBAR STYLE */
 
 .transform-settings-panel {
-  background: rgba(26, 26, 26, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
-  overflow: hidden;
-  margin-bottom: 4px;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  position: relative;
 }
 
 .transform-settings-header {
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 4px;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.05);
-  transition: background 0.2s;
-  user-select: none;
+  background: rgba(26, 32, 44, 0.95);
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  transition: all 0.2s;
+  backdrop-filter: blur(8px);
 }
 
 .transform-settings-header:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: #48bb78;
 }
 
 .transform-settings-header svg {
-  color: #3b82f6;
-  width: 10px;
-  height: 10px;
+  color: #e2e8f0;
+  width: 18px;
+  height: 18px;
 }
 
-.expand-icon {
-  transition: transform 0.2s;
-  font-size: 8px;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.expand-icon.expanded {
-  transform: rotate(180deg);
+.transform-settings-header:hover svg {
+  color: white;
 }
 
 .transform-settings-content {
-  padding: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  position: absolute;
+  left: 52px;
+  top: 0;
+  background: rgba(26, 32, 44, 0.95);
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 8px;
+  min-width: 180px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
 }
 
 .setting-group {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-}
-
-.setting-label {
-  font-size: 8px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.8);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
 .preset-buttons {
   display: flex;
-  gap: 2px;
+  gap: 4px;
   flex-wrap: wrap;
 }
 
 .preset-btn {
-  padding: 2px 4px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 8px;
+  padding: 6px 10px;
+  background: rgba(45, 55, 72, 0.8);
+  border: 1px solid #4a5568;
+  border-radius: 4px;
+  color: #e2e8f0;
+  font-size: 11px;
   cursor: pointer;
   transition: all 0.2s;
+  font-weight: 500;
 }
 
 .preset-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: #48bb78;
+  color: white;
+  border-color: #48bb78;
 }
 
 .preset-btn.active {
-  background: #3b82f6;
-  border-color: #3b82f6;
-  color: #fff;
+  background: #48bb78;
+  border-color: #48bb78;
+  color: white;
   font-weight: 600;
 }
 
 .setting-input {
-  padding: 2px 4px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
-  color: #fff;
-  font-size: 9px;
+  padding: 8px 10px;
+  background: rgba(45, 55, 72, 0.8);
+  border: 1px solid #4a5568;
+  border-radius: 4px;
+  color: #e2e8f0;
+  font-size: 13px;
   width: 100%;
 }
 
 .setting-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  background: rgba(255, 255, 255, 0.08);
+  border-color: #48bb78;
+  background: rgba(45, 55, 72, 0.9);
 }
 
 .setting-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+}
+
+.setting-row svg {
+  color: #48bb78;
 }
 
 .setting-checkbox {
-  width: 10px;
-  height: 10px;
+  width: 16px;
+  height: 16px;
   cursor: pointer;
 }
 
 .snap-types {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px;
+  gap: 6px;
   padding-left: 0;
-  margin-top: 4px;
-  justify-content: space-between;
+  margin-top: 8px;
 }
 
 .snap-type-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 2px;
-  border-radius: 2px;
-  transition: background 0.2s;
-  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  background: rgba(45, 55, 72, 0.6);
+  border: 1px solid #4a5568;
+  flex: 1 1 45%;
+  min-width: 70px;
 }
 
 .snap-type-row:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(72, 187, 120, 0.2);
+  border-color: #48bb78;
 }
 
 .snap-type-row svg {
-  color: #3b82f6;
-  width: 10px;
-  height: 10px;
+  color: #48bb78;
+  width: 14px;
+  height: 14px;
 }
 
 .snap-type-row input[type='checkbox'] {
-  width: 8px;
-  height: 8px;
+  width: 14px;
+  height: 14px;
   cursor: pointer;
   margin: 0;
 }
@@ -161,7 +159,7 @@
 .setting-subgroup {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding-left: 4px;
-  margin-top: 4px;
+  gap: 6px;
+  padding-left: 0;
+  margin-top: 8px;
 }

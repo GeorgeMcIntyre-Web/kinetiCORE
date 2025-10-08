@@ -2,7 +2,7 @@
 // Owner: Edwin
 // Allows setting a temporary reference point for relative positioning
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Target, XCircle, MousePointer, Home } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import { SceneManager } from '../../scene/SceneManager';
@@ -12,6 +12,7 @@ import * as BABYLON from '@babylonjs/core';
 import './TemporaryOrigin.css';
 
 export const TemporaryOrigin: React.FC = () => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const temporaryOrigin = useEditorStore((state) => state.temporaryOrigin);
   const setTemporaryOrigin = useEditorStore((state) => state.setTemporaryOrigin);
   const clearTemporaryOrigin = useEditorStore((state) => state.clearTemporaryOrigin);
@@ -117,55 +118,67 @@ export const TemporaryOrigin: React.FC = () => {
 
   return (
     <div className="temporary-origin-panel">
-      <div className="temp-origin-header" title="Temporary Origin">
-        <Target size={10} />
+      <div
+        className="temp-origin-header"
+        onClick={() => setIsExpanded(!isExpanded)}
+        title="Temporary Origin"
+      >
+        <Target size={18} />
       </div>
 
-      {temporaryOrigin ? (
-        <div className="temp-origin-active">
-          <div className="temp-origin-coords">
-            <div className="coord-display">
-              <span className="coord-label">X</span>
-              <span className="coord-value">{temporaryOrigin.x.toFixed(0)}</span>
+      {isExpanded && (
+        <div className="temp-origin-popup">
+          {temporaryOrigin ? (
+            <div className="temp-origin-active">
+              <div className="temp-origin-coords">
+                <div className="coord-display">
+                  <span className="coord-label">X</span>
+                  <span className="coord-value">{temporaryOrigin.x.toFixed(0)}</span>
+                </div>
+                <div className="coord-display">
+                  <span className="coord-label">Y</span>
+                  <span className="coord-value">{temporaryOrigin.y.toFixed(0)}</span>
+                </div>
+                <div className="coord-display">
+                  <span className="coord-label">Z</span>
+                  <span className="coord-value">{temporaryOrigin.z.toFixed(0)}</span>
+                </div>
+              </div>
+              <button className="clear-origin-btn" onClick={clearTemporaryOrigin} title="Clear Origin">
+                <XCircle size={12} />
+                <span>Clear</span>
+              </button>
             </div>
-            <div className="coord-display">
-              <span className="coord-label">Y</span>
-              <span className="coord-value">{temporaryOrigin.y.toFixed(0)}</span>
+          ) : (
+            <div className="temp-origin-options">
+              <button
+                className="origin-option-btn"
+                onClick={handleSetOriginFromSelection}
+                disabled={!selectedNodeId}
+                title="From Selection"
+              >
+                <Target size={14} />
+                <span>From Selection</span>
+              </button>
+              <button
+                className="origin-option-btn"
+                onClick={handleSetOriginAtWorldZero}
+                title="World Zero"
+              >
+                <Home size={14} />
+                <span>World Zero</span>
+              </button>
+              <button
+                className="origin-option-btn"
+                onClick={handleSetOriginFromSnap}
+                disabled={!snapEnabled}
+                title="Snap To Point"
+              >
+                <MousePointer size={14} />
+                <span>Snap To Point</span>
+              </button>
             </div>
-            <div className="coord-display">
-              <span className="coord-label">Z</span>
-              <span className="coord-value">{temporaryOrigin.z.toFixed(0)}</span>
-            </div>
-          </div>
-          <button className="clear-origin-btn" onClick={clearTemporaryOrigin} title="Clear Origin">
-            <XCircle size={8} />
-          </button>
-        </div>
-      ) : (
-        <div className="temp-origin-options">
-          <button
-            className="origin-option-btn"
-            onClick={handleSetOriginFromSelection}
-            disabled={!selectedNodeId}
-            title="From Selection"
-          >
-            <Target size={10} />
-          </button>
-          <button
-            className="origin-option-btn"
-            onClick={handleSetOriginAtWorldZero}
-            title="World Zero"
-          >
-            <Home size={10} />
-          </button>
-          <button
-            className="origin-option-btn"
-            onClick={handleSetOriginFromSnap}
-            disabled={!snapEnabled}
-            title="Snap To Point"
-          >
-            <MousePointer size={10} />
-          </button>
+          )}
         </div>
       )}
     </div>
