@@ -60,15 +60,21 @@
   background: rgba(45, 55, 72, 0.8);
   border: 1px solid #4a5568;
   border-radius: 6px;
-  color: #e2e8f0;
   cursor: pointer;
   transition: all 0.2s;
 }
 
+.align-btn svg {
+  color: #e2e8f0;
+}
+
 .align-btn:hover {
   background: #48bb78;
-  color: white;
   border-color: #48bb78;
+}
+
+.align-btn:hover svg {
+  color: white;
 }
 
 .align-status {
