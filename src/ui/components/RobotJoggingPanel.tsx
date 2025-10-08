@@ -104,7 +104,7 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
     const chainName = robotChain.name;
 
     // Create delta in USER space (Z-up, mm)
-    let userDelta = { x: 0, y: 0, z: 0 };
+    const userDelta = { x: 0, y: 0, z: 0 };
 
     // Linear motion in USER space
     if (axis === 'X') {
