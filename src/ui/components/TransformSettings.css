@@ -1,18 +1,20 @@
-/* Transform Settings Panel Styles */
+/* Transform Settings Panel Styles - COMPACT */
 
 .transform-settings-panel {
-  background: rgba(26, 26, 26, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  background: rgba(26, 26, 26, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
   overflow: hidden;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .transform-settings-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 6px;
+  padding: 6px 8px;
   cursor: pointer;
   background: rgba(255, 255, 255, 0.05);
   transition: background 0.2s;
@@ -25,17 +27,20 @@
 
 .transform-settings-header svg {
   color: #3b82f6;
+  width: 14px;
+  height: 14px;
 }
 
 .transform-settings-header span {
   flex: 1;
   font-weight: 500;
   color: #fff;
+  font-size: 11px;
 }
 
 .expand-icon {
   transition: transform 0.2s;
-  font-size: 12px;
+  font-size: 10px;
   color: rgba(255, 255, 255, 0.5);
 }
 
@@ -44,20 +49,20 @@
 }
 
 .transform-settings-content {
-  padding: 12px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .setting-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .setting-label {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.8);
   text-transform: uppercase;
@@ -66,17 +71,17 @@
 
 .preset-buttons {
   display: flex;
-  gap: 4px;
+  gap: 3px;
   flex-wrap: wrap;
 }
 
 .preset-btn {
-  padding: 4px 10px;
+  padding: 3px 6px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+  border-radius: 3px;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 11px;
+  font-size: 10px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -94,12 +99,12 @@
 }
 
 .setting-input {
-  padding: 6px 10px;
+  padding: 4px 6px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+  border-radius: 3px;
   color: #fff;
-  font-size: 13px;
+  font-size: 11px;
   width: 100%;
 }
 
@@ -113,11 +118,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 6px;
 }
 
 .setting-checkbox {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   cursor: pointer;
 }
 

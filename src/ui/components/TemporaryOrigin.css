@@ -1,62 +1,66 @@
-/* Temporary Origin Panel */
+/* Temporary Origin Panel - COMPACT */
 
 .temporary-origin-panel {
-  background: rgba(26, 26, 26, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  background: rgba(26, 26, 26, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
   overflow: hidden;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .temp-origin-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 6px;
+  padding: 6px 8px;
   background: rgba(255, 255, 255, 0.05);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .temp-origin-header svg {
   color: #f97316;
+  width: 14px;
+  height: 14px;
 }
 
 .temp-origin-header span {
   font-weight: 500;
   color: #fff;
-  font-size: 13px;
+  font-size: 11px;
 }
 
 .temp-origin-active {
-  padding: 12px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .temp-origin-coords {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .coord-display {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 8px;
+  padding: 4px 6px;
   background: rgba(249, 115, 22, 0.1);
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 .coord-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   color: #f97316;
 }
 
 .coord-value {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.9);
   font-family: 'Consolas', 'Monaco', monospace;
@@ -65,14 +69,14 @@
 .clear-origin-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   justify-content: center;
-  padding: 8px 12px;
+  padding: 4px 8px;
   background: rgba(239, 68, 68, 0.2);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 4px;
+  border-radius: 3px;
   color: #ef4444;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -84,22 +88,22 @@
 }
 
 .temp-origin-options {
-  padding: 12px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .origin-option-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 6px;
+  padding: 5px 8px;
   background: rgba(249, 115, 22, 0.1);
   border: 1px solid rgba(249, 115, 22, 0.3);
-  border-radius: 4px;
+  border-radius: 3px;
   color: rgba(255, 255, 255, 0.9);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -117,17 +121,19 @@
 
 .origin-option-btn svg {
   color: #f97316;
+  width: 12px;
+  height: 12px;
 }
 
 .temp-origin-help {
-  padding: 10px 12px;
+  padding: 6px 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.02);
 }
 
 .temp-origin-help p {
-  font-size: 11px;
+  font-size: 9px;
   color: rgba(255, 255, 255, 0.5);
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.3;
 }
