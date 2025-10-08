@@ -128,57 +128,40 @@ export const TemporaryOrigin: React.FC = () => {
 
       {isExpanded && (
         <div className="temp-origin-popup">
-          {temporaryOrigin ? (
-            <div className="temp-origin-active">
-              <div className="temp-origin-coords">
-                <div className="coord-display">
-                  <span className="coord-label">X</span>
-                  <span className="coord-value">{temporaryOrigin.x.toFixed(0)}</span>
-                </div>
-                <div className="coord-display">
-                  <span className="coord-label">Y</span>
-                  <span className="coord-value">{temporaryOrigin.y.toFixed(0)}</span>
-                </div>
-                <div className="coord-display">
-                  <span className="coord-label">Z</span>
-                  <span className="coord-value">{temporaryOrigin.z.toFixed(0)}</span>
-                </div>
-              </div>
-              <button className="clear-origin-btn" onClick={clearTemporaryOrigin} title="Clear Origin">
-                <XCircle size={12} />
-                <span>Clear</span>
-              </button>
-            </div>
-          ) : (
-            <div className="temp-origin-options">
+          <div className="origin-icon-row">
+            <button
+              className="origin-icon-btn"
+              onClick={handleSetOriginFromSelection}
+              disabled={!selectedNodeId}
+              title="From Selection"
+            >
+              <Target size={18} />
+            </button>
+            <button
+              className="origin-icon-btn"
+              onClick={handleSetOriginAtWorldZero}
+              title="World Zero"
+            >
+              <Home size={18} />
+            </button>
+            <button
+              className="origin-icon-btn"
+              onClick={handleSetOriginFromSnap}
+              disabled={!snapEnabled}
+              title="Snap To Point"
+            >
+              <MousePointer size={18} />
+            </button>
+            {temporaryOrigin && (
               <button
-                className="origin-option-btn"
-                onClick={handleSetOriginFromSelection}
-                disabled={!selectedNodeId}
-                title="From Selection"
+                className="origin-icon-btn clear"
+                onClick={clearTemporaryOrigin}
+                title="Clear Origin"
               >
-                <Target size={14} />
-                <span>From Selection</span>
+                <XCircle size={18} />
               </button>
-              <button
-                className="origin-option-btn"
-                onClick={handleSetOriginAtWorldZero}
-                title="World Zero"
-              >
-                <Home size={14} />
-                <span>World Zero</span>
-              </button>
-              <button
-                className="origin-option-btn"
-                onClick={handleSetOriginFromSnap}
-                disabled={!snapEnabled}
-                title="Snap To Point"
-              >
-                <MousePointer size={14} />
-                <span>Snap To Point</span>
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </div>

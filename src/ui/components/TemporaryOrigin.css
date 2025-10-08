@@ -39,96 +39,51 @@
   background: rgba(26, 32, 44, 0.95);
   border: 1px solid #4a5568;
   border-radius: 8px;
-  padding: 12px;
-  min-width: 200px;
+  padding: 6px;
   backdrop-filter: blur(8px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   z-index: 1000;
 }
 
-.temp-origin-active {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.temp-origin-coords {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.coord-display {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 8px;
-  background: rgba(45, 55, 72, 0.8);
-  border-radius: 4px;
-}
-
-.coord-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #48bb78;
-}
-
-.coord-value {
-  font-size: 12px;
-  font-weight: 500;
-  color: #e2e8f0;
-  font-family: 'Consolas', 'Monaco', monospace;
-}
-
-.clear-origin-btn {
+.origin-icon-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+}
+
+.origin-icon-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  padding: 8px 12px;
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 6px;
-  color: #ef4444;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.clear-origin-btn:hover {
-  background: rgba(239, 68, 68, 0.25);
-  border-color: #ef4444;
-}
-
-.temp-origin-options {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.origin-option-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
   background: rgba(45, 55, 72, 0.8);
   border: 1px solid #4a5568;
   border-radius: 6px;
   color: #e2e8f0;
-  font-size: 13px;
-  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.origin-option-btn:hover:not(:disabled) {
+.origin-icon-btn:hover:not(:disabled) {
   background: #48bb78;
   color: white;
   border-color: #48bb78;
 }
 
-.origin-option-btn:disabled {
-  opacity: 0.4;
+.origin-icon-btn:disabled {
+  opacity: 0.3;
   cursor: not-allowed;
+}
+
+.origin-icon-btn.clear {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.origin-icon-btn.clear:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+  color: #ef4444;
 }

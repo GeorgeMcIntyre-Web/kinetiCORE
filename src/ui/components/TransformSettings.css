@@ -39,31 +39,35 @@
   background: rgba(26, 32, 44, 0.95);
   border: 1px solid #4a5568;
   border-radius: 8px;
-  padding: 8px;
-  min-width: 180px;
+  padding: 6px;
   backdrop-filter: blur(8px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   z-index: 1000;
-}
-
-.setting-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.preset-buttons {
-  display: flex;
   gap: 4px;
-  flex-wrap: wrap;
 }
 
-.preset-btn {
-  padding: 6px 10px;
+.setting-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.setting-icon {
+  color: #48bb78;
+  margin-right: 4px;
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: rgba(45, 55, 72, 0.8);
   border: 1px solid #4a5568;
-  border-radius: 4px;
+  border-radius: 6px;
   color: #e2e8f0;
   font-size: 11px;
   cursor: pointer;
@@ -71,95 +75,18 @@
   font-weight: 500;
 }
 
-.preset-btn:hover {
+.icon-btn:hover {
   background: #48bb78;
   color: white;
   border-color: #48bb78;
 }
 
-.preset-btn.active {
+.icon-btn.active {
   background: #48bb78;
   border-color: #48bb78;
   color: white;
-  font-weight: 600;
 }
 
-.setting-input {
-  padding: 8px 10px;
-  background: rgba(45, 55, 72, 0.8);
-  border: 1px solid #4a5568;
-  border-radius: 4px;
-  color: #e2e8f0;
-  font-size: 13px;
-  width: 100%;
-}
-
-.setting-input:focus {
-  outline: none;
-  border-color: #48bb78;
-  background: rgba(45, 55, 72, 0.9);
-}
-
-.setting-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-
-.setting-row svg {
-  color: #48bb78;
-}
-
-.setting-checkbox {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-}
-
-.snap-types {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding-left: 0;
-  margin-top: 8px;
-}
-
-.snap-type-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
-  border-radius: 4px;
-  transition: all 0.2s;
-  background: rgba(45, 55, 72, 0.6);
-  border: 1px solid #4a5568;
-  flex: 1 1 45%;
-  min-width: 70px;
-}
-
-.snap-type-row:hover {
-  background: rgba(72, 187, 120, 0.2);
-  border-color: #48bb78;
-}
-
-.snap-type-row svg {
-  color: #48bb78;
-  width: 14px;
-  height: 14px;
-}
-
-.snap-type-row input[type='checkbox'] {
-  width: 14px;
-  height: 14px;
-  cursor: pointer;
-  margin: 0;
-}
-
-.setting-subgroup {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-left: 0;
-  margin-top: 8px;
+.icon-btn.snap-toggle {
+  width: 32px;
 }

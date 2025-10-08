@@ -51,155 +51,87 @@ export const TransformSettings: React.FC = () => {
 
       {isExpanded && (
         <div className="transform-settings-content">
-          {/* Position Increment */}
-          <div className="setting-group">
-            <div className="setting-row">
-              <Move size={10} title="Position Increment (mm)" />
-              <input
-                type="number"
-                className="setting-input"
-                value={positionIncrement}
-                onChange={(e) => setPositionIncrement(parseFloat(e.target.value) || 1)}
-                min={0.01}
-                step={0.1}
-                title="Position Increment (mm)"
-              />
-            </div>
-            <div className="preset-buttons">
-              {posPresets.map((val) => (
-                <button
-                  key={val}
-                  className={`preset-btn ${positionIncrement === val ? 'active' : ''}`}
-                  onClick={() => setPositionIncrement(val)}
-                  title={`${val}mm`}
-                >
-                  {val}
-                </button>
-              ))}
-            </div>
+          {/* Position Increment - Icon buttons only */}
+          <div className="setting-icon-row">
+            <Move size={14} className="setting-icon" title="Position (mm)" />
+            {posPresets.map((val) => (
+              <button
+                key={val}
+                className={`icon-btn ${positionIncrement === val ? 'active' : ''}`}
+                onClick={() => setPositionIncrement(val)}
+                title={`${val}mm`}
+              >
+                {val}
+              </button>
+            ))}
           </div>
 
-          {/* Rotation Increment */}
-          <div className="setting-group">
-            <div className="setting-row">
-              <RotateCw size={10} title="Rotation Increment (°)" />
-              <input
-                type="number"
-                className="setting-input"
-                value={rotationIncrement}
-                onChange={(e) => setRotationIncrement(parseFloat(e.target.value) || 1)}
-                min={0.01}
-                step={0.1}
-                title="Rotation Increment (°)"
-              />
-            </div>
-            <div className="preset-buttons">
-              {rotPresets.map((val) => (
-                <button
-                  key={val}
-                  className={`preset-btn ${rotationIncrement === val ? 'active' : ''}`}
-                  onClick={() => setRotationIncrement(val)}
-                  title={`${val}°`}
-                >
-                  {val}°
-                </button>
-              ))}
-            </div>
+          {/* Rotation Increment - Icon buttons only */}
+          <div className="setting-icon-row">
+            <RotateCw size={14} className="setting-icon" title="Rotation (°)" />
+            {rotPresets.map((val) => (
+              <button
+                key={val}
+                className={`icon-btn ${rotationIncrement === val ? 'active' : ''}`}
+                onClick={() => setRotationIncrement(val)}
+                title={`${val}°`}
+              >
+                {val}
+              </button>
+            ))}
           </div>
 
-          {/* Snap Toggle */}
-          <div className="setting-group">
-            <div className="setting-row">
-              <Target size={10} title="Enable Snapping" />
-              <input
-                type="checkbox"
-                className="setting-checkbox"
-                checked={snapEnabled}
-                onChange={(e) => setSnapEnabled(e.target.checked)}
-                title="Enable Snapping"
-              />
-            </div>
-
-            {snapEnabled && (
-              <>
-                {/* Snap Types - Icon only with checkboxes */}
-                <div className="snap-types">
-                  <div className="snap-type-row" title="Snap to Grid">
-                    <Grid3x3 size={10} />
-                    <input
-                      type="checkbox"
-                      checked={snapToGrid}
-                      onChange={(e) => setSnapToGrid(e.target.checked)}
-                    />
-                  </div>
-                  <div className="snap-type-row" title="Snap to Vertex">
-                    <Circle size={10} />
-                    <input
-                      type="checkbox"
-                      checked={snapToVertex}
-                      onChange={(e) => setSnapToVertex(e.target.checked)}
-                    />
-                  </div>
-                  <div className="snap-type-row" title="Snap to Edge">
-                    <Target size={10} />
-                    <input
-                      type="checkbox"
-                      checked={snapToEdge}
-                      onChange={(e) => setSnapToEdge(e.target.checked)}
-                    />
-                  </div>
-                  <div className="snap-type-row" title="Snap to Face">
-                    <Box size={10} />
-                    <input
-                      type="checkbox"
-                      checked={snapToFace}
-                      onChange={(e) => setSnapToFace(e.target.checked)}
-                    />
-                  </div>
-                  <div className="snap-type-row" title="Snap to Center">
-                    <Maximize2 size={10} />
-                    <input
-                      type="checkbox"
-                      checked={snapToCenter}
-                      onChange={(e) => setSnapToCenter(e.target.checked)}
-                    />
-                  </div>
-                </div>
-
-                {/* Grid Size */}
-                {snapToGrid && (
-                  <div className="setting-subgroup">
-                    <div className="preset-buttons">
-                      {gridPresets.map((val) => (
-                        <button
-                          key={val}
-                          className={`preset-btn ${gridSize === val ? 'active' : ''}`}
-                          onClick={() => setGridSize(val)}
-                          title={`Grid: ${val}mm`}
-                        >
-                          {val}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Snap Distance */}
-                <div className="setting-subgroup">
-                  <input
-                    type="number"
-                    className="setting-input"
-                    value={snapDistance}
-                    onChange={(e) => setSnapDistance(parseFloat(e.target.value) || 1)}
-                    min={1}
-                    step={1}
-                    title="Snap Distance (mm)"
-                    placeholder="Dist"
-                  />
-                </div>
-              </>
-            )}
+          {/* Snap Toggle - Single icon button */}
+          <div className="setting-icon-row">
+            <button
+              className={`icon-btn snap-toggle ${snapEnabled ? 'active' : ''}`}
+              onClick={() => setSnapEnabled(!snapEnabled)}
+              title="Toggle Snapping"
+            >
+              <Target size={14} />
+            </button>
           </div>
+
+          {/* Snap Types - Icon only */}
+          {snapEnabled && (
+            <div className="setting-icon-row">
+              <button
+                className={`icon-btn ${snapToGrid ? 'active' : ''}`}
+                onClick={() => setSnapToGrid(!snapToGrid)}
+                title="Snap to Grid"
+              >
+                <Grid3x3 size={14} />
+              </button>
+              <button
+                className={`icon-btn ${snapToVertex ? 'active' : ''}`}
+                onClick={() => setSnapToVertex(!snapToVertex)}
+                title="Snap to Vertex"
+              >
+                <Circle size={14} />
+              </button>
+              <button
+                className={`icon-btn ${snapToEdge ? 'active' : ''}`}
+                onClick={() => setSnapToEdge(!snapToEdge)}
+                title="Snap to Edge"
+              >
+                <Target size={14} />
+              </button>
+              <button
+                className={`icon-btn ${snapToFace ? 'active' : ''}`}
+                onClick={() => setSnapToFace(!snapToFace)}
+                title="Snap to Face"
+              >
+                <Box size={14} />
+              </button>
+              <button
+                className={`icon-btn ${snapToCenter ? 'active' : ''}`}
+                onClick={() => setSnapToCenter(!snapToCenter)}
+                title="Snap to Center"
+              >
+                <Maximize2 size={14} />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
