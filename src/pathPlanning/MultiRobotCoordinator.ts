@@ -13,10 +13,10 @@ import {
   WeldSpot,
   MultiRobotProgram,
   WeldingProgram,
-  SpotWeldingConfig
+  // SpotWeldingConfig
 } from './types';
 import { SpotWeldingPlanner } from './SpotWeldingPlanner';
-import { TSPSolver } from './TSPSolver';
+// import { TSPSolver } from './TSPSolver';
 
 export interface RobotZone {
   robotId: string;
@@ -25,11 +25,11 @@ export interface RobotZone {
 }
 
 export class MultiRobotCoordinator {
-  private tspSolver: TSPSolver;
+  // private tspSolver: TSPSolver;
   private minSeparation: number = 0.3; // 300mm minimum separation
 
   constructor() {
-    this.tspSolver = new TSPSolver();
+    // this.tspSolver = new TSPSolver();
   }
 
   /**

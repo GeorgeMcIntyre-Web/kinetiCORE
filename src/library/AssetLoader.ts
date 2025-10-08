@@ -7,8 +7,8 @@
 
 import * as BABYLON from '@babylonjs/core';
 import type { LibraryAsset, AssetInsertionConfig } from './types';
-import { loadURDFWithMeshes } from '../loaders/urdf/URDFLoaderWithMeshes';
-import { JTLoader } from '../loaders/jt/JTLoader';
+// import { loadURDFWithMeshes } from '../loaders/urdf/URDFLoaderWithMeshes';
+// import { JTLoader } from '../loaders/jt/JTLoader';
 // import { DWGLoader } from '../loaders/dwg/DWGLoader';
 import type { SceneNode } from '../scene/SceneTreeNode';
 
@@ -101,6 +101,7 @@ export class AssetLoader {
   /**
    * Load JT CAD file (old version - disabled)
    */
+  // @ts-expect-error - Unused method kept for future implementation
   private async loadJTOld(
     asset: LibraryAsset,
     config: AssetInsertionConfig
@@ -110,7 +111,7 @@ export class AssetLoader {
       if (!response.ok) {
         throw new Error(`Failed to fetch JT file: ${response.statusText}`);
       }
-      const _arrayBuffer = await response.arrayBuffer();
+      await response.arrayBuffer();
 
       const result = { meshes: [], rootMesh: null } as any;
 
@@ -184,7 +185,7 @@ export class AssetLoader {
           }
         },
         undefined,
-        (scene, message) => {
+        (_scene, message) => {
           resolve({
             success: false,
             error: message,
@@ -228,7 +229,7 @@ export class AssetLoader {
           }
         },
         undefined,
-        (scene, message) => {
+        (_scene, message) => {
           resolve({
             success: false,
             error: message,

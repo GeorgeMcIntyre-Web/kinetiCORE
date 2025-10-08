@@ -42,7 +42,7 @@
 import * as BABYLON from '@babylonjs/core';
 import { DWGParserService } from './DWGParserService';
 import { DWGDatabaseParser } from './DWGDatabaseParser';
-import { DWGToBabylonConverter } from './DWGToBabylonConverter';
+// import { DWGToBabylonConverter } from './DWGToBabylonConverter';
 import { DWGDatabaseToBabylonConverter } from './DWGDatabaseToBabylonConverter';
 import { getDWGTextRenderer } from './DWGTextRenderer';
 import { DWGImportError } from './errors';

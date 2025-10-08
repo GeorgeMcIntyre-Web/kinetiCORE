@@ -10,7 +10,6 @@ import {
   Joint,
   Link,
 } from '../device/UnifiedDeviceDefinition';
-import { babylonToUser } from '../../core/CoordinateSystem';
 
 export interface URDFExportResult {
   success: boolean;
@@ -128,9 +127,8 @@ export class URDFExporter {
     xml += `    <parent link="${parentLink.name}"/>\n`;
     xml += `    <child link="${childLink.name}"/>\n`;
 
-    // Convert origin from Babylon (Y-up, m) to URDF (Z-up, m)
-    const userFrame = babylonToUser(joint.parentFrame);
-    const pos = userFrame.origin;
+    // Use joint parentFrame directly (already in user space: Z-up, mm)
+    const pos = joint.parentFrame.origin;
     const posM = { x: pos.x * 0.001, y: pos.y * 0.001, z: pos.z * 0.001 }; // mm to m
 
     // For rotation, URDF uses RPY (roll-pitch-yaw)
@@ -139,7 +137,7 @@ export class URDFExporter {
 
     // Joint axis (only for revolute/prismatic)
     if (joint.type === 'revolute' || joint.type === 'prismatic') {
-      const axis = userFrame.zAxis;
+      const axis = joint.parentFrame.zAxis;
       xml += `    <axis xyz="${axis.x} ${axis.y} ${axis.z}"/>\n`;
 
       // Limits

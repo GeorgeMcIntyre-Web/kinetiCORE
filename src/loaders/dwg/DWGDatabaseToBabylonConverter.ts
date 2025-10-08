@@ -37,8 +37,6 @@ export interface DWGDatabaseConversionResult {
 export class DWGDatabaseToBabylonConverter {
   private scene: BABYLON.Scene;
   private unitScale: number;
-  private batchByColor: boolean;
-  private expandBlocks: boolean;
   private debugLogging: boolean;
 
   // Block definition cache: blockName -> mesh template
@@ -54,8 +52,8 @@ export class DWGDatabaseToBabylonConverter {
   constructor(options: DWGDatabaseConversionOptions) {
     this.scene = options.scene;
     this.unitScale = options.unitScale ?? 0.001; // Default: mm to meters
-    this.batchByColor = options.batchByColor ?? true;
-    this.expandBlocks = options.expandBlocks ?? true;
+    // this.batchByColor = options.batchByColor ?? true;
+    // this.expandBlocks = options.expandBlocks ?? true;
     this.debugLogging = options.debugLogging ?? false;
   }
 
@@ -135,7 +133,7 @@ export class DWGDatabaseToBabylonConverter {
     this.log(`[DWG Database Converter] Processing ${entitiesMap.size} entities...`);
 
     // Process all entities in modelSpace (iterate Map)
-    for (const [id, entity] of entitiesMap) {
+    for (const [, entity] of entitiesMap) {
       if (entity) {
         await this.processEntity(entity, null);
       }
@@ -335,6 +333,7 @@ export class DWGDatabaseToBabylonConverter {
       // Use getPoint3dAt method (Ta2 LWPOLYLINE)
       let i = 0;
       try {
+        // eslint-disable-next-line no-constant-condition
         while (true) {
           const point = entity.getPoint3dAt(i);
           if (!point) break;
@@ -583,12 +582,13 @@ export class DWGDatabaseToBabylonConverter {
     }
 
     // Log first few hatches to understand structure
-    if (this.entityTypeStats.get('Pa2') <= 3) {
-      this.log(`[DWG Database Converter] HATCH #${this.entityTypeStats.get('Pa2')} entity:`, entity);
-      this.log(`[DWG Database Converter] HATCH #${this.entityTypeStats.get('Pa2')} entity._geo:`, entity._geo);
-      this.log(`[DWG Database Converter] HATCH #${this.entityTypeStats.get('Pa2')} keys:`, Object.keys(entity));
+    const hatchCount = this.entityTypeStats.get('Pa2') || 0;
+    if (hatchCount <= 3) {
+      this.log(`[DWG Database Converter] HATCH #${hatchCount} entity:`, entity);
+      this.log(`[DWG Database Converter] HATCH #${hatchCount} entity._geo:`, entity._geo);
+      this.log(`[DWG Database Converter] HATCH #${hatchCount} keys:`, Object.keys(entity));
       if (entity._geo) {
-        this.log(`[DWG Database Converter] HATCH #${this.entityTypeStats.get('Pa2')} _geo keys:`, Object.keys(entity._geo));
+        this.log(`[DWG Database Converter] HATCH #${hatchCount} _geo keys:`, Object.keys(entity._geo));
       }
     }
   }
@@ -633,12 +633,12 @@ export class DWGDatabaseToBabylonConverter {
     }
 
     // Get text location
-    let locationPoint = entity._location;
+    const locationPoint = entity._location;
     if (!locationPoint) {
       return; // Skip text without position
     }
 
-    let position = this.convertPoint(locationPoint, transform);
+    const position = this.convertPoint(locationPoint, transform);
 
     // Apply DWG Z-up to Babylon Y-up rotation (-90° around X)
     // This matches the root node rotation applied in DWGLoader
@@ -746,7 +746,7 @@ export class DWGDatabaseToBabylonConverter {
       this.log(`[DWG Database Converter] Expanding block "${blockName}" with ${blockEntities.size} entities`);
     }
 
-    for (const [id, blockEntity] of blockEntities) {
+    for (const [, blockEntity] of blockEntities) {
       if (blockEntity) {
         await this.processEntity(blockEntity, finalTransform);
       }

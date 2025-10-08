@@ -168,7 +168,7 @@ export class FloorMaterialManager {
   /**
    * Epoxy coated floor (smooth, reflective)
    */
-  private createEpoxyFloor(color: BABYLON.Color3, avgSize: number = GROUND_SIZE): BABYLON.PBRMetallicRoughnessMaterial {
+  private createEpoxyFloor(color: BABYLON.Color3, _avgSize: number = GROUND_SIZE): BABYLON.PBRMetallicRoughnessMaterial {
     const material = new BABYLON.PBRMetallicRoughnessMaterial(
       'floor-epoxy',
       this.scene
@@ -209,7 +209,7 @@ export class FloorMaterialManager {
   /**
    * Metal checker plate (diamond plate)
    */
-  private createMetalCheckerPlate(avgSize: number = GROUND_SIZE): BABYLON.PBRMetallicRoughnessMaterial {
+  private createMetalCheckerPlate(_avgSize: number = GROUND_SIZE): BABYLON.PBRMetallicRoughnessMaterial {
     const material = new BABYLON.PBRMetallicRoughnessMaterial(
       'floor-metal-checker',
       this.scene

@@ -4,7 +4,6 @@
 import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/core/Materials/standardMaterial';
 import '@babylonjs/materials/grid';
-import { GridMaterial } from '@babylonjs/materials/grid';
 import {
   GROUND_SIZE,
   CAMERA_MIN_RADIUS,
@@ -273,15 +272,17 @@ export class SceneManager {
    * @param depth Floor depth (Y-axis), optional - defaults to width for square floor
    */
   resizeFloor(width: number, depth?: number): void {
-    if (!this.ground || !this.scene) {
-      console.warn('Ground or scene not initialized');
+    if (!this.ground || !this.scene || !this.floorMaterialManager) {
+      console.warn('Ground, scene, or floor material manager not initialized');
       return;
     }
 
     const floorDepth = depth ?? width; // Default to square if depth not provided
 
     // Dispose old ground
-    this.ground.dispose();
+    if (this.ground) {
+      this.ground.dispose();
+    }
 
     // Create new ground with new size (width = X, height = Y in Babylon ground)
     this.ground = BABYLON.MeshBuilder.CreateGround(

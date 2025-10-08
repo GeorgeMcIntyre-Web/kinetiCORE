@@ -710,6 +710,7 @@ export class DWGToBabylonConverter {
   /**
    * Create INSERT block instance with full geometry
    */
+  // @ts-expect-error - Unused method kept for future implementation
   private createInsertInstance(
     entity: any,
     blockName: string,
@@ -751,6 +752,7 @@ export class DWGToBabylonConverter {
    * Create marker line data for missing INSERT block (for batching)
    * Returns array of line segments (cross pattern)
    */
+  // @ts-expect-error - Unused method kept for future implementation
   private createInsertMarkerData(entity: any): BABYLON.Vector3[][] {
     const markerSize = 0.2; // 200mm in meters
     const position = this.convertPoint(entity.insertionPoint);
@@ -793,9 +795,9 @@ export class DWGToBabylonConverter {
     }
 
     const scale = this.options.unitScale || 1;
-    let x = (point.x || 0) * scale;
-    let y = (point.y || 0) * scale;
-    let z = (point.z || 0) * scale;
+    const x = (point.x || 0) * scale;
+    const y = (point.y || 0) * scale;
+    const z = (point.z || 0) * scale;
 
     // DWG is typically Z-up already, but verify with actual data
     // If conversion needed, swap Y and Z
