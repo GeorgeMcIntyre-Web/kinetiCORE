@@ -207,6 +207,50 @@ export class TrajectoryOptimizer {
   }
 
   /**
+   * Sample trajectory velocity at a specific time
+   * @param trajectory - Trajectory to sample
+   * @param time - Time in seconds
+   * @returns Joint velocities or null if time is outside trajectory bounds
+   */
+  sampleVelocity(
+    trajectory: RobotTrajectory,
+    time: number
+  ): JointAngles | null {
+    for (const segment of trajectory.segments) {
+      const endTime = segment.startTime + segment.duration;
+
+      if (time >= segment.startTime && time <= endTime) {
+        const t = time - segment.startTime;
+        return segment.jointTrajectories.map(fn => fn(t).vel);
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Sample trajectory acceleration at a specific time
+   * @param trajectory - Trajectory to sample
+   * @param time - Time in seconds
+   * @returns Joint accelerations or null if time is outside trajectory bounds
+   */
+  sampleAcceleration(
+    trajectory: RobotTrajectory,
+    time: number
+  ): JointAngles | null {
+    for (const segment of trajectory.segments) {
+      const endTime = segment.startTime + segment.duration;
+
+      if (time >= segment.startTime && time <= endTime) {
+        const t = time - segment.startTime;
+        return segment.jointTrajectories.map(fn => fn(t).acc);
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Calculate total path length in Cartesian space
    */
   calculateCartesianLength(poses: RobotPose[]): number {
