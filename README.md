@@ -2,7 +2,7 @@
 
 **Web-based 3D Industrial Simulation and Kinematics Platform**
 
-A high-performance robot simulation platform built with React, TypeScript, Babylon.js, and Rapier physics.
+A high-performance robot simulation platform built with React, TypeScript, Babylon.js, and Rapier physics. Featuring DWG/DXF CAD import, URDF/MJCF robot support, kinematics simulation, and path planning.
 
 ---
 
@@ -20,44 +20,162 @@ npm run dev
 
 ---
 
+## ✨ Key Features
+
+### 🤖 **Robot Kinematics**
+- URDF/MJCF robot model import and export
+- Forward and inverse kinematics (IK) solvers
+- Joint control and actuator simulation
+- Multi-robot coordination
+
+### 📐 **CAD File Support**
+- **DWG import** - AutoCAD files via LibreDWG (R13-R2021)
+  - LINE, POLYLINE, CIRCLE, ARC, ELLIPSE, SPLINE
+  - INSERT block references with transformations
+  - TEXT rendering with MSDF fonts
+  - Automatic layer-based batching for performance
+- **DXF import** - 2D CAD drawings
+- **JT import** - Siemens JT CAD format (via PyOpenJt bridge)
+- **GLTF/STL/OBJ** - Standard 3D mesh formats
+
+### 🎯 **Path Planning**
+- RRT-Connect bidirectional path planner
+- Spot welding path optimization
+- Multi-robot task coordination
+- Trajectory optimization
+
+### 🎨 **3D Scene**
+- WebGPU rendering (fallback to WebGL2)
+- Orthographic and perspective cameras
+- Multiple floor materials (grid, concrete, epoxy)
+- Real-time physics simulation
+- Boolean operations (CSG2/Manifold)
+
+### 📚 **Asset Library**
+- Hierarchical asset browser
+- Quick access to robots, tools, and models
+- Drag-and-drop scene insertion
+- Custom asset import
+
+### 🎛️ **User Interface**
+- Expert mode with dockable panels
+- Transform gizmos (move, rotate, scale)
+- Object hierarchy tree
+- Properties inspector
+- Keyboard shortcuts
+- Command palette
+
+---
+
 ## 📁 Project Structure
 
 ```
 kinetiCORE/
 ├── src/
+│   ├── __tests__/          # Unit tests
+│   │
+│   ├── config/             # Configuration files
+│   │   └── panelConfig.ts  # Panel layout configurations
+│   │
 │   ├── core/               # Core types and constants (George)
 │   │   ├── types.ts        # Shared TypeScript interfaces
 │   │   └── constants.ts    # Application constants
 │   │
-│   ├── physics/            # Physics abstraction layer (George)
-│   │   ├── IPhysicsEngine.ts        # Physics interface (DO NOT import Rapier elsewhere!)
-│   │   └── RapierPhysicsEngine.ts   # Rapier implementation
-│   │
-│   ├── scene/              # Babylon.js scene management (Cole)
-│   │   └── SceneManager.ts # Scene, camera, lighting setup
+│   ├── dxf/                # DXF CAD file loader (George)
+│   │   ├── DXFParser.ts    # DXF file parsing
+│   │   └── DXFLoader.ts    # DXF to Babylon converter
 │   │
 │   ├── entities/           # Entity system (Cole)
 │   │   ├── SceneEntity.ts      # Unified mesh + physics object
 │   │   ├── EntityRegistry.ts   # Central entity manager
 │   │   └── index.ts            # Entity exports
 │   │
-│   ├── manipulation/       # Transform gizmos (Cole + Edwin)
-│   │   ├── TransformGizmo.ts   # Move/rotate/scale tools
-│   │   └── index.ts
-│   │
 │   ├── history/            # Command pattern for undo/redo (Edwin)
 │   │   ├── Command.ts          # ICommand interface
 │   │   └── CommandManager.ts   # Command history manager
 │   │
+│   ├── kinematics/         # Robot kinematics system (George)
+│   │   ├── device/                  # Unified device definitions
+│   │   │   └── UnifiedDeviceDefinition.ts
+│   │   ├── exporters/               # URDF/MJCF exporters
+│   │   │   ├── URDFExporter.ts      # Export to ROS URDF
+│   │   │   └── MJCFExporter.ts      # Export to MuJoCo MJCF
+│   │   ├── actuation/               # Actuator control
+│   │   │   ├── ActuatorSystem.ts    # Actuator management
+│   │   │   └── ActuatorLibrary.ts   # Hardware actuator database
+│   │   ├── solvers/                 # IK/FK solvers
+│   │   │   ├── ForwardKinematics.ts
+│   │   │   ├── InverseKinematics.ts
+│   │   │   └── JacobianIK.ts
+│   │   ├── KinematicsManager.ts     # Main kinematics orchestrator
+│   │   └── KinematicChain.ts        # Kinematic chain representation
+│   │
+│   ├── library/            # Asset library system (George)
+│   │   ├── LibraryManager.ts    # Asset database manager
+│   │   ├── AssetLoader.ts       # Multi-format asset loader
+│   │   └── types.ts             # Library type definitions
+│   │
+│   ├── loaders/            # File format loaders (George)
+│   │   ├── dwg/                     # AutoCAD DWG loader
+│   │   │   ├── DWGLoader.ts         # Main DWG loader
+│   │   │   ├── DWGDatabaseParser.ts # LibreDWG database parser
+│   │   │   ├── DWGDatabaseToBabylonConverter.ts
+│   │   │   ├── DWGTextRenderer.ts   # MSDF text rendering
+│   │   │   ├── errors.ts            # DWG error types
+│   │   │   └── types.ts             # DWG type definitions
+│   │   ├── jt/                      # Siemens JT loader
+│   │   │   ├── JTLoader.ts          # JT file loader
+│   │   │   └── JTParserBridge.ts    # Python bridge
+│   │   ├── urdf/                    # URDF robot loader
+│   │   │   └── URDFLoaderWithMeshes.ts
+│   │   └── gltf/                    # GLTF loader utilities
+│   │
+│   ├── manipulation/       # Transform gizmos (Cole + Edwin)
+│   │   ├── TransformGizmo.ts   # Move/rotate/scale tools
+│   │   └── index.ts
+│   │
+│   ├── pathPlanning/       # Path planning algorithms (George)
+│   │   ├── RRTConnectPlanner.ts     # RRT-Connect algorithm
+│   │   ├── SpotWeldingPlanner.ts    # Welding path optimizer
+│   │   ├── MultiRobotCoordinator.ts # Multi-robot scheduling
+│   │   ├── TrajectoryOptimizer.ts   # Trajectory smoothing
+│   │   ├── ViaPointGenerator.ts     # Via point generation
+│   │   ├── ConfigurationSampler.ts  # C-space sampling
+│   │   ├── RRTTree.ts               # RRT tree structure
+│   │   └── types.ts                 # Path planning types
+│   │
+│   ├── physics/            # Physics abstraction layer (George)
+│   │   ├── IPhysicsEngine.ts        # Physics interface (DO NOT import Rapier elsewhere!)
+│   │   └── RapierPhysicsEngine.ts   # Rapier implementation
+│   │
+│   ├── scene/              # Babylon.js scene management (Cole)
+│   │   ├── SceneManager.ts          # Scene, camera, lighting setup
+│   │   ├── FloorMaterialManager.ts  # Floor material system
+│   │   ├── BooleanOperations.ts     # CSG2 Boolean operations
+│   │   ├── SceneTreeNode.ts         # Scene hierarchy
+│   │   └── CoordinateSystem.ts      # Z-up coordinate handling
+│   │
 │   ├── ui/                 # React components (Edwin)
 │   │   ├── components/
-│   │   │   ├── SceneCanvas.tsx  # Babylon.js canvas wrapper
-│   │   │   ├── Toolbar.tsx      # Top toolbar
-│   │   │   ├── Inspector.tsx    # Right panel properties
-│   │   │   ├── Toolbar.css
-│   │   │   └── Inspector.css
-│   │   └── store/
-│   │       └── editorStore.ts   # Zustand state management
+│   │   │   ├── SceneCanvas.tsx           # Babylon.js canvas wrapper
+│   │   │   ├── Toolbar.tsx               # Top toolbar
+│   │   │   ├── Inspector.tsx             # Properties panel
+│   │   │   ├── ObjectHierarchy.tsx       # Scene tree view
+│   │   │   ├── KinematicsPanel.tsx       # Robot control
+│   │   │   ├── ActuatorControlPanel.tsx  # Actuator UI
+│   │   │   ├── CameraViewControls.tsx    # Camera presets
+│   │   │   ├── ContextMenu.tsx           # Right-click menu
+│   │   │   ├── AssetLibrary/             # Asset browser
+│   │   │   │   ├── AssetLibraryPanel.tsx
+│   │   │   │   └── AssetCard.tsx
+│   │   │   └── ...
+│   │   ├── store/
+│   │   │   └── editorStore.ts       # Zustand state management
+│   │   ├── layouts/
+│   │   │   ├── ExpertModeLayout.tsx # Dockable panel layout
+│   │   │   └── PanelRegistry.tsx    # Panel configuration
+│   │   └── core/
+│   │       └── UserLevelContext.tsx # User mode management
 │   │
 │   ├── utils/              # Shared utilities
 │   │   └── math.ts         # Math helper functions
@@ -68,7 +186,16 @@ kinetiCORE/
 │   └── index.css
 │
 ├── public/                 # Static assets
+│   ├── wasm/              # WASM modules (LibreDWG)
+│   └── fonts/             # MSDF font atlases
+│
 ├── docs/                   # Documentation
+│   ├── architecture.md
+│   ├── team_roadmap_3person_ai.md
+│   └── COORDINATE_SYSTEM.md
+│
+├── scripts/                # Build and utility scripts
+│   └── readDwg.ts         # DWG file inspector
 │
 ├── .eslintrc.cjs          # ESLint configuration
 ├── .prettierrc            # Prettier configuration
@@ -84,9 +211,13 @@ kinetiCORE/
 
 ## 👥 Team & Ownership
 
-- **George:** Physics abstraction, core architecture
+- **George:** Physics abstraction, core architecture, file loaders
   - `src/core/` - Core types and constants
   - `src/physics/` - Physics abstraction layer
+  - `src/kinematics/` - Robot kinematics system
+  - `src/loaders/` - DWG, DXF, JT, URDF loaders
+  - `src/pathPlanning/` - Path planning algorithms
+  - `src/library/` - Asset management
 
 - **Cole:** 3D rendering and scene management
   - `src/scene/` - Babylon.js setup
@@ -101,12 +232,19 @@ kinetiCORE/
 **⚠️ Shared files** (announce in Slack before editing):
 - `src/core/types.ts`
 - `package.json`
+- `CLAUDE.md`
 
 ---
 
 ## 🏗️ Architecture Principles
 
-### 1. **Physics Abstraction Layer**
+### 1. **Z-up Coordinate System**
+- kinetiCORE uses **Z-up** (CAD/ROS standard) throughout
+- See `docs/COORDINATE_SYSTEM.md` for details
+- **When adding loaders:** Load geometry as-is, NO coordinate conversion
+- **Unit conversion only:** Use `CoordinateSystem.ts` for mm ↔ m
+
+### 2. **Physics Abstraction Layer**
 - ✅ **Always** use `IPhysicsEngine` interface
 - ❌ **Never** import Rapier directly outside `RapierPhysicsEngine.ts`
 
@@ -118,7 +256,7 @@ import { IPhysicsEngine } from '@physics/IPhysicsEngine';
 import RAPIER from '@dimforge/rapier3d-compat';
 ```
 
-### 2. **Scene Entities**
+### 3. **Scene Entities**
 - Unified objects that sync Babylon meshes ↔ Rapier bodies automatically
 - Created via `EntityRegistry.create()`
 
@@ -136,7 +274,7 @@ const entity = EntityRegistry.getInstance().create({
 });
 ```
 
-### 3. **Command Pattern**
+### 4. **Command Pattern**
 - All user actions wrapped in commands (enables undo/redo)
 
 ```typescript
@@ -144,7 +282,7 @@ const command = new MoveCommand(entity, oldPos, newPos);
 commandManager.execute(command);
 ```
 
-### 4. **Separate State Layers**
+### 5. **Separate State Layers**
 - React state (Zustand) is independent from 3D scene state
 - Never `setState` in animation loops - use refs
 
@@ -161,11 +299,11 @@ const selected = useEditorStore.getState().selectedMeshes;
 ## 🛠️ Available Scripts
 
 ```bash
-npm run dev          # Start development server
+npm run dev          # Start development server (Vite)
 npm run build        # Build for production
 npm run preview      # Preview production build
 npm run lint         # Lint TypeScript files
-npm run lint:fix     # Fix linting issues
+npm run lint:fix     # Auto-fix linting issues
 npm run type-check   # TypeScript type checking
 npm run test         # Run unit tests
 npm run test:coverage # Run tests with coverage
@@ -220,8 +358,11 @@ docs: documentation changes
 |---------|---------|
 | `@babylonjs/core` | 3D rendering engine |
 | `@dimforge/rapier3d-compat` | Physics simulation |
+| `@mlightcad/libredwg-web` | DWG file parsing (WASM) |
+| `@mlightcad/libredwg-converter` | DWG to database converter |
 | `react` + `react-dom` | UI framework |
 | `zustand` | State management |
+| `rc-dock` | Dockable panel system |
 | `vite` | Build tool |
 | `typescript` | Type safety |
 
@@ -240,11 +381,59 @@ docs: documentation changes
 import { IPhysicsEngine } from '@physics/IPhysicsEngine';
 import { SceneEntity } from '@entities/SceneEntity';
 import { useEditorStore } from '@ui/store/editorStore';
+import { KinematicsManager } from '@kinematics/KinematicsManager';
+import { loadDWGFromFile } from '@loaders/dwg/DWGLoader';
 ```
 
 ---
 
 ## 🎯 Core Concepts
+
+### DWG Loading
+Load AutoCAD files with full block support and TEXT rendering.
+
+```typescript
+import { loadDWGFromFile } from '@loaders/dwg/DWGLoader';
+
+const result = await loadDWGFromFile(file, scene, {
+  unitScale: 0.001, // mm to meters
+  onProgress: (progress) => {
+    console.log(`${progress.message} (${progress.percent}%)`);
+  }
+});
+```
+
+### Robot Kinematics
+Manage robot models with forward/inverse kinematics.
+
+```typescript
+import { KinematicsManager } from '@kinematics/KinematicsManager';
+
+const kinematicsManager = new KinematicsManager(scene);
+const chainId = await kinematicsManager.loadURDF(urdfFile);
+
+// Set joint angles (FK)
+kinematicsManager.updateJointAngles(chainId, new Map([
+  ['joint_1', Math.PI / 4],
+  ['joint_2', Math.PI / 2]
+]));
+
+// Solve for target position (IK)
+const solution = kinematicsManager.solveIK(chainId, targetPosition);
+```
+
+### Asset Library
+Organize and load assets from hierarchical library.
+
+```typescript
+import { LibraryManager } from '@library/LibraryManager';
+
+const libraryManager = LibraryManager.getInstance();
+await libraryManager.initialize();
+
+const assets = libraryManager.getAssetsByCategory('robots');
+const robot = await libraryManager.loadAsset(assets[0], scene);
+```
 
 ### SceneEntity
 Represents a unified 3D object with synchronized mesh and physics body.
@@ -253,16 +442,6 @@ Represents a unified 3D object with synchronized mesh and physics body.
 entity.syncFromPhysics();  // Update mesh from physics (in render loop)
 entity.syncToPhysics();     // Update physics from mesh (after user input)
 entity.setTransform({ position: {x: 0, y: 5, z: 0} });
-```
-
-### EntityRegistry
-Central manager for all scene entities (singleton).
-
-```typescript
-const registry = EntityRegistry.getInstance();
-registry.setPhysicsEngine(physicsEngine);
-const entity = registry.create(config);
-registry.syncAllFromPhysics(); // Call in render loop
 ```
 
 ### TransformGizmo
@@ -279,9 +458,10 @@ gizmo.attachToMesh(selectedMesh);
 ## 🚧 Known Issues & Gotchas
 
 1. **Coordinate Systems**
-   - Babylon.js: Left-handed Y-up
-   - Rapier: Right-handed Y-up
-   - ⚠️ Conversion handled in `RapierAdapter` - negate Z
+   - kinetiCORE uses **Z-up** (CAD/ROS standard) throughout
+   - See `docs/COORDINATE_SYSTEM.md` for full details
+   - **When adding loaders:** Load geometry as-is, NO coordinate conversion
+   - **Unit conversion only:** Use `CoordinateSystem.ts` for mm ↔ m
 
 2. **Disposal Order**
    - ✅ Always dispose physics bodies BEFORE Babylon meshes
@@ -292,14 +472,21 @@ gizmo.attachToMesh(selectedMesh);
 4. **localStorage**
    - Not supported in artifacts - use in-memory state only
 
+5. **DWG Performance**
+   - Large files (>1M entities) may take 30-60s to parse
+   - LibreDWG WASM parsing is CPU-intensive
+   - Consider pre-filtering layers or entity types
+
 ---
 
 ## 📚 Documentation
 
 - **CLAUDE.md** - Full project context for AI tools
+- **COORDINATE_SYSTEM.md** - Coordinate system standard
 - **Babylon.js Docs:** https://doc.babylonjs.com
 - **Rapier Docs:** https://rapier.rs/docs/
 - **Zustand Docs:** https://docs.pmnd.rs/zustand/
+- **LibreDWG:** https://www.gnu.org/software/libredwg/
 
 ---
 
@@ -328,26 +515,48 @@ npm run lint:fix
 - Check `EntityRegistry.setPhysicsEngine()` was called
 - Verify physics is initialized with `await physicsEngine.initialize()`
 
+### DWG import fails
+- Check WASM files in `public/wasm/`
+- Verify LibreDWG version compatibility (supports R13-R2021)
+- Check browser console for detailed error messages
+
 ### Gizmo not appearing
 - Ensure mesh is selected in `editorStore`
 - Call `gizmo.attachToMesh(mesh)`
+
+### WebGPU not working
+- Check browser compatibility (Chrome 113+, Edge 113+)
+- Fallback to WebGL2 is automatic
+- Set `localStorage.setItem('preferWebGPU', 'false')` to force WebGL2
 
 ---
 
 ## 📊 Project Status
 
-**Week 1: Foundation** ✅
+**Current Features** ✅
 - ✅ Physics abstraction layer functional
-- ✅ Babylon scene rendering
-- ✅ React UI shell with state
+- ✅ Babylon scene rendering (WebGPU + WebGL2)
+- ✅ React UI with dockable panels
 - ✅ Entity system implemented
-- ✅ All modules structured and building
+- ✅ DWG/DXF CAD file import
+- ✅ URDF robot loading
+- ✅ Kinematics system (FK/IK)
+- ✅ Asset library browser
+- ✅ Transform gizmos
+- ✅ Command pattern (undo/redo)
+- ✅ Path planning (RRT-Connect)
 
-**Next Steps:**
-- Integration of physics + entities + UI
-- Object creation from toolbar
-- Transform gizmo integration
-- Command pattern implementation
+**In Progress** 🚧
+- 🚧 Multi-robot coordination
+- 🚧 Spot welding planner
+- 🚧 MJCF export improvements
+- 🚧 JT loader refinement
+
+**Planned** 📋
+- 📋 Collision detection visualization
+- 📋 Trajectory playback
+- 📋 Physics simulation control
+- 📋 Advanced IK solvers
 
 ---
 
