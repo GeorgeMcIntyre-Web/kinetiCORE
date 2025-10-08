@@ -130,18 +130,15 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
 
     const rigidBody = this.bodies.get(handle);
     if (rigidBody) {
-      // Remove all colliders first to avoid Rapier's "recursive use" error
-      const colliderSet = this.colliders.get(handle);
-      if (colliderSet) {
-        // Convert Set to Array for iteration
-        const collidersArray = Array.from(colliderSet);
-        for (const collider of collidersArray) {
-          try {
-            this.world.removeCollider(collider, false); // false = don't wake up bodies
-          } catch (e) {
-            // Ignore errors during cleanup
-            console.warn('Error removing collider:', e);
-          }
+      // Remove collider first to avoid Rapier's "recursive use" error
+      // Note: this.colliders is Map<string, Collider> (one collider per handle)
+      const collider = this.colliders.get(handle);
+      if (collider) {
+        try {
+          this.world.removeCollider(collider, false); // false = don't wake up bodies
+        } catch (e) {
+          // Ignore errors during cleanup
+          console.warn('Error removing collider:', e);
         }
         this.colliders.delete(handle);
       }

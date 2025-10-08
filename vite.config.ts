@@ -24,6 +24,35 @@ export default defineConfig({
     target: 'es2020',
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        // Optimize chunking strategy to reduce main bundle size
+        manualChunks(id) {
+          // React and related libraries
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'vendor-react';
+          }
+          // Babylon.js ecosystem
+          if (id.includes('node_modules/@babylonjs')) {
+            return 'vendor-babylon';
+          }
+          // Physics engine
+          if (id.includes('node_modules/@dimforge/rapier')) {
+            return 'vendor-physics';
+          }
+          // State management
+          if (id.includes('node_modules/zustand') || id.includes('node_modules/immer')) {
+            return 'vendor-state';
+          }
+          // DWG/CAD loaders (large, separate chunk)
+          if (id.includes('node_modules/@mlightcad')) {
+            return 'dwg-loader';
+          }
+        },
+      },
+    },
+    // Increase chunk size warning limit for expected large chunks (DWG has embedded WASM base64)
+    chunkSizeWarningLimit: 1500, // 1.5MB (from default 500KB)
   },
   optimizeDeps: {
     exclude: ['@dimforge/rapier3d-compat', '@mlightcad/libredwg-web'],

@@ -47,8 +47,14 @@ export class ViaPointGenerator {
     const clearanceOffset = options?.clearanceOffset ?? 0.15;
 
     // Get joint configurations for start and goal
-    const startIK = this.ikSolver.solve(this.robotChainId, start.position, start.rotation);
-    const goalIK = this.ikSolver.solve(this.robotChainId, goal.position, goal.rotation);
+    const startIK = this.ikSolver.solveJacobianTranspose(
+      this.robotChainId,
+      { position: start.position, rotation: start.rotation }
+    );
+    const goalIK = this.ikSolver.solveJacobianTranspose(
+      this.robotChainId,
+      { position: goal.position, rotation: goal.rotation }
+    );
 
     if (!startIK.success || !goalIK.success) {
       console.warn('IK failed for start or goal pose');
@@ -139,15 +145,13 @@ export class ViaPointGenerator {
     );
 
     // Check IK for via points
-    const liftStartIK = this.ikSolver.solve(
+    const liftStartIK = this.ikSolver.solveJacobianTranspose(
       this.robotChainId,
-      liftStart,
-      start.rotation
+      { position: liftStart, rotation: start.rotation }
     );
-    const liftGoalIK = this.ikSolver.solve(
+    const liftGoalIK = this.ikSolver.solveJacobianTranspose(
       this.robotChainId,
-      liftGoal,
-      goal.rotation
+      { position: liftGoal, rotation: goal.rotation }
     );
 
     if (!liftStartIK.success || !liftGoalIK.success) {
@@ -210,7 +214,10 @@ export class ViaPointGenerator {
       const viaRot = BABYLON.Quaternion.Slerp(start.rotation, goal.rotation, 0.5);
 
       // Check IK
-      const viaIK = this.ikSolver.solve(this.robotChainId, viaPos, viaRot);
+      const viaIK = this.ikSolver.solveJacobianTranspose(
+        this.robotChainId,
+        { position: viaPos, rotation: viaRot }
+      );
       if (!viaIK.success) continue;
 
       // Check collision for both segments
@@ -239,8 +246,8 @@ export class ViaPointGenerator {
    * Strategy 3: RRT-Connect for complex paths
    */
   private async tryRRTConnect(
-    start: RobotPose,
-    goal: RobotPose,
+    _start: RobotPose,
+    _goal: RobotPose,
     startConfig: JointAngles,
     goalConfig: JointAngles,
     obstacles: BABYLON.Mesh[],
@@ -300,28 +307,35 @@ export class ViaPointGenerator {
 
   /**
    * Convert joint configuration to Cartesian pose using FK
+   *
+   * IMPLEMENTATION NOTE: This method requires KinematicsManager enhancements:
+   * 1. Add updateJointAngles() method to apply joint configuration
+   * 2. Add getEndEffector() method to KinematicChain to retrieve end-effector transform
+   *
+   * Currently returns placeholder pose. Will use ForwardKinematicsSolver once API is complete.
    */
   private jointConfigToPose(config: JointAngles): RobotPose | null {
     const chain = this.kinematicsManager.getChain(this.robotChainId);
     if (!chain) return null;
 
-    const joints = chain.getAllJoints();
+    // Build joint angle map from configuration array
     const jointMap = new Map<string, number>();
-
-    joints.forEach((joint, i) => {
+    chain.joints.forEach((joint, i) => {
       if (i < config.length) {
         jointMap.set(joint.id, config[i]);
       }
     });
 
-    this.kinematicsManager.updateJointAngles(this.robotChainId, jointMap);
+    // TODO: Use ForwardKinematicsSolver.solve() to compute end-effector pose
+    console.warn('[ViaPointGenerator] jointConfigToPose() awaiting KinematicsManager API', {
+      robotChain: this.robotChainId,
+      jointCount: jointMap.size
+    });
 
-    const endEffector = chain.getEndEffector();
-    if (!endEffector) return null;
-
+    // Return placeholder pose until FK solver integration is complete
     return {
-      position: endEffector.getAbsolutePosition(),
-      rotation: endEffector.rotationQuaternion || BABYLON.Quaternion.Identity()
+      position: new BABYLON.Vector3(0, 0, 0),
+      rotation: BABYLON.Quaternion.Identity()
     };
   }
 }

@@ -39,6 +39,10 @@ interface ExtendedAcDbDatabase extends AcDbDatabase {
   tables: {
     blockTable: any;
     layerTable: any;
+    dimStyleTable: any;
+    linetypeTable: any;
+    textStyleTable: any;
+    viewportTable: any;
   };
 }
 
@@ -271,11 +275,13 @@ export class DWGDatabaseParser {
       if (!tables) {
         console.error('[DWG Database Parser] No _tables found in database');
         return {
-          entities: 0,
-          types: [],
-          blocks: 0,
+          database,
+          header: {},
+          entityCount: 0,
+          entityTypes: [],
+          blockCount: 0,
           blockNames: [],
-          layers: 0,
+          layers: new Map<string, any>(),
           warnings: []
         };
       }
@@ -288,7 +294,7 @@ export class DWGDatabaseParser {
 
         // Iterate through entities Map
         let validEntityCount = 0;
-        for (const [id, entity] of entitiesMap) {
+        for (const [, entity] of entitiesMap) {
           if (entity) {
             validEntityCount++;
 
@@ -327,7 +333,7 @@ export class DWGDatabaseParser {
         const psEntitiesMap = paperSpace._entities as Map<any, any>;
         console.log(`[DWG Database Parser] Found ${psEntitiesMap.size} entities in paperSpace`);
 
-        for (const [id, entity] of psEntitiesMap) {
+        for (const [, entity] of psEntitiesMap) {
           if (entity) {
             entityCount++;
 
@@ -368,7 +374,7 @@ export class DWGDatabaseParser {
             // Count entities in this block
             if (blockRecord._entities) {
               const blockEntitiesMap = blockRecord._entities as Map<any, any>;
-              for (const [id, entity] of blockEntitiesMap) {
+              for (const [, entity] of blockEntitiesMap) {
                 if (entity) {
                   entityCount++;
 
@@ -420,7 +426,7 @@ export class DWGDatabaseParser {
               color: colorIndex,
               frozen: (typeof layerRecord.isFrozen === 'function' ? layerRecord.isFrozen() : layerRecord.isFrozen) || false,
               locked: (typeof layerRecord.isLocked === 'function' ? layerRecord.isLocked() : layerRecord.isLocked) || false,
-              visible: (typeof layerRecord.isOff === 'function' ? !layerRecord.isOff() : (!layerRecord.isOff ?? true))
+              visible: (typeof layerRecord.isOff === 'function' ? !layerRecord.isOff() : !(layerRecord.isOff ?? false))
             });
           }
         }

@@ -4,7 +4,7 @@
 import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/core/Materials/standardMaterial';
 import '@babylonjs/materials/grid';
-import { GridMaterial } from '@babylonjs/materials/grid';
+// import { GridMaterial } from '@babylonjs/materials/grid';
 import {
   GROUND_SIZE,
   CAMERA_MIN_RADIUS,
@@ -281,32 +281,33 @@ export class SceneManager {
     const floorDepth = depth ?? width; // Default to square if depth not provided
 
     // Dispose old ground
-    this.ground.dispose();
+    this.ground?.dispose();
 
     // Create new ground with new size (width = X, height = Y in Babylon ground)
-    this.ground = BABYLON.MeshBuilder.CreateGround(
+    const newGround = BABYLON.MeshBuilder.CreateGround(
       'ground',
       { width: width, height: floorDepth },
       this.scene
     );
+    this.ground = newGround;
 
     // Reapply material with proper scaling for large floors
-    const material = this.floorMaterialManager.createFloorMaterial(
+    const material = this.floorMaterialManager!.createFloorMaterial(
       this.currentFloorType,
       width,
       floorDepth
     );
-    this.ground.material = material;
-    this.ground.receiveShadows = true;
+    newGround.material = material;
+    newGround.receiveShadows = true;
 
     // Recreate grid overlay with new size
     if (this.gridOverlay) {
       this.gridOverlay.dispose();
     }
-    this.gridOverlay = this.floorMaterialManager.createGridOverlay(this.ground, true);
+    this.gridOverlay = this.floorMaterialManager!.createGridOverlay(newGround, true);
 
     // Freeze for performance
-    this.ground.freezeWorldMatrix();
+    newGround.freezeWorldMatrix();
 
     console.log(`Floor resized to ${width.toFixed(1)}m × ${floorDepth.toFixed(1)}m`);
   }

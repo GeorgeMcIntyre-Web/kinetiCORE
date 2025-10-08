@@ -1,6 +1,6 @@
 /**
  * URDF Exporter
- * Export kinematic devices to URDF format with coordinate conversion
+ * Export kinematic devices to URDF format (ROS standard)
  * Includes ZIP packaging with meshes
  */
 
@@ -10,7 +10,9 @@ import {
   Joint,
   Link,
 } from '../device/UnifiedDeviceDefinition';
-import { babylonToUser } from '../../core/CoordinateSystem';
+
+// Note: Frame data is already in user space (Z-up, mm), so no coordinate conversion needed.
+// URDF also uses Z-up convention (ROS standard), we only need unit conversion (mm → m).
 
 export interface URDFExportResult {
   success: boolean;
@@ -128,9 +130,9 @@ export class URDFExporter {
     xml += `    <parent link="${parentLink.name}"/>\n`;
     xml += `    <child link="${childLink.name}"/>\n`;
 
-    // Convert origin from Babylon (Y-up, m) to URDF (Z-up, m)
-    const userFrame = babylonToUser(joint.parentFrame);
-    const pos = userFrame.origin;
+    // Convert origin from user space (Z-up, mm) to URDF (Z-up, m)
+    // Frame is already in user space (Z-up, mm), just convert units
+    const pos = joint.parentFrame.origin;
     const posM = { x: pos.x * 0.001, y: pos.y * 0.001, z: pos.z * 0.001 }; // mm to m
 
     // For rotation, URDF uses RPY (roll-pitch-yaw)
@@ -139,7 +141,7 @@ export class URDFExporter {
 
     // Joint axis (only for revolute/prismatic)
     if (joint.type === 'revolute' || joint.type === 'prismatic') {
-      const axis = userFrame.zAxis;
+      const axis = joint.parentFrame.zAxis;
       xml += `    <axis xyz="${axis.x} ${axis.y} ${axis.z}"/>\n`;
 
       // Limits

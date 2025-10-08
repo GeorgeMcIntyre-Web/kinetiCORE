@@ -11,7 +11,9 @@ import {
   Joint,
   Link,
 } from '../device/UnifiedDeviceDefinition';
-import { babylonToUser } from '../../core/CoordinateSystem';
+
+// Note: Frame data is already in user space (Z-up, mm), so no coordinate conversion needed.
+// MJCF also uses Z-up convention, we only need unit conversion (mm → m).
 
 export interface MJCFExportResult {
   success: boolean;
@@ -129,8 +131,8 @@ export class MJCFExporter {
       if (!childLink) continue;
 
       // Convert joint position from Babylon (Y-up, m) to MJCF (Z-up, m)
-      const userFrame = babylonToUser(joint.parentFrame);
-      const pos = userFrame.origin;
+      // Frame is already in user space (Z-up, mm), just convert units
+      const pos = joint.parentFrame.origin;
       const posM = { x: pos.x * 0.001, y: pos.y * 0.001, z: pos.z * 0.001 }; // mm to m
 
       xml += `${ind}<body name="${childLink.name}" pos="${posM.x} ${posM.y} ${posM.z}">\n`;
@@ -160,9 +162,8 @@ export class MJCFExporter {
     const type = joint.type === 'revolute' ? 'hinge' :
                  joint.type === 'prismatic' ? 'slide' : 'fixed';
 
-    // Convert axis from Babylon to user space
-    const userFrame = babylonToUser(joint.parentFrame);
-    const axis = `${userFrame.zAxis.x} ${userFrame.zAxis.y} ${userFrame.zAxis.z}`;
+    // Frame is already in user space (Z-up)
+    const axis = `${joint.parentFrame.zAxis.x} ${joint.parentFrame.zAxis.y} ${joint.parentFrame.zAxis.z}`;
     const range = `${joint.limits.min} ${joint.limits.max}`;
 
     xml += `${ind}<joint name="${joint.name}" type="${type}"`;
