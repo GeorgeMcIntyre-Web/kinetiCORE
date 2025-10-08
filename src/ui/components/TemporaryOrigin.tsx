@@ -3,7 +3,7 @@
 // Allows setting a temporary reference point for relative positioning
 
 import { useEffect } from 'react';
-import { Target, XCircle } from 'lucide-react';
+import { Target, XCircle, MousePointer, Home } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
@@ -118,29 +118,28 @@ export const TemporaryOrigin: React.FC = () => {
   return (
     <div className="temporary-origin-panel">
       <div className="temp-origin-header">
-        <Target size={16} />
-        <span>Temporary Origin</span>
+        <Target size={10} />
+        <span>Origin</span>
       </div>
 
       {temporaryOrigin ? (
         <div className="temp-origin-active">
           <div className="temp-origin-coords">
             <div className="coord-display">
-              <span className="coord-label">X:</span>
-              <span className="coord-value">{temporaryOrigin.x.toFixed(1)} mm</span>
+              <span className="coord-label">X</span>
+              <span className="coord-value">{temporaryOrigin.x.toFixed(0)}</span>
             </div>
             <div className="coord-display">
-              <span className="coord-label">Y:</span>
-              <span className="coord-value">{temporaryOrigin.y.toFixed(1)} mm</span>
+              <span className="coord-label">Y</span>
+              <span className="coord-value">{temporaryOrigin.y.toFixed(0)}</span>
             </div>
             <div className="coord-display">
-              <span className="coord-label">Z:</span>
-              <span className="coord-value">{temporaryOrigin.z.toFixed(1)} mm</span>
+              <span className="coord-label">Z</span>
+              <span className="coord-value">{temporaryOrigin.z.toFixed(0)}</span>
             </div>
           </div>
-          <button className="clear-origin-btn" onClick={clearTemporaryOrigin}>
-            <XCircle size={14} />
-            Clear Origin
+          <button className="clear-origin-btn" onClick={clearTemporaryOrigin} title="Clear Origin">
+            <XCircle size={8} />
           </button>
         </div>
       ) : (
@@ -149,32 +148,27 @@ export const TemporaryOrigin: React.FC = () => {
             className="origin-option-btn"
             onClick={handleSetOriginFromSelection}
             disabled={!selectedNodeId}
+            title="From Selection"
           >
-            <Target size={14} />
-            From Selection
+            <Target size={10} />
           </button>
-          <button className="origin-option-btn" onClick={handleSetOriginAtWorldZero}>
-            <Target size={14} />
-            World Zero
+          <button
+            className="origin-option-btn"
+            onClick={handleSetOriginAtWorldZero}
+            title="World Zero"
+          >
+            <Home size={10} />
           </button>
           <button
             className="origin-option-btn"
             onClick={handleSetOriginFromSnap}
             disabled={!snapEnabled}
+            title="Snap To Point"
           >
-            <Target size={14} />
-            Snap To Point
+            <MousePointer size={10} />
           </button>
         </div>
       )}
-
-      <div className="temp-origin-help">
-        {!selectedNodeId ? (
-          <p>Select an object to use "From Selection"</p>
-        ) : (
-          <p>Set a temporary reference point for relative transforms</p>
-        )}
-      </div>
     </div>
   );
 };

@@ -95,15 +95,16 @@
 .temp-origin-options {
   padding: 4px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 2px;
+  justify-content: space-between;
 }
 
 .origin-option-btn {
   display: flex;
   align-items: center;
-  gap: 3px;
-  padding: 2px 4px;
+  justify-content: center;
+  padding: 4px;
   background: rgba(249, 115, 22, 0.1);
   border: 1px solid rgba(249, 115, 22, 0.3);
   border-radius: 2px;
@@ -112,6 +113,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  flex: 1;
 }
 
 .origin-option-btn:hover:not(:disabled) {
@@ -126,19 +128,6 @@
 
 .origin-option-btn svg {
   color: #f97316;
-  width: 8px;
-  height: 8px;
-}
-
-.temp-origin-help {
-  padding: 3px 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.temp-origin-help p {
-  font-size: 7px;
-  color: rgba(255, 255, 255, 0.5);
-  margin: 0;
-  line-height: 1.2;
+  width: 10px;
+  height: 10px;
 }

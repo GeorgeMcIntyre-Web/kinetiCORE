@@ -3,7 +3,7 @@
 // Provides UI controls for transform increments and snapping configuration
 
 import { useState } from 'react';
-import { Settings, Grid3x3, Circle, Target, Box, Maximize2 } from 'lucide-react';
+import { Settings, Grid3x3, Circle, Target, Box, Maximize2, Move, RotateCw } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import './TransformSettings.css';
 
@@ -51,107 +51,111 @@ export const TransformSettings: React.FC = () => {
         <div className="transform-settings-content">
           {/* Position Increment */}
           <div className="setting-group">
-            <label className="setting-label">Position Increment (mm)</label>
+            <div className="setting-row">
+              <Move size={10} title="Position Increment (mm)" />
+              <input
+                type="number"
+                className="setting-input"
+                value={positionIncrement}
+                onChange={(e) => setPositionIncrement(parseFloat(e.target.value) || 1)}
+                min={0.01}
+                step={0.1}
+                title="Position Increment (mm)"
+              />
+            </div>
             <div className="preset-buttons">
               {posPresets.map((val) => (
                 <button
                   key={val}
                   className={`preset-btn ${positionIncrement === val ? 'active' : ''}`}
                   onClick={() => setPositionIncrement(val)}
+                  title={`${val}mm`}
                 >
                   {val}
                 </button>
               ))}
             </div>
-            <input
-              type="number"
-              className="setting-input"
-              value={positionIncrement}
-              onChange={(e) => setPositionIncrement(parseFloat(e.target.value) || 1)}
-              min={0.01}
-              step={0.1}
-            />
           </div>
 
           {/* Rotation Increment */}
           <div className="setting-group">
-            <label className="setting-label">Rotation Increment (°)</label>
+            <div className="setting-row">
+              <RotateCw size={10} title="Rotation Increment (°)" />
+              <input
+                type="number"
+                className="setting-input"
+                value={rotationIncrement}
+                onChange={(e) => setRotationIncrement(parseFloat(e.target.value) || 1)}
+                min={0.01}
+                step={0.1}
+                title="Rotation Increment (°)"
+              />
+            </div>
             <div className="preset-buttons">
               {rotPresets.map((val) => (
                 <button
                   key={val}
                   className={`preset-btn ${rotationIncrement === val ? 'active' : ''}`}
                   onClick={() => setRotationIncrement(val)}
+                  title={`${val}°`}
                 >
                   {val}°
                 </button>
               ))}
             </div>
-            <input
-              type="number"
-              className="setting-input"
-              value={rotationIncrement}
-              onChange={(e) => setRotationIncrement(parseFloat(e.target.value) || 1)}
-              min={0.01}
-              step={0.1}
-            />
           </div>
 
-          {/* Snap Settings */}
+          {/* Snap Toggle */}
           <div className="setting-group">
             <div className="setting-row">
-              <label className="setting-label">Enable Snapping</label>
+              <Target size={10} title="Enable Snapping" />
               <input
                 type="checkbox"
                 className="setting-checkbox"
                 checked={snapEnabled}
                 onChange={(e) => setSnapEnabled(e.target.checked)}
+                title="Enable Snapping"
               />
             </div>
 
             {snapEnabled && (
               <>
-                {/* Snap Types */}
+                {/* Snap Types - Icon only with checkboxes */}
                 <div className="snap-types">
-                  <div className="snap-type-row">
-                    <Grid3x3 size={14} />
-                    <label>Grid</label>
+                  <div className="snap-type-row" title="Snap to Grid">
+                    <Grid3x3 size={10} />
                     <input
                       type="checkbox"
                       checked={snapToGrid}
                       onChange={(e) => setSnapToGrid(e.target.checked)}
                     />
                   </div>
-                  <div className="snap-type-row">
-                    <Circle size={14} />
-                    <label>Vertex</label>
+                  <div className="snap-type-row" title="Snap to Vertex">
+                    <Circle size={10} />
                     <input
                       type="checkbox"
                       checked={snapToVertex}
                       onChange={(e) => setSnapToVertex(e.target.checked)}
                     />
                   </div>
-                  <div className="snap-type-row">
-                    <Target size={14} />
-                    <label>Edge</label>
+                  <div className="snap-type-row" title="Snap to Edge">
+                    <Target size={10} />
                     <input
                       type="checkbox"
                       checked={snapToEdge}
                       onChange={(e) => setSnapToEdge(e.target.checked)}
                     />
                   </div>
-                  <div className="snap-type-row">
-                    <Box size={14} />
-                    <label>Face</label>
+                  <div className="snap-type-row" title="Snap to Face">
+                    <Box size={10} />
                     <input
                       type="checkbox"
                       checked={snapToFace}
                       onChange={(e) => setSnapToFace(e.target.checked)}
                     />
                   </div>
-                  <div className="snap-type-row">
-                    <Maximize2 size={14} />
-                    <label>Center</label>
+                  <div className="snap-type-row" title="Snap to Center">
+                    <Maximize2 size={10} />
                     <input
                       type="checkbox"
                       checked={snapToCenter}
@@ -163,13 +167,13 @@ export const TransformSettings: React.FC = () => {
                 {/* Grid Size */}
                 {snapToGrid && (
                   <div className="setting-subgroup">
-                    <label className="setting-label">Grid Size (mm)</label>
                     <div className="preset-buttons">
                       {gridPresets.map((val) => (
                         <button
                           key={val}
                           className={`preset-btn ${gridSize === val ? 'active' : ''}`}
                           onClick={() => setGridSize(val)}
+                          title={`Grid: ${val}mm`}
                         >
                           {val}
                         </button>
@@ -180,7 +184,6 @@ export const TransformSettings: React.FC = () => {
 
                 {/* Snap Distance */}
                 <div className="setting-subgroup">
-                  <label className="setting-label">Snap Distance (mm)</label>
                   <input
                     type="number"
                     className="setting-input"
@@ -188,6 +191,8 @@ export const TransformSettings: React.FC = () => {
                     onChange={(e) => setSnapDistance(parseFloat(e.target.value) || 1)}
                     min={1}
                     step={1}
+                    title="Snap Distance (mm)"
+                    placeholder="Dist"
                   />
                 </div>
               </>
