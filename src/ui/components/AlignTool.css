@@ -92,4 +92,57 @@
   z-index: 2000;
   backdrop-filter: blur(8px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.align-status-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.align-status .restart-btn {
+  background: rgba(251, 191, 36, 0.2);
+  border: 1px solid #fbbf24;
+  color: #fbbf24;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+}
+
+.align-status .restart-btn:hover {
+  background: #fbbf24;
+  color: #1a202c;
+}
+
+.align-status .cancel-btn {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+}
+
+.align-status .cancel-btn:hover {
+  background: #ef4444;
+  color: white;
 }

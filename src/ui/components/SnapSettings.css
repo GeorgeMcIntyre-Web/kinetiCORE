@@ -1,0 +1,134 @@
+/* Snap Settings - Complete snap toolbar styling */
+
+.snap-setting-panel {
+  position: relative;
+}
+
+.snap-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: rgba(26, 32, 44, 0.95);
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  transition: all 0.2s;
+  backdrop-filter: blur(8px);
+  padding: 0;
+}
+
+.snap-btn:hover {
+  background: #2d3748;
+  border-color: #48bb78;
+}
+
+.snap-btn svg {
+  color: #e2e8f0;
+}
+
+.snap-btn:hover svg {
+  color: #48bb78;
+}
+
+.snap-btn.active {
+  background: #48bb78;
+  border-color: #48bb78;
+}
+
+.snap-btn.active svg {
+  color: white;
+}
+
+/* Ensure consistent styling with other toolbar buttons */
+.snap-btn:not(.active) {
+  background: rgba(26, 32, 44, 0.95);
+  border-color: #4a5568;
+}
+
+.snap-btn:not(.active) svg {
+  color: #e2e8f0;
+}
+
+/* Grouped snap toolbar */
+.snap-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Snap group container */
+.snap-group-panel {
+  position: relative;
+}
+
+/* Snap group header (collapsible) */
+.snap-group-header {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: rgba(26, 32, 44, 0.95);
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  transition: all 0.2s;
+  backdrop-filter: blur(8px);
+  padding: 0;
+}
+
+.snap-group-header:hover {
+  background: #2d3748;
+  border-color: #48bb78;
+}
+
+.snap-group-header svg {
+  color: #e2e8f0;
+  width: 18px;
+  height: 18px;
+}
+
+.snap-group-header:hover svg {
+  color: #48bb78;
+}
+
+/* Main icon (centered) */
+.snap-group-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Snap group popup (appears to the right) */
+.snap-group-popup {
+  position: absolute;
+  left: 52px;
+  top: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 4px;
+  align-items: center;
+  padding: 6px;
+  background: rgba(26, 32, 44, 0.95);
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+
+/* Utility classes for flex layouts (if needed) */
+.flex {
+  display: flex;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.gap-1 {
+  gap: 4px;
+}

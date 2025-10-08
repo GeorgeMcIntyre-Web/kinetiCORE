@@ -1,0 +1,262 @@
+# Snap Feature Implementation Summary
+
+## Overview
+Completed integration of a work-in-progress snap feature for 3D object manipulation in the kinetiCORE application. The feature provides intuitive snapping capabilities during object transformation operations.
+
+## What Was Implemented
+
+### 1. **Core Snapping System**
+- **SnappingHelper.ts**: Enhanced with complete `snapToObject` method implementation
+- **SnappingGizmoWrapper.ts**: Custom wrapper to integrate snapping with Babylon.js gizmo system
+- **TransformGizmo.ts**: Re-enabled snapping integration with proper event handling
+
+### 2. **UI Components**
+- **SnapSettings.tsx**: Created individual snap toggle components for each snap type
+- **SnapSettings.css**: Styling for snap buttons with proper inactive/active states
+- **SceneCanvas.tsx**: Integrated snap settings into the main UI toolbar
+
+### 3. **Snap Types Available**
+- **Snap to Grid**: Align objects to grid points
+- **Snap to Vertex**: Corner-to-corner alignment
+- **Snap to Edge**: Edge-to-edge alignment (with custom cube icon)
+- **Snap to Face**: Face-to-face alignment
+- **Snap to Center**: Center-to-center alignment
+- **Snap to Object**: Bounding box alignment
+
+### 4. **State Management**
+- **editorStore.ts**: Added snap settings to global state with proper defaults
+- All snap settings default to `false` (inactive state)
+- Proper state management for snap mode toggles
+
+## Key Technical Decisions
+
+### **Event Handling Architecture**
+- Removed global pointer observers from `SnappingGizmoWrapper` to prevent conflicts
+- Maintained existing selection highlighting system (green outline for selected objects)
+- Preserved custom frame selection functionality
+
+### **Icon Design Philosophy**
+- Created intuitive icons showing snapping relationships (first object → second object)
+- Custom SVG for "Snap to Edge" with highlighted edge in blue
+- Consistent sizing using 18px dimensions with proper padding
+- Used Lucide React icons for consistency where possible
+
+### **UI Layout**
+- Snap settings positioned in vertical toolbar
+- "Snap to Grid" placed at bottom as requested
+- Proper visual feedback for active/inactive states
+
+## Files Modified
+
+### **Core Files**
+- `src/manipulation/SnappingHelper.ts` - Enhanced snapping logic
+- `src/manipulation/SnappingGizmoWrapper.ts` - Gizmo integration
+- `src/manipulation/TransformGizmo.ts` - Re-enabled snapping
+- `src/ui/store/editorStore.ts` - State management
+
+### **UI Files**
+- `src/ui/components/SnapSettings.tsx` - Snap toggle components
+- `src/ui/components/SnapSettings.css` - Snap button styling
+- `src/ui/components/SceneCanvas.tsx` - UI integration
+
+## Critical Fixes Applied
+
+### **Breaking Change Resolution**
+1. **Object Selection Highlighting**: Fixed issue where selected objects stopped turning green
+2. **Custom Frame Selection**: Restored vertex/edge/face selection graphics and spheres
+3. **Event Conflicts**: Resolved pointer event conflicts between snapping and selection
+4. **Icon Consistency**: Fixed size differences between custom SVG and Lucide icons
+
+### **Error Handling**
+- Added safety checks for entity methods (`getIsDevice`, `getChildren`, `getMesh`)
+- Proper error handling for missing entity properties
+- Graceful fallbacks for undefined mesh references
+
+## Current Status
+- ✅ All snap types functional
+- ✅ UI integration complete
+- ✅ No breaking changes to existing features
+- ✅ Proper visual feedback implemented
+- ✅ Icon consistency achieved
+
+## Next Steps for Future Development
+1. **Icon Refinement**: Complete intuitive icon designs for remaining snap types
+2. **Visual Feedback**: Add real-time snapping indicators during manipulation
+3. **Snap Distance**: Implement configurable snap distance settings
+4. **Snap Preview**: Add visual preview of snap targets before snapping occurs
+5. **Performance Optimization**: Optimize snapping calculations for large scenes
+
+## Testing Notes
+- All existing functionality preserved (object selection, custom frames, etc.)
+- Snap settings persist across sessions
+- No console errors or warnings
+- Proper integration with existing transform gizmo system
+
+
+## 🧭 **Snapping Toolbar – Implementation Summary**
+
+### **Goal**
+Create an intuitive, non-intrusive snapping system that enhances 3D manipulation and precision without disrupting existing selection or highlighting behavior.
+### **1. Design Reference**
+* Use the **main toolbar** as the template for style, icon size, and hover behavior.
+* Snap toolbar icons must align visually and functionally with the existing UI.
+---
+
+### **2. Functional Requirements**
+
+1. **Implement All Snap Types**
+   * Vertex → Vertex
+   * Edge → Edge
+   * Face → Face
+   * Center → Center
+   * Object → Object
+
+2. **No Breaking Changes**
+
+   * Preserve existing 3D selection (green outline)
+   * Keep vertex/edge/face selection spheres intact
+3. **Event Handling**
+
+   * Snapping must not interfere with scene selection or drag events
+4. **Default State**
+
+   * All snapping options inactive (`false`) on startup
+
+### **3. Visual Feedback**
+* **Inactive icons** → Gray
+* **Active icons** → Highlighted (match main toolbar green highlight)
+* **During snap** → Brief visual cue (e.g., outline at snap source and target)
+
+### **5. Icon Design**
+
+* Consistent **size and style** with main toolbar
+* **Snap to Edge** → Cube with one blue edge highlighted (isometric, matches cube orientation used elsewhere)
+* **Other icons** → Intuitive depictions of snapping relationship (e.g., arrow or link line between two shapes)
+
+### **6. Future Improvements**
+
+* Smart snapping (auto-detect best target)
+* Snap-to-grid and snap-to-axis options
+* Optional hotkeys for quick mode switching
+
+---
+
+**Summary:**
+The snapping toolbar will mirror the main toolbar in design, maintain non-destructive behavior, and provide clear, consistent visual cues. Functionality prioritizes reliability, clarity, and ease of use for object manipulation within the 3D scene.
+
+
+**Snapping Toolbar – Summary**
+
+**Objective**
+Provide an intuitive, stable snapping system for precise 3D manipulation that matches the look and behavior of the main toolbar.
+
+**Functional Scope**
+
+* Base layout mirrors the main toolbar.
+* All icons same size and style.
+* No interference with object selection or highlighting.
+
+**Snap Types**
+
+* Vertex → Vertex
+* Edge → Edge
+* Face → Face
+* Center → Center
+* Object → Object (bounding-box)
+* Object → Object (surface contact)
+* Object → Vertex
+
+New Snap Types 
+Midpoint → Midpoint – snapping to the midpoint of an edge.
+Perpendicular → Edge – ensures alignment at 90°.
+Tangent → Edge/Curve – used for circles, arcs, or curved surfaces.
+Intersection → Intersection – where two edges or faces cross.
+Along → Edge/Axis – for constrained movement or alignment along an edge/axis.
+Normal → Face – for aligning orientations (e.g., face normals).
+Plane → Plane – full planar alignment (parallel positioning).
+Axis → Axis – aligning rotational axes (e.g., hole centers).
+Curve → Curve – snapping spline or polyline elements together.
+
+**Visual Behavior**
+
+* Inactive = gray
+* Active = green highlight (as main toolbar)
+* Snap event = brief visual cue on target.
+
+**Icon Design**
+
+* *Snap to Edge*: cube with one blue edge highlighted (isometric view).
+* Others: simple two-shape symbols showing the snap relation.
+* Consistent icon dimensions.
+
+**Technical Notes**
+
+* Maintain existing green selection outline.
+* Keep vertex/edge/face selection spheres.
+* Snapping events isolated from scene selection.
+* All snap states start inactive.
+
+**Grouping & Order**
+
+1. **General Snap** (expands; shows last-used type)
+    1 Vertex 2 Edge 3 Face 4 Center 5 BBox 6 Surface
+2. **Object Snap**
+    1 Object → Vertex
+
+**Planned Enhancements**
+
+* Smart-context snapping
+* Grid / axis snap
+* Hotkey switching between modes
+
+### 🧭 **Snapping Toolbar – Concise Overview**
+
+**Objective:**
+Provide precise, intuitive snapping for 3D manipulation without disrupting selection or highlighting.
+
+---
+
+### **Design**
+
+* Mirrors main toolbar (style, size, hover behavior).
+* All icons uniform and toggleable.
+* Inactive = gray, Active = green highlight.
+
+---
+
+### **Core Snap Types**
+
+Vertex, Edge, Face, Center, Midpoint, Intersection, Tangent, Perpendicular, Along, Normal, Plane, Axis, Curve, Object (Bounding Box), Object (Surface Contact), Object → Vertex, Point on Edge/Face, Grid → Vertex, Bounding Box Corner → Corner.
+
+---
+
+### **Grouping**
+
+* **Geometric:** Vertex / Edge / Face / Center / Midpoint / Intersection / Tangent / Perpendicular / Normal
+* **Object-Level:** Object → Object (BBox / Surface) / Object → Vertex / Plane / Axis / Curve
+* **Auxiliary:** Grid → Vertex / Along / Point on Edge / BBox Corner
+
+---
+
+### **Behavior**
+
+* All snaps off by default.
+* One active snap mode at a time (extendable to multi-snap).
+* Snapping feedback via brief highlight on target geometry.
+* No interference with drag or selection.
+
+---
+
+### **Technical Notes**
+
+* Preserve green selection outline and feature spheres.
+* Each snap has its own `snapPredicate()`.
+* Global `activeSnapMode` manages state.
+* Configurable tolerance and visual cues.
+
+---
+
+### **Future**
+
+Smart auto-snapping, grid/axis modes, hotkeys, and snapping priorities.
+

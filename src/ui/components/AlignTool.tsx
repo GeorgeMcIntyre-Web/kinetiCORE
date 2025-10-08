@@ -2,7 +2,7 @@
 // Owner: George
 // Provides click-based alignment (not drag-based snapping)
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useEditorStore } from '../store/editorStore';
 import './AlignTool.css';
 
@@ -71,14 +71,43 @@ const AlignIcon = () => (
 
 export const AlignTool: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [activeMode, setActiveMode] = useState<AlignMode>(null);
+  const alignMode = useEditorStore((state) => state.alignMode);
+  const alignFirstPoint = useEditorStore((state) => state.alignFirstPoint);
+  const setAlignMode = useEditorStore((state) => state.setAlignMode);
+  const setAlignFirstPoint = useEditorStore((state) => state.setAlignFirstPoint);
+  const cancelAlignment = useEditorStore((state) => state.cancelAlignment);
 
   const startAlignMode = (mode: AlignMode) => {
-    setActiveMode(mode);
+    setAlignMode(mode);
     setIsExpanded(false);
-    // TODO: Set cursor to crosshair, enter selection mode
-    console.log(`Starting ${mode} alignment mode`);
   };
+
+  const handleCancel = () => {
+    cancelAlignment();
+  };
+
+  const handleRestart = () => {
+    // Store handles marker cleanup automatically
+    setAlignFirstPoint(null);
+  };
+
+  // ESC key to cancel alignment, R key to restart
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!alignMode) return;
+
+      if (e.key === 'Escape') {
+        cancelAlignment();
+      } else if (e.key === 'r' || e.key === 'R') {
+        if (alignFirstPoint) {
+          handleRestart();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [alignMode, alignFirstPoint, cancelAlignment]);
 
   return (
     <div className="align-tool-panel">
@@ -125,9 +154,32 @@ export const AlignTool: React.FC = () => {
         </div>
       )}
 
-      {activeMode && (
+      {alignMode && (
         <div className="align-status">
-          <span>Click source {activeMode}...</span>
+          {!alignFirstPoint && (
+            <span>Select first {alignMode}...</span>
+          )}
+          {alignFirstPoint && (
+            <span>Select target {alignMode}...</span>
+          )}
+          <div className="align-status-buttons">
+            {alignFirstPoint && (
+              <button
+                onClick={handleRestart}
+                className="restart-btn"
+                title="Restart selection (R)"
+              >
+                ↻
+              </button>
+            )}
+            <button
+              onClick={handleCancel}
+              className="cancel-btn"
+              title="Cancel alignment (Esc)"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       )}
     </div>
