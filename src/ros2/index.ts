@@ -6,3 +6,4 @@
 export * from './messages';
 export * from './exporters';
 export * from './utils';
+export * from './bridge';
