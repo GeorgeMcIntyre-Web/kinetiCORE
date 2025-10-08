@@ -267,3 +267,227 @@ export interface AssetSourcePlugin {
   download?(asset: LibraryAsset): Promise<File>;
   authenticate?(): Promise<void>;
 }
+
+// === Cloud Asset Storage Types ===
+
+/**
+ * Asset package metadata for cloud storage
+ */
+export interface AssetPackageMetadata {
+  // Identity
+  id: string; // e.g., "mujoco-menagerie/franka_emika_panda"
+  version: string; // Semantic version: "1.0.0"
+  name: string;
+
+  // Classification
+  domain: Domain;
+  assetClass: AssetClass;
+  assetType: string;
+
+  // Metadata
+  manufacturer?: string;
+  description?: string;
+  license?: {
+    type: string; // "BSD-3-Clause", "MIT", etc.
+    file?: string; // "LICENSE"
+    url?: string;
+  };
+
+  // Capabilities
+  capabilities?: AssetCapabilities;
+
+  // Files in package
+  files: {
+    mainModel: string; // "panda.xml", "robot.urdf"
+    scene?: string; // "scene.xml"
+    thumbnail?: string;
+    meshes: string[]; // ["assets/link0.stl", ...]
+    textures?: string[];
+    documentation?: string; // "README.md"
+    changelog?: string; // "CHANGELOG.md"
+  };
+
+  // Package info
+  packageSize: number; // bytes
+  uploadedAt: string; // ISO 8601
+  uploadedBy?: string; // user ID or "system"
+  checksum: string; // SHA-256
+
+  // Search
+  tags: string[];
+  searchKeywords: string[];
+
+  // Usage tracking
+  downloadCount?: number;
+  usageCount?: number;
+
+  // Versioning
+  changelog?: string; // Changelog text
+  previousVersion?: string; // "0.9.0"
+}
+
+/**
+ * Global manifest for cloud asset catalog
+ */
+export interface CloudManifest {
+  version: string; // Manifest schema version
+  lastUpdated: string; // ISO 8601
+
+  // Asset index
+  assets: {
+    id: string; // "mujoco-menagerie/franka_emika_panda"
+    latestVersion: string; // "1.1.0"
+    versions: string[]; // ["1.0.0", "1.1.0"]
+    metadataUrl: string; // URL to latest metadata.json
+  }[];
+
+  // Domain structure
+  domains: {
+    id: Domain;
+    name: string;
+    assetCount: number;
+    manifestPath: string;
+  }[];
+
+  // Statistics
+  stats: {
+    totalAssets: number;
+    totalPackages: number;
+    totalSize: number; // bytes
+    manufacturers: string[];
+  };
+}
+
+/**
+ * Asset download response from API
+ */
+export interface AssetDownloadResponse {
+  assetId: string;
+  version: string;
+  files: {
+    path: string; // Relative path in package
+    url: string; // CDN URL
+    size: number;
+    checksum: string;
+  }[];
+  bundleUrl?: string; // .tar.gz download (optional)
+  expiresAt: string; // Signed URL expiration
+}
+
+/**
+ * Asset search request to API
+ */
+export interface AssetSearchRequest {
+  query?: string;
+  domain?: string[];
+  assetClass?: string[];
+  manufacturer?: string[];
+  tags?: string[];
+  minDof?: number;
+  maxDof?: number;
+  sortBy?: 'name' | 'downloads' | 'updated';
+  limit?: number; // Default: 50, max: 200
+  offset?: number;
+}
+
+/**
+ * Asset search response from API
+ */
+export interface AssetSearchResponse {
+  assets: AssetPackageMetadata[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+/**
+ * Upload initiation request
+ */
+export interface InitiateUploadRequest {
+  assetId: string; // "custom/my_robot"
+  version: string; // "1.0.0"
+  metadata: Partial<AssetPackageMetadata>;
+}
+
+/**
+ * Upload initiation response
+ */
+export interface InitiateUploadResponse {
+  uploadId: string; // Unique upload session ID
+  uploadUrls: Record<string, string>; // File path -> presigned URL
+  expiresAt: string; // Upload expiration
+}
+
+/**
+ * Upload completion request
+ */
+export interface CompleteUploadRequest {
+  uploadId: string;
+  files: string[]; // Uploaded file keys
+}
+
+/**
+ * Validation report
+ */
+export interface ValidationReport {
+  status: 'success' | 'warning' | 'error';
+  errors: string[];
+  warnings: string[];
+  thumbnailGenerated: boolean;
+  checksumVerified: boolean;
+}
+
+/**
+ * Upload completion response
+ */
+export interface CompleteUploadResponse {
+  status: 'validating' | 'published' | 'failed';
+  assetId: string;
+  version: string;
+  validationReport?: ValidationReport;
+}
+
+/**
+ * Cached asset package in IndexedDB
+ */
+export interface CachedAssetPackage {
+  assetId: string;
+  version: string;
+  metadata: AssetPackageMetadata;
+  files: Map<string, ArrayBuffer>; // File path -> file data
+  cachedAt: number; // timestamp
+  lastAccessed: number; // timestamp
+  size: number; // total bytes
+}
+
+/**
+ * Cloud asset loader configuration
+ */
+export interface CloudAssetConfig {
+  apiBaseUrl: string; // "https://api.kineticore.io/v1"
+  cdnBaseUrl: string; // "https://assets.kineticore.io"
+  enableCache: boolean;
+  maxCacheSize: number; // bytes
+  cacheTTL: number; // milliseconds
+  enableFallback: boolean; // Fallback to local assets
+}
+
+/**
+ * Asset loader source type
+ */
+export type AssetLoaderSource = 'cloud' | 'local' | 'cache';
+
+/**
+ * Asset load progress event
+ */
+export interface AssetLoadProgress {
+  assetId: string;
+  version: string;
+  phase: 'downloading' | 'parsing' | 'caching' | 'complete';
+  filesTotal: number;
+  filesLoaded: number;
+  bytesTotal: number;
+  bytesLoaded: number;
+  progress: number; // 0-100
+  source: AssetLoaderSource;
+}
