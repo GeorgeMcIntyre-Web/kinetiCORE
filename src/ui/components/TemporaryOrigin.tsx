@@ -117,9 +117,8 @@ export const TemporaryOrigin: React.FC = () => {
 
   return (
     <div className="temporary-origin-panel">
-      <div className="temp-origin-header">
+      <div className="temp-origin-header" title="Temporary Origin">
         <Target size={10} />
-        <span>Origin</span>
       </div>
 
       {temporaryOrigin ? (

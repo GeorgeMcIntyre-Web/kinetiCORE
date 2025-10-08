@@ -41,9 +41,8 @@ export const TransformSettings: React.FC = () => {
 
   return (
     <div className="transform-settings-panel">
-      <div className="transform-settings-header" onClick={() => setIsExpanded(!isExpanded)}>
-        <Settings size={16} />
-        <span>Transform Settings</span>
+      <div className="transform-settings-header" onClick={() => setIsExpanded(!isExpanded)} title="Transform Settings">
+        <Settings size={10} />
         <span className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>▼</span>
       </div>
 

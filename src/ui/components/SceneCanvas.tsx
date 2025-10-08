@@ -362,8 +362,8 @@ export const SceneCanvas: React.FC = () => {
       {/* Transform HUD - Bottom right position/rotation display (only when object selected) */}
       <TransformHUD />
 
-      {/* Transform Settings - Below viewport controls (ALWAYS VISIBLE, minimal size) */}
-      <div className="absolute top-56 right-4 w-28 z-50 max-h-96 overflow-y-auto">
+      {/* Transform Settings - Below Views on left side (ALWAYS VISIBLE, icon-only) */}
+      <div className="absolute top-56 left-4 w-32 z-50 max-h-96 overflow-y-auto">
         <TransformSettings />
         <TemporaryOrigin />
       </div>
