@@ -363,7 +363,7 @@ export const SceneCanvas: React.FC = () => {
       <TransformHUD />
 
       {/* Transform Settings - Top right corner (ALWAYS VISIBLE, compact) */}
-      <div className="absolute top-4 right-4 w-52 z-10 max-h-80 overflow-y-auto">
+      <div className="absolute top-4 right-4 w-52 z-50 max-h-80 overflow-y-auto">
         <TransformSettings />
         <TemporaryOrigin />
       </div>
