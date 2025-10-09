@@ -284,7 +284,14 @@ export const EssentialModeLayout: React.FC = () => {
 
       if (babylonNode) {
         const userPos = babylonToUser(babylonNode.position);
-        const rotation = babylonNode.rotation;
+
+        // Get rotation - check for quaternion first (takes precedence over Euler angles)
+        let rotation: BABYLON.Vector3;
+        if (babylonNode.rotationQuaternion) {
+          rotation = babylonNode.rotationQuaternion.toEulerAngles();
+        } else {
+          rotation = babylonNode.rotation;
+        }
 
         const newTransform = {
           x: Math.round(userPos.x * 10) / 10,

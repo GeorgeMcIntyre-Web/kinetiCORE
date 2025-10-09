@@ -1639,7 +1639,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
 
     if (babylonNode) {
-      babylonNode.rotation.set(radiansX, radiansY, radiansZ);
+      // IMPORTANT: If rotationQuaternion exists, it takes precedence over rotation
+      // We need to either clear it or convert our Euler angles to quaternion
+      if (babylonNode.rotationQuaternion) {
+        // Convert Euler angles to quaternion
+        babylonNode.rotationQuaternion = BABYLON.Quaternion.RotationYawPitchRoll(
+          radiansY, // yaw
+          radiansX, // pitch
+          radiansZ  // roll
+        );
+      } else {
+        // No quaternion, just set rotation directly
+        babylonNode.rotation.set(radiansX, radiansY, radiansZ);
+      }
 
       // Sync to physics if entity exists (only for meshes)
       if (node.entityId) {
