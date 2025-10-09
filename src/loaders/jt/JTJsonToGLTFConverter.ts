@@ -99,6 +99,38 @@ export class JTJsonToGLTFConverter {
             console.warn('[JT Converter] No mesh data found in JT JSON, creating placeholder geometry');
         } else {
             console.log('[JT Converter] Found JT table of contents with', jtJsonData.TocTable.length, 'entries');
+            
+            // Analyze the mesh data
+            const shapeEntries = jtJsonData.TocTable.filter((entry: any) => 
+                entry[2] && entry[2].includes('Shape')
+            );
+            console.log('[JT Converter] Found', shapeEntries.length, 'shape entries');
+            
+            // Group by LOD level
+            const lodGroups: { [key: string]: any[] } = {};
+            shapeEntries.forEach((entry: any) => {
+                const lodLevel = entry[2] || 'Unknown';
+                if (!lodGroups[lodLevel]) {
+                    lodGroups[lodLevel] = [];
+                }
+                lodGroups[lodLevel].push(entry);
+            });
+            
+            console.log('[JT Converter] LOD distribution:', Object.keys(lodGroups).map(lod => 
+                `${lod}: ${lodGroups[lod].length} shapes`
+            ));
+            
+            // Use the highest quality LOD available
+            const lodLevels = ['Shape LOD4', 'Shape LOD3', 'Shape LOD2', 'Shape LOD1', 'Shape LOD0', 'Shape'];
+            let selectedLOD = 'Shape';
+            for (const lod of lodLevels) {
+                if (lodGroups[lod] && lodGroups[lod].length > 0) {
+                    selectedLOD = lod;
+                    break;
+                }
+            }
+            
+            console.log('[JT Converter] Using LOD level:', selectedLOD, 'with', lodGroups[selectedLOD]?.length || 0, 'shapes');
         }
         
         // For now, create a simple GLTF structure
