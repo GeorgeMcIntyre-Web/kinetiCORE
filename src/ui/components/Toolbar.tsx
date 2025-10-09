@@ -21,7 +21,6 @@ import {
 } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import { TransformMode } from '../../core/types';
-import { getAcceptedFileTypes } from '../../scene/ModelLoader';
 import { CreateProjectionViewCommand } from '../../history/commands/CreateProjectionViewCommand';
 import { toast } from './ToastNotifications';
 import './Toolbar.css';

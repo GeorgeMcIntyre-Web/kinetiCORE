@@ -64,7 +64,7 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
 
     if (babylonNode) {
       // Get position - ALWAYS use babylonToUser for Z-up CAD standard
-      const pos = babylonToUser(babylonNode.position);
+      const pos = babylonToUser(babylonNode.getAbsolutePosition());
 
       // Get rotation in degrees
       const rot = {
@@ -198,7 +198,7 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
       return;
     }
 
-    // Get old values for undo
+    // Get old values for undo (use local position for TransformCommand)
     const oldPosition = babylonToUser(babylonNode.position);
     const oldRotation = {
       x: babylonNode.rotation.x * RAD_TO_DEG,
@@ -206,15 +206,27 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
       z: babylonNode.rotation.z * RAD_TO_DEG,
     };
 
+    // Convert world position from dialog to local position for the command
+    // We need to calculate the local position based on the world position the user entered
+    const worldPosition = position; // This is the world position from dialog
+    const parentWorldPosition = babylonNode.parent && 'getAbsolutePosition' in babylonNode.parent 
+      ? babylonToUser((babylonNode.parent as BABYLON.TransformNode).getAbsolutePosition()) 
+      : { x: 0, y: 0, z: 0 };
+    const localPosition = {
+      x: worldPosition.x - parentWorldPosition.x,
+      y: worldPosition.y - parentWorldPosition.y,
+      z: worldPosition.z - parentWorldPosition.z,
+    };
+
     // Apply position if changed
-    const posChanged = position.x !== oldPosition.x || position.y !== oldPosition.y || position.z !== oldPosition.z;
+    const posChanged = localPosition.x !== oldPosition.x || localPosition.y !== oldPosition.y || localPosition.z !== oldPosition.z;
 
     if (posChanged) {
       const positionCommand = new TransformCommand(
         selectedNodeId,
         'position',
         oldPosition,
-        position,
+        localPosition,
         updateNodePosition
       );
       commandManager.execute(positionCommand);
