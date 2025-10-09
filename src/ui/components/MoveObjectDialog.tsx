@@ -206,9 +206,10 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
       z: babylonNode.rotation.z * RAD_TO_DEG,
     };
 
-    // Convert world position from dialog to local position for the command
-    // We need to calculate the local position based on the world position the user entered
-    const worldPosition = position; // This is the world position from dialog
+    // Apply position if changed
+    // The position from dialog is world position in user coordinate system
+    // We need to convert it to local position for the TransformCommand
+    const worldPosition = position; // This is the world position from dialog in user coords
     const parentWorldPosition = babylonNode.parent && 'getAbsolutePosition' in babylonNode.parent 
       ? babylonToUser((babylonNode.parent as BABYLON.TransformNode).getAbsolutePosition()) 
       : { x: 0, y: 0, z: 0 };
@@ -218,10 +219,16 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
       z: worldPosition.z - parentWorldPosition.z,
     };
 
-    // Apply position if changed
     const posChanged = localPosition.x !== oldPosition.x || localPosition.y !== oldPosition.y || localPosition.z !== oldPosition.z;
 
     if (posChanged) {
+      console.log('🔄 Applying position change:', {
+        oldPosition,
+        newLocalPosition: localPosition,
+        worldPosition,
+        parentWorldPosition
+      });
+      
       const positionCommand = new TransformCommand(
         selectedNodeId,
         'position',

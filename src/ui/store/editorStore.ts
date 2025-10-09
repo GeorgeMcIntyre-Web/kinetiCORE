@@ -805,7 +805,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       nodeType,
       mesh.name,
       assetsNode?.id || null,
-      babylonToUser(mesh.getAbsolutePosition()) // Store WORLD position in user space (Z-up, mm)
+      babylonToUser(mesh.position) // Store in user space (Z-up, mm)
     );
 
     // Link node to Babylon mesh and entity
