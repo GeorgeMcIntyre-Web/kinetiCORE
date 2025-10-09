@@ -264,7 +264,23 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!selectedMeshes.includes(mesh)) {
       set({ selectedMeshes: [...selectedMeshes, mesh] });
 
-      // Also select corresponding node in tree
+      // Check if this is a device root mesh (ending in _device_root)
+      if (mesh.name.endsWith('_device_root')) {
+        // For device root meshes, find and select the parent collection node instead
+        const tree = SceneTreeManager.getInstance();
+        const meshNode = tree.getNodeByBabylonMeshId(mesh.uniqueId.toString());
+        
+        if (meshNode && meshNode.parentId) {
+          const parentNode = tree.getNode(meshNode.parentId);
+          if (parentNode && parentNode.type === 'collection') {
+            // Select the parent collection node instead of the device root mesh
+            set({ selectedNodeId: parentNode.id });
+            return; // Exit early, don't select the mesh node
+          }
+        }
+      }
+
+      // For all other meshes, select corresponding node in tree
       const tree = SceneTreeManager.getInstance();
       const node = tree.getNodeByBabylonMeshId(mesh.uniqueId.toString());
       if (node) {
@@ -282,6 +298,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const scene = sceneManager.getScene();
     const registry = EntityRegistry.getInstance();
     const { coordinateFrameWidget } = get();
+
+    // Check if this is a device root mesh node (ending in _device_root)
+    if (node && node.name.endsWith('_device_root') && node.type === 'mesh') {
+      // Redirect to parent collection node instead
+      if (node.parentId) {
+        const parentNode = tree.getNode(node.parentId);
+        if (parentNode && parentNode.type === 'collection') {
+          // Recursively call selectNode with the parent collection ID
+          get().selectNode(parentNode.id);
+          return; // Exit early
+        }
+      }
+    }
 
     // Check if this node has an entity ID (device or link entity)
     if (node && node.entityId) {
@@ -1576,18 +1605,26 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   // Transform update actions
   updateNodePosition: (nodeId: string, position: { x: number; y: number; z: number }) => {
+    console.log('🔧 updateNodePosition called:', { nodeId, position });
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(nodeId);
-    if (!node) return;
+    if (!node) {
+      console.log('❌ Node not found in tree:', nodeId);
+      return;
+    }
 
     // Update local position in tree
     tree.setLocalPosition(nodeId, position);
 
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
-    if (!scene) return;
+    if (!scene) {
+      console.log('❌ No scene');
+      return;
+    }
 
     const babylonPos = userToBabylon(position);
+    console.log('🔄 Converted to Babylon coords:', babylonPos);
 
     // Update Babylon node (Mesh or TransformNode)
     let babylonNode: BABYLON.TransformNode | null = null;
@@ -1600,7 +1637,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
 
     if (babylonNode) {
+      console.log('✅ Found Babylon node, setting position from', babylonNode.position, 'to', babylonPos);
       babylonNode.position.copyFrom(babylonPos);
+      console.log('✅ Position set, new value:', babylonNode.position);
 
       // Sync to physics if entity exists (only for meshes)
       if (node.entityId) {
@@ -1608,6 +1647,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         const entity = registry.get(node.entityId);
         entity?.syncToPhysics();
       }
+    } else {
+      console.log('❌ Babylon node not found');
     }
 
     window.dispatchEvent(new Event('scenetree-update'));

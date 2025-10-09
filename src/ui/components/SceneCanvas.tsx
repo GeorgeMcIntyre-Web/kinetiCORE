@@ -6,6 +6,7 @@ import * as BABYLON from '@babylonjs/core';
 import { SceneManager } from '../../scene/SceneManager';
 import { RapierPhysicsEngine } from '../../physics/RapierPhysicsEngine';
 import { EntityRegistry } from '../../entities/EntityRegistry';
+import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { TransformGizmo } from '../../manipulation/TransformGizmo';
 import { useEditorStore } from '../store/editorStore';
 import { useUserLevel } from '../core/UserLevelContext';
