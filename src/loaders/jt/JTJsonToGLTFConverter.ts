@@ -188,15 +188,42 @@ export class JTJsonToGLTFConverter {
         // Create binary data for the buffer
         const bufferData = this.createBufferData();
         
+        // Update the buffer to include the actual data
+        if (gltfData.buffers && gltfData.buffers.length > 0) {
+            gltfData.buffers[0].byteLength = bufferData.byteLength;
+            // Remove uri since we're embedding the data
+            delete gltfData.buffers[0].uri;
+        }
+        
         // Create GLTF JSON
         const gltfJson = JSON.stringify(gltfData, null, 2);
         
-        // For now, return a simple GLTF file
-        // In a full implementation, we would create a proper GLB file with binary data
-        const gltfBlob = new Blob([gltfJson], { type: 'model/gltf+json' });
+        // Create a data URI with embedded binary data
+        const base64Data = this.arrayBufferToBase64(bufferData);
+        const dataUri = `data:application/octet-stream;base64,${base64Data}`;
         
-        console.log('[JT Converter] GLTF file created');
+        // Replace buffer references with data URI
+        const gltfWithDataUri = gltfJson.replace(
+            '"buffers":[{"byteLength":' + bufferData.byteLength + '}]',
+            `"buffers":[{"uri":"${dataUri}","byteLength":${bufferData.byteLength}}]`
+        );
+        
+        const gltfBlob = new Blob([gltfWithDataUri], { type: 'model/gltf+json' });
+        
+        console.log('[JT Converter] GLTF file created with embedded binary data');
         return gltfBlob;
+    }
+
+    /**
+     * Convert ArrayBuffer to Base64 string
+     */
+    private arrayBufferToBase64(buffer: ArrayBuffer): string {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
     }
 
     /**
