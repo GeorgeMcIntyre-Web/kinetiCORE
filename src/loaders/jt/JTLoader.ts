@@ -32,6 +32,7 @@ import { JTImportError } from './errors';
 import { JTErrorType } from './types';
 import { convertJTToBabylonCoordinates, reverseTriangleWinding } from './coordinateConversion';
 import { JTConversionService, JTConversionError } from './JTConversionService';
+import { JTJsonToGLTFConverter } from './JTJsonToGLTFConverter';
 
 /**
  * Check if blob content is JSON
@@ -130,24 +131,62 @@ export async function loadJTFromFile(
 
         if (isJson) {
             console.log(`[JT Import] Received JSON file, converting to GLTF...`);
-            // TODO: Implement JSON → GLTF conversion
-            // For now, we'll create a simple placeholder mesh
-            const placeholderMesh = BABYLON.MeshBuilder.CreateBox(
-                file.name.replace('.jt', '_placeholder'),
-                { size: 1 },
-                scene
-            );
-            placeholderMesh.metadata = {
-                sourceFormat: 'jt',
-                originalFile: file.name,
-                conversionStatus: 'json-received-needs-gltf-conversion'
-            };
             
-            console.log(`[JT Import] Created placeholder mesh for JSON file`);
-            return {
-                meshes: [placeholderMesh],
-                rootNodes: [placeholderMesh as BABYLON.TransformNode]
-            };
+            try {
+                // Parse JSON data
+                const jsonText = await gltfBlob.text();
+                const jtJsonData = JSON.parse(jsonText);
+                
+                // Convert JSON to GLTF
+                const converter = new JTJsonToGLTFConverter(scene);
+                const gltfData = await converter.convertJTJsonToGLTF(jtJsonData);
+                const convertedGLTFBlob = await converter.createGLTFFile(gltfData);
+                
+                console.log(`[JT Import] JSON converted to GLTF, loading...`);
+                
+                // Load the converted GLTF
+                const gltfFile = new File([convertedGLTFBlob], file.name.replace('.jt', '.gltf'), {
+                    type: 'model/gltf+json'
+                });
+
+                const result = await BABYLON.SceneLoader.ImportMeshAsync(
+                    '',  // Load all meshes
+                    '',
+                    gltfFile,
+                    scene,
+                    undefined,
+                    '.gltf'
+                );
+
+                console.log(
+                    `[JT Import] Loaded ${result.meshes.length} meshes, ` +
+                    `${result.transformNodes.length} transform nodes from converted JT JSON`
+                );
+
+                // Continue with normal processing...
+                return await processLoadedMeshes(result, file.name, scene);
+                
+            } catch (error) {
+                console.warn(`[JT Import] JSON conversion failed, creating placeholder:`, error);
+                
+                // Fallback to placeholder mesh
+                const placeholderMesh = BABYLON.MeshBuilder.CreateBox(
+                    file.name.replace('.jt', '_placeholder'),
+                    { size: 1 },
+                    scene
+                );
+                placeholderMesh.metadata = {
+                    sourceFormat: 'jt',
+                    originalFile: file.name,
+                    conversionStatus: 'json-conversion-failed'
+                };
+                
+                console.log(`[JT Import] Created placeholder mesh for failed JSON conversion`);
+                return {
+                    meshes: [placeholderMesh],
+                    rootNodes: [placeholderMesh as BABYLON.TransformNode]
+                };
+            }
         }
 
         // Load the converted GLTF file
