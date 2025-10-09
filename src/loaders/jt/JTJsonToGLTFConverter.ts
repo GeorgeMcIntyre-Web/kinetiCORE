@@ -90,6 +90,17 @@ export class JTJsonToGLTFConverter {
         const fileName = this.extractFileName(jtJsonData.FileName);
         console.log('[JT Converter] Extracted filename:', fileName);
         
+        // Log what data we have available
+        console.log('[JT Converter] Available JT data fields:', Object.keys(jtJsonData));
+        console.log('[JT Converter] JT file version:', jtJsonData.MajorVersion, jtJsonData.MinorVersion);
+        
+        // Check if we have actual mesh data
+        if (!jtJsonData.TocTable || jtJsonData.TocTable.length === 0) {
+            console.warn('[JT Converter] No mesh data found in JT JSON, creating placeholder geometry');
+        } else {
+            console.log('[JT Converter] Found JT table of contents with', jtJsonData.TocTable.length, 'entries');
+        }
+        
         // For now, create a simple GLTF structure
         // In a full implementation, we would parse the JT data and extract:
         // - Mesh geometry (vertices, faces)
@@ -192,9 +203,9 @@ export class JTJsonToGLTFConverter {
             materials: [{
                 name: "JT_Material",
                 pbrMetallicRoughness: {
-                    baseColorFactor: [0.7, 0.7, 0.7, 1.0],
-                    metallicFactor: 0.0,
-                    roughnessFactor: 0.5
+                    baseColorFactor: [0.2, 0.6, 0.9, 1.0], // Bright blue for visibility
+                    metallicFactor: 0.3,
+                    roughnessFactor: 0.4
                 }
             }]
         };
@@ -256,46 +267,64 @@ export class JTJsonToGLTFConverter {
     }
 
     /**
-     * Create cube data arrays
+     * Create cube data arrays with more realistic geometry
      */
     private createCubeData() {
-        // Simple cube vertices (8 vertices)
+        // Create a more detailed cube with proper face normals
+        // This represents a typical industrial robot base or component
         const positions = new Float32Array([
-            // Front face
-            -0.5, -0.5,  0.5,
-             0.5, -0.5,  0.5,
-             0.5,  0.5,  0.5,
-            -0.5,  0.5,  0.5,
-            // Back face
-            -0.5, -0.5, -0.5,
-             0.5, -0.5, -0.5,
-             0.5,  0.5, -0.5,
-            -0.5,  0.5, -0.5
+            // Front face (Z+)
+            -0.5, -0.5,  0.5,   0.5, -0.5,  0.5,   0.5,  0.5,  0.5,  -0.5,  0.5,  0.5,
+            // Back face (Z-)
+            -0.5, -0.5, -0.5,  -0.5,  0.5, -0.5,   0.5,  0.5, -0.5,   0.5, -0.5, -0.5,
+            // Left face (X-)
+            -0.5, -0.5, -0.5,  -0.5, -0.5,  0.5,  -0.5,  0.5,  0.5,  -0.5,  0.5, -0.5,
+            // Right face (X+)
+             0.5, -0.5, -0.5,   0.5,  0.5, -0.5,   0.5,  0.5,  0.5,   0.5, -0.5,  0.5,
+            // Top face (Y+)
+            -0.5,  0.5, -0.5,  -0.5,  0.5,  0.5,   0.5,  0.5,  0.5,   0.5,  0.5, -0.5,
+            // Bottom face (Y-)
+            -0.5, -0.5, -0.5,   0.5, -0.5, -0.5,   0.5, -0.5,  0.5,  -0.5, -0.5,  0.5
         ]);
 
-        // Simple cube normals
+        // Proper face normals for each vertex
         const normals = new Float32Array([
-            // Front face
-             0,  0,  1,
-             0,  0,  1,
-             0,  0,  1,
-             0,  0,  1,
-            // Back face
-             0,  0, -1,
-             0,  0, -1,
-             0,  0, -1,
-             0,  0, -1
+            // Front face normals
+             0,  0,  1,   0,  0,  1,   0,  0,  1,   0,  0,  1,
+            // Back face normals
+             0,  0, -1,   0,  0, -1,   0,  0, -1,   0,  0, -1,
+            // Left face normals
+            -1,  0,  0,  -1,  0,  0,  -1,  0,  0,  -1,  0,  0,
+            // Right face normals
+             1,  0,  0,   1,  0,  0,   1,  0,  0,   1,  0,  0,
+            // Top face normals
+             0,  1,  0,   0,  1,  0,   0,  1,  0,   0,  1,  0,
+            // Bottom face normals
+             0, -1,  0,   0, -1,  0,   0, -1,  0,   0, -1,  0
         ]);
 
-        // Simple cube indices (12 triangles)
+        // Triangle indices for each face (2 triangles per face)
         const indices = new Uint16Array([
-            0, 1, 2,  0, 2, 3,  // Front
-            4, 6, 5,  4, 7, 6,  // Back
-            0, 4, 5,  0, 5, 1,  // Bottom
-            2, 6, 7,  2, 7, 3,  // Top
-            0, 3, 7,  0, 7, 4,  // Left
-            1, 5, 6,  1, 6, 2   // Right
+            // Front face
+            0, 1, 2,   0, 2, 3,
+            // Back face
+            4, 5, 6,   4, 6, 7,
+            // Left face
+            8, 9, 10,  8, 10, 11,
+            // Right face
+            12, 13, 14, 12, 14, 15,
+            // Top face
+            16, 17, 18, 16, 18, 19,
+            // Bottom face
+            20, 21, 22, 20, 22, 23
         ]);
+
+        console.log('[JT Converter] Created detailed cube geometry:', {
+            vertexCount: positions.length / 3,
+            normalCount: normals.length / 3,
+            triangleCount: indices.length / 3,
+            faceCount: 6
+        });
 
         return { positions, normals, indices };
     }
