@@ -486,10 +486,16 @@ export const SceneTree: React.FC = () => {
   const rootNode = tree.getRootNode();
   const createCollection = useEditorStore((state) => state.createCollection);
   const deleteNode = useEditorStore((state) => state.deleteNode);
+  
+  // Debug: Log tree state
+  console.log('🌳 SceneTree render - rootNode:', rootNode);
+  console.log('🌳 SceneTree render - all nodes:', tree.getAllNodes());
 
   // Listen for tree updates
   useEffect(() => {
     const handleUpdate = () => {
+      console.log('🔄 SceneTree received scenetree-update event, forcing update...');
+      console.log('🌳 Current tree nodes:', tree.getAllNodes());
       forceUpdate((n) => n + 1);
     };
 

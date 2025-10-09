@@ -1,6 +1,8 @@
 // Toolbar component
 // Owner: Edwin
 
+console.log('🔧 Toolbar component is loading...');
+
 import { useRef } from 'react';
 import {
   Move,
@@ -37,6 +39,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
   const importURDFFolder = useEditorStore((state) => state.importURDFFolder);
   const saveWorld = useEditorStore((state) => state.saveWorld);
   const loadWorld = useEditorStore((state) => state.loadWorld);
+  console.log('🔧 About to get saveComprehensiveWorld from store...');
+  const saveComprehensiveWorld = useEditorStore((state) => state.saveComprehensiveWorld);
+  // const loadComprehensiveWorld = useEditorStore((state) => state.loadComprehensiveWorld);
+  
+  // Debug: Check if function exists
+  console.log('🔧 saveComprehensiveWorld function:', typeof saveComprehensiveWorld);
+  console.log('🔧 saveComprehensiveWorld value:', saveComprehensiveWorld);
   const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
   const commandManager = useEditorStore((state) => state.commandManager);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -59,7 +68,51 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
     { mode: 'scale', label: 'Scale', key: 'S', icon: <Scale size={16} /> },
   ];
 
-  const handleImportClick = () => {
+  const handleImportClick = async () => {
+    // Try to use File System Access API if available for better directory tracking
+    if ('showOpenFilePicker' in window) {
+      try {
+        console.log('[File Import] Attempting to use File System Access API...');
+        console.log('[File Import] Browser supports showOpenFilePicker:', !!('showOpenFilePicker' in window));
+        
+        const [fileHandle] = await (window as any).showOpenFilePicker({
+          types: [
+            {
+              description: '3D Model Files',
+              accept: {
+                'model/gltf-binary': ['.glb'],
+                'model/gltf+json': ['.gltf'],
+                'model/obj': ['.obj'],
+                'model/stl': ['.stl'],
+                'application/dxf': ['.dxf'],
+                'application/jt': ['.jt'],
+                'application/xml': ['.urdf'],
+                'model/babylon': ['.babylon'],
+                'application/zip': ['.zip']
+              }
+            }
+          ],
+          excludeAcceptAllOption: true
+        });
+        
+        const file = await fileHandle.getFile();
+        console.log(`[File Import] Selected file via File System Access API: ${file.name}`);
+        await importModel(file, fileHandle);
+        return;
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          console.log('[File Import] User cancelled file selection');
+          return;
+        }
+        console.warn('[File Import] File System Access API failed, falling back to regular input:', error);
+        console.log('[File Import] Error details:', error.message, error.name);
+      }
+    } else {
+      console.log('[File Import] File System Access API not available, using regular input');
+    }
+    
+    // Fallback to regular file input
+    console.log('[File Import] Using regular file input fallback');
     fileInputRef.current?.click();
   };
 
@@ -70,6 +123,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      console.log(`[File Selection] Selected file: ${file.name}`);
+      console.log(`[File Selection] webkitRelativePath: ${file.webkitRelativePath || 'not available'}`);
       await importModel(file);
       // Reset input so same file can be loaded again
       if (fileInputRef.current) {
@@ -280,7 +335,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
           <button
             className="toolbar-button-icon"
             onClick={handleImportClick}
-            title="Import 3D Model (glTF, GLB, OBJ, STL, DXF, JT, URDF, Babylon)"
+            title="Import 3D Model (glTF, GLB, OBJ, STL, DXF, JT, URDF, ZIP, Babylon)"
           >
             <Upload size={16} />
             <span className="button-label">Load File</span>
@@ -288,7 +343,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
           <input
             ref={fileInputRef}
             type="file"
-            accept={getAcceptedFileTypes()}
+            accept=".gltf,.glb,.obj,.stl,.babylon,.dxf,.dwg,.jt,.catpart,.catproduct,.catdrawing,.catprocess,.urdf,.zip"
             onChange={handleFileChange}
             style={{ display: 'none' }}
           />
@@ -341,10 +396,31 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
           <button
             className="toolbar-button-icon"
             onClick={saveWorld}
-            title="Save World to JSON file"
+            title="Save World (Metadata Only)"
           >
             <Save size={16} />
             <span className="button-label">Save</span>
+          </button>
+          <button
+            className="toolbar-button-icon"
+            onClick={() => {
+              console.log('SAVE FULL button clicked!');
+              try {
+                saveComprehensiveWorld();
+              } catch (error) {
+                console.error('Error calling saveComprehensiveWorld:', error);
+              }
+            }}
+            title="Save Comprehensive World (All Assets & Data)"
+            style={{ 
+              backgroundColor: '#FF6B35', 
+              color: 'white',
+              border: '2px solid #FF6B35',
+              fontWeight: 'bold'
+            }}
+          >
+            <Save size={16} />
+            <span className="button-label">SAVE FULL</span>
           </button>
           <button
             className="toolbar-button-icon"
