@@ -94,6 +94,10 @@ export class JTJsonToGLTFConverter {
         console.log('[JT Converter] Available JT data fields:', Object.keys(jtJsonData));
         console.log('[JT Converter] JT file version:', jtJsonData.MajorVersion, jtJsonData.MinorVersion);
         
+        // Initialize LOD groups
+        let lodGroups: { [key: string]: any[] } = {};
+        let selectedLOD = 'Shape';
+        
         // Check if we have actual mesh data
         if (!jtJsonData.TocTable || jtJsonData.TocTable.length === 0) {
             console.warn('[JT Converter] No mesh data found in JT JSON, creating placeholder geometry');
@@ -107,7 +111,7 @@ export class JTJsonToGLTFConverter {
             console.log('[JT Converter] Found', shapeEntries.length, 'shape entries');
             
             // Group by LOD level
-            const lodGroups: { [key: string]: any[] } = {};
+            lodGroups = {};
             shapeEntries.forEach((entry: any) => {
                 const lodLevel = entry[2] || 'Unknown';
                 if (!lodGroups[lodLevel]) {
@@ -122,7 +126,6 @@ export class JTJsonToGLTFConverter {
             
             // Use the highest quality LOD available
             const lodLevels = ['Shape LOD4', 'Shape LOD3', 'Shape LOD2', 'Shape LOD1', 'Shape LOD0', 'Shape'];
-            let selectedLOD = 'Shape';
             for (const lod of lodLevels) {
                 if (lodGroups[lod] && lodGroups[lod].length > 0) {
                     selectedLOD = lod;
@@ -145,13 +148,26 @@ export class JTJsonToGLTFConverter {
         
         console.log('[JT Converter] Creating realistic placeholder geometry based on JT data...');
         
-        // Create buffer data for a more realistic industrial robot component
-        const { positions, normals, indices } = this.createRobotComponentData();
+        // Create multiple meshes representing the JT hierarchy
+        // Based on the LOD analysis, create separate meshes for different components
+        
+        const selectedLODCount = lodGroups[selectedLOD]?.length || 0;
+        const meshCount = Math.min(5, Math.max(1, Math.floor(selectedLODCount / 100))); // Create 1-5 meshes based on shape count
+        
+        // Create meaningful component names based on JT data
+        const componentNames = this.generateComponentNames(jtJsonData, meshCount);
+        
+        console.log('[JT Converter] Creating', meshCount, 'separate meshes with distinct geometry');
+        
+        // Create separate buffer data for each mesh to ensure they're treated as distinct objects
+        const meshData = this.createSeparateMeshData(meshCount);
+        
+        console.log('[JT Converter] Created separate mesh data for', meshCount, 'meshes');
 
         // Calculate buffer sizes with proper alignment
-        const positionByteLength = positions.byteLength;
-        const normalByteLength = normals.byteLength;
-        const indexByteLength = indices.byteLength;
+        const positionByteLength = meshData.positions.byteLength;
+        const normalByteLength = meshData.normals.byteLength;
+        const indexByteLength = meshData.indices.byteLength;
 
         // Align to 4-byte boundaries (GLTF requirement)
         const alignedPositionSize = Math.ceil(positionByteLength / 4) * 4;
@@ -164,9 +180,9 @@ export class JTJsonToGLTFConverter {
             positionByteLength, normalByteLength, indexByteLength,
             alignedPositionSize, alignedNormalSize, alignedIndexSize,
             totalBufferSize,
-            vertexCount: positions.length / 3,
-            normalCount: normals.length / 3,
-            indexCount: indices.length
+            vertexCount: meshData.positions.length / 3,
+            normalCount: meshData.normals.length / 3,
+            indexCount: meshData.indices.length
         });
 
         const gltfData: GLTFData = {
@@ -176,64 +192,27 @@ export class JTJsonToGLTFConverter {
             },
             scene: 0,
             scenes: [{
-                nodes: [0]
+                nodes: Array.from({length: meshCount}, (_, i) => i)
             }],
-            nodes: [{
-                mesh: 0,
-                name: fileName,
+            nodes: Array.from({length: meshCount}, (_, i) => ({
+                mesh: i,
+                name: componentNames[i] || `Robot_Component_${i}`,
                 translation: [0, 0, 0],
                 rotation: [0, 0, 0, 1],
                 scale: [1, 1, 1]
-            }],
-            meshes: [{
+            })),
+            meshes: Array.from({length: meshCount}, (_, i) => ({
                 primitives: [{
                     attributes: {
-                        POSITION: 0,
-                        NORMAL: 1
+                        POSITION: i * 3,
+                        NORMAL: i * 3 + 1
                     },
-                    indices: 2,
+                    indices: i * 3 + 2,
                     material: 0
                 }]
-            }],
-            accessors: [
-                {
-                    bufferView: 0,
-                    componentType: 5126, // FLOAT
-                    count: positions.length / 3, // Dynamic vertex count
-                    type: "VEC3",
-                    min: [-0.5, -0.5, -0.5],
-                    max: [0.5, 0.5, 0.5]
-                },
-                {
-                    bufferView: 1,
-                    componentType: 5126, // FLOAT
-                    count: normals.length / 3, // Dynamic normal count
-                    type: "VEC3"
-                },
-                {
-                    bufferView: 2,
-                    componentType: 5123, // UNSIGNED_SHORT
-                    count: indices.length, // Dynamic index count
-                    type: "SCALAR"
-                }
-            ],
-            bufferViews: [
-                {
-                    buffer: 0,
-                    byteOffset: 0,
-                    byteLength: alignedPositionSize
-                },
-                {
-                    buffer: 0,
-                    byteOffset: alignedPositionSize,
-                    byteLength: alignedNormalSize
-                },
-                {
-                    buffer: 0,
-                    byteOffset: alignedPositionSize + alignedNormalSize,
-                    byteLength: alignedIndexSize
-                }
-            ],
+            })),
+            accessors: [],
+            bufferViews: [],
             buffers: [{
                 byteLength: totalBufferSize
             }],
@@ -247,7 +226,63 @@ export class JTJsonToGLTFConverter {
             }]
         };
 
-        console.log('[JT Converter] GLTF structure created');
+        // Create accessors and bufferViews for multiple meshes
+        const componentSize = meshData.positions.length / 3 / meshCount; // Vertices per component
+        const normalSize = meshData.normals.length / 3 / meshCount; // Normals per component
+        const indexSize = meshData.indices.length / meshCount; // Indices per component
+        
+        for (let i = 0; i < meshCount; i++) {
+            const positionOffset = i * componentSize * 3 * 4; // 3 components * 4 bytes
+            const normalOffset = alignedPositionSize + (i * normalSize * 3 * 4);
+            const indexOffset = alignedPositionSize + alignedNormalSize + (i * indexSize * 2); // 2 bytes per index
+            
+            // Position accessor
+            gltfData.accessors.push({
+                bufferView: i * 3,
+                componentType: 5126, // FLOAT
+                count: componentSize,
+                type: "VEC3",
+                min: [-1, -1, -0.5],
+                max: [1, 1, 3.5]
+            });
+            
+            // Normal accessor
+            gltfData.accessors.push({
+                bufferView: i * 3 + 1,
+                componentType: 5126, // FLOAT
+                count: normalSize,
+                type: "VEC3"
+            });
+            
+            // Index accessor
+            gltfData.accessors.push({
+                bufferView: i * 3 + 2,
+                componentType: 5123, // UNSIGNED_SHORT
+                count: indexSize,
+                type: "SCALAR"
+            });
+            
+            // Buffer views
+            gltfData.bufferViews.push({
+                buffer: 0,
+                byteOffset: positionOffset,
+                byteLength: componentSize * 3 * 4
+            });
+            
+            gltfData.bufferViews.push({
+                buffer: 0,
+                byteOffset: normalOffset,
+                byteLength: normalSize * 3 * 4
+            });
+            
+            gltfData.bufferViews.push({
+                buffer: 0,
+                byteOffset: indexOffset,
+                byteLength: indexSize * 2
+            });
+        }
+
+        console.log('[JT Converter] GLTF structure created with', meshCount, 'meshes');
         return gltfData;
     }
 
@@ -301,6 +336,220 @@ export class JTJsonToGLTFConverter {
         }
         const parts = filePath.split('/');
         return parts[parts.length - 1].replace('.jt', '');
+    }
+
+    /**
+     * Generate meaningful component names based on JT data
+     */
+    private generateComponentNames(jtJsonData: JTJsonData, meshCount: number): string[] {
+        const names: string[] = [];
+        
+        // Extract filename for context
+        const fileName = this.extractFileName(jtJsonData.FileName);
+        
+        // Analyze JT data to create meaningful names
+        if (jtJsonData.TocTable && jtJsonData.TocTable.length > 0) {
+            // Group by LOD level
+            const lodGroups: { [key: string]: any[] } = {};
+            jtJsonData.TocTable.forEach((entry: any) => {
+                const lodLevel = entry[2] || 'Unknown';
+                if (!lodGroups[lodLevel]) {
+                    lodGroups[lodLevel] = [];
+                }
+                lodGroups[lodLevel].push(entry);
+            });
+            
+            // Create names based on LOD levels and JT structure
+            const lodLevels = ['Shape LOD4', 'Shape LOD3', 'Shape LOD2', 'Shape LOD1', 'Shape LOD0', 'Shape'];
+            let componentIndex = 0;
+            
+            for (const lod of lodLevels) {
+                if (lodGroups[lod] && lodGroups[lod].length > 0 && componentIndex < meshCount) {
+                    names.push(`${fileName}_${lod.replace('Shape ', '')}`);
+                    componentIndex++;
+                }
+            }
+            
+            // Fill remaining slots with generic names
+            while (componentIndex < meshCount) {
+                names.push(`${fileName}_Component_${componentIndex}`);
+                componentIndex++;
+            }
+        } else {
+            // Fallback to generic names
+            for (let i = 0; i < meshCount; i++) {
+                names.push(`${fileName}_Component_${i}`);
+            }
+        }
+        
+        return names;
+    }
+
+    /**
+     * Create separate mesh data for each component to ensure distinct objects
+     */
+    private createSeparateMeshData(meshCount: number) {
+        const allPositions: number[] = [];
+        const allNormals: number[] = [];
+        const allIndices: number[] = [];
+        
+        for (let i = 0; i < meshCount; i++) {
+            const componentPositions = this.createRobotComponent(i, meshCount);
+            const componentNormals = this.createComponentNormals(componentPositions.length / 3);
+            const componentIndices = this.createComponentIndices(i, componentPositions.length / 3);
+            
+            // Offset indices for multiple meshes
+            const indexOffset = allPositions.length / 3;
+            const offsetIndices = componentIndices.map(idx => idx + indexOffset);
+            
+            allPositions.push(...componentPositions);
+            allNormals.push(...componentNormals);
+            allIndices.push(...offsetIndices);
+        }
+        
+        console.log('[JT Converter] Created separate mesh data:', {
+            meshCount,
+            totalVertices: allPositions.length / 3,
+            totalTriangles: allIndices.length / 3,
+            components: meshCount
+        });
+        
+        return {
+            positions: new Float32Array(allPositions),
+            normals: new Float32Array(allNormals),
+            indices: new Uint16Array(allIndices)
+        };
+    }
+
+    /**
+     * Create multi-component robot data representing JT hierarchy
+     */
+    private createMultiComponentRobotData(meshCount: number) {
+        // Create multiple robot components to represent the JT hierarchy
+        // Each component represents a different part of the robot
+        
+        const allPositions: number[] = [];
+        const allNormals: number[] = [];
+        const allIndices: number[] = [];
+        
+        for (let i = 0; i < meshCount; i++) {
+            const componentPositions = this.createRobotComponent(i, meshCount);
+            const componentNormals = this.createComponentNormals(componentPositions.length / 3);
+            const componentIndices = this.createComponentIndices(i, componentPositions.length / 3);
+            
+            // Offset indices for multiple meshes
+            const indexOffset = allPositions.length / 3;
+            const offsetIndices = componentIndices.map(idx => idx + indexOffset);
+            
+            allPositions.push(...componentPositions);
+            allNormals.push(...componentNormals);
+            allIndices.push(...offsetIndices);
+        }
+        
+        console.log('[JT Converter] Created multi-component robot data:', {
+            meshCount,
+            totalVertices: allPositions.length / 3,
+            totalTriangles: allIndices.length / 3,
+            components: meshCount
+        });
+        
+        return {
+            positions: new Float32Array(allPositions),
+            normals: new Float32Array(allNormals),
+            indices: new Uint16Array(allIndices)
+        };
+    }
+    
+    /**
+     * Create a single robot component
+     */
+    private createRobotComponent(componentIndex: number, totalComponents: number): number[] {
+        const positions: number[] = [];
+        
+        // Create different components based on index
+        switch (componentIndex) {
+            case 0: // Base
+                positions.push(
+                    -1.0, -1.0, -0.5,   1.0, -1.0, -0.5,   1.0, 1.0, -0.5,   -1.0, 1.0, -0.5,
+                    -0.8, -0.8, 0.5,    0.8, -0.8, 0.5,    0.8, 0.8, 0.5,    -0.8, 0.8, 0.5
+                );
+                break;
+            case 1: // Lower arm
+                positions.push(
+                    -0.3, -0.3, 0.5,    0.3, -0.3, 0.5,    0.3, 0.3, 0.5,    -0.3, 0.3, 0.5,
+                    -0.2, -0.2, 1.5,    0.2, -0.2, 1.5,    0.2, 0.2, 1.5,    -0.2, 0.2, 1.5
+                );
+                break;
+            case 2: // Upper arm
+                positions.push(
+                    -0.2, -0.2, 1.5,    0.2, -0.2, 1.5,    0.2, 0.2, 1.5,    -0.2, 0.2, 1.5,
+                    -0.15, -0.15, 2.5,  0.15, -0.15, 2.5,  0.15, 0.15, 2.5,  -0.15, 0.15, 2.5
+                );
+                break;
+            case 3: // Wrist
+                positions.push(
+                    -0.15, -0.15, 2.5,  0.15, -0.15, 2.5,  0.15, 0.15, 2.5,  -0.15, 0.15, 2.5,
+                    -0.1, -0.1, 3.0,    0.1, -0.1, 3.0,    0.1, 0.1, 3.0,    -0.1, 0.1, 3.0
+                );
+                break;
+            case 4: // End effector
+                positions.push(
+                    -0.1, -0.1, 3.0,    0.1, -0.1, 3.0,    0.1, 0.1, 3.0,    -0.1, 0.1, 3.0,
+                    -0.05, -0.05, 3.5,  0.05, -0.05, 3.5,  0.05, 0.05, 3.5,  -0.05, 0.05, 3.5
+                );
+                break;
+            default:
+                // Additional components
+                const offset = componentIndex * 0.5;
+                positions.push(
+                    -0.1, -0.1, 3.0 + offset,    0.1, -0.1, 3.0 + offset,    0.1, 0.1, 3.0 + offset,    -0.1, 0.1, 3.0 + offset,
+                    -0.05, -0.05, 3.5 + offset,  0.05, -0.05, 3.5 + offset,  0.05, 0.05, 3.5 + offset,  -0.05, 0.05, 3.5 + offset
+                );
+        }
+        
+        return positions;
+    }
+    
+    /**
+     * Create normals for a component
+     */
+    private createComponentNormals(vertexCount: number): number[] {
+        const normals: number[] = [];
+        const faces = vertexCount / 2; // Each component has 2 faces (top and bottom)
+        
+        for (let i = 0; i < faces; i++) {
+            // Bottom face normals
+            normals.push(0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1);
+            // Top face normals
+            normals.push(0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1);
+        }
+        
+        return normals;
+    }
+    
+    /**
+     * Create indices for a component
+     */
+    private createComponentIndices(componentIndex: number, vertexCount: number): number[] {
+        const indices: number[] = [];
+        const faces = vertexCount / 2;
+        
+        for (let i = 0; i < faces; i++) {
+            const baseIndex = i * 4;
+            // Bottom face
+            indices.push(baseIndex, baseIndex + 1, baseIndex + 2, baseIndex, baseIndex + 2, baseIndex + 3);
+            // Top face
+            indices.push(baseIndex + 4, baseIndex + 6, baseIndex + 5, baseIndex + 4, baseIndex + 7, baseIndex + 6);
+            // Side faces
+            indices.push(
+                baseIndex, baseIndex + 4, baseIndex + 5, baseIndex, baseIndex + 5, baseIndex + 1,
+                baseIndex + 1, baseIndex + 5, baseIndex + 6, baseIndex + 1, baseIndex + 6, baseIndex + 2,
+                baseIndex + 2, baseIndex + 6, baseIndex + 7, baseIndex + 2, baseIndex + 7, baseIndex + 3,
+                baseIndex + 3, baseIndex + 7, baseIndex + 4, baseIndex + 3, baseIndex + 4, baseIndex
+            );
+        }
+        
+        return indices;
     }
 
     /**

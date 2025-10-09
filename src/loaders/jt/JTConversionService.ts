@@ -31,7 +31,7 @@ export class JTConversionService {
     private healthCheckCache: { status: HealthStatus; timestamp: number } | null = null;
     private readonly HEALTH_CACHE_MS = 30000; // Cache health check for 30 seconds
 
-    constructor(apiUrl: string = 'http://localhost:8003') {
+    constructor(apiUrl: string = 'http://localhost:8005') {
         this.apiUrl = apiUrl;
     }
 
@@ -219,7 +219,7 @@ export class JTConversionService {
                 `1. Open PowerShell/Command Prompt\n` +
                 `2. cd C:\\Users\\George\\source\\repos\\PyOpenJt\\Server\n` +
                 `3. python JtConversionServer.py\n\n` +
-                `The server should start at http://localhost:8003`;
+                       `The server should start at http://localhost:8005`;
         }
 
         if (error.code === 503) {

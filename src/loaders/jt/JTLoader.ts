@@ -165,20 +165,30 @@ export async function loadJTFromFile(
                     `[JT Import] Loaded ${result.meshes.length} meshes, ` +
                     `${result.transformNodes.length} transform nodes from converted JT JSON`
                 );
+                
+                // Debug: Log mesh names and details
+                result.meshes.forEach((mesh, index) => {
+                    console.log(`[JT Import] Mesh ${index}: ${mesh.name}, vertices: ${mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind)?.length || 0}`);
+                });
+                
+                result.transformNodes.forEach((node, index) => {
+                    console.log(`[JT Import] TransformNode ${index}: ${node.name}`);
+                });
 
-                // Process the loaded meshes using the same logic as the main function
+                // Process the loaded meshes to create JT hierarchy
                 const processedMeshes: BABYLON.AbstractMesh[] = [];
                 const rootNodes: BABYLON.TransformNode[] = [];
 
-                // Create a single root node for the entire JT assembly
-                const assemblyRoot = new BABYLON.TransformNode(
-                    file.name.replace('.jt', ''),
-                    scene
-                );
-
-                // Add JT metadata to all meshes
-                result.meshes.forEach(mesh => {
+                // Create multiple root nodes representing different JT components
+                // Each mesh represents a different component of the robot
+                result.meshes.forEach((mesh, index) => {
                     if (mesh.name !== '__root__') {
+                        // Create a component root node for each mesh
+                        const componentRoot = new BABYLON.TransformNode(
+                            `JT_Component_${index}`,
+                            scene
+                        );
+
                         // Add JT metadata
                         if (!mesh.metadata) {
                             mesh.metadata = {};
@@ -186,22 +196,26 @@ export async function loadJTFromFile(
                         mesh.metadata.sourceFormat = 'jt';
                         mesh.metadata.originalFile = file.name;
                         mesh.metadata.convertedVia = 'json-to-gltf';
+                        mesh.metadata.componentIndex = index;
 
                         processedMeshes.push(mesh);
-                        mesh.setParent(assemblyRoot);
+                        mesh.setParent(componentRoot);
+                        rootNodes.push(componentRoot);
                     }
                 });
 
                 // Add metadata to transform nodes as well
-                result.transformNodes.forEach(node => {
-                    if (node.name !== '__root__' && node !== assemblyRoot) {
+                result.transformNodes.forEach((node, index) => {
+                    if (node.name !== '__root__') {
                         if (!node.metadata) {
                             node.metadata = {};
                         }
                         node.metadata.sourceFormat = 'jt';
                         node.metadata.originalFile = file.name;
                         node.metadata.convertedVia = 'json-to-gltf';
-                        node.setParent(assemblyRoot);
+                        node.metadata.componentIndex = index;
+                        
+                        // Don't set parent here as we want separate root nodes
                     }
                 });
 
@@ -213,10 +227,8 @@ export async function loadJTFromFile(
 
                 console.log(
                     `[JT Import] Processed converted JT: ${processedMeshes.length} meshes, ` +
-                    `${result.transformNodes.length} transform nodes under assembly root`
+                    `${rootNodes.length} component root nodes created`
                 );
-
-                rootNodes.push(assemblyRoot);
 
                 return {
                     meshes: processedMeshes,
