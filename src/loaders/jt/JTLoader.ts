@@ -34,6 +34,19 @@ import { convertJTToBabylonCoordinates, reverseTriangleWinding } from './coordin
 import { JTConversionService, JTConversionError } from './JTConversionService';
 
 /**
+ * Check if blob content is JSON
+ */
+async function isJsonContent(blob: Blob): Promise<boolean> {
+    try {
+        const text = await blob.text();
+        JSON.parse(text);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
  * Load JT file via PyOpenJt backend conversion to GLTF
  *
  * @param file - JT file to load
@@ -109,6 +122,30 @@ export async function loadJTFromFile(
         });
 
         console.log(`[JT Import] Conversion complete, loading GLTF...`);
+
+        // Check if we got JSON or GLTF based on content type
+        const contentType = gltfBlob.type || '';
+        const isJson = contentType.includes('application/json') || 
+                      (gltfBlob.size < 10000 && await isJsonContent(gltfBlob));
+
+        if (isJson) {
+            console.log(`[JT Import] Received JSON file, converting to GLTF...`);
+            // TODO: Implement JSON → GLTF conversion
+            // For now, we'll create a simple placeholder mesh
+            const placeholderMesh = BABYLON.MeshBuilder.CreateBox(
+                file.name.replace('.jt', '_placeholder'),
+                { size: 1 },
+                scene
+            );
+            placeholderMesh.metadata = {
+                sourceFormat: 'jt',
+                originalFile: file.name,
+                conversionStatus: 'json-received-needs-gltf-conversion'
+            };
+            
+            console.log(`[JT Import] Created placeholder mesh for JSON file`);
+            return placeholderMesh;
+        }
 
         // Load the converted GLTF file
         const gltfFile = new File([gltfBlob], file.name.replace('.jt', '.gltf'), {

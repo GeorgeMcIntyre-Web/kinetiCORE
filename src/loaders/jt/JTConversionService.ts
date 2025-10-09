@@ -153,13 +153,22 @@ export class JTConversionService {
             });
 
             const gltfBlob = await response.blob();
+            
+            // Preserve content type from response
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType) {
+                Object.defineProperty(gltfBlob, 'type', {
+                    value: contentType,
+                    writable: false
+                });
+            }
 
             // Validate blob
             if (gltfBlob.size === 0) {
                 throw new JTConversionError(
                     500,
                     'Conversion produced empty file',
-                    'The converted GLTF file has zero size'
+                    'The converted file has zero size'
                 );
             }
 
