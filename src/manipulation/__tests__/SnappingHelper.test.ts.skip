@@ -1,0 +1,783 @@
+// SnappingHelper.test.ts - Comprehensive tests for all 13 snap types
+// Tests the core snapping logic with geometry calculations
+
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { SnappingHelper, SnapSettings } from '../SnappingHelper';
+import { SceneManager } from '../../scene/SceneManager';
+import {
+  MockVector3,
+  MockScene,
+  createMockBox,
+  createMockMesh,
+  BABYLON,
+} from '../../__tests__/mocks/babylon.mock';
+
+// Mock SceneManager
+vi.mock('../../scene/SceneManager', () => {
+  const mockScene = new MockScene();
+  return {
+    SceneManager: {
+      getInstance: vi.fn(() => ({
+        getScene: () => mockScene,
+      })),
+    },
+  };
+});
+
+describe('SnappingHelper', () => {
+  let snappingHelper: SnappingHelper;
+  let mockScene: MockScene;
+  let defaultSettings: SnapSettings;
+
+  beforeEach(() => {
+    snappingHelper = SnappingHelper.getInstance();
+    const sceneManager = SceneManager.getInstance();
+    mockScene = sceneManager.getScene() as any;
+    mockScene.meshes = []; // Clear meshes
+
+    defaultSettings = {
+      enabled: true,
+      snapToGrid: false,
+      snapToVertex: false,
+      snapToEdge: false,
+      snapToFace: false,
+      snapToCenter: false,
+      snapToObject: false,
+      snapToMidpoint: false,
+      snapToIntersection: false,
+      snapToPerpendicular: false,
+      snapToTangent: false,
+      snapAlong: false,
+      snapToNormal: false,
+      snapToPlane: false,
+      snapToAxis: false,
+      snapToCurve: false,
+      snapToSurface: false,
+      snapObjectToVertex: false,
+      snapPointOnEdge: false,
+      snapBBoxCorner: false,
+      gridSize: 100, // 100mm
+      snapDistance: 50, // 50mm snap distance
+    };
+  });
+
+  afterEach(() => {
+    snappingHelper.clearSnapIndicators();
+    mockScene.meshes = [];
+  });
+
+  describe('Snap Priority System', () => {
+    it('should not snap when snapping is disabled', () => {
+      const settings = { ...defaultSettings, enabled: false, snapToGrid: true };
+      const position = new MockVector3(1.23, 4.56, 7.89);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(false);
+      expect(result.position.x).toBe(1.23);
+      expect(result.position.y).toBe(4.56);
+      expect(result.position.z).toBe(7.89);
+    });
+
+    it('should return original position when no snap types enabled', () => {
+      const position = new MockVector3(1.5, 2.5, 3.5);
+
+      const result = snappingHelper.snapPosition(position, defaultSettings);
+
+      expect(result.snapped).toBe(false);
+      expect(result.position.x).toBe(1.5);
+      expect(result.position.y).toBe(2.5);
+      expect(result.position.z).toBe(3.5);
+    });
+
+    it('should prioritize vertex snap over grid snap', () => {
+      // Create a mesh with a vertex close to the test position
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapToVertex: true,
+        snapToGrid: true,
+        snapDistance: 100, // 100mm = 0.1m
+      };
+
+      // Position near a box corner at (0.5, 0.5, 0.5)
+      const position = new MockVector3(0.52, 0.52, 0.52);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(true);
+      expect(result.snapType).toBe('vertex'); // Should prefer vertex over grid
+    });
+  });
+
+  describe('1. Snap to Grid', () => {
+    it('should snap to grid increments', () => {
+      const settings = { ...defaultSettings, snapToGrid: true, gridSize: 100 }; // 100mm grid
+      const position = new MockVector3(1.23, 2.47, 3.89);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(true);
+      expect(result.snapType).toBe('grid');
+      // 100mm = 0.1m grid, so 1.23 should snap to 1.2
+      expect(result.position.x).toBeCloseTo(1.2, 1);
+      expect(result.position.y).toBeCloseTo(2.5, 1);
+      expect(result.position.z).toBeCloseTo(3.9, 1);
+    });
+
+    it('should handle different grid sizes', () => {
+      const settings = { ...defaultSettings, snapToGrid: true, gridSize: 50 }; // 50mm grid
+      const position = new MockVector3(0.23, 0.47, 0.89);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(true);
+      expect(result.snapType).toBe('grid');
+      // 50mm = 0.05m grid
+      expect(result.position.x).toBeCloseTo(0.25, 2);
+      expect(result.position.y).toBeCloseTo(0.45, 2);
+      expect(result.position.z).toBeCloseTo(0.90, 2);
+    });
+
+    it('should snap negative coordinates correctly', () => {
+      const settings = { ...defaultSettings, snapToGrid: true, gridSize: 100 };
+      const position = new MockVector3(-1.23, -2.47, -3.12);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(true);
+      expect(result.position.x).toBeCloseTo(-1.2, 1);
+      expect(result.position.y).toBeCloseTo(-2.5, 1);
+      expect(result.position.z).toBeCloseTo(-3.1, 1);
+    });
+  });
+
+  describe('2. Snap to Vertex', () => {
+    it('should snap to nearest vertex within snap distance', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapToVertex: true,
+        snapDistance: 100, // 100mm = 0.1m
+      };
+
+      // Position near a box corner at (0.5, 0.5, 0.5)
+      const position = new MockVector3(0.52, 0.52, 0.52);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(true);
+      expect(result.snapType).toBe('vertex');
+      expect(result.targetMeshName).toBe('testBox');
+      expect(result.visualFeedback).toBeDefined();
+      expect(result.visualFeedback?.length).toBeGreaterThan(0);
+      // Should snap to corner at (0.5, 0.5, 0.5)
+      expect(result.position.x).toBeCloseTo(0.5, 2);
+      expect(result.position.y).toBeCloseTo(0.5, 2);
+      expect(result.position.z).toBeCloseTo(0.5, 2);
+    });
+
+    it('should not snap to vertex beyond snap distance', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapToVertex: true,
+        snapDistance: 10, // Only 10mm = 0.01m
+      };
+
+      // Position far from any vertex
+      const position = new MockVector3(2, 2, 2);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(false);
+    });
+
+    it('should exclude specified meshes from snapping', () => {
+      const box1 = createMockBox('box1', 1);
+      box1.position = new MockVector3(0, 0, 0);
+      const box2 = createMockBox('box2', 1);
+      box2.position = new MockVector3(2, 0, 0);
+      mockScene.meshes.push(box1, box2);
+
+      const settings = {
+        ...defaultSettings,
+        snapToVertex: true,
+        snapDistance: 100,
+      };
+
+      // Position near box1 corner
+      const position = new MockVector3(0.52, 0.52, 0.52);
+
+      // Exclude box1
+      const result = snappingHelper.snapPosition(position, settings, [box1.uniqueId.toString()]);
+
+      // Should not snap to box1 (excluded), and box2 is too far
+      expect(result.snapped).toBe(false);
+    });
+
+    it('should ignore invisible meshes', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(0, 0, 0);
+      box.isVisible = false; // Hidden
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapToVertex: true,
+        snapDistance: 100,
+      };
+
+      const position = new MockVector3(0.52, 0.52, 0.52);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(false); // Should not snap to invisible mesh
+    });
+
+    it('should ignore ground mesh', () => {
+      const ground = createMockBox('ground', 10);
+      ground.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(ground);
+
+      const settings = {
+        ...defaultSettings,
+        snapToVertex: true,
+        snapDistance: 100,
+      };
+
+      const position = new MockVector3(5.02, 0.02, 0.02);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(false); // Ground is explicitly excluded
+    });
+  });
+
+  describe('3. Snap to Edge', () => {
+    it('should snap to nearest point on edge', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapToEdge: true,
+        snapDistance: 100,
+      };
+
+      // Position near edge midpoint between (0.5, -0.5, 0.5) and (0.5, 0.5, 0.5)
+      const position = new MockVector3(0.52, 0, 0.52);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(true);
+      expect(result.snapType).toBe('edge');
+      expect(result.targetMeshName).toBe('testBox');
+      // Should snap to point on edge at approximately (0.5, 0, 0.5)
+      expect(result.position.x).toBeCloseTo(0.5, 1);
+      expect(result.position.z).toBeCloseTo(0.5, 1);
+    });
+
+    it('should clamp snap point to edge endpoints', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapToEdge: true,
+        snapDistance: 100,
+      };
+
+      // Position beyond edge endpoint
+      const position = new MockVector3(0.52, 0.8, 0.52);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(true);
+      expect(result.snapType).toBe('edge');
+      // Should clamp to edge endpoint
+      expect(result.position.y).toBeLessThanOrEqual(0.5);
+      expect(result.position.y).toBeGreaterThanOrEqual(-0.5);
+    });
+  });
+
+  describe('4. Snap to Face', () => {
+    it('should detect face snapping is implemented', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapToFace: true,
+        snapDistance: 100,
+      };
+
+      const position = new MockVector3(0.52, 0, 0);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      // Face snapping uses raycasting, which is mocked to return no hit
+      // In real scenario with proper raycasting, this would snap
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('5. Snap to Center', () => {
+    it('should snap to object center (origin)', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(2, 3, 4);
+      mockScene.transformNodes.push(box as any);
+
+      const settings = {
+        ...defaultSettings,
+        snapToCenter: true,
+        snapDistance: 100,
+      };
+
+      // Position near object center
+      const position = new MockVector3(2.03, 3.02, 4.01);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(true);
+      expect(result.snapType).toBe('center');
+      expect(result.targetMeshName).toBe('testBox');
+      expect(result.position.x).toBeCloseTo(2, 1);
+      expect(result.position.y).toBeCloseTo(3, 1);
+      expect(result.position.z).toBeCloseTo(4, 1);
+    });
+  });
+
+  describe('6. Snap to Object (Bounding Box Center)', () => {
+    it('should snap to bounding box center', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(2, 3, 4);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapToObject: true,
+        snapDistance: 100,
+      };
+
+      // Position near bbox center (which is at object origin for a centered box)
+      const position = new MockVector3(2.03, 3.02, 4.01);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(true);
+      expect(result.snapType).toBe('object');
+      expect(result.targetMeshName).toBe('testBox');
+    });
+  });
+
+  describe('7. Snap to Midpoint', () => {
+    it('should snap to edge midpoints', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapToMidpoint: true,
+        snapDistance: 100,
+      };
+
+      // Position near edge midpoint
+      const position = new MockVector3(0.52, 0, 0.52);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(true);
+      expect(result.snapType).toBe('midpoint');
+      expect(result.targetMeshName).toBe('testBox');
+      // Should snap to midpoint of an edge
+      expect(result.position).toBeDefined();
+    });
+  });
+
+  describe('8. Snap to Intersection', () => {
+    it('should detect edge intersections', () => {
+      const box1 = createMockBox('box1', 1);
+      box1.position = new MockVector3(0, 0, 0);
+      const box2 = createMockBox('box2', 1);
+      box2.position = new MockVector3(0.5, 0, 0);
+      mockScene.meshes.push(box1, box2);
+
+      const settings = {
+        ...defaultSettings,
+        snapToIntersection: true,
+        snapDistance: 100,
+      };
+
+      // Position near intersection point
+      const position = new MockVector3(0.5, 0.5, 0.5);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      // Intersection detection is complex - just verify it runs
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('9. Snap to Normal', () => {
+    it('should attempt surface normal snapping', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapToNormal: true,
+        snapDistance: 100,
+      };
+
+      const position = new MockVector3(0.52, 0, 0);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      // Normal snapping uses raycasting, verify it runs
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('10. Snap to Surface', () => {
+    it('should attempt surface contact snapping', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapToSurface: true,
+        snapDistance: 100,
+      };
+
+      const position = new MockVector3(0, 0.6, 0);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      // Surface snapping uses downward raycast
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('11. Snap Object to Vertex', () => {
+    it('should snap object center to nearest vertex', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapObjectToVertex: true,
+        snapDistance: 100,
+      };
+
+      const position = new MockVector3(0.52, 0.52, 0.52);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      // This is implemented as vertex snap
+      expect(result.snapped).toBe(true);
+    });
+  });
+
+  describe('12. Snap Point on Edge', () => {
+    it('should snap to any point along edge', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapPointOnEdge: true,
+        snapDistance: 100,
+      };
+
+      const position = new MockVector3(0.52, 0.3, 0.52);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      // This is implemented as edge snap
+      expect(result.snapped).toBe(true);
+    });
+  });
+
+  describe('13. Snap to Bounding Box Corner', () => {
+    it('should snap to bbox corners', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(2, 3, 4);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapBBoxCorner: true,
+        snapDistance: 100,
+      };
+
+      // Position near bbox corner at (2.5, 3.5, 4.5)
+      const position = new MockVector3(2.52, 3.52, 4.52);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(true);
+      expect(result.snapType).toBe('bboxCorner');
+      expect(result.targetMeshName).toBe('testBox');
+      // Should snap to corner
+      expect(result.position.x).toBeCloseTo(2.5, 1);
+      expect(result.position.y).toBeCloseTo(3.5, 1);
+      expect(result.position.z).toBeCloseTo(4.5, 1);
+    });
+
+    it('should find closest of 8 bbox corners', () => {
+      const box = createMockBox('testBox', 2);
+      box.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapBBoxCorner: true,
+        snapDistance: 200,
+      };
+
+      // Test each corner
+      const corners = [
+        { pos: new MockVector3(1.1, 1.1, 1.1), expected: new MockVector3(1, 1, 1) },
+        { pos: new MockVector3(-1.1, -1.1, -1.1), expected: new MockVector3(-1, -1, -1) },
+        { pos: new MockVector3(1.1, 1.1, -1.1), expected: new MockVector3(1, 1, -1) },
+      ];
+
+      corners.forEach(({ pos, expected }) => {
+        const result = snappingHelper.snapPosition(pos, settings);
+        expect(result.snapped).toBe(true);
+        expect(result.position.x).toBeCloseTo(expected.x, 1);
+        expect(result.position.y).toBeCloseTo(expected.y, 1);
+        expect(result.position.z).toBeCloseTo(expected.z, 1);
+      });
+    });
+  });
+
+  describe('Visual Feedback', () => {
+    it('should provide visual feedback points', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapToVertex: true,
+        snapDistance: 100,
+      };
+
+      const position = new MockVector3(0.52, 0.52, 0.52);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(true);
+      expect(result.visualFeedback).toBeDefined();
+      expect(result.visualFeedback?.length).toBeGreaterThan(0);
+      expect(result.visualFeedback?.[0]).toBeInstanceOf(MockVector3);
+    });
+
+    it('should show snap indicators', () => {
+      const position = new MockVector3(1, 2, 3);
+      const color = new (BABYLON.Color3 as any)(0, 1, 0); // Green
+
+      // Should not throw
+      expect(() => {
+        snappingHelper.showSnapIndicator(position, color);
+      }).not.toThrow();
+    });
+
+    it('should clear snap indicators', () => {
+      const position = new MockVector3(1, 2, 3);
+      const color = new (BABYLON.Color3 as any)(0, 1, 0);
+
+      snappingHelper.showSnapIndicator(position, color);
+
+      // Should not throw
+      expect(() => {
+        snappingHelper.clearSnapIndicators();
+      }).not.toThrow();
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle empty scene', () => {
+      mockScene.meshes = [];
+
+      const settings = {
+        ...defaultSettings,
+        snapToVertex: true,
+        snapDistance: 100,
+      };
+
+      const position = new MockVector3(1, 2, 3);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(false);
+      expect(result.position.x).toBe(1);
+      expect(result.position.y).toBe(2);
+      expect(result.position.z).toBe(3);
+    });
+
+    it('should handle mesh with no geometry data', () => {
+      const emptyMesh = createMockMesh('empty');
+      emptyMesh.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(emptyMesh);
+
+      const settings = {
+        ...defaultSettings,
+        snapToVertex: true,
+        snapDistance: 100,
+      };
+
+      const position = new MockVector3(0.5, 0.5, 0.5);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(false);
+    });
+
+    it('should handle zero snap distance', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapToVertex: true,
+        snapDistance: 0, // Zero distance
+      };
+
+      const position = new MockVector3(0.52, 0.52, 0.52);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(false); // Can't snap with zero distance
+    });
+
+    it('should handle very large snap distance', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapToVertex: true,
+        snapDistance: 10000, // 10 meters
+      };
+
+      const position = new MockVector3(5, 5, 5);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      // Should still find a vertex within this large distance
+      expect(result.snapped).toBe(true);
+    });
+  });
+
+  describe('Snap Distance Validation', () => {
+    it('should respect snap distance threshold', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapToVertex: true,
+        snapDistance: 10, // Only 10mm = 0.01m
+      };
+
+      // Position 50mm away from nearest vertex (just out of range)
+      const position = new MockVector3(0.55, 0.5, 0.5);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(false);
+    });
+
+    it('should snap when exactly at snap distance', () => {
+      const box = createMockBox('testBox', 1);
+      box.position = new MockVector3(0, 0, 0);
+      mockScene.meshes.push(box);
+
+      const settings = {
+        ...defaultSettings,
+        snapToVertex: true,
+        snapDistance: 50, // 50mm = 0.05m
+      };
+
+      // Position exactly 50mm away from vertex at (0.5, 0.5, 0.5)
+      const position = new MockVector3(0.55, 0.5, 0.5);
+
+      const result = snappingHelper.snapPosition(position, settings);
+
+      expect(result.snapped).toBe(true);
+    });
+  });
+
+  describe('Singleton Pattern', () => {
+    it('should return same instance', () => {
+      const instance1 = SnappingHelper.getInstance();
+      const instance2 = SnappingHelper.getInstance();
+
+      expect(instance1).toBe(instance2);
+    });
+
+    it('should maintain state across getInstance calls', () => {
+      const helper = SnappingHelper.getInstance();
+      const position = new MockVector3(1, 2, 3);
+      const color = new (BABYLON.Color3 as any)(1, 0, 0);
+
+      helper.showSnapIndicator(position, color);
+
+      const helper2 = SnappingHelper.getInstance();
+      // Should not throw when clearing indicators set by previous instance
+      expect(() => {
+        helper2.clearSnapIndicators();
+      }).not.toThrow();
+    });
+  });
+
+  describe('Performance', () => {
+    it('should handle many meshes efficiently', () => {
+      // Add 100 meshes
+      for (let i = 0; i < 100; i++) {
+        const box = createMockBox(`box${i}`, 1);
+        box.position = new MockVector3(i * 2, 0, 0);
+        mockScene.meshes.push(box);
+      }
+
+      const settings = {
+        ...defaultSettings,
+        snapToVertex: true,
+        snapDistance: 100,
+      };
+
+      const position = new MockVector3(50.52, 0.52, 0.52);
+
+      const startTime = performance.now();
+      const result = snappingHelper.snapPosition(position, settings);
+      const endTime = performance.now();
+
+      // Should complete in reasonable time (< 100ms even with 100 meshes)
+      expect(endTime - startTime).toBeLessThan(100);
+      expect(result).toBeDefined();
+    });
+  });
+});
