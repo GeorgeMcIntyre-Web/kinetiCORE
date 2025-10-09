@@ -2,10 +2,11 @@
 // Owner: Edwin
 // Location: src/ui/components/CameraViewControls.tsx
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import { useEditorStore } from '../store/editorStore';
-import { Eye } from 'lucide-react';
+import { Square, ArrowRight, ArrowUp, Box, Navigation } from 'lucide-react';
+import { MoveObjectDialog } from './MoveObjectDialog';
 
 type CameraView = 'front' | 'back' | 'top' | 'bottom' | 'left' | 'right' | 'perspective';
 
@@ -145,30 +146,56 @@ export const useCameraViewShortcuts = () => {
 // UI Component for camera view buttons
 export const CameraViewControls: React.FC = () => {
   const { setCameraView } = useCameraViewShortcuts();
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+
+  const iconSize = 16; // Consistent icon size for all buttons
+
+  const viewIcons: Record<CameraView, JSX.Element> = {
+    front: <Square size={iconSize} />,
+    right: <ArrowRight size={iconSize} />,
+    top: <ArrowUp size={iconSize} />,
+    perspective: <Box size={iconSize} />,
+    back: <Square size={iconSize} />,
+    left: <ArrowRight size={iconSize} />,
+    bottom: <ArrowUp size={iconSize} />,
+  };
 
   const views: CameraView[] = ['front', 'right', 'top', 'perspective'];
 
   return (
-    <div className="absolute top-4 left-4 flex flex-col gap-2 bg-gray-900 bg-opacity-90 rounded-lg p-2 border border-gray-700">
-      <div className="flex items-center gap-2 px-2 pb-2 border-b border-gray-700">
-        <Eye size={16} className="text-gray-400" />
-        <span className="text-xs text-gray-400 font-semibold">Views</span>
+    <>
+      <div className="absolute top-4 left-4 flex flex-col gap-2 bg-gray-900 bg-opacity-90 rounded-lg p-2 border border-gray-700">
+        {views.map((view) => {
+          const preset = cameraPresets[view];
+          return (
+            <button
+              key={view}
+              onClick={() => setCameraView(view)}
+              title={preset.description}
+              className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center justify-center"
+            >
+              {viewIcons[view]}
+            </button>
+          );
+        })}
+
+        {/* Separator */}
+        <div className="h-px bg-gray-700 my-1"></div>
+
+        {/* Move Object Button */}
+        <button
+          onClick={() => setShowMoveDialog(true)}
+          disabled={!selectedNodeId}
+          title={selectedNodeId ? "Quick Move Dialog (Relative/Absolute positioning)" : "Select an object first"}
+          className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Navigation size={iconSize} />
+        </button>
       </div>
 
-      {views.map((view) => {
-        const preset = cameraPresets[view];
-        return (
-          <button
-            key={view}
-            onClick={() => setCameraView(view)}
-            title={preset.description}
-            className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white text-xs rounded transition-colors"
-          >
-            {preset.name}
-            <span className="ml-2 text-gray-500 text-[10px]">{preset.key}</span>
-          </button>
-        );
-      })}
-    </div>
+      {/* Move Object Dialog */}
+      <MoveObjectDialog isOpen={showMoveDialog} onClose={() => setShowMoveDialog(false)} />
+    </>
   );
 };

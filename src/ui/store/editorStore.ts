@@ -111,6 +111,7 @@ interface EditorState {
   loadWorld: (file: File) => Promise<void>;
   saveBabylonWorld: () => void;
   loadBabylonWorld: (file: File) => Promise<void>;
+  clearWorld: () => void;
   setTransformMode: (mode: TransformMode) => void;
   setCamera: (camera: BABYLON.Camera) => void;
   togglePlayback: () => void;
@@ -1234,6 +1235,112 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       loading.end();
       toast.error('Failed to load Babylon world. Check console for details.');
     }
+  },
+
+  // Clear all objects from world
+  clearWorld: () => {
+    const tree = SceneTreeManager.getInstance();
+    const registry = EntityRegistry.getInstance();
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+
+    // Clear selection first
+    get().clearSelection();
+
+    // Get all user-created nodes (under Assets)
+    const assetsNode = tree.getAssetsNode();
+    if (!assetsNode) {
+      toast.warning('No assets to clear');
+      return;
+    }
+
+    // Get all children of Assets (copy array to avoid modification during iteration)
+    const childrenToDelete = assetsNode.childIds ? [...assetsNode.childIds] : [];
+
+    if (childrenToDelete.length === 0) {
+      toast.info('World is already empty');
+      return;
+    }
+
+    let deletedCount = 0;
+
+    // Delete all children of Assets recursively
+    const deleteNodeRecursively = (nodeId: string) => {
+      const node = tree.getNode(nodeId);
+      if (!node) return;
+
+      // First delete all children
+      const children = [...(node.childIds || [])];
+      children.forEach(childId => deleteNodeRecursively(childId));
+
+      // Delete entity and Babylon mesh if it exists
+      if (node.entityId) {
+        const entity = registry.get(node.entityId);
+        if (entity) {
+          entity.dispose();
+          registry.remove(node.entityId);
+        }
+      }
+
+      // Also dispose Babylon mesh directly if it exists
+      if (node.babylonMeshId && scene) {
+        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+        if (mesh) {
+          mesh.dispose();
+        }
+      }
+
+      // Dispose TransformNode if it exists
+      if (node.babylonTransformNodeId && scene) {
+        const transformNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId));
+        if (transformNode) {
+          transformNode.dispose();
+        }
+      }
+
+      // Delete from tree
+      tree.deleteNode(nodeId);
+      deletedCount++;
+    };
+
+    // Delete all top-level children of Assets
+    childrenToDelete.forEach(childId => deleteNodeRecursively(childId));
+
+    // Also dispose any orphaned meshes in the scene (safety cleanup)
+    if (scene) {
+      const meshesToDispose = scene.meshes.filter(
+        mesh => mesh.name !== 'ground' && mesh.name !== '__root__' && !mesh.name.startsWith('grid')
+      );
+      meshesToDispose.forEach(mesh => {
+        try {
+          mesh.dispose();
+        } catch (error) {
+          console.error(`Failed to dispose mesh ${mesh.name}:`, error);
+        }
+      });
+
+      // Also dispose orphaned transform nodes
+      const transformNodesToDispose = scene.transformNodes.filter(
+        node => node.name !== '__root__' && !node.name.startsWith('__root')
+      );
+      transformNodesToDispose.forEach(node => {
+        try {
+          node.dispose();
+        } catch (error) {
+          console.error(`Failed to dispose transform node ${node.name}:`, error);
+        }
+      });
+    }
+
+    // Clear command history
+    get().commandManager.clear();
+
+    // Force multiple UI updates to ensure tree refreshes
+    window.dispatchEvent(new Event('scenetree-update'));
+    setTimeout(() => window.dispatchEvent(new Event('scenetree-update')), 0);
+    setTimeout(() => window.dispatchEvent(new Event('scenetree-update')), 100);
+
+    toast.success(`Cleared ${deletedCount} object(s)`);
   },
 
   // Transform update actions

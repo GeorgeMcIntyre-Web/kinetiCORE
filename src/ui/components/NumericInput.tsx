@@ -2,8 +2,7 @@
 // Owner: Edwin
 // Location: src/ui/components/NumericInput.tsx
 
-import { useState, useRef, useEffect } from 'react';
-import { ChevronsLeftRight } from 'lucide-react';
+import { useState, useRef } from 'react';
 
 interface NumericInputProps {
   value: number;
@@ -26,7 +25,6 @@ export const NumericInput: React.FC<NumericInputProps> = ({
   min = -Infinity,
   max = Infinity,
   step = 1,
-  dragSpeed = 0.1,
   precision = 1,
   unit = '',
   axisColor = 'default',
@@ -34,13 +32,10 @@ export const NumericInput: React.FC<NumericInputProps> = ({
   onFocus,
   onBlur,
 }) => {
-  const [isDragging, setIsDragging] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value.toFixed(precision));
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const dragStartX = useRef(0);
-  const dragStartValue = useRef(0);
 
   const colorClasses = {
     red: 'border-red-500 focus:border-red-400',
@@ -49,52 +44,7 @@ export const NumericInput: React.FC<NumericInputProps> = ({
     default: 'border-gray-600 focus:border-blue-500',
   };
 
-  const gripColorClasses = {
-    red: 'text-red-500',
-    green: 'text-green-500',
-    blue: 'text-blue-500',
-    default: 'text-gray-500',
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (disabled || isEditing) return;
-
-    setIsDragging(true);
-    dragStartX.current = e.clientX;
-    dragStartValue.current = value;
-
-    // Prevent text selection during drag
-    e.preventDefault();
-  };
-
-  useEffect(() => {
-    if (!isDragging) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const deltaX = e.clientX - dragStartX.current;
-      const deltaValue = deltaX * dragSpeed * step;
-      const newValue = Math.max(min, Math.min(max, dragStartValue.current + deltaValue));
-
-      onChange(parseFloat(newValue.toFixed(precision)));
-
-      // Change cursor to indicate dragging
-      document.body.style.cursor = 'ew-resize';
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      document.body.style.cursor = 'default';
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'default';
-    };
-  }, [isDragging, onChange, min, max, step, precision, dragSpeed]);
+  // Drag functionality removed - keyboard input only
 
   const handleInputFocus = () => {
     setIsEditing(true);
@@ -132,42 +82,10 @@ export const NumericInput: React.FC<NumericInputProps> = ({
 
   const displayValue = isEditing ? editValue : value.toFixed(precision);
 
-  // Background gradient classes for drag feedback
-  const dragGradientClasses = {
-    red: 'from-red-900/30 to-transparent',
-    green: 'from-green-900/30 to-transparent',
-    blue: 'from-blue-900/30 to-transparent',
-    default: 'from-gray-700/50 to-transparent',
-  };
-
   return (
-    <div className="relative flex items-center group">
-      {/* Drag indicator icon */}
-      <div
-        className={`
-          absolute left-1 top-1/2 -translate-y-1/2 cursor-ew-resize
-          transition-opacity pointer-events-none z-10
-          ${gripColorClasses[axisColor]}
-          ${disabled ? 'cursor-not-allowed opacity-30' : ''}
-          ${isDragging ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'}
-        `}
-      >
-        <ChevronsLeftRight size={12} />
-      </div>
-
-      {/* Input field with gradient background on drag */}
-      <div className="relative w-full" onMouseDown={handleMouseDown}>
-        {/* Animated gradient background */}
-        {isDragging && (
-          <div
-            className={`
-              absolute inset-0 rounded pointer-events-none
-              bg-gradient-to-r ${dragGradientClasses[axisColor]}
-              animate-pulse
-            `}
-          />
-        )}
-
+    <div className="relative flex items-center">
+      {/* Input field - keyboard only */}
+      <div className="relative w-full">
         <input
           ref={inputRef}
           type="text"
@@ -178,10 +96,9 @@ export const NumericInput: React.FC<NumericInputProps> = ({
           onKeyDown={handleKeyDown}
           disabled={disabled}
           className={`
-            relative w-full pl-6 pr-2 py-1.5 bg-gray-800 rounded text-sm
+            w-full px-2 py-1.5 bg-gray-800 rounded text-sm
             text-white text-center font-mono transition-all
             ${colorClasses[axisColor]}
-            ${isDragging ? 'select-none' : ''}
             ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-750'}
             focus:outline-none focus:bg-gray-750
           `}

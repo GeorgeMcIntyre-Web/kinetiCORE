@@ -43,8 +43,9 @@ export async function findMeshFilesForURDF(urdfFile: File): Promise<File[]> {
         `Standard folder structures are supported (e.g., meshes/visual/*.stl)`;
 
       console.log(message);
+      console.log('[URDF Mesh Finder] Opening directory picker for mesh files...');
 
-      // Show directory picker
+      // Show directory picker directly (browser will show its own native dialog)
       const dirHandle = await (window as any).showDirectoryPicker({
         mode: 'read',
         startIn: 'downloads', // Hint to start in downloads folder

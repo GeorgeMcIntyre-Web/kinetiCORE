@@ -12,7 +12,6 @@ import { useUserLevel } from '../core/UserLevelContext';
 import { CoordinateFrame } from './CoordinateFrame';
 import { ContextMenu, useViewportContextMenu } from './ContextMenu';
 import { CameraViewControls } from './CameraViewControls';
-import { TransformHUD } from './TransformHUD';
 import { TransformSettings } from './TransformSettings';
 import { TemporaryOrigin } from './TemporaryOrigin';
 import { AlignTool } from './AlignTool';
@@ -458,11 +457,8 @@ export const SceneCanvas: React.FC = () => {
       {/* Camera view controls */}
       <CameraViewControls />
 
-      {/* Transform HUD - Bottom right position/rotation display (only when object selected) */}
-      <TransformHUD />
-
       {/* Transform Settings - Vertical icon strip on left side (ALWAYS VISIBLE) */}
-      <div className="absolute top-56 left-4 flex flex-col gap-1 z-50">
+      <div className="absolute top-72 left-4 flex flex-col gap-1 z-50">
         <TransformSettings />
         <SnapToolbar />
         <AlignTool />

@@ -194,6 +194,10 @@ export class SceneManager {
     this.camera.orthoTop = orthoSize;
     this.camera.orthoBottom = -orthoSize;
 
+    // Set clipping planes to handle large range (0.01m to 20km)
+    this.camera.minZ = 0.01; // 1cm near plane
+    this.camera.maxZ = 20000; // 20km far plane
+
     // Render loop
     this.engine.runRenderLoop(() => {
       // Update orthographic zoom based on camera radius
@@ -204,6 +208,15 @@ export class SceneManager {
         this.camera.orthoRight = orthoSize * aspectRatio;
         this.camera.orthoTop = orthoSize;
         this.camera.orthoBottom = -orthoSize;
+
+        // Dynamic wheel precision: slower when far out, faster when close in
+        // wheelPrecision = base * (radius / reference)
+        // At radius 15m (default): precision = 50 * (15 / 15) = 50 (baseline)
+        // At radius 100m (far): precision = 50 * (100 / 15) = 333 (slower)
+        // At radius 1m (close): precision = 50 * (1 / 15) = 3.3 (faster)
+        const basePrecision = 50;
+        const referenceRadius = CAMERA_DEFAULT_RADIUS;
+        this.camera.wheelPrecision = basePrecision * (this.camera.radius / referenceRadius);
       }
       this.scene?.render();
     });
@@ -356,7 +369,15 @@ export class SceneManager {
     const boundingBox = boundingInfo.boundingBox;
     const center = boundingBox.centerWorld;
 
-    // Only animate the target (rotation center), not the radius (zoom)
+    // Calculate bounding box size
+    const size = boundingBox.extendSizeWorld;
+    const maxDimension = Math.max(size.x, size.y, size.z) * 2;
+
+    // Calculate appropriate radius to fit the object
+    // Add padding factor (2.0x) to frame object nicely without clipping
+    const targetRadius = Math.max(maxDimension * 2.0, CAMERA_MIN_RADIUS);
+
+    // Animate both target and radius
     BABYLON.Animation.CreateAndStartAnimation(
       'setCameraTarget',
       this.camera,
@@ -365,6 +386,17 @@ export class SceneManager {
       30,
       this.camera.target,
       center,
+      BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+    );
+
+    BABYLON.Animation.CreateAndStartAnimation(
+      'setCameraRadius',
+      this.camera,
+      'radius',
+      60,
+      30,
+      this.camera.radius,
+      targetRadius,
       BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
     );
   }
@@ -400,14 +432,23 @@ export class SceneManager {
       maxZ = Math.max(maxZ, max.z);
     });
 
-    // Calculate center
+    // Calculate center and size
     const center = new BABYLON.Vector3(
       (minX + maxX) / 2,
       (minY + maxY) / 2,
       (minZ + maxZ) / 2
     );
 
-    // Only animate the target (rotation center), not the radius (zoom)
+    const sizeX = maxX - minX;
+    const sizeY = maxY - minY;
+    const sizeZ = maxZ - minZ;
+    const maxDimension = Math.max(sizeX, sizeY, sizeZ);
+
+    // Calculate appropriate radius to fit the object
+    // Add padding factor (2.0x) to frame object nicely without clipping
+    const targetRadius = Math.max(maxDimension * 2.0, CAMERA_MIN_RADIUS);
+
+    // Animate both target and radius
     BABYLON.Animation.CreateAndStartAnimation(
       'setCameraTarget',
       this.camera,
@@ -416,6 +457,17 @@ export class SceneManager {
       30,
       this.camera.target,
       center,
+      BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+    );
+
+    BABYLON.Animation.CreateAndStartAnimation(
+      'setCameraRadius',
+      this.camera,
+      'radius',
+      60,
+      30,
+      this.camera.radius,
+      targetRadius,
       BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
     );
   }

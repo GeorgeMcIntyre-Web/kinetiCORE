@@ -20,10 +20,12 @@ import {
   Download,
   Undo,
   Redo,
+  Navigation,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { DockableLayoutWrapper } from './DockableLayoutWrapper';
+import { MoveObjectDialog } from '../components/MoveObjectDialog';
 import './ProfessionalModeLayout.css';
 
 export const ProfessionalModeLayout: React.FC = () => {
@@ -46,6 +48,7 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'analysis'>('modeling');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [savedLayout, setSavedLayout] = useState<any>(null);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
 
   // Load saved panel layout on mount
   useEffect(() => {
@@ -333,6 +336,15 @@ export const ProfessionalModeLayout: React.FC = () => {
               <Copy size={20} />
               <span>Duplicate</span>
             </button>
+            <button
+              className="tool-btn"
+              disabled={!selectedNodeId}
+              title={selectedNodeId ? "Quick Move Dialog (Relative/Absolute positioning)" : "Select an object first"}
+              onClick={() => setShowMoveDialog(true)}
+            >
+              <Navigation size={20} />
+              <span>Position</span>
+            </button>
           </div>
         </div>
 
@@ -426,6 +438,9 @@ export const ProfessionalModeLayout: React.FC = () => {
         onChange={handleFileChange}
         style={{ display: 'none' }}
       />
+
+      {/* Move Object Dialog */}
+      <MoveObjectDialog isOpen={showMoveDialog} onClose={() => setShowMoveDialog(false)} />
     </div>
   );
 };

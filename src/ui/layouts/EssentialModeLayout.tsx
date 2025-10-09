@@ -16,6 +16,7 @@ import {
   Library,
   Cog,
   Settings,
+  Trash2,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
@@ -38,7 +39,9 @@ export const EssentialModeLayout: React.FC = () => {
   const importModel = useEditorStore((state) => state.importModel);
   const loadWorld = useEditorStore((state) => state.loadWorld);
   const saveWorld = useEditorStore((state) => state.saveWorld);
+  const clearWorld = useEditorStore((state) => state.clearWorld);
   const zoomFit = useEditorStore((state) => state.zoomFit);
+  const zoomToNode = useEditorStore((state) => state.zoomToNode);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
   const commandManager = useEditorStore((state) => state.commandManager);
@@ -100,6 +103,18 @@ export const EssentialModeLayout: React.FC = () => {
 
   const handleZoomFit = () => {
     zoomFit();
+  };
+
+  const handleZoomToSelected = () => {
+    if (selectedNodeId) {
+      zoomToNode(selectedNodeId);
+    }
+  };
+
+  const handleClearWorld = () => {
+    if (window.confirm('Are you sure you want to clear the entire world? This cannot be undone.')) {
+      clearWorld();
+    }
   };
 
   const handleCreateProjectionView = () => {
@@ -368,12 +383,22 @@ export const EssentialModeLayout: React.FC = () => {
         <button className="toolbar-btn" onClick={saveWorld} title="Save World">
           <Save size={18} />
         </button>
+        <button className="toolbar-btn" onClick={handleClearWorld} title="Clear World">
+          <Trash2 size={18} />
+        </button>
       </div>
 
       {/* Viewport Controls */}
       <div className="viewport-controls">
         <button className="control-btn" onClick={handleResetView}>Reset View</button>
         <button className="control-btn" onClick={handleZoomFit}>Zoom Fit</button>
+        <button
+          className="control-btn"
+          onClick={handleZoomToSelected}
+          disabled={!selectedNodeId}
+        >
+          Zoom to Selected
+        </button>
         <FloorSelector />
       </div>
 
