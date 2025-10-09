@@ -63,46 +63,24 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
     }
 
     if (babylonNode) {
-      // Get position - ALWAYS use babylonToUser for Z-up CAD standard
+      // Get WORLD position - use babylonToUser for Z-up CAD standard
       const pos = babylonToUser(babylonNode.getAbsolutePosition());
 
-      console.log('🔍 MoveObjectDialog reading rotation:', {
-        nodeName: babylonNode.name,
-        hasQuaternion: !!babylonNode.rotationQuaternion,
-        quaternion: babylonNode.rotationQuaternion,
-        rotation: babylonNode.rotation,
-        rotationDegrees: {
-          x: babylonNode.rotation.x * RAD_TO_DEG,
-          y: babylonNode.rotation.y * RAD_TO_DEG,
-          z: babylonNode.rotation.z * RAD_TO_DEG
-        }
-      });
+      // Get WORLD rotation to match world position
+      // Extract rotation from world matrix
+      babylonNode.computeWorldMatrix(true);
+      const worldMatrix = babylonNode.getWorldMatrix();
+      const worldRotationQuat = new BABYLON.Quaternion();
+      worldMatrix.decompose(undefined, worldRotationQuat, undefined);
 
-      // Get rotation in degrees
-      // IMPORTANT: Babylon can use either Euler angles OR quaternions
-      // If rotationQuaternion is set, it takes precedence over rotation
-      let rot: { x: number; y: number; z: number };
+      // Convert world quaternion to Euler angles
+      const worldEuler = worldRotationQuat.toEulerAngles();
+      const rot = {
+        x: worldEuler.x * RAD_TO_DEG,
+        y: worldEuler.y * RAD_TO_DEG,
+        z: worldEuler.z * RAD_TO_DEG,
+      };
 
-      if (babylonNode.rotationQuaternion) {
-        // Convert quaternion to Euler angles
-        const euler = babylonNode.rotationQuaternion.toEulerAngles();
-        rot = {
-          x: euler.x * RAD_TO_DEG,
-          y: euler.y * RAD_TO_DEG,
-          z: euler.z * RAD_TO_DEG,
-        };
-        console.log('✅ Using QUATERNION rotation:', rot);
-      } else {
-        // Use Euler angles directly
-        rot = {
-          x: babylonNode.rotation.x * RAD_TO_DEG,
-          y: babylonNode.rotation.y * RAD_TO_DEG,
-          z: babylonNode.rotation.z * RAD_TO_DEG,
-        };
-        console.log('✅ Using EULER rotation:', rot);
-      }
-
-      console.log('📝 Setting state:', { position: pos, rotation: rot });
       setPosition(pos);
       setRotation(rot);
     }
@@ -231,7 +209,19 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
     // Get old values for undo (use local position for TransformCommand)
     const oldPosition = babylonToUser(babylonNode.position);
 
-    // Get old rotation - check for quaternion first
+    // Get old WORLD rotation (to match what dialog displays)
+    babylonNode.computeWorldMatrix(true);
+    const worldMatrix = babylonNode.getWorldMatrix();
+    const worldRotationQuat = new BABYLON.Quaternion();
+    worldMatrix.decompose(undefined, worldRotationQuat, undefined);
+    const worldEuler = worldRotationQuat.toEulerAngles();
+    const oldWorldRotation = {
+      x: worldEuler.x * RAD_TO_DEG,
+      y: worldEuler.y * RAD_TO_DEG,
+      z: worldEuler.z * RAD_TO_DEG,
+    };
+
+    // Get old LOCAL rotation for TransformCommand
     let oldRotation: { x: number; y: number; z: number };
     if (babylonNode.rotationQuaternion) {
       const euler = babylonNode.rotationQuaternion.toEulerAngles();
@@ -264,13 +254,6 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
     const posChanged = localPosition.x !== oldPosition.x || localPosition.y !== oldPosition.y || localPosition.z !== oldPosition.z;
 
     if (posChanged) {
-      console.log('🔄 Applying position change:', {
-        oldPosition,
-        newLocalPosition: localPosition,
-        worldPosition,
-        parentWorldPosition
-      });
-
       const positionCommand = new TransformCommand(
         selectedNodeId,
         'position',
@@ -282,14 +265,42 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
     }
 
     // Apply rotation if changed
-    const rotChanged = rotation.x !== oldRotation.x || rotation.y !== oldRotation.y || rotation.z !== oldRotation.z;
+    // The rotation from dialog is WORLD rotation, need to check if changed using world values
+    const rotChanged = rotation.x !== oldWorldRotation.x || rotation.y !== oldWorldRotation.y || rotation.z !== oldWorldRotation.z;
 
     if (rotChanged) {
+      // Convert new world rotation to local rotation (similar to position conversion)
+      // Get parent world rotation quaternion
+      let parentWorldRotationQuat = BABYLON.Quaternion.Identity();
+      if (babylonNode.parent && 'getWorldMatrix' in babylonNode.parent) {
+        const parentWorldMatrix = (babylonNode.parent as BABYLON.TransformNode).getWorldMatrix();
+        parentWorldMatrix.decompose(undefined, parentWorldRotationQuat, undefined);
+      }
+
+      // Convert dialog rotation (degrees) to quaternion
+      const newWorldRotationQuat = BABYLON.Quaternion.RotationYawPitchRoll(
+        rotation.y * (Math.PI / 180), // yaw
+        rotation.x * (Math.PI / 180), // pitch
+        rotation.z * (Math.PI / 180)  // roll
+      );
+
+      // Compute local rotation: local = parent^-1 * world
+      const parentInverseQuat = parentWorldRotationQuat.invert();
+      const localRotationQuat = parentInverseQuat.multiply(newWorldRotationQuat);
+
+      // Convert to Euler angles for TransformCommand
+      const localEuler = localRotationQuat.toEulerAngles();
+      const newLocalRotation = {
+        x: localEuler.x * RAD_TO_DEG,
+        y: localEuler.y * RAD_TO_DEG,
+        z: localEuler.z * RAD_TO_DEG,
+      };
+
       const rotationCommand = new TransformCommand(
         selectedNodeId,
         'rotation',
         oldRotation,
-        rotation,
+        newLocalRotation,
         updateNodeRotation
       );
       commandManager.execute(rotationCommand);
