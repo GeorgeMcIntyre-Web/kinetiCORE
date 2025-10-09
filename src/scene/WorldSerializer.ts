@@ -95,14 +95,127 @@ export interface ComprehensiveWorldData {
   };
 }
 
-export interface AssetReference {
-  id: string;
-  name: string;
-  type: 'mesh' | 'texture' | 'material';
-  path: string; // Relative path from project root
-  data?: string; // Base64 encoded data for small files
-  size: number;
-  checksum: string;
+/**
+ * Validate comprehensive world data before saving
+ */
+export function validateWorldData(worldData: ComprehensiveWorldData): { isValid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  // Check required fields
+  if (!worldData.version) {
+    errors.push('Missing version field');
+  }
+  if (!worldData.timestamp) {
+    errors.push('Missing timestamp field');
+  }
+  if (!worldData.format || worldData.format !== 'comprehensive') {
+    errors.push('Invalid format field');
+  }
+
+  // Validate tree structure
+  if (!worldData.tree || !worldData.tree.nodes) {
+    errors.push('Missing tree structure');
+  } else {
+    const nodeIds = new Set<string>();
+    const parentIds = new Set<string>();
+    
+    for (const node of worldData.tree.nodes) {
+      if (!node.id) {
+        errors.push('Node missing ID');
+        continue;
+      }
+      
+      if (nodeIds.has(node.id)) {
+        errors.push(`Duplicate node ID: ${node.id}`);
+      }
+      nodeIds.add(node.id);
+      
+      if (node.parentId && node.parentId !== 'world') {
+        parentIds.add(node.parentId);
+      }
+    }
+    
+    // Check for orphaned nodes
+    for (const parentId of parentIds) {
+      if (!nodeIds.has(parentId)) {
+        errors.push(`Node references non-existent parent: ${parentId}`);
+      }
+    }
+  }
+
+  // Validate assets
+  if (worldData.assets) {
+    if (worldData.assets.meshes) {
+      for (const mesh of worldData.assets.meshes) {
+        if (!mesh.id || !mesh.name || !mesh.type) {
+          errors.push('Invalid mesh asset data');
+        }
+      }
+    }
+    
+    if (worldData.assets.materials) {
+      for (const material of worldData.assets.materials) {
+        if (!material.id || !material.name || !material.type) {
+          errors.push('Invalid material data');
+        }
+      }
+    }
+  }
+
+  // Validate kinematics
+  if (worldData.kinematics) {
+    if (worldData.kinematics.joints) {
+      for (const joint of worldData.kinematics.joints) {
+        if (!joint.id || !joint.name || !joint.type) {
+          errors.push('Invalid joint data');
+        }
+      }
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
+/**
+ * Validate world data after loading
+ */
+export function validateLoadedWorld(scene: BABYLON.Scene, tree: any): { isValid: boolean; warnings: string[] } {
+  const warnings: string[] = [];
+
+  // Check for missing meshes
+  const treeNodes = tree.getAllNodes();
+  for (const node of treeNodes) {
+    if (node.type === 'mesh' && node.babylonMeshId) {
+      const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+      if (!mesh) {
+        warnings.push(`Missing mesh for node: ${node.name} (ID: ${node.babylonMeshId})`);
+      }
+    }
+  }
+
+  // Check for orphaned meshes
+  const sceneMeshes = scene.meshes.filter(m => 
+    m.name !== 'ground' && 
+    m.name !== '__root__' && 
+    !m.name.startsWith('grid')
+  );
+  
+  for (const mesh of sceneMeshes) {
+    const hasTreeNode = treeNodes.some((node: any) => 
+      node.babylonMeshId === mesh.uniqueId.toString()
+    );
+    if (!hasTreeNode) {
+      warnings.push(`Orphaned mesh in scene: ${mesh.name}`);
+    }
+  }
+
+  return {
+    isValid: warnings.length === 0,
+    warnings
+  };
 }
 
 export interface MaterialData {
@@ -220,6 +333,13 @@ export async function serializeComprehensiveWorld(): Promise<string> {
       customProperties: {},
     },
   };
+
+  // Validate before serializing
+  const validation = validateWorldData(worldData);
+  if (!validation.isValid) {
+    console.error('World data validation failed:', validation.errors);
+    throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+  }
 
   console.log(`✅ Comprehensive serialization complete: ${assets.meshes.length} meshes, ${assets.materials.length} materials, ${physics.entities.length} physics entities`);
   
@@ -532,6 +652,15 @@ export async function restoreComprehensiveWorld(worldData: ComprehensiveWorldDat
     console.log('✅ Comprehensive world restoration complete');
     toast.success('Comprehensive world loaded successfully!');
     
+    // Validate loaded world
+    const validation = validateLoadedWorld(scene, tree);
+    if (!validation.isValid) {
+      console.warn('Loaded world validation warnings:', validation.warnings);
+      validation.warnings.forEach(warning => {
+        console.warn(`⚠️ ${warning}`);
+      });
+    }
+    
     // Ensure UI is updated after all restoration is complete
     setTimeout(() => {
       window.dispatchEvent(new Event('scenetree-update'));
@@ -581,21 +710,93 @@ async function clearScene(scene: BABYLON.Scene, tree: SceneTreeManager, registry
 /**
  * Restore Babylon.js scene
  */
-async function restoreBabylonScene(_scene: BABYLON.Scene, _babylonSceneData: any): Promise<void> {
+async function restoreBabylonScene(scene: BABYLON.Scene, babylonSceneData: any): Promise<void> {
   try {
     console.log('🔄 Restoring Babylon.js scene...');
     
-    // For now, we'll skip the Babylon scene restoration and rely on restoreWorldState
-    // to recreate the meshes. The Babylon scene data is complex and would require
-    // a more sophisticated restoration approach.
-    console.log('⚠️ Babylon scene restoration skipped - using mesh recreation instead');
+    if (!babylonSceneData) {
+      console.log('⚠️ No Babylon scene data to restore');
+      return;
+    }
+
+    // Clear existing meshes and materials (except system ones)
+    scene.meshes.forEach((mesh) => {
+      if (mesh.name !== 'ground' && mesh.name !== '__root__' && !mesh.name.startsWith('grid')) {
+        mesh.dispose();
+      }
+    });
+
+    scene.materials.forEach((material) => {
+      if (material.name !== 'ground') {
+        material.dispose();
+      }
+    });
+
+    // Create a temporary scene to load the serialized data
+    const tempScene = new BABYLON.Scene(scene.getEngine());
     
-    // TODO: Implement proper Babylon scene restoration
-    // This would involve recreating meshes, materials, lights, cameras, etc.
-    // from the serialized babylonSceneData
+    try {
+      // Load the serialized scene data into temporary scene
+      const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(
+        '',
+        'data:' + JSON.stringify(babylonSceneData),
+        tempScene
+      );
+
+      // Transfer meshes and materials to main scene
+      for (const mesh of container.meshes) {
+        if (mesh.name !== '__root__' && mesh.name !== 'ground') {
+          // Create new mesh in main scene
+          const newMesh = mesh.clone(mesh.name, null);
+          if (newMesh) {
+            newMesh.setEnabled(true);
+            // Preserve metadata if it exists
+            if (mesh.metadata) {
+              newMesh.metadata = { ...mesh.metadata };
+            }
+          }
+        }
+      }
+
+      // Transfer materials
+      for (const material of container.materials) {
+        if (material.name !== 'ground') {
+          const newMaterial = material.clone(material.name);
+          if (newMaterial) {
+            // Apply to meshes that were using this material
+            container.meshes.forEach(mesh => {
+              if (mesh.material === material) {
+                const correspondingMesh = scene.getMeshByName(mesh.name);
+                if (correspondingMesh) {
+                  correspondingMesh.material = newMaterial;
+                }
+              }
+            });
+          }
+        }
+      }
+
+      // Transfer lights (preserve existing camera)
+      for (const light of container.lights) {
+        if (light.name !== 'defaultLight') {
+          const newLight = light.clone(light.name);
+          if (newLight) {
+            newLight.setEnabled(true);
+          }
+        }
+      }
+
+      console.log(`✅ Restored ${container.meshes.length} meshes, ${container.materials.length} materials, ${container.lights.length} lights`);
+      
+    } finally {
+      // Clean up temporary scene
+      tempScene.dispose();
+    }
     
   } catch (error) {
     console.error('Failed to restore Babylon scene:', error);
+    console.log('⚠️ Falling back to mesh recreation method');
+    // Don't throw - let the fallback method handle it
   }
 }
 

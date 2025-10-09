@@ -1,0 +1,341 @@
+/**
+ * Icon System Styles
+ * Owner: George
+ * 
+ * Consistent styling for all icons across the application
+ */
+
+/* Base icon styles */
+.kineticore-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Icon style variants */
+.icon-outline {
+  stroke-width: 2;
+}
+
+.icon-filled {
+  fill: currentColor;
+  stroke: none;
+}
+
+.icon-minimal {
+  stroke-width: 1.5;
+  opacity: 0.8;
+}
+
+/* Icon with tooltip */
+.icon-with-tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.icon-with-tooltip:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.icon-with-tooltip:active {
+  transform: scale(0.95);
+}
+
+/* Shortcut badge */
+.shortcut-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 3px;
+  border-radius: 3px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  line-height: 1;
+  min-width: 12px;
+  text-align: center;
+}
+
+/* Icon button styles */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.icon-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.icon-button:active {
+  transform: translateY(1px);
+}
+
+.icon-button.active {
+  background-color: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #3b82f6;
+}
+
+.icon-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.icon-button .button-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Icon button variants */
+.icon-button-primary {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #3b82f6;
+}
+
+.icon-button-primary:hover {
+  background-color: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.icon-button-secondary {
+  background-color: rgba(107, 114, 128, 0.1);
+  border-color: rgba(107, 114, 128, 0.3);
+  color: #6b7280;
+}
+
+.icon-button-secondary:hover {
+  background-color: rgba(107, 114, 128, 0.2);
+  border-color: rgba(107, 114, 128, 0.5);
+}
+
+.icon-button-danger {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.icon-button-danger:hover {
+  background-color: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* Icon badge */
+.icon-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-badge-content {
+  position: absolute;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 4px;
+  border-radius: 8px;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.icon-badge-top-right .icon-badge-content {
+  top: -4px;
+  right: -4px;
+}
+
+.icon-badge-top-left .icon-badge-content {
+  top: -4px;
+  left: -4px;
+}
+
+.icon-badge-bottom-right .icon-badge-content {
+  bottom: -4px;
+  right: -4px;
+}
+
+.icon-badge-bottom-left .icon-badge-content {
+  bottom: -4px;
+  left: -4px;
+}
+
+/* Toolbar specific icon styles */
+.toolbar-button-icon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.toolbar-button-icon:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.toolbar-button-icon.active {
+  background-color: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #3b82f6;
+}
+
+.toolbar-button-icon .button-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Segmented button group */
+.button-group-segmented {
+  display: flex;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.button-group-segmented .toolbar-button-icon {
+  border-radius: 0;
+  border: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.button-group-segmented .toolbar-button-icon:last-child {
+  border-right: none;
+}
+
+.button-group-segmented .toolbar-button-icon.active {
+  background-color: rgba(59, 130, 246, 0.3);
+  color: #3b82f6;
+}
+
+/* Icon animations */
+@keyframes icon-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.icon-pulse {
+  animation: icon-pulse 2s infinite;
+}
+
+@keyframes icon-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.icon-spin {
+  animation: icon-spin 1s linear infinite;
+}
+
+@keyframes icon-bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -4px, 0);
+  }
+  70% {
+    transform: translate3d(0, -2px, 0);
+  }
+  90% {
+    transform: translate3d(0, -1px, 0);
+  }
+}
+
+.icon-bounce {
+  animation: icon-bounce 1s ease-in-out;
+}
+
+/* Responsive icon sizes */
+@media (max-width: 768px) {
+  .icon-button {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  
+  .icon-button .button-label {
+    font-size: 11px;
+  }
+  
+  .toolbar-button-icon {
+    padding: 6px 8px;
+  }
+  
+  .toolbar-button-icon .button-label {
+    font-size: 11px;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .icon-button {
+    border-width: 2px;
+  }
+  
+  .icon-button:hover {
+    border-color: currentColor;
+  }
+  
+  .icon-button.active {
+    background-color: currentColor;
+    color: white;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .kineticore-icon,
+  .icon-button,
+  .toolbar-button-icon {
+    transition: none;
+  }
+  
+  .icon-pulse,
+  .icon-spin,
+  .icon-bounce {
+    animation: none;
+  }
+}

@@ -4,25 +4,11 @@
 console.log('🔧 Toolbar component is loading...');
 
 import { useRef } from 'react';
-import {
-  Move,
-  RotateCw,
-  Scale,
-  Box,
-  Circle,
-  Cylinder,
-  Upload,
-  FolderPlus,
-  Save,
-  FolderOpen,
-  Zap,
-  Download,
-  Layers,
-} from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import { TransformMode } from '../../core/types';
 import { CreateProjectionViewCommand } from '../../history/commands/CreateProjectionViewCommand';
 import { toast } from './ToastNotifications';
+import { IconButton, IconPaths } from '../icons/IconRegistry';
 import './Toolbar.css';
 
 interface ToolbarProps {
@@ -55,16 +41,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
     mode: TransformMode;
     label: string;
     key: string;
-    icon: React.ReactNode;
+    iconPath: string;
   }[] = [
-    { mode: 'translate', label: 'Move', key: 'G', icon: <Move size={16} /> },
+    { mode: 'translate', label: 'Move', key: 'G', iconPath: IconPaths.MOVE },
     {
       mode: 'rotate',
       label: 'Rotate',
       key: 'R',
-      icon: <RotateCw size={16} />,
+      iconPath: IconPaths.ROTATE,
     },
-    { mode: 'scale', label: 'Scale', key: 'S', icon: <Scale size={16} /> },
+    { mode: 'scale', label: 'Scale', key: 'S', iconPath: IconPaths.SCALE },
   ];
 
   const handleImportClick = async () => {
@@ -273,19 +259,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
       <div className="toolbar-section">
         <h3>Transform</h3>
         <div className="button-group-segmented">
-          {modes.map(({ mode, label, key, icon }) => (
-            <button
+          {modes.map(({ mode, label, key, iconPath }) => (
+            <IconButton
               key={mode}
-              className={`toolbar-button-icon ${
-                transformMode === mode ? 'active' : ''
-              }`}
+              iconPath={iconPath}
+              label={label}
+              shortcut={key}
+              active={transformMode === mode}
               onClick={() => setTransformMode(mode)}
-              title={`${label} (${key})`}
-            >
-              {icon}
-              <span className="button-label">{label}</span>
-              <kbd className="shortcut-badge">{key}</kbd>
-            </button>
+              config={{ size: 'md' }}
+            />
           ))}
         </div>
       </div>
@@ -297,30 +280,24 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
       <div className="toolbar-section">
         <h3>Objects</h3>
         <div className="button-group">
-          <button
-            className="toolbar-button-icon"
+          <IconButton
+            iconPath={IconPaths.BOX}
+            label="Box"
             onClick={() => createObject('box')}
-            title="Add Box"
-          >
-            <Box size={16} />
-            <span className="button-label">Box</span>
-          </button>
-          <button
-            className="toolbar-button-icon"
+            config={{ size: 'md' }}
+          />
+          <IconButton
+            iconPath={IconPaths.SPHERE}
+            label="Sphere"
             onClick={() => createObject('sphere')}
-            title="Add Sphere"
-          >
-            <Circle size={16} />
-            <span className="button-label">Sphere</span>
-          </button>
-          <button
-            className="toolbar-button-icon"
+            config={{ size: 'md' }}
+          />
+          <IconButton
+            iconPath={IconPaths.CYLINDER}
+            label="Cylinder"
             onClick={() => createObject('cylinder')}
-            title="Add Cylinder"
-          >
-            <Cylinder size={16} />
-            <span className="button-label">Cylinder</span>
-          </button>
+            config={{ size: 'md' }}
+          />
         </div>
       </div>
 
@@ -331,14 +308,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
       <div className="toolbar-section">
         <h3>Import</h3>
         <div className="button-group">
-          <button
-            className="toolbar-button-icon"
+          <IconButton
+            iconPath={IconPaths.IMPORT}
+            label="Load File"
             onClick={handleImportClick}
-            title="Import 3D Model (glTF, GLB, OBJ, STL, DXF, JT, URDF, ZIP, Babylon)"
-          >
-            <Upload size={16} />
-            <span className="button-label">Load File</span>
-          </button>
+            config={{ size: 'md' }}
+          />
           <input
             ref={fileInputRef}
             type="file"
@@ -346,14 +321,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
             onChange={handleFileChange}
             style={{ display: 'none' }}
           />
-          <button
-            className="toolbar-button-icon"
+          <IconButton
+            iconPath={IconPaths.LOAD}
+            label="Load Folder"
             onClick={handleImportFolderClick}
-            title="Import URDF Folder (with STL meshes)"
-          >
-            <FolderOpen size={16} />
-            <span className="button-label">Load Folder</span>
-          </button>
+            config={{ size: 'md' }}
+          />
           <input
             ref={folderInputRef}
             type="file"
@@ -374,14 +347,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
       <div className="toolbar-section">
         <h3>Organize</h3>
         <div className="button-group">
-          <button
-            className="toolbar-button-icon"
+          <IconButton
+            iconPath="tool.package"
+            label="Collection"
             onClick={() => createCollection()}
-            title="Create Collection (Folder)"
-          >
-            <FolderPlus size={16} />
-            <span className="button-label">Collection</span>
-          </button>
+            config={{ size: 'md' }}
+          />
         </div>
       </div>
 
@@ -392,16 +363,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
       <div className="toolbar-section">
         <h3>World</h3>
         <div className="button-group">
-          <button
-            className="toolbar-button-icon"
+          <IconButton
+            iconPath={IconPaths.SAVE}
+            label="Save"
             onClick={saveWorld}
-            title="Save World (Metadata Only)"
-          >
-            <Save size={16} />
-            <span className="button-label">Save</span>
-          </button>
-          <button
-            className="toolbar-button-icon"
+            config={{ size: 'md' }}
+          />
+          <IconButton
+            iconPath={IconPaths.SAVE}
+            label="SAVE FULL"
             onClick={() => {
               console.log('SAVE FULL button clicked!');
               try {
@@ -410,25 +380,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
                 console.error('Error calling saveComprehensiveWorld:', error);
               }
             }}
-            title="Save Comprehensive World (All Assets & Data)"
-            style={{ 
-              backgroundColor: '#FF6B35', 
-              color: 'white',
-              border: '2px solid #FF6B35',
-              fontWeight: 'bold'
-            }}
-          >
-            <Save size={16} />
-            <span className="button-label">SAVE FULL</span>
-          </button>
-          <button
-            className="toolbar-button-icon"
+            variant="primary"
+            config={{ size: 'md' }}
+          />
+          <IconButton
+            iconPath={IconPaths.LOAD}
+            label="Load"
             onClick={handleLoadWorldClick}
-            title="Load World from JSON file"
-          >
-            <Download size={16} />
-            <span className="button-label">Load</span>
-          </button>
+            config={{ size: 'md' }}
+          />
           <input
             ref={worldLoadInputRef}
             type="file"
@@ -446,15 +406,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
       <div className="toolbar-section">
         <h3>Views</h3>
         <div className="button-group">
-          <button
-            className="toolbar-button-icon"
+          <IconButton
+            iconPath="view.projection"
+            label="Project"
             onClick={handleCreateProjectionView}
-            title="Create Projection View (Select 1+ objects)"
             disabled={selectedNodeIds.length === 0}
-          >
-            <Layers size={16} />
-            <span className="button-label">Project</span>
-          </button>
+            config={{ size: 'md' }}
+          />
         </div>
       </div>
 
@@ -465,14 +423,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
       <div className="toolbar-section">
         <h3>Kinematics</h3>
         <div className="button-group">
-          <button
-            className="toolbar-button-icon"
+          <IconButton
+            iconPath={IconPaths.KINEMATICS_SETUP}
+            label="Setup"
             onClick={onOpenKinematics}
-            title="Open Kinematics Panel"
-          >
-            <Zap size={16} />
-            <span className="button-label">Setup</span>
-          </button>
+            config={{ size: 'md' }}
+          />
         </div>
       </div>
     </div>

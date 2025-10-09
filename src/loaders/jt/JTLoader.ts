@@ -49,8 +49,25 @@ export async function loadJTFromFile(
     const converter = new JTConversionService();
 
     try {
-        // Check if backend is available
-        const health = await converter.checkHealth();
+        // Check if backend is available with retry logic
+        let health;
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries) {
+            try {
+                health = await converter.checkHealth();
+                break;
+            } catch (error) {
+                retryCount++;
+                if (retryCount < maxRetries) {
+                    console.warn(`[JT Import] Backend health check failed (attempt ${retryCount}/${maxRetries}), retrying in 1s...`);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                } else {
+                    throw error;
+                }
+            }
+        }
 
         if (health.status === 'unhealthy') {
             throw new JTImportError(
@@ -86,7 +103,7 @@ export async function loadJTFromFile(
         console.log(`[JT Import] Converting ${file.name} to GLTF...`);
 
         // Convert JT → GLTF
-        const gltfBlob = await converter.convertToGLB(file, (progress) => {
+        const gltfBlob = await converter.convertToGLTF(file, (progress) => {
             console.log(`[JT Import] ${progress.message} (${progress.percent}%)`);
             // TODO: Show progress in UI via LoadingIndicator
         });
@@ -159,12 +176,52 @@ export async function loadJTFromFile(
 
         const roots = findRootNodes();
 
-        // If no roots found, all nodes might be children - find top-level hierarchy
+        // Enhanced root node detection for complex JT hierarchies
         if (roots.length === 0) {
-            console.warn('[JT Import] No root nodes found, using all top-level nodes');
-            // Use all nodes that don't have __root__ name
+            console.warn('[JT Import] No root nodes found, analyzing hierarchy...');
+            
+            // Strategy 1: Find nodes with no parent references
             const allNodes = [...result.meshes, ...result.transformNodes];
-            roots.push(...allNodes.filter(n => n.name !== '__root__'));
+            const orphanNodes = allNodes.filter(n => 
+                n.name !== '__root__' && 
+                (!n.parent || n.parent.name === '__root__' || n.parent.name === '')
+            );
+            
+            if (orphanNodes.length > 0) {
+                console.log(`[JT Import] Found ${orphanNodes.length} orphan nodes, using as roots`);
+                roots.push(...orphanNodes);
+            } else {
+                // Strategy 2: Find top-level nodes by analyzing parent-child relationships
+                const nodeMap = new Map<string, BABYLON.Node>();
+                allNodes.forEach(node => {
+                    if (node.name !== '__root__') {
+                        nodeMap.set(node.name, node);
+                    }
+                });
+
+                // Find nodes that are not children of any other node
+                const potentialRoots = allNodes.filter(node => {
+                    if (node.name === '__root__') return false;
+                    
+                    // Check if this node is a child of any other node
+                    const isChild = allNodes.some(otherNode => 
+                        otherNode !== node && 
+                        otherNode.name !== '__root__' &&
+                        otherNode.getChildren().includes(node)
+                    );
+                    
+                    return !isChild;
+                });
+
+                if (potentialRoots.length > 0) {
+                    console.log(`[JT Import] Found ${potentialRoots.length} top-level nodes by hierarchy analysis`);
+                    roots.push(...potentialRoots);
+                } else {
+                    // Strategy 3: Use all non-root nodes as fallback
+                    console.warn('[JT Import] Using all non-root nodes as fallback');
+                    roots.push(...allNodes.filter(n => n.name !== '__root__'));
+                }
+            }
         }
 
         // Reparent root nodes to our assembly root

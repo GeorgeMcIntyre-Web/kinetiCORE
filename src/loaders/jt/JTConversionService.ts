@@ -84,14 +84,14 @@ export class JTConversionService {
     }
 
     /**
-     * Convert JT file to GLB format
+     * Convert JT file to GLTF format
      *
      * @param file - JT file to convert
      * @param onProgress - Optional progress callback
-     * @returns Promise resolving to GLB blob
+     * @returns Promise resolving to GLTF blob
      * @throws {JTConversionError} If conversion fails
      */
-    async convertToGLB(
+    async convertToGLTF(
         file: File,
         onProgress?: (progress: ConversionProgress) => void
     ): Promise<Blob> {
@@ -124,7 +124,7 @@ export class JTConversionService {
             onProgress?.({
                 stage: 'converting',
                 percent: 50,
-                message: 'Converting JT to GLB...'
+                message: 'Converting JT to GLTF...'
             });
 
             if (!response.ok) {
@@ -149,17 +149,17 @@ export class JTConversionService {
             onProgress?.({
                 stage: 'downloading',
                 percent: 75,
-                message: 'Downloading GLB...'
+                message: 'Downloading GLTF...'
             });
 
-            const glbBlob = await response.blob();
+            const gltfBlob = await response.blob();
 
             // Validate blob
-            if (glbBlob.size === 0) {
+            if (gltfBlob.size === 0) {
                 throw new JTConversionError(
                     500,
                     'Conversion produced empty file',
-                    'The converted GLB file has zero size'
+                    'The converted GLTF file has zero size'
                 );
             }
 
@@ -170,7 +170,7 @@ export class JTConversionService {
                 message: 'Conversion complete!'
             });
 
-            return glbBlob;
+            return gltfBlob;
 
         } catch (error) {
             // Report error stage
