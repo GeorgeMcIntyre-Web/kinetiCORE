@@ -188,29 +188,23 @@ export class JTJsonToGLTFConverter {
         // Create binary data for the buffer
         const bufferData = this.createBufferData();
         
-        // Update the buffer to include the actual data
+        // Create a data URI with embedded binary data
+        const base64Data = this.arrayBufferToBase64(bufferData);
+        const dataUri = `data:application/octet-stream;base64,${base64Data}`;
+        
+        // Update the buffer to include the actual data URI
         if (gltfData.buffers && gltfData.buffers.length > 0) {
+            gltfData.buffers[0].uri = dataUri;
             gltfData.buffers[0].byteLength = bufferData.byteLength;
-            // Remove uri since we're embedding the data
-            delete gltfData.buffers[0].uri;
         }
         
         // Create GLTF JSON
         const gltfJson = JSON.stringify(gltfData, null, 2);
         
-        // Create a data URI with embedded binary data
-        const base64Data = this.arrayBufferToBase64(bufferData);
-        const dataUri = `data:application/octet-stream;base64,${base64Data}`;
-        
-        // Replace buffer references with data URI
-        const gltfWithDataUri = gltfJson.replace(
-            '"buffers":[{"byteLength":' + bufferData.byteLength + '}]',
-            `"buffers":[{"uri":"${dataUri}","byteLength":${bufferData.byteLength}}]`
-        );
-        
-        const gltfBlob = new Blob([gltfWithDataUri], { type: 'model/gltf+json' });
+        const gltfBlob = new Blob([gltfJson], { type: 'model/gltf+json' });
         
         console.log('[JT Converter] GLTF file created with embedded binary data');
+        console.log('[JT Converter] Buffer URI length:', dataUri.length);
         return gltfBlob;
     }
 
