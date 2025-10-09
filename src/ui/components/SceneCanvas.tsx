@@ -34,7 +34,7 @@ export const SceneCanvas: React.FC = () => {
   const handleAlignClick = useEditorStore((state) => state.handleAlignClick);
   const handleSceneClickForCustomFrame = useEditorStore((state) => state.handleSceneClickForCustomFrame);
   
-  // Snap settings
+  // Snap settings - ALL 13 snap types
   const snapEnabled = useEditorStore((state) => state.snapEnabled);
   const snapToGrid = useEditorStore((state) => state.snapToGrid);
   const snapToVertex = useEditorStore((state) => state.snapToVertex);
@@ -42,6 +42,19 @@ export const SceneCanvas: React.FC = () => {
   const snapToFace = useEditorStore((state) => state.snapToFace);
   const snapToCenter = useEditorStore((state) => state.snapToCenter);
   const snapToObject = useEditorStore((state) => state.snapToObject);
+  const snapToMidpoint = useEditorStore((state) => state.snapToMidpoint);
+  const snapToIntersection = useEditorStore((state) => state.snapToIntersection);
+  const snapToPerpendicular = useEditorStore((state) => state.snapToPerpendicular);
+  const snapToTangent = useEditorStore((state) => state.snapToTangent);
+  const snapAlong = useEditorStore((state) => state.snapAlong);
+  const snapToNormal = useEditorStore((state) => state.snapToNormal);
+  const snapToPlane = useEditorStore((state) => state.snapToPlane);
+  const snapToAxis = useEditorStore((state) => state.snapToAxis);
+  const snapToCurve = useEditorStore((state) => state.snapToCurve);
+  const snapToSurface = useEditorStore((state) => state.snapToSurface);
+  const snapObjectToVertex = useEditorStore((state) => state.snapObjectToVertex);
+  const snapPointOnEdge = useEditorStore((state) => state.snapPointOnEdge);
+  const snapBBoxCorner = useEditorStore((state) => state.snapBBoxCorner);
   const gridSize = useEditorStore((state) => state.gridSize);
   const snapDistance = useEditorStore((state) => state.snapDistance);
   const gizmoRef = useRef<TransformGizmo | null>(null);
@@ -254,7 +267,7 @@ export const SceneCanvas: React.FC = () => {
     }
   }, [selectedMeshes, transformMode]);
 
-  // Update snap settings when they change
+  // Update snap settings when they change - ALL 13 snap types
   useEffect(() => {
     if (!gizmoRef.current) return;
 
@@ -266,10 +279,46 @@ export const SceneCanvas: React.FC = () => {
       snapToFace,
       snapToCenter,
       snapToObject,
+      snapToMidpoint,
+      snapToIntersection,
+      snapToPerpendicular,
+      snapToTangent,
+      snapAlong,
+      snapToNormal,
+      snapToPlane,
+      snapToAxis,
+      snapToCurve,
+      snapToSurface,
+      snapObjectToVertex,
+      snapPointOnEdge,
+      snapBBoxCorner,
       gridSize,
       snapDistance,
     });
-  }, [snapEnabled, snapToGrid, snapToVertex, snapToEdge, snapToFace, snapToCenter, snapToObject, gridSize, snapDistance]);
+  }, [
+    snapEnabled,
+    snapToGrid,
+    snapToVertex,
+    snapToEdge,
+    snapToFace,
+    snapToCenter,
+    snapToObject,
+    snapToMidpoint,
+    snapToIntersection,
+    snapToPerpendicular,
+    snapToTangent,
+    snapAlong,
+    snapToNormal,
+    snapToPlane,
+    snapToAxis,
+    snapToCurve,
+    snapToSurface,
+    snapObjectToVertex,
+    snapPointOnEdge,
+    snapBBoxCorner,
+    gridSize,
+    snapDistance,
+  ]);
 
   // Update highlight layer for multi-selection visual feedback
   useEffect(() => {
