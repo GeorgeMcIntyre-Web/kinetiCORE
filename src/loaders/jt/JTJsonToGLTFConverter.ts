@@ -304,62 +304,44 @@ export class JTJsonToGLTFConverter {
     }
 
     /**
-     * Create robot component data arrays (more realistic than a simple cube)
+     * Create robot component data arrays (simplified for stability)
      */
     private createRobotComponentData() {
-        // Create a more complex geometry representing a robot arm component
-        // This is still a placeholder, but more representative of industrial equipment
+        // Create a simplified but realistic robot arm geometry
+        // Using fewer vertices to ensure proper buffer alignment
         
         const positions = new Float32Array([
-            // Base cylinder (robot base)
-            // Bottom ring
+            // Base (8 vertices)
             -1.0, -1.0, -0.5,   1.0, -1.0, -0.5,   1.0, 1.0, -0.5,   -1.0, 1.0, -0.5,
-            // Top ring  
             -0.8, -0.8, 0.5,    0.8, -0.8, 0.5,    0.8, 0.8, 0.5,    -0.8, 0.8, 0.5,
             
-            // Arm segment 1
+            // Arm segment (8 vertices)
             -0.3, -0.3, 0.5,    0.3, -0.3, 0.5,    0.3, 0.3, 0.5,    -0.3, 0.3, 0.5,
             -0.2, -0.2, 1.5,    0.2, -0.2, 1.5,    0.2, 0.2, 1.5,    -0.2, 0.2, 1.5,
             
-            // Arm segment 2 (elbow joint)
-            -0.4, -0.1, 1.5,    0.4, -0.1, 1.5,    0.4, 0.1, 1.5,    -0.4, 0.1, 1.5,
-            -0.3, -0.1, 2.5,    0.3, -0.1, 2.5,    0.3, 0.1, 2.5,    -0.3, 0.1, 2.5,
-            
-            // End effector
-            -0.1, -0.1, 2.5,    0.1, -0.1, 2.5,    0.1, 0.1, 2.5,    -0.1, 0.1, 2.5,
-            -0.05, -0.05, 3.0,  0.05, -0.05, 3.0,  0.05, 0.05, 3.0,  -0.05, 0.05, 3.0
+            // End effector (8 vertices)
+            -0.1, -0.1, 1.5,    0.1, -0.1, 1.5,    0.1, 0.1, 1.5,    -0.1, 0.1, 1.5,
+            -0.05, -0.05, 2.0,  0.05, -0.05, 2.0,  0.05, 0.05, 2.0,  -0.05, 0.05, 2.0
         ]);
 
-        // Normals for each face
+        // Simplified normals
         const normals = new Float32Array([
-            // Base cylinder normals
-            0, 0, -1,   0, 0, -1,   0, 0, -1,   0, 0, -1,  // Bottom
-            0, 0, 1,    0, 0, 1,    0, 0, 1,    0, 0, 1,   // Top
-            0, -1, 0,   1, 0, 0,    0, 1, 0,    -1, 0, 0,  // Sides
-            0, -1, 0,   1, 0, 0,    0, 1, 0,    -1, 0, 0,
-            
-            // Arm segment 1 normals
+            // Base normals
             0, 0, -1,   0, 0, -1,   0, 0, -1,   0, 0, -1,
             0, 0, 1,    0, 0, 1,    0, 0, 1,    0, 0, 1,
-            0, -1, 0,   1, 0, 0,    0, 1, 0,    -1, 0, 0,
-            0, -1, 0,   1, 0, 0,    0, 1, 0,    -1, 0, 0,
             
-            // Arm segment 2 normals
+            // Arm segment normals
             0, 0, -1,   0, 0, -1,   0, 0, -1,   0, 0, -1,
             0, 0, 1,    0, 0, 1,    0, 0, 1,    0, 0, 1,
-            0, -1, 0,   1, 0, 0,    0, 1, 0,    -1, 0, 0,
-            0, -1, 0,   1, 0, 0,    0, 1, 0,    -1, 0, 0,
             
             // End effector normals
             0, 0, -1,   0, 0, -1,   0, 0, -1,   0, 0, -1,
-            0, 0, 1,    0, 0, 1,    0, 0, 1,    0, 0, 1,
-            0, -1, 0,   1, 0, 0,    0, 1, 0,    -1, 0, 0,
-            0, -1, 0,   1, 0, 0,    0, 1, 0,    -1, 0, 0
+            0, 0, 1,    0, 0, 1,    0, 0, 1,    0, 0, 1
         ]);
 
-        // Triangle indices for all faces
+        // Simplified triangle indices
         const indices = new Uint16Array([
-            // Base cylinder
+            // Base
             0, 1, 2,   0, 2, 3,    // Bottom
             4, 6, 5,   4, 7, 6,    // Top
             0, 4, 5,   0, 5, 1,    // Side 1
@@ -367,7 +349,7 @@ export class JTJsonToGLTFConverter {
             2, 6, 7,   2, 7, 3,    // Side 3
             3, 7, 4,   3, 4, 0,    // Side 4
             
-            // Arm segment 1
+            // Arm segment
             8, 9, 10,  8, 10, 11,  // Bottom
             12, 14, 13, 12, 15, 14, // Top
             8, 12, 13, 8, 13, 9,   // Side 1
@@ -375,28 +357,20 @@ export class JTJsonToGLTFConverter {
             10, 14, 15, 10, 15, 11, // Side 3
             11, 15, 12, 11, 12, 8, // Side 4
             
-            // Arm segment 2
+            // End effector
             16, 17, 18, 16, 18, 19, // Bottom
             20, 22, 21, 20, 23, 22, // Top
             16, 20, 21, 16, 21, 17, // Side 1
             17, 21, 22, 17, 22, 18, // Side 2
             18, 22, 23, 18, 23, 19, // Side 3
-            19, 23, 20, 19, 20, 16, // Side 4
-            
-            // End effector
-            24, 25, 26, 24, 26, 27, // Bottom
-            28, 30, 29, 28, 31, 30, // Top
-            24, 28, 29, 24, 29, 25, // Side 1
-            25, 29, 30, 25, 30, 26, // Side 2
-            26, 30, 31, 26, 31, 27, // Side 3
-            27, 31, 28, 27, 28, 24  // Side 4
+            19, 23, 20, 19, 20, 16  // Side 4
         ]);
 
-        console.log('[JT Converter] Created robot component geometry:', {
+        console.log('[JT Converter] Created simplified robot component geometry:', {
             vertexCount: positions.length / 3,
             normalCount: normals.length / 3,
             triangleCount: indices.length / 3,
-            componentCount: 4
+            componentCount: 3
         });
 
         return { positions, normals, indices };
@@ -469,14 +443,14 @@ export class JTJsonToGLTFConverter {
      * Create buffer data for a simple cube
      */
     private createBufferData(): ArrayBuffer {
-        const { positions, normals, indices } = this.createCubeData();
+        const { positions, normals, indices } = this.createRobotComponentData();
 
         // Calculate total buffer size with proper alignment
         const vertexSize = positions.byteLength;
         const normalSize = normals.byteLength;
         const indexSize = indices.byteLength;
         
-        // Align to 4-byte boundaries
+        // Align to 4-byte boundaries (GLTF requirement)
         const alignedVertexSize = Math.ceil(vertexSize / 4) * 4;
         const alignedNormalSize = Math.ceil(normalSize / 4) * 4;
         const alignedIndexSize = Math.ceil(indexSize / 4) * 4;
@@ -486,7 +460,10 @@ export class JTJsonToGLTFConverter {
         console.log('[JT Converter] Buffer sizes:', {
             vertexSize, normalSize, indexSize,
             alignedVertexSize, alignedNormalSize, alignedIndexSize,
-            totalSize
+            totalSize,
+            vertexCount: positions.length / 3,
+            normalCount: normals.length / 3,
+            indexCount: indices.length
         });
 
         // Create buffer with proper alignment
