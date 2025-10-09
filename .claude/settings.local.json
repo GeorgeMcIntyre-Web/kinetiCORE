@@ -72,7 +72,19 @@
       "Bash(pkill:*)",
       "Bash(npx tsc:*)",
       "Bash(git checkout:*)",
-      "Bash(timeout 60 npm run type-check)"
+      "Bash(timeout 60 npm run type-check)",
+      "Bash(npm run test:*)",
+      "Bash(npm test:*)",
+      "Bash(timeout 10 npm test -- --run src/history/commands/__tests__/TransformCommand.test.ts)",
+      "Bash(timeout 20 npm test:*)",
+      "Bash(timeout 10 npm test -- --run src/__tests__/simple.test.ts)",
+      "Bash(timeout 10 npm test:*)",
+      "Bash(timeout 10 npx vitest --run --environment node src/__tests__/simple.test.ts)",
+      "Bash(timeout 10 npx vitest:*)",
+      "Bash(npx vitest:*)",
+      "Bash(timeout 15 npm test -- --run src/history/__tests__/CommandManager.test.ts src/history/commands/__tests__/TransformCommand.test.ts)",
+      "Bash(git rm:*)",
+      "Bash(git merge:*)"
     ],
     "deny": [],
     "ask": []
