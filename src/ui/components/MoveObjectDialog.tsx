@@ -66,6 +66,18 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
       // Get position - ALWAYS use babylonToUser for Z-up CAD standard
       const pos = babylonToUser(babylonNode.getAbsolutePosition());
 
+      console.log('🔍 MoveObjectDialog reading rotation:', {
+        nodeName: babylonNode.name,
+        hasQuaternion: !!babylonNode.rotationQuaternion,
+        quaternion: babylonNode.rotationQuaternion,
+        rotation: babylonNode.rotation,
+        rotationDegrees: {
+          x: babylonNode.rotation.x * RAD_TO_DEG,
+          y: babylonNode.rotation.y * RAD_TO_DEG,
+          z: babylonNode.rotation.z * RAD_TO_DEG
+        }
+      });
+
       // Get rotation in degrees
       // IMPORTANT: Babylon can use either Euler angles OR quaternions
       // If rotationQuaternion is set, it takes precedence over rotation
@@ -79,6 +91,7 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
           y: euler.y * RAD_TO_DEG,
           z: euler.z * RAD_TO_DEG,
         };
+        console.log('✅ Using QUATERNION rotation:', rot);
       } else {
         // Use Euler angles directly
         rot = {
@@ -86,8 +99,10 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
           y: babylonNode.rotation.y * RAD_TO_DEG,
           z: babylonNode.rotation.z * RAD_TO_DEG,
         };
+        console.log('✅ Using EULER rotation:', rot);
       }
 
+      console.log('📝 Setting state:', { position: pos, rotation: rot });
       setPosition(pos);
       setRotation(rot);
     }
