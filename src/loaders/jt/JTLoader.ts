@@ -166,8 +166,62 @@ export async function loadJTFromFile(
                     `${result.transformNodes.length} transform nodes from converted JT JSON`
                 );
 
-                // Continue with normal processing...
-                return await processLoadedMeshes(result, file.name, scene);
+                // Process the loaded meshes using the same logic as the main function
+                const processedMeshes: BABYLON.AbstractMesh[] = [];
+                const rootNodes: BABYLON.TransformNode[] = [];
+
+                // Create a single root node for the entire JT assembly
+                const assemblyRoot = new BABYLON.TransformNode(
+                    file.name.replace('.jt', ''),
+                    scene
+                );
+
+                // Add JT metadata to all meshes
+                result.meshes.forEach(mesh => {
+                    if (mesh.name !== '__root__') {
+                        // Add JT metadata
+                        if (!mesh.metadata) {
+                            mesh.metadata = {};
+                        }
+                        mesh.metadata.sourceFormat = 'jt';
+                        mesh.metadata.originalFile = file.name;
+                        mesh.metadata.convertedVia = 'json-to-gltf';
+
+                        processedMeshes.push(mesh);
+                        mesh.setParent(assemblyRoot);
+                    }
+                });
+
+                // Add metadata to transform nodes as well
+                result.transformNodes.forEach(node => {
+                    if (node.name !== '__root__' && node !== assemblyRoot) {
+                        if (!node.metadata) {
+                            node.metadata = {};
+                        }
+                        node.metadata.sourceFormat = 'jt';
+                        node.metadata.originalFile = file.name;
+                        node.metadata.convertedVia = 'json-to-gltf';
+                        node.setParent(assemblyRoot);
+                    }
+                });
+
+                // Clean up only the __root__ node if it exists
+                const babylonRoot = result.meshes.find(m => m.name === '__root__');
+                if (babylonRoot) {
+                    babylonRoot.dispose();
+                }
+
+                console.log(
+                    `[JT Import] Processed converted JT: ${processedMeshes.length} meshes, ` +
+                    `${result.transformNodes.length} transform nodes under assembly root`
+                );
+
+                rootNodes.push(assemblyRoot);
+
+                return {
+                    meshes: processedMeshes,
+                    rootNodes: rootNodes
+                };
                 
             } catch (error) {
                 console.warn(`[JT Import] JSON conversion failed, creating placeholder:`, error);
