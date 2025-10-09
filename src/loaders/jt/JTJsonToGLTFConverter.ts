@@ -97,6 +97,30 @@ export class JTJsonToGLTFConverter {
         // - Transform hierarchies
         // - LOD information
         
+        // Create buffer data for a simple cube (placeholder for now)
+        const { positions, normals, indices } = this.createCubeData();
+
+        // Calculate buffer sizes with proper alignment
+        const positionByteLength = positions.byteLength;
+        const normalByteLength = normals.byteLength;
+        const indexByteLength = indices.byteLength;
+
+        // Align to 4-byte boundaries (GLTF requirement)
+        const alignedPositionSize = Math.ceil(positionByteLength / 4) * 4;
+        const alignedNormalSize = Math.ceil(normalByteLength / 4) * 4;
+        const alignedIndexSize = Math.ceil(indexByteLength / 4) * 4;
+
+        const totalBufferSize = alignedPositionSize + alignedNormalSize + alignedIndexSize;
+
+        console.log('[JT Converter] Buffer calculations:', {
+            positionByteLength, normalByteLength, indexByteLength,
+            alignedPositionSize, alignedNormalSize, alignedIndexSize,
+            totalBufferSize,
+            vertexCount: positions.length / 3,
+            normalCount: normals.length / 3,
+            indexCount: indices.length
+        });
+
         const gltfData: GLTFData = {
             asset: {
                 version: "2.0",
@@ -127,7 +151,7 @@ export class JTJsonToGLTFConverter {
                 {
                     bufferView: 0,
                     componentType: 5126, // FLOAT
-                    count: 24, // 8 vertices * 3 components
+                    count: positions.length / 3, // Dynamic vertex count
                     type: "VEC3",
                     min: [-0.5, -0.5, -0.5],
                     max: [0.5, 0.5, 0.5]
@@ -135,13 +159,13 @@ export class JTJsonToGLTFConverter {
                 {
                     bufferView: 1,
                     componentType: 5126, // FLOAT
-                    count: 24,
+                    count: normals.length / 3, // Dynamic normal count
                     type: "VEC3"
                 },
                 {
                     bufferView: 2,
                     componentType: 5123, // UNSIGNED_SHORT
-                    count: 36, // 12 triangles * 3 indices
+                    count: indices.length, // Dynamic index count
                     type: "SCALAR"
                 }
             ],
@@ -149,21 +173,21 @@ export class JTJsonToGLTFConverter {
                 {
                     buffer: 0,
                     byteOffset: 0,
-                    byteLength: 288 // 24 vertices * 3 components * 4 bytes
+                    byteLength: alignedPositionSize
                 },
                 {
                     buffer: 0,
-                    byteOffset: 288,
-                    byteLength: 288 // 24 normals * 3 components * 4 bytes
+                    byteOffset: alignedPositionSize,
+                    byteLength: alignedNormalSize
                 },
                 {
                     buffer: 0,
-                    byteOffset: 576,
-                    byteLength: 72 // 36 indices * 2 bytes
+                    byteOffset: alignedPositionSize + alignedNormalSize,
+                    byteLength: alignedIndexSize
                 }
             ],
             buffers: [{
-                byteLength: 648
+                byteLength: totalBufferSize
             }],
             materials: [{
                 name: "JT_Material",
@@ -232,11 +256,11 @@ export class JTJsonToGLTFConverter {
     }
 
     /**
-     * Create buffer data for a simple cube
+     * Create cube data arrays
      */
-    private createBufferData(): ArrayBuffer {
+    private createCubeData() {
         // Simple cube vertices (8 vertices)
-        const vertices = new Float32Array([
+        const positions = new Float32Array([
             // Front face
             -0.5, -0.5,  0.5,
              0.5, -0.5,  0.5,
@@ -273,17 +297,48 @@ export class JTJsonToGLTFConverter {
             1, 5, 6,  1, 6, 2   // Right
         ]);
 
-        // Combine all data
-        const buffer = new ArrayBuffer(vertices.byteLength + normals.byteLength + indices.byteLength);
+        return { positions, normals, indices };
+    }
+
+    /**
+     * Create buffer data for a simple cube
+     */
+    private createBufferData(): ArrayBuffer {
+        const { positions, normals, indices } = this.createCubeData();
+
+        // Calculate total buffer size with proper alignment
+        const vertexSize = positions.byteLength;
+        const normalSize = normals.byteLength;
+        const indexSize = indices.byteLength;
+        
+        // Align to 4-byte boundaries
+        const alignedVertexSize = Math.ceil(vertexSize / 4) * 4;
+        const alignedNormalSize = Math.ceil(normalSize / 4) * 4;
+        const alignedIndexSize = Math.ceil(indexSize / 4) * 4;
+        
+        const totalSize = alignedVertexSize + alignedNormalSize + alignedIndexSize;
+        
+        console.log('[JT Converter] Buffer sizes:', {
+            vertexSize, normalSize, indexSize,
+            alignedVertexSize, alignedNormalSize, alignedIndexSize,
+            totalSize
+        });
+
+        // Create buffer with proper alignment
+        const buffer = new ArrayBuffer(totalSize);
         const view = new Uint8Array(buffer);
         
         let offset = 0;
-        view.set(new Uint8Array(vertices.buffer), offset);
-        offset += vertices.byteLength;
         
+        // Copy vertices
+        view.set(new Uint8Array(positions.buffer), offset);
+        offset += alignedVertexSize;
+        
+        // Copy normals
         view.set(new Uint8Array(normals.buffer), offset);
-        offset += normals.byteLength;
+        offset += alignedNormalSize;
         
+        // Copy indices
         view.set(new Uint8Array(indices.buffer), offset);
         
         return buffer;
