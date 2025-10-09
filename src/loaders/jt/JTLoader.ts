@@ -135,7 +135,10 @@ export async function loadJTFromFile(
             try {
                 // Parse JSON data
                 const jsonText = await gltfBlob.text();
+                console.log('[JT Import] JSON text:', jsonText);
+                
                 const jtJsonData = JSON.parse(jsonText);
+                console.log('[JT Import] Parsed JSON data:', jtJsonData);
                 
                 // Convert JSON to GLTF
                 const converter = new JTJsonToGLTFConverter(scene);

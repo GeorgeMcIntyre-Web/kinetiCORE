@@ -79,6 +79,16 @@ export class JTJsonToGLTFConverter {
      */
     async convertJTJsonToGLTF(jtJsonData: JTJsonData): Promise<GLTFData> {
         console.log('[JT Converter] Converting JT JSON to GLTF...');
+        console.log('[JT Converter] JT JSON data:', jtJsonData);
+        
+        // Validate input data
+        if (!jtJsonData) {
+            throw new Error('JT JSON data is null or undefined');
+        }
+        
+        // Extract filename safely
+        const fileName = this.extractFileName(jtJsonData.FileName);
+        console.log('[JT Converter] Extracted filename:', fileName);
         
         // For now, create a simple GLTF structure
         // In a full implementation, we would parse the JT data and extract:
@@ -98,7 +108,7 @@ export class JTJsonToGLTFConverter {
             }],
             nodes: [{
                 mesh: 0,
-                name: this.extractFileName(jtJsonData.FileName),
+                name: fileName,
                 translation: [0, 0, 0],
                 rotation: [0, 0, 0, 1],
                 scale: [1, 1, 1]
@@ -193,6 +203,9 @@ export class JTJsonToGLTFConverter {
      * Extract filename from full path
      */
     private extractFileName(filePath: string): string {
+        if (!filePath) {
+            return 'unknown_jt_file';
+        }
         const parts = filePath.split('/');
         return parts[parts.length - 1].replace('.jt', '');
     }
