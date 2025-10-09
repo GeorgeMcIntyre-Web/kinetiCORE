@@ -176,9 +176,17 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
     // Prevent animation frame from overwriting values during apply
     isApplyingRef.current = true;
 
+    console.log('🟦 Apply clicked - current state:');
+    console.log('  Selected node ID:', selectedNodeId);
+    console.log('  Position to apply:', position.x, position.y, position.z);
+    console.log('  Rotation to apply:', rotation.x, rotation.y, rotation.z);
+    console.log('  hasUserEdited:', hasUserEdited);
+    console.log('  isInputFocused:', isInputFocused);
+
     // Apply button clicked - proceed with transform update
 
     if (!selectedNodeId) {
+      console.log('❌ No node selected');
       isApplyingRef.current = false;
       return;
     }
@@ -189,6 +197,7 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
     const node = tree.getNode(selectedNodeId);
 
     if (!node || !scene) {
+      console.log('❌ No node or scene');
       isApplyingRef.current = false;
       return;
     }
@@ -202,8 +211,44 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
     }
 
     if (!babylonNode) {
+      console.log('❌ No Babylon node found');
       isApplyingRef.current = false;
       return;
+    }
+
+    console.log('✅ Found Babylon node:', babylonNode.name);
+    console.log('   Node type:', node.type);
+    console.log('   Has parent?', babylonNode.parent ? babylonNode.parent.name : 'NO PARENT');
+    console.log('   Current position:', babylonNode.position);
+    console.log('   Current world position:', babylonNode.getAbsolutePosition());
+
+    // IMPORTANT: Check if this is a device dummy mesh (ending in _device_root)
+    // If so, we should move the PARENT collection instead
+    if (node.name.endsWith('_device_root') && node.type === 'mesh' && node.parentId) {
+      console.warn('⚠️ You selected a device dummy mesh. Moving the parent collection instead.');
+      console.warn('   Device mesh:', node.name);
+      console.warn('   Will move parent:', node.parentId);
+
+      // Get the parent node
+      const parentNode = tree.getNode(node.parentId);
+      if (parentNode && parentNode.type === 'collection') {
+        console.log('✅ Automatically switching to parent collection:', parentNode.name);
+
+        // Update selectedNodeId to point to the parent
+        selectedNodeId = node.parentId;
+        node = parentNode;
+
+        // Get the parent's Babylon node
+        babylonNode = scene.transformNodes.find(tn => tn.name === parentNode.name) || null;
+
+        if (!babylonNode) {
+          console.log('❌ Could not find Babylon node for parent collection');
+          isApplyingRef.current = false;
+          return;
+        }
+
+        console.log('✅ Now using parent Babylon node:', babylonNode.name);
+      }
     }
 
     // Get old values for undo (use local position for TransformCommand)
@@ -253,6 +298,13 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
 
     const posChanged = localPosition.x !== oldPosition.x || localPosition.y !== oldPosition.y || localPosition.z !== oldPosition.z;
 
+    console.log('📍 Position change:');
+    console.log('  posChanged:', posChanged);
+    console.log('  oldPosition:', oldPosition.x, oldPosition.y, oldPosition.z);
+    console.log('  newLocalPosition:', localPosition.x, localPosition.y, localPosition.z);
+    console.log('  worldPosition (from dialog):', worldPosition.x, worldPosition.y, worldPosition.z);
+    console.log('  parentWorldPosition:', parentWorldPosition.x, parentWorldPosition.y, parentWorldPosition.z);
+
     if (posChanged) {
       const positionCommand = new TransformCommand(
         selectedNodeId,
@@ -261,12 +313,26 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
         localPosition,
         updateNodePosition
       );
+      console.log('🔵 Executing position command with:', {
+        from: oldPosition,
+        to: localPosition
+      });
       commandManager.execute(positionCommand);
+      console.log('✅ Position command executed');
+    } else {
+      console.log('⚠️ Position NOT changed, skipping command');
     }
 
     // Apply rotation if changed
     // The rotation from dialog is WORLD rotation, need to check if changed using world values
     const rotChanged = rotation.x !== oldWorldRotation.x || rotation.y !== oldWorldRotation.y || rotation.z !== oldWorldRotation.z;
+
+    console.log('🔄 Rotation change:', {
+      rotChanged,
+      oldWorldRotation,
+      newWorldRotation: rotation,
+      oldLocalRotation: oldRotation
+    });
 
     if (rotChanged) {
       // Convert new world rotation to local rotation (similar to position conversion)
@@ -296,6 +362,8 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
         z: localEuler.z * RAD_TO_DEG,
       };
 
+      console.log('🔄 Computed local rotation:', newLocalRotation);
+
       const rotationCommand = new TransformCommand(
         selectedNodeId,
         'rotation',
@@ -304,15 +372,14 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
         updateNodeRotation
       );
       commandManager.execute(rotationCommand);
+      console.log('✅ Rotation command executed');
     }
 
-    // Close dialog first, THEN clear the applying flag
-    // This prevents the animation loop from reading values after Apply but before Close
-    onClose();
-
-    // Use setTimeout to ensure animation loop cleanup happens before clearing flag
+    // DON'T close dialog - Apply should keep dialog open for further edits
+    // Clear the applying flag after a delay to let the command execute
     setTimeout(() => {
       isApplyingRef.current = false;
+      setHasUserEdited(false); // Reset so we can see updates from gizmo
     }, 100);
   };
 
