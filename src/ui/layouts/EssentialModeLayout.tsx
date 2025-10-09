@@ -38,7 +38,8 @@ export const EssentialModeLayout: React.FC = () => {
   const createObject = useEditorStore((state) => state.createObject);
   const importModel = useEditorStore((state) => state.importModel);
   const loadWorld = useEditorStore((state) => state.loadWorld);
-  const saveWorld = useEditorStore((state) => state.saveWorld);
+  const loadComprehensiveWorld = useEditorStore((state) => state.loadComprehensiveWorld);
+  const saveComprehensiveWorld = useEditorStore((state) => state.saveComprehensiveWorld);
   const clearWorld = useEditorStore((state) => state.clearWorld);
   const zoomFit = useEditorStore((state) => state.zoomFit);
   const zoomToNode = useEditorStore((state) => state.zoomToNode);
@@ -82,8 +83,35 @@ export const EssentialModeLayout: React.FC = () => {
 
   const handleLoadFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && loadWorld) {
-      await loadWorld(file);
+    if (file) {
+      // Check if it's a comprehensive file by reading the first part
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const content = e.target?.result as string;
+          const data = JSON.parse(content);
+          
+          // Check if it's a comprehensive file
+          if (data.format === 'comprehensive') {
+            console.log('🔧 Detected comprehensive file, using comprehensive loader');
+            if (loadComprehensiveWorld) {
+              await loadComprehensiveWorld(file);
+            }
+          } else {
+            console.log('🔧 Detected regular file, using regular loader');
+            if (loadWorld) {
+              await loadWorld(file);
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing file:', error);
+          // Fallback to regular loader
+          if (loadWorld) {
+            await loadWorld(file);
+          }
+        }
+      };
+      reader.readAsText(file);
     }
     if (event.target) {
       event.target.value = '';
@@ -380,7 +408,11 @@ export const EssentialModeLayout: React.FC = () => {
         <button className="toolbar-btn" onClick={handleLoadWorld} title="Load World">
           <FolderOpen size={18} />
         </button>
-        <button className="toolbar-btn" onClick={saveWorld} title="Save World">
+        <button 
+          className="toolbar-btn" 
+          onClick={saveComprehensiveWorld} 
+          title="Save World (All Assets & Data)"
+        >
           <Save size={18} />
         </button>
         <button className="toolbar-btn" onClick={handleClearWorld} title="Clear World">
@@ -478,7 +510,7 @@ export const EssentialModeLayout: React.FC = () => {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".urdf,.stl,.obj,.dae,.gltf,.glb,.dxf,.dwg,.jt"
+        accept=".urdf,.stl,.obj,.dae,.gltf,.glb,.dxf,.dwg,.jt,.zip"
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />

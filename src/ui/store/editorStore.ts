@@ -17,7 +17,10 @@ import {
   restoreWorldState,
   saveBabylonWorldToFile,
   loadBabylonWorldFromFile,
-  restoreBabylonWorld
+  restoreBabylonWorld,
+  saveComprehensiveWorldToFile,
+  loadComprehensiveWorldFromFile,
+  restoreComprehensiveWorld
 } from '../../scene/WorldSerializer';
 import { CustomFrameHelper } from '../../scene/CustomFrameHelper';
 import { CoordinateFrameWidget } from '../../scene/CoordinateFrameWidget';
@@ -47,6 +50,10 @@ interface EditorState {
   // UI state - which toolbar popup is currently open (only one at a time)
   openToolbarPopup: 'transform-settings' | 'snap-geometric' | 'snap-object' | 'snap-auxiliary' | null;
   setOpenToolbarPopup: (popup: 'transform-settings' | 'snap-geometric' | 'snap-object' | 'snap-auxiliary' | null) => void;
+  
+  // File system state - track last used directory for better UX
+  lastUsedDirectory: string | null;
+  setLastUsedDirectory: (directory: string | null) => void;
 
   // Transform settings
   positionIncrement: number; // mm
@@ -111,12 +118,14 @@ interface EditorState {
   loadWorld: (file: File) => Promise<void>;
   saveBabylonWorld: () => void;
   loadBabylonWorld: (file: File) => Promise<void>;
+  saveComprehensiveWorld: () => Promise<void>;
+  loadComprehensiveWorld: (file: File) => Promise<void>;
   clearWorld: () => void;
   setTransformMode: (mode: TransformMode) => void;
   setCamera: (camera: BABYLON.Camera) => void;
   togglePlayback: () => void;
   createObject: (type: ObjectType) => void;
-  importModel: (file: File) => Promise<void>;
+  importModel: (file: File, fileHandle?: any) => Promise<void>;
   importURDFFolder: (files: File[]) => Promise<void>;
   updateNodePosition: (nodeId: string, position: { x: number; y: number; z: number }) => void;
   updateNodeRotation: (nodeId: string, rotation: { x: number; y: number; z: number }) => void;
@@ -166,6 +175,9 @@ interface EditorState {
   } | null) => void;
   handleAlignClick: (pickInfo: BABYLON.PickingInfo) => void;
   cancelAlignment: () => void;
+
+  // URDF loading helper
+  loadURDFWithMeshes: (urdfFile: File, meshFiles: File[], scene: BABYLON.Scene, tree: any, assetsNode: any, registry: any) => Promise<void>;
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -185,6 +197,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // UI state defaults
   openToolbarPopup: null,
   setOpenToolbarPopup: (popup) => set({ openToolbarPopup: popup }),
+  
+  // File system state defaults
+  lastUsedDirectory: null,
+  setLastUsedDirectory: (directory) => set({ lastUsedDirectory: directory }),
 
   // Transform settings defaults
   positionIncrement: 10, // 10mm default
@@ -789,7 +805,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       nodeType,
       mesh.name,
       assetsNode?.id || null,
-      babylonToUser(mesh.position) // Store in user space (Z-up, mm)
+      babylonToUser(mesh.getAbsolutePosition()) // Store WORLD position in user space (Z-up, mm)
     );
 
     // Link node to Babylon mesh and entity
@@ -807,8 +823,120 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} created`);
   },
 
+  // Helper function to load URDF with mesh files
+  loadURDFWithMeshes: async (urdfFile: File, meshFiles: File[], scene: BABYLON.Scene, tree: any, assetsNode: any, registry: any) => {
+    loading.update('Loading URDF with meshes...', 50);
+    
+    try {
+      // Load URDF as device entity
+      const { meshes, rootNodes, deviceEntity } = await (await import('../../loaders/urdf/URDFLoaderWithMeshes')).loadURDFAsDeviceEntity(
+        urdfFile,
+        meshFiles,
+        scene,
+        registry
+      );
+      
+      loading.update('Processing geometry...', 70);
+      
+      // Get the model name from the file
+      const modelName = urdfFile.name.substring(0, urdfFile.name.lastIndexOf('.')) || urdfFile.name;
+      
+      // Create a collection for this model
+      const modelCollection = tree.createNode(
+        'collection',
+        modelName,
+        assetsNode?.id || null
+      );
+      
+      // Link device entity to tree node
+      if (deviceEntity) {
+        modelCollection.entityId = deviceEntity.getId();
+      }
+      
+      // Build tree structure for all nodes
+      const buildTreeForNode = (node: BABYLON.TransformNode, parentNodeId: string | null, depth: number = 0): void => {
+        const isMesh = node instanceof BABYLON.Mesh;
+        const children = getAllChildren(node);
+        
+        // Skip __root__ and duplicate filename nodes
+        if (node.name === '__root__' ||
+            node.name.startsWith('__root') ||
+            node.name === modelName) {
+          for (const child of children) {
+            buildTreeForNode(child, parentNodeId, depth);
+          }
+          return;
+        }
+        
+        // Create tree node
+        const isURDF = node.metadata?.isURDFMesh ||
+                       node.metadata?.coordinateSystem === 'urdf-converted' ||
+                       node.metadata?.coordinateSystem === 'babylon-native';
+        const worldPosition = node.getAbsolutePosition();
+        
+        const nodeType = isMesh ? 'mesh' : 'collection';
+        console.log(`[URDF Loader] Creating tree node: ${node.name} (${nodeType}) under parent ${parentNodeId}`);
+        
+        const treeNode = tree.createNode(
+          nodeType,
+          node.name,
+          parentNodeId
+        );
+        
+        treeNode.babylonMeshId = isMesh ? (node as BABYLON.Mesh).uniqueId.toString() : null;
+        treeNode.babylonNodeId = node.uniqueId.toString();
+        treeNode.position = babylonToUser(worldPosition);
+        treeNode.isURDF = isURDF;
+        
+        console.log(`[URDF Loader] Created tree node: ${treeNode.id} (${treeNode.name})`);
+        
+        // Process children
+        for (const child of children) {
+          buildTreeForNode(child, treeNode.id, depth + 1);
+        }
+      };
+      
+      // Build tree for all root nodes
+      console.log(`[URDF Loader] Building tree for ${rootNodes.length} root nodes`);
+      for (const rootNode of rootNodes) {
+        console.log(`[URDF Loader] Processing root node: ${rootNode.name}`);
+        buildTreeForNode(rootNode, modelCollection.id);
+      }
+      
+      // Debug: Check tree state after building
+      console.log(`[URDF Loader] Tree now has ${tree.getAllNodes().length} nodes`);
+      console.log(`[URDF Loader] Model collection has ${tree.getChildren(modelCollection.id).length} children`);
+      
+      loading.update('Extracting kinematics...', 85);
+      
+      // Extract kinematics from URDF
+      try {
+        const urdfContent = await urdfFile.text();
+        await createKinematicsFromURDF(urdfContent, deviceEntity.getId());
+        console.log('✅ Kinematics extracted from URDF');
+      } catch (kinematicsError) {
+        console.warn('⚠️ Could not extract kinematics:', kinematicsError);
+      }
+      
+      loading.update('Finalizing...', 95);
+      
+      // Update tree - dispatch event to window for SceneTree component
+      console.log('[URDF Loader] Dispatching scenetree-update event');
+      window.dispatchEvent(new CustomEvent('scenetree-update'));
+      
+      loading.end();
+      toast.success(`Loaded ${modelName} with ${meshes.length} meshes`);
+      
+    } catch (error) {
+      console.error('[URDF Loader] Error loading URDF with meshes:', error);
+      loading.end();
+      toast.error(`Failed to load URDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
+    }
+  },
+
   // Import 3D model from file
-  importModel: async (file: File) => {
+  importModel: async (file: File, fileHandle?: any) => {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     if (!scene) return;
@@ -816,6 +944,51 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const tree = SceneTreeManager.getInstance();
     const assetsNode = tree.getAssetsNode();
     const registry = EntityRegistry.getInstance();
+
+    // Check if this is a zip file
+    const { isZipFile, loadURDFFromZip } = await import('../../loaders/urdf/ZipURDFLoader');
+    
+    if (isZipFile(file)) {
+      console.log(`[File Import] Zip file detected: ${file.name}`);
+      loading.start('Extracting zip file...', 'uploading');
+      
+      try {
+        const result = await loadURDFFromZip(file);
+        
+        if (!result.success || !result.urdfFile) {
+          throw new Error(result.error || 'Failed to extract URDF from zip');
+        }
+        
+        console.log(`[File Import] Successfully extracted URDF and ${result.meshFiles.length} mesh files from zip`);
+        
+        // Load the URDF with the extracted mesh files
+        await get().loadURDFWithMeshes(result.urdfFile, result.meshFiles, scene, tree, assetsNode, registry);
+        return;
+        
+      } catch (error) {
+        console.error('[File Import] Error loading zip file:', error);
+        loading.end();
+        toast.error(`Failed to load zip file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        return;
+      }
+    }
+
+    // Track the directory of the selected file for better UX
+    // Extract directory from file path if available (webkitRelativePath)
+    const filePath = file.webkitRelativePath || file.name;
+    const directory = filePath.includes('/') ? filePath.substring(0, filePath.lastIndexOf('/')) : null;
+    if (directory) {
+      get().setLastUsedDirectory(directory);
+      console.log(`[File Import] Tracked directory: ${directory}`);
+    } else {
+      console.log(`[File Import] Could not extract directory from file: ${file.name}`);
+      console.log(`[File Import] webkitRelativePath: ${file.webkitRelativePath || 'not available'}`);
+      
+      // If we have a file handle, try to get directory information
+      if (fileHandle) {
+        console.log(`[File Import] File handle available, but directory info not accessible due to security restrictions`);
+      }
+    }
 
     loading.start('Loading model...', 'uploading');
 
@@ -827,7 +1000,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (isURDF) {
         loading.update('Searching for STL mesh files...', 25);
         const { findMeshFilesForURDF } = await import('../../loaders/urdf/URDFMeshFinder');
-        meshFilesToUse = await findMeshFilesForURDF(file);
+        meshFilesToUse = await findMeshFilesForURDF(file, get().lastUsedDirectory);
 
         if (meshFilesToUse.length > 0) {
           loading.update(`Found ${meshFilesToUse.length} mesh files, loading...`, 40);
@@ -907,9 +1080,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         const isURDF = node.metadata?.isURDFMesh ||
                        node.metadata?.coordinateSystem === 'urdf-converted' ||
                        node.metadata?.coordinateSystem === 'babylon-native';
+        const worldPosition = node.getAbsolutePosition();
         const position = isURDF
-          ? { x: node.position.x * 1000, y: node.position.y * 1000, z: node.position.z * 1000 }  // Just convert meters to mm
-          : babylonToUser(node.position);  // Full conversion with axis swap
+          ? { x: worldPosition.x * 1000, y: worldPosition.y * 1000, z: worldPosition.z * 1000 }  // Just convert meters to mm
+          : babylonToUser(worldPosition);  // Full conversion with axis swap
 
         const treeNode = tree.createNode(
           isMesh ? 'mesh' : 'collection',
@@ -1033,6 +1207,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const assetsNode = tree.getAssetsNode();
     const registry = EntityRegistry.getInstance();
 
+    // Track the directory of the selected folder for better UX
+    // Extract directory from the first file's path if available
+    if (files.length > 0) {
+      const firstFile = files[0];
+      const filePath = firstFile.webkitRelativePath || firstFile.name;
+      const directory = filePath.includes('/') ? filePath.substring(0, filePath.lastIndexOf('/')) : null;
+      if (directory) {
+        get().setLastUsedDirectory(directory);
+        console.log(`[URDF Folder Import] Tracked directory: ${directory}`);
+      }
+    }
+
     loading.start('Loading URDF folder...', 'uploading');
 
     try {
@@ -1089,9 +1275,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         const isURDF = node.metadata?.isURDFMesh ||
                        node.metadata?.coordinateSystem === 'urdf-converted' ||
                        node.metadata?.coordinateSystem === 'babylon-native';
+        const worldPosition = node.getAbsolutePosition();
         const position = isURDF
-          ? { x: node.position.x * 1000, y: node.position.y * 1000, z: node.position.z * 1000 }  // Just convert meters to mm
-          : babylonToUser(node.position);  // Full conversion with axis swap
+          ? { x: worldPosition.x * 1000, y: worldPosition.y * 1000, z: worldPosition.z * 1000 }  // Just convert meters to mm
+          : babylonToUser(worldPosition);  // Full conversion with axis swap
 
         const treeNode = tree.createNode(
           isMesh ? 'mesh' : 'collection',
@@ -1237,6 +1424,46 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 
+  // Save comprehensive world (includes all assets and data)
+  saveComprehensiveWorld: async () => {
+    try {
+      loading.start('Saving comprehensive world...', 'processing');
+      await saveComprehensiveWorldToFile();
+      loading.end();
+    } catch (error) {
+      console.error('Failed to save comprehensive world:', error);
+      loading.end();
+      toast.error('Failed to save comprehensive world. Check console for details.');
+    }
+  },
+
+  // Load comprehensive world (includes all assets and data)
+  loadComprehensiveWorld: async (file: File) => {
+    try {
+      loading.start('Loading comprehensive world...', 'loading');
+      const comprehensiveData = await loadComprehensiveWorldFromFile(file);
+      if (!comprehensiveData) {
+        toast.error('Failed to load comprehensive world file. Invalid format.');
+        loading.end();
+        return;
+      }
+
+      // Restore comprehensive scene
+      const success = await restoreComprehensiveWorld(comprehensiveData);
+      loading.end();
+
+      if (success) {
+        window.dispatchEvent(new Event('scenetree-update'));
+      } else {
+        toast.error('Failed to restore comprehensive world.');
+      }
+    } catch (error) {
+      console.error('Failed to load comprehensive world:', error);
+      loading.end();
+      toast.error('Failed to load comprehensive world. Check console for details.');
+    }
+  },
+
   // Clear all objects from world
   clearWorld: () => {
     const tree = SceneTreeManager.getInstance();
@@ -1305,6 +1532,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     // Delete all top-level children of Assets
     childrenToDelete.forEach(childId => deleteNodeRecursively(childId));
+
+    // Reset the tree structure to ensure fresh start with zero counts
+    // This will recreate the basic World -> Scene -> Assets structure
+    tree.reset();
 
     // Also dispose any orphaned meshes in the scene (safety cleanup)
     if (scene) {

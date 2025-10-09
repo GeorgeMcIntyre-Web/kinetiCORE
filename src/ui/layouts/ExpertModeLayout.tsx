@@ -319,7 +319,7 @@ export const ExpertModeLayout: React.FC = () => {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".urdf,.stl,.obj,.dxf,.dwg,.jt,.catpart,.catproduct,.catdrawing"
+        accept=".urdf,.stl,.obj,.dxf,.dwg,.jt,.catpart,.catproduct,.catdrawing,.zip"
         onChange={handleFileChange}
         style={{ display: 'none' }}
       />

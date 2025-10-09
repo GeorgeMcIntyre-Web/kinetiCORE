@@ -51,6 +51,7 @@ export const SUPPORTED_FORMATS = {
   CATDRAWING: '.catdrawing',
   CATPROCESS: '.catprocess',
   URDF: '.urdf',
+  ZIP: '.zip',
 } as const;
 
 /**
@@ -86,6 +87,7 @@ function getMimeType(extension: string): string {
     '.catdrawing': 'application/catia',
     '.catprocess': 'application/catia',
     '.urdf': 'application/xml',
+    '.zip': 'application/zip',
   };
   return mimeTypes[extension] || 'application/octet-stream';
 }
@@ -249,7 +251,7 @@ export function getAcceptedFileTypes(): string {
  * Get human-readable format description
  */
 export function getFormatDescription(): string {
-  return 'glTF (.gltf, .glb), Wavefront (.obj), STL (.stl), Babylon (.babylon), DXF (.dxf), DWG (.dwg), JT (.jt), URDF (.urdf)';
+  return 'glTF (.gltf, .glb), Wavefront (.obj), STL (.stl), Babylon (.babylon), DXF (.dxf), DWG (.dwg), JT (.jt), URDF (.urdf), ZIP (.zip)';
 }
 
 /**

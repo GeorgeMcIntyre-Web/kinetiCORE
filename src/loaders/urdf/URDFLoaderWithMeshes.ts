@@ -11,6 +11,107 @@
 
 import * as BABYLON from '@babylonjs/core';
 import { parseURDF } from './URDFLoader';
+// import { parseURDFMeshPaths } from './AutoURDFMeshLoader'; // Unused
+
+/**
+ * Create basic URDF structure without mesh files
+ * Creates a simple robot structure with joint relationships but no visual meshes
+ */
+async function createBasicURDFStructure(
+  urdfFile: File,
+  scene: BABYLON.Scene,
+  registry: any
+): Promise<{
+  deviceEntity: any;
+  linkEntities: any[];
+  meshes: BABYLON.AbstractMesh[];
+  rootNodes: BABYLON.TransformNode[];
+}> {
+  // Read URDF content
+  const urdfText = await urdfFile.text();
+  const urdf = parseURDF(urdfText);
+  
+  console.log(`Creating basic URDF structure for: ${urdf.robotName}`);
+  
+  // Create root node for the robot
+  const robotRoot = new BABYLON.TransformNode(urdf.robotName, scene);
+  robotRoot.metadata = {
+    isURDFRoot: true,
+    robotName: urdf.robotName,
+    coordinateSystem: 'urdf-converted',
+    hasMeshes: false
+  };
+  
+  const meshes: BABYLON.AbstractMesh[] = [];
+  const rootNodes: BABYLON.TransformNode[] = [robotRoot];
+  
+  // Create simple boxes for each link (no visual meshes)
+  for (const link of urdf.links) {
+    console.log(`Creating basic structure for link: ${link.name}`);
+    
+    // Create a simple box as basic structure
+    const linkMesh = BABYLON.MeshBuilder.CreateBox(
+      `${link.name}_basic`,
+      { 
+        width: 0.05, 
+        height: 0.05, 
+        depth: 0.05 
+      },
+      scene
+    );
+    
+    // Position the link mesh
+    const visualOrigin = link.visual?.origin;
+    if (visualOrigin) {
+      const pos = visualOrigin.xyz;
+      const rot = visualOrigin.rpy;
+      
+      // Convert URDF coordinates (Z-up) to Babylon coordinates (Y-up)
+      linkMesh.position = new BABYLON.Vector3(pos[0], pos[2], -pos[1]);
+      linkMesh.rotation = new BABYLON.Vector3(rot[0], rot[2], -rot[1]);
+    }
+    
+    // Set material to indicate it's a basic structure
+    const material = new BABYLON.StandardMaterial(`${link.name}_basic_mat`, scene);
+    material.diffuseColor = new BABYLON.Color3(0.5, 0.5, 1.0); // Light blue
+    material.alpha = 0.8;
+    linkMesh.material = material;
+    
+    // Set metadata
+    linkMesh.metadata = {
+      isURDFMesh: true,
+      linkName: link.name,
+      coordinateSystem: 'urdf-converted',
+      isBasicStructure: true
+    };
+    
+    // Parent to robot root
+    linkMesh.parent = robotRoot;
+    
+    meshes.push(linkMesh);
+  }
+  
+  console.log(`Created basic structure with ${meshes.length} links for ${urdf.robotName}`);
+  
+  // Create device entity
+  const deviceEntity = registry.createEntity('device', urdf.robotName);
+  deviceEntity.setMesh(robotRoot);
+  
+  // Create link entities
+  const linkEntities: any[] = [];
+  for (const mesh of meshes) {
+    const linkEntity = registry.createEntity('link', mesh.name);
+    linkEntity.setMesh(mesh);
+    linkEntities.push(linkEntity);
+  }
+  
+  return {
+    deviceEntity,
+    linkEntities,
+    meshes,
+    rootNodes
+  };
+}
 
 /**
  * Load URDF with associated mesh files
@@ -257,8 +358,14 @@ export async function loadURDFAsDeviceEntity(
   rootNodes: BABYLON.TransformNode[];
 }> {
   try {
-    // First load the URDF normally
+    // Load URDF with provided mesh files (or empty array if no meshes found)
     const { meshes, rootNodes } = await loadURDFWithMeshes(urdfFile, files, scene);
+    
+    // If no meshes were loaded, create basic URDF structure
+    if (meshes.length === 0) {
+      console.log('[URDF Loader] No mesh files provided - creating basic URDF structure');
+      return await createBasicURDFStructure(urdfFile, scene, registry);
+    }
 
   if (rootNodes.length === 0) {
     throw new Error('No root nodes created from URDF');
