@@ -1,0 +1,259 @@
+/* Move Object Dialog */
+.move-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.move-dialog {
+  background: #1e1e1e;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  min-width: 280px;
+  max-width: 320px;
+  color: #e0e0e0;
+}
+
+/* Floating dialog (non-blocking) */
+.move-dialog-floating {
+  position: fixed;
+  background: rgba(20, 20, 20, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  cursor: move;
+  border: 1px solid rgba(100, 108, 255, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+}
+
+.move-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(51, 51, 51, 0.6);
+  background: rgba(37, 37, 38, 0.7);
+  gap: 6px;
+}
+
+.move-dialog-drag-handle {
+  display: flex;
+  align-items: center;
+  color: #666;
+  cursor: grab;
+  padding: 2px;
+  transition: color 0.15s;
+}
+
+.move-dialog-drag-handle:active {
+  cursor: grabbing;
+  color: #999;
+}
+
+.move-dialog-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ffffff;
+  flex: 1;
+}
+
+.move-dialog-title h3 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.move-dialog-close {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  transition: all 0.15s;
+}
+
+.move-dialog-close:hover {
+  background: rgba(51, 51, 51, 0.8);
+  color: #fff;
+}
+
+.move-dialog-content {
+  padding: 10px;
+}
+
+.no-selection {
+  text-align: center;
+  color: #888;
+  padding: 20px;
+}
+
+/* Mode Toggle */
+.move-mode-toggle {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  background: rgba(37, 37, 38, 0.6);
+  padding: 3px;
+  border-radius: 4px;
+}
+
+.move-mode-toggle button {
+  flex: 1;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.move-mode-toggle button:hover {
+  background: rgba(42, 42, 42, 0.8);
+  color: #fff;
+}
+
+.move-mode-toggle button.active {
+  background: #646cff;
+  color: #ffffff;
+}
+
+/* Move Sections */
+.move-section {
+  margin-bottom: 8px;
+}
+
+.move-section-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 600;
+  color: #999;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Value Display (Read-only) */
+.move-values-row {
+  display: flex;
+  gap: 4px;
+}
+
+.move-value-display {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 6px;
+  background: rgba(37, 37, 38, 0.5);
+  border-radius: 3px;
+  border: 1px solid rgba(51, 51, 51, 0.5);
+}
+
+.move-value-display .value {
+  flex: 1;
+  text-align: right;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+/* Input Row */
+.move-inputs-row {
+  display: flex;
+  gap: 4px;
+}
+
+.move-input {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Axis Labels */
+.axis-label-x,
+.axis-label-y,
+.axis-label-z {
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 2px;
+  text-align: center;
+  min-width: 14px;
+}
+
+.axis-label-x {
+  background: #e74c3c;
+  color: #ffffff;
+}
+
+.axis-label-y {
+  background: #2ecc71;
+  color: #ffffff;
+}
+
+.axis-label-z {
+  background: #3498db;
+  color: #ffffff;
+}
+
+/* Action Buttons */
+.move-dialog-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(51, 51, 51, 0.5);
+}
+
+.move-btn-cancel,
+.move-btn-reset,
+.move-btn-apply {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.move-btn-cancel {
+  background: rgba(51, 51, 51, 0.7);
+  color: #fff;
+}
+
+.move-btn-cancel:hover {
+  background: rgba(68, 68, 68, 0.85);
+}
+
+.move-btn-apply {
+  background: #646cff;
+  color: #ffffff;
+}
+
+.move-btn-reset {
+  background: rgba(255, 165, 0, 0.8);
+  color: #fff;
+}
+
+.move-btn-reset:hover {
+  background: rgba(255, 165, 0, 1);
+}
