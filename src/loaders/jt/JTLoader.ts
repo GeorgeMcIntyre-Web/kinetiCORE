@@ -144,7 +144,10 @@ export async function loadJTFromFile(
             };
             
             console.log(`[JT Import] Created placeholder mesh for JSON file`);
-            return placeholderMesh;
+            return {
+                meshes: [placeholderMesh],
+                rootNodes: [placeholderMesh as BABYLON.TransformNode]
+            };
         }
 
         // Load the converted GLTF file
