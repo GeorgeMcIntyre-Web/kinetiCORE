@@ -67,11 +67,26 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
       const pos = babylonToUser(babylonNode.getAbsolutePosition());
 
       // Get rotation in degrees
-      const rot = {
-        x: babylonNode.rotation.x * RAD_TO_DEG,
-        y: babylonNode.rotation.y * RAD_TO_DEG,
-        z: babylonNode.rotation.z * RAD_TO_DEG,
-      };
+      // IMPORTANT: Babylon can use either Euler angles OR quaternions
+      // If rotationQuaternion is set, it takes precedence over rotation
+      let rot: { x: number; y: number; z: number };
+
+      if (babylonNode.rotationQuaternion) {
+        // Convert quaternion to Euler angles
+        const euler = babylonNode.rotationQuaternion.toEulerAngles();
+        rot = {
+          x: euler.x * RAD_TO_DEG,
+          y: euler.y * RAD_TO_DEG,
+          z: euler.z * RAD_TO_DEG,
+        };
+      } else {
+        // Use Euler angles directly
+        rot = {
+          x: babylonNode.rotation.x * RAD_TO_DEG,
+          y: babylonNode.rotation.y * RAD_TO_DEG,
+          z: babylonNode.rotation.z * RAD_TO_DEG,
+        };
+      }
 
       setPosition(pos);
       setRotation(rot);
@@ -200,18 +215,30 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
 
     // Get old values for undo (use local position for TransformCommand)
     const oldPosition = babylonToUser(babylonNode.position);
-    const oldRotation = {
-      x: babylonNode.rotation.x * RAD_TO_DEG,
-      y: babylonNode.rotation.y * RAD_TO_DEG,
-      z: babylonNode.rotation.z * RAD_TO_DEG,
-    };
+
+    // Get old rotation - check for quaternion first
+    let oldRotation: { x: number; y: number; z: number };
+    if (babylonNode.rotationQuaternion) {
+      const euler = babylonNode.rotationQuaternion.toEulerAngles();
+      oldRotation = {
+        x: euler.x * RAD_TO_DEG,
+        y: euler.y * RAD_TO_DEG,
+        z: euler.z * RAD_TO_DEG,
+      };
+    } else {
+      oldRotation = {
+        x: babylonNode.rotation.x * RAD_TO_DEG,
+        y: babylonNode.rotation.y * RAD_TO_DEG,
+        z: babylonNode.rotation.z * RAD_TO_DEG,
+      };
+    }
 
     // Apply position if changed
     // The position from dialog is world position in user coordinate system
     // We need to convert it to local position for the TransformCommand
     const worldPosition = position; // This is the world position from dialog in user coords
-    const parentWorldPosition = babylonNode.parent && 'getAbsolutePosition' in babylonNode.parent 
-      ? babylonToUser((babylonNode.parent as BABYLON.TransformNode).getAbsolutePosition()) 
+    const parentWorldPosition = babylonNode.parent && 'getAbsolutePosition' in babylonNode.parent
+      ? babylonToUser((babylonNode.parent as BABYLON.TransformNode).getAbsolutePosition())
       : { x: 0, y: 0, z: 0 };
     const localPosition = {
       x: worldPosition.x - parentWorldPosition.x,
@@ -228,7 +255,7 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
         worldPosition,
         parentWorldPosition
       });
-      
+
       const positionCommand = new TransformCommand(
         selectedNodeId,
         'position',
@@ -252,8 +279,15 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
       );
       commandManager.execute(rotationCommand);
     }
-    isApplyingRef.current = false;
+
+    // Close dialog first, THEN clear the applying flag
+    // This prevents the animation loop from reading values after Apply but before Close
     onClose();
+
+    // Use setTimeout to ensure animation loop cleanup happens before clearing flag
+    setTimeout(() => {
+      isApplyingRef.current = false;
+    }, 100);
   };
 
   const handleCancel = () => {
