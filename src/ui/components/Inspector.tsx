@@ -310,7 +310,7 @@ export const Inspector: React.FC = () => {
                 onClick={handlePositionReset}
                 title="Reset position to origin (0,0,0)"
               >
-                <RotateCcw size={14} />
+                <RotateCcw size={16} />
                 Reset
               </button>
 
@@ -322,7 +322,7 @@ export const Inspector: React.FC = () => {
                     onClick={handleCenterPosition}
                     title="Center object at world origin"
                   >
-                    <AlignCenter size={14} />
+                    <AlignCenter size={16} />
                     Center
                   </button>
                   <button
@@ -330,7 +330,7 @@ export const Inspector: React.FC = () => {
                     onClick={handleSnapToGrid}
                     title="Snap to nearest 100mm grid point"
                   >
-                    <Grid3x3 size={14} />
+                    <Grid3x3 size={16} />
                     Snap
                   </button>
                 </>
