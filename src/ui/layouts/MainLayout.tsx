@@ -112,24 +112,24 @@ export const MainLayout: React.FC = () => {
       {/* Main Content Area */}
       <div className="main-content">
         <PanelGroup direction="horizontal">
-          {/* Left Sidebar */}
-          {leftPanels.map(panel => {
-            const state = panelStates[panel.getId()];
-            const isVisible = state?.visible !== false; // Default to visible if not set
-            if (!isVisible) return null;
-            
-            // Use default state if state is undefined
-            const panelState = state || panel.getDefaultState();
-            
-            return (
-              <React.Fragment key={panel.getId()}>
-                <Panel
-                  defaultSize={panelState.size}
-                  minSize={panel.getMinSize()}
-                  maxSize={panel.getMaxSize()}
-                  collapsible={panel.canCollapse()}
-                >
-                  <div className="panel-container">
+              {/* Left Sidebar */}
+              {leftPanels.map(panel => {
+                const state = panelStates[panel.getId()];
+                const isVisible = state?.visible !== false; // Default to visible if not set
+                if (!isVisible) return null;
+                
+                // Use default state if state is undefined
+                const panelState = state || panel.getDefaultState();
+                
+                return (
+                  <React.Fragment key={panel.getId()}>
+                    <Panel
+                      defaultSize={panelState.size}
+                      minSize={panel.getMinSize()}
+                      maxSize={panel.getMaxSize()}
+                      collapsible={panel.canCollapse()}
+                    >
+                      <div className="panel-container" data-position="left">
                     <div className="panel-header">
                       <h3>{panel.getName()}</h3>
                       <div className="panel-controls">
@@ -168,25 +168,25 @@ export const MainLayout: React.FC = () => {
             </div>
           </Panel>
 
-          {/* Right Sidebar */}
-          {rightPanels.map(panel => {
-            const state = panelStates[panel.getId()];
-            const isVisible = state?.visible !== false; // Default to visible if not set
-            if (!isVisible) return null;
-            
-            // Use default state if state is undefined
-            const panelState = state || panel.getDefaultState();
-            
-            return (
-              <React.Fragment key={panel.getId()}>
-                <PanelResizeHandle className="resize-handle" />
-                <Panel
-                  defaultSize={panelState.size}
-                  minSize={panel.getMinSize()}
-                  maxSize={panel.getMaxSize()}
-                  collapsible={panel.canCollapse()}
-                >
-                  <div className="panel-container">
+              {/* Right Sidebar */}
+              {rightPanels.map(panel => {
+                const state = panelStates[panel.getId()];
+                const isVisible = state?.visible !== false; // Default to visible if not set
+                if (!isVisible) return null;
+                
+                // Use default state if state is undefined
+                const panelState = state || panel.getDefaultState();
+                
+                return (
+                  <React.Fragment key={panel.getId()}>
+                    <PanelResizeHandle className="resize-handle" />
+                    <Panel
+                      defaultSize={panelState.size}
+                      minSize={panel.getMinSize()}
+                      maxSize={panel.getMaxSize()}
+                      collapsible={panel.canCollapse()}
+                    >
+                      <div className="panel-container" data-position="right">
                     <div className="panel-header">
                       <h3>{panel.getName()}</h3>
                       <div className="panel-controls">
