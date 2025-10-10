@@ -50,6 +50,9 @@ import {
   EyeOff,
   Maximize2,
   Minimize2,
+  ZoomIn,
+  ZoomOut,
+  Focus,
   
   // Search & Filter
   Search,
