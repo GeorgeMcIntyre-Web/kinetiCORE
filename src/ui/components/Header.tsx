@@ -35,9 +35,12 @@ export const Header: React.FC = () => {
       <div className="header-center">
         {/* Panel Visibility Controls */}
         <div className="panel-toggles">
+          {console.log('Rendering panel toggles for:', sidePanels.map(p => p.getName()))}
           {sidePanels.map(panel => {
             const state = panelStates[panel.getId()];
             const isVisible = state?.visible !== false; // Default to visible if not set
+            
+            console.log(`Panel ${panel.getName()} toggle:`, { isVisible, state });
             
             return (
               <button
@@ -45,6 +48,19 @@ export const Header: React.FC = () => {
                 className={`panel-toggle-btn ${isVisible ? 'active' : ''}`}
                 onClick={() => handlePanelToggle(panel.getId())}
                 title={`${isVisible ? 'Hide' : 'Show'} ${panel.getName()}`}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '6px',
+                  padding: '6px 12px',
+                  background: isVisible ? '#646cff' : '#2a2a3e',
+                  border: '1px solid #3a3a4e',
+                  borderRadius: '6px',
+                  color: isVisible ? 'white' : '#a0a0a0',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
               >
                 {isVisible ? <Eye size={16} /> : <EyeOff size={16} />}
                 <span>{panel.getName()}</span>
