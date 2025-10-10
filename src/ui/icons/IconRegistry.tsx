@@ -274,7 +274,7 @@ export function getIcon(path: string): React.ComponentType<any> | null {
     }
   }
   
-  const result = typeof current === 'function' ? current : null;
+  const result = (typeof current === 'function' || (current && typeof current === 'object' && current.$$typeof === Symbol.for('react.forward_ref'))) ? current : null;
   console.log(`getIcon result for "${path}":`, result);
   return result;
 }
