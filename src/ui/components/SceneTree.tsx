@@ -354,12 +354,12 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm }) => {
         <div className="tree-node-arrow" onClick={handleToggleExpand}>
           {hasChildren ? (
             node.expanded ? (
-              <ChevronDown size={14} />
+              <ChevronDown size={16} />
             ) : (
-              <ChevronRight size={14} />
+              <ChevronRight size={16} />
             )
           ) : (
-            <span style={{ width: '14px', display: 'inline-block' }} />
+            <span style={{ width: '16px', display: 'inline-block' }} />
           )}
         </div>
 
@@ -411,7 +411,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm }) => {
             onClick={handleToggleVisibility}
             title={node.visible ? 'Hide' : 'Show'}
           >
-            {node.visible ? <Eye size={14} /> : <EyeOff size={14} />}
+            {node.visible ? <Eye size={16} /> : <EyeOff size={16} />}
           </button>
 
           {/* Lock toggle */}
@@ -421,7 +421,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm }) => {
             title={node.locked ? 'Locked' : 'Unlocked'}
             disabled={!canDelete}
           >
-            {node.locked ? <Lock size={14} /> : <Unlock size={14} />}
+            {node.locked ? <Lock size={16} /> : <Unlock size={16} />}
           </button>
 
           {/* Rename button */}
@@ -431,7 +431,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm }) => {
               onClick={handleRenameStart}
               title="Rename"
             >
-              <Edit3 size={14} />
+              <Edit3 size={16} />
             </button>
           )}
 
@@ -442,7 +442,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm }) => {
               onClick={handleDelete}
               title="Delete"
             >
-              <Trash2 size={14} />
+              <Trash2 size={16} />
             </button>
           )}
         </div>
@@ -592,7 +592,7 @@ export const SceneTree: React.FC = () => {
               title="Delete selected items"
               className="delete-btn"
             >
-              <Trash2 size={14} />
+              <Trash2 size={16} />
               Delete
             </button>
           </div>
