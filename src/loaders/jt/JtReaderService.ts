@@ -43,20 +43,10 @@ export class JtReaderService {
      */
     async checkHealth(): Promise<JTHealthStatus> {
         try {
-            // Check if JtReader.dll exists
-            const fs = await import('fs');
-            const path = await import('path');
+            // In browser environment, we simulate DLL availability
+            // In a real implementation, this would check for a native module or WebAssembly
+            console.log(`[JtReader] Checking health for DLL path: ${this.dllPath}`);
             
-            const jtReaderDll = path.join(this.dllPath, 'JtReader.dll');
-            
-            if (!fs.existsSync(jtReaderDll)) {
-                return {
-                    status: 'unhealthy',
-                    dllFilesAvailable: false,
-                    message: `JtReader.dll not found at: ${jtReaderDll}`
-                };
-            }
-
             // Try to load the DLL
             try {
                 await this.loadJtReaderDLL();
@@ -64,13 +54,13 @@ export class JtReaderService {
                     status: 'healthy',
                     dllFilesAvailable: true,
                     jtReaderVersion: '1.0.9020.22443',
-                    message: 'JtReader.dll loaded successfully'
+                    message: 'JtReader.dll loaded successfully (browser simulation)'
                 };
             } catch (error) {
                 return {
                     status: 'unhealthy',
-                    dllFilesAvailable: true,
-                    message: `JtReader.dll present but loading failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+                    dllFilesAvailable: false,
+                    message: `JtReader.dll loading failed: ${error instanceof Error ? error.message : 'Unknown error'}`
                 };
             }
 
@@ -520,20 +510,18 @@ export class JtReaderService {
         try {
             console.log(`[JtReader] Reading JT file: ${file.name}`);
             
-            // Save file to temp location
-            const tempPath = `C:\\temp\\${file.name}`;
+            // In browser environment, we work directly with the File object
+            // In a real implementation, this would use the actual JtReader.dll
             const buffer = await file.arrayBuffer();
-            const fs = await import('fs');
-            fs.writeFileSync(tempPath, Buffer.from(buffer));
-            
-            console.log(`[JtReader] File saved to: ${tempPath} (${buffer.byteLength} bytes)`);
+            console.log(`[JtReader] File loaded: ${buffer.byteLength} bytes`);
 
             // Use JtReader.dll to open the file
             const opener = new this.jtReader.Opener();
             
             try {
                 // Open JT file with geometry loading
-                const result = opener.Open(tempPath, true);
+                // In browser, we simulate this with the filename
+                const result = opener.Open(file.name, true);
                 
                 if (result !== 1) {
                     throw new Error(`JtReader failed to open file: ${result}`);
@@ -548,13 +536,6 @@ export class JtReaderService {
                 
                 // Extract geometry data
                 const jtData = this.extractGeometryFromRoot(root);
-                
-                // Clean up temp file
-                try {
-                    fs.unlinkSync(tempPath);
-                } catch (cleanupError) {
-                    console.warn(`[JtReader] Failed to clean up temp file: ${cleanupError}`);
-                }
                 
                 return jtData;
                 
@@ -657,7 +638,7 @@ export class JtReaderService {
                 buffers: [{
                     byteLength: (jtData.vertices.length + jtData.normals.length) * 4,
                     uri: 'data:application/octet-stream;base64,' + 
-                         Buffer.from(new Float32Array(jtData.vertices.concat(jtData.normals))).toString('base64')
+                         this.arrayBufferToBase64(new Float32Array(jtData.vertices.concat(jtData.normals)).buffer)
                 }]
             };
 
@@ -689,6 +670,18 @@ export class JtReaderService {
         }
         
         return bounds;
+    }
+
+    /**
+     * Convert ArrayBuffer to base64 string (browser compatible)
+     */
+    private arrayBufferToBase64(buffer: ArrayBuffer): string {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
     }
 
     /**
