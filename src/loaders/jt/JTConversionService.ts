@@ -1,6 +1,6 @@
 /**
- * JT Conversion Service - Frontend client for PyOpenJt backend
- * Handles JT to GLB conversion via HTTP API
+ * JT Conversion Service - Frontend client for C++ JT Wrapper backend
+ * Handles JT to GLB conversion via HTTP API using lineSim JT libraries
  */
 
 export interface ConversionProgress {
@@ -11,7 +11,7 @@ export interface ConversionProgress {
 
 export interface HealthStatus {
     status: 'healthy' | 'degraded' | 'unhealthy';
-    pyopenjt_built: boolean;
+    wrapper_available: boolean;
     message: string;
 }
 
@@ -31,7 +31,7 @@ export class JTConversionService {
     private healthCheckCache: { status: HealthStatus; timestamp: number } | null = null;
     private readonly HEALTH_CACHE_MS = 30000; // Cache health check for 30 seconds
 
-    constructor(apiUrl: string = 'http://localhost:8005') {
+    constructor(apiUrl: string = 'http://localhost:8000') {
         this.apiUrl = apiUrl;
     }
 
@@ -60,7 +60,7 @@ export class JTConversionService {
             const data = await response.json();
             const status: HealthStatus = {
                 status: data.status || 'unhealthy',
-                pyopenjt_built: data.pyopenjt_built || false,
+                wrapper_available: data.wrapper_available || false,
                 message: data.message || 'Unknown status'
             };
 
@@ -75,7 +75,7 @@ export class JTConversionService {
         } catch (error) {
             const errorStatus: HealthStatus = {
                 status: 'unhealthy',
-                pyopenjt_built: false,
+                wrapper_available: false,
                 message: `Backend not reachable: ${error instanceof Error ? error.message : 'Unknown error'}`
             };
 
@@ -215,23 +215,22 @@ export class JTConversionService {
     static getHelpfulErrorMessage(error: JTConversionError): string {
         if (error.code === 0) {
             return `Cannot reach JT conversion server.\n\n` +
-                `Please ensure the PyOpenJt backend is running:\n` +
-                `1. Open PowerShell/Command Prompt\n` +
-                `2. cd C:\\Users\\George\\source\\repos\\PyOpenJt\\Server\n` +
-                `3. python JtConversionServer.py\n\n` +
-                       `The server should start at http://localhost:8005`;
+                `Please ensure the C++ JT Wrapper server is running:\n` +
+                `1. Build the wrapper: run build.bat\n` +
+                `2. Start the server: python jt_conversion_server.py\n` +
+                `3. The server should start at http://localhost:8000\n\n` +
+                `See README.md for detailed setup instructions.`;
         }
 
         if (error.code === 503) {
-            return `PyOpenJt is not built yet.\n\n` +
-                `Please build PyOpenJt first:\n` +
-                `1. Install VCPKG and CMake\n` +
-                `2. Open PowerShell in Administrator mode\n` +
-                `3. cd C:\\Users\\George\\source\\repos\\PyOpenJt\n` +
-                `4. .\\Setup.bat\n` +
-                `5. Open WinBuild\\PyOpenJt.sln in Visual Studio\n` +
-                `6. Build in Release mode\n\n` +
-                `See PyOpenJt_SETUP_GUIDE.md for details.`;
+            return `JT Converter Wrapper is not available.\n\n` +
+                `Please build the C++ wrapper first:\n` +
+                `1. Install Visual Studio 2019/2022 with C++ tools\n` +
+                `2. Install CMake 3.20+\n` +
+                `3. Ensure JT libraries are in C:\\Users\\George\\source\\repos\\lineSim\\lib3\\\n` +
+                `4. Run: build.bat\n` +
+                `5. Start server: python jt_conversion_server.py\n\n` +
+                `See README.md for detailed setup instructions.`;
         }
 
         return error.message + (error.details ? `\n\nDetails: ${error.details}` : '');
