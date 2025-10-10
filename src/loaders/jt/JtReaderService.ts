@@ -582,31 +582,20 @@ export class JtReaderService {
             geometry.materials = root.geometry.materials ? [root.geometry.materials] : [];
         }
 
-        // Process children
+        // Process children - DON'T merge, keep them separate
         if (root.children && root.children.length > 0) {
-            console.log(`[JtReader] Processing ${root.children.length} children`);
+            console.log(`[JtReader] Processing ${root.children.length} children as separate parts`);
             root.children.forEach((child: any, index: number) => {
                 console.log(`[JtReader] Processing child ${index}:`, child);
                 const childGeometry = this.extractGeometryFromRoot(child);
                 geometry.parts.push(childGeometry);
                 
-                // Merge geometry data safely
-                if (childGeometry.vertices && childGeometry.vertices.length > 0) {
-                    geometry.vertices.push(...childGeometry.vertices);
-                }
-                if (childGeometry.indices && childGeometry.indices.length > 0) {
-                    geometry.indices.push(...childGeometry.indices);
-                }
-                if (childGeometry.normals && childGeometry.normals.length > 0) {
-                    geometry.normals.push(...childGeometry.normals);
-                }
-                if (childGeometry.materials && childGeometry.materials.length > 0) {
-                    geometry.materials.push(...childGeometry.materials);
-                }
+                // DON'T merge geometry - keep parts separate for proper robot structure
+                // This allows each robot component to be a separate mesh
             });
         }
 
-        console.log(`[JtReader] Extracted geometry: ${geometry.vertices.length / 3} vertices, ${geometry.indices.length / 3} triangles`);
+        console.log(`[JtReader] Extracted geometry: ${geometry.vertices.length / 3} vertices, ${geometry.indices.length / 3} triangles, ${geometry.parts.length} parts`);
         return geometry;
     }
 
@@ -616,84 +605,88 @@ export class JtReaderService {
     private async convertJTToGLTF(jtData: any): Promise<any> {
         try {
             console.log(`[JtReader] Converting JT data to GLTF:`, jtData);
-            console.log(`[JtReader] Vertices: ${jtData.vertices?.length || 0}, Indices: ${jtData.indices?.length || 0}, Normals: ${jtData.normals?.length || 0}`);
+            console.log(`[JtReader] Main geometry: ${jtData.vertices?.length || 0} vertices, ${jtData.indices?.length || 0} indices`);
+            console.log(`[JtReader] Robot parts: ${jtData.parts?.length || 0} separate components`);
             
-            // Ensure we have valid geometry data
-            if (!jtData.vertices || jtData.vertices.length === 0) {
-                throw new Error('No vertices found in JT data');
+            // Create separate meshes for each robot part
+            const meshes: any[] = [];
+            const nodes: any[] = [];
+            const materials: any[] = [];
+            const accessors: any[] = [];
+            const bufferViews: any[] = [];
+            let bufferOffset = 0;
+            let accessorIndex = 0;
+            let bufferViewIndex = 0;
+            
+            // Create materials for different robot parts
+            const robotMaterials = [
+                { name: 'BaseMaterial', color: [0.2, 0.2, 0.2, 1.0], metallic: 0.8, roughness: 0.2 }, // Dark gray base
+                { name: 'ArmMaterial', color: [0.8, 0.8, 0.8, 1.0], metallic: 0.6, roughness: 0.3 }, // Light gray arms
+                { name: 'WristMaterial', color: [0.1, 0.1, 0.1, 1.0], metallic: 0.9, roughness: 0.1 }  // Dark wrist
+            ];
+            
+            // Add main assembly geometry if it exists
+            if (jtData.vertices && jtData.vertices.length > 0) {
+                const meshData = this.createMeshData(jtData, 'MainAssembly', bufferOffset, accessorIndex, bufferViewIndex);
+                meshData.node.mesh = meshes.length; // Set correct mesh index
+                meshes.push(meshData.mesh);
+                nodes.push(meshData.node);
+                accessors.push(...meshData.accessors);
+                bufferViews.push(...meshData.bufferViews);
+                materials.push(robotMaterials[0]); // Use base material for main assembly
+                
+                bufferOffset = meshData.bufferOffset;
+                accessorIndex += meshData.accessors.length;
+                bufferViewIndex += meshData.bufferViews.length;
             }
             
-            if (!jtData.indices || jtData.indices.length === 0) {
-                throw new Error('No indices found in JT data');
+            // Add each robot part as a separate mesh
+            if (jtData.parts && jtData.parts.length > 0) {
+                jtData.parts.forEach((part: any, index: number) => {
+                    if (part.vertices && part.vertices.length > 0) {
+                        const materialIndex = Math.min(index, robotMaterials.length - 1);
+                        const meshData = this.createMeshData(part, part.fileName || `Part_${index}`, bufferOffset, accessorIndex, bufferViewIndex);
+                        
+                        meshData.node.mesh = meshes.length; // Set correct mesh index
+                        meshes.push(meshData.mesh);
+                        nodes.push(meshData.node);
+                        accessors.push(...meshData.accessors);
+                        bufferViews.push(...meshData.bufferViews);
+                        materials.push(robotMaterials[materialIndex]);
+                        
+                        bufferOffset = meshData.bufferOffset;
+                        accessorIndex += meshData.accessors.length;
+                        bufferViewIndex += meshData.bufferViews.length;
+                    }
+                });
             }
             
-            if (!jtData.normals || jtData.normals.length === 0) {
-                console.warn('[JtReader] No normals found, generating default normals');
-                // Generate default normals if missing
-                jtData.normals = this.generateDefaultNormals(jtData.vertices);
-            }
+            // Create combined buffer
+            const totalBufferSize = bufferOffset;
+            const bufferUri = this.createCombinedBuffer(jtData, jtData.parts || []);
             
             return {
                 asset: {
                     version: '2.0',
-                    generator: 'JtReader.dll Direct Integration'
+                    generator: 'JtReader.dll Direct Integration - Multi-Mesh Robot'
                 },
-                scenes: [{ nodes: [0] }],
-                nodes: [{ 
-                    mesh: 0, 
-                    name: jtData.fileName,
-                    translation: [0, 0, 0],
-                    rotation: [0, 0, 0, 1],
-                    scale: [1, 1, 1]
-                }],
-                meshes: [{
-                    primitives: [{
-                        attributes: { POSITION: 0, NORMAL: 1 },
-                        material: 0,
-                        indices: 2
-                    }]
-                }],
-                materials: [{
-                    name: 'RobotMaterial',
+                scenes: [{ nodes: nodes.map((_, i) => i) }],
+                nodes: nodes,
+                meshes: meshes,
+                materials: materials.map(mat => ({
+                    name: mat.name,
                     pbrMetallicRoughness: {
-                        baseColorFactor: jtData.materials[0]?.diffuse || [0.2, 0.6, 0.8, 1.0],
-                        metallicFactor: jtData.materials[0]?.metallic || 0.3,
-                        roughnessFactor: jtData.materials[0]?.roughness || 0.4
+                        baseColorFactor: mat.color,
+                        metallicFactor: mat.metallic,
+                        roughnessFactor: mat.roughness
                     },
                     doubleSided: true
-                }],
-                accessors: [
-                    {
-                        bufferView: 0,
-                        componentType: 5126,
-                        count: jtData.vertices.length / 3,
-                        type: 'VEC3',
-                        min: this.calculateBounds(jtData.vertices, 'min'),
-                        max: this.calculateBounds(jtData.vertices, 'max')
-                    },
-                    {
-                        bufferView: 1,
-                        componentType: 5126,
-                        count: jtData.normals.length / 3,
-                        type: 'VEC3'
-                    },
-                    {
-                        bufferView: 2,
-                        componentType: 5123,
-                        count: jtData.indices.length,
-                        type: 'SCALAR'
-                    }
-                ],
-                bufferViews: [
-                    { buffer: 0, byteOffset: 0, byteLength: jtData.vertices.length * 4 },
-                    { buffer: 0, byteOffset: jtData.vertices.length * 4, byteLength: jtData.normals.length * 4 },
-                    { buffer: 0, byteOffset: (jtData.vertices.length + jtData.normals.length) * 4, byteLength: jtData.indices.length * 2 }
-                ],
+                })),
+                accessors: accessors,
+                bufferViews: bufferViews,
                 buffers: [{
-                    byteLength: (jtData.vertices.length + jtData.normals.length) * 4 + jtData.indices.length * 2,
-                    uri: 'data:application/octet-stream;base64,' + 
-                         this.arrayBufferToBase64(new Float32Array(jtData.vertices.concat(jtData.normals)).buffer) +
-                         this.arrayBufferToBase64(new Uint16Array(jtData.indices).buffer)
+                    byteLength: totalBufferSize,
+                    uri: bufferUri
                 }]
             };
 
@@ -752,6 +745,108 @@ export class JtReaderService {
         }
         
         return normals;
+    }
+
+    /**
+     * Create mesh data for a single geometry part
+     */
+    private createMeshData(geometry: any, name: string, bufferOffset: number, accessorIndex: number, bufferViewIndex: number): any {
+        // Ensure we have normals
+        if (!geometry.normals || geometry.normals.length === 0) {
+            geometry.normals = this.generateDefaultNormals(geometry.vertices);
+        }
+        
+        const vertexByteLength = geometry.vertices.length * 4;
+        const normalByteLength = geometry.normals.length * 4;
+        const indexByteLength = geometry.indices.length * 2;
+        
+        const accessors = [
+            {
+                bufferView: bufferViewIndex,
+                componentType: 5126,
+                count: geometry.vertices.length / 3,
+                type: 'VEC3',
+                min: this.calculateBounds(geometry.vertices, 'min'),
+                max: this.calculateBounds(geometry.vertices, 'max')
+            },
+            {
+                bufferView: bufferViewIndex + 1,
+                componentType: 5126,
+                count: geometry.normals.length / 3,
+                type: 'VEC3'
+            },
+            {
+                bufferView: bufferViewIndex + 2,
+                componentType: 5123,
+                count: geometry.indices.length,
+                type: 'SCALAR'
+            }
+        ];
+        
+        const bufferViews = [
+            { buffer: 0, byteOffset: bufferOffset, byteLength: vertexByteLength },
+            { buffer: 0, byteOffset: bufferOffset + vertexByteLength, byteLength: normalByteLength },
+            { buffer: 0, byteOffset: bufferOffset + vertexByteLength + normalByteLength, byteLength: indexByteLength }
+        ];
+        
+        const mesh = {
+            primitives: [{
+                attributes: { POSITION: accessorIndex, NORMAL: accessorIndex + 1 },
+                material: 0,
+                indices: accessorIndex + 2
+            }]
+        };
+        
+        const node = {
+            mesh: 0, // Will be set correctly when added to the meshes array
+            name: name,
+            translation: [0, 0, 0],
+            rotation: [0, 0, 0, 1],
+            scale: [1, 1, 1]
+        };
+        
+        return {
+            mesh,
+            node,
+            accessors,
+            bufferViews,
+            bufferOffset: bufferOffset + vertexByteLength + normalByteLength + indexByteLength
+        };
+    }
+
+    /**
+     * Create combined buffer for all geometry data
+     */
+    private createCombinedBuffer(mainGeometry: any, parts: any[]): string {
+        const allBuffers: ArrayBuffer[] = [];
+        
+        // Add main geometry if it exists
+        if (mainGeometry.vertices && mainGeometry.vertices.length > 0) {
+            allBuffers.push(new Float32Array(mainGeometry.vertices).buffer);
+            allBuffers.push(new Float32Array(mainGeometry.normals || this.generateDefaultNormals(mainGeometry.vertices)).buffer);
+            allBuffers.push(new Uint16Array(mainGeometry.indices).buffer);
+        }
+        
+        // Add each part's geometry
+        parts.forEach(part => {
+            if (part.vertices && part.vertices.length > 0) {
+                allBuffers.push(new Float32Array(part.vertices).buffer);
+                allBuffers.push(new Float32Array(part.normals || this.generateDefaultNormals(part.vertices)).buffer);
+                allBuffers.push(new Uint16Array(part.indices).buffer);
+            }
+        });
+        
+        // Combine all buffers
+        const totalLength = allBuffers.reduce((sum, buf) => sum + buf.byteLength, 0);
+        const combined = new Uint8Array(totalLength);
+        let offset = 0;
+        
+        allBuffers.forEach(buffer => {
+            combined.set(new Uint8Array(buffer), offset);
+            offset += buffer.byteLength;
+        });
+        
+        return 'data:application/octet-stream;base64,' + this.arrayBufferToBase64(combined.buffer);
     }
 
     /**
