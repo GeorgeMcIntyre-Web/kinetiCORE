@@ -1,0 +1,114 @@
+/* Header component styles */
+/* Owner: George (Architecture) */
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 60px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-bottom: 1px solid #2a2a3e;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: 700;
+  color: #646cff;
+  margin: 0;
+  text-shadow: 0 0 10px rgba(100, 108, 255, 0.3);
+}
+
+.tagline {
+  font-size: 14px;
+  color: #a0a0a0;
+  margin: 0;
+  font-weight: 400;
+}
+
+.header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-level-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-level-selector label {
+  font-size: 14px;
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+.user-level-dropdown {
+  background: #2a2a3e;
+  border: 1px solid #3a3a4e;
+  border-radius: 6px;
+  color: #e0e0e0;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.user-level-dropdown:hover {
+  border-color: #646cff;
+  background: #2f2f4e;
+}
+
+.user-level-dropdown:focus {
+  outline: none;
+  border-color: #646cff;
+  box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.2);
+}
+
+.user-level-dropdown option {
+  background: #2a2a3e;
+  color: #e0e0e0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0 16px;
+  }
+  
+  .tagline {
+    display: none;
+  }
+  
+  .user-level-selector {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .user-level-selector label {
+    font-size: 12px;
+  }
+  
+  .user-level-dropdown {
+    min-width: 100px;
+    padding: 4px 8px;
+  }
+}
