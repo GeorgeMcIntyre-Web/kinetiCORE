@@ -40,9 +40,21 @@ export class PanelRegistry {
   }
 
   getPanelsForUserLevel(userLevel: UserLevel): BasePanel[] {
-    return this.getAll().filter(panel =>
+    const allPanels = this.getAll();
+    console.log('getPanelsForUserLevel called with:', userLevel);
+    console.log('All panels:', allPanels.map(p => ({
+      id: p.getId(),
+      name: p.getName(),
+      userLevels: p.getConfig().userLevels,
+      isVisible: p.isVisibleForUserLevel(userLevel)
+    })));
+    
+    const filteredPanels = allPanels.filter(panel =>
       panel.isVisibleForUserLevel(userLevel)
     );
+    
+    console.log('Filtered panels:', filteredPanels.map(p => p.getName()));
+    return filteredPanels;
   }
 
   getPanelsForWorkspace(workspace: string): BasePanel[] {
