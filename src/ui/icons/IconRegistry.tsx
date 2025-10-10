@@ -72,7 +72,6 @@ import {
   ArrowDown,
   ArrowLeft,
   ArrowRight,
-  RotateCcw,
   
   // Specialized
   Hand,
