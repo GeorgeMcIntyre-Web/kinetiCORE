@@ -23,7 +23,6 @@ export class PanelRegistry {
       console.warn(`Panel with id "${id}" already registered. Overwriting.`);
     }
     this.panels.set(id, panel);
-    console.log(`Panel registered: ${id}`);
   }
 
   unregister(id: string): void {
@@ -41,19 +40,9 @@ export class PanelRegistry {
 
   getPanelsForUserLevel(userLevel: UserLevel): BasePanel[] {
     const allPanels = this.getAll();
-    console.log('getPanelsForUserLevel called with:', userLevel);
-    console.log('All panels:', allPanels.map(p => ({
-      id: p.getId(),
-      name: p.getName(),
-      userLevels: p.getConfig().userLevels,
-      isVisible: p.isVisibleForUserLevel(userLevel)
-    })));
-    
     const filteredPanels = allPanels.filter(panel =>
       panel.isVisibleForUserLevel(userLevel)
     );
-    
-    console.log('Filtered panels:', filteredPanels.map(p => p.getName()));
     return filteredPanels;
   }
 
@@ -78,7 +67,6 @@ export class PanelRegistry {
 
   clear(): void {
     this.panels.clear();
-    console.log('All panels cleared from registry');
   }
 
   getPanelCount(): number {

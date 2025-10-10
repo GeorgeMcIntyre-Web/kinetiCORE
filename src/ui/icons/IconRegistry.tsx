@@ -262,20 +262,15 @@ export function getIcon(path: string): React.ComponentType<any> | null {
   const parts = path.split('.');
   let current: any = IconRegistry;
   
-  console.log(`getIcon called with path: ${path}, parts:`, parts);
-  
   for (const part of parts) {
     if (current && typeof current === 'object' && part in current) {
       current = current[part];
-      console.log(`Found part "${part}", current:`, current);
     } else {
-      console.log(`Failed to find part "${part}" in:`, current);
       return null;
     }
   }
   
   const result = (typeof current === 'function' || (current && typeof current === 'object' && current.$$typeof === Symbol.for('react.forward_ref'))) ? current : null;
-  console.log(`getIcon result for "${path}":`, result);
   return result;
 }
 

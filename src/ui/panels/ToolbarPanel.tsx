@@ -24,7 +24,6 @@ export class ToolbarPanel extends BasePanel {
   }
 
   render(): React.ReactNode {
-    console.log('ToolbarPanel render() called');
     try {
       return (
         <div style={{ padding: '20px', color: 'white', background: '#2a2a3e' }}>

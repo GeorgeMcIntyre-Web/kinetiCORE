@@ -54,35 +54,17 @@ export const MainLayout: React.FC = () => {
   
   const centerPanelSize = Math.max(40, 100 - leftPanelSize - rightPanelSize);
 
-  // Debug logging
-  console.log('Layout calculation:', {
-    leftPanelSize,
-    rightPanelSize,
-    centerPanelSize,
-    leftPanels: leftPanels.length,
-    rightPanels: rightPanels.length,
-    userLevel,
-    visiblePanels: visiblePanels.length,
-    allPanels: registry.getAll().length,
-    panelDetails: visiblePanels.map(p => ({
-      id: p.getId(),
-      name: p.getName(),
-      position: p.getPosition(),
-      userLevels: p.getConfig().userLevels
-    }))
-  });
-
-  // Additional detailed logging
-  console.log('Panel details:', visiblePanels.map(p => ({
-    id: p.getId(),
-    name: p.getName(),
-    position: p.getPosition(),
-    userLevels: p.getConfig().userLevels,
-    isVisibleForUserLevel: p.isVisibleForUserLevel(userLevel)
-  })));
-
-  console.log('Left panels:', leftPanels.map(p => p.getName()));
-  console.log('Right panels:', rightPanels.map(p => p.getName()));
+      // Debug logging
+      console.log('Layout calculation:', {
+        leftPanelSize,
+        rightPanelSize,
+        centerPanelSize,
+        leftPanels: leftPanels.length,
+        rightPanels: rightPanels.length,
+        userLevel,
+        visiblePanels: visiblePanels.length,
+        allPanels: registry.getAll().length
+      });
 
   // Initialize panel states synchronously - not in useEffect
   visiblePanels.forEach(panel => {
@@ -134,7 +116,6 @@ export const MainLayout: React.FC = () => {
           {leftPanels.map(panel => {
             const state = panelStates[panel.getId()];
             const isVisible = state?.visible !== false; // Default to visible if not set
-            console.log(`Left panel ${panel.getName()}:`, { isVisible, state });
             if (!isVisible) return null;
             
             // Use default state if state is undefined
@@ -147,7 +128,6 @@ export const MainLayout: React.FC = () => {
                   minSize={panel.getMinSize()}
                   maxSize={panel.getMaxSize()}
                   collapsible={panel.canCollapse()}
-                  collapsed={!!panelState.collapsed}
                 >
                   <div className="panel-container">
                     <div className="panel-header">
@@ -172,7 +152,6 @@ export const MainLayout: React.FC = () => {
                       </div>
                     </div>
                     <div className="panel-content">
-                      {console.log(`Rendering panel ${panel.getName()} content:`, panel.render())}
                       {panel.render()}
                     </div>
                   </div>
@@ -193,7 +172,6 @@ export const MainLayout: React.FC = () => {
           {rightPanels.map(panel => {
             const state = panelStates[panel.getId()];
             const isVisible = state?.visible !== false; // Default to visible if not set
-            console.log(`Right panel ${panel.getName()}:`, { isVisible, state });
             if (!isVisible) return null;
             
             // Use default state if state is undefined
@@ -203,11 +181,10 @@ export const MainLayout: React.FC = () => {
               <React.Fragment key={panel.getId()}>
                 <PanelResizeHandle className="resize-handle" />
                 <Panel
-                  defaultSize={state.size}
+                  defaultSize={panelState.size}
                   minSize={panel.getMinSize()}
                   maxSize={panel.getMaxSize()}
                   collapsible={panel.canCollapse()}
-                  collapsed={state.collapsed}
                 >
                   <div className="panel-container">
                     <div className="panel-header">
@@ -232,7 +209,6 @@ export const MainLayout: React.FC = () => {
                       </div>
                     </div>
                     <div className="panel-content">
-                      {console.log(`Rendering panel ${panel.getName()} content:`, panel.render())}
                       {panel.render()}
                     </div>
                   </div>

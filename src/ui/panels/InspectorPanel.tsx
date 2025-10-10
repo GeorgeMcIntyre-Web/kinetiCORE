@@ -24,7 +24,6 @@ export class InspectorPanel extends BasePanel {
   }
 
   render(): React.ReactNode {
-    console.log('InspectorPanel render() called');
     return (
       <div style={{ padding: '20px', color: 'white', background: '#2a2a3e' }}>
         <h4>Inspector Panel</h4>

@@ -13,12 +13,9 @@ export const Header: React.FC = () => {
   const { panelStates, setPanelVisibility } = useLayoutStore();
   const registry = PanelRegistry.getInstance();
 
-  // Get visible panels for current user level
-  const visiblePanels = registry.getVisiblePanelsForUserLevel(userLevel);
-  const sidePanels = visiblePanels.filter(p => p.getPosition() === 'left' || p.getPosition() === 'right');
-
-  console.log('Header - visiblePanels:', visiblePanels.map(p => p.getName()));
-  console.log('Header - sidePanels:', sidePanels.map(p => p.getName()));
+      // Get visible panels for current user level
+      const visiblePanels = registry.getVisiblePanelsForUserLevel(userLevel);
+      const sidePanels = visiblePanels.filter(p => p.getPosition() === 'left' || p.getPosition() === 'right');
 
   const handlePanelToggle = (panelId: string) => {
     const currentState = panelStates[panelId];
@@ -33,14 +30,11 @@ export const Header: React.FC = () => {
       </div>
 
       <div className="header-center">
-        {/* Panel Visibility Controls */}
-        <div className="panel-toggles">
-          {console.log('Rendering panel toggles for:', sidePanels.map(p => p.getName()))}
-          {sidePanels.map(panel => {
-            const state = panelStates[panel.getId()];
-            const isVisible = state?.visible !== false; // Default to visible if not set
-            
-            console.log(`Panel ${panel.getName()} toggle:`, { isVisible, state });
+            {/* Panel Visibility Controls */}
+            <div className="panel-toggles">
+              {sidePanels.map(panel => {
+                const state = panelStates[panel.getId()];
+                const isVisible = state?.visible !== false; // Default to visible if not set
             
             return (
               <button

@@ -24,7 +24,6 @@ export class SceneTreePanel extends BasePanel {
   }
 
   render(): React.ReactNode {
-    console.log('SceneTreePanel render() called');
     return (
       <div style={{ padding: '20px', color: 'white', background: '#2a2a3e' }}>
         <h4>Scene Tree Panel</h4>
