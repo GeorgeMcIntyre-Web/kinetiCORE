@@ -11,7 +11,7 @@ export class SceneTreePanel extends BasePanel {
       id: 'sceneTree',
       name: 'Scene',
       position: 'left',
-      defaultSize: 25, // Increased from 18% to 25%
+      defaultSize: 30, // Increased from 25% to 30%
       minSize: 20,
       maxSize: 40,
       resizable: true,
@@ -32,7 +32,7 @@ export class SceneTreePanel extends BasePanel {
       id: this.config.id,
       visible: true,
       collapsed: this.config.defaultCollapsed || false,
-      size: this.config.defaultSize || 25,
+      size: this.config.defaultSize || 30,
     };
   }
 }

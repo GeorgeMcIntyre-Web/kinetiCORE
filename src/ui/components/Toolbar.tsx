@@ -3,7 +3,7 @@
 
 console.log('🔧 Toolbar component is loading...');
 
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import { useEditorStore } from '../store/editorStore';
 import { TransformMode } from '../../core/types';
@@ -39,6 +39,79 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const worldLoadInputRef = useRef<HTMLInputElement>(null);
+
+  // Force all toolbar icons to be the same size
+  useEffect(() => {
+    const enforceIconSizes = () => {
+      const toolbar = document.querySelector('.toolbar');
+      if (toolbar) {
+        const allSvgs = toolbar.querySelectorAll('svg');
+        console.log(`🔧 Found ${allSvgs.length} SVG icons in toolbar`);
+        
+        allSvgs.forEach((svg, index) => {
+          const beforeWidth = svg.style.width || svg.getAttribute('width') || 'unknown';
+          const beforeHeight = svg.style.height || svg.getAttribute('height') || 'unknown';
+          
+          // More aggressive styling
+          svg.style.setProperty('width', '20px', 'important');
+          svg.style.setProperty('height', '20px', 'important');
+          svg.style.setProperty('max-width', '20px', 'important');
+          svg.style.setProperty('max-height', '20px', 'important');
+          svg.style.setProperty('flex-shrink', '0', 'important');
+          svg.style.setProperty('transform', 'scale(1)', 'important');
+          svg.style.setProperty('box-sizing', 'border-box', 'important');
+          
+          // Also set attributes
+          svg.setAttribute('width', '20');
+          svg.setAttribute('height', '20');
+          
+          console.log(`🔧 Icon ${index}: ${beforeWidth}x${beforeHeight} -> 20px x 20px`);
+        });
+        
+        // Also target any parent containers that might be affecting size
+        const iconContainers = toolbar.querySelectorAll('.toolbar-button-icon, .button-group-segmented .toolbar-button-icon');
+        iconContainers.forEach(container => {
+          container.style.setProperty('min-width', '44px', 'important');
+          container.style.setProperty('min-height', '44px', 'important');
+          container.style.setProperty('display', 'flex', 'important');
+          container.style.setProperty('align-items', 'center', 'important');
+          container.style.setProperty('justify-content', 'center', 'important');
+        });
+      }
+    };
+
+    // Run immediately
+    enforceIconSizes();
+
+    // Run multiple times with different delays
+    const timeouts = [
+      setTimeout(enforceIconSizes, 50),
+      setTimeout(enforceIconSizes, 100),
+      setTimeout(enforceIconSizes, 200),
+      setTimeout(enforceIconSizes, 500)
+    ];
+
+    // Set up a MutationObserver to catch any new icons
+    const observer = new MutationObserver(() => {
+      console.log('🔧 DOM mutation detected, re-enforcing icon sizes');
+      enforceIconSizes();
+    });
+    
+    const toolbar = document.querySelector('.toolbar');
+    if (toolbar) {
+      observer.observe(toolbar, { 
+        childList: true, 
+        subtree: true, 
+        attributes: true,
+        attributeFilter: ['style', 'width', 'height']
+      });
+    }
+
+    return () => {
+      timeouts.forEach(clearTimeout);
+      observer.disconnect();
+    };
+  }, []);
 
   const modes: {
     mode: TransformMode;
@@ -370,7 +443,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
   return (
     <div className="toolbar">
       {/* Transform Tools - Segmented Button Group */}
-      <div className="toolbar-section">
+      <div className="toolbar-section transform-section">
         <h3>Transform</h3>
         <div className="button-group-segmented">
           {modes.map(({ mode, label, key, iconPath }) => (

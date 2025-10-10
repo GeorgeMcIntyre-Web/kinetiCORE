@@ -89,6 +89,7 @@ export const useLayoutStore = create<LayoutState>()(
     }),
     {
       name: 'kineticore-layout', // localStorage key
+      version: 3, // Increment version to clear old cached data
       partialize: (state) => ({
         userLevel: state.userLevel,
         currentWorkspace: state.currentWorkspace,

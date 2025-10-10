@@ -11,7 +11,7 @@ export class InspectorPanel extends BasePanel {
       id: 'inspector',
       name: 'Inspector',
       position: 'right',
-      defaultSize: 28, // Increased from 20% to 28%
+      defaultSize: 35, // Increased from 28% to 35%
       minSize: 20,
       maxSize: 45,
       resizable: true,
@@ -32,7 +32,7 @@ export class InspectorPanel extends BasePanel {
       id: this.config.id,
       visible: true,
       collapsed: this.config.defaultCollapsed || false,
-      size: this.config.defaultSize || 28,
+      size: this.config.defaultSize || 35,
     };
   }
 }

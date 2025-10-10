@@ -76,6 +76,10 @@
   border-radius: 4px;
   border: none;
   margin: 0;
+  /* Ensure consistent sizing with other toolbar buttons */
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.75rem 1rem;
 }
 
 .button-group-segmented .toolbar-button-icon:not(:last-child) {
@@ -87,8 +91,14 @@
   border-radius: 0 4px 4px 0;
 }
 
-.button-group-segmented .toolbar-button-icon:not(:first-child):not(:last-child) {
-  border-radius: 0;
+/* Force TRANSFORM section icons to be same size as others */
+.button-group-segmented .toolbar-button-icon svg,
+.toolbar-section:first-child .toolbar-button-icon svg {
+  width: 20px !important;
+  height: 20px !important;
+  flex-shrink: 0;
+  max-width: 20px !important;
+  max-height: 20px !important;
 }
 
 /* Icon Button Style */
@@ -111,10 +121,30 @@
   min-height: 44px;
 }
 
-.toolbar-button-icon .button-label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  letter-spacing: 0.3px;
+/* Nuclear option: Force ALL SVG icons in toolbar to be exactly 20px */
+.toolbar svg,
+.toolbar svg * {
+  width: 20px !important;
+  height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+  flex-shrink: 0;
+  viewBox: 0 0 24 24 !important;
+  preserveAspectRatio: xMidYMid meet !important;
+}
+
+/* Specifically target transform section icons with maximum specificity */
+.transform-section svg,
+.transform-section .toolbar-button-icon svg,
+.transform-section .button-group-segmented svg,
+.transform-section .button-group-segmented .toolbar-button-icon svg {
+  width: 20px !important;
+  height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+  flex-shrink: 0;
+  transform: scale(1) !important;
+  box-sizing: border-box !important;
 }
 
 /* Hover State */
@@ -214,7 +244,7 @@
 }
 
 /* Icon-only mode - hide labels on smaller screens */
-@media (max-width: 1200px) {
+@media (max-width: 900px) {
   .toolbar-button-icon .button-label {
     display: none;
   }

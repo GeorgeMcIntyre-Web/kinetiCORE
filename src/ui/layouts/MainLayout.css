@@ -59,17 +59,18 @@
 }
 
 .panel-header {
-  padding: 20px 24px;
+  padding: 4px 8px;
   background: linear-gradient(135deg, #3a3a4e 0%, #4a4a5e 100%);
-  border-bottom: 2px solid #5a5a6e;
+  border-bottom: 1px solid #5a5a6e;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  border-radius: 12px 12px 0 0;
+  justify-content: flex-end;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border-radius: 8px 8px 0 0;
   position: relative;
   overflow: hidden;
+  min-height: 24px;
 }
 
 .panel-header::before {
@@ -83,21 +84,13 @@
 }
 
 .panel-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #ffffff;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-  position: relative;
-  z-index: 1;
+  display: none; /* Hide panel titles for minimal design */
 }
 
 .panel-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   position: relative;
   z-index: 1;
 }
@@ -107,14 +100,14 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #e0e0e0;
   cursor: pointer;
-  padding: 10px;
-  border-radius: 8px;
+  padding: 4px;
+  border-radius: 4px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 36px;
-  min-height: 36px;
+  min-width: 20px;
+  min-height: 20px;
   backdrop-filter: blur(10px);
 }
 

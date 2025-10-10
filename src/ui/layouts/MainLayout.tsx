@@ -52,7 +52,7 @@ export const MainLayout: React.FC = () => {
     return sum;
   }, 0);
   
-  const centerPanelSize = Math.max(40, 100 - leftPanelSize - rightPanelSize);
+  const centerPanelSize = Math.max(30, 100 - leftPanelSize - rightPanelSize);
 
       // Debug logging
       console.log('Layout calculation:', {
@@ -82,15 +82,15 @@ export const MainLayout: React.FC = () => {
     setPanelVisibility(panelId, false);
   };
 
-  const getPanelIcon = (position: string) => {
-    switch (position) {
-      case 'left': return <ChevronLeft size={20} />;
-      case 'right': return <ChevronRight size={20} />;
-      case 'top': return <ChevronUp size={20} />;
-      case 'bottom': return <ChevronDown size={20} />;
-      default: return <ChevronLeft size={20} />;
-    }
-  };
+      const getPanelIcon = (position: string) => {
+        switch (position) {
+          case 'left': return <ChevronLeft size={12} />;
+          case 'right': return <ChevronRight size={12} />;
+          case 'top': return <ChevronUp size={12} />;
+          case 'bottom': return <ChevronDown size={12} />;
+          default: return <ChevronLeft size={12} />;
+        }
+      };
 
   return (
     <div className="main-layout">
@@ -147,7 +147,7 @@ export const MainLayout: React.FC = () => {
                           onClick={() => handlePanelClose(panel.getId())}
                           title="Close panel"
                         >
-                          <X size={20} />
+                          <X size={12} />
                         </button>
                       </div>
                     </div>
@@ -162,7 +162,7 @@ export const MainLayout: React.FC = () => {
           })}
 
           {/* Center Viewport */}
-          <Panel defaultSize={centerPanelSize} minSize={40}>
+          <Panel defaultSize={centerPanelSize} minSize={30}>
             <div className="viewport-container">
               <SceneCanvas />
             </div>
@@ -204,7 +204,7 @@ export const MainLayout: React.FC = () => {
                           onClick={() => handlePanelClose(panel.getId())}
                           title="Close panel"
                         >
-                          <X size={20} />
+                          <X size={12} />
                         </button>
                       </div>
                     </div>

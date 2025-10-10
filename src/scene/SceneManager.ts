@@ -26,7 +26,7 @@ export class SceneManager {
   private ground: BABYLON.Mesh | null = null;
   private floorMaterialManager: FloorMaterialManager | null = null;
   private gridOverlay: BABYLON.Mesh | null = null;
-  private currentFloorType: FloorType = 'grid-only';
+  private currentFloorType: FloorType = 'concrete-polished';
   private isInitialized: boolean = false;
   private isUsingWebGPU: boolean = false;
 
