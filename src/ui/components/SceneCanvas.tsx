@@ -26,6 +26,8 @@ export const SceneCanvas: React.FC = () => {
   const camera = useEditorStore((state) => state.camera);
   const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
   const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
+  const selectedCollectionNodeId = useEditorStore((state) => state.selectedCollectionNodeId);
+  const selectedCollectionTransformNode = useEditorStore((state) => state.selectedCollectionTransformNode);
   const transformMode = useEditorStore((state) => state.transformMode);
   const selectMesh = useEditorStore((state) => state.selectMesh);
   const clearSelection = useEditorStore((state) => state.clearSelection);
@@ -262,11 +264,15 @@ export const SceneCanvas: React.FC = () => {
         gizmoRef.current.attachToMesh(selectedMesh);
         gizmoRef.current.setMode('combined');
       }
+    } else if (selectedCollectionTransformNode) {
+      // Collection node selected from tree - attach gizmo to TransformNode
+      gizmoRef.current.attachToNode(selectedCollectionTransformNode);
+      gizmoRef.current.setMode('combined');
     } else {
       // Detach gizmo when nothing selected
       gizmoRef.current.attachToMesh(null);
     }
-  }, [selectedMeshes, transformMode]);
+  }, [selectedMeshes, selectedCollectionTransformNode, transformMode]);
 
   // Update snap settings when they change - ALL 13 snap types
   useEffect(() => {
