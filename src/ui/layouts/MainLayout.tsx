@@ -39,6 +39,35 @@ export const MainLayout: React.FC = () => {
   const rightPanels = visiblePanels.filter(p => p.getPosition() === 'right');
   const topPanels = visiblePanels.filter(p => p.getPosition() === 'top');
 
+  // Calculate center panel size dynamically
+  const leftPanelSize = leftPanels.reduce((sum, panel) => {
+    const state = panelStates[panel.getId()];
+    if (state?.visible !== false) { // Include if visible (default to true)
+      return sum + (state?.size || panel.getDefaultSize());
+    }
+    return sum;
+  }, 0);
+  
+  const rightPanelSize = rightPanels.reduce((sum, panel) => {
+    const state = panelStates[panel.getId()];
+    if (state?.visible !== false) { // Include if visible (default to true)
+      return sum + (state?.size || panel.getDefaultSize());
+    }
+    return sum;
+  }, 0);
+  
+  const centerPanelSize = Math.max(40, 100 - leftPanelSize - rightPanelSize);
+
+  // Debug logging
+  console.log('Layout calculation:', {
+    leftPanelSize,
+    rightPanelSize,
+    centerPanelSize,
+    leftPanels: leftPanels.length,
+    rightPanels: rightPanels.length,
+    userLevel
+  });
+
   // Initialize panel states if not present
   useEffect(() => {
     visiblePanels.forEach(panel => {
@@ -90,7 +119,8 @@ export const MainLayout: React.FC = () => {
           {/* Left Sidebar */}
           {leftPanels.map(panel => {
             const state = panelStates[panel.getId()];
-            if (!state?.visible) return null;
+            const isVisible = state?.visible !== false; // Default to visible if not set
+            if (!isVisible) return null;
             
             return (
               <React.Fragment key={panel.getId()}>
@@ -134,7 +164,7 @@ export const MainLayout: React.FC = () => {
           })}
 
           {/* Center Viewport */}
-          <Panel defaultSize={62} minSize={40}>
+          <Panel defaultSize={centerPanelSize} minSize={40}>
             <div className="viewport-container">
               <SceneCanvas />
             </div>
@@ -143,7 +173,8 @@ export const MainLayout: React.FC = () => {
           {/* Right Sidebar */}
           {rightPanels.map(panel => {
             const state = panelStates[panel.getId()];
-            if (!state?.visible) return null;
+            const isVisible = state?.visible !== false; // Default to visible if not set
+            if (!isVisible) return null;
             
             return (
               <React.Fragment key={panel.getId()}>
