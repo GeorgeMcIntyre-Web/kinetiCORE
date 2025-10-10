@@ -102,11 +102,11 @@ export const MainLayout: React.FC = () => {
 
   const getPanelIcon = (position: string) => {
     switch (position) {
-      case 'left': return <ChevronLeft size={16} />;
-      case 'right': return <ChevronRight size={16} />;
-      case 'top': return <ChevronUp size={16} />;
-      case 'bottom': return <ChevronDown size={16} />;
-      default: return <ChevronLeft size={16} />;
+      case 'left': return <ChevronLeft size={20} />;
+      case 'right': return <ChevronRight size={20} />;
+      case 'top': return <ChevronUp size={20} />;
+      case 'bottom': return <ChevronDown size={20} />;
+      default: return <ChevronLeft size={20} />;
     }
   };
 
@@ -157,7 +157,7 @@ export const MainLayout: React.FC = () => {
                           <button
                             className="panel-control-btn"
                             onClick={() => handlePanelToggle(panel.getId())}
-                            title={state.collapsed ? 'Expand panel' : 'Collapse panel'}
+                            title={panelState.collapsed ? 'Expand panel' : 'Collapse panel'}
                           >
                             {getPanelIcon(panel.getPosition())}
                           </button>
@@ -167,11 +167,12 @@ export const MainLayout: React.FC = () => {
                           onClick={() => handlePanelClose(panel.getId())}
                           title="Close panel"
                         >
-                          <X size={14} />
+                          <X size={20} />
                         </button>
                       </div>
                     </div>
                     <div className="panel-content">
+                      {console.log(`Rendering panel ${panel.getName()} content:`, panel.render())}
                       {panel.render()}
                     </div>
                   </div>
@@ -216,7 +217,7 @@ export const MainLayout: React.FC = () => {
                           <button
                             className="panel-control-btn"
                             onClick={() => handlePanelToggle(panel.getId())}
-                            title={state.collapsed ? 'Expand panel' : 'Collapse panel'}
+                            title={panelState.collapsed ? 'Expand panel' : 'Collapse panel'}
                           >
                             {getPanelIcon(panel.getPosition())}
                           </button>
@@ -226,11 +227,12 @@ export const MainLayout: React.FC = () => {
                           onClick={() => handlePanelClose(panel.getId())}
                           title="Close panel"
                         >
-                          <X size={14} />
+                          <X size={20} />
                         </button>
                       </div>
                     </div>
                     <div className="panel-content">
+                      {console.log(`Rendering panel ${panel.getName()} content:`, panel.render())}
                       {panel.render()}
                     </div>
                   </div>
