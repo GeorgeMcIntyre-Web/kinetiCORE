@@ -138,7 +138,7 @@ export class JtReaderService {
                                     {
                                         name: 'Base_Part',
                                         type: 'Part',
-                                        geometry: this.generateCylinderGeometry(0.5, 0.3),
+                                        geometry: this.generateBaseGeometry(),
                                         transform: { x: 0, y: 0, z: 0 }
                                     }
                                 ]
@@ -150,7 +150,7 @@ export class JtReaderService {
                                     {
                                         name: 'Arm1_Part',
                                         type: 'Part',
-                                        geometry: this.generateBoxGeometry(0.8, 0.1, 0.1),
+                                        geometry: this.generateArm1Geometry(),
                                         transform: { x: 0, y: 0.2, z: 0 }
                                     }
                                 ]
@@ -162,7 +162,7 @@ export class JtReaderService {
                                     {
                                         name: 'Arm2_Part',
                                         type: 'Part',
-                                        geometry: this.generateBoxGeometry(0.6, 0.08, 0.08),
+                                        geometry: this.generateArm2Geometry(),
                                         transform: { x: 0.4, y: 0.2, z: 0 }
                                     }
                                 ]
@@ -174,7 +174,7 @@ export class JtReaderService {
                                     {
                                         name: 'Wrist_Part',
                                         type: 'Part',
-                                        geometry: this.generateSphereGeometry(0.06),
+                                        geometry: this.generateWristGeometry(),
                                         transform: { x: 0.7, y: 0.2, z: 0 }
                                     }
                                 ]
@@ -210,60 +210,37 @@ export class JtReaderService {
                     }
                     
                     private generateRobotGeometry() {
-                        const vertices: number[] = [];
-                        const indices: number[] = [];
-                        const normals: number[] = [];
-                        let vertexOffset = 0;
-                        
-                        // Base cylinder
-                        const baseVerts = this.generateCylinderVertices(0.5, 0.3, 16);
-                        const baseIndices = this.generateCylinderIndices(16);
-                        const baseNormals = this.generateCylinderNormals(16);
-                        
-                        vertices.push(...baseVerts);
-                        indices.push(...baseIndices.map(i => i + vertexOffset));
-                        normals.push(...baseNormals);
-                        vertexOffset += baseVerts.length / 3;
-                        
-                        // Arm1 box
-                        const arm1Verts = this.generateBoxVerticesAt(0.8, 0.1, 0.1, 0, 0.2, 0);
-                        const arm1Indices = this.generateBoxIndices();
-                        const arm1Normals = this.generateBoxNormals();
-                        
-                        vertices.push(...arm1Verts);
-                        indices.push(...arm1Indices.map(i => i + vertexOffset));
-                        normals.push(...arm1Normals);
-                        vertexOffset += arm1Verts.length / 3;
-                        
-                        // Arm2 box
-                        const arm2Verts = this.generateBoxVerticesAt(0.6, 0.08, 0.08, 0.4, 0.2, 0);
-                        const arm2Indices = this.generateBoxIndices();
-                        const arm2Normals = this.generateBoxNormals();
-                        
-                        vertices.push(...arm2Verts);
-                        indices.push(...arm2Indices.map(i => i + vertexOffset));
-                        normals.push(...arm2Normals);
-                        vertexOffset += arm2Verts.length / 3;
-                        
-                        // Wrist sphere
-                        const wristVerts = this.generateSphereVerticesAt(0.06, 0.7, 0.2, 0, 8);
-                        const wristIndices = this.generateSphereIndices(8);
-                        const wristNormals = this.generateSphereNormals(8);
-                        
-                        vertices.push(...wristVerts);
-                        indices.push(...wristIndices.map(i => i + vertexOffset));
-                        normals.push(...wristNormals);
-                        
-                        return {
-                            vertices,
-                            indices,
-                            normals,
-                            materials: {
-                                base: { diffuse: [0.2, 0.2, 0.2], metallic: 0.8, roughness: 0.2 },
-                                arm: { diffuse: [0.8, 0.8, 0.8], metallic: 0.6, roughness: 0.3 },
-                                wrist: { diffuse: [0.1, 0.1, 0.1], metallic: 0.9, roughness: 0.1 }
-                            }
-                        };
+                        // Return empty geometry for the main assembly
+                        // Individual parts will have their own geometry
+                        return { vertices: [], indices: [], normals: [] };
+                    }
+                    
+                    private generateBaseGeometry() {
+                        const vertices = this.generateCylinderVertices(0.5, 0.3, 16);
+                        const indices = this.generateCylinderIndices(16);
+                        const normals = this.generateCylinderNormals(16);
+                        return { vertices, indices, normals };
+                    }
+                    
+                    private generateArm1Geometry() {
+                        const vertices = this.generateBoxVerticesAt(0.8, 0.1, 0.1, 0, 0.2, 0);
+                        const indices = this.generateBoxIndices();
+                        const normals = this.generateBoxNormals();
+                        return { vertices, indices, normals };
+                    }
+                    
+                    private generateArm2Geometry() {
+                        const vertices = this.generateBoxVerticesAt(0.6, 0.08, 0.08, 0.4, 0.2, 0);
+                        const indices = this.generateBoxIndices();
+                        const normals = this.generateBoxNormals();
+                        return { vertices, indices, normals };
+                    }
+                    
+                    private generateWristGeometry() {
+                        const vertices = this.generateSphereVerticesAt(0.06, 0.7, 0.2, 0, 8);
+                        const indices = this.generateSphereIndices(8);
+                        const normals = this.generateSphereNormals(8);
+                        return { vertices, indices, normals };
                     }
                     
                     private generateGenericGeometry() {
@@ -625,27 +602,16 @@ export class JtReaderService {
                 { name: 'WristMaterial', color: [0.1, 0.1, 0.1, 1.0], metallic: 0.9, roughness: 0.1 }  // Dark wrist
             ];
             
-            // Add main assembly geometry if it exists
-            if (jtData.vertices && jtData.vertices.length > 0) {
-                const meshData = this.createMeshData(jtData, 'MainAssembly', bufferOffset, accessorIndex, bufferViewIndex);
-                meshData.node.mesh = meshes.length; // Set correct mesh index
-                meshes.push(meshData.mesh);
-                nodes.push(meshData.node);
-                accessors.push(...meshData.accessors);
-                bufferViews.push(...meshData.bufferViews);
-                materials.push(robotMaterials[0]); // Use base material for main assembly
-                
-                bufferOffset = meshData.bufferOffset;
-                accessorIndex += meshData.accessors.length;
-                bufferViewIndex += meshData.bufferViews.length;
-            }
-            
-            // Add each robot part as a separate mesh
+            // ONLY add individual robot parts - NO MainAssembly
             if (jtData.parts && jtData.parts.length > 0) {
+                console.log(`[JtReader] Creating ${jtData.parts.length} separate robot part meshes`);
                 jtData.parts.forEach((part: any, index: number) => {
                     if (part.vertices && part.vertices.length > 0) {
                         const materialIndex = Math.min(index, robotMaterials.length - 1);
-                        const meshData = this.createMeshData(part, part.fileName || `Part_${index}`, bufferOffset, accessorIndex, bufferViewIndex);
+                        const partName = part.fileName || `RobotPart_${index}`;
+                        console.log(`[JtReader] Creating mesh for ${partName}: ${part.vertices.length / 3} vertices`);
+                        
+                        const meshData = this.createMeshData(part, partName, bufferOffset, accessorIndex, bufferViewIndex);
                         
                         meshData.node.mesh = meshes.length; // Set correct mesh index
                         meshes.push(meshData.mesh);
@@ -659,6 +625,22 @@ export class JtReaderService {
                         bufferViewIndex += meshData.bufferViews.length;
                     }
                 });
+            } else {
+                console.warn('[JtReader] No individual parts found, falling back to main geometry');
+                // Fallback: if no parts, use main geometry
+                if (jtData.vertices && jtData.vertices.length > 0) {
+                    const meshData = this.createMeshData(jtData, 'RobotAssembly', bufferOffset, accessorIndex, bufferViewIndex);
+                    meshData.node.mesh = meshes.length;
+                    meshes.push(meshData.mesh);
+                    nodes.push(meshData.node);
+                    accessors.push(...meshData.accessors);
+                    bufferViews.push(...meshData.bufferViews);
+                    materials.push(robotMaterials[0]);
+                    
+                    bufferOffset = meshData.bufferOffset;
+                    accessorIndex += meshData.accessors.length;
+                    bufferViewIndex += meshData.bufferViews.length;
+                }
             }
             
             // Create combined buffer
