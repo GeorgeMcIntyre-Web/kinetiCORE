@@ -550,8 +550,8 @@ export class JtReaderService {
             parts: []
         };
 
-        // Extract geometry from root
-        if (root.geometry) {
+        // Extract geometry from root if it's a Part (not Assembly)
+        if (root.geometry && root.type === 'Part') {
             console.log(`[JtReader] Root has geometry:`, root.geometry);
             geometry.vertices = root.geometry.vertices || [];
             geometry.indices = root.geometry.indices || [];
@@ -559,16 +559,30 @@ export class JtReaderService {
             geometry.materials = root.geometry.materials ? [root.geometry.materials] : [];
         }
 
-        // Process children - DON'T merge, keep them separate
+        // Process children - extract geometry from actual Parts
         if (root.children && root.children.length > 0) {
             console.log(`[JtReader] Processing ${root.children.length} children as separate parts`);
             root.children.forEach((child: any, index: number) => {
                 console.log(`[JtReader] Processing child ${index}:`, child);
-                const childGeometry = this.extractGeometryFromRoot(child);
-                geometry.parts.push(childGeometry);
                 
-                // DON'T merge geometry - keep parts separate for proper robot structure
-                // This allows each robot component to be a separate mesh
+                // If child is a Part, extract its geometry directly
+                if (child.type === 'Part' && child.geometry) {
+                    console.log(`[JtReader] Found Part with geometry:`, child.geometry);
+                    const partGeometry = {
+                        fileName: child.name,
+                        type: child.type,
+                        vertices: child.geometry.vertices || [],
+                        indices: child.geometry.indices || [],
+                        normals: child.geometry.normals || [],
+                        materials: child.geometry.materials ? [child.geometry.materials] : [],
+                        transform: child.transform || { x: 0, y: 0, z: 0 }
+                    };
+                    geometry.parts.push(partGeometry);
+                } else if (child.type === 'Assembly') {
+                    // If child is an Assembly, recursively process its children
+                    const childGeometry = this.extractGeometryFromRoot(child);
+                    geometry.parts.push(...childGeometry.parts); // Flatten the parts
+                }
             });
         }
 
