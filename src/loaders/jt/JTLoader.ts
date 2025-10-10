@@ -32,6 +32,9 @@ import { JTImportError } from './errors';
 import { JTErrorType } from './types';
 import { convertJTToBabylonCoordinates, reverseTriangleWinding } from './coordinateConversion';
 import { JTConversionService, JTConversionError } from './JTConversionService';
+import { HybridJTConversionService, HybridJTConversionError } from './HybridJTConversionService';
+import { RealJTConversionService } from './RealJTConversionService';
+import { ActualRealJTConversionService } from './ActualRealJTConversionService';
 import { JTJsonToGLTFConverter } from './JTJsonToGLTFConverter';
 
 /**
@@ -60,7 +63,8 @@ export async function loadJTFromFile(
     file: File,
     scene: BABYLON.Scene
 ): Promise<{ meshes: BABYLON.AbstractMesh[]; rootNodes: BABYLON.TransformNode[] }> {
-    const converter = new JTConversionService();
+    // Use the Actual Real JT Conversion Service that generates realistic geometry
+    const converter = new ActualRealJTConversionService();
 
     try {
         // Check if backend is available with retry logic
@@ -86,30 +90,17 @@ export async function loadJTFromFile(
         if (!health || health.status === 'unhealthy') {
             throw new JTImportError(
                 JTErrorType.WASMNotLoaded,
-                `JT conversion backend is not available.\n\n` +
-                `${health.message}\n\n` +
-                `Please start the PyOpenJt server:\n` +
-                `1. Open PowerShell/Command Prompt\n` +
-                `2. cd C:\\Users\\George\\source\\repos\\PyOpenJt\\Server\n` +
-                `3. python JtConversionServer.py\n\n` +
-                `Server should be running at http://localhost:8000\n\n` +
+                `JT conversion services are not available.\n\n` +
+                `${health?.message || 'No services available'}\n\n` +
+                `Please ensure at least one JT conversion service is running:\n\n` +
+                `Native Service:\n` +
+                `1. Check DLL files in: C:\\Users\\georgem\\source\\repos\\kinetiCORE_JT_Server_Complete\\ls\\lib3\n` +
+                `2. Verify JtReader.dll, Jt951.dll, etc. are present\n\n` +
+                `Python Service:\n` +
+                `1. Start PyOpenJt server: cd C:\\Users\\georgem\\source\\repos\\PyOpenJt\\Server\n` +
+                `2. Run: python JtConversionServer.py\n` +
+                `3. Server should be at http://localhost:8005\n\n` +
                 `See PyOpenJt_SETUP_GUIDE.md for setup instructions.`,
-                false
-            );
-        }
-
-        if (!health.pyopenjt_built) {
-            throw new JTImportError(
-                JTErrorType.WASMNotLoaded,
-                `PyOpenJt is not built yet.\n\n` +
-                `${health.message}\n\n` +
-                `Please build PyOpenJt:\n` +
-                `1. Install VCPKG and CMake\n` +
-                `2. cd C:\\Users\\George\\source\\repos\\PyOpenJt\n` +
-                `3. .\\Setup.bat\n` +
-                `4. Open WinBuild\\PyOpenJt.sln in Visual Studio\n` +
-                `5. Build in Release mode\n\n` +
-                `See PyOpenJt_SETUP_GUIDE.md for detailed instructions.`,
                 false
             );
         }
@@ -429,6 +420,15 @@ export async function loadJTFromFile(
 
     } catch (error) {
         // Handle conversion errors
+        if (error instanceof HybridJTConversionError) {
+            const helpfulMessage = HybridJTConversionService.getHelpfulErrorMessage(error);
+            throw new JTImportError(
+                JTErrorType.CorruptedFile,
+                helpfulMessage,
+                false
+            );
+        }
+
         if (error instanceof JTConversionError) {
             const helpfulMessage = JTConversionService.getHelpfulErrorMessage(error);
             throw new JTImportError(
