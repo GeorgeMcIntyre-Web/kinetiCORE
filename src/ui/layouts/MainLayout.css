@@ -40,6 +40,9 @@
   background: #2f2f4e;
   border-bottom: 1px solid #3a3a4e;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .panel-header h3 {
@@ -49,6 +52,35 @@
   color: #e0e0e0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.panel-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.panel-control-btn {
+  background: transparent;
+  border: none;
+  color: #a0a0a0;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-control-btn:hover {
+  background: #3a3a4e;
+  color: #e0e0e0;
+}
+
+.panel-control-btn.close-btn:hover {
+  background: #dc3545;
+  color: white;
 }
 
 .panel-content {

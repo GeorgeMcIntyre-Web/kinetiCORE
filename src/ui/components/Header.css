@@ -41,6 +41,45 @@
   align-items: center;
 }
 
+.panel-toggles {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #2a2a3e;
+  border: 1px solid #3a3a4e;
+  border-radius: 6px;
+  color: #a0a0a0;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.panel-toggle-btn:hover {
+  border-color: #646cff;
+  background: #2f2f4e;
+  color: #e0e0e0;
+}
+
+.panel-toggle-btn.active {
+  background: #646cff;
+  border-color: #646cff;
+  color: white;
+}
+
+.panel-toggle-btn span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .header-right {
   display: flex;
   align-items: center;

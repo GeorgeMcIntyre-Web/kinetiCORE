@@ -5,17 +5,14 @@ import { KeyboardShortcuts } from './ui/components/KeyboardShortcuts';
 import { QuickAddMenu } from './ui/components/QuickAddMenu';
 import { ToastNotifications } from './ui/components/ToastNotifications';
 import { LoadingIndicator } from './ui/components/LoadingIndicator';
-import { SceneCanvas } from './ui/components/SceneCanvas';
 import { ErrorBoundary } from './ui/components/ErrorBoundary';
 import { UserLevelProvider, useUserLevel } from './ui/core/UserLevelContext';
-import { EssentialModeLayout } from './ui/layouts/EssentialModeLayout';
-import { ProfessionalModeLayout } from './ui/layouts/ProfessionalModeLayout';
-import { ExpertModeLayout } from './ui/layouts/ExpertModeLayout';
+import { MainLayout } from './ui/layouts/MainLayout';
 import { AssetLibraryPanel } from './ui/components/AssetLibrary/AssetLibraryPanel';
 import { useAssetLibrary } from './ui/hooks/useAssetLibrary';
 import { useAssetLibraryStore } from './ui/store/assetLibraryStore';
 
-// Main app content that switches layouts based on user level
+// Main app content using the new BasePanel system
 const AppContent: React.FC = () => {
   const { userLevel } = useUserLevel();
   const [showKinematicsPanel, setShowKinematicsPanel] = useState(false);
@@ -26,24 +23,11 @@ const AppContent: React.FC = () => {
     handleAssetDragEnd,
   } = useAssetLibrary();
 
-  // Render the appropriate layout based on user level
-  const renderLayout = () => {
-    switch (userLevel) {
-      case 'essential':
-        return <EssentialModeLayout />;
-      case 'professional':
-        return <ProfessionalModeLayout />;
-      case 'expert':
-        return <ExpertModeLayout />;
-      default:
-        return <EssentialModeLayout />;
-    }
-  };
-
   return (
     <>
+      {/* Main Layout with BasePanel System */}
       <ErrorBoundary fallbackMessage="The layout encountered an error">
-        {renderLayout()}
+        <MainLayout />
       </ErrorBoundary>
 
       {/* Global UI Components - Always active */}
@@ -75,11 +59,6 @@ const AppContent: React.FC = () => {
           />
         </ErrorBoundary>
       )}
-
-      {/* SceneCanvas rendered ONCE at root level - never unmounts during layout switches */}
-      <ErrorBoundary fallbackMessage="3D scene rendering failed">
-        <SceneCanvas />
-      </ErrorBoundary>
     </>
   );
 };

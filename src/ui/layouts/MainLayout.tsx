@@ -3,6 +3,7 @@
 
 import React, { useEffect } from 'react';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, X } from 'lucide-react';
 import { PanelRegistry } from '../core/PanelRegistry';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useLayoutStore } from '../core/LayoutManager';
@@ -16,7 +17,7 @@ import './MainLayout.css';
 export const MainLayout: React.FC = () => {
   const { userLevel } = useUserLevel();
   const registry = PanelRegistry.getInstance();
-  const { panelStates, setPanelState } = useLayoutStore();
+  const { panelStates, setPanelState, togglePanelCollapse, setPanelVisibility } = useLayoutStore();
 
   // Register panels on mount
   useEffect(() => {
@@ -46,6 +47,25 @@ export const MainLayout: React.FC = () => {
       }
     });
   }, [visiblePanels, panelStates, setPanelState]);
+
+  // Panel control functions
+  const handlePanelToggle = (panelId: string) => {
+    togglePanelCollapse(panelId);
+  };
+
+  const handlePanelClose = (panelId: string) => {
+    setPanelVisibility(panelId, false);
+  };
+
+  const getPanelIcon = (position: string) => {
+    switch (position) {
+      case 'left': return <ChevronLeft size={16} />;
+      case 'right': return <ChevronRight size={16} />;
+      case 'top': return <ChevronUp size={16} />;
+      case 'bottom': return <ChevronDown size={16} />;
+      default: return <ChevronLeft size={16} />;
+    }
+  };
 
   return (
     <div className="main-layout">
@@ -84,6 +104,24 @@ export const MainLayout: React.FC = () => {
                   <div className="panel-container">
                     <div className="panel-header">
                       <h3>{panel.getName()}</h3>
+                      <div className="panel-controls">
+                        {panel.canCollapse() && (
+                          <button
+                            className="panel-control-btn"
+                            onClick={() => handlePanelToggle(panel.getId())}
+                            title={state.collapsed ? 'Expand panel' : 'Collapse panel'}
+                          >
+                            {getPanelIcon(panel.getPosition())}
+                          </button>
+                        )}
+                        <button
+                          className="panel-control-btn close-btn"
+                          onClick={() => handlePanelClose(panel.getId())}
+                          title="Close panel"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
                     </div>
                     <div className="panel-content">
                       {panel.render()}
@@ -120,6 +158,24 @@ export const MainLayout: React.FC = () => {
                   <div className="panel-container">
                     <div className="panel-header">
                       <h3>{panel.getName()}</h3>
+                      <div className="panel-controls">
+                        {panel.canCollapse() && (
+                          <button
+                            className="panel-control-btn"
+                            onClick={() => handlePanelToggle(panel.getId())}
+                            title={state.collapsed ? 'Expand panel' : 'Collapse panel'}
+                          >
+                            {getPanelIcon(panel.getPosition())}
+                          </button>
+                        )}
+                        <button
+                          className="panel-control-btn close-btn"
+                          onClick={() => handlePanelClose(panel.getId())}
+                          title="Close panel"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
                     </div>
                     <div className="panel-content">
                       {panel.render()}
