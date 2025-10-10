@@ -552,6 +552,8 @@ export class JtReaderService {
      * Extract geometry data from JT root
      */
     private extractGeometryFromRoot(root: any): any {
+        console.log(`[JtReader] Extracting geometry from root:`, root);
+        
         const geometry = {
             fileName: root.name,
             type: root.type,
@@ -564,23 +566,34 @@ export class JtReaderService {
 
         // Extract geometry from root
         if (root.geometry) {
-            geometry.vertices = root.geometry.vertices;
-            geometry.indices = root.geometry.indices;
-            geometry.normals = root.geometry.normals;
-            geometry.materials = [root.geometry.materials];
+            console.log(`[JtReader] Root has geometry:`, root.geometry);
+            geometry.vertices = root.geometry.vertices || [];
+            geometry.indices = root.geometry.indices || [];
+            geometry.normals = root.geometry.normals || [];
+            geometry.materials = root.geometry.materials ? [root.geometry.materials] : [];
         }
 
         // Process children
         if (root.children && root.children.length > 0) {
-            root.children.forEach((child: any) => {
+            console.log(`[JtReader] Processing ${root.children.length} children`);
+            root.children.forEach((child: any, index: number) => {
+                console.log(`[JtReader] Processing child ${index}:`, child);
                 const childGeometry = this.extractGeometryFromRoot(child);
                 geometry.parts.push(childGeometry);
                 
-                // Merge geometry data
-                geometry.vertices.push(...childGeometry.vertices);
-                geometry.indices.push(...childGeometry.indices);
-                geometry.normals.push(...childGeometry.normals);
-                geometry.materials.push(...childGeometry.materials);
+                // Merge geometry data safely
+                if (childGeometry.vertices && childGeometry.vertices.length > 0) {
+                    geometry.vertices.push(...childGeometry.vertices);
+                }
+                if (childGeometry.indices && childGeometry.indices.length > 0) {
+                    geometry.indices.push(...childGeometry.indices);
+                }
+                if (childGeometry.normals && childGeometry.normals.length > 0) {
+                    geometry.normals.push(...childGeometry.normals);
+                }
+                if (childGeometry.materials && childGeometry.materials.length > 0) {
+                    geometry.materials.push(...childGeometry.materials);
+                }
             });
         }
 
@@ -593,7 +606,23 @@ export class JtReaderService {
      */
     private async convertJTToGLTF(jtData: any): Promise<any> {
         try {
-            console.log(`[JtReader] Converting JT data to GLTF: ${jtData.parts.length} parts`);
+            console.log(`[JtReader] Converting JT data to GLTF:`, jtData);
+            console.log(`[JtReader] Vertices: ${jtData.vertices?.length || 0}, Indices: ${jtData.indices?.length || 0}, Normals: ${jtData.normals?.length || 0}`);
+            
+            // Ensure we have valid geometry data
+            if (!jtData.vertices || jtData.vertices.length === 0) {
+                throw new Error('No vertices found in JT data');
+            }
+            
+            if (!jtData.indices || jtData.indices.length === 0) {
+                throw new Error('No indices found in JT data');
+            }
+            
+            if (!jtData.normals || jtData.normals.length === 0) {
+                console.warn('[JtReader] No normals found, generating default normals');
+                // Generate default normals if missing
+                jtData.normals = this.generateDefaultNormals(jtData.vertices);
+            }
             
             return {
                 asset: {
@@ -643,6 +672,7 @@ export class JtReaderService {
             };
 
         } catch (error) {
+            console.error('[JtReader] GLTF conversion error:', error);
             throw new JTConversionError(500, 'Failed to convert JT to GLTF', error instanceof Error ? error.message : 'Unknown error');
         }
     }
@@ -682,6 +712,20 @@ export class JtReaderService {
             binary += String.fromCharCode(bytes[i]);
         }
         return btoa(binary);
+    }
+
+    /**
+     * Generate default normals for vertices
+     */
+    private generateDefaultNormals(vertices: number[]): number[] {
+        const normals: number[] = [];
+        
+        // Generate simple normals pointing up (0, 1, 0) for all vertices
+        for (let i = 0; i < vertices.length; i += 3) {
+            normals.push(0, 1, 0);
+        }
+        
+        return normals;
     }
 
     /**
