@@ -21,14 +21,19 @@ export const MainLayout: React.FC = () => {
 
   // Register panels on mount
   useEffect(() => {
-    registry.register(new InspectorPanel());
-    registry.register(new SceneTreePanel());
-    registry.register(new ToolbarPanel());
+    // Only register if not already registered
+    if (registry.getPanelCount() === 0) {
+      registry.register(new InspectorPanel());
+      registry.register(new SceneTreePanel());
+      registry.register(new ToolbarPanel());
+      
+      console.log('Panels registered:', registry.getPanelCount());
+    }
     
-    console.log('Panels registered:', registry.getPanelCount());
-    
+    // Don't clear panels on cleanup - keep them registered
     return () => {
-      registry.clear();
+      // Only clear if we're unmounting the entire app
+      // registry.clear();
     };
   }, [registry]);
 
@@ -65,7 +70,15 @@ export const MainLayout: React.FC = () => {
     centerPanelSize,
     leftPanels: leftPanels.length,
     rightPanels: rightPanels.length,
-    userLevel
+    userLevel,
+    visiblePanels: visiblePanels.length,
+    allPanels: registry.getAll().length,
+    panelDetails: visiblePanels.map(p => ({
+      id: p.getId(),
+      name: p.getName(),
+      position: p.getPosition(),
+      userLevels: p.getConfig().userLevels
+    }))
   });
 
   // Initialize panel states if not present
