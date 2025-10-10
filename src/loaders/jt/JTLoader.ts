@@ -382,6 +382,18 @@ export async function loadJTFromFile(
                 mesh.metadata.originalFile = file.name;
                 mesh.metadata.convertedVia = 'pyopenjt';
 
+                // Debug mesh properties
+                console.log(`[JT Import] Mesh "${mesh.name}":`, {
+                    position: mesh.position,
+                    rotation: mesh.rotation,
+                    scaling: mesh.scaling,
+                    isVisible: mesh.isVisible,
+                    isEnabled: mesh.isEnabled,
+                    material: mesh.material?.name || 'No material',
+                    vertexCount: mesh.getTotalVertices(),
+                    boundingInfo: mesh.getBoundingInfo()
+                });
+
                 processedMeshes.push(mesh);
             }
         });

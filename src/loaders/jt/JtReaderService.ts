@@ -639,19 +639,28 @@ export class JtReaderService {
                     generator: 'JtReader.dll Direct Integration'
                 },
                 scenes: [{ nodes: [0] }],
-                nodes: [{ mesh: 0, name: jtData.fileName }],
+                nodes: [{ 
+                    mesh: 0, 
+                    name: jtData.fileName,
+                    translation: [0, 0, 0],
+                    rotation: [0, 0, 0, 1],
+                    scale: [1, 1, 1]
+                }],
                 meshes: [{
                     primitives: [{
                         attributes: { POSITION: 0, NORMAL: 1 },
-                        material: 0
+                        material: 0,
+                        indices: 2
                     }]
                 }],
                 materials: [{
+                    name: 'RobotMaterial',
                     pbrMetallicRoughness: {
-                        baseColorFactor: jtData.materials[0]?.diffuse || [0.8, 0.8, 0.8],
-                        metallicFactor: jtData.materials[0]?.metallic || 0.1,
-                        roughnessFactor: jtData.materials[0]?.roughness || 0.5
-                    }
+                        baseColorFactor: jtData.materials[0]?.diffuse || [0.2, 0.6, 0.8, 1.0],
+                        metallicFactor: jtData.materials[0]?.metallic || 0.3,
+                        roughnessFactor: jtData.materials[0]?.roughness || 0.4
+                    },
+                    doubleSided: true
                 }],
                 accessors: [
                     {
@@ -667,16 +676,24 @@ export class JtReaderService {
                         componentType: 5126,
                         count: jtData.normals.length / 3,
                         type: 'VEC3'
+                    },
+                    {
+                        bufferView: 2,
+                        componentType: 5123,
+                        count: jtData.indices.length,
+                        type: 'SCALAR'
                     }
                 ],
                 bufferViews: [
                     { buffer: 0, byteOffset: 0, byteLength: jtData.vertices.length * 4 },
-                    { buffer: 0, byteOffset: jtData.vertices.length * 4, byteLength: jtData.normals.length * 4 }
+                    { buffer: 0, byteOffset: jtData.vertices.length * 4, byteLength: jtData.normals.length * 4 },
+                    { buffer: 0, byteOffset: (jtData.vertices.length + jtData.normals.length) * 4, byteLength: jtData.indices.length * 2 }
                 ],
                 buffers: [{
-                    byteLength: (jtData.vertices.length + jtData.normals.length) * 4,
+                    byteLength: (jtData.vertices.length + jtData.normals.length) * 4 + jtData.indices.length * 2,
                     uri: 'data:application/octet-stream;base64,' + 
-                         this.arrayBufferToBase64(new Float32Array(jtData.vertices.concat(jtData.normals)).buffer)
+                         this.arrayBufferToBase64(new Float32Array(jtData.vertices.concat(jtData.normals)).buffer) +
+                         this.arrayBufferToBase64(new Uint16Array(jtData.indices).buffer)
                 }]
             };
 
