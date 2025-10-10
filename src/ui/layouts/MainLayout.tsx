@@ -84,14 +84,12 @@ export const MainLayout: React.FC = () => {
   console.log('Left panels:', leftPanels.map(p => p.getName()));
   console.log('Right panels:', rightPanels.map(p => p.getName()));
 
-  // Initialize panel states if not present
-  useEffect(() => {
-    visiblePanels.forEach(panel => {
-      if (!panelStates[panel.getId()]) {
-        setPanelState(panel.getId(), panel.getDefaultState());
-      }
-    });
-  }, [visiblePanels, panelStates, setPanelState]);
+  // Initialize panel states synchronously - not in useEffect
+  visiblePanels.forEach(panel => {
+    if (!panelStates[panel.getId()]) {
+      setPanelState(panel.getId(), panel.getDefaultState());
+    }
+  });
 
   // Panel control functions
   const handlePanelToggle = (panelId: string) => {
@@ -139,14 +137,17 @@ export const MainLayout: React.FC = () => {
             console.log(`Left panel ${panel.getName()}:`, { isVisible, state });
             if (!isVisible) return null;
             
+            // Use default state if state is undefined
+            const panelState = state || panel.getDefaultState();
+            
             return (
               <React.Fragment key={panel.getId()}>
                 <Panel
-                  defaultSize={state.size}
+                  defaultSize={panelState.size}
                   minSize={panel.getMinSize()}
                   maxSize={panel.getMaxSize()}
                   collapsible={panel.canCollapse()}
-                  collapsed={state.collapsed}
+                  collapsed={panelState.collapsed}
                 >
                   <div className="panel-container">
                     <div className="panel-header">
@@ -193,6 +194,9 @@ export const MainLayout: React.FC = () => {
             const isVisible = state?.visible !== false; // Default to visible if not set
             console.log(`Right panel ${panel.getName()}:`, { isVisible, state });
             if (!isVisible) return null;
+            
+            // Use default state if state is undefined
+            const panelState = state || panel.getDefaultState();
             
             return (
               <React.Fragment key={panel.getId()}>
