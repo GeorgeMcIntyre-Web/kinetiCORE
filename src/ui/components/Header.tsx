@@ -17,6 +17,9 @@ export const Header: React.FC = () => {
   const visiblePanels = registry.getVisiblePanelsForUserLevel(userLevel);
   const sidePanels = visiblePanels.filter(p => p.getPosition() === 'left' || p.getPosition() === 'right');
 
+  console.log('Header - visiblePanels:', visiblePanels.map(p => p.getName()));
+  console.log('Header - sidePanels:', sidePanels.map(p => p.getName()));
+
   const handlePanelToggle = (panelId: string) => {
     const currentState = panelStates[panelId];
     setPanelVisibility(panelId, !currentState?.visible);

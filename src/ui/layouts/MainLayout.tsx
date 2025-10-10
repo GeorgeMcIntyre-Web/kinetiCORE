@@ -147,7 +147,7 @@ export const MainLayout: React.FC = () => {
                   minSize={panel.getMinSize()}
                   maxSize={panel.getMaxSize()}
                   collapsible={panel.canCollapse()}
-                  collapsed={panelState.collapsed}
+                  collapsed={!!panelState.collapsed}
                 >
                   <div className="panel-container">
                     <div className="panel-header">
