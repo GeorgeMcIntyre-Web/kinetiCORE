@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="JtReader">
+      <HintPath>C:\Users\georgem\source\repos\kinetiCORE_JT_Server_Complete\ls\lib3\JtReader.dll</HintPath>
+    </Reference>
+    <Reference Include="LineSimulatorLibrary">
+      <HintPath>C:\Program Files\BMW\LineSimulator\lib\LineSimulatorLibrary.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="C:\Users\georgem\source\repos\kinetiCORE_JT_Server_Complete\ls\lib3\*.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="C:\Program Files\BMW\LineSimulator\lib\LineSimulatorLibrary.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="C:\Program Files\BMW\LineSimulator\lib\CommonLibrary.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
