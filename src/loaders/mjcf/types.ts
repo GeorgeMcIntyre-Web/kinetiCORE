@@ -208,8 +208,8 @@ export interface MJCFImportProgress {
  */
 export interface MJCFImportResult {
   success: boolean;
-  meshes: BABYLON.AbstractMesh[];
-  rootNodes: BABYLON.TransformNode[];
+  meshes: any[]; // BABYLON.AbstractMesh[]
+  rootNodes: any[]; // BABYLON.TransformNode[]
   joints: MJCFJoint[];
   actuators: MJCFActuator[];
   errors: string[];

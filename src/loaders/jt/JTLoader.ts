@@ -64,7 +64,7 @@ export async function loadJTFromFile(
 
     try {
         // Check if backend is available with retry logic
-        let health;
+        let health: any;
         let retryCount = 0;
         const maxRetries = 3;
         
@@ -83,7 +83,7 @@ export async function loadJTFromFile(
             }
         }
 
-        if (health.status === 'unhealthy') {
+        if (!health || health.status === 'unhealthy') {
             throw new JTImportError(
                 JTErrorType.WASMNotLoaded,
                 `JT conversion backend is not available.\n\n` +

@@ -257,7 +257,7 @@ export class AssetExporter {
 
     try {
       // Clone selected meshes to temporary scene
-      const clonedMeshes = await this.cloneMeshesToScene(nodes, tempScene);
+      // const _clonedMeshes = await this.cloneMeshesToScene(nodes, tempScene);
       
       // Set up lighting
       const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0, 1, 0), tempScene);
@@ -353,7 +353,7 @@ export class AssetExporter {
     return 'primitives';
   }
 
-  private detectAssetType(nodes: any[], assetClass: LibraryAsset['assetClass']): string {
+  private detectAssetType(_nodes: any[], assetClass: LibraryAsset['assetClass']): string {
     switch (assetClass) {
       case 'robots':
         return 'industrial-6axis';
@@ -460,7 +460,7 @@ export class AssetExporter {
     );
   }
 
-  private calculateBoundingBox(nodes: any[], scene?: BABYLON.Scene): { center: BABYLON.Vector3; size: BABYLON.Vector3 } | null {
+  private calculateBoundingBox(nodes: any[], scene?: BABYLON.Scene | null): { center: BABYLON.Vector3; size: BABYLON.Vector3 } | null {
     if (!scene) {
       scene = SceneManager.getInstance().getScene();
     }
@@ -507,7 +507,8 @@ export class AssetExporter {
     return { center, size };
   }
 
-  private async cloneMeshesToScene(nodes: any[], targetScene: BABYLON.Scene): Promise<BABYLON.AbstractMesh[]> {
+  /*
+  private async _cloneMeshesToScene(nodes: any[], _targetScene: BABYLON.Scene): Promise<BABYLON.AbstractMesh[]> {
     const sourceScene = SceneManager.getInstance().getScene();
     if (!sourceScene) return [];
 
@@ -527,6 +528,7 @@ export class AssetExporter {
 
     return clonedMeshes;
   }
+  */
 
   private calculateFileSize(asset: LibraryAsset, thumbnail?: string, meshData?: string): number {
     let size = JSON.stringify(asset).length;

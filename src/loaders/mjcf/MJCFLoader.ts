@@ -14,12 +14,12 @@ import {
   MJCFGeom, 
   MJCFActuator,
   MJCFImportResult,
-  MJCFImportProgress,
+  // MJCFImportProgress,
   MJCFImportError,
   MJCFErrorType
 } from './types';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
-import { SceneTreeManager } from '../../scene/SceneTreeManager';
+// import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import type { JointType } from '../../scene/SceneTreeNode';
 
 /**
@@ -529,7 +529,7 @@ function createMeshFromGeom(
   geom: MJCFGeom,
   parentNode: BABYLON.TransformNode,
   scene: BABYLON.Scene,
-  model: MJCFModel
+  _model: MJCFModel
 ): BABYLON.AbstractMesh | null {
   let mesh: BABYLON.AbstractMesh | null = null;
 
@@ -673,7 +673,7 @@ export async function createKinematicsFromMJCF(
   }
 
   const kinematicsManager = KinematicsManager.getInstance();
-  const sceneTreeManager = SceneTreeManager.getInstance();
+  // const _sceneTreeManager = SceneTreeManager.getInstance();
 
   console.log(`[MJCF Kinematics] Creating kinematics for ${model.model}`);
 

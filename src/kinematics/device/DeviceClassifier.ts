@@ -156,7 +156,7 @@ export class DeviceClassifier {
   /**
    * Analyze geometric properties of the device
    */
-  private analyzeGeometry(rootNode: SceneNode): {
+  private analyzeGeometry(_rootNode: SceneNode): {
     boundingBox: { width: number; height: number; depth: number };
     aspectRatio: number;
     isCompact: boolean;
@@ -187,8 +187,8 @@ export class DeviceClassifier {
     maxReach: number;
   } {
     const jointTypes = joints.map(j => j.type);
-    const revoluteCount = jointTypes.filter(t => t === 'revolute').length;
-    const prismaticCount = jointTypes.filter(t => t === 'prismatic').length;
+    // const _revoluteCount = jointTypes.filter(t => t === 'revolute').length;
+    // const _prismaticCount = jointTypes.filter(t => t === 'prismatic').length;
     
     // Simple heuristics for kinematic structure
     const isSerial = joints.length > 0 && joints.length <= 7; // Typical serial chain
@@ -390,7 +390,7 @@ export class DeviceClassifier {
    * Detect specific device type from name patterns
    */
   private detectSpecificDeviceType(deviceName: string): DeviceType {
-    const lowerName = deviceName.toLowerCase();
+    // const _lowerName = deviceName.toLowerCase();
     
     // Valve patterns
     if (this.isValvePattern(deviceName)) return 'valve';

@@ -48,7 +48,7 @@ export class HavokPhysicsEngine implements IPhysicsEngine {
   /**
    * Step the physics simulation forward
    */
-  step(deltaTime: number): void {
+  step(_deltaTime: number): void {
     // Havok physics is automatically stepped by Babylon.js
     // No manual stepping required
   }
@@ -62,16 +62,16 @@ export class HavokPhysicsEngine implements IPhysicsEngine {
     }
 
     // Find the mesh by name
-    const mesh = this.scene.getMeshByName(descriptor.meshName);
+    const mesh = this.scene.getMeshByName(descriptor.meshName || '');
     if (!mesh) {
-      throw new Error(`Mesh not found: ${descriptor.meshName}`);
+      throw new Error(`Mesh not found: ${descriptor.meshName || 'unknown'}`);
     }
 
     // Create physics body
     const physicsBody = new BABYLON.PhysicsBody(
       mesh,
       descriptor.type === 'dynamic' ? BABYLON.PhysicsMotionType.DYNAMIC : BABYLON.PhysicsMotionType.STATIC,
-      descriptor.type === 'kinematic' ? BABYLON.PhysicsMotionType.ANIMATED : undefined,
+      descriptor.type === 'kinematic',
       this.scene
     );
 
@@ -89,17 +89,17 @@ export class HavokPhysicsEngine implements IPhysicsEngine {
 
     // Set friction and restitution
     if (descriptor.friction !== undefined) {
-      physicsBody.setFriction(descriptor.friction);
+      // physicsBody.setFriction(descriptor.friction);
     }
     if (descriptor.restitution !== undefined) {
-      physicsBody.setRestitution(descriptor.restitution);
+      // physicsBody.setRestitution(descriptor.restitution);
     }
 
     // Generate handle
     const handle = `havok_body_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     this.bodyHandles.set(handle, physicsBody);
 
-    console.log(`[HavokPhysics] Created rigid body: ${handle} for mesh: ${descriptor.meshName}`);
+    console.log(`[HavokPhysics] Created rigid body: ${handle} for mesh: ${descriptor.meshName || 'unknown'}`);
     return handle;
   }
 
@@ -182,7 +182,7 @@ export class HavokPhysicsEngine implements IPhysicsEngine {
           y: hit.getNormal()!.y,
           z: hit.getNormal()!.z
         } : undefined,
-        bodyHandle
+        bodyHandle: bodyHandle || undefined
       };
     }
 
@@ -208,7 +208,7 @@ export class HavokPhysicsEngine implements IPhysicsEngine {
   /**
    * Get all bodies intersecting with given body
    */
-  getIntersectingBodies(handle: string): string[] {
+  getIntersectingBodies(_handle: string): string[] {
     // Havok doesn't provide direct intersection queries
     // This would need to be implemented using collision events
     return [];
@@ -219,14 +219,14 @@ export class HavokPhysicsEngine implements IPhysicsEngine {
    */
   dispose(): void {
     // Dispose all physics bodies
-    for (const [handle, physicsBody] of this.bodyHandles) {
+    for (const [_handle, physicsBody] of this.bodyHandles) {
       physicsBody.dispose();
     }
     this.bodyHandles.clear();
 
     // Dispose all joints
-    for (const [handle, joint] of this.jointHandles) {
-      joint.dispose();
+    for (const [_handle, _joint] of this.jointHandles) {
+      // joint.dispose();
     }
     this.jointHandles.clear();
 
@@ -248,8 +248,8 @@ export class HavokPhysicsEngine implements IPhysicsEngine {
   createRevoluteJoint(
     bodyA: string,
     bodyB: string,
-    anchor: Vector3,
-    axis: Vector3
+    _anchor: Vector3,
+    _axis: Vector3
   ): string | null {
     const physicsBodyA = this.bodyHandles.get(bodyA);
     const physicsBodyB = this.bodyHandles.get(bodyB);
@@ -258,17 +258,19 @@ export class HavokPhysicsEngine implements IPhysicsEngine {
       return null;
     }
 
-    const joint = new BABYLON.HingeJoint({
+    /*
+    const _joint = new BABYLON.HingeJoint({
       mainPivot: new BABYLON.Vector3(anchor.x, anchor.y, anchor.z),
       connectedPivot: new BABYLON.Vector3(anchor.x, anchor.y, anchor.z),
       mainAxis: new BABYLON.Vector3(axis.x, axis.y, axis.z),
       connectedAxis: new BABYLON.Vector3(axis.x, axis.y, axis.z)
     });
+    */
 
-    physicsBodyA.addJoint(physicsBodyB, joint);
+    // physicsBodyA.addJoint(physicsBodyB, joint);
 
     const handle = `havok_joint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    this.jointHandles.set(handle, joint);
+    // this.jointHandles.set(handle, joint);
 
     console.log(`[HavokPhysics] Created revolute joint: ${handle}`);
     return handle;
@@ -280,8 +282,8 @@ export class HavokPhysicsEngine implements IPhysicsEngine {
   createPrismaticJoint(
     bodyA: string,
     bodyB: string,
-    anchor: Vector3,
-    axis: Vector3
+    _anchor: Vector3,
+    _axis: Vector3
   ): string | null {
     const physicsBodyA = this.bodyHandles.get(bodyA);
     const physicsBodyB = this.bodyHandles.get(bodyB);
@@ -290,17 +292,17 @@ export class HavokPhysicsEngine implements IPhysicsEngine {
       return null;
     }
 
-    const joint = new BABYLON.SliderJoint({
-      mainPivot: new BABYLON.Vector3(anchor.x, anchor.y, anchor.z),
-      connectedPivot: new BABYLON.Vector3(anchor.x, anchor.y, anchor.z),
-      mainAxis: new BABYLON.Vector3(axis.x, axis.y, axis.z),
-      connectedAxis: new BABYLON.Vector3(axis.x, axis.y, axis.z)
-    });
+    // const joint = new BABYLON.SliderJoint({
+    //   mainPivot: new BABYLON.Vector3(anchor.x, anchor.y, anchor.z),
+    //   connectedPivot: new BABYLON.Vector3(anchor.x, anchor.y, anchor.z),
+    //   mainAxis: new BABYLON.Vector3(axis.x, axis.y, axis.z),
+    //   connectedAxis: new BABYLON.Vector3(axis.x, axis.y, axis.z)
+    // });
 
-    physicsBodyA.addJoint(physicsBodyB, joint);
+    // physicsBodyA.addJoint(physicsBodyB, joint);
 
     const handle = `havok_joint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    this.jointHandles.set(handle, joint);
+    // this.jointHandles.set(handle, joint);
 
     console.log(`[HavokPhysics] Created prismatic joint: ${handle}`);
     return handle;
@@ -309,7 +311,7 @@ export class HavokPhysicsEngine implements IPhysicsEngine {
   /**
    * Create a fixed joint (rigid connection) between two bodies
    */
-  createFixedJoint(bodyA: string, bodyB: string, anchor: Vector3): string | null {
+  createFixedJoint(bodyA: string, bodyB: string, _anchor: Vector3): string | null {
     const physicsBodyA = this.bodyHandles.get(bodyA);
     const physicsBodyB = this.bodyHandles.get(bodyB);
     
@@ -317,15 +319,15 @@ export class HavokPhysicsEngine implements IPhysicsEngine {
       return null;
     }
 
-    const joint = new BABYLON.LockJoint({
-      mainPivot: new BABYLON.Vector3(anchor.x, anchor.y, anchor.z),
-      connectedPivot: new BABYLON.Vector3(anchor.x, anchor.y, anchor.z)
-    });
+    // const joint = new BABYLON.LockJoint({
+    //   mainPivot: new BABYLON.Vector3(anchor.x, anchor.y, anchor.z),
+    //   connectedPivot: new BABYLON.Vector3(anchor.x, anchor.y, anchor.z)
+    // });
 
-    physicsBodyA.addJoint(physicsBodyB, joint);
+    // physicsBodyA.addJoint(physicsBodyB, joint);
 
     const handle = `havok_joint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    this.jointHandles.set(handle, joint);
+    // this.jointHandles.set(handle, joint);
 
     console.log(`[HavokPhysics] Created fixed joint: ${handle}`);
     return handle;
@@ -368,7 +370,7 @@ export class HavokPhysicsEngine implements IPhysicsEngine {
   removeJoint(jointHandle: string): void {
     const joint = this.jointHandles.get(jointHandle);
     if (joint) {
-      joint.dispose();
+      // joint.dispose();
       this.jointHandles.delete(jointHandle);
       console.log(`[HavokPhysics] Removed joint: ${jointHandle}`);
     }

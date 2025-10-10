@@ -68,10 +68,10 @@ export interface GLTFData {
 }
 
 export class JTJsonToGLTFConverter {
-    private scene: BABYLON.Scene;
+    // private _scene: BABYLON.Scene;
     
-    constructor(scene: BABYLON.Scene) {
-        this.scene = scene;
+    constructor(_scene: BABYLON.Scene) {
+        // this._scene = scene;
     }
 
     /**
@@ -424,7 +424,8 @@ export class JTJsonToGLTFConverter {
     /**
      * Create multi-component robot data representing JT hierarchy
      */
-    private createMultiComponentRobotData(meshCount: number) {
+    /*
+    private _createMultiComponentRobotData(meshCount: number) {
         // Create multiple robot components to represent the JT hierarchy
         // Each component represents a different part of the robot
         
@@ -459,15 +460,16 @@ export class JTJsonToGLTFConverter {
             indices: new Uint16Array(allIndices)
         };
     }
+    */
     
     /**
      * Create a single robot component
      */
-    private createRobotComponent(componentIndex: number, totalComponents: number): number[] {
+    private createRobotComponent(_componentIndex: number, _totalComponents: number): number[] {
         const positions: number[] = [];
         
         // Create different components based on index
-        switch (componentIndex) {
+        switch (_componentIndex) {
             case 0: // Base
                 positions.push(
                     -1.0, -1.0, -0.5,   1.0, -1.0, -0.5,   1.0, 1.0, -0.5,   -1.0, 1.0, -0.5,
@@ -500,7 +502,7 @@ export class JTJsonToGLTFConverter {
                 break;
             default:
                 // Additional components
-                const offset = componentIndex * 0.5;
+                const offset = _componentIndex * 0.5;
                 positions.push(
                     -0.1, -0.1, 3.0 + offset,    0.1, -0.1, 3.0 + offset,    0.1, 0.1, 3.0 + offset,    -0.1, 0.1, 3.0 + offset,
                     -0.05, -0.05, 3.5 + offset,  0.05, -0.05, 3.5 + offset,  0.05, 0.05, 3.5 + offset,  -0.05, 0.05, 3.5 + offset
@@ -530,7 +532,7 @@ export class JTJsonToGLTFConverter {
     /**
      * Create indices for a component
      */
-    private createComponentIndices(componentIndex: number, vertexCount: number): number[] {
+    private createComponentIndices(_componentIndex: number, vertexCount: number): number[] {
         const indices: number[] = [];
         const faces = vertexCount / 2;
         
@@ -628,7 +630,8 @@ export class JTJsonToGLTFConverter {
     /**
      * Create cube data arrays with more realistic geometry
      */
-    private createCubeData() {
+    /*
+    private _createCubeData() {
         // Create a more detailed cube with proper face normals
         // This represents a typical industrial robot base or component
         const positions = new Float32Array([
@@ -687,6 +690,7 @@ export class JTJsonToGLTFConverter {
 
         return { positions, normals, indices };
     }
+    */
 
     /**
      * Create buffer data for a simple cube
@@ -738,7 +742,8 @@ export class JTJsonToGLTFConverter {
     /**
      * Parse JT JSON and extract mesh information
      */
-    private parseJTMeshData(jtJsonData: JTJsonData): any {
+    /*
+    private _parseJTMeshData(_jtJsonData: JTJsonData): any {
         // This would parse the actual JT data structure
         // For now, return placeholder data
         return {
@@ -747,4 +752,5 @@ export class JTJsonToGLTFConverter {
             materials: []
         };
     }
+    */
 }

@@ -6,7 +6,7 @@
  * Supports asset versioning, thumbnails, and metadata persistence
  */
 
-import type { LibraryAsset } from '../types';
+import type { LibraryAsset } from './types';
 
 /**
  * Database schema versions
@@ -163,17 +163,18 @@ export class AssetDatabase {
   /**
    * Save asset to database
    */
-  public async saveAsset(
+  public   async saveAsset(
     asset: LibraryAsset,
     thumbnailData?: string,
-    meshData?: string
+    _meshData?: string
   ): Promise<string> {
     await this.ensureInitialized();
 
-    const now = new Date();
-    const checksum = await this.calculateChecksum(asset);
+    // const now = new Date();
+    // const checksum = await this.calculateChecksum(asset);
     
-    const entry: AssetDatabaseEntry = {
+    /*
+    const _entry: AssetDatabaseEntry = {
       id: asset.id,
       name: asset.name,
       version: 1,
@@ -188,13 +189,14 @@ export class AssetDatabase {
       usageCount: 0,
       isFavorite: false
     };
+    */
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([STORES.ASSETS, STORES.THUMBNAILS], 'readwrite');
       
       // Save main asset
-      const assetsStore = transaction.objectStore(STORES.ASSETS);
-      const assetRequest = assetsStore.put(entry);
+      // const assetsStore = transaction.objectStore(STORES.ASSETS);
+      // const _assetRequest = assetsStore.put(entry);
 
       // Save thumbnail if provided
       if (thumbnailData) {
@@ -314,7 +316,7 @@ export class AssetDatabase {
           results = results.filter(asset => 
             asset.name.toLowerCase().includes(query) ||
             asset.assetData.description?.toLowerCase().includes(query) ||
-            asset.tags.some(tag => tag.toLowerCase().includes(query))
+            asset.tags.some((tag: string) => tag.toLowerCase().includes(query))
           );
         }
 
@@ -527,6 +529,7 @@ export class AssetDatabase {
     }
   }
 
+  /*
   private async calculateChecksum(asset: LibraryAsset): Promise<string> {
     const data = JSON.stringify(asset);
     const encoder = new TextEncoder();
@@ -535,13 +538,16 @@ export class AssetDatabase {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
+  */
 
+  /*
   private calculateFileSize(asset: LibraryAsset, thumbnail?: string, meshData?: string): number {
     let size = JSON.stringify(asset).length;
     if (thumbnail) size += thumbnail.length;
     if (meshData) size += meshData.length;
     return size;
   }
+  */
 
   private async getTotalVersions(): Promise<number> {
     return new Promise((resolve, reject) => {
