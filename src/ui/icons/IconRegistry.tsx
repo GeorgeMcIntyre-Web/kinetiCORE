@@ -299,6 +299,12 @@ export function createIcon(
   const sizePx = SIZE_MAP[size];
   const defaultStrokeWidth = STROKE_WIDTH_MAP[size];
   
+  // Special handling for transform icons to normalize their visual weight
+  const isTransformIcon = path.startsWith('transform.');
+  const adjustedStrokeWidth = isTransformIcon 
+    ? Math.max(1.5, defaultStrokeWidth - 0.5) // Reduce stroke width for transform icons
+    : strokeWidth || defaultStrokeWidth;
+  
   // Style-specific classes
   const styleClasses = {
     default: '',
@@ -317,7 +323,7 @@ export function createIcon(
     size: sizePx,
     className: combinedClassName,
     color,
-    strokeWidth: strokeWidth || defaultStrokeWidth
+    strokeWidth: adjustedStrokeWidth
   });
 }
 
