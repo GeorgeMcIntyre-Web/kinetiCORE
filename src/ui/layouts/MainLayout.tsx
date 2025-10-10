@@ -19,23 +19,14 @@ export const MainLayout: React.FC = () => {
   const registry = PanelRegistry.getInstance();
   const { panelStates, setPanelState, togglePanelCollapse, setPanelVisibility } = useLayoutStore();
 
-  // Register panels on mount
-  useEffect(() => {
-    // Only register if not already registered
-    if (registry.getPanelCount() === 0) {
-      registry.register(new InspectorPanel());
-      registry.register(new SceneTreePanel());
-      registry.register(new ToolbarPanel());
-      
-      console.log('Panels registered:', registry.getPanelCount());
-    }
+  // Register panels synchronously - not in useEffect
+  if (registry.getPanelCount() === 0) {
+    registry.register(new InspectorPanel());
+    registry.register(new SceneTreePanel());
+    registry.register(new ToolbarPanel());
     
-    // Don't clear panels on cleanup - keep them registered
-    return () => {
-      // Only clear if we're unmounting the entire app
-      // registry.clear();
-    };
-  }, [registry]);
+    console.log('Panels registered:', registry.getPanelCount());
+  }
 
   // Get panels visible for current user level
   const visiblePanels = registry.getVisiblePanelsForUserLevel(userLevel);
