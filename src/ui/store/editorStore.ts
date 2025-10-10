@@ -462,9 +462,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     if (!scene || !camera || !(camera instanceof BABYLON.ArcRotateCamera)) return;
 
-    // Get all visible meshes (excluding ground)
+    // Get all visible meshes (excluding ground and grid overlay)
     const meshes = scene.meshes.filter((m: BABYLON.AbstractMesh) =>
-      m.isVisible && m.name !== 'ground'
+      m.isVisible && m.name !== 'ground' && m.name !== 'gridOverlay'
     );
 
     if (meshes.length === 0) return;
@@ -1927,8 +1927,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const pickedMesh = pickInfo.pickedMesh as BABYLON.Mesh;
     const pickPoint = pickInfo.pickedPoint;
 
-    // Ignore ground
-    if (pickedMesh.name === 'ground') {
+    // Ignore ground and grid overlay
+    if (pickedMesh.name === 'ground' || pickedMesh.name === 'gridOverlay') {
       return;
     }
 

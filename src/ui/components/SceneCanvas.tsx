@@ -171,9 +171,10 @@ export const SceneCanvas: React.FC = () => {
             if (pickResult.hit && pickResult.pickedMesh) {
               const mesh = pickResult.pickedMesh;
 
-              // Ignore ground, axis meshes, and widget elements
+              // Ignore ground, grid overlay, axis meshes, and widget elements
               if (
                 mesh.name !== 'ground' &&
+                mesh.name !== 'gridOverlay' &&
                 !mesh.name.startsWith('axis') &&
                 !mesh.name.startsWith('widget') &&
                 !mesh.name.startsWith('label') &&

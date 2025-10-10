@@ -192,7 +192,9 @@ export class SnappingHelper {
       if (
         !mesh.isVisible ||
         excludeMeshIds.includes(mesh.uniqueId.toString()) ||
-        mesh.name === 'ground'
+        mesh.name === 'ground' ||
+        mesh.name === 'gridOverlay' ||
+        mesh.name === 'gridOverlay'
       ) {
         continue;
       }
@@ -251,7 +253,9 @@ export class SnappingHelper {
       if (
         !mesh.isVisible ||
         excludeMeshIds.includes(mesh.uniqueId.toString()) ||
-        mesh.name === 'ground'
+        mesh.name === 'ground' ||
+        mesh.name === 'gridOverlay' ||
+        mesh.name === 'gridOverlay'
       ) {
         continue;
       }
@@ -351,7 +355,8 @@ export class SnappingHelper {
         return (
           mesh.isVisible &&
           !excludeMeshIds.includes(mesh.uniqueId.toString()) &&
-          mesh.name !== 'ground'
+          mesh.name !== 'ground' &&
+          mesh.name !== 'gridOverlay'
         );
       });
 
@@ -397,7 +402,7 @@ export class SnappingHelper {
 
     // Check all transform nodes (meshes and collections)
     for (const node of scene.transformNodes) {
-      if (excludeMeshIds.includes(node.uniqueId.toString()) || node.name === 'ground') {
+      if (excludeMeshIds.includes(node.uniqueId.toString()) || node.name === 'ground' || node.name === 'gridOverlay') {
         continue;
       }
 
@@ -446,7 +451,9 @@ export class SnappingHelper {
       if (
         !mesh.isVisible ||
         excludeMeshIds.includes(mesh.uniqueId.toString()) ||
-        mesh.name === 'ground'
+        mesh.name === 'ground' ||
+        mesh.name === 'gridOverlay' ||
+        mesh.name === 'gridOverlay'
       ) {
         continue;
       }
@@ -537,7 +544,9 @@ export class SnappingHelper {
       if (
         !mesh.isVisible ||
         excludeMeshIds.includes(mesh.uniqueId.toString()) ||
-        mesh.name === 'ground'
+        mesh.name === 'ground' ||
+        mesh.name === 'gridOverlay' ||
+        mesh.name === 'gridOverlay'
       ) {
         continue;
       }
@@ -615,7 +624,9 @@ export class SnappingHelper {
       if (
         !mesh.isVisible ||
         excludeMeshIds.includes(mesh.uniqueId.toString()) ||
-        mesh.name === 'ground'
+        mesh.name === 'ground' ||
+        mesh.name === 'gridOverlay' ||
+        mesh.name === 'gridOverlay'
       ) {
         continue;
       }
@@ -769,7 +780,8 @@ export class SnappingHelper {
         return (
           mesh.isVisible &&
           !excludeMeshIds.includes(mesh.uniqueId.toString()) &&
-          mesh.name !== 'ground'
+          mesh.name !== 'ground' &&
+          mesh.name !== 'gridOverlay'
         );
       });
 
@@ -823,7 +835,9 @@ export class SnappingHelper {
       if (
         !mesh.isVisible ||
         excludeMeshIds.includes(mesh.uniqueId.toString()) ||
-        mesh.name === 'ground'
+        mesh.name === 'ground' ||
+        mesh.name === 'gridOverlay' ||
+        mesh.name === 'gridOverlay'
       ) {
         continue;
       }
