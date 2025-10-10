@@ -81,6 +81,18 @@ export const MainLayout: React.FC = () => {
     }))
   });
 
+  // Additional detailed logging
+  console.log('Panel details:', visiblePanels.map(p => ({
+    id: p.getId(),
+    name: p.getName(),
+    position: p.getPosition(),
+    userLevels: p.getConfig().userLevels,
+    isVisibleForUserLevel: p.isVisibleForUserLevel(userLevel)
+  })));
+
+  console.log('Left panels:', leftPanels.map(p => p.getName()));
+  console.log('Right panels:', rightPanels.map(p => p.getName()));
+
   // Initialize panel states if not present
   useEffect(() => {
     visiblePanels.forEach(panel => {
@@ -133,6 +145,7 @@ export const MainLayout: React.FC = () => {
           {leftPanels.map(panel => {
             const state = panelStates[panel.getId()];
             const isVisible = state?.visible !== false; // Default to visible if not set
+            console.log(`Left panel ${panel.getName()}:`, { isVisible, state });
             if (!isVisible) return null;
             
             return (
@@ -187,6 +200,7 @@ export const MainLayout: React.FC = () => {
           {rightPanels.map(panel => {
             const state = panelStates[panel.getId()];
             const isVisible = state?.visible !== false; // Default to visible if not set
+            console.log(`Right panel ${panel.getName()}:`, { isVisible, state });
             if (!isVisible) return null;
             
             return (
