@@ -281,15 +281,24 @@ export class JtReaderService {
                     
                     // Geometry generation methods
                     private generateCylinderGeometry(radius: number, height: number) {
-                        return { type: 'cylinder', radius, height };
+                        const vertices = this.generateCylinderVertices(radius, height, 16);
+                        const indices = this.generateCylinderIndices(16);
+                        const normals = this.generateCylinderNormals(16);
+                        return { vertices, indices, normals };
                     }
                     
                     private generateBoxGeometry(width: number, height: number, depth: number) {
-                        return { type: 'box', width, height, depth };
+                        const vertices = this.generateBoxVerticesAt(width, height, depth, 0, 0, 0);
+                        const indices = this.generateBoxIndices();
+                        const normals = this.generateBoxNormals();
+                        return { vertices, indices, normals };
                     }
                     
                     private generateSphereGeometry(radius: number) {
-                        return { type: 'sphere', radius };
+                        const vertices = this.generateSphereVerticesAt(radius, 0, 0, 0, 8);
+                        const indices = this.generateSphereIndices(8);
+                        const normals = this.generateSphereNormals(8);
+                        return { vertices, indices, normals };
                     }
                     
                     private generateCylinderVertices(radius: number, height: number, segments: number = 16): number[] {
