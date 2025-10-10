@@ -280,9 +280,6 @@ export const Inspector: React.FC = () => {
 
   return (
     <div className="inspector">
-      <div className="inspector-header">
-        <h2>Inspector</h2>
-      </div>
       <div className="inspector-content">
         <div className="property-group">
           <h3>Object</h3>

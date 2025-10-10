@@ -549,9 +549,6 @@ export const SceneTree: React.FC = () => {
   if (!rootNode) {
     return (
       <div className="scene-tree">
-        <div className="scene-tree-header">
-          <h2>Scene</h2>
-        </div>
         <div className="scene-tree-content">
           <p>No scene loaded</p>
         </div>
@@ -561,10 +558,6 @@ export const SceneTree: React.FC = () => {
 
   return (
     <div className="scene-tree">
-      <div className="scene-tree-header">
-        <h2>Scene</h2>
-      </div>
-
       {/* Search bar */}
       <div className="scene-tree-search">
         <Search size={16} className="search-icon" />

@@ -7,22 +7,6 @@
   flex-direction: column;
   background: #1e1e1e;
   color: #cccccc;
-  border-right: 1px solid #333;
-}
-
-.scene-tree-header {
-  padding: 12px 16px;
-  background: #252526;
-  border-bottom: 1px solid #333;
-}
-
-.scene-tree-header h2 {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #cccccc;
 }
 
 /* Search Bar */
@@ -31,10 +15,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 4px;
+  padding: 8px 12px;
   background: #252526;
   border-bottom: 1px solid #333;
   position: relative;
+  flex-shrink: 0;
 }
 
 .scene-tree-search .search-icon {
@@ -87,10 +72,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 4px;
+  padding: 6px 12px;
   background: #2d2d30;
   border-bottom: 1px solid #333;
   animation: slideDown 0.2s ease;
+  flex-shrink: 0;
 }
 
 @keyframes slideDown {
@@ -146,6 +132,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0;
+  min-height: 0; /* Important for flexbox to work properly */
 }
 
 /* Tree Node */

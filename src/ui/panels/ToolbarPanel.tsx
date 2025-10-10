@@ -24,17 +24,7 @@ export class ToolbarPanel extends BasePanel {
   }
 
   render(): React.ReactNode {
-    try {
-      return <Toolbar onOpenKinematics={() => {/* TODO: Implement kinematics panel */}} />;
-    } catch (error) {
-      console.error('ToolbarPanel render error:', error);
-      return (
-        <div style={{ padding: '20px', color: 'white', background: '#2a2a3e' }}>
-          <h4>Toolbar Panel</h4>
-          <p>Toolbar failed to render due to icon errors.</p>
-        </div>
-      );
-    }
+    return <Toolbar onOpenKinematics={() => {/* TODO: Implement kinematics panel */}} />;
   }
 
   getDefaultState(): PanelState {

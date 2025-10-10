@@ -3,25 +3,14 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid #333;
   animation: slideInRight 0.3s ease-out;
-}
-
-.inspector-header {
-  padding: 0.35rem 0.5rem;
-  border-bottom: 1px solid #333;
-}
-
-.inspector-header h2 {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #fff;
 }
 
 .inspector-content {
   flex: 1;
   overflow-y: auto;
   padding: 0.5rem;
+  min-height: 0; /* Important for flexbox to work properly */
 }
 
 .no-selection {
