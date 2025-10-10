@@ -35,6 +35,7 @@ import { JTConversionService, JTConversionError } from './JTConversionService';
 import { HybridJTConversionService, HybridJTConversionError } from './HybridJTConversionService';
 import { RealJTConversionService } from './RealJTConversionService';
 import { ActualRealJTConversionService } from './ActualRealJTConversionService';
+import { JtReaderService, JTConversionError as JtReaderError } from './JtReaderService';
 import { JTJsonToGLTFConverter } from './JTJsonToGLTFConverter';
 
 /**
@@ -63,8 +64,8 @@ export async function loadJTFromFile(
     file: File,
     scene: BABYLON.Scene
 ): Promise<{ meshes: BABYLON.AbstractMesh[]; rootNodes: BABYLON.TransformNode[] }> {
-    // Use the Actual Real JT Conversion Service that generates realistic geometry
-    const converter = new ActualRealJTConversionService();
+    // Use ONLY JtReader.dll service
+    const converter = new JtReaderService();
 
     try {
         // Check if backend is available with retry logic
@@ -420,6 +421,14 @@ export async function loadJTFromFile(
 
     } catch (error) {
         // Handle conversion errors
+        if (error instanceof JtReaderError) {
+            throw new JTImportError(
+                JTErrorType.CorruptedFile,
+                `JtReader.dll error: ${error.message}`,
+                false
+            );
+        }
+
         if (error instanceof HybridJTConversionError) {
             const helpfulMessage = HybridJTConversionService.getHelpfulErrorMessage(error);
             throw new JTImportError(
