@@ -4,6 +4,7 @@
 console.log('🔧 Toolbar component is loading...');
 
 import { useRef } from 'react';
+import * as BABYLON from '@babylonjs/core';
 import { useEditorStore } from '../store/editorStore';
 import { TransformMode } from '../../core/types';
 import { CreateProjectionViewCommand } from '../../history/commands/CreateProjectionViewCommand';
@@ -33,6 +34,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
   console.log('🔧 saveComprehensiveWorld value:', saveComprehensiveWorld);
   const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
   const commandManager = useEditorStore((state) => state.commandManager);
+  const camera = useEditorStore((state) => state.camera);
+  const scene = useEditorStore((state) => state.scene);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const worldLoadInputRef = useRef<HTMLInputElement>(null);
@@ -253,6 +256,117 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
     }
   };
 
+  // Viewport Controls
+  const handleZoomToSelected = () => {
+    if (!camera || !scene || selectedNodeIds.length === 0) {
+      toast.warning('Please select an object first');
+      return;
+    }
+
+    try {
+      // Get bounding box of selected objects
+      let min = new BABYLON.Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+      let max = new BABYLON.Vector3(Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE);
+
+      selectedNodeIds.forEach(nodeId => {
+        const mesh = scene.getMeshById(nodeId);
+        if (mesh) {
+          const boundingInfo = mesh.getBoundingInfo();
+          const meshMin = boundingInfo.minimum;
+          const meshMax = boundingInfo.maximum;
+          
+          min = BABYLON.Vector3.Minimize(min, meshMin);
+          max = BABYLON.Vector3.Maximize(max, meshMax);
+        }
+      });
+
+      const center = BABYLON.Vector3.Center(min, max);
+      const size = max.subtract(min);
+      const distance = Math.max(size.x, size.y, size.z) * 2;
+
+      if (camera instanceof BABYLON.ArcRotateCamera) {
+        camera.setTarget(center);
+        camera.radius = distance;
+        camera.setPosition(center.add(new BABYLON.Vector3(distance, distance, distance)));
+      }
+
+      toast.success(`Zoomed to ${selectedNodeIds.length} selected object(s)`);
+    } catch (error) {
+      console.error('Failed to zoom to selected:', error);
+      toast.error('Failed to zoom to selected objects');
+    }
+  };
+
+  const handleZoomFit = () => {
+    if (!camera || !scene) {
+      toast.warning('Scene not ready');
+      return;
+    }
+
+    try {
+      const meshes = scene.meshes.filter(mesh => 
+        mesh.isVisible && 
+        !mesh.isDisposed() && 
+        mesh.name !== '__root__' &&
+        !mesh.name.startsWith('__')
+      );
+
+      if (meshes.length === 0) {
+        toast.warning('No objects to fit');
+        return;
+      }
+
+      // Calculate bounding box of all visible objects
+      let min = new BABYLON.Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+      let max = new BABYLON.Vector3(Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE);
+
+      meshes.forEach(mesh => {
+        const boundingInfo = mesh.getBoundingInfo();
+        const meshMin = boundingInfo.minimum;
+        const meshMax = boundingInfo.maximum;
+        
+        min = BABYLON.Vector3.Minimize(min, meshMin);
+        max = BABYLON.Vector3.Maximize(max, meshMax);
+      });
+
+      const center = BABYLON.Vector3.Center(min, max);
+      const size = max.subtract(min);
+      const distance = Math.max(size.x, size.y, size.z) * 2.5; // Slightly more padding
+
+      if (camera instanceof BABYLON.ArcRotateCamera) {
+        camera.setTarget(center);
+        camera.radius = distance;
+        camera.setPosition(center.add(new BABYLON.Vector3(distance, distance, distance)));
+      }
+
+      toast.success(`Fitted view to ${meshes.length} objects`);
+    } catch (error) {
+      console.error('Failed to fit view:', error);
+      toast.error('Failed to fit view');
+    }
+  };
+
+  const handleResetView = () => {
+    if (!camera) {
+      toast.warning('Camera not ready');
+      return;
+    }
+
+    try {
+      if (camera instanceof BABYLON.ArcRotateCamera) {
+        camera.setTarget(BABYLON.Vector3.Zero());
+        camera.alpha = -Math.PI / 4;
+        camera.beta = Math.PI / 3;
+        camera.radius = 10;
+      }
+
+      toast.success('View reset to default');
+    } catch (error) {
+      console.error('Failed to reset view:', error);
+      toast.error('Failed to reset view');
+    }
+  };
+
   return (
     <div className="toolbar">
       {/* Transform Tools - Segmented Button Group */}
@@ -411,6 +525,34 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
             label="Project"
             onClick={handleCreateProjectionView}
             disabled={selectedNodeIds.length === 0}
+            config={{ size: 'md' }}
+          />
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="toolbar-divider" />
+
+      {/* Views */}
+      <div className="toolbar-section">
+        <h3>Views</h3>
+        <div className="button-group">
+          <IconButton
+            iconPath={IconPaths.ZOOM_TO_SELECTED}
+            label="Zoom to Selected"
+            onClick={handleZoomToSelected}
+            config={{ size: 'md' }}
+          />
+          <IconButton
+            iconPath={IconPaths.ZOOM_FIT}
+            label="Zoom Fit"
+            onClick={handleZoomFit}
+            config={{ size: 'md' }}
+          />
+          <IconButton
+            iconPath={IconPaths.RESET_VIEW}
+            label="Reset View"
+            onClick={handleResetView}
             config={{ size: 'md' }}
           />
         </div>

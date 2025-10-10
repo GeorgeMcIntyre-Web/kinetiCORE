@@ -194,7 +194,10 @@ export const IconRegistry = {
     show: Eye,
     maximize: Maximize2,
     minimize: Minimize2,
-    fullscreen: Maximize2
+    fullscreen: Maximize2,
+    zoomToSelected: Focus,
+    zoomFit: ZoomIn,
+    resetView: RotateCcw
   },
   
   // Search & Filter
@@ -564,6 +567,11 @@ export const IconPaths = {
   SUBTRACT: 'boolean.subtract',
   INTERSECT: 'boolean.intersect',
   SPLIT: 'boolean.split',
+  
+  // Views
+  ZOOM_TO_SELECTED: 'view.zoomToSelected',
+  ZOOM_FIT: 'view.zoomFit',
+  RESET_VIEW: 'view.resetView',
   
   // Status
   SUCCESS: 'status.success',
