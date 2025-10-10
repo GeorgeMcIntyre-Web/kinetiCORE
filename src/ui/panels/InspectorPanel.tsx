@@ -24,13 +24,7 @@ export class InspectorPanel extends BasePanel {
   }
 
   render(): React.ReactNode {
-    return (
-      <div style={{ padding: '20px', color: 'white', background: '#2a2a3e' }}>
-        <h4>Inspector Panel</h4>
-        <p>This is a test to see if the panel content renders.</p>
-        <Inspector />
-      </div>
-    );
+    return <Inspector />;
   }
 
   getDefaultState(): PanelState {

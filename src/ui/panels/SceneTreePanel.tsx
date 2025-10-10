@@ -24,13 +24,7 @@ export class SceneTreePanel extends BasePanel {
   }
 
   render(): React.ReactNode {
-    return (
-      <div style={{ padding: '20px', color: 'white', background: '#2a2a3e' }}>
-        <h4>Scene Tree Panel</h4>
-        <p>This is a test to see if the panel content renders.</p>
-        <SceneTree />
-      </div>
-    );
+    return <SceneTree />;
   }
 
   getDefaultState(): PanelState {

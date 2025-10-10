@@ -5,33 +5,53 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  height: 60px;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  border-bottom: 1px solid #2a2a3e;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  padding: 0 32px;
+  height: 70px;
+  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #2a2a3e 100%);
+  border-bottom: 2px solid #4a4a5e;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px);
   z-index: 1000;
+  position: relative;
+  overflow: hidden;
+}
+
+.app-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #646cff, #8b5cf6, #06b6d4, #10b981);
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
+  position: relative;
+  z-index: 1;
 }
 
 .logo {
-  font-size: 24px;
-  font-weight: 700;
-  color: #646cff;
+  font-size: 28px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #646cff, #8b5cf6, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0;
-  text-shadow: 0 0 10px rgba(100, 108, 255, 0.3);
+  text-shadow: 0 0 20px rgba(100, 108, 255, 0.5);
+  letter-spacing: -0.5px;
 }
 
 .tagline {
-  font-size: 14px;
-  color: #a0a0a0;
+  font-size: 15px;
+  color: #b0b0b0;
   margin: 0;
   font-weight: 400;
+  opacity: 0.9;
 }
 
 .header-center {
@@ -39,92 +59,117 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
+  z-index: 1;
 }
 
 .panel-toggles {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px 16px;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .panel-toggle-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: #2a2a3e;
-  border: 1px solid #3a3a4e;
-  border-radius: 6px;
-  color: #a0a0a0;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 500;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #e0e0e0;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
 }
 
 .panel-toggle-btn:hover {
+  background: rgba(100, 108, 255, 0.2);
   border-color: #646cff;
-  background: #2f2f4e;
-  color: #e0e0e0;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(100, 108, 255, 0.3);
 }
 
 .panel-toggle-btn.active {
-  background: #646cff;
+  background: linear-gradient(135deg, #646cff, #8b5cf6);
   border-color: #646cff;
   color: white;
+  box-shadow: 0 4px 16px rgba(100, 108, 255, 0.4);
 }
 
 .panel-toggle-btn span {
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
+  font-weight: 700;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
+  position: relative;
+  z-index: 1;
 }
 
 .user-level-selector {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px 16px;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .user-level-selector label {
-  font-size: 14px;
+  font-size: 15px;
   color: #e0e0e0;
-  font-weight: 500;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .user-level-dropdown {
-  background: #2a2a3e;
-  border: 1px solid #3a3a4e;
-  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
   color: #e0e0e0;
-  padding: 6px 12px;
+  padding: 10px 16px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 120px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  min-width: 140px;
 }
 
 .user-level-dropdown:hover {
+  background: rgba(100, 108, 255, 0.2);
   border-color: #646cff;
-  background: #2f2f4e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(100, 108, 255, 0.2);
 }
 
 .user-level-dropdown:focus {
   outline: none;
   border-color: #646cff;
-  box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.2);
+  box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.3);
 }
 
 .user-level-dropdown option {
   background: #2a2a3e;
   color: #e0e0e0;
+  padding: 8px;
 }
 
 /* Responsive design */
