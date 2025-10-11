@@ -194,7 +194,7 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
     const tree = SceneTreeManager.getInstance();
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
-    const node = tree.getNode(selectedNodeId);
+    let node = tree.getNode(selectedNodeId);
 
     if (!node || !scene) {
       console.log('❌ No node or scene');
@@ -204,10 +204,10 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
 
     // Get Babylon node to read old values
     let babylonNode: BABYLON.TransformNode | null = null;
-    if (node.babylonMeshId) {
+    if (node?.babylonMeshId) {
       babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
-    } else if (node.type === 'collection') {
-      babylonNode = scene.transformNodes.find((tn) => tn.name === node.name) || null;
+    } else if (node?.type === 'collection') {
+      babylonNode = scene.transformNodes.find((tn) => tn.name === node?.name) || null;
     }
 
     if (!babylonNode) {
@@ -235,7 +235,8 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
         console.log('✅ Automatically switching to parent collection:', parentNode.name);
 
         // Update selectedNodeId to point to the parent
-        selectedNodeId = node.parentId;
+        // Note: selectedNodeId is from store, we need to use a local variable
+        // const _newSelectedNodeId = node.parentId;
         node = parentNode;
 
         // Get the parent's Babylon node

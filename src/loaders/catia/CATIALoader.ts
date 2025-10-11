@@ -62,7 +62,7 @@ export async function loadCATIAFromFile(
         console.log(`[CATIA Import] Converting ${file.name} to GLTF...`);
 
         // Convert CATIA → GLTF (same endpoint handles both JT and CATIA)
-        const gltfBlob = await converter.convertToGLB(file, (progress) => {
+        const gltfBlob = await converter.convertToGLTF(file, (progress: any) => {
             console.log(`[CATIA Import] ${progress.message} (${progress.percent}%)`);
         });
 

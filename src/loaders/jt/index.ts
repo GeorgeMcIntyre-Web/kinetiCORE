@@ -14,3 +14,7 @@ export { JTMaterialLoader } from './JTMaterialLoader';
 export { JTPMIRenderer } from './JTPMIRenderer';
 export { JTLODManager } from './JTLODManager';
 export { JTMemoryManager } from './JTMemoryManager';
+export { JTKinematicExtractor } from './JTKinematicExtractor';
+export { JTKinematicIntegrationService } from './JTKinematicIntegrationService';
+export { JTKinematicWorkflowTest } from './JTKinematicWorkflowTest';
+export { JtReaderService } from './JtReaderService';

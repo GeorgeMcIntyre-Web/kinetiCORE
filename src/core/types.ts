@@ -70,6 +70,10 @@ export interface BodyDescriptor {
   radius?: number; // For sphere, capsule
   height?: number; // For capsule, cylinder
   mass?: number;
+  meshName?: string;
+  centerOfMass?: Vector3;
+  friction?: number;
+  restitution?: number;
 }
 
 /**
@@ -81,6 +85,7 @@ export interface RaycastHit {
   normal?: Vector3;
   distance?: number;
   colliderHandle?: string;
+  bodyHandle?: string;
 }
 
 /**
@@ -155,6 +160,19 @@ export interface EditorState {
   setTransformMode: (mode: TransformMode) => void;
   setCamera: (camera: BABYLON.Camera) => void;
   togglePlayback: () => void;
+}
+
+/**
+ * Asset reference for external files
+ */
+export interface AssetReference {
+  id: string;
+  name: string;
+  path: string;
+  type: 'mesh' | 'texture' | 'material' | 'sound';
+  size?: number;
+  checksum?: string;
+  metadata?: Record<string, unknown>;
 }
 
 /**

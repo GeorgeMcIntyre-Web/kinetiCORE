@@ -137,3 +137,63 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# C# / .NET build artifacts
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.deps.json
+*.runtimeconfig.json
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# JT Reader specific build outputs
+JTReaderWrapper/bin/
+JTReaderWrapper/obj/
+JTReaderWrapper.exe
+JTReaderWrapper.dll
+JTReaderWrapper.pdb
+
+# Test and debug files
+*_test.json
+*_debug.json
+debug_*.json
+test_*.json
+real_*.json
+clean_*.json
+distinct_*.json
+temp/
+temp_*
+
+# Generated documentation and test files
+SUCCESS_*.md
+README_REAL_*.md
+*_COMPLETE*.md
+*_STATUS*.md
+*_GUIDE*.md
+*_ROADMAP*.md
+*_PLAN*.md
+*_SUMMARY*.md
+*_AUDIT*.md
+*_PROTOCOL*.md
+*_CHECKLIST*.md
+*_REVIEW*.md
+
+# Test HTML files
+test-*.html
+*-test.html
+jt-test-page.html
+
+# Test JS files
+test-*.js
+*-test.js
+test-jt-app.js
+test-jt-loading.html
+
+# JT test files
+test.jt

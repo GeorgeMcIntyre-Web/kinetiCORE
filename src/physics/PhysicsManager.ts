@@ -9,7 +9,7 @@
 import { IPhysicsEngine } from './IPhysicsEngine';
 import { HavokPhysicsEngine } from './HavokPhysicsEngine';
 import { RapierPhysicsEngine } from './RapierPhysicsEngine';
-import { Vector3, Quaternion, BodyDescriptor, RaycastHit } from '../core/types';
+import { Vector3, Quaternion, BodyDescriptor } from '../core/types';
 
 /**
  * Supported physics engines
@@ -317,7 +317,7 @@ export class PhysicsManager {
       try {
         engine.createRigidBody(bodyData.descriptor);
         engine.updateRigidBodyTransform(
-          bodyData.descriptor.meshName, // Using mesh name as handle
+          bodyData.descriptor.meshName || '', // Using mesh name as handle
           bodyData.transform.position,
           bodyData.transform.rotation
         );

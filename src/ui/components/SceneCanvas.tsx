@@ -6,7 +6,7 @@ import * as BABYLON from '@babylonjs/core';
 import { SceneManager } from '../../scene/SceneManager';
 import { RapierPhysicsEngine } from '../../physics/RapierPhysicsEngine';
 import { EntityRegistry } from '../../entities/EntityRegistry';
-import { SceneTreeManager } from '../../scene/SceneTreeManager';
+// import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { TransformGizmo } from '../../manipulation/TransformGizmo';
 import { useEditorStore } from '../store/editorStore';
 import { useUserLevel } from '../core/UserLevelContext';
@@ -26,6 +26,8 @@ export const SceneCanvas: React.FC = () => {
   const camera = useEditorStore((state) => state.camera);
   const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
   const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
+  const selectedCollectionNodeId = useEditorStore((state) => state.selectedCollectionNodeId);
+  const selectedCollectionTransformNode = useEditorStore((state) => state.selectedCollectionTransformNode);
   const transformMode = useEditorStore((state) => state.transformMode);
   const selectMesh = useEditorStore((state) => state.selectMesh);
   const clearSelection = useEditorStore((state) => state.clearSelection);
@@ -171,9 +173,10 @@ export const SceneCanvas: React.FC = () => {
             if (pickResult.hit && pickResult.pickedMesh) {
               const mesh = pickResult.pickedMesh;
 
-              // Ignore ground, axis meshes, and widget elements
+              // Ignore ground, grid overlay, axis meshes, and widget elements
               if (
                 mesh.name !== 'ground' &&
+                mesh.name !== 'gridOverlay' &&
                 !mesh.name.startsWith('axis') &&
                 !mesh.name.startsWith('widget') &&
                 !mesh.name.startsWith('label') &&
@@ -261,11 +264,15 @@ export const SceneCanvas: React.FC = () => {
         gizmoRef.current.attachToMesh(selectedMesh);
         gizmoRef.current.setMode('combined');
       }
+    } else if (selectedCollectionTransformNode) {
+      // Collection node selected from tree - attach gizmo to TransformNode
+      gizmoRef.current.attachToNode(selectedCollectionTransformNode);
+      gizmoRef.current.setMode('combined');
     } else {
       // Detach gizmo when nothing selected
       gizmoRef.current.attachToMesh(null);
     }
-  }, [selectedMeshes, transformMode]);
+  }, [selectedMeshes, selectedCollectionTransformNode, transformMode]);
 
   // Update snap settings when they change - ALL 13 snap types
   useEffect(() => {

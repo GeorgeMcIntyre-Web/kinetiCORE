@@ -38,6 +38,8 @@ interface EditorState {
   selectedMeshes: BABYLON.Mesh[];
   selectedNodeId: string | null;
   selectedNodeIds: string[]; // Multi-selection support
+  selectedCollectionNodeId: string | null; // For collection node selection
+  selectedCollectionTransformNode: BABYLON.TransformNode | null; // Babylon TransformNode for collection
   transformMode: TransformMode;
   camera: BABYLON.Camera | null;
   isPlaying: boolean;
@@ -185,6 +187,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   selectedMeshes: [],
   selectedNodeId: null,
   selectedNodeIds: [],
+  selectedCollectionNodeId: null,
+  selectedCollectionTransformNode: null,
   transformMode: DEFAULT_TRANSFORM_MODE,
   camera: null,
   isPlaying: false,
@@ -338,7 +342,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     // If it's a collection/TransformNode, show coordinate frame at its origin
     if (node && node.type === 'collection' && scene) {
       const transformNode = scene.transformNodes.find(tn => tn.name === node.name);
-      if (transformNode && coordinateFrameWidget) {
+      if (transformNode) {
+        // For collection nodes, we need to trigger gizmo activation
+        // by setting a special flag that SceneCanvas can detect
+        set({ 
+          selectedCollectionNodeId: nodeId,
+          selectedCollectionTransformNode: transformNode 
+        });
+
+        if (coordinateFrameWidget) {
         // Get world position and orientation of TransformNode
         const worldMatrix = transformNode.computeWorldMatrix(true);
         const position = worldMatrix.getTranslation();
@@ -392,6 +404,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         }
 
         coordinateFrameWidget.show(frame, axisLength);
+        }
       }
     } else {
       // Hide coordinate frame widget if not a collection
@@ -462,9 +475,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     if (!scene || !camera || !(camera instanceof BABYLON.ArcRotateCamera)) return;
 
-    // Get all visible meshes (excluding ground)
+    // Get all visible meshes (excluding ground and grid overlay)
     const meshes = scene.meshes.filter((m: BABYLON.AbstractMesh) =>
-      m.isVisible && m.name !== 'ground'
+      m.isVisible && m.name !== 'ground' && m.name !== 'gridOverlay'
     );
 
     if (meshes.length === 0) return;
@@ -515,7 +528,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       coordinateFrameWidget.hide();
     }
 
-    set({ selectedMeshes: [], selectedNodeId: null, selectedNodeIds: [] });
+    set({ 
+      selectedMeshes: [], 
+      selectedNodeId: null, 
+      selectedNodeIds: [],
+      selectedCollectionNodeId: null,
+      selectedCollectionTransformNode: null
+    });
   },
 
   toggleMeshSelection: (mesh) => {
@@ -1927,8 +1946,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const pickedMesh = pickInfo.pickedMesh as BABYLON.Mesh;
     const pickPoint = pickInfo.pickedPoint;
 
-    // Ignore ground
-    if (pickedMesh.name === 'ground') {
+    // Ignore ground and grid overlay
+    if (pickedMesh.name === 'ground' || pickedMesh.name === 'gridOverlay') {
       return;
     }
 

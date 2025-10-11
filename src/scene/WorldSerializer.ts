@@ -7,6 +7,7 @@ import { SceneTreeManager } from './SceneTreeManager';
 import { SceneManager } from './SceneManager';
 import { EntityRegistry } from '../entities/EntityRegistry';
 import { userToBabylon } from '../core/CoordinateSystem';
+import { AssetReference } from '../core/types';
 import { toast } from '../ui/components/ToastNotifications';
 import type { SceneNode } from './SceneTreeNode';
 

@@ -6,7 +6,7 @@
  * Supports both Havok and Rapier with engine-specific settings
  */
 
-import type { PhysicsEngineConfig } from './PhysicsManager';
+import type { PhysicsEngineConfig } from '../physics/PhysicsManager';
 
 /**
  * Default physics configuration

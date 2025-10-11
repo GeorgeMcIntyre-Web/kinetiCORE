@@ -8,6 +8,20 @@ import { JTErrorType } from './types';
 // Re-export JTErrorType so other modules can import it from errors.ts
 export { JTErrorType };
 
+export class JTConversionError extends Error {
+    constructor(
+        public statusCode: number,
+        public message: string,
+        public stack?: string
+    ) {
+        super(message);
+        this.name = 'JTConversionError';
+        if (stack) {
+            this.stack = stack;
+        }
+    }
+}
+
 export class JTImportError extends Error {
     constructor(
         public type: JTErrorType,
