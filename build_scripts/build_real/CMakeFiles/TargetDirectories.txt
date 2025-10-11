@@ -1,0 +1,4 @@
+C:/Users/George/source/repos/kinetiCORE/build_scripts/build_real/CMakeFiles/jt_converter_wrapper.dir
+C:/Users/George/source/repos/kinetiCORE/build_scripts/build_real/CMakeFiles/INSTALL.dir
+C:/Users/George/source/repos/kinetiCORE/build_scripts/build_real/CMakeFiles/ALL_BUILD.dir
+C:/Users/George/source/repos/kinetiCORE/build_scripts/build_real/CMakeFiles/ZERO_CHECK.dir

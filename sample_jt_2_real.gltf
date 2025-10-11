@@ -1,0 +1,93 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "Real JT Parser v1.0"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "JT_Scene",
+      "nodes": [0]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "",
+      "children": [1],
+      "matrix": [1.000000, 0.000000, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000, 0.000000, 0.000000, 0.000000, 1.000000]
+    },
+    {
+      "name": "SimplePart_001",
+      "mesh": 0,
+      "matrix": [1.000000, 0.000000, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000, 0.000000, 0.000000, 0.000000, 1.000000]
+    }  ],
+  "meshes": [
+    {
+      "name": "SimplePart_001_Mesh",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1
+          },
+          "indices": 2,
+          "mode": 4
+        }
+      ]
+    }  ],
+  "materials": [
+    {
+      "name": "SimplePart_001_Material",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [0.800000, 0.800000, 0.800000, 1.000000],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.5
+      }
+    }  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 0,
+      "componentType": 5125,
+      "count": 36,
+      "type": "SCALAR"
+    }  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 288,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 1,
+      "byteLength": 288,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 2,
+      "byteLength": 144,
+      "target": 34963
+    }  ],
+  "buffers": [
+    {
+      "byteLength": 720,
+      "uri": "data:application/octet-stream;base64,AACAvwAAAL8AAIA+AACAPwAAAL8AAIA+AACAPwAAAD8AAIA+AACAvwAAAD8AAIA+AACAvwAAAL8AAIC+AACAvwAAAD8AAIC+AACAPwAAAD8AAIC+AACAPwAAAL8AAIC+AACAvwAAAD8AAIC+AACAvwAAAD8AAIA+AACAPwAAAD8AAIA+AACAPwAAAD8AAIC+AACAvwAAAL8AAIC+AACAPwAAAL8AAIC+AACAPwAAAL8AAIA+AACAvwAAAL8AAIA+AACAPwAAAL8AAIC+AACAPwAAAD8AAIC+AACAPwAAAD8AAIA+AACAPwAAAL8AAIA+AACAvwAAAL8AAIC+AACAvwAAAL8AAIA+AACAvwAAAD8AAIA+AACAvwAAAD8AAIC+AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAEAAAACAAAAAAAAAAIAAAADAAAABAAAAAUAAAAGAAAABAAAAAYAAAAHAAAACAAAAAkAAAAKAAAACAAAAAoAAAALAAAADAAAAA0AAAAOAAAADAAAAA4AAAAPAAAAEAAAABEAAAASAAAAEAAAABIAAAATAAAAFAAAABUAAAAWAAAAFAAAABYAAAAXAAAA"
+    }  ]
+}

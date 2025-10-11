@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\George\source\repos\kinetiCORE\build_scripts\build_real\CMakeFiles\32556688c9fe1ad3e3d502755689621e\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{44AD5D23-96B0-3AC5-AECD-0409287B3AD4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

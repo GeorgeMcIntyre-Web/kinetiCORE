@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\George\source\repos\kinetiCORE\build_scripts\jt_converter_real_meshes_v2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\George\source\repos\kinetiCORE\build_scripts\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{D522861F-756C-3152-9DEF-23A6BC9529C2}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

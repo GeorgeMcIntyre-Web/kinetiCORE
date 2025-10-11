@@ -1,0 +1,10 @@
+^C:\USERS\GEORGE\SOURCE\REPOS\KINETICORE\BUILD_REAL\CMAKEFILES\BF65991F773FF5CF5556803CF2382581\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/George/source/repos/kinetiCORE -BC:/Users/George/source/repos/kinetiCORE/build_real --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/George/source/repos/kinetiCORE/build_real/JTConverterWrapper.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

@@ -1,0 +1,10 @@
+^C:\USERS\GEORGE\SOURCE\REPOS\KINETICORE\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/George/source/repos/kinetiCORE -BC:/Users/George/source/repos/kinetiCORE/build_real --check-stamp-file C:/Users/George/source/repos/kinetiCORE/build_real/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
