@@ -42,15 +42,22 @@ const toFloatArr = (s: string | null) => {
 
 /**
  * Transform quaternion from MuJoCo Z-up coordinate system to Babylon.js Y-up coordinate system
- * This applies the same coordinate system transformation as position: (x,y,z) → (x,z,y)
- * For quaternions, this means swapping Y and Z components
+ * Uses conjugate rotation to properly transform between coordinate systems (matches URDF loader)
  */
 const transformQuaternionZupToYup = (wxyz: number[]) => {
   if (wxyz.length < 4) return Quaternion.Identity();
   const [w, x, y, z] = wxyz;
-  // Transform from Z-up to Y-up: swap Y and Z components
-  // MuJoCo (w, x, y, z) → Babylon.js (w, x, z, y)
-  return new Quaternion(x, z, y, w);
+
+  // Step 1: Convert from MuJoCo (w,x,y,z) to Babylon.js (x,y,z,w) format
+  // Step 2: Swap Y and Z to match position transformation (x,y,z) → (x,z,y)
+  let q = new Quaternion(x, z, y, w);
+
+  // Step 3: Apply conjugate rotation to transform coordinate system
+  // Rotate the quaternion's reference frame by -90° around X axis
+  const coordTransform = Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 2);
+  q = coordTransform.multiply(q).multiply(coordTransform.conjugate());
+
+  return q;
 };
 
 const colorFromRGBA = (rgba: number[]) => {
