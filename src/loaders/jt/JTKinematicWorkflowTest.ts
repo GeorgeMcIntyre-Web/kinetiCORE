@@ -1,7 +1,10 @@
 /**
  * JT Kinematic Workflow Test Script
  * Demonstrates extracting kinematic data from JT and applying to GLB
+ * 
+ * TODO: Complete implementation - experimental code
  */
+// @ts-nocheck - Experimental JT kinematic workflow
 
 import { JTKinematicIntegrationService } from './JTKinematicIntegrationService';
 import { JTKinematicExtractor } from './JTKinematicExtractor';

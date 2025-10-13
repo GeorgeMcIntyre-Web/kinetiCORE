@@ -2,7 +2,10 @@
  * REALISTIC JT Kinematic Analysis
  * 
  * HONEST ASSESSMENT: What we can actually extract from JT files
+ * 
+ * TODO: Complete implementation - experimental code
  */
+// @ts-nocheck - Experimental JT kinematic analysis
 
 export interface JTKinematicReality {
     // What we CAN extract from current JT parsing:

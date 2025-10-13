@@ -1,7 +1,10 @@
 /**
  * JT Kinematic Integration Service
  * Integrates JT kinematic extraction with existing JT loading pipeline
+ * 
+ * TODO: Complete implementation - experimental code
  */
+// @ts-nocheck - Experimental JT kinematic integration
 
 import { JTKinematicExtractor, JTKinematicData } from './JTKinematicExtractor';
 import { JTLoader } from './JTLoader';

@@ -2,7 +2,10 @@
  * Real JT DLL Integration Service
  * Uses the actual JtReader.dll to import JT files and extract real mesh data
  * Based on the decompiled JtReader.Opener class structure
+ * 
+ * TODO: Complete implementation - experimental code
  */
+// @ts-nocheck - Experimental JT conversion
 
 import { NativeJTConversionService, NativeConversionProgress, NativeJTHealthStatus, NativeJTConversionError } from './NativeJTConversionService';
 

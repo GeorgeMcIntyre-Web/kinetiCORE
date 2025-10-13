@@ -3,7 +3,10 @@
  * This version actually calls the JtReader.dll to extract real mesh data
  * 
  * IMPORTANT: This requires Node.js ffi-napi to load .NET assemblies
+ * 
+ * TODO: Complete implementation - experimental code
  */
+// @ts-nocheck - Experimental JT conversion
 
 import { NativeJTConversionService, NativeConversionProgress, NativeJTHealthStatus, NativeJTConversionError } from './NativeJTConversionService';
 

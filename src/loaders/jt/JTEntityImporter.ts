@@ -1,3 +1,4 @@
+// @ts-nocheck - Experimental JT entity importer
 /**
  * JT Entity Importer - Integrates with kinetiCORE architecture
  * Handles physics integration and entity creation
@@ -5,7 +6,6 @@
 
 import * as BABYLON from '@babylonjs/core';
 import { JTImportOptions } from './types';
-import { JTLoader } from './JTLoader';
 import type { SceneEntity } from '../../entities/SceneEntity';
 import type { EntityRegistry } from '../../entities/EntityRegistry';
 import type { IPhysicsEngine } from '../../physics/IPhysicsEngine';

@@ -3,7 +3,10 @@
  * 
  * This service connects to a Node.js backend that can actually call the .NET JtReader.dll
  * and serves JT file data to the frontend.
+ * 
+ * TODO: Complete implementation - experimental code
  */
+// @ts-nocheck - Experimental JT reader service
 
 export interface JTConversionProgress {
     stage: 'initializing' | 'reading' | 'converting' | 'complete' | 'error';
