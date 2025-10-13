@@ -1,1437 +1,956 @@
-/**
- * MJCF (MuJoCo XML) Loader
- * Owner: George
- * 
- * Loads MuJoCo XML files and converts them to Babylon.js meshes with kinematics
- * Supports grippers, fixtures, and end-of-arm tooling (EOT)
- */
-
-import * as BABYLON from '@babylonjs/core';
-import JSZip from 'jszip';
-import type { HardwareActuator } from '../../kinematics/device/UnifiedDeviceDefinition';
+import "@babylonjs/loaders";
+import { OBJFileLoader } from "@babylonjs/loaders/OBJ";
 import {
-  MJCFModel,
-  MJCFBody,
-  MJCFJoint,
-  MJCFGeom,
-  MJCFActuator,
-  MJCFImportResult,
-  // MJCFImportProgress,
-  MJCFImportError,
-  MJCFErrorType
-} from './types';
+  Scene, SceneLoader, TransformNode, Texture, PBRMaterial,
+  Color3, Vector3, Quaternion, AbstractMesh
+} from "@babylonjs/core";
+import JSZip from "jszip";
 
-/**
- * Load external mesh file (STL, OBJ, etc.)
- * Attempts to load actual mesh files using Babylon.js loaders
- */
-async function loadExternalMesh(
-  meshFile: string,
-  scene: BABYLON.Scene,
-  meshDir?: string,
-  meshFilesMap?: Map<string, File>
-): Promise<BABYLON.AbstractMesh | null> {
-  try {
-    console.log(`[MJCF Import] Attempting to load external mesh: ${meshFile}`);
+type LoadOpts = {
+  rootUrl: string;         // folder that contains the XML and /assets
+  mjcf: string;            // "robot.xml" or "iiwa14.xml"
+  bakePivots?: boolean;    // default false
+  fallbackGray?: boolean;  // default true
+};
 
-    const extension = meshFile.toLowerCase().split('.').pop();
+type MeshDef = {
+  name: string;
+  file: string;
+  scale?: [number, number, number]; // from <asset><mesh scale="sx sy sz">
+  className?: string | null;
+};
 
-    // Load STL files using Babylon.js STL loader
-    if (extension === 'stl') {
-      try {
-        let result: BABYLON.ISceneLoaderAsyncResult;
+type TexDef = { name: string; file: string };
+type MatDef = { name: string; texture?: string; rgba?: [number, number, number, number] };
 
-        // Try to load from File object if available
-        if (meshFilesMap && meshFilesMap.has(meshFile)) {
-          const file = meshFilesMap.get(meshFile)!;
-          console.log(`[MJCF Import] Loading STL from File object: ${file.name} (${file.size} bytes)`);
+const textFetch = async (url: string) => {
+  const r = await fetch(url);
+  if (r.ok === false) throw new Error(`Fetch failed: ${r.status} ${r.statusText} @ ${url}`);
+  const t = await r.text();
+  if (t.trim().length === 0) throw new Error(`Empty file @ ${url}`);
+  return t;
+};
 
+const toFloatArr = (s: string | null) => {
+  if (s === null) return null;
+  const parts = s.trim().split(/\s+/);
+  if (parts.length === 0) return null;
+  const vals = parts.map(Number);
+  if (vals.some(v => Number.isFinite(v) === false)) return null;
+  return vals;
+};
+
+const quatWXYZtoBabylon = (wxyz: number[]) => {
+  if (wxyz.length < 4) return Quaternion.Identity();
+  const [w, x, y, z] = wxyz;
+  return new Quaternion(x, y, z, w);
+};
+
+const colorFromRGBA = (rgba: number[]) => {
+  if (rgba.length < 3) return new Color3(0.7, 0.7, 0.7);
+  return new Color3(rgba[0], rgba[1], rgba[2]);
+};
+
+const parseMJCF = (xml: string) => {
+  const doc = new DOMParser().parseFromString(xml, "application/xml");
+  const parseErr = doc.querySelector("parsererror");
+  if (parseErr !== null) throw new Error("Invalid MJCF XML");
+
+  // compiler scale (global)
+  let compilerScale = 1.0;
+  const compiler = doc.querySelector("compiler");
+  if (compiler !== null) {
+    const s = compiler.getAttribute("scale");
+    const v = s ? Number(s) : NaN;
+    if (Number.isFinite(v) && v > 0) compilerScale = v;
+  }
+
+  const asset = doc.querySelector("asset");
+  const meshMap: Record<string, MeshDef> = {};
+  const texMap: Record<string, TexDef> = {};
+  const matMap: Record<string, MatDef> = {};
+
+  if (asset !== null) {
+    asset.querySelectorAll("mesh").forEach(m => {
+      const file = m.getAttribute("file");
+      if (file === null || file.trim().length === 0) return;
+      const nameAttr = m.getAttribute("name");
+      const name = nameAttr && nameAttr.trim().length > 0
+        ? nameAttr
+        : file.replace(/\.(obj|stl)$/i, "");
+      const s = toFloatArr(m.getAttribute("scale"));
+      const scale = s && s.length >= 3 ? [s[0], s[1], s[2]] as [number, number, number] : undefined;
+      meshMap[name] = { name, file, scale, className: m.getAttribute("class") };
+    });
+
+    asset.querySelectorAll("texture").forEach(t => {
+      const name = t.getAttribute("name");
+      const file = t.getAttribute("file");
+      if (name === null || file === null) return;
+      texMap[name] = { name, file };
+    });
+
+    asset.querySelectorAll("material").forEach(m => {
+      const name = m.getAttribute("name");
+      if (name === null) return;
+      const texture = m.getAttribute("texture") || undefined;
+      const rgba = toFloatArr(m.getAttribute("rgba")) as number[] | null;
+      matMap[name] = { name, texture, rgba: (rgba || undefined) as any };
+    });
+  }
+
+  const world = doc.querySelector("worldbody");
+  if (world === null) throw new Error("No <worldbody> in MJCF");
+
+  return { world, meshMap, texMap, matMap, compilerScale };
+};
+
+const makeMaterials = (
+  scene: Scene,
+  rootUrl: string,
+  texMap: Record<string, TexDef>,
+  matMap: Record<string, MatDef>
+) => {
+  const textures: Record<string, Texture> = {};
+  const pbrs: Record<string, PBRMaterial> = {};
+
+  Object.values(texMap).forEach(t => {
+    const url = `${rootUrl}/assets/${t.file}`;
+    textures[t.name] = new Texture(url, scene);
+  });
+
+  Object.values(matMap).forEach(m => {
+    const p = new PBRMaterial(m.name, scene);
+    if (typeof m.texture === "string" && textures[m.texture] !== undefined) p.albedoTexture = textures[m.texture];
+    if (Array.isArray(m.rgba)) p.albedoColor = colorFromRGBA(m.rgba);
+    p.metallic = 0.0; p.roughness = 0.7;
+    pbrs[m.name] = p;
+  });
+
+  // Heuristic fallbacks for KUKA iiwa colors
+  if (pbrs["orange"] === undefined) {
+    const o = new PBRMaterial("orange", scene);
+    o.albedoColor = new Color3(1.0, 0.423529, 0.0392157); o.metallic = 0; o.roughness = 0.7;
+    pbrs["orange"] = o;
+  }
+  if (pbrs["gray"] === undefined) {
+    const g = new PBRMaterial("gray", scene);
+    g.albedoColor = new Color3(0.4, 0.4, 0.4); g.metallic = 0; g.roughness = 0.7;
+    pbrs["gray"] = g;
+  }
+  if (pbrs["black"] === undefined) {
+    const b = new PBRMaterial("black", scene);
+    b.albedoColor = new Color3(0.0, 0.0, 0.0); b.metallic = 0; b.roughness = 0.7;
+    pbrs["black"] = b;
+  }
+
+  return { textures, pbrs };
+};
+
+const importVisualMesh = async (scene: Scene, rootUrl: string, file: string, meshFilesMap?: Map<string, File>) => {
+  // If we have mesh files from ZIP, use them directly
+  if (meshFilesMap && meshFilesMap.has(file)) {
+    const meshFile = meshFilesMap.get(file)!;
+    console.log(`[MJCF Import] Loading mesh from ZIP: ${file} (${meshFile.size} bytes)`);
+
+    try {
           // Read file as ArrayBuffer
-          const arrayBuffer = await file.arrayBuffer();
+      const arrayBuffer = await meshFile.arrayBuffer();
           const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
           const objectURL = URL.createObjectURL(blob);
 
-          try {
-            // Load from blob URL
-            result = await BABYLON.SceneLoader.ImportMeshAsync(
-              '',         // All meshes
-              '',         // No root URL needed for blob
-              objectURL,  // Blob URL
-              scene,
-              undefined,
-              '.stl'     // Plugin extension
-            );
+      // Detect file type for plugin hint
+      const isObj = file.toLowerCase().endsWith('.obj');
+      const isStl = file.toLowerCase().endsWith('.stl');
+      const pluginExt = isObj ? '.obj' : isStl ? '.stl' : '';
 
-            // Clean up blob URL
-            URL.revokeObjectURL(objectURL);
-          } catch (blobError) {
-            URL.revokeObjectURL(objectURL);
-            throw blobError;
+      // Use callback-based SceneLoader like the original Google Robot loader
+      return new Promise<AbstractMesh[]>((resolve, reject) => {
+        // Save and restore OBJ MTL skip setting
+        const prevSkip = OBJFileLoader.SKIP_MATERIALS;
+        OBJFileLoader.SKIP_MATERIALS = true;
+
+        SceneLoader.ImportMesh(
+                '',         // All meshes
+                '',         // No root URL needed for blob
+                objectURL,  // Blob URL
+                scene,
+                (loadedMeshes) => {
+            console.log(`[MJCF Import] SceneLoader returned ${loadedMeshes.length} meshes for ${file}`);
+                  URL.revokeObjectURL(objectURL);
+            OBJFileLoader.SKIP_MATERIALS = prevSkip; // Restore
+            loadedMeshes.forEach(m => m.scaling.set(1, 1, 1));
+            resolve(loadedMeshes);
+                },
+                undefined, // Progress callback
+                (_scene, message) => {
+            console.error(`[MJCF Import] SceneLoader.ImportMesh failed for ${file}:`, message);
+                  URL.revokeObjectURL(objectURL);
+            OBJFileLoader.SKIP_MATERIALS = prevSkip; // Restore
+                  reject(new Error(message));
+                },
+          pluginExt   // Plugin extension
+              );
+            });
+  } catch (error) {
+      console.error(`[MJCF Import] Failed to load mesh from ZIP: ${file}`, error);
+      return [];
+    }
+  }
+
+  // Regular URL-based loading
+  const res = await SceneLoader.ImportMeshAsync("", `${rootUrl}/assets/`, file, scene);
+  if (res.meshes.length === 0) return [] as AbstractMesh[];
+  res.meshes.forEach(m => m.scaling.set(1, 1, 1));
+  return res.meshes as AbstractMesh[];
+};
+
+const bakePivotsIfRequested = (meshes: AbstractMesh[]) => {
+  meshes.forEach(m => {
+    if (m.rotationQuaternion === null || m.rotationQuaternion === undefined) {
+      m.rotationQuaternion = Quaternion.Identity();
+    }
+    // m.bakeCurrentTransformIntoVertices(); // May not be available in all Babylon.js versions
+  });
+};
+
+const assignGeomMaterial = (
+  meshes: AbstractMesh[],
+  geom: Element,
+  pbrs: Record<string, PBRMaterial>,
+  fallbackGray: boolean,
+  warned: Set<string>
+) => {
+  // per-geom RGBA overrides named material
+  const rgba = toFloatArr(geom.getAttribute("rgba"));
+  if (Array.isArray(rgba) && rgba.length >= 3) {
+    const p = new PBRMaterial(`geom_rgba_${Math.random().toString(36).slice(2)}`, meshes[0].getScene());
+    p.albedoColor = colorFromRGBA(rgba);
+    p.metallic = 0; p.roughness = 0.7;
+    meshes.forEach(m => (m.material = p));
+    return;
+  }
+
+  const matName = geom.getAttribute("material");
+  if (typeof matName === "string" && matName.length > 0 && pbrs[matName] !== undefined) {
+    meshes.forEach(m => (m.material = pbrs[matName]));
+    return;
+  }
+
+  if (fallbackGray === true) meshes.forEach(m => (m.material = pbrs["gray"]));
+  if (typeof matName === "string" && matName.length > 0 && warned.has(matName) === false) {
+    console.warn(`material '${matName}' not found; applied gray`);
+    warned.add(matName);
+  }
+};
+
+const multiplyScale = (node: TransformNode, v: Vector3) => {
+  node.scaling.multiplyInPlace(v);
+};
+
+const buildBodies = async (
+  scene: Scene,
+  rootUrl: string,
+  world: Element,
+  meshMap: Record<string, MeshDef>,
+  pbrs: Record<string, PBRMaterial>,
+  bakePivots: boolean,
+  fallbackGray: boolean,
+  compilerScale: number,
+  meshFilesMap?: Map<string, File>
+) => {
+  const root = new TransformNode("mjcf_root", scene);
+  // No root rotation needed - STL loader already handles Y-up orientation
+  root.scaling.set(1, 1, 1);
+
+  const warnedMissingMaterials = new Set<string>();
+
+  const visit = async (bodyEl: Element, parent: TransformNode) => {
+    const name = bodyEl.getAttribute("name") || "body";
+    const bodyNode = new TransformNode(name, scene);
+    bodyNode.parent = parent;
+    bodyNode.scaling.set(1, 1, 1);
+
+    const bodyPos = toFloatArr(bodyEl.getAttribute("pos"));
+    if (bodyPos !== null && bodyPos.length >= 3) {
+      // Convert from MuJoCo Z-up to Babylon.js Y-up: (x,y,z) → (x,z,y)
+      bodyNode.position.set(bodyPos[0], bodyPos[2], bodyPos[1]);
+    }
+
+    const bodyQuat = toFloatArr(bodyEl.getAttribute("quat"));
+    if (bodyQuat !== null && bodyQuat.length >= 4) bodyNode.rotationQuaternion = quatWXYZtoBabylon(bodyQuat);
+
+    // body-level scale (rare): MJCF bodies don't have scale; we only apply compilerScale
+    if (compilerScale !== 1) multiplyScale(bodyNode, new Vector3(compilerScale, compilerScale, compilerScale));
+
+    // Visual geoms on this body
+    const geoms = Array.from(bodyEl.querySelectorAll(":scope > geom"));
+    for (const geom of geoms) {
+      const cls = geom.getAttribute("class");
+      const type = geom.getAttribute("type");
+      const meshRef = geom.getAttribute("mesh");
+
+      // Treat as visual if class contains "visual" OR (no class) AND (type="mesh" && meshRef present)
+      const isVisualByClass = typeof cls === "string" && cls.indexOf("visual") >= 0;
+      const isMeshGeom = type === "mesh" && typeof meshRef === "string" && meshRef.length > 0;
+      const isVisual = isVisualByClass || (cls === null && isMeshGeom === true);
+      if (isVisual === false) continue;
+
+      if (meshRef === null) {
+        console.warn(`visual geom on '${name}' has no mesh`);
+        continue;
+      }
+
+      const def = meshMap[meshRef];
+      if (def === undefined) {
+        console.warn(`mesh '${meshRef}' not found in <asset> for body '${name}'`);
+        continue;
+      }
+
+      // geom-local transform
+      const geomNode = new TransformNode(`${name}__geom_${meshRef}`, scene);
+      geomNode.parent = bodyNode;
+      geomNode.scaling.set(1, 1, 1);
+
+      const gpos = toFloatArr(geom.getAttribute("pos"));
+      if (gpos !== null && gpos.length >= 3) geomNode.position.set(gpos[0], gpos[1], gpos[2]);
+
+      const gquat = toFloatArr(geom.getAttribute("quat"));
+      if (gquat !== null && gquat.length >= 4) geomNode.rotationQuaternion = quatWXYZtoBabylon(gquat);
+
+      // Effective scale: compiler * mesh.scale * geom.scale
+      let sx = compilerScale, sy = compilerScale, sz = compilerScale;
+      if (Array.isArray(def.scale) && def.scale.length === 3) {
+        sx *= def.scale[0]; sy *= def.scale[1]; sz *= def.scale[2];
+        console.log(`[MJCF Scale] Mesh '${meshRef}' has scale: (${def.scale[0]}, ${def.scale[1]}, ${def.scale[2]})`);
+      }
+      const gscale = toFloatArr(geom.getAttribute("scale"));
+      if (Array.isArray(gscale) && gscale.length >= 3) {
+        sx *= gscale[0]; sy *= gscale[1]; sz *= gscale[2];
+        console.log(`[MJCF Scale] Geom '${name}/${meshRef}' has scale: (${gscale[0]}, ${gscale[1]}, ${gscale[2]})`);
+      }
+
+      multiplyScale(geomNode, new Vector3(sx, sy, sz));
+      if (sx !== 1 || sy !== 1 || sz !== 1) {
+        console.warn(`[MJCF Scale] Final effective scale @ '${name}/${meshRef}': (${sx.toFixed(4)}, ${sy.toFixed(4)}, ${sz.toFixed(4)})`);
+      }
+
+      const meshes = await importVisualMesh(scene, rootUrl, def.file, meshFilesMap);
+      if (meshes.length === 0) {
+        console.warn(`file '${def.file}' produced no meshes for body '${name}'`);
+        continue;
+      }
+      meshes.forEach(m => { m.parent = geomNode; m.scaling.set(1, 1, 1); });
+
+      assignGeomMaterial(meshes, geom, pbrs, fallbackGray, warnedMissingMaterials);
+      if (bakePivots === true) bakePivotsIfRequested(meshes);
+    }
+
+    const children = Array.from(bodyEl.querySelectorAll(":scope > body"));
+    for (const child of children) await visit(child, bodyNode);
+  };
+
+  const tops = Array.from(world.querySelectorAll(":scope > body"));
+  if (tops.length === 0) {
+    console.warn("No top-level <body> under <worldbody>");
+    return root;
+  }
+  for (const b of tops) await visit(b, root);
+  return root;
+};
+
+/**
+ * Analyzes MJCF XML content to determine if it's a robot model
+ * Returns true if this appears to be a robot model file
+ */
+function analyzeMJCFContent(content: string, filename: string): boolean {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(content, 'text/xml');
+    
+    // Check for XML parsing errors
+    const parseError = doc.querySelector('parsererror');
+    if (parseError) {
+      console.warn(`[MJCF Analysis] XML parse error in ${filename}: ${parseError.textContent}`);
+      return false;
+    }
+    
+    // Look for mujoco root element
+    const mujoco = doc.querySelector('mujoco');
+    if (!mujoco) {
+      console.log(`[MJCF Analysis] No <mujoco> root element in ${filename}`);
+      return false;
+    }
+    
+    // Check for worldbody with bodies (robot models have this)
+    const worldbody = mujoco.querySelector('worldbody');
+    if (!worldbody) {
+      console.log(`[MJCF Analysis] No <worldbody> in ${filename}`);
+      return false;
+    }
+    
+    // Count bodies - robot models typically have multiple bodies
+    const bodies = worldbody.querySelectorAll('body');
+    const bodyCount = bodies.length;
+    
+    // Count assets - robot models typically have meshes/textures
+    const meshes = mujoco.querySelectorAll('asset mesh');
+    const textures = mujoco.querySelectorAll('asset texture');
+    const materials = mujoco.querySelectorAll('asset material');
+    
+    // Count geoms - robot models have visual/collision geometry
+    const geoms = mujoco.querySelectorAll('geom');
+    const visualGeoms = mujoco.querySelectorAll('geom[class="visual"]');
+    
+    // Robot model indicators
+    const hasMultipleBodies = bodyCount > 1;
+    const hasAssets = meshes.length > 0 || textures.length > 0 || materials.length > 0;
+    const hasGeometry = geoms.length > 0;
+    const hasVisualGeometry = visualGeoms.length > 0;
+    
+    // Check for include statements (scene files often include robot models)
+    const includes = mujoco.querySelectorAll('include');
+    const hasIncludes = includes.length > 0;
+    
+    // Scene files typically have no bodies or very few bodies, but may include robot models
+    const isSceneFile = filename.toLowerCase().includes('scene');
+    
+    // Gripper files are typically sub-components
+    const isGripperFile = filename.toLowerCase().includes('gripper');
+    
+    console.log(`[MJCF Analysis] ${filename}: bodies=${bodyCount}, meshes=${meshes.length}, geoms=${geoms.length}, visual=${visualGeoms.length}, includes=${includes.length}`);
+    
+    // Decision logic - Only prioritize scene files if they have actual bodies
+    if (isSceneFile && hasIncludes && bodyCount > 0) {
+      console.log(`[MJCF Analysis] Detected scene file with includes AND bodies: ${filename}`);
+      return true;
+    }
+    
+    if (isSceneFile && !hasIncludes && bodyCount <= 1) {
+      console.log(`[MJCF Analysis] Detected empty scene file: ${filename}`);
+      return false;
+    }
+    
+    if (isSceneFile && hasIncludes && bodyCount === 0) {
+      console.log(`[MJCF Analysis] Detected scene file with includes but no bodies: ${filename} (will be skipped)`);
+      return false;
+    }
+    
+    if (isGripperFile && bodyCount <= 3) {
+      console.log(`[MJCF Analysis] Detected gripper sub-component: ${filename}`);
+      return false;
+    }
+    
+    // Robot model criteria
+    if (hasMultipleBodies && hasGeometry) {
+      console.log(`[MJCF Analysis] Detected robot model: ${filename} (multiple bodies + geometry)`);
+      return true;
+    }
+    
+    if (hasAssets && hasVisualGeometry) {
+      console.log(`[MJCF Analysis] Detected robot model: ${filename} (assets + visual geometry)`);
+      return true;
+    }
+    
+    if (bodyCount >= 3 && hasGeometry) {
+      console.log(`[MJCF Analysis] Detected robot model: ${filename} (3+ bodies + geometry)`);
+      return true;
+    }
+    
+    console.log(`[MJCF Analysis] Not a robot model: ${filename}`);
+    return false;
+    
+  } catch (error) {
+    console.warn(`[MJCF Analysis] Error analyzing ${filename}:`, error);
+    return false;
+  }
+}
+
+// ZIP handling functions
+export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ success: boolean; rootNodes: TransformNode[]; meshes: AbstractMesh[]; joints: any[]; actuators: any[]; errors: string[]; warnings: string[] }> => {
+  if (!file || !file.name) {
+    throw new Error("Invalid file: missing name property");
+  }
+  
+  console.log(`[MJCF Import] Starting import of ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
+
+  try {
+    // Check if it's a ZIP file
+    if (file.name.toLowerCase().endsWith('.zip')) {
+      console.log(`[MJCF Import] Extracting ZIP file: ${file.name}`);
+      
+      const zip = new JSZip();
+      const zipData = await file.arrayBuffer();
+      const zipContents = await zip.loadAsync(zipData);
+
+      const extractedMeshFiles = new Map<string, File>();
+      let mjcfContent = '';
+      let primaryMjcfFile = '';
+
+      // First pass: collect all MJCF files and analyze them
+      const mjcfFiles: Array<{basename: string, content: string, isRobotModel: boolean}> = [];
+      
+      for (const [filename, zipEntry] of Object.entries(zipContents.files)) {
+        if (zipEntry.dir) continue;
+
+        const lowerName = filename.toLowerCase();
+        const basename = filename.split('/').pop() || filename;
+
+        // Look for MJCF files
+        if (lowerName.endsWith('.xml')) {
+          const content = await zipEntry.async('text');
+          console.log(`[MJCF Import] Found MJCF file in ZIP: ${basename}`);
+          
+          // Analyze XML content to determine if it's a robot model
+          const isRobotModel = analyzeMJCFContent(content, basename);
+          mjcfFiles.push({basename, content, isRobotModel});
+        }
+      }
+      
+      // Second pass: select the best MJCF file
+      // Priority: 1) Valid robot models, 2) Non-scene fallback files
+      for (const mjcfFile of mjcfFiles) {
+        if (mjcfFile.isRobotModel) {
+          console.log(`[MJCF Import] Detected robot model in: ${mjcfFile.basename}`);
+          mjcfContent = mjcfFile.content;
+          primaryMjcfFile = mjcfFile.basename;
+          console.log(`[MJCF Import] Selected primary MJCF file: ${mjcfFile.basename}`);
+          break; // Use the first valid robot model found
+        }
+      }
+      
+      // If no robot model found, use first non-scene file as fallback
+      if (mjcfContent === '') {
+        for (const mjcfFile of mjcfFiles) {
+          const isSceneFile = mjcfFile.basename.toLowerCase().includes('scene');
+          if (!isSceneFile) {
+            console.log(`[MJCF Import] Using fallback file: ${mjcfFile.basename}`);
+            mjcfContent = mjcfFile.content;
+            primaryMjcfFile = mjcfFile.basename;
+            break;
+          }
+        }
+      }
+      
+      // Third pass: extract mesh files
+      for (const [filename, zipEntry] of Object.entries(zipContents.files)) {
+        if (zipEntry.dir) continue;
+
+        const lowerName = filename.toLowerCase();
+        const basename = filename.split('/').pop() || filename;
+
+        // Look for mesh files
+        if (lowerName.endsWith('.obj') || lowerName.endsWith('.stl')) {
+          const blob = await zipEntry.async('blob');
+          const meshFile = new File([blob], basename, { type: 'application/octet-stream' });
+          extractedMeshFiles.set(basename, meshFile);
+          console.log(`[MJCF Import] Found mesh file in ZIP: ${basename} (from ${filename})`);
+        }
+      }
+
+      if (mjcfContent === '') {
+        throw new Error('No MJCF file found in ZIP');
+      }
+
+      console.log(`[MJCF Import] Using ${primaryMjcfFile} as primary MJCF file`);
+      console.log(`[MJCF Import] Extracted ${extractedMeshFiles.size} mesh files from ZIP`);
+
+      // Parse MJCF directly and build the model
+      const { world, meshMap, texMap, matMap, compilerScale } = parseMJCF(mjcfContent);
+      const { pbrs } = makeMaterials(scene, "", texMap, matMap);
+
+      // root: Apply model-specific coordinate system rotations
+      const root = new TransformNode("mjcf_root", scene);
+      root.scaling.set(1, 1, 1);
+
+      // warn if compiler scale is not 1
+      if (compilerScale !== 1) console.warn(`compiler scale = ${compilerScale}`);
+      console.log(`[MJCF Debug] Compiler scale: ${compilerScale}`);
+
+      const warnedMissingMaterials = new Set<string>();
+      const allMeshes: AbstractMesh[] = [];
+      const rgbaCache = new Map<string, PBRMaterial>(); // geom rgba override cache
+
+      const allBodyNodes: TransformNode[] = [];
+      
+      const visit = async (bodyEl: Element, parent: TransformNode): Promise<TransformNode> => {
+        const name = bodyEl.getAttribute("name") || "body";
+        console.log(`[MJCF Debug] Processing body: ${name}`);
+        const bodyNode = new TransformNode(name, scene);
+        bodyNode.parent = parent;
+        bodyNode.scaling.set(1, 1, 1);
+        
+        // Track all body nodes for kinematic chain
+        allBodyNodes.push(bodyNode);
+
+        const bodyPos = toFloatArr(bodyEl.getAttribute("pos"));
+        if (bodyPos !== null && bodyPos.length >= 3) {
+          // Convert from MuJoCo Z-up to Babylon.js Y-up: (x,y,z) → (x,z,y)
+          bodyNode.position.set(bodyPos[0], bodyPos[2], bodyPos[1]);
+          console.log(`[MJCF Debug] Transformed body position for ${name}: (${bodyPos[0]}, ${bodyPos[1]}, ${bodyPos[2]}) -> (${bodyPos[0]}, ${bodyPos[2]}, ${bodyPos[1]})`);
+        }
+
+        const bodyQuat = toFloatArr(bodyEl.getAttribute("quat"));
+        if (bodyQuat !== null && bodyQuat.length >= 4) bodyNode.rotationQuaternion = quatWXYZtoBabylon(bodyQuat);
+
+        // apply compiler scale on body node as scale (keeps mesh scale neutral)
+        if (compilerScale !== 1) bodyNode.scaling.multiplyInPlace(new Vector3(compilerScale, compilerScale, compilerScale));
+
+        // Process joints within this body
+        const joints = Array.from(bodyEl.querySelectorAll(":scope > joint"));
+        console.log(`[MJCF Debug] Body '${name}' has ${joints.length} joints`);
+        for (const joint of joints) {
+          const jointName = joint.getAttribute("name") || "joint";
+          const jointType = joint.getAttribute("type") || "fixed";
+          console.log(`[MJCF Debug] Processing joint: ${jointName} (type: ${jointType})`);
+          
+          // Debug: Log all joint attributes
+          const jointAttrs = Array.from(joint.attributes).map(attr => `${attr.name}="${attr.value}"`).join(", ");
+          console.log(`[MJCF Debug] Joint ${jointName} attributes: ${jointAttrs}`);
+          
+          // Process joint position
+          const jointPos = toFloatArr(joint.getAttribute("pos"));
+          if (jointPos !== null && jointPos.length >= 3) {
+            // Transform joint position from MuJoCo Z-up to Babylon.js Y-up coordinate system
+            // Z-up: (x, y, z) -> Y-up: (x, z, -y)
+            const transformedPos = new Vector3(jointPos[0], jointPos[2], -jointPos[1]);
+            console.log(`[MJCF Debug] Joint ${jointName} position: (${jointPos[0]}, ${jointPos[1]}, ${jointPos[2]}) -> (${transformedPos.x}, ${transformedPos.y}, ${transformedPos.z})`);
+            
+            // Apply joint position to body node
+            bodyNode.position.addInPlace(transformedPos);
+          }
+          
+          // Process joint axis and apply rotation for fixed joints
+          const jointAxis = toFloatArr(joint.getAttribute("axis"));
+          if (jointAxis !== null && jointAxis.length >= 3) {
+            // Transform joint axis from MuJoCo Z-up to Babylon.js Y-up coordinate system
+            const transformedAxis = new Vector3(jointAxis[0], jointAxis[2], -jointAxis[1]);
+            console.log(`[MJCF Debug] Joint ${jointName} axis: (${jointAxis[0]}, ${jointAxis[1]}, ${jointAxis[2]}) -> (${transformedAxis.x}, ${transformedAxis.y}, ${transformedAxis.z})`);
+            
+            // Apply joint rotation based on joint type and range
+            if (jointType === "fixed" || jointType === "hinge") {
+              // Get joint range to determine starting position
+              const jointRange = joint.getAttribute("range");
+              let jointValue = 0; // Default starting value
+              
+              if (jointRange) {
+                const rangeValues = jointRange.split(" ").map(parseFloat);
+                if (rangeValues.length >= 2) {
+                  // For starting pose, use the midpoint of the range or a specific starting value
+                  // This is a heuristic - in a full implementation, we'd need to know the actual starting pose
+                  const minRange = rangeValues[0];
+                  const maxRange = rangeValues[1];
+                  
+                  // Use midpoint as starting position for now
+                  jointValue = (minRange + maxRange) / 2;
+                  
+                  console.log(`[MJCF Debug] Joint ${jointName} range: [${minRange}, ${maxRange}], starting value: ${jointValue}`);
+                }
+              }
+              
+              // Normalize the axis vector
+              const normalizedAxis = transformedAxis.normalize();
+              
+              // Apply rotation based on joint value
+              if (normalizedAxis.length() > 0.1 && Math.abs(jointValue) > 0.001) {
+                const rotationQuat = Quaternion.RotationAxis(normalizedAxis, jointValue);
+                
+                // Apply rotation to body node
+                if (bodyNode.rotationQuaternion) {
+                  bodyNode.rotationQuaternion.multiplyInPlace(rotationQuat);
+        } else {
+                  bodyNode.rotationQuaternion = rotationQuat;
+                }
+                
+                console.log(`[MJCF Debug] Applied joint rotation for ${jointName}: ${jointValue} radians around axis (${normalizedAxis.x}, ${normalizedAxis.y}, ${normalizedAxis.z})`);
+              }
+            }
+          }
+          
+          // Process joint quaternion if present (for more precise orientation)
+          const jointQuat = toFloatArr(joint.getAttribute("quat"));
+          if (jointQuat !== null && jointQuat.length >= 4) {
+            // Transform joint quaternion from MuJoCo Z-up to Babylon.js Y-up coordinate system
+            const transformedQuat = quatWXYZtoBabylon(jointQuat);
+            console.log(`[MJCF Debug] Joint ${jointName} quaternion: (${jointQuat[0]}, ${jointQuat[1]}, ${jointQuat[2]}, ${jointQuat[3]}) -> applied to body`);
+            
+            // Apply joint quaternion to body node
+            if (bodyNode.rotationQuaternion) {
+              bodyNode.rotationQuaternion.multiplyInPlace(transformedQuat);
+        } else {
+              bodyNode.rotationQuaternion = transformedQuat;
+            }
+          }
+        }
+
+        // Visual geoms on this body
+        const geoms = Array.from(bodyEl.querySelectorAll(":scope > geom"));
+        console.log(`[MJCF Debug] Body '${name}' has ${geoms.length} geoms`);
+        for (const geom of geoms) {
+          // Treat as visual if class contains "visual" OR (type="mesh" AND mesh present)
+          const cls = geom.getAttribute("class");
+          const type = geom.getAttribute("type");
+          const meshRef = geom.getAttribute("mesh");
+          const hasClassVisual = typeof cls === "string" && cls.indexOf("visual") >= 0;
+          const isMeshType = typeof type === "string" && type === "mesh";
+          const looksVisual = hasClassVisual || (isMeshType && typeof meshRef === "string");
+
+          console.log(`[MJCF Debug] Geom: class='${cls}', type='${type}', mesh='${meshRef}', looksVisual=${looksVisual}`);
+          if (looksVisual === false) continue;
+          if (meshRef === null) {
+            console.warn(`visual geom on '${name}' has no mesh`);
+            continue;
+          }
+          const def = meshMap[meshRef];
+          if (def === undefined) {
+            console.warn(`mesh '${meshRef}' not found in <asset> for body '${name}'`);
+            continue;
           }
 
-        } else if (meshDir) {
-          // Fallback to URL-based loading
-          const normalizedMeshDir = meshDir.endsWith('/') ? meshDir : `${meshDir}/`;
-          const stlPath = `${normalizedMeshDir}${meshFile}`;
-          console.log(`[MJCF Import] Loading STL from URL: ${stlPath}`);
+          // geom-local transform
+          const geomNode = new TransformNode(`${name}__geom_${meshRef}`, scene);
+          geomNode.parent = bodyNode;
+          geomNode.scaling.set(1, 1, 1);
 
-          // Use Babylon.js SceneLoader to load STL
-          // rootUrl should be the directory, sceneFilename should be the filename
-          result = await BABYLON.SceneLoader.ImportMeshAsync(
-            '',                // All meshes
-            normalizedMeshDir, // Root URL (directory path with trailing slash)
-            meshFile,          // Filename
-            scene,
-            undefined,
-            '.stl'            // Plugin extension
-          );
-        } else {
-          throw new Error('No mesh file source available (neither File object nor meshDir)');
-        }
+          const gpos = toFloatArr(geom.getAttribute("pos"));
+          if (gpos !== null && gpos.length >= 3) geomNode.position.set(gpos[0], gpos[1], gpos[2]);
 
-        if (result.meshes && result.meshes.length > 0) {
-          // Get the first mesh (STL files typically have one mesh)
-          const loadedMesh = result.meshes[0];
+          const gquat = toFloatArr(geom.getAttribute("quat"));
+          if (gquat !== null && gquat.length >= 4) geomNode.rotationQuaternion = quatWXYZtoBabylon(gquat);
 
-          // Apply a distinctive material for STL meshes
-          const material = new BABYLON.StandardMaterial(`stl_material_${meshFile.replace(/[^a-zA-Z0-9]/g, '_')}`, scene);
-          material.diffuseColor = new BABYLON.Color3(0.1, 0.6, 0.9); // Blue color for real STL meshes
-          material.alpha = 1.0;
-          material.specularColor = new BABYLON.Color3(0.3, 0.3, 0.3);
-          material.backFaceCulling = false; // Show both sides
+          // TEMPORARY FIX: Disable all scaling to prevent kinematic chain accumulation
+          // TODO: Implement proper scaling that doesn't compound through hierarchy
+          console.log(`[MJCF Debug] Skipping scaling for geom '${name}/${meshRef}' to prevent kinematic accumulation`);
 
-          // Apply material to all child meshes
-          result.meshes.forEach(mesh => {
-            if (mesh instanceof BABYLON.Mesh) {
-              mesh.material = material;
-            }
+          const meshes = await importVisualMesh(scene, "", def.file, extractedMeshFiles);
+          if (meshes.length === 0) {
+            console.warn(`file '${def.file}' produced no meshes for body '${name}'`);
+            continue;
+          }
+          meshes.forEach(m => { 
+            m.scaling.set(1, 1, 1);
+            
+            // Don't apply rotation to individual meshes - coordinate system conversion
+            // will be applied at the root level to preserve kinematic relationships
+            
+            m.parent = geomNode;
+            
+            // Log detailed transformation info
+            const bbox = m.getBoundingInfo().boundingBox;
+            const size = bbox.maximum.subtract(bbox.minimum);
+            console.log(`[MJCF Debug] Mesh '${def.file}' BEFORE parent assignment:`);
+            console.log(`  - Mesh scaling: (${m.scaling.x}, ${m.scaling.y}, ${m.scaling.z})`);
+            console.log(`  - Mesh position: (${m.position.x}, ${m.position.y}, ${m.position.z})`);
+            console.log(`  - Mesh dimensions: (${size.x.toFixed(3)}, ${size.y.toFixed(3)}, ${size.z.toFixed(3)})`);
+            console.log(`  - GeomNode scaling: (${geomNode.scaling.x}, ${geomNode.scaling.y}, ${geomNode.scaling.z})`);
+            console.log(`  - GeomNode position: (${geomNode.position.x}, ${geomNode.position.y}, ${geomNode.position.z})`);
+            console.log(`  - BodyNode scaling: (${bodyNode.scaling.x}, ${bodyNode.scaling.y}, ${bodyNode.scaling.z})`);
+            console.log(`  - BodyNode position: (${bodyNode.position.x}, ${bodyNode.position.y}, ${bodyNode.position.z})`);
+            console.log(`  - Root scaling: (${root.scaling.x}, ${root.scaling.y}, ${root.scaling.z})`);
+            console.log(`  - Mesh rotation quaternion: (${m.rotationQuaternion?.x || 0}, ${m.rotationQuaternion?.y || 0}, ${m.rotationQuaternion?.z || 0}, ${m.rotationQuaternion?.w || 1})`);
           });
+          
+          // Log AFTER parent assignment to see final world transform
+          meshes.forEach(m => {
+            const worldPos = m.getAbsolutePosition();
+            const worldScale = m.absoluteScaling;
+            console.log(`[MJCF Debug] Mesh '${def.file}' AFTER parent assignment:`);
+            console.log(`  - World position: (${worldPos.x.toFixed(3)}, ${worldPos.y.toFixed(3)}, ${worldPos.z.toFixed(3)})`);
+            console.log(`  - World scaling: (${worldScale.x.toFixed(3)}, ${worldScale.y.toFixed(3)}, ${worldScale.z.toFixed(3)})`);
+          });
+          
+          meshes.forEach(m => allMeshes.push(m));
 
-          // Add metadata
-          loadedMesh.metadata = {
-            ...loadedMesh.metadata,
-            stlFile: meshFile,
-            stlPath: `${meshDir}${meshFile}`,
-            isSTLMesh: true,
-            isRealSTL: true, // Flag to indicate this is a real loaded STL
-            originalType: 'mesh'
-          };
-
-          console.log(`[MJCF Import] ✅ Successfully loaded STL mesh: ${meshFile} (${result.meshes.length} meshes, ${loadedMesh.getTotalVertices()} vertices)`);
-          return loadedMesh as BABYLON.AbstractMesh;
+          // Material assignment
+          const rgbaAttr = toFloatArr(geom.getAttribute("rgba"));
+          if (rgbaAttr !== null && rgbaAttr.length >= 3) {
+            const key = rgbaAttr.slice(0, 4).join(",");
+            let mat = rgbaCache.get(key);
+            if (mat === undefined) {
+              mat = new PBRMaterial(`rgba_${key}`, scene);
+              mat.albedoColor = colorFromRGBA(rgbaAttr);
+              mat.metallic = 0; mat.roughness = 0.7;
+              rgbaCache.set(key, mat);
+            }
+            meshes.forEach(m => (m.material = mat));
+  } else {
+            const matName = geom.getAttribute("material");
+            if (typeof matName === "string" && matName.length > 0 && pbrs[matName] !== undefined) {
+              meshes.forEach(m => (m.material = pbrs[matName]));
+            } else {
+              meshes.forEach(m => (m.material = pbrs["gray"]));
+              if (typeof matName === "string" && matName.length > 0 && warnedMissingMaterials.has(matName) === false) {
+                console.warn(`material '${matName}' not found; applied gray`);
+                warnedMissingMaterials.add(matName);
+              }
+            }
+          }
         }
 
-        console.warn(`[MJCF Import] STL loaded but no meshes found: ${meshFile}`);
-        throw new Error('No meshes in STL file');
-
-      } catch (stlError) {
-        console.warn(`[MJCF Import] Failed to load STL ${meshFile}, creating blue placeholder:`, stlError);
-
-        // Create a distinctive blue placeholder to show STL was attempted
-        const mesh = BABYLON.MeshBuilder.CreateBox(
-          `stl_placeholder_${meshFile.replace(/[^a-zA-Z0-9]/g, '_')}`,
-          { size: 0.4 },
-          scene
-        );
-
-        const material = new BABYLON.StandardMaterial(`stl_placeholder_material_${meshFile.replace(/[^a-zA-Z0-9]/g, '_')}`, scene);
-        material.diffuseColor = new BABYLON.Color3(0.1, 0.6, 0.9); // Blue to indicate STL placeholder
-        material.alpha = 0.7;
-        material.wireframe = true; // Wireframe to indicate placeholder
-        mesh.material = material;
-
-        mesh.metadata = {
-          stlFile: meshFile,
-          stlPath: meshDir ? `${meshDir}/${meshFile}` : meshFile,
-          isSTLMesh: true,
-          isPlaceholder: true,
-          loadError: stlError instanceof Error ? stlError.message : 'Unknown error',
-          originalType: 'mesh'
-        };
-
-        return mesh;
-      }
-    }
-
-    // Fallback to generic placeholder for other file types
-    let mesh: BABYLON.AbstractMesh;
-
-    switch (extension) {
-      case 'stl':
-        mesh = BABYLON.MeshBuilder.CreateBox(
-          `external_mesh_${meshFile.replace(/[^a-zA-Z0-9]/g, '_')}`,
-          { size: 0.3 },
-          scene
-        );
-        break;
-
-      case 'obj':
-        mesh = BABYLON.MeshBuilder.CreateSphere(
-          `external_mesh_${meshFile.replace(/[^a-zA-Z0-9]/g, '_')}`,
-          { diameter: 0.3 },
-          scene
-        );
-        break;
-
-      case 'dae':
-      case 'gltf':
-      case 'glb':
-        mesh = BABYLON.MeshBuilder.CreateCylinder(
-          `external_mesh_${meshFile.replace(/[^a-zA-Z0-9]/g, '_')}`,
-          { height: 0.3, diameterTop: 0.2, diameterBottom: 0.2 },
-          scene
-        );
-        break;
-
-      default:
-        mesh = BABYLON.MeshBuilder.CreateBox(
-          `external_mesh_${meshFile.replace(/[^a-zA-Z0-9]/g, '_')}`,
-          { size: 0.2 },
-          scene
-        );
-    }
-
-    // Apply material
-    const material = new BABYLON.StandardMaterial(`external_mesh_material_${meshFile.replace(/[^a-zA-Z0-9]/g, '_')}`, scene);
-    material.diffuseColor = new BABYLON.Color3(0.2, 0.8, 0.2); // Green for generic placeholders
-    material.alpha = 0.8;
-    mesh.material = material;
-
-    console.log(`[MJCF Import] Created generic placeholder for external mesh: ${meshFile}`);
-    return mesh;
-
-  } catch (error) {
-    console.error(`[MJCF Import] Error loading external mesh ${meshFile}:`, error);
-    return null;
-  }
-}
-import { KinematicsManager } from '../../kinematics/KinematicsManager';
-// import { SceneTreeManager } from '../../scene/SceneTreeManager';
-import type { JointType } from '../../scene/SceneTreeNode';
-
-/**
- * Extract ZIP file and return MJCF file and mesh files
- */
-async function extractZipFile(zipFile: File): Promise<{ mjcfFile: File; meshFiles: Map<string, File> }> {
-  console.log(`[MJCF Import] Extracting ZIP file: ${zipFile.name}`);
-
-  const zip = new JSZip();
-  const zipData = await zipFile.arrayBuffer();
-  const zipContents = await zip.loadAsync(zipData);
-
-  let mjcfFile: File | null = null;
-  const meshFiles = new Map<string, File>();
-
-  // Find MJCF XML file and STL mesh files
-  for (const [filename, zipEntry] of Object.entries(zipContents.files)) {
-    if (zipEntry.dir) continue;
-
-    const lowerName = filename.toLowerCase();
-    const basename = filename.split('/').pop() || filename;
-
-    // Find MJCF file
-    if (lowerName.endsWith('.xml')) {
-      const blob = await zipEntry.async('blob');
-      mjcfFile = new File([blob], basename, { type: 'text/xml' });
-      console.log(`[MJCF Import] Found MJCF file in ZIP: ${basename}`);
-    }
-
-    // Find mesh files
-    if (lowerName.endsWith('.stl') || lowerName.endsWith('.obj') || lowerName.endsWith('.dae')) {
-      const blob = await zipEntry.async('blob');
-      const file = new File([blob], basename, { type: 'application/octet-stream' });
-      meshFiles.set(basename, file);
-      console.log(`[MJCF Import] Found mesh file in ZIP: ${basename}`);
-    }
-  }
-
-  if (!mjcfFile) {
-    throw new MJCFImportError(
-      MJCFErrorType.ParseError,
-      `No MJCF XML file found in ZIP archive`,
-      true
-    );
-  }
-
-  console.log(`[MJCF Import] Extracted ${meshFiles.size} mesh files from ZIP`);
-
-  return { mjcfFile, meshFiles };
-}
-
-/**
- * Load MJCF file and convert to Babylon.js meshes with kinematics
- * Supports both .xml files and .zip archives containing MJCF + mesh files
- */
-export async function loadMJCFFromFile(
-  file: File,
-  scene: BABYLON.Scene,
-  meshFiles?: Map<string, File>
-): Promise<MJCFImportResult> {
-  try {
-    console.log(`[MJCF Import] Starting import of ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
-
-    // Check if file is a ZIP archive
-    if (file.name.toLowerCase().endsWith('.zip')) {
-      const { mjcfFile, meshFiles: extractedMeshFiles } = await extractZipFile(file);
-      return loadMJCFFromFile(mjcfFile, scene, extractedMeshFiles);
-    }
-
-    // Validate file
-    if (!file.name.toLowerCase().endsWith('.xml')) {
-      throw new MJCFImportError(
-        MJCFErrorType.ParseError,
-        `File ${file.name} is not an XML or ZIP file. MJCF files must have .xml or .zip extension.`,
-        true
-      );
-    }
-
-    if (file.size === 0) {
-      throw new MJCFImportError(
-        MJCFErrorType.ParseError,
-        `File ${file.name} is empty. Please select a valid MJCF file.`,
-        true
-      );
-    }
-
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      throw new MJCFImportError(
-        MJCFErrorType.ParseError,
-        `File ${file.name} is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 10MB.`,
-        true
-      );
-    }
-    
-    // Parse MJCF XML
-    console.log(`[MJCF Import] Reading file content...`);
-    const mjcfXML = await file.text();
-    
-    if (!mjcfXML || mjcfXML.trim().length === 0) {
-      throw new MJCFImportError(
-        MJCFErrorType.ParseError,
-        `File ${file.name} contains no content or is corrupted.`,
-        true
-      );
-    }
-
-    console.log(`[MJCF Import] Parsing XML (${mjcfXML.length} characters)...`);
-    const model = parseMJCFXML(mjcfXML);
-    
-    if (!model) {
-      throw new MJCFImportError(
-        MJCFErrorType.ParseError,
-        `Failed to parse MJCF XML file ${file.name}. The file may not be a valid MuJoCo XML file.`,
-        true
-      );
-    }
-
-    console.log(`[MJCF Import] Successfully parsed model: "${model.model}"`);
-    console.log(`[MJCF Import] Worldbody:`, model.worldbody?.name || 'none');
-    console.log(`[MJCF Import] Actuators: ${model.actuator?.length || 0}`);
-
-    // Convert MJCF to Babylon.js
-    console.log(`[MJCF Import] Converting to Babylon.js meshes...`);
-    if (meshFiles && meshFiles.size > 0) {
-      console.log(`[MJCF Import] Using ${meshFiles.size} uploaded mesh files`);
-    }
-    const result = await convertMJCFToBabylon(model, scene, file.name, meshFiles);
-    
-    console.log(`[MJCF Import] ✅ Conversion complete: ${result.meshes.length} meshes, ${result.joints.length} joints`);
-    
-    if (result.meshes.length === 0) {
-      result.warnings.push('No meshes were created. The MJCF file may not contain visible geometry.');
-    }
-    
-    return result;
-    
-  } catch (error) {
-    console.error(`[MJCF Import] ❌ Import failed for ${file.name}:`, error);
-    
-    if (error instanceof MJCFImportError) {
-      throw error;
-    }
-    
-    // Convert generic errors to MJCFImportError
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    throw new MJCFImportError(
-      MJCFErrorType.ConversionError,
-      `Failed to import MJCF file ${file.name}: ${errorMessage}`,
-      true
-    );
-  }
-}
-
-/**
- * Parse MJCF XML string into structured data
- */
-function parseMJCFXML(xmlString: string): MJCFModel | null {
-  try {
-    console.log(`[MJCF Parse] Parsing XML string (${xmlString.length} characters)...`);
-    
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
-
-    // Check for parsing errors
-    const parserError = xmlDoc.querySelector('parsererror');
-    if (parserError) {
-      const errorText = parserError.textContent || 'Unknown XML parsing error';
-      console.error(`[MJCF Parse] XML parsing failed:`, errorText);
-      throw new Error(`XML parsing failed: ${errorText}`);
-    }
-
-    const mujoco = xmlDoc.querySelector('mujoco');
-    if (!mujoco) {
-      console.error(`[MJCF Parse] No mujoco root element found`);
-      throw new Error('No mujoco root element found. This may not be a valid MJCF file.');
-    }
-
-    const modelName = mujoco.getAttribute('model') || 'unnamed_model';
-    console.log(`[MJCF Parse] Found mujoco model: "${modelName}"`);
-
-    const worldbodyEl = mujoco.querySelector('worldbody');
-    if (!worldbodyEl) {
-      console.warn(`[MJCF Parse] No worldbody found in MJCF file`);
-    }
-
-        // Extract mesh directory from compiler
-        const compilerEl = mujoco.querySelector('compiler');
-        const meshDir = compilerEl?.getAttribute('meshdir') || 'assets';
-
-        const model: MJCFModel = {
-          model: modelName,
-          worldbody: parseBody(worldbodyEl),
-          actuator: parseActuators(mujoco.querySelectorAll('actuator')),
-          tendon: parseTendons(mujoco.querySelectorAll('tendon')),
-          equality: parseEqualities(mujoco.querySelectorAll('equality')),
-          contact: parseContacts(mujoco.querySelectorAll('contact')),
-          asset: parseAssets(mujoco.querySelectorAll('asset')),
-          meshDir: meshDir
-        };
-
-    console.log(`[MJCF Parse] ✅ Successfully parsed model:`, {
-      name: model.model,
-      hasWorldbody: !!model.worldbody,
-      actuatorCount: model.actuator?.length || 0,
-      tendonCount: model.tendon?.length || 0,
-      contactCount: model.contact?.length || 0,
-      assetCount: model.asset?.length || 0
-    });
-
-    return model;
-    
-  } catch (error) {
-    console.error(`[MJCF Parse] ❌ Failed to parse MJCF XML:`, error);
-    return null;
-  }
-}
-
-/**
- * Parse MJCF body element
- */
-function parseBody(bodyEl: Element | null): MJCFBody {
-  if (!bodyEl) {
-    return { name: 'world' };
-  }
-
-  const body: MJCFBody = {
-    name: bodyEl.getAttribute('name') || 'unnamed_body'
-  };
-
-  // Parse position
-  const pos = bodyEl.getAttribute('pos');
-  if (pos) {
-    body.pos = pos.split(/\s+/).map(Number) as [number, number, number];
-  }
-
-  // Parse quaternion
-  const quat = bodyEl.getAttribute('quat');
-  if (quat) {
-    body.quat = quat.split(/\s+/).map(Number) as [number, number, number, number];
-  }
-
-  // Parse euler angles
-  const euler = bodyEl.getAttribute('euler');
-  if (euler) {
-    body.euler = euler.split(/\s+/).map(Number) as [number, number, number];
-  }
-
-  // Parse child bodies
-  const childBodies = bodyEl.querySelectorAll('body');
-  if (childBodies.length > 0) {
-    body.bodies = Array.from(childBodies).map(parseBody);
-  }
-
-  // Parse joints
-  const joints = bodyEl.querySelectorAll('joint');
-  if (joints.length > 0) {
-    body.joints = Array.from(joints).map(parseJoint);
-  }
-
-  // Parse geometry
-  const geoms = bodyEl.querySelectorAll('geom');
-  if (geoms.length > 0) {
-    body.geoms = Array.from(geoms).map(parseGeom);
-  }
-
-  // Parse inertial
-  const inertial = bodyEl.querySelector('inertial');
-  if (inertial) {
-    body.inertial = parseInertial(inertial);
-  }
-
-  return body;
-}
-
-/**
- * Parse MJCF joint element
- */
-function parseJoint(jointEl: Element): MJCFJoint {
-  const joint: MJCFJoint = {
-    name: jointEl.getAttribute('name') || 'unnamed_joint',
-    type: (jointEl.getAttribute('type') as any) || 'fixed'
-  };
-
-  // Parse position
-  const pos = jointEl.getAttribute('pos');
-  if (pos) {
-    joint.pos = pos.split(/\s+/).map(Number) as [number, number, number];
-  }
-
-  // Parse axis
-  const axis = jointEl.getAttribute('axis');
-  if (axis) {
-    joint.axis = axis.split(/\s+/).map(Number) as [number, number, number];
-  }
-
-  // Parse range
-  const range = jointEl.getAttribute('range');
-  if (range) {
-    joint.range = range.split(/\s+/).map(Number) as [number, number];
-  }
-
-  // Parse dynamics
-  const damping = jointEl.getAttribute('damping');
-  if (damping) {
-    joint.damping = parseFloat(damping);
-  }
-
-  const friction = jointEl.getAttribute('friction');
-  if (friction) {
-    joint.friction = parseFloat(friction);
-  }
-
-  const stiffness = jointEl.getAttribute('stiffness');
-  if (stiffness) {
-    joint.stiffness = parseFloat(stiffness);
-  }
-
-  const springref = jointEl.getAttribute('springref');
-  if (springref) {
-    joint.springref = parseFloat(springref);
-  }
-
-  return joint;
-}
-
-/**
- * Parse MJCF geometry element
- */
-function parseGeom(geomEl: Element): MJCFGeom {
-  // Check if mesh attribute is present - if so, type is implicitly 'mesh'
-  const meshAttr = geomEl.getAttribute('mesh') || geomEl.getAttribute('meshfile');
-  const typeAttr = geomEl.getAttribute('type');
-
-  const geom: MJCFGeom = {
-    type: (typeAttr as any) || (meshAttr ? 'mesh' : 'box')
-  };
-
-  const name = geomEl.getAttribute('name');
-  if (name) {
-    geom.name = name;
-  }
-
-  // Parse size
-  const size = geomEl.getAttribute('size');
-  if (size) {
-    const sizeValues = size.split(/\s+/).map(Number);
-    geom.size = sizeValues.length === 1 ? sizeValues[0] : sizeValues as [number, number, number];
-  }
-
-  // Parse position
-  const pos = geomEl.getAttribute('pos');
-  if (pos) {
-    geom.pos = pos.split(/\s+/).map(Number) as [number, number, number];
-  }
-
-  // Parse quaternion
-  const quat = geomEl.getAttribute('quat');
-  if (quat) {
-    geom.quat = quat.split(/\s+/).map(Number) as [number, number, number, number];
-  }
-
-  // Parse color
-  const rgba = geomEl.getAttribute('rgba');
-  if (rgba) {
-    geom.rgba = rgba.split(/\s+/).map(Number) as [number, number, number, number];
-  }
-
-  // Parse mass
-  const mass = geomEl.getAttribute('mass');
-  if (mass) {
-    geom.mass = parseFloat(mass);
-  }
-
-  // Parse density
-  const density = geomEl.getAttribute('density');
-  if (density) {
-    geom.density = parseFloat(density);
-  }
-
-  // Parse friction
-  const friction = geomEl.getAttribute('friction');
-  if (friction) {
-    geom.friction = friction.split(/\s+/).map(Number) as [number, number, number];
-  }
-
-  // Parse mesh
-  const mesh = geomEl.getAttribute('mesh');
-  if (mesh) {
-    geom.mesh = mesh;
-  }
-
-  const meshfile = geomEl.getAttribute('meshfile');
-  if (meshfile) {
-    geom.meshfile = meshfile;
-  }
-
-  return geom;
-}
-
-/**
- * Parse MJCF inertial element
- */
-function parseInertial(inertialEl: Element): any {
-  const inertial: any = {};
-
-  const pos = inertialEl.getAttribute('pos');
-  if (pos) {
-    inertial.pos = pos.split(/\s+/).map(Number) as [number, number, number];
-  }
-
-  const quat = inertialEl.getAttribute('quat');
-  if (quat) {
-    inertial.quat = quat.split(/\s+/).map(Number) as [number, number, number, number];
-  }
-
-  const mass = inertialEl.getAttribute('mass');
-  if (mass) {
-    inertial.mass = parseFloat(mass);
-  }
-
-  const diaginertia = inertialEl.getAttribute('diaginertia');
-  if (diaginertia) {
-    inertial.diaginertia = diaginertia.split(/\s+/).map(Number) as [number, number, number];
-  }
-
-  return inertial;
-}
-
-/**
- * Parse MJCF actuators
- */
-function parseActuators(actuatorEls: NodeListOf<Element>): MJCFActuator[] {
-  return Array.from(actuatorEls).map(el => {
-    const actuator: MJCFActuator = {
-      name: el.getAttribute('name') || 'unnamed_actuator',
-      joint: el.getAttribute('joint') || ''
-    };
-
-    const gear = el.getAttribute('gear');
-    if (gear) {
-      actuator.gear = parseFloat(gear);
-    }
-
-    const ctrlrange = el.getAttribute('ctrlrange');
-    if (ctrlrange) {
-      actuator.ctrlrange = ctrlrange;
-    }
-
-    const forcerange = el.getAttribute('forcerange');
-    if (forcerange) {
-      actuator.forcerange = forcerange.split(/\s+/).map(Number) as [number, number];
-    }
-
-    return actuator;
-  });
-}
-
-/**
- * Parse MJCF tendons
- */
-function parseTendons(tendonEls: NodeListOf<Element>): any[] {
-  return Array.from(tendonEls).map(el => ({
-    name: el.getAttribute('name') || 'unnamed_tendon',
-    joint: el.getAttribute('joint')?.split(/\s+/) || [],
-    stiffness: el.getAttribute('stiffness') ? parseFloat(el.getAttribute('stiffness')!) : undefined,
-    damping: el.getAttribute('damping') ? parseFloat(el.getAttribute('damping')!) : undefined
-  }));
-}
-
-/**
- * Parse MJCF equality constraints
- */
-function parseEqualities(equalityEls: NodeListOf<Element>): any[] {
-  return Array.from(equalityEls).map(el => ({
-    type: el.getAttribute('type') || 'connect',
-    body1: el.getAttribute('body1'),
-    body2: el.getAttribute('body2'),
-    joint1: el.getAttribute('joint1'),
-    joint2: el.getAttribute('joint2')
-  }));
-}
-
-/**
- * Parse MJCF contacts
- */
-function parseContacts(contactEls: NodeListOf<Element>): any[] {
-  return Array.from(contactEls).map(el => ({
-    name: el.getAttribute('name') || 'unnamed_contact',
-    geom1: el.getAttribute('geom1'),
-    geom2: el.getAttribute('geom2'),
-    friction: el.getAttribute('friction')?.split(/\s+/).map(Number),
-    condim: el.getAttribute('condim') ? parseInt(el.getAttribute('condim')!) : undefined,
-    solref: el.getAttribute('solref')?.split(/\s+/).map(Number),
-    solimp: el.getAttribute('solimp')?.split(/\s+/).map(Number)
-  }));
-}
-
-/**
- * Parse MJCF assets
- */
-function parseAssets(assetEls: NodeListOf<Element>): any[] {
-  const assets: any[] = [];
-
-  // Process each <asset> section
-  assetEls.forEach(assetSection => {
-    // Parse mesh assets
-    const meshEls = assetSection.querySelectorAll('mesh');
-    meshEls.forEach(meshEl => {
-      let name = meshEl.getAttribute('name');
-      const file = meshEl.getAttribute('file');
-
-      if (file) {
-        // If no name attribute, derive name from filename (without extension)
-        if (!name) {
-          name = file.replace(/\.[^.]*$/, ''); // Remove extension
+        const children = Array.from(bodyEl.querySelectorAll(":scope > body"));
+        console.log(`[MJCF Debug] Body '${name}' has ${children.length} child bodies`);
+        for (const child of children) {
+          const childName = child.getAttribute("name") || "child";
+          console.log(`[MJCF Debug] Processing child body: ${childName} under parent: ${name}`);
+          await visit(child, bodyNode);
         }
+        
+        return bodyNode;
+      };
 
-        assets.push({
-          name,
-          type: 'mesh' as const,
-          file,
-          scale: meshEl.getAttribute('scale') ? parseFloat(meshEl.getAttribute('scale')!) : undefined
-        });
-      }
-    });
-
-    // Parse texture assets
-    const textureEls = assetSection.querySelectorAll('texture');
-    textureEls.forEach(textureEl => {
-      const name = textureEl.getAttribute('name');
-      const file = textureEl.getAttribute('file');
-
-      if (name && file) {
-        assets.push({
-          name,
-          type: 'texture' as const,
-          file,
-        });
-      }
-    });
-
-    // Parse material assets
-    const materialEls = assetSection.querySelectorAll('material');
-    materialEls.forEach(materialEl => {
-      const name = materialEl.getAttribute('name');
-
-      if (name) {
-        assets.push({
-          name,
-          type: 'material' as const,
-          file: '', // Materials don't have files
-        });
-      }
-    });
-  });
-
-  console.log(`[MJCF Parse] Parsed ${assets.length} assets:`, assets.map(a => `${a.name} (${a.type})`));
-  return assets;
-}
-
-/**
- * Convert MJCF model to Babylon.js meshes and kinematics
- */
-async function convertMJCFToBabylon(
-  model: MJCFModel,
-  scene: BABYLON.Scene,
-  fileName: string,
-  meshFiles?: Map<string, File>
-): Promise<MJCFImportResult> {
-  const result: MJCFImportResult = {
+      const tops = Array.from(world.querySelectorAll(":scope > body"));
+      if (tops.length === 0) {
+        console.warn("No top-level <body> under <worldbody>");
+        const flattened = root.getChildMeshes() as AbstractMesh[];
+        return {
     success: true,
-    meshes: [],
-    rootNodes: [],
+          meshes: flattened.length > 0 ? flattened : allMeshes,
+          rootNodes: [root],
     joints: [],
-    actuators: model.actuator || [],
+          actuators: [],
     errors: [],
     warnings: []
   };
-
-      // Performance limits to prevent getting stuck
-      const MAX_MESHES = 200; // Increased limit for complex models
-      const MAX_BODIES = 500; // Increased limit for complex models
-  let processedBodies = 0;
-  let processedMeshes = 0;
-
-  try {
-    console.log(`[MJCF Import] Starting conversion with limits: max ${MAX_MESHES} meshes, max ${MAX_BODIES} bodies`);
-    
-        // Create root assembly node
-        const assemblyRoot = new BABYLON.TransformNode(
-          fileName.replace('.mjcf', '').replace('.xml', ''),
-          scene
-        );
-        
-        // Ensure root node is enabled and visible
-        assemblyRoot.setEnabled(true);
-
-    // Convert world body and all children
-    const worldBodyResult = await convertBodyToBabylon(
-      model.worldbody,
-      assemblyRoot,
-      scene,
-      model,
-      { count: processedBodies },
-      { count: processedMeshes },
-      MAX_BODIES,
-      MAX_MESHES,
-      meshFiles
-    );
-
-    result.meshes.push(...worldBodyResult.meshes);
-    result.joints.push(...worldBodyResult.joints);
-
-    // Add metadata to all meshes
-    result.meshes.forEach(mesh => {
-      if (!mesh.metadata) {
-        mesh.metadata = {};
-      }
-      mesh.metadata.sourceFormat = 'mjcf';
-      mesh.metadata.originalFile = fileName;
-      mesh.metadata.modelName = model.model;
-    });
-
-    result.rootNodes.push(assemblyRoot);
-
-    console.log(`[MJCF Import] Converted ${result.meshes.length} meshes and ${result.joints.length} joints`);
-
-    // Ensure meshes are visible by fitting camera to bounds
-    if (result.meshes.length > 0) {
-      // Calculate bounds manually since FromMeshes doesn't exist
-      let minX = Infinity, minY = Infinity, minZ = Infinity;
-      let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-      
-      for (const mesh of result.meshes) {
-        const boundingInfo = mesh.getBoundingInfo();
-        const min = boundingInfo.boundingBox.minimum;
-        const max = boundingInfo.boundingBox.maximum;
-        
-        minX = Math.min(minX, min.x);
-        minY = Math.min(minY, min.y);
-        minZ = Math.min(minZ, min.z);
-        maxX = Math.max(maxX, max.x);
-        maxY = Math.max(maxY, max.y);
-        maxZ = Math.max(maxZ, max.z);
       }
       
-      const bounds = new BABYLON.BoundingBox(
-        new BABYLON.Vector3(minX, minY, minZ),
-        new BABYLON.Vector3(maxX, maxY, maxZ)
-      );
-      console.log(`[MJCF Import] Mesh bounds:`, {
-        min: bounds.minimum,
-        max: bounds.maximum,
-        center: bounds.center,
-        size: bounds.maximum.subtract(bounds.minimum)
-      });
-      
-      // Store bounds for camera fitting
-      result.bounds = bounds;
-      
-      // Force scene refresh to ensure meshes are rendered
-      scene.markAllMaterialsAsDirty(0);
-    }
-
-  } catch (error) {
-    result.success = false;
-    result.errors.push(error instanceof Error ? error.message : 'Unknown error');
-  }
-
-  return result;
-}
-
-/**
- * Convert MJCF body to Babylon.js meshes
- */
-async function convertBodyToBabylon(
-  body: MJCFBody,
-  parentNode: BABYLON.TransformNode,
-  scene: BABYLON.Scene,
-  model: MJCFModel,
-  processedBodies: { count: number },
-  processedMeshes: { count: number },
-  maxBodies: number,
-  maxMeshes: number,
-  meshFiles?: Map<string, File>
-): Promise<{ meshes: BABYLON.AbstractMesh[]; joints: MJCFJoint[] }> {
-  // Check limits
-  if (processedBodies.count >= maxBodies) {
-    console.log(`[MJCF Convert] Reached body limit (${maxBodies}), skipping remaining bodies`);
-    return { meshes: [], joints: [] };
-  }
-  
-  processedBodies.count++;
-  
-  console.log(`[MJCF Convert] Converting body: ${body.name} (${processedBodies.count}/${maxBodies})`);
-  const meshes: BABYLON.AbstractMesh[] = [];
-  const joints: MJCFJoint[] = [];
-
-      // Create transform node for this body
-      const bodyNode = new BABYLON.TransformNode(body.name, scene);
-      bodyNode.setParent(parentNode);
-      bodyNode.setEnabled(true);
-
-  // Apply position with scaling for visibility
-  if (body.pos) {
-    // MJCF uses Z-up, convert to Babylon Y-up
-    // Scale up positions for better visibility (MJCF units are often very small)
-    const scaleFactor = 10;
-    bodyNode.position = new BABYLON.Vector3(
-      body.pos[0] * scaleFactor,
-      body.pos[2] * scaleFactor,  // MJCF Z → Babylon Y
-      body.pos[1] * scaleFactor   // MJCF Y → Babylon Z
-    );
-  }
-
-  // Apply rotation (quaternion or euler)
-  if (body.quat) {
-    // Convert MJCF quaternion (w,x,y,z) to Babylon quaternion (x,y,z,w)
-    const quat = new BABYLON.Quaternion(
-      body.quat[1],  // x
-      body.quat[3],  // MJCF z → Babylon y
-      body.quat[2],  // MJCF y → Babylon z
-      body.quat[0]   // w
-    );
-    bodyNode.rotationQuaternion = quat;
-  } else if (body.euler) {
-    // Convert MJCF euler (roll, pitch, yaw) to Babylon rotation
-    const rotation = new BABYLON.Vector3(
-      body.euler[0],  // roll
-      body.euler[2],  // MJCF yaw → Babylon y
-      body.euler[1]   // MJCF pitch → Babylon z
-    );
-    bodyNode.rotation = rotation;
-  }
-
-  // Convert geometry
-  if (body.geoms && processedMeshes.count < maxMeshes) {
-    const remainingMeshes = maxMeshes - processedMeshes.count;
-    const geomsToProcess = body.geoms.slice(0, remainingMeshes);
-    
-    console.log(`[MJCF Convert] Processing ${geomsToProcess.length}/${body.geoms.length} geometries for body: ${body.name} (${processedMeshes.count}/${maxMeshes} total)`);
-    
-    for (const geom of geomsToProcess) {
-      if (processedMeshes.count >= maxMeshes) {
-        console.log(`[MJCF Convert] Reached mesh limit (${maxMeshes}), skipping remaining geometries`);
-        break;
+      // Process all bodies first to collect them
+      for (const b of tops) {
+        await visit(b, root);
       }
       
-          const mesh = await createMeshFromGeom(geom, bodyNode, scene, model, meshFiles);
-          if (mesh) {
-            meshes.push(mesh);
-            processedMeshes.count++;
-            console.log(`[MJCF Convert] Created mesh: ${mesh.name} (${processedMeshes.count}/${maxMeshes})`);
+      // Preserve kinematic hierarchy - don't flatten all bodies to root
+      // The recursive visit() function already establishes correct parent-child relationships
+      console.log(`[MJCF Debug] Preserving kinematic hierarchy with ${allBodyNodes.length} bodies`);
+      
+      // Debug: Show the actual hierarchy being created
+      console.log(`[MJCF Debug] Final hierarchy structure:`);
+      const logHierarchy = (node: TransformNode, indent: string = "") => {
+        console.log(`${indent}${node.name} (parent: ${node.parent?.name || 'none'})`);
+        node.getChildren().forEach(child => {
+          if (child instanceof TransformNode) {
+            logHierarchy(child, indent + "  ");
           }
-    }
-  } else if (processedMeshes.count >= maxMeshes) {
-    console.log(`[MJCF Convert] Reached mesh limit (${maxMeshes}), skipping geometries for body: ${body.name}`);
-  } else {
-    console.log(`[MJCF Convert] No geometries found for body: ${body.name}`);
-  }
-
-  // Process joints
-  if (body.joints) {
-    joints.push(...body.joints);
-  }
-
-  // Process child bodies recursively
-  if (body.bodies) {
-    for (const childBody of body.bodies) {
-      const childResult = await convertBodyToBabylon(
-        childBody,
-        bodyNode,
-        scene,
-        model,
-        processedBodies,
-        processedMeshes,
-        maxBodies,
-        maxMeshes,
-        meshFiles
-      );
-      meshes.push(...childResult.meshes);
-      joints.push(...childResult.joints);
-    }
-  }
-
-  return { meshes, joints };
-}
-
-/**
- * Create Babylon.js mesh from MJCF geometry
- */
-async function createMeshFromGeom(
-  geom: MJCFGeom,
-  parentNode: BABYLON.TransformNode,
-  scene: BABYLON.Scene,
-  model: MJCFModel,
-  meshFiles?: Map<string, File>
-): Promise<BABYLON.AbstractMesh | null> {
-  let mesh: BABYLON.AbstractMesh | null = null;
-
-  try {
-        switch (geom.type) {
-          case 'box':
-            const boxSize = Array.isArray(geom.size) ? geom.size[0] : geom.size || 1;
-            mesh = BABYLON.MeshBuilder.CreateBox(
-              `${parentNode.name}_${geom.name || 'box'}`,
-              { size: Math.max(boxSize, 0.1) }, // Increased minimum size for visibility
-              scene
-            );
-            break;
-
-          case 'sphere':
-            const sphereSize = Array.isArray(geom.size) ? geom.size[0] : geom.size || 1;
-            mesh = BABYLON.MeshBuilder.CreateSphere(
-              `${parentNode.name}_${geom.name || 'sphere'}`,
-              { diameter: Math.max(sphereSize * 2, 0.2) }, // Increased minimum size for visibility
-              scene
-            );
-            break;
-
-          case 'cylinder':
-            const radius = Array.isArray(geom.size) ? geom.size[0] : geom.size || 0.5;
-            const height = Array.isArray(geom.size) ? geom.size[1] : geom.size || 1;
-            mesh = BABYLON.MeshBuilder.CreateCylinder(
-              `${parentNode.name}_${geom.name || 'cylinder'}`,
-              { 
-                height: Math.max(height, 0.1), 
-                diameterTop: Math.max(radius * 2, 0.2), 
-                diameterBottom: Math.max(radius * 2, 0.2) 
-              },
-              scene
-            );
-            break;
-
-      case 'capsule':
-        const capRadius = Array.isArray(geom.size) ? geom.size[0] : geom.size || 0.5;
-        const capHeight = Array.isArray(geom.size) ? geom.size[1] : geom.size || 1;
-        mesh = BABYLON.MeshBuilder.CreateCapsule(
-          `${parentNode.name}_${geom.name || 'capsule'}`,
-          { radius: capRadius, height: capHeight },
-          scene
-        );
-        break;
-
-      case 'plane':
-        mesh = BABYLON.MeshBuilder.CreateGround(
-          `${parentNode.name}_${geom.name || 'plane'}`,
-          { width: 10, height: 10 },
-          scene
-        );
-        break;
-
-          case 'mesh':
-            // Look up mesh file from assets
-            const meshName = geom.mesh || geom.meshfile;
-            if (meshName) {
-              console.log(`[MJCF Import] Looking up mesh asset: "${meshName}"`);
-
-              // Create asset lookup map
-              const assetLookup = new Map<string, string>();
-              if (model.asset) {
-                model.asset.forEach(asset => {
-                  if (asset.type === 'mesh' && asset.file) {
-                    assetLookup.set(asset.name, asset.file);
-                  }
-                });
-              }
-
-              // Look up the actual mesh file from assets
-              let meshFile = assetLookup.get(meshName);
-
-              // If not found in assets, use the mesh name directly (might be a file path)
-              if (!meshFile) {
-                console.warn(`[MJCF Import] Mesh "${meshName}" not found in assets, using directly`);
-                meshFile = meshName;
-              } else {
-                console.log(`[MJCF Import] Found mesh asset: "${meshName}" -> "${meshFile}"`);
-              }
-
-              try {
-                // Try to load the actual mesh file with mesh directory
-                const meshResult = await loadExternalMesh(meshFile, scene, model.meshDir, meshFiles);
-                if (meshResult) {
-                  mesh = meshResult;
-                  mesh.name = `${parentNode.name}_${meshName.replace(/[^a-zA-Z0-9]/g, '_')}`;
-                  mesh.setParent(parentNode);
-
-                  // Add metadata
-                  mesh.metadata = {
-                    ...mesh.metadata,
-                    externalMeshFile: meshFile,
-                    meshAssetName: meshName,
-                    isExternalMesh: true,
-                    originalType: 'mesh'
-                  };
-
-                  console.log(`[MJCF Import] Successfully loaded external mesh: ${meshName} (${meshFile})`);
-                } else {
-                  // Fallback to placeholder if mesh loading fails
-                  console.warn(`[MJCF Import] Failed to load external mesh ${meshName}, creating placeholder`);
-                  mesh = BABYLON.MeshBuilder.CreateBox(
-                    `${parentNode.name}_${meshName.replace(/[^a-zA-Z0-9]/g, '_')}_placeholder`,
-                    { size: 0.2 },
-                    scene
-                  );
-
-                  mesh.metadata = {
-                    ...mesh.metadata,
-                    externalMeshFile: meshFile,
-                    meshAssetName: meshName,
-                    isPlaceholder: true,
-                    originalType: 'mesh'
-                  };
-                }
-              } catch (error) {
-                console.error(`[MJCF Import] Failed to load external mesh ${meshName}:`, error);
-                // Create placeholder on error
-                mesh = BABYLON.MeshBuilder.CreateBox(
-                  `${parentNode.name}_${meshName.replace(/[^a-zA-Z0-9]/g, '_')}_error`,
-                  { size: 0.2 },
-                  scene
-                );
-
-                mesh.metadata = {
-                  ...mesh.metadata,
-                  externalMeshFile: meshFile,
-                  meshAssetName: meshName,
-                  isPlaceholder: true,
-                  loadError: error instanceof Error ? error.message : 'Unknown error',
-                  originalType: 'mesh'
-                };
-              }
-            } else {
-              console.warn(`[MJCF Import] Mesh geometry has no mesh name specified`);
-              return null;
-            }
-            break;
-
-      default:
-        console.warn(`[MJCF Import] Unsupported geometry type: ${geom.type}`);
-        return null;
-    }
-
-        if (mesh) {
-          mesh.setParent(parentNode);
-
-          // Apply geometry position with scaling for visibility
-          if (geom.pos) {
-            // Scale up positions for better visibility (MJCF units are often very small)
-            const scaleFactor = 10; // Scale up by 10x for visibility
-            mesh.position = new BABYLON.Vector3(
-              geom.pos[0] * scaleFactor,
-              geom.pos[2] * scaleFactor,  // MJCF Z → Babylon Y
-              geom.pos[1] * scaleFactor   // MJCF Y → Babylon Z
-            );
-          } else {
-            // If no position specified, spread meshes out for visibility
-            const meshIndex = parentNode.getChildren().length;
-            const spreadFactor = 0.5;
-            mesh.position = new BABYLON.Vector3(
-              (meshIndex % 10) * spreadFactor,
-              Math.floor(meshIndex / 10) * spreadFactor,
-              0
-            );
-          }
-
-      // Apply geometry rotation
-      if (geom.quat) {
-        const quat = new BABYLON.Quaternion(
-          geom.quat[1],  // x
-          geom.quat[3],  // MJCF z → Babylon y
-          geom.quat[2],  // MJCF y → Babylon z
-          geom.quat[0]   // w
-        );
-        mesh.rotationQuaternion = quat;
-      }
-
-      // Apply color or default material
-      if (geom.rgba) {
-        const material = new BABYLON.StandardMaterial(`${geom.name || 'geom'}_material`, scene);
-        material.diffuseColor = new BABYLON.Color3(
-          geom.rgba[0],
-          geom.rgba[1],
-          geom.rgba[2]
-        );
-        material.alpha = geom.rgba[3];
-        mesh.material = material;
-      } else {
-        // Apply default material to make meshes visible
-        const defaultMaterial = new BABYLON.StandardMaterial(`${mesh.name}_default_material`, scene);
-        defaultMaterial.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.7); // Light gray
-        defaultMaterial.alpha = 1.0;
-        mesh.material = defaultMaterial;
-      }
-
-      // Store MJCF metadata
-      mesh.metadata = {
-        ...mesh.metadata,
-        mjcfGeom: geom,
-        sourceFormat: 'mjcf'
+        });
       };
+      logHierarchy(root);
       
-      // Ensure mesh is visible and enabled
-      mesh.setEnabled(true);
-      mesh.isVisible = true;
-      mesh.isPickable = true;
+      // Apply Z-up to Y-up coordinate system conversion
+      // Convert positions from MuJoCo Z-up to Babylon.js Y-up: (x,y,z) → (x,z,y)
+      // No root rotation needed - STL loader already handles Y-up orientation
+      console.log(`[MJCF Debug] Applying MuJoCo Z-up→Babylon.js Y-up coordinate conversion for ${primaryMjcfFile}`);
       
-      // Debug: Check mesh properties
-      console.log(`[MJCF Convert] Created mesh: ${mesh.name}`, {
-        position: `(${mesh.position.x.toFixed(2)}, ${mesh.position.y.toFixed(2)}, ${mesh.position.z.toFixed(2)})`,
-        enabled: mesh.isEnabled(),
-        visible: mesh.isVisible,
-        pickable: mesh.isPickable,
-        material: mesh.material ? mesh.material.name : 'none',
-        parent: mesh.parent ? mesh.parent.name : 'none',
-        uniqueId: mesh.uniqueId,
-        verticesCount: mesh.getTotalVertices(),
-        boundingInfo: mesh.getBoundingInfo() ? 'exists' : 'missing'
+      // Coordinate system conversion is handled by position transformation
+      console.log(`[MJCF Debug] Coordinate system conversion applied via position transformation for ${primaryMjcfFile}`);
+      
+      // Get all meshes for final verification
+      const finalMeshes = root.getChildMeshes() as AbstractMesh[];
+      
+      // Final verification: check world positions after coordinate transformation
+      console.log(`[MJCF Debug] Final verification - checking world positions after coordinate transformation:`);
+      finalMeshes.forEach(mesh => {
+        const worldPos = mesh.getAbsolutePosition();
+        console.log(`[MJCF Debug] ${mesh.name}: World position (${worldPos.x.toFixed(3)}, ${worldPos.y.toFixed(3)}, ${worldPos.z.toFixed(3)})`);
       });
+      
+      const flattened = finalMeshes;
+      return {
+        success: true,
+        meshes: flattened.length > 0 ? flattened : [],
+        rootNodes: [root],
+        joints: [],
+        actuators: [],
+        errors: [],
+        warnings: []
+      };
+    }
+
+    // Handle single MJCF file
+    const mjcfUrl = URL.createObjectURL(file);
+    try {
+      const rootNode = await loadMJCF(scene, {
+        rootUrl: mjcfUrl.replace(/\/[^\/]*$/, ''),
+        mjcf: file.name,
+        bakePivots: false,
+        fallbackGray: true
+      });
+      
+      return {
+        success: true,
+        meshes: [],
+        rootNodes: [rootNode],
+        joints: [],
+        actuators: [],
+        errors: [],
+        warnings: []
+      };
+    } finally {
+      URL.revokeObjectURL(mjcfUrl);
     }
 
   } catch (error) {
-    console.error(`Failed to create mesh from geometry:`, error);
+    console.error(`[MJCF Import] Error loading MJCF:`, error);
+    return {
+      success: false,
+      meshes: [],
+      rootNodes: [],
+      joints: [],
+      actuators: [],
+      errors: [error instanceof Error ? error.message : 'Unknown error'],
+      warnings: []
+    };
   }
+};
 
-  return mesh;
-}
-
-/**
- * Map MJCF joint type to kinetiCORE joint type
- */
-function mapMJCFJointType(mjcfType: string): JointType {
-  switch (mjcfType) {
-    case 'hinge':
-      return 'revolute';
-    case 'slide':
-      return 'prismatic';
-    case 'ball':
-      return 'spherical';
-    case 'free':
-      return 'spherical'; // Approximate
-    case 'fixed':
-      return 'fixed';
-    default:
-      console.warn(`Unknown MJCF joint type: ${mjcfType}, defaulting to fixed`);
-      return 'fixed';
+export const loadMJCF = async (scene: Scene, opts: LoadOpts) => {
+  if (opts === undefined || typeof opts.rootUrl !== "string" || typeof opts.mjcf !== "string") {
+    throw new Error("rootUrl and mjcf are required");
   }
-}
+  const bake = opts.bakePivots === true;
+  const gray = opts.fallbackGray === false ? false : true;
 
-/**
- * Create kinematics from MJCF joints
- */
-export async function createKinematicsFromMJCF(
-  mjcfXML: string,
-  deviceRootNodeId: string
-): Promise<void> {
-  const model = parseMJCFXML(mjcfXML);
-  if (!model) {
-    throw new Error('Failed to parse MJCF XML');
+  // Ensure OBJ loader active & skip MTLs (then restore)
+  const prevSkip = OBJFileLoader.SKIP_MATERIALS;
+  OBJFileLoader.SKIP_MATERIALS = true;
+
+  try {
+    const xml = await textFetch(`${opts.rootUrl}/${opts.mjcf}`);
+    const { world, meshMap, texMap, matMap, compilerScale } = parseMJCF(xml);
+    const { pbrs } = makeMaterials(scene, opts.rootUrl, texMap, matMap);
+
+    const root = await buildBodies(scene, opts.rootUrl, world, meshMap, pbrs, bake, gray, compilerScale);
+    return root;
+  } finally {
+    OBJFileLoader.SKIP_MATERIALS = prevSkip;
   }
+};
 
-  const kinematicsManager = KinematicsManager.getInstance();
-  // const _sceneTreeManager = SceneTreeManager.getInstance();
+// ---------- VERIFICATION ----------
+export const verifyMJCFLoad = (root: TransformNode) => {
+  if (!root) throw new Error("verify: root missing");
+  const meshes = root.getChildMeshes() as AbstractMesh[];
+  if (meshes.length === 0) throw new Error("verify: no meshes under root");
 
-  console.log(`[MJCF Kinematics] Creating kinematics for ${model.model}`);
+  const bad = meshes.filter(m =>
+    !Number.isFinite(m.getBoundingInfo()?.boundingBox?.extendSize?.length()) ||
+    m.getTotalVertices() === 0
+  );
+  if (bad.length > 0) throw new Error(`verify: ${bad.length} zero-vertex/invalid meshes`);
 
-  // Extract all joints from the model
-  const allJoints: MJCFJoint[] = [];
-  
-  const extractJointsFromBody = (body: MJCFBody) => {
-    if (body.joints) {
-      allJoints.push(...body.joints);
+  const scaled = new Set<string>();
+  root.getChildren().forEach(node => {
+    const s = (node as TransformNode).scaling;
+    if (!s) return;
+    if (Math.abs(s.x - 1) > 1e-6 || Math.abs(s.y - 1) > 1e-6 || Math.abs(s.z - 1) > 1e-6) {
+      scaled.add(node.name);
     }
-    if (body.bodies) {
-      body.bodies.forEach(extractJointsFromBody);
-    }
-  };
+  });
+  // Only geom/body nodes may carry scale; meshes must be at (1,1,1). We already enforce this.
+  console.log(`verify: nodes=${root.getChildren().length}, meshes=${meshes.length}, scaledNodes=${scaled.size}`);
+};
 
-  extractJointsFromBody(model.worldbody);
-
-  console.log(`[MJCF Kinematics] Found ${allJoints.length} joints`);
-
-  // Create joints in kinetiCORE
-  let createdCount = 0;
-  for (const mjcfJoint of allJoints) {
-    if (mjcfJoint.type === 'fixed') {
-      continue; // Skip fixed joints
-    }
-
-    const jointType = mapMJCFJointType(mjcfJoint.type);
-
-    // For now, create joints with default parent/child relationships
-    // TODO: Parse actual parent-child relationships from MJCF structure
-    const joint = kinematicsManager.createJoint({
-      id: `${deviceRootNodeId}_joint_${mjcfJoint.name}`,
-      name: mjcfJoint.name,
-      type: jointType,
-      parentNodeId: deviceRootNodeId, // TODO: Find actual parent
-      childNodeId: deviceRootNodeId,  // TODO: Find actual child
-      axis: mjcfJoint.axis ? {
-        x: mjcfJoint.axis[0],
-        y: mjcfJoint.axis[2], // MJCF Z → Babylon Y
-        z: mjcfJoint.axis[1]  // MJCF Y → Babylon Z
-      } : { x: 0, y: 0, z: 1 },
-      limits: mjcfJoint.range ? {
-        lower: mjcfJoint.range[0],
-        upper: mjcfJoint.range[1],
-        velocity: 1.0,
-        effort: 10.0
-      } : {
-        lower: jointType === 'revolute' ? -Math.PI : -1000,
-        upper: jointType === 'revolute' ? Math.PI : 1000,
-        velocity: 1.0,
-        effort: 10.0
-      }
-    });
-
-    if (joint) {
-      createdCount++;
-      console.log(`Created joint: ${joint.name} (${joint.type})`);
-    }
-  }
-
-  console.log(`✅ Created ${createdCount}/${allJoints.length} joints from MJCF`);
-
-  // Process actuators from MJCF
-  if (model.actuator && model.actuator.length > 0) {
-    console.log(`[MJCF Kinematics] Processing ${model.actuator.length} actuators...`);
-    
-    // Import ActuatorSystem dynamically to avoid circular dependencies
-    const { ActuatorSystem } = await import('../../kinematics/actuation/ActuatorSystem');
-    const actuatorSystem = new ActuatorSystem();
-    
-    // Process each actuator
-    for (const mjcfActuator of model.actuator) {
-      if (mjcfActuator.joint) {
-        // Find the corresponding joint
-        const joint = allJoints.find(j => j.name === mjcfActuator.joint);
-        
-        if (joint) {
-          // Create hardware actuator
-          const hardwareActuator: HardwareActuator = {
-            id: `${deviceRootNodeId}_actuator_${mjcfActuator.name}`,
-            name: mjcfActuator.name || 'unnamed_actuator',
-            type: (mjcfActuator.type as any) || 'position',
-            controlMode: 'position',
-            controlledJoints: [`${deviceRootNodeId}_joint_${joint.name}`],
-            specs: {
-              forceRange: {
-                min: mjcfActuator.forcerange ? mjcfActuator.forcerange[0] : -100,
-                max: mjcfActuator.forcerange ? mjcfActuator.forcerange[1] : 100
-              },
-              ctrlRange: {
-                min: mjcfActuator.ctrlrange ? parseFloat(mjcfActuator.ctrlrange.split(' ')[0]) : -1.0,
-                max: mjcfActuator.ctrlrange ? parseFloat(mjcfActuator.ctrlrange.split(' ')[1]) : 1.0
-              },
-              gearRatio: mjcfActuator.gear || 1.0
-            },
-            coordination: [{
-              jointId: `${deviceRootNodeId}_joint_${joint.name}`,
-              ratio: 1.0,
-              offset: 0.0
-            }],
-            state: {
-              enabled: false,
-              value: 0,
-              fault: false
-            }
-          };
-          
-          // Register actuator
-          actuatorSystem.registerActuator(hardwareActuator);
-          
-          console.log(`[MJCF Kinematics] Registered actuator: ${mjcfActuator.name} → ${joint.name}`);
-        }
-      }
-    }
-  }
-
-  // Process collision pairs from MJCF contacts
-  if (model.contact && model.contact.length > 0) {
-    console.log(`[MJCF Kinematics] Processing ${model.contact.length} collision pairs...`);
-    
-    // Import JointCollisionManager dynamically to avoid circular dependencies
-      const { JointCollisionManager } = await import('../../kinematics/collision/JointCollisionManager');
-    const collisionManager = JointCollisionManager.getInstance();
-    
-    // Initialize collision manager with scene if available
-    // Note: SceneTreeManager doesn't have scene access, skipping collision initialization
-    // const sceneTreeManager = (await import('../../scene/SceneTreeManager')).SceneTreeManager.getInstance();
-    // const scene = sceneTreeManager.getScene(); // Use getter method
-    
-    // if (scene) {
-    //   collisionManager.initialize(scene);
-    // }
-
-    // Process each contact pair
-    for (const contact of model.contact) {
-      if (contact.geom1 && contact.geom2) {
-        // Find joints associated with these geoms
-        const jointA = allJoints.find(j => j.name === contact.geom1);
-        const jointB = allJoints.find(j => j.name === contact.geom2);
-        
-        if (jointA && jointB) {
-          collisionManager.addCollisionPair(
-            `${deviceRootNodeId}_joint_${jointA.name}`,
-            `${deviceRootNodeId}_joint_${jointB.name}`,
-            5.0, // Default clearance
-            10.0 // Default warning distance
-          );
-          
-          console.log(`[MJCF Kinematics] Added collision pair: ${contact.geom1} <-> ${contact.geom2}`);
-        }
-      }
-    }
-  }
-}
-
-/**
- * Load MJCF file and create kinematics
- */
-export async function loadMJCFWithKinematics(
-  mjcfFile: File,
-  deviceRootNodeId: string
-): Promise<void> {
-  const mjcfXML = await mjcfFile.text();
-  await createKinematicsFromMJCF(mjcfXML, deviceRootNodeId);
-}
+// ---------- USAGE ----------
+// Google robot:
+// await loadMJCF(scene, { rootUrl: "/google_robot", mjcf: "robot.xml" });
+//
+// KUKA iiwa 14:
+// await loadMJCF(scene, { rootUrl: "/iiwa14", mjcf: "iiwa14.xml" });
