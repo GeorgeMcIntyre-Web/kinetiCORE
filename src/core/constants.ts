@@ -24,7 +24,7 @@ export const GROUND_SIZE = 50; // 50 meters = 50,000mm
 export const AXIS_LENGTH = 2; // 2 meters = 2,000mm
 
 // Camera constants (internal units: meters, Y-up)
-export const CAMERA_MIN_RADIUS = 0.5; // 0.5m - allow close-up inspection
+export const CAMERA_MIN_RADIUS = 0.01; // 1cm - allow very close inspection
 export const CAMERA_MAX_RADIUS = 10000; // 10,000m - support very large layouts (10km)
 export const CAMERA_WHEEL_PRECISION = 10; // Lower = faster zoom (changed from 50 for large scenes)
 export const CAMERA_INERTIA = 0.9;

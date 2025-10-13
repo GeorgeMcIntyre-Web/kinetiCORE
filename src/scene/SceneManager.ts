@@ -194,8 +194,9 @@ export class SceneManager {
     this.camera.orthoTop = orthoSize;
     this.camera.orthoBottom = -orthoSize;
 
-    // Set clipping planes to handle large range (0.01m to 20km)
-    this.camera.minZ = 0.01; // 1cm near plane
+    // Set clipping planes to handle large range (0.001m to 20km)
+    // Allow very close inspection (1mm near plane) for detailed work
+    this.camera.minZ = 0.001; // 1mm near plane - allows very close inspection
     this.camera.maxZ = 20000; // 20km far plane
 
     // Render loop
