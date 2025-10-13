@@ -1049,19 +1049,71 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           if (mjcfResult.success && mjcfResult.meshes.length > 0) {
             console.log(`[File Import] Successfully loaded MJCF from ZIP: ${mjcfResult.meshes.length} meshes`);
 
-          // Add meshes to scene
-          for (const mesh of mjcfResult.meshes) {
-            mesh.parent = assetsNode!;
-            tree.createNode('mesh', mesh.name, assetsNode!.id);
-            // Note: Mesh registration would need to be implemented in EntityRegistry
-          }
+            // Get the model name from the file
+            const modelName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
 
-          // Add root nodes
-          for (const root of mjcfResult.rootNodes) {
-            root.parent = assetsNode!;
-            tree.createNode('mesh', root.name, assetsNode!.id);
-            // Note: Transform node registration would need to be implemented in EntityRegistry
-          }
+            // Create a collection for this model
+            const modelCollection = tree.createNode(
+              'collection',
+              modelName,
+              assetsNode?.id || null
+            );
+
+            // Build tree structure for all nodes using the same logic as URDF
+            const buildTreeForNode = (node: BABYLON.TransformNode, parentNodeId: string | null, depth: number = 0): void => {
+              const isMesh = node instanceof BABYLON.Mesh;
+              const children = getAllChildren(node);
+
+              // Skip __root__ and duplicate filename nodes - process children directly
+              // But don't skip MJCF root nodes as they contain the actual geometry
+              if (node.name === '__root__' ||
+                  node.name.startsWith('__root') ||
+                  (node.name === modelName && node.metadata?.sourceFormat !== 'mjcf')) {
+                for (const child of children) {
+                  buildTreeForNode(child, parentNodeId, depth);
+                }
+                return;
+              }
+
+              // Create tree node
+              const worldPosition = node.getAbsolutePosition();
+              const position = babylonToUser(worldPosition);  // Full conversion with axis swap
+
+              const treeNode = tree.createNode(
+                isMesh ? 'mesh' : 'collection',
+                node.name || 'Unnamed',
+                parentNodeId,
+                position
+              );
+
+              // Link to mesh if applicable
+              if (isMesh) {
+                treeNode.babylonMeshId = node.uniqueId.toString();
+              } else {
+                // Link to TransformNode for collections
+                treeNode.babylonTransformNodeId = node.uniqueId.toString();
+              }
+
+              // Recursively process all children
+              for (const child of children) {
+                buildTreeForNode(child, treeNode.id, depth + 1);
+              }
+            };
+
+            // Build tree starting from root nodes
+            for (const rootNode of mjcfResult.rootNodes) {
+              buildTreeForNode(rootNode, modelCollection.id);
+            }
+
+            // Select the model collection
+            get().clearSelection();
+            get().selectNode(modelCollection.id);
+
+            // Expand the collection to show contents
+            tree.toggleExpanded(modelCollection.id);
+
+            // Notify tree to update
+            window.dispatchEvent(new Event('scenetree-update'));
 
             loading.end();
             toast.success(`Loaded ${mjcfResult.meshes.length} meshes from MJCF`);

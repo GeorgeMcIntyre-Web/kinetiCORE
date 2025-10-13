@@ -79,6 +79,24 @@ export const useCameraViewShortcuts = () => {
     const preset = cameraPresets[view];
     const duration = animate ? 30 : 0; // 30 frames at 60fps = 0.5 seconds
 
+    // Get scene bounds for intelligent positioning (scene is available from camera)
+    const scene = camera.getScene();
+    if (scene) {
+      const bounds = scene.getWorldExtends();
+      if (bounds) {
+        const center = bounds.min.add(bounds.max).scale(0.5);
+        const size = bounds.max.subtract(bounds.min);
+        const maxDimension = Math.max(size.x, size.y, size.z);
+
+        // Calculate radius based on scene size
+        const radius = Math.max(maxDimension * 1.5, 100);
+
+        // Update camera radius and target
+        camera.setTarget(center);
+        camera.radius = radius;
+      }
+    }
+
     if (duration > 0) {
       BABYLON.Animation.CreateAndStartAnimation(
         'cameraAlpha',

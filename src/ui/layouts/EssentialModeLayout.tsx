@@ -85,15 +85,16 @@ export const EssentialModeLayout: React.FC = () => {
     const modelFile = Array.from(files).find(f => {
       const ext = f.name.toLowerCase();
       return ext.endsWith('.xml') || ext.endsWith('.urdf') || ext.endsWith('.gltf') ||
-             ext.endsWith('.glb') || ext.endsWith('.obj') || ext.endsWith('.jt') ||
-             ext.endsWith('.dwg') || ext.endsWith('.dxf') || ext.endsWith('.zip');
+             ext.endsWith('.glb') || ext.endsWith('.obj') || ext.endsWith('.stl') ||
+             ext.endsWith('.jt') || ext.endsWith('.dwg') || ext.endsWith('.dxf') || 
+             ext.endsWith('.zip');
     });
 
     if (modelFile && importModel) {
-      // Collect mesh files (STL, OBJ, DAE)
+      // Collect mesh files (STL, OBJ, DAE) - exclude the main model file
       const meshFiles = Array.from(files).filter(f => {
         const ext = f.name.toLowerCase();
-        return ext.endsWith('.stl') || ext.endsWith('.obj') || ext.endsWith('.dae');
+        return (ext.endsWith('.stl') || ext.endsWith('.obj') || ext.endsWith('.dae')) && f !== modelFile;
       });
 
       console.log(`[File Upload] Model: ${modelFile.name}, Mesh files: ${meshFiles.length}`);
