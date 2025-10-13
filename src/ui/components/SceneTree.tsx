@@ -195,6 +195,9 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm }) => {
                     node.type !== 'scene' &&
                     node.type !== 'system';
 
+  // Get effective visibility (considering parent visibility)
+  const effectiveVisibility = tree.getEffectiveVisibility(node.id);
+
   // Filter visibility based on search
   const shouldShow = nodeOrChildrenMatchSearch(node, searchTerm, tree);
   const isHighlighted = searchTerm && nodeMatchesSearch(node, searchTerm);
@@ -407,11 +410,18 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm }) => {
         <div className="tree-node-actions">
           {/* Visibility toggle */}
           <button
-            className="tree-node-action"
+            className={`tree-node-action ${!effectiveVisibility ? 'disabled' : ''}`}
             onClick={handleToggleVisibility}
-            title={node.visible ? 'Hide' : 'Show'}
+            title={
+              !effectiveVisibility 
+                ? 'Hidden by parent' 
+                : node.visible 
+                  ? 'Hide' 
+                  : 'Show'
+            }
+            disabled={!effectiveVisibility && node.visible}
           >
-            {node.visible ? <Eye size={14} /> : <EyeOff size={14} />}
+            {effectiveVisibility ? <Eye size={14} /> : <EyeOff size={14} />}
           </button>
 
           {/* Lock toggle */}

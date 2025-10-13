@@ -332,9 +332,18 @@
   color: #ffffff;
 }
 
-.tree-node-action:disabled {
+.tree-node-action:disabled,
+.tree-node-action.disabled {
   opacity: 0.3;
-  cursor: default;
+  cursor: not-allowed;
+  background: #2a2a2a;
+  color: #666666;
+}
+
+.tree-node-action:disabled:hover,
+.tree-node-action.disabled:hover {
+  background: #2a2a2a;
+  color: #666666;
 }
 
 /* Children */

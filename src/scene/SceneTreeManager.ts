@@ -240,12 +240,30 @@ export class SceneTreeManager {
   }
 
   /**
+   * Get effective visibility of a node (considering parent visibility)
+   */
+  getEffectiveVisibility(nodeId: string): boolean {
+    const node = this.nodes.get(nodeId);
+    if (!node) return false;
+
+    // If this node is explicitly hidden, it's hidden regardless of parents
+    if (!node.visible) return false;
+
+    // If no parent, use local visibility
+    if (!node.parentId) return node.visible;
+
+    // Check parent visibility recursively
+    return this.getEffectiveVisibility(node.parentId);
+  }
+
+  /**
    * Toggle node visibility
    */
   toggleVisibility(nodeId: string): void {
     const node = this.nodes.get(nodeId);
     if (node) {
-      node.visible = !node.visible;
+      const newVisibility = !node.visible;
+      this.setVisibility(nodeId, newVisibility);
     }
   }
 
@@ -254,9 +272,17 @@ export class SceneTreeManager {
    */
   setVisibility(nodeId: string, visible: boolean): void {
     const node = this.nodes.get(nodeId);
-    if (node) {
-      node.visible = visible;
-    }
+    if (!node) return;
+
+    // Update the tree node visibility
+    node.visible = visible;
+
+    // Apply visibility to Babylon.js mesh if it exists
+    this.applyVisibilityToBabylonMesh(nodeId, visible);
+
+    // Handle hierarchical visibility: if hiding a parent, hide all children
+    // If showing a parent, show all children (unless they were explicitly hidden)
+    this.updateChildrenVisibility(nodeId, visible);
   }
 
   /**
@@ -385,6 +411,64 @@ export class SceneTreeManager {
       count += this.getDescendantCount(childId);
     }
     return count;
+  }
+
+  /**
+   * Apply visibility to Babylon.js mesh
+   */
+  private applyVisibilityToBabylonMesh(nodeId: string, visible: boolean): void {
+    const node = this.nodes.get(nodeId);
+    if (!node) return;
+
+    // Import SceneManager dynamically to avoid circular dependencies
+    import('./SceneManager').then(({ SceneManager }) => {
+      const sceneManager = SceneManager.getInstance();
+      const scene = sceneManager.getScene();
+      if (!scene) return;
+
+      // Handle mesh nodes
+      if (node.babylonMeshId) {
+        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+        if (mesh) {
+          mesh.setEnabled(visible);
+          console.log(`[SceneTree] Set mesh "${mesh.name}" visibility to ${visible}`);
+        }
+      }
+
+      // Handle transform node collections
+      if (node.babylonTransformNodeId) {
+        const transformNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId));
+        if (transformNode) {
+          transformNode.setEnabled(visible);
+          console.log(`[SceneTree] Set transform node "${transformNode.name}" visibility to ${visible}`);
+        }
+      }
+    }).catch(error => {
+      console.error('[SceneTree] Failed to import SceneManager:', error);
+    });
+  }
+
+  /**
+   * Update children visibility based on parent visibility
+   */
+  private updateChildrenVisibility(nodeId: string, parentVisible: boolean): void {
+    const children = this.getChildren(nodeId);
+    
+    for (const child of children) {
+      // If parent is being hidden, hide all children
+      if (!parentVisible) {
+        child.visible = false;
+        this.applyVisibilityToBabylonMesh(child.id, false);
+      } else {
+        // If parent is being shown, show children (they inherit parent visibility)
+        // Only apply to Babylon.js mesh, don't change the tree node visibility state
+        // unless the child was explicitly hidden
+        this.applyVisibilityToBabylonMesh(child.id, true);
+      }
+      
+      // Recursively update grandchildren
+      this.updateChildrenVisibility(child.id, parentVisible);
+    }
   }
 
   /**
