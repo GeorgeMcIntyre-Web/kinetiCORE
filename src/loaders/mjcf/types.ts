@@ -86,9 +86,11 @@ export interface MJCFInertial {
 export interface MJCFActuator {
   name: string;
   joint: string;                    // Target joint name
+  type?: string;                    // Actuator type
   gear?: number;                    // Gear ratio
+  bias?: number;                    // Bias value
   ctrllimited?: boolean;            // Control limits enabled
-  ctrlrange?: [number, number];     // Control range
+  ctrlrange?: string;               // Control range as string
   forcelimited?: boolean;           // Force limits enabled
   forcerange?: [number, number];    // Force range
   actlimited?: boolean;             // Actuator limits enabled
@@ -129,6 +131,7 @@ export interface MJCFEquality {
  */
 export interface MJCFAsset {
   name: string;
+  type?: 'mesh' | 'texture' | 'material';  // Asset type
   file: string;                     // File path
   scale?: number;                   // Scale factor
   euler?: [number, number, number]; // Euler rotation
@@ -176,6 +179,9 @@ export interface MJCFModel {
     meshdir?: string;
     texturedir?: string;
   };
+
+  // Mesh directory for resolving relative paths
+  meshDir?: string;
 }
 
 /**
@@ -214,6 +220,7 @@ export interface MJCFImportResult {
   actuators: MJCFActuator[];
   errors: string[];
   warnings: string[];
+  bounds?: any; // BABYLON.BoundingBox
 }
 
 /**

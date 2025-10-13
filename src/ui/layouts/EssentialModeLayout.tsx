@@ -24,6 +24,9 @@ import { useAssetLibraryStore } from '../store/assetLibraryStore';
 import { SceneTree } from '../components/SceneTree';
 import { KinematicsPanel } from '../components/KinematicsPanel';
 import { ActuatorControlPanel } from '../components/ActuatorControlPanel';
+import { DeviceLibrary } from '../components/DeviceLibrary';
+import { PhysicsSettings } from '../components/PhysicsSettings';
+import { CollisionVisualizer } from '../components/CollisionVisualizer';
 import { FloorSelector } from '../components/FloorSelector';
 import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
@@ -59,6 +62,9 @@ export const EssentialModeLayout: React.FC = () => {
 
   const [showKinematicsPanel, setShowKinematicsPanel] = useState(false);
   const [showActuatorPanel, setShowActuatorPanel] = useState(false);
+  const [showDeviceLibrary, setShowDeviceLibrary] = useState(false);
+  const [showPhysicsSettings, setShowPhysicsSettings] = useState(false);
+  const [showCollisionVisualizer, setShowCollisionVisualizer] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadFileInputRef = useRef<HTMLInputElement>(null);
@@ -72,10 +78,30 @@ export const EssentialModeLayout: React.FC = () => {
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && importModel) {
-      await importModel(file);
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    // Find the main model file (MJCF, URDF, etc.)
+    const modelFile = Array.from(files).find(f => {
+      const ext = f.name.toLowerCase();
+      return ext.endsWith('.xml') || ext.endsWith('.urdf') || ext.endsWith('.gltf') ||
+             ext.endsWith('.glb') || ext.endsWith('.obj') || ext.endsWith('.jt') ||
+             ext.endsWith('.dwg') || ext.endsWith('.dxf') || ext.endsWith('.zip');
+    });
+
+    if (modelFile && importModel) {
+      // Collect mesh files (STL, OBJ, DAE)
+      const meshFiles = Array.from(files).filter(f => {
+        const ext = f.name.toLowerCase();
+        return ext.endsWith('.stl') || ext.endsWith('.obj') || ext.endsWith('.dae');
+      });
+
+      console.log(`[File Upload] Model: ${modelFile.name}, Mesh files: ${meshFiles.length}`);
+
+      // Pass model file and mesh files to importModel
+      await importModel(modelFile, meshFiles);
     }
+
     if (event.target) {
       event.target.value = '';
     }
@@ -408,6 +434,16 @@ export const EssentialModeLayout: React.FC = () => {
         <button className="toolbar-btn" onClick={() => setShowActuatorPanel(!showActuatorPanel)} title="Actuator Control">
           <Settings size={18} />
         </button>
+        <button className="toolbar-btn" onClick={() => setShowDeviceLibrary(!showDeviceLibrary)} title="Device Library">
+          <Library size={18} />
+        </button>
+        <div className="toolbar-separator" />
+        <button className="toolbar-btn" onClick={() => setShowPhysicsSettings(!showPhysicsSettings)} title="Physics Settings">
+          <Cog size={18} />
+        </button>
+        <button className="toolbar-btn" onClick={() => setShowCollisionVisualizer(!showCollisionVisualizer)} title="Collision Visualizer">
+          <Settings size={18} />
+        </button>
         <div className="toolbar-separator" />
         <button className="toolbar-btn" onClick={handleFileImport} title="Import Model">
           <Upload size={18} />
@@ -512,12 +548,94 @@ export const EssentialModeLayout: React.FC = () => {
           </div>
         </div>
       )}
+      {showDeviceLibrary && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '800px',
+          height: '600px',
+          background: '#1a1a1a',
+          borderRadius: '12px',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+          zIndex: 1000,
+          overflow: 'hidden'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: '#252526', borderBottom: '2px solid #646cff' }}>
+            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#ffffff' }}>Device Library</h2>
+            <button onClick={() => setShowDeviceLibrary(false)} style={{
+              background: 'none', border: 'none', color: '#888', fontSize: '1.5rem', cursor: 'pointer',
+              width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '4px', transition: 'all 0.15s'
+            }}>×</button>
+          </div>
+          <div style={{ height: 'calc(100% - 60px)', overflow: 'auto' }}>
+            <DeviceLibrary />
+          </div>
+        </div>
+      )}
+      {showPhysicsSettings && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '500px',
+          height: '500px',
+          background: '#1a1a1a',
+          borderRadius: '12px',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+          zIndex: 1000,
+          overflow: 'hidden'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: '#252526', borderBottom: '2px solid #646cff' }}>
+            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#ffffff' }}>Physics Settings</h2>
+            <button onClick={() => setShowPhysicsSettings(false)} style={{
+              background: 'none', border: 'none', color: '#888', fontSize: '1.5rem', cursor: 'pointer',
+              width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '4px', transition: 'all 0.15s'
+            }}>×</button>
+          </div>
+          <div style={{ height: 'calc(100% - 60px)', overflow: 'auto' }}>
+            <PhysicsSettings />
+          </div>
+        </div>
+      )}
+      {showCollisionVisualizer && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '400px',
+          height: '400px',
+          background: '#1a1a1a',
+          borderRadius: '12px',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+          zIndex: 1000,
+          overflow: 'hidden'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: '#252526', borderBottom: '2px solid #646cff' }}>
+            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#ffffff' }}>Collision Visualizer</h2>
+            <button onClick={() => setShowCollisionVisualizer(false)} style={{
+              background: 'none', border: 'none', color: '#888', fontSize: '1.5rem', cursor: 'pointer',
+              width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '4px', transition: 'all 0.15s'
+            }}>×</button>
+          </div>
+          <div style={{ height: 'calc(100% - 60px)', overflow: 'auto' }}>
+            <CollisionVisualizer />
+          </div>
+        </div>
+      )}
 
       {/* Hidden file inputs */}
       <input
         ref={fileInputRef}
         type="file"
-        accept=".urdf,.stl,.obj,.dae,.gltf,.glb,.dxf,.dwg,.jt,.zip"
+        accept=".urdf,.stl,.obj,.dae,.gltf,.glb,.dxf,.dwg,.jt,.xml,.zip"
+        multiple
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />

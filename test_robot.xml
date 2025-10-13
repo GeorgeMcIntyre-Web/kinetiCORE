@@ -1,0 +1,30 @@
+<mujoco model="test_robot">
+  <compiler angle="radian" meshdir="assets"/>
+  
+  <default>
+    <joint armature="0.01" frictionloss="0.1"/>
+    <geom type="box" size="0.1 0.1 0.1" rgba="0.7 0.7 0.7 1"/>
+  </default>
+
+  <worldbody>
+    <body name="base" pos="0 0 0">
+      <geom name="base_geom" type="box" size="0.2 0.2 0.1"/>
+      <joint name="base_joint" type="free"/>
+      
+      <body name="link1" pos="0 0 0.2">
+        <geom name="link1_geom" type="box" size="0.1 0.1 0.1"/>
+        <joint name="joint1" type="hinge" axis="0 0 1" range="-1.57 1.57"/>
+        
+        <body name="link2" pos="0 0 0.2">
+          <geom name="link2_geom" type="box" size="0.1 0.1 0.1"/>
+          <joint name="joint2" type="hinge" axis="0 1 0" range="-1.57 1.57"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <motor joint="joint1" gear="1"/>
+    <motor joint="joint2" gear="1"/>
+  </actuator>
+</mujoco>

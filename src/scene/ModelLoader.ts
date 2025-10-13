@@ -25,6 +25,9 @@ import { DXFController } from '../dxf/DXFController';
 // Import DWG loader
 import { loadDWGFromFile } from '../loaders/dwg/DWGLoader';
 
+// Import MJCF loader
+import { loadMJCFFromFile } from '../loaders/mjcf/MJCFLoader';
+
 // Configure Draco decoder
 DracoCompression.Configuration = {
   decoder: {
@@ -51,6 +54,7 @@ export const SUPPORTED_FORMATS = {
   CATDRAWING: '.catdrawing',
   CATPROCESS: '.catprocess',
   URDF: '.urdf',
+  MJCF: '.xml',
   ZIP: '.zip',
 } as const;
 
@@ -101,7 +105,8 @@ function getMimeType(extension: string): string {
  */
 export async function loadModelFromFile(
   file: File,
-  scene: BABYLON.Scene
+  scene: BABYLON.Scene,
+  meshFiles?: File[]
 ): Promise<{ meshes: BABYLON.AbstractMesh[]; rootNodes: BABYLON.TransformNode[] }> {
   const extension = getFileExtension(file.name);
 
@@ -113,6 +118,55 @@ export async function loadModelFromFile(
   if (extension === '.urdf') {
     return loadURDFFromFile(file, scene);
   }
+
+      // Handle MJCF files (MuJoCo XML) and ZIP archives
+      if (extension === '.xml' || extension === '.zip') {
+        console.log('[ModelLoader] Detected MJCF file:', file.name);
+
+        // Convert meshFiles array to Map for MJCF loader
+        let meshFilesMap: Map<string, File> | undefined;
+        if (meshFiles && meshFiles.length > 0) {
+          meshFilesMap = new Map();
+          meshFiles.forEach(f => {
+            meshFilesMap!.set(f.name, f);
+          });
+          console.log('[ModelLoader] Converted', meshFiles.length, 'mesh files to map');
+        }
+
+        try {
+          const result = await loadMJCFFromFile(file, scene, meshFilesMap);
+          console.log('[ModelLoader] MJCF import result:', result);
+          
+          // Debug: Check if meshes are actually in the scene
+          console.log('[ModelLoader] MJCF Debug - Scene mesh count:', scene.meshes.length);
+          console.log('[ModelLoader] MJCF Debug - Scene transform node count:', scene.transformNodes.length);
+          
+          // Check if our meshes are in the scene
+          result.meshes.forEach((mesh, index) => {
+            const inScene = scene.meshes.includes(mesh);
+            console.log(`[ModelLoader] MJCF Debug - Mesh ${index} (${mesh.name}) in scene:`, inScene);
+            if (!inScene) {
+              console.log(`[ModelLoader] MJCF Debug - Mesh ${mesh.name} NOT in scene! Adding manually...`);
+              scene.meshes.push(mesh);
+            }
+          });
+          
+          // Fit camera to imported meshes if bounds are available
+          if (result.bounds && result.meshes.length > 0) {
+            console.log('[ModelLoader] Fitting camera to MJCF bounds:', result.bounds);
+            // This will be handled by the scene manager
+            (result as any).cameraBounds = result.bounds;
+          }
+          
+          return {
+            meshes: result.meshes,
+            rootNodes: result.rootNodes || []
+          };
+        } catch (error) {
+          console.error('[ModelLoader] MJCF import failed:', error);
+          throw error;
+        }
+      }
 
   // Handle DXF files
   if (extension === '.dxf') {

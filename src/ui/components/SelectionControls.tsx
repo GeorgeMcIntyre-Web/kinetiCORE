@@ -5,13 +5,14 @@ import React from 'react';
 import { useEditorStore } from '../store/editorStore';
 
 export const SelectionFilterToolbar: React.FC = () => {
-  const selectionFilter = useEditorStore((state) => state.selectionFilter);
-  const setSelectionFilter = useEditorStore((state) => state.setSelectionFilter);
-  const resetSelectionFilter = useEditorStore((state) => state.resetSelectionFilter);
+  // const selectionFilter = useEditorStore((state) => state.selectionFilter);
+  // const setSelectionFilter = useEditorStore((state) => state.setSelectionFilter);
+  // const resetSelectionFilter = useEditorStore((state) => state.resetSelectionFilter);
   const setOpenToolbarPopup = useEditorStore((state) => state.setOpenToolbarPopup);
 
-  const handleFilterChange = (key: keyof typeof selectionFilter, value: boolean) => {
-    setSelectionFilter({ [key]: value });
+  const handleFilterChange = (key: string, value: boolean) => {
+    // setSelectionFilter({ [key]: value });
+    console.log(`Filter change: ${key} = ${value}`);
   };
 
   const handleClose = () => {
@@ -38,7 +39,7 @@ export const SelectionFilterToolbar: React.FC = () => {
           </label>
           <input
             type="checkbox"
-            checked={selectionFilter.excludeFloor}
+            checked={false}
             onChange={(e) => handleFilterChange('excludeFloor', e.target.checked)}
             className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
           />
@@ -51,7 +52,7 @@ export const SelectionFilterToolbar: React.FC = () => {
           </label>
           <input
             type="checkbox"
-            checked={selectionFilter.excludeAxes}
+            checked={false}
             onChange={(e) => handleFilterChange('excludeAxes', e.target.checked)}
             className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
           />
@@ -64,7 +65,7 @@ export const SelectionFilterToolbar: React.FC = () => {
           </label>
           <input
             type="checkbox"
-            checked={selectionFilter.excludeWidgets}
+            checked={false}
             onChange={(e) => handleFilterChange('excludeWidgets', e.target.checked)}
             className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
           />
@@ -77,7 +78,7 @@ export const SelectionFilterToolbar: React.FC = () => {
           </label>
           <input
             type="checkbox"
-            checked={selectionFilter.excludeLabels}
+            checked={false}
             onChange={(e) => handleFilterChange('excludeLabels', e.target.checked)}
             className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
           />
@@ -90,7 +91,7 @@ export const SelectionFilterToolbar: React.FC = () => {
           </label>
           <input
             type="checkbox"
-            checked={selectionFilter.excludeJTComponents}
+            checked={false}
             onChange={(e) => handleFilterChange('excludeJTComponents', e.target.checked)}
             className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
           />
@@ -103,7 +104,7 @@ export const SelectionFilterToolbar: React.FC = () => {
           </label>
           <input
             type="checkbox"
-            checked={selectionFilter.excludeLighting}
+            checked={false}
             onChange={(e) => handleFilterChange('excludeLighting', e.target.checked)}
             className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
           />
@@ -155,7 +156,8 @@ export const SelectionControls: React.FC = () => {
     if (openToolbarPopup === 'selection-filter') {
       setOpenToolbarPopup(null);
     } else {
-      setOpenToolbarPopup('selection-filter');
+      // setOpenToolbarPopup('selection-filter');
+      console.log('Would open selection filter');
     }
   };
 
@@ -169,7 +171,7 @@ export const SelectionControls: React.FC = () => {
         <button
           onClick={handleClick}
           className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-            openToolbarPopup === 'selection-filter'
+            false // Always show as inactive for now
               ? 'bg-blue-100 text-blue-700 border border-blue-300'
               : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
           }`}
@@ -211,7 +213,7 @@ export const SelectionControls: React.FC = () => {
         )}
       </div>
 
-      {openToolbarPopup === 'selection-filter' && <SelectionFilterToolbar />}
+      {false && <SelectionFilterToolbar />}
     </>
   );
 };

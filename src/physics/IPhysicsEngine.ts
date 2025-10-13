@@ -136,4 +136,35 @@ export interface IPhysicsEngine {
    * @param jointHandle Handle of the joint
    */
   removeJoint(jointHandle: string): void;
+
+  // === Collision Management ===
+
+  /**
+   * Define collision pair (which geoms can collide)
+   * @param geom1 First geometry identifier
+   * @param geom2 Second geometry identifier
+   * @param enabled Whether collision is enabled between these geoms
+   */
+  setCollisionPair(geom1: string, geom2: string, enabled: boolean): void;
+
+  /**
+   * Set collision group for a body
+   * @param handle Body handle
+   * @param group Collision group number
+   */
+  setCollisionGroup(handle: string, group: number): void;
+
+  /**
+   * Get all active collision pairs
+   * @returns Array of collision pairs with body handles
+   */
+  getActiveCollisions(): Array<{bodyA: string, bodyB: string}>;
+
+  /**
+   * Check collision between two specific bodies
+   * @param bodyA First body handle
+   * @param bodyB Second body handle
+   * @returns True if bodies are colliding
+   */
+  checkBodyCollision(bodyA: string, bodyB: string): boolean;
 }

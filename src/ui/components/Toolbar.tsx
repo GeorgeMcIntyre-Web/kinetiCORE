@@ -9,13 +9,24 @@ import { TransformMode } from '../../core/types';
 import { CreateProjectionViewCommand } from '../../history/commands/CreateProjectionViewCommand';
 import { toast } from './ToastNotifications';
 import { IconButton, IconPaths } from '../icons/IconRegistry';
+import { ButtonTemplate } from './buttons/ButtonTemplate';
 import './Toolbar.css';
 
 interface ToolbarProps {
   onOpenKinematics?: () => void;
+  onOpenDeviceLibrary?: () => void;
+  onOpenActuatorControl?: () => void;
+  onOpenPhysicsSettings?: () => void;
+  onToggleCollisionVisualizer?: () => void;
 }
 
-export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
+export const Toolbar: React.FC<ToolbarProps> = ({ 
+  onOpenKinematics,
+  onOpenDeviceLibrary,
+  onOpenActuatorControl,
+  onOpenPhysicsSettings,
+  onToggleCollisionVisualizer
+}) => {
   const transformMode = useEditorStore((state) => state.transformMode);
   const setTransformMode = useEditorStore((state) => state.setTransformMode);
   const createObject = useEditorStore((state) => state.createObject);
@@ -71,7 +82,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
                 'model/stl': ['.stl'],
                 'application/dxf': ['.dxf'],
                 'application/jt': ['.jt'],
-                'application/xml': ['.urdf'],
+                'application/xml': ['.urdf', '.xml'],
                 'model/babylon': ['.babylon'],
                 'application/zip': ['.zip']
               }
@@ -428,6 +439,72 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onOpenKinematics }) => {
             label="Setup"
             onClick={onOpenKinematics}
             config={{ size: 'md' }}
+          />
+        </div>
+      </div>
+
+      {/* Device Management */}
+      <div className="toolbar-section">
+        <h3>Devices</h3>
+        <div className="button-group">
+          <ButtonTemplate
+            id="toolbar_device_library"
+            label="Library"
+            icon="book-open"
+            action="Open device library"
+            stateKey="deviceLibraryOpen"
+            initialState={false}
+            stateType="boolean"
+            variant="ghost"
+            size="md"
+            ariaLabel="Open device library"
+            callback={() => onOpenDeviceLibrary?.()}
+          />
+          <ButtonTemplate
+            id="toolbar_actuator_control"
+            label="Actuators"
+            icon="gamepad-2"
+            action="Open actuator control panel"
+            stateKey="actuatorControlOpen"
+            initialState={false}
+            stateType="boolean"
+            variant="ghost"
+            size="md"
+            ariaLabel="Open actuator control panel"
+            callback={() => onOpenActuatorControl?.()}
+          />
+        </div>
+      </div>
+
+      {/* Physics & Collision */}
+      <div className="toolbar-section">
+        <h3>Physics</h3>
+        <div className="button-group">
+          <ButtonTemplate
+            id="toolbar_physics_settings"
+            label="Settings"
+            icon="settings"
+            action="Open physics settings"
+            stateKey="physicsSettingsOpen"
+            initialState={false}
+            stateType="boolean"
+            variant="ghost"
+            size="md"
+            ariaLabel="Open physics settings"
+            callback={() => onOpenPhysicsSettings?.()}
+          />
+          <ButtonTemplate
+            id="toolbar_collision_viz"
+            label="Collisions"
+            icon="zap"
+            action="Toggle collision visualizer"
+            stateKey="collisionVisualizerEnabled"
+            initialState={false}
+            stateType="boolean"
+            variant="ghost"
+            size="md"
+            ariaLabel="Toggle collision visualizer"
+            callback={() => onToggleCollisionVisualizer?.()}
           />
         </div>
       </div>

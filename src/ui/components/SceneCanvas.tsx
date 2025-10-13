@@ -26,7 +26,7 @@ export const SceneCanvas: React.FC = () => {
   const camera = useEditorStore((state) => state.camera);
   const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
   const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
-  const selectedCollectionNodeId = useEditorStore((state) => state.selectedCollectionNodeId);
+  // const selectedCollectionNodeId = useEditorStore((state) => state.selectedCollectionNodeId);
   const selectedCollectionTransformNode = useEditorStore((state) => state.selectedCollectionTransformNode);
   const transformMode = useEditorStore((state) => state.transformMode);
   const selectMesh = useEditorStore((state) => state.selectMesh);

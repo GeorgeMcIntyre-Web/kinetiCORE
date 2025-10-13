@@ -4,8 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { JTKinematicWorkflowTest } from './JTKinematicWorkflowTest';
-import { JTKinematicIntegrationService } from './JTKinematicIntegrationService';
+// import { JTKinematicWorkflowTest } from './JTKinematicWorkflowTest';
+// import { JTKinematicIntegrationService } from './JTKinematicIntegrationService';
 import * as BABYLON from '@babylonjs/core';
 
 interface JTKinematicWorkflowProps {
@@ -18,7 +18,7 @@ export const JTKinematicWorkflowUI: React.FC<JTKinematicWorkflowProps> = ({ scen
     const [error, setError] = useState<string>('');
 
     const workflowTest = new JTKinematicWorkflowTest();
-    const integrationService = new JTKinematicIntegrationService();
+    // const integrationService = new JTKinematicIntegrationService();
 
     const handleTestR2000icWorkflow = async () => {
         setIsLoading(true);

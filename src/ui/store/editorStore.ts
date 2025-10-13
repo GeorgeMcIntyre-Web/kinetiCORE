@@ -84,6 +84,14 @@ interface EditorState {
   snapDistance: number; // mm - how close to snap
   temporaryOrigin: { x: number; y: number; z: number } | null;
 
+  // Button Management System
+  buttonStates: {
+    [buttonId: string]: any;
+  };
+  buttonActions: {
+    [buttonId: string]: (value: any) => void;
+  };
+
   // Align tool state
   alignMode: 'vertex' | 'edge' | 'face' | 'center' | null;
   alignFirstPoint: {
@@ -127,7 +135,7 @@ interface EditorState {
   setCamera: (camera: BABYLON.Camera) => void;
   togglePlayback: () => void;
   createObject: (type: ObjectType) => void;
-  importModel: (file: File, fileHandle?: any) => Promise<void>;
+  importModel: (file: File, meshFiles?: File[], fileHandle?: any) => Promise<void>;
   importURDFFolder: (files: File[]) => Promise<void>;
   updateNodePosition: (nodeId: string, position: { x: number; y: number; z: number }) => void;
   updateNodeRotation: (nodeId: string, rotation: { x: number; y: number; z: number }) => void;
@@ -166,6 +174,17 @@ interface EditorState {
   setSnapDistance: (distance: number) => void;
   setTemporaryOrigin: (origin: { x: number; y: number; z: number } | null) => void;
   clearTemporaryOrigin: () => void;
+
+  // Button Management System
+  setButtonState: (buttonId: string, value: any) => void;
+  getButtonState: (buttonId: string) => any;
+  registerButtonAction: (buttonId: string, action: (value: any) => void) => void;
+  executeButtonAction: (buttonId: string, value?: any) => void;
+  
+  // Backend Communication
+  syncButtonState: (buttonId: string) => Promise<void>;
+  syncAllButtonStates: () => Promise<void>;
+  buttonService: any; // ButtonService instance
 
   // Align tool actions
   setAlignMode: (mode: 'vertex' | 'edge' | 'face' | 'center' | null) => void;
@@ -232,6 +251,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   gridSize: 100, // 100mm grid
   snapDistance: 10, // 10mm snap threshold
   temporaryOrigin: null,
+
+  // Button Management System defaults
+  buttonStates: {},
+  buttonActions: {},
+  buttonService: null, // Will be initialized when needed
 
   // Align tool defaults
   alignMode: null,
@@ -984,7 +1008,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   // Import 3D model from file
-  importModel: async (file: File, fileHandle?: any) => {
+  importModel: async (file: File, meshFiles?: File[], fileHandle?: any) => {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     if (!scene) return;
@@ -995,24 +1019,61 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     // Check if this is a zip file
     const { isZipFile, loadURDFFromZip } = await import('../../loaders/urdf/ZipURDFLoader');
-    
+
     if (isZipFile(file)) {
       console.log(`[File Import] Zip file detected: ${file.name}`);
       loading.start('Extracting zip file...', 'uploading');
-      
+
       try {
-        const result = await loadURDFFromZip(file);
-        
-        if (!result.success || !result.urdfFile) {
-          throw new Error(result.error || 'Failed to extract URDF from zip');
+        // Try URDF first
+        const urdfResult = await loadURDFFromZip(file);
+
+        if (urdfResult.success && urdfResult.urdfFile) {
+          console.log(`[File Import] Successfully extracted URDF and ${urdfResult.meshFiles.length} mesh files from zip`);
+
+          // Load the URDF with the extracted mesh files
+          await get().loadURDFWithMeshes(urdfResult.urdfFile, urdfResult.meshFiles, scene, tree, assetsNode, registry);
+          return;
         }
-        
-        console.log(`[File Import] Successfully extracted URDF and ${result.meshFiles.length} mesh files from zip`);
-        
-        // Load the URDF with the extracted mesh files
-        await get().loadURDFWithMeshes(result.urdfFile, result.meshFiles, scene, tree, assetsNode, registry);
-        return;
-        
+
+        // No URDF found, try MJCF
+        console.log(`[File Import] No URDF found in ZIP, trying MJCF...`);
+
+        // Import MJCF loader
+        const { loadMJCFFromFile } = await import('../../loaders/mjcf/MJCFLoader');
+
+        try {
+          // MJCF loader will handle ZIP extraction internally
+          const mjcfResult = await loadMJCFFromFile(file, scene);
+
+          if (mjcfResult.success && mjcfResult.meshes.length > 0) {
+            console.log(`[File Import] Successfully loaded MJCF from ZIP: ${mjcfResult.meshes.length} meshes`);
+
+          // Add meshes to scene
+          for (const mesh of mjcfResult.meshes) {
+            mesh.parent = assetsNode;
+            const node = tree.createNode('mesh', mesh.name, assetsNode.id);
+            // Note: Mesh registration would need to be implemented in EntityRegistry
+          }
+
+          // Add root nodes
+          for (const root of mjcfResult.rootNodes) {
+            root.parent = assetsNode;
+            const node = tree.createNode('transform', root.name, assetsNode.id);
+            // Note: Transform node registration would need to be implemented in EntityRegistry
+          }
+
+            loading.end();
+            toast.success(`Loaded ${mjcfResult.meshes.length} meshes from MJCF`);
+            return;
+          }
+        } catch (mjcfError) {
+          console.log(`[File Import] MJCF loading failed:`, mjcfError);
+          // Continue to throw the generic error below
+        }
+
+        throw new Error('No valid URDF or MJCF found in ZIP archive');
+
       } catch (error) {
         console.error('[File Import] Error loading zip file:', error);
         loading.end();
@@ -1072,9 +1133,48 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         rootNodes = result.rootNodes;
         deviceEntity = result.deviceEntity;
       } else {
-        const result = await loadModelFromFile(file, scene);
-        meshes = result.meshes;
-        rootNodes = result.rootNodes;
+      console.log('[EditorStore] Loading file with loadModelFromFile:', file.name, 'Extension:', file.name.substring(file.name.lastIndexOf('.')));
+      if (meshFiles && meshFiles.length > 0) {
+        console.log('[EditorStore] Passing', meshFiles.length, 'mesh files to loader');
+      }
+      const result = await loadModelFromFile(file, scene, meshFiles);
+      console.log('[EditorStore] loadModelFromFile result:', result);
+      console.log('[EditorStore] Meshes count:', result.meshes.length);
+      console.log('[EditorStore] Root nodes count:', result.rootNodes.length);
+      
+      // Debug: Log mesh details for MJCF files
+      if (file.name.endsWith('.xml')) {
+        console.log('[EditorStore] MJCF Debug - Mesh Details:');
+        result.meshes.forEach((mesh, index) => {
+          console.log(`[EditorStore] Mesh ${index}:`, {
+            name: mesh.name,
+            enabled: mesh.isEnabled(),
+            visible: mesh.isVisible,
+            position: `(${mesh.position.x.toFixed(2)}, ${mesh.position.y.toFixed(2)}, ${mesh.position.z.toFixed(2)})`,
+            parent: mesh.parent ? mesh.parent.name : 'none',
+            material: mesh.material ? mesh.material.name : 'none',
+            uniqueId: mesh.uniqueId,
+            verticesCount: mesh.getTotalVertices(),
+            boundingInfo: mesh.getBoundingInfo() ? 'exists' : 'missing',
+            metadata: mesh.metadata
+          });
+        });
+        
+        console.log('[EditorStore] MJCF Debug - Root Node Details:');
+        result.rootNodes.forEach((node, index) => {
+          console.log(`[EditorStore] Root Node ${index}:`, {
+            name: node.name,
+            enabled: node.isEnabled(),
+            position: `(${node.position.x.toFixed(2)}, ${node.position.y.toFixed(2)}, ${node.position.z.toFixed(2)})`,
+            childrenCount: node.getChildren().length,
+            uniqueId: node.uniqueId,
+            metadata: node.metadata
+          });
+        });
+      }
+      
+      meshes = result.meshes;
+      rootNodes = result.rootNodes;
       }
 
       loading.update('Processing geometry...', 50);
@@ -1114,9 +1214,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         const children = getAllChildren(node);
 
         // Skip __root__ and duplicate filename nodes - process children directly
+        // But don't skip MJCF root nodes as they contain the actual geometry
         if (node.name === '__root__' ||
             node.name.startsWith('__root') ||
-            node.name === modelName) {
+            (node.name === modelName && node.metadata?.sourceFormat !== 'mjcf')) {
           for (const child of children) {
             buildTreeForNode(child, parentNodeId, depth);
           }
@@ -1309,9 +1410,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         const children = getAllChildren(node);
 
         // Skip __root__ and duplicate filename nodes - process children directly
+        // But don't skip MJCF root nodes as they contain the actual geometry
         if (node.name === '__root__' ||
             node.name.startsWith('__root') ||
-            node.name === modelName) {
+            (node.name === modelName && node.metadata?.sourceFormat !== 'mjcf')) {
           for (const child of children) {
             buildTreeForNode(child, parentNodeId, depth);
           }
@@ -1906,6 +2008,91 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setTemporaryOrigin: (origin: { x: number; y: number; z: number } | null) =>
     set({ temporaryOrigin: origin }),
   clearTemporaryOrigin: () => set({ temporaryOrigin: null }),
+
+  // Button Management System Implementation
+  setButtonState: (buttonId: string, value: any) => {
+    console.log(`[EditorStore] Setting button state: ${buttonId} =`, value);
+    set(state => ({
+      buttonStates: {
+        ...state.buttonStates,
+        [buttonId]: value
+      }
+    }));
+  },
+  
+  getButtonState: (buttonId: string) => {
+    const state = get();
+    const value = state.buttonStates[buttonId];
+    console.log(`[EditorStore] Getting button state: ${buttonId} =`, value);
+    return value;
+  },
+  
+  registerButtonAction: (buttonId: string, action: (value: any) => void) => {
+    console.log(`[EditorStore] Registering button action: ${buttonId}`);
+    set(state => ({
+      buttonActions: {
+        ...state.buttonActions,
+        [buttonId]: action
+      }
+    }));
+  },
+  
+  executeButtonAction: (buttonId: string, value?: any) => {
+    const state = get();
+    const action = state.buttonActions[buttonId];
+    if (action) {
+      console.log(`[EditorStore] Executing button action: ${buttonId} with value:`, value);
+      action(value);
+    } else {
+      console.warn(`[EditorStore] No action registered for button: ${buttonId}`);
+    }
+  },
+
+  // Backend Communication Implementation
+  syncButtonState: async (buttonId: string) => {
+    try {
+      const state = get();
+      if (state.buttonService) {
+        const backendState = await state.buttonService.getButtonState(buttonId);
+        if (backendState) {
+          set(state => ({
+            buttonStates: {
+              ...state.buttonStates,
+              [buttonId]: backendState.value
+            }
+          }));
+          console.log(`[EditorStore] Synced button state from backend: ${buttonId} = ${backendState.value}`);
+        }
+      }
+    } catch (error) {
+      console.error(`[EditorStore] Failed to sync button state ${buttonId}:`, error);
+    }
+  },
+
+  syncAllButtonStates: async () => {
+    try {
+      const state = get();
+      if (state.buttonService) {
+        const backendStates = await state.buttonService.getAllButtonStates();
+        const newStates: { [key: string]: any } = {};
+        
+        backendStates.forEach((backendState: any) => {
+          newStates[backendState.id] = backendState.value;
+        });
+        
+        set(state => ({
+          buttonStates: {
+            ...state.buttonStates,
+            ...newStates
+          }
+        }));
+        
+        console.log(`[EditorStore] Synced ${backendStates.length} button states from backend`);
+      }
+    } catch (error) {
+      console.error('[EditorStore] Failed to sync all button states:', error);
+    }
+  },
 
   // Align tool setters
   setAlignMode: (mode) => {

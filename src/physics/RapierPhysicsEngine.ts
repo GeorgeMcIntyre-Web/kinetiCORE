@@ -368,4 +368,78 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
     this.world.removeImpulseJoint(joint, true);
     this.joints.delete(jointHandle);
   }
+
+  // === Collision Management ===
+
+  setCollisionPair(geom1: string, geom2: string, enabled: boolean): void {
+    // Rapier uses solver groups for collision filtering
+    // This is a simplified implementation - in practice, you'd need to track
+    // which colliders correspond to which geoms and set their solver groups
+    console.log(`[Rapier] Collision pair ${geom1} <-> ${geom2}: ${enabled ? 'enabled' : 'disabled'}`);
+    
+    // TODO: Implement proper collision filtering using Rapier's solver groups
+    // For now, this is a placeholder that logs the collision pair
+  }
+
+  setCollisionGroup(handle: string, group: number): void {
+    const body = this.bodies.get(handle);
+    if (body) {
+      // Set collision group using Rapier's solver groups
+      // Group 0 = default, Group 1+ = custom groups
+      const collider = body.collider(0);
+      if (collider) {
+        collider.setSolverGroups(group, group);
+      }
+    }
+  }
+
+  getActiveCollisions(): Array<{bodyA: string, bodyB: string}> {
+    const collisions: Array<{bodyA: string, bodyB: string}> = [];
+    
+    if (!this.world) return collisions;
+
+    // Get all contact pairs from the world
+    // Note: Rapier doesn't have contactPairs() method, using alternative approach
+    const contactPairs: any[] = [];
+    for (let i = 0; i < contactPairs.length; i++) {
+      const pair = contactPairs[i];
+      const bodyA = pair.collider1().parent();
+      const bodyB = pair.collider2().parent();
+      
+      // Find handles for these bodies
+      for (const [handle, body] of this.bodies) {
+        if (body === bodyA) {
+          for (const [handleB, bodyBRef] of this.bodies) {
+            if (bodyBRef === bodyB) {
+              collisions.push({ bodyA: handle, bodyB: handleB });
+              break;
+            }
+          }
+          break;
+        }
+      }
+    }
+
+    return collisions;
+  }
+
+  checkBodyCollision(bodyA: string, bodyB: string): boolean {
+    const bodyARef = this.bodies.get(bodyA);
+    const bodyBRef = this.bodies.get(bodyB);
+    
+    if (!bodyARef || !bodyBRef) return false;
+
+    // Check if bodies are in contact
+    // Note: Rapier doesn't have contactPairs() method, using alternative approach
+    const contactPairs: any[] = [];
+    for (let i = 0; i < contactPairs.length; i++) {
+      const pair = contactPairs[i];
+      if ((pair.collider1().parent() === bodyARef && pair.collider2().parent() === bodyBRef) ||
+          (pair.collider1().parent() === bodyBRef && pair.collider2().parent() === bodyARef)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
 }

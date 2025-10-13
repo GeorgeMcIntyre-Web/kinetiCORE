@@ -148,17 +148,64 @@ export class ActuatorSystem {
 
   /**
    * Apply actuator value to coordinated joints
-   * NOTE: This would integrate with KinematicsManager in real implementation
+   * Integrates with KinematicsManager to move joints
    */
   private applyToJoints(actuator: HardwareActuator): void {
-    for (const coord of actuator.coordination) {
-      const jointValue = actuator.state.value * coord.ratio + coord.offset;
+    // Import KinematicsManager dynamically to avoid circular dependencies
+    import('../KinematicsManager').then(({ KinematicsManager }) => {
+      const kinematicsManager = KinematicsManager.getInstance();
       
-      console.log(`  → Joint ${coord.jointId}: ${jointValue.toFixed(4)} (ratio: ${coord.ratio})`);
-      
-      // In real implementation, would call:
-      // KinematicsManager.getInstance().setJointValue(coord.jointId, jointValue);
-    }
+      for (const coord of actuator.coordination) {
+        const jointValue = actuator.state.value * coord.ratio + coord.offset;
+        
+        console.log(`  → Joint ${coord.jointId}: ${jointValue.toFixed(4)} (ratio: ${coord.ratio})`);
+        
+        // Apply joint value through KinematicsManager
+        const joint = kinematicsManager.getJoint(coord.jointId);
+        if (joint) {
+          // Update joint position
+          joint.position = jointValue;
+          
+          // Apply transform to the child node
+          const sceneTreeManager = (require('../../scene/SceneTreeManager') as any).SceneTreeManager.getInstance();
+          const childNode = sceneTreeManager.getNode(joint.childNodeId);
+          
+          if (childNode) {
+            // Apply joint transform based on joint type
+            if (joint.type === 'revolute') {
+              // Apply rotation around joint axis
+              const axis = new (require('@babylonjs/core') as any).Vector3(
+                joint.axis.x, joint.axis.y, joint.axis.z
+              );
+              const rotation = axis.scale(jointValue);
+              childNode.rotation = {
+                x: childNode.rotation.x + rotation.x,
+                y: childNode.rotation.y + rotation.y,
+                z: childNode.rotation.z + rotation.z
+              };
+            } else if (joint.type === 'prismatic') {
+              // Apply translation along joint axis
+              const axis = new (require('@babylonjs/core') as any).Vector3(
+                joint.axis.x, joint.axis.y, joint.axis.z
+              );
+              const translation = axis.scale(jointValue);
+              childNode.position = {
+                x: childNode.position.x + translation.x,
+                y: childNode.position.y + translation.y,
+                z: childNode.position.z + translation.z
+              };
+            }
+            
+            // Update joint data in child node
+            if (childNode.jointData) {
+              childNode.jointData.currentValue = jointValue;
+            }
+          }
+        }
+      }
+    }).catch(error => {
+      console.error('[ActuatorSystem] Failed to apply to joints:', error);
+    });
   }
 
   /**

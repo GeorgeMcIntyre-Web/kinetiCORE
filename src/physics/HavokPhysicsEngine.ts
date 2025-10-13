@@ -375,4 +375,60 @@ export class HavokPhysicsEngine implements IPhysicsEngine {
       console.log(`[HavokPhysics] Removed joint: ${jointHandle}`);
     }
   }
+
+  // === Collision Management ===
+
+  /**
+   * Define collision pair (which geoms can collide)
+   */
+  setCollisionPair(geom1: string, geom2: string, enabled: boolean): void {
+    // Havok uses collision groups and masks for filtering
+    console.log(`[Havok] Collision pair ${geom1} <-> ${geom2}: ${enabled ? 'enabled' : 'disabled'}`);
+    
+    // TODO: Implement proper collision filtering using Havok's collision groups
+    // For now, this is a placeholder that logs the collision pair
+  }
+
+  /**
+   * Set collision group for a body
+   */
+  setCollisionGroup(handle: string, group: number): void {
+    const body = this.bodyHandles.get(handle);
+    if (body) {
+      // Set collision group using Havok's collision groups
+      // This would typically involve setting collisionFilterGroup and collisionFilterMask
+      console.log(`[Havok] Set collision group ${group} for body ${handle}`);
+    }
+  }
+
+  /**
+   * Get all active collision pairs
+   */
+  getActiveCollisions(): Array<{bodyA: string, bodyB: string}> {
+    const collisions: Array<{bodyA: string, bodyB: string}> = [];
+    
+    if (!this.scene) return collisions;
+
+    // Havok collision detection would be implemented here
+    // This is a placeholder implementation
+    console.log('[Havok] Getting active collisions (placeholder)');
+    
+    return collisions;
+  }
+
+  /**
+   * Check collision between two specific bodies
+   */
+  checkBodyCollision(bodyA: string, bodyB: string): boolean {
+    const bodyARef = this.bodyHandles.get(bodyA);
+    const bodyBRef = this.bodyHandles.get(bodyB);
+    
+    if (!bodyARef || !bodyBRef) return false;
+
+    // Havok collision checking would be implemented here
+    // This is a placeholder implementation
+    console.log(`[Havok] Checking collision between ${bodyA} and ${bodyB} (placeholder)`);
+    
+    return false;
+  }
 }

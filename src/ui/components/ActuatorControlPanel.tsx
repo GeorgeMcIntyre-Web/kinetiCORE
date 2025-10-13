@@ -1,313 +1,431 @@
 /**
  * Actuator Control Panel
- * Professional control interface for hardware actuators
- * Asset Library styling with real-time feedback
+ * Owner: Edwin (UI Lead)
+ * 
+ * Device-specific actuator controls with sliders, quick actions, and real-time status
+ * Follows the systematic button process and design system
  */
 
 import { useState, useEffect } from 'react';
-import { Power, PowerOff, Home, AlertTriangle, RefreshCw } from 'lucide-react';
-import { KinematicsManager } from '../../kinematics/KinematicsManager';
-import type { HardwareActuator } from '../../kinematics/device/UnifiedDeviceDefinition';
-import './ActuatorControlPanel.css';
+import { Play, Square, AlertTriangle, Thermometer, Zap, Grip } from 'lucide-react';
+import { ButtonTemplate } from './buttons/ButtonTemplate';
 
-interface ActuatorControlPanelProps {
-  onClose?: () => void;
+export interface ActuatorState {
+  deviceId: string;
+  deviceName: string;
+  deviceType: 'gripper' | 'valve' | 'fixture';
+  state: 'idle' | 'moving' | 'grasping' | 'clamped' | 'error';
+  position: number; // 0-100%
+  force: number; // Current force in N
+  temperature: number; // Temperature in °C
+  voltage: number; // Voltage in V
+  isEnabled: boolean;
+  faultCode?: number;
+  faultMessage?: string;
 }
 
-export function ActuatorControlPanel({ onClose }: ActuatorControlPanelProps) {
-  const [actuators, setActuators] = useState<HardwareActuator[]>([]);
-  const [systemStatus, setSystemStatus] = useState({
-    totalActuators: 0,
-    enabledActuators: 0,
-    faultedActuators: 0,
-    groups: 0,
-  });
+export interface JointState {
+  jointId: string;
+  jointName: string;
+  position: number; // Current position in radians or mm
+  velocity: number; // Current velocity
+  torque: number; // Current torque/force
+  isMoving: boolean;
+}
 
-  const kinematicsManager = KinematicsManager.getInstance();
-  const actuatorSystem = kinematicsManager.getActuatorSystem();
+// Mock data - in real implementation, this would come from ActuatorSystem
+const MOCK_ACTUATOR_STATE: ActuatorState = {
+  deviceId: 'schunk-pgn-plus-125',
+  deviceName: 'Schunk PGN-Plus 125',
+  deviceType: 'gripper',
+  state: 'idle',
+  position: 45,
+  force: 12.3,
+  temperature: 32,
+  voltage: 24.1,
+  isEnabled: true
+};
 
+const MOCK_JOINT_STATES: JointState[] = [
+  {
+    jointId: 'finger_1_joint',
+    jointName: 'Finger 1 Joint',
+    position: 0.45,
+    velocity: 0.0,
+    torque: 2.1,
+    isMoving: false
+  },
+  {
+    jointId: 'finger_2_joint',
+    jointName: 'Finger 2 Joint',
+    position: 0.45,
+    velocity: 0.0,
+    torque: 2.1,
+    isMoving: false
+  }
+];
+
+export function ActuatorControlPanel() {
+  const [actuatorState, setActuatorState] = useState<ActuatorState>(MOCK_ACTUATOR_STATE);
+  const [jointStates] = useState<JointState[]>(MOCK_JOINT_STATES);
+  const [manualPosition, setManualPosition] = useState(actuatorState.position);
+  const [manualForce, setManualForce] = useState(50);
+  const [manualSpeed, setManualSpeed] = useState(50);
+
+  // Update manual position when actuator state changes
   useEffect(() => {
-    // Load actuators
-    loadActuators();
+    setManualPosition(actuatorState.position);
+  }, [actuatorState.position]);
 
-    // Set up polling for status updates (only if there are actuators)
-    const interval = setInterval(() => {
-      const allActuators = actuatorSystem.getAllActuators();
-      if (allActuators.length > 0) {
-        loadActuators();
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const loadActuators = () => {
-    const allActuators = actuatorSystem.getAllActuators();
-    setActuators(allActuators);
-
-    const status = actuatorSystem.getSystemStatus();
-    setSystemStatus(status);
-  };
-
-  const handleToggle = (actuatorId: string, enabled: boolean) => {
-    actuatorSystem.sendCommand({
-      actuatorId,
-      command: enabled ? 'disable' : 'enable',
-    });
-    loadActuators();
-  };
-
-  const handleValueChange = (actuatorId: string, value: number) => {
-    const actuator = actuators.find(a => a.id === actuatorId);
-    if (!actuator) return;
-
-    if (!actuator.state.enabled) {
-      console.warn('Actuator is disabled');
-      return;
+  const handleQuickAction = (action: string) => {
+    console.log(`[ActuatorControlPanel] Quick action: ${action}`);
+    
+    switch (action) {
+      case 'open':
+        setActuatorState(prev => ({ ...prev, state: 'moving' }));
+        // Simulate opening
+        setTimeout(() => {
+          setActuatorState(prev => ({ ...prev, state: 'idle', position: 0 }));
+        }, 1000);
+        break;
+        
+      case 'close':
+        setActuatorState(prev => ({ ...prev, state: 'moving' }));
+        // Simulate closing
+        setTimeout(() => {
+          setActuatorState(prev => ({ ...prev, state: 'grasping', position: 100 }));
+        }, 1000);
+        break;
+        
+      case 'home':
+        setActuatorState(prev => ({ ...prev, state: 'moving' }));
+        // Simulate homing
+        setTimeout(() => {
+          setActuatorState(prev => ({ ...prev, state: 'idle', position: 0 }));
+        }, 1500);
+        break;
+        
+      case 'emergency_stop':
+        setActuatorState(prev => ({ ...prev, state: 'error', isEnabled: false }));
+        break;
     }
-
-    actuatorSystem.sendCommand({
-      actuatorId,
-      command: 'set_value',
-      value,
-    });
-
-    // Trigger re-render
-    loadActuators();
   };
 
-  const handleHome = (actuatorId: string) => {
-    actuatorSystem.sendCommand({
-      actuatorId,
-      command: 'home',
-    });
-    loadActuators();
-  };
-
-  const handleResetFault = (actuatorId: string) => {
-    actuatorSystem.sendCommand({
-      actuatorId,
-      command: 'reset_fault',
-    });
-    loadActuators();
-  };
-
-  const handleEmergencyStop = () => {
-    actuatorSystem.emergencyStop();
-    loadActuators();
-  };
-
-  const handleHomeAll = () => {
-    actuatorSystem.homeAll();
-    loadActuators();
-  };
-
-  const getActuatorIcon = (type: string): string => {
+  const handleManualControl = (type: 'position' | 'force' | 'speed', value: number) => {
+    console.log(`[ActuatorControlPanel] Manual ${type}: ${value}`);
+    
     switch (type) {
-      case 'pneumatic_cylinder':
-        return '💨';
-      case 'servo_motor':
-        return '🔄';
-      case 'linear_actuator':
-        return '↕️';
-      case 'stepper_motor':
-        return '⚙️';
-      case 'electric_gripper':
-        return '🤏';
-      case 'hydraulic_cylinder':
-        return '💧';
-      default:
-        return '⚡';
+      case 'position':
+        setManualPosition(value);
+        setActuatorState(prev => ({ ...prev, state: 'moving', position: value }));
+        break;
+        
+      case 'force':
+        setManualForce(value);
+        setActuatorState(prev => ({ ...prev, force: value * 0.5 })); // Convert to N
+        break;
+        
+      case 'speed':
+        setManualSpeed(value);
+        break;
+    }
+  };
+
+  const getStateColor = (state: ActuatorState['state']) => {
+    switch (state) {
+      case 'idle': return 'text-green-600 bg-green-100';
+      case 'moving': return 'text-blue-600 bg-blue-100';
+      case 'grasping': return 'text-yellow-600 bg-yellow-100';
+      case 'clamped': return 'text-purple-600 bg-purple-100';
+      case 'error': return 'text-red-600 bg-red-100';
+      default: return 'text-gray-600 bg-gray-100';
+    }
+  };
+
+  const getStateIcon = (state: ActuatorState['state']) => {
+    switch (state) {
+      case 'idle': return <Square className="w-4 h-4" />;
+      case 'moving': return <Play className="w-4 h-4" />;
+      case 'grasping': return <Grip className="w-4 h-4" />;
+      case 'clamped': return <Grip className="w-4 h-4" />;
+      case 'error': return <AlertTriangle className="w-4 h-4" />;
+      default: return <Square className="w-4 h-4" />;
+    }
+  };
+
+  const getDeviceIcon = (type: ActuatorState['deviceType']) => {
+    switch (type) {
+      case 'gripper': return <Grip className="w-5 h-5" />;
+      case 'valve': return <Zap className="w-5 h-5" />;
+      case 'fixture': return <Square className="w-5 h-5" />;
+      default: return <Square className="w-5 h-5" />;
     }
   };
 
   return (
-    <div className="actuator-panel">
-      <div className="panel-header">
-        <h2>Actuator Control</h2>
-        {onClose && (
-          <button className="close-button" onClick={onClose}>
-            ×
-          </button>
-        )}
-      </div>
-
-      {/* System Status */}
-      <div className="system-status">
-        <div className="status-card">
-          <div className="status-label">Total</div>
-          <div className="status-value">{systemStatus.totalActuators}</div>
-        </div>
-        <div className="status-card enabled">
-          <div className="status-label">Enabled</div>
-          <div className="status-value">{systemStatus.enabledActuators}</div>
-        </div>
-        <div className="status-card faulted">
-          <div className="status-label">Faulted</div>
-          <div className="status-value">{systemStatus.faultedActuators}</div>
-        </div>
-        <div className="status-card">
-          <div className="status-label">Groups</div>
-          <div className="status-value">{systemStatus.groups}</div>
-        </div>
-      </div>
-
-      {/* Global Controls */}
-      <div className="global-controls">
-        <button className="emergency-stop" onClick={handleEmergencyStop}>
-          <PowerOff size={18} />
-          Emergency Stop
-        </button>
-        <button className="home-all" onClick={handleHomeAll}>
-          <Home size={18} />
-          Home All
-        </button>
-      </div>
-
-      {/* Actuators List */}
-      <div className="panel-content">
-        {actuators.length === 0 ? (
-          <div className="empty-state">
-            <p>No actuators configured</p>
-            <p className="hint">Create a device with actuators to see controls here</p>
+    <div className="h-full flex flex-col bg-white dark:bg-gray-900">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center space-x-3">
+          {getDeviceIcon(actuatorState.deviceType)}
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Actuator Control
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {actuatorState.deviceName}
+            </p>
           </div>
-        ) : (
-          <div className="actuators-grid">
-            {actuators.map((actuator) => (
-              <div
-                key={actuator.id}
-                className={`actuator-card ${actuator.state.enabled ? 'enabled' : ''} ${
-                  actuator.state.fault ? 'faulted' : ''
-                }`}
-              >
-                {/* Card Header */}
-                <div className="card-header">
-                  <div className="actuator-title">
-                    <span className="actuator-icon">{getActuatorIcon(actuator.type)}</span>
-                    <span className="actuator-name">{actuator.name}</span>
-                  </div>
-                  <div className="status-badges">
-                    {actuator.state.enabled && (
-                      <span className="badge badge-enabled">ON</span>
-                    )}
-                    {actuator.state.fault && (
-                      <span className="badge badge-fault">FAULT</span>
-                    )}
+        </div>
+      </div>
+
+      {/* Device Status */}
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Device Status
+          </h3>
+          <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium ${getStateColor(actuatorState.state)}`}>
+            {getStateIcon(actuatorState.state)}
+            <span className="capitalize">{actuatorState.state}</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Position:</span>
+              <span className="font-medium text-gray-900 dark:text-white">
+                {actuatorState.position.toFixed(1)}%
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Force:</span>
+              <span className="font-medium text-gray-900 dark:text-white">
+                {actuatorState.force.toFixed(1)} N
+              </span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Temperature:</span>
+              <span className="font-medium text-gray-900 dark:text-white flex items-center">
+                <Thermometer className="w-3 h-3 mr-1" />
+                {actuatorState.temperature}°C
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Voltage:</span>
+              <span className="font-medium text-gray-900 dark:text-white flex items-center">
+                <Zap className="w-3 h-3 mr-1" />
+                {actuatorState.voltage.toFixed(1)} V
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          Quick Actions
+        </h3>
+        <div className="grid grid-cols-3 gap-2">
+          <ButtonTemplate
+            id="actuator_open"
+            label="Open"
+            icon="play"
+            action="Open gripper"
+            stateKey="actuatorOpen"
+            initialState={false}
+            stateType="boolean"
+            variant="secondary"
+            size="sm"
+            disabled={!actuatorState.isEnabled || actuatorState.state === 'moving'}
+            ariaLabel="Open gripper"
+            callback={() => handleQuickAction('open')}
+          />
+          <ButtonTemplate
+            id="actuator_close"
+            label="Close"
+            icon="square"
+            action="Close gripper"
+            stateKey="actuatorClose"
+            initialState={false}
+            stateType="boolean"
+            variant="secondary"
+            size="sm"
+            disabled={!actuatorState.isEnabled || actuatorState.state === 'moving'}
+            ariaLabel="Close gripper"
+            callback={() => handleQuickAction('close')}
+          />
+          <ButtonTemplate
+            id="actuator_home"
+            label="Home"
+            icon="home"
+            action="Home gripper"
+            stateKey="actuatorHome"
+            initialState={false}
+            stateType="boolean"
+            variant="secondary"
+            size="sm"
+            disabled={!actuatorState.isEnabled || actuatorState.state === 'moving'}
+            ariaLabel="Home gripper"
+            callback={() => handleQuickAction('home')}
+          />
+        </div>
+        
+        <div className="mt-3">
+          <ButtonTemplate
+            id="actuator_emergency_stop"
+            label="Emergency Stop"
+            icon="alert-triangle"
+            action="Emergency stop actuator"
+            stateKey="actuatorEmergencyStop"
+            initialState={false}
+            stateType="boolean"
+            variant="danger"
+            size="sm"
+            ariaLabel="Emergency stop actuator"
+            callback={() => handleQuickAction('emergency_stop')}
+          />
+        </div>
+      </div>
+
+      {/* Manual Control */}
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          Manual Control
+        </h3>
+        
+        <div className="space-y-4">
+          {/* Position Control */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm text-gray-600 dark:text-gray-400">
+                Position
+              </label>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {manualPosition.toFixed(1)}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={manualPosition}
+              onChange={(e) => handleManualControl('position', Number(e.target.value))}
+              disabled={!actuatorState.isEnabled}
+              className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+            />
+          </div>
+
+          {/* Force Control */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm text-gray-600 dark:text-gray-400">
+                Force
+              </label>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {manualForce.toFixed(1)}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={manualForce}
+              onChange={(e) => handleManualControl('force', Number(e.target.value))}
+              disabled={!actuatorState.isEnabled}
+              className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+            />
+          </div>
+
+          {/* Speed Control */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm text-gray-600 dark:text-gray-400">
+                Speed
+              </label>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {manualSpeed.toFixed(1)}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={manualSpeed}
+              onChange={(e) => handleManualControl('speed', Number(e.target.value))}
+              disabled={!actuatorState.isEnabled}
+              className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Joint States */}
+      <div className="flex-1 p-4 overflow-y-auto">
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          Joint States
+        </h3>
+        
+        <div className="space-y-3">
+          {jointStates.map(joint => (
+            <div
+              key={joint.jointId}
+              className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                  {joint.jointName}
+                </h4>
+                <div className={`w-2 h-2 rounded-full ${
+                  joint.isMoving ? 'bg-blue-500' : 'bg-gray-400'
+                }`} />
+              </div>
+              
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Position:</span>
+                  <div className="font-medium text-gray-900 dark:text-white">
+                    {joint.position.toFixed(3)} rad
                   </div>
                 </div>
-
-                {/* Actuator Type & Mode */}
-                <div className="actuator-meta">
-                  <span className="meta-item">{actuator.type.replace('_', ' ')}</span>
-                  <span className="meta-separator">•</span>
-                  <span className="meta-item">{actuator.controlMode}</span>
-                </div>
-
-                {/* Manufacturer Info */}
-                {actuator.manufacturer && (
-                  <div className="manufacturer-info">
-                    {actuator.manufacturer} {actuator.modelNumber}
-                  </div>
-                )}
-
-                {/* Value Control */}
-                <div className="control-section">
-                  <label>Control Value</label>
-                  <div className="slider-group">
-                    <input
-                      type="range"
-                      min={actuator.specs.ctrlRange.min}
-                      max={actuator.specs.ctrlRange.max}
-                      step={0.01}
-                      value={actuator.state.value}
-                      onChange={(e) =>
-                        handleValueChange(actuator.id, parseFloat(e.target.value))
-                      }
-                      disabled={!actuator.state.enabled || actuator.state.fault}
-                    />
-                    <span className="value">
-                      {actuator.state.value.toFixed(3)}
-                    </span>
-                  </div>
-                  <div className="range-labels">
-                    <span>{actuator.specs.ctrlRange.min}</span>
-                    <span>{actuator.specs.ctrlRange.max}</span>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Velocity:</span>
+                  <div className="font-medium text-gray-900 dark:text-white">
+                    {joint.velocity.toFixed(3)} rad/s
                   </div>
                 </div>
-
-                {/* Controlled Joints */}
-                {actuator.controlledJoints.length > 0 && (
-                  <div className="controlled-joints">
-                    <span className="joints-label">
-                      Controls: {actuator.controlledJoints.length} joint(s)
-                    </span>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Torque:</span>
+                  <div className="font-medium text-gray-900 dark:text-white">
+                    {joint.torque.toFixed(2)} Nm
                   </div>
-                )}
-
-                {/* Coordination Info */}
-                {actuator.coordination.length > 0 && (
-                  <div className="coordination-info">
-                    {actuator.coordination.map((coord, idx) => (
-                      <div key={idx} className="coord-item">
-                        <span className="coord-joint">{coord.jointId.substring(0, 12)}</span>
-                        <span className="coord-ratio">
-                          ×{coord.ratio.toFixed(2)}
-                          {coord.offset !== 0 && ` +${coord.offset.toFixed(2)}`}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Fault Message */}
-                {actuator.state.fault && actuator.state.faultCode && (
-                  <div className="fault-message">
-                    <AlertTriangle size={14} />
-                    <span>{actuator.state.faultCode}</span>
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="card-actions">
-                  <button
-                    className={`action-button ${actuator.state.enabled ? 'disable' : 'enable'}`}
-                    onClick={() => handleToggle(actuator.id, actuator.state.enabled)}
-                  >
-                    {actuator.state.enabled ? (
-                      <>
-                        <PowerOff size={14} />
-                        Disable
-                      </>
-                    ) : (
-                      <>
-                        <Power size={14} />
-                        Enable
-                      </>
-                    )}
-                  </button>
-                  <button
-                    className="action-button"
-                    onClick={() => handleHome(actuator.id)}
-                    disabled={!actuator.state.enabled}
-                  >
-                    <Home size={14} />
-                    Home
-                  </button>
-                  {actuator.state.fault && (
-                    <button
-                      className="action-button reset"
-                      onClick={() => handleResetFault(actuator.id)}
-                    >
-                      <RefreshCw size={14} />
-                      Reset
-                    </button>
-                  )}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
+        </div>
       </div>
+
+      {/* Error Display */}
+      {actuatorState.state === 'error' && (
+        <div className="p-4 border-t border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
+          <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
+            <AlertTriangle className="w-4 h-4" />
+            <span className="text-sm font-medium">
+              {actuatorState.faultMessage || 'Device error detected'}
+            </span>
+          </div>
+          {actuatorState.faultCode && (
+            <p className="text-xs text-red-500 dark:text-red-400 mt-1">
+              Error Code: {actuatorState.faultCode}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
