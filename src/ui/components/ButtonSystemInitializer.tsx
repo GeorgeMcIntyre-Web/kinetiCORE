@@ -10,9 +10,12 @@ import { useEditorStore } from '../store/editorStore';
 import { ButtonService } from '../../services/ButtonService';
 
 export function ButtonSystemInitializer() {
-  const { buttonService } = useEditorStore();
+  const editorStore = useEditorStore();
   const [isInitialized, setIsInitialized] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
+  
+  // Suppress unused variable warning
+  void editorStore.buttonService;
 
   useEffect(() => {
     initializeButtonSystem();

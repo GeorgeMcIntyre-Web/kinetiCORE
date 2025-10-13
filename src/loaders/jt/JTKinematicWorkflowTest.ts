@@ -6,6 +6,7 @@
 import { JTKinematicIntegrationService } from './JTKinematicIntegrationService';
 import { JTKinematicExtractor } from './JTKinematicExtractor';
 import * as BABYLON from '@babylonjs/core';
+import * as GUI from '@babylonjs/gui';
 
 export class JTKinematicWorkflowTest {
     private integrationService: JTKinematicIntegrationService;
@@ -14,6 +15,9 @@ export class JTKinematicWorkflowTest {
     constructor() {
         this.integrationService = new JTKinematicIntegrationService();
         this.kinematicExtractor = new JTKinematicExtractor();
+        
+        // Suppress unused variable warning
+        void this.integrationService;
     }
 
     /**
@@ -173,9 +177,12 @@ export class JTKinematicWorkflowTest {
     private async setupKinematicControls(kinematicData: any, meshes: BABYLON.AbstractMesh[], scene: BABYLON.Scene): Promise<void> {
         console.log('[JT Kinematic Test] Setting up kinematic controls...');
 
+        // Suppress unused parameter warning
+        void scene;
+
         // Create joint sliders for manual control
         const jointControls = kinematicData.joints.map((joint: any, index: number) => {
-            const slider = BABYLON.GUI.GUI.CreateSlider('joint_' + index);
+            const slider = new GUI.Slider('joint_' + index);
             slider.minimum = joint.limits.min;
             slider.maximum = joint.limits.max;
             slider.value = 0;
@@ -185,14 +192,14 @@ export class JTKinematicWorkflowTest {
             slider.top = 20 + (index * 30);
 
             // Add label
-            const label = new BABYLON.GUI.TextBlock('label_' + index, joint.name);
+            const label = new GUI.TextBlock('label_' + index, joint.name);
             label.left = 20;
             label.top = 5 + (index * 30);
             label.color = 'white';
             label.fontSize = 12;
 
             // Connect slider to mesh rotation
-            slider.onValueChangedObservable.add((value) => {
+            slider.onValueChangedObservable.add((value: number) => {
                 if (meshes[index]) {
                     const axis = new BABYLON.Vector3(joint.axis.x, joint.axis.y, joint.axis.z);
                     meshes[index].rotation = BABYLON.Vector3.Zero();
@@ -204,8 +211,8 @@ export class JTKinematicWorkflowTest {
         });
 
         // Add controls to advanced texture
-        const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI('UI');
-        jointControls.forEach(control => {
+        const advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI('UI');
+        jointControls.forEach((control: any) => {
             advancedTexture.addControl(control.slider);
             advancedTexture.addControl(control.label);
         });

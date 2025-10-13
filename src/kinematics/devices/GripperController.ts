@@ -52,7 +52,7 @@ export class GripperController {
   async open(speed: number = 1.0): Promise<void> {
     console.log(`[GripperController] Opening ${this.config.name} at speed ${speed}`);
     
-    this.isMoving = true;
+    this._isMoving = true;
     this.currentState = 'closing'; // Closing = opening in this context
     
     // Set actuator to open position
@@ -67,12 +67,12 @@ export class GripperController {
       // Simulate movement time based on speed
       setTimeout(() => {
         this.currentState = 'open';
-        this.isMoving = false;
+        this._isMoving = false;
         console.log(`[GripperController] ${this.config.name} opened`);
       }, this.calculateMovementTime(0, speed));
     } else {
       this.currentState = 'error';
-      this.isMoving = false;
+      this._isMoving = false;
     }
   }
 
@@ -82,7 +82,7 @@ export class GripperController {
   async close(force: number = 10.0): Promise<void> {
     console.log(`[GripperController] Closing ${this.config.name} with force ${force}N`);
     
-    this.isMoving = true;
+    this._isMoving = true;
     this.currentState = 'closing';
     
     // Set actuator to closed position
@@ -103,13 +103,13 @@ export class GripperController {
         // After grasp, transition to closed
         setTimeout(() => {
           this.currentState = 'closed';
-          this.isMoving = false;
+          this._isMoving = false;
           console.log(`[GripperController] ${this.config.name} closed`);
         }, 500);
       }, this.calculateMovementTime(1, this.config.speed));
     } else {
       this.currentState = 'error';
-      this.isMoving = false;
+      this._isMoving = false;
     }
   }
 
@@ -122,7 +122,7 @@ export class GripperController {
     
     console.log(`[GripperController] Setting ${this.config.name} to ${clampedPercent}%`);
     
-    this.isMoving = true;
+    this._isMoving = true;
     this.currentState = 'closing';
     
     const success = this.actuatorSystem.sendCommand({
@@ -142,12 +142,12 @@ export class GripperController {
         } else {
           this.currentState = 'grasping';
         }
-        this.isMoving = false;
+        this._isMoving = false;
         console.log(`[GripperController] ${this.config.name} moved to ${clampedPercent}%`);
       }, this.calculateMovementTime(position, this.config.speed));
     } else {
       this.currentState = 'error';
-      this.isMoving = false;
+      this._isMoving = false;
     }
   }
 
@@ -157,7 +157,7 @@ export class GripperController {
   emergencyStop(): void {
     console.log(`[GripperController] Emergency stop for ${this.config.name}`);
     
-    this.isMoving = false;
+    this._isMoving = false;
     this.currentState = 'error';
     
     // Disable actuator
@@ -181,7 +181,7 @@ export class GripperController {
     if (success) {
       this.currentState = 'open';
       this.targetPosition = 0;
-      this.isMoving = false;
+      this._isMoving = false;
     }
   }
 

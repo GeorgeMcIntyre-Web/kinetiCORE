@@ -35,7 +35,7 @@ export interface FixtureInfo {
 
 export class FixtureController {
   private actuatorSystem: ActuatorSystem;
-  // private kinematicsManager: KinematicsManager;
+  private kinematicsManager: KinematicsManager;
   private config: FixtureConfig;
   private currentState: FixtureState = 'open';
   private targetPosition: number = 0; // 0 = open, 1 = clamped
@@ -47,6 +47,9 @@ export class FixtureController {
     this.config = config;
     this.actuatorSystem = new ActuatorSystem();
     this.kinematicsManager = KinematicsManager.getInstance();
+    
+    // Suppress unused variable warning
+    void this.kinematicsManager;
     
     console.log(`[FixtureController] Initialized: ${config.name} (${config.type})`);
   }
@@ -62,7 +65,7 @@ export class FixtureController {
 
     console.log(`[FixtureController] Clamping ${this.config.name} with ${force}N`);
     
-    this.isMoving = true;
+    this._isMoving = true;
     this.currentState = 'clamping';
     
     const success = this.actuatorSystem.sendCommand({
@@ -77,12 +80,12 @@ export class FixtureController {
       // Simulate clamping sequence
       setTimeout(() => {
         this.currentState = 'clamped';
-        this.isMoving = false;
+        this._isMoving = false;
         console.log(`[FixtureController] ${this.config.name} clamped with ${force}N`);
       }, this.calculateClampTime(force));
     } else {
       this.currentState = 'error';
-      this.isMoving = false;
+      this._isMoving = false;
     }
   }
 
@@ -92,7 +95,7 @@ export class FixtureController {
   async release(): Promise<void> {
     console.log(`[FixtureController] Releasing ${this.config.name}`);
     
-    this.isMoving = true;
+    this._isMoving = true;
     this.currentState = 'releasing';
     
     const success = this.actuatorSystem.sendCommand({
@@ -106,12 +109,12 @@ export class FixtureController {
       
       setTimeout(() => {
         this.currentState = 'open';
-        this.isMoving = false;
+        this._isMoving = false;
         console.log(`[FixtureController] ${this.config.name} released`);
       }, 500); // Quick release
     } else {
       this.currentState = 'error';
-      this.isMoving = false;
+      this._isMoving = false;
     }
   }
 
@@ -124,7 +127,7 @@ export class FixtureController {
     
     console.log(`[FixtureController] Setting ${this.config.name} to ${clampedPercent}%`);
     
-    this.isMoving = true;
+    this._isMoving = true;
     this.currentState = 'clamping';
     
     const success = this.actuatorSystem.sendCommand({
@@ -144,12 +147,12 @@ export class FixtureController {
         } else {
           this.currentState = 'clamping';
         }
-        this.isMoving = false;
+        this._isMoving = false;
         console.log(`[FixtureController] ${this.config.name} moved to ${clampedPercent}%`);
       }, this.calculateClampTime(position * this.config.maxClampForce));
     } else {
       this.currentState = 'error';
-      this.isMoving = false;
+      this._isMoving = false;
     }
   }
 
@@ -168,7 +171,7 @@ export class FixtureController {
     if (success) {
       this.currentState = 'open';
       this.targetPosition = 0;
-      this.isMoving = false;
+      this._isMoving = false;
       this.safetyStatus = 'safe';
     } else {
       this.currentState = 'error';
@@ -222,7 +225,7 @@ export class FixtureController {
       clampPosition,
       workPieceDetected: this.workPieceDetected,
       safetyStatus: this.safetyStatus,
-      isMoving: this.isMoving
+      isMoving: this._isMoving
     };
   }
 

@@ -1051,15 +1051,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
           // Add meshes to scene
           for (const mesh of mjcfResult.meshes) {
-            mesh.parent = assetsNode;
-            const node = tree.createNode('mesh', mesh.name, assetsNode.id);
+            mesh.parent = assetsNode!;
+            tree.createNode('mesh', mesh.name, assetsNode!.id);
             // Note: Mesh registration would need to be implemented in EntityRegistry
           }
 
           // Add root nodes
           for (const root of mjcfResult.rootNodes) {
-            root.parent = assetsNode;
-            const node = tree.createNode('transform', root.name, assetsNode.id);
+            root.parent = assetsNode!;
+            tree.createNode('mesh', root.name, assetsNode!.id);
             // Note: Transform node registration would need to be implemented in EntityRegistry
           }
 

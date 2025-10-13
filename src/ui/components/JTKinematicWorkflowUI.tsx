@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-// import { JTKinematicWorkflowTest } from './JTKinematicWorkflowTest';
+import { JTKinematicWorkflowTest } from '../../loaders/jt/JTKinematicWorkflowTest';
 // import { JTKinematicIntegrationService } from './JTKinematicIntegrationService';
 import * as BABYLON from '@babylonjs/core';
 

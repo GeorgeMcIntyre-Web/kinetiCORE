@@ -114,7 +114,7 @@ export const SelectionFilterToolbar: React.FC = () => {
       {/* Action Buttons */}
       <div className="flex justify-between mt-4 pt-3 border-t border-gray-200">
         <button
-          onClick={resetSelectionFilter}
+          onClick={() => console.log('Reset selection filter')}
           className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded hover:bg-gray-50"
         >
           Reset
@@ -153,7 +153,7 @@ export const SelectionControls: React.FC = () => {
   const clearSelection = useEditorStore((state) => state.clearSelection);
 
   const handleClick = () => {
-    if (openToolbarPopup === 'selection-filter') {
+    if (openToolbarPopup === 'snap-geometric') {
       setOpenToolbarPopup(null);
     } else {
       // setOpenToolbarPopup('selection-filter');

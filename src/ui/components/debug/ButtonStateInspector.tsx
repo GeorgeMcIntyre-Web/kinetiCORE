@@ -9,15 +9,15 @@
 import { useEditorStore } from '../../store/editorStore';
 
 export function ButtonStateInspector() {
-  const { state } = useEditorStore();
+  const editorState = useEditorStore();
   
   // Only show in development
   if (process.env.NODE_ENV !== 'development') {
     return null;
   }
   
-  const buttonStates = state.buttonStates || {};
-  const buttonActions = state.buttonActions || {};
+  const buttonStates = editorState.buttonStates || {};
+  const buttonActions = editorState.buttonActions || {};
   
   return (
     <div className="fixed bottom-4 right-4 bg-black/90 text-white p-4 rounded-lg max-w-sm max-h-96 overflow-y-auto z-50">

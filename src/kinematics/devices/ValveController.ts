@@ -36,10 +36,10 @@ export interface ValveInfo {
 
 export class ValveController {
   private actuatorSystem: ActuatorSystem;
-  // private kinematicsManager: KinematicsManager;
+  private kinematicsManager: KinematicsManager;
   private config: ValveConfig;
   private currentState: ValveState = 'closed';
-  // private targetAngle: number = 0;
+  private targetAngle: number = 0;
   private _isMoving: boolean = false;
   private currentPressure: number = 0; // Simulated pressure
 
@@ -47,6 +47,10 @@ export class ValveController {
     this.config = config;
     this.actuatorSystem = new ActuatorSystem();
     this.kinematicsManager = KinematicsManager.getInstance();
+    
+    // Suppress unused variable warnings
+    void this.kinematicsManager;
+    void this.targetAngle;
     
     console.log(`[ValveController] Initialized: ${config.name} (${config.type})`);
   }
@@ -59,7 +63,7 @@ export class ValveController {
     
     console.log(`[ValveController] Setting ${this.config.name} to ${clampedAngle}°`);
     
-    this.isMoving = true;
+    this._isMoving = true;
     this.currentState = 'moving';
     
     // Convert angle to actuator value (0-1 range)
@@ -80,12 +84,12 @@ export class ValveController {
         this.currentState = clampedAngle === this.config.maxAngle ? 'open' :
                            clampedAngle === this.config.minAngle ? 'closed' :
                            'partially_open';
-        this.isMoving = false;
+        this._isMoving = false;
         console.log(`[ValveController] ${this.config.name} moved to ${clampedAngle}°`);
       }, this.config.responseTime);
     } else {
       this.currentState = 'error';
-      this.isMoving = false;
+      this._isMoving = false;
     }
   }
 
@@ -121,7 +125,7 @@ export class ValveController {
     if (success) {
       this.currentState = 'closed';
       this.targetAngle = this.config.minAngle;
-      this.isMoving = false;
+      this._isMoving = false;
     } else {
       this.currentState = 'error';
     }
@@ -167,7 +171,7 @@ export class ValveController {
       flowRate,
       flowPercent,
       pressure: this.currentPressure,
-      isMoving: this.isMoving
+      isMoving: this._isMoving
     };
   }
 

@@ -388,7 +388,7 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
       // Group 0 = default, Group 1+ = custom groups
       const collider = body.collider(0);
       if (collider) {
-        collider.setSolverGroups(group, group);
+        collider.setSolverGroups(group);
       }
     }
   }

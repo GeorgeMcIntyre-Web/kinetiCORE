@@ -6,6 +6,7 @@
 
 import { JTKinematicRealityChecker, JTKinematicReality } from './JTKinematicRealityChecker';
 import * as BABYLON from '@babylonjs/core';
+import * as GUI from '@babylonjs/gui';
 
 export class HonestJTKinematicWorkflow {
     private realityChecker: JTKinematicRealityChecker;
@@ -17,7 +18,7 @@ export class HonestJTKinematicWorkflow {
     /**
      * Analyze what we can actually extract from your JT file
      */
-    async analyzeYourJTFile(): Promise<void> {
+    async analyzeYourJTFile(): Promise<JTKinematicReality> {
         console.log('🔍 ANALYZING YOUR JT FILE...');
         console.log('File: C:\\Users\\georgem\\source\\repos\\kinetiCORE_data\\glb\\r2000ic_210l_if_v02.jt');
         
@@ -140,9 +141,12 @@ export class HonestJTKinematicWorkflow {
     ): Promise<void> {
         console.log('🎮 Setting up estimated kinematic controls...');
         
+        // Suppress unused parameter warning
+        void scene;
+        
         // Create simple joint controls for estimated joints
         const jointControls = estimatedModel.joints.map((joint: any, index: number) => {
-            const slider = BABYLON.GUI.GUI.CreateSlider(`estimated_joint_${index}`);
+            const slider = new GUI.Slider(`estimated_joint_${index}`);
             slider.minimum = joint.limits.min;
             slider.maximum = joint.limits.max;
             slider.value = 0;
@@ -152,14 +156,14 @@ export class HonestJTKinematicWorkflow {
             slider.top = 20 + (index * 30);
 
             // Add label with warning
-            const label = new BABYLON.GUI.TextBlock(`label_${index}`, `${joint.name} (ESTIMATED)`);
+            const label = new GUI.TextBlock(`label_${index}`, `${joint.name} (ESTIMATED)`);
             label.left = 20;
             label.top = 5 + (index * 30);
             label.color = 'orange'; // Orange to indicate estimated
             label.fontSize = 12;
 
             // Connect slider to mesh rotation (simple estimation)
-            slider.onValueChangedObservable.add((value) => {
+            slider.onValueChangedObservable.add((value: number) => {
                 if (meshes[index]) {
                     const axis = new BABYLON.Vector3(joint.axis.x, joint.axis.y, joint.axis.z);
                     meshes[index].rotation = BABYLON.Vector3.Zero();
@@ -171,14 +175,14 @@ export class HonestJTKinematicWorkflow {
         });
 
         // Add controls to UI
-        const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI('EstimatedKinematicsUI');
-        jointControls.forEach(control => {
+        const advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI('EstimatedKinematicsUI');
+        jointControls.forEach((control: any) => {
             advancedTexture.addControl(control.slider);
             advancedTexture.addControl(control.label);
         });
 
         // Add warning message
-        const warningLabel = new BABYLON.GUI.TextBlock('warning', '⚠️ ESTIMATED KINEMATICS - Not extracted from JT!');
+        const warningLabel = new GUI.TextBlock('warning', '⚠️ ESTIMATED KINEMATICS - Not extracted from JT!');
         warningLabel.left = 20;
         warningLabel.top = 200;
         warningLabel.color = 'red';

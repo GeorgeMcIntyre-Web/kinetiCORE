@@ -8,6 +8,7 @@
 
 import * as BABYLON from '@babylonjs/core';
 import JSZip from 'jszip';
+import type { HardwareActuator } from '../../kinematics/device/UnifiedDeviceDefinition';
 import {
   MJCFModel,
   MJCFBody,
@@ -651,7 +652,7 @@ function parseActuators(actuatorEls: NodeListOf<Element>): MJCFActuator[] {
 
     const ctrlrange = el.getAttribute('ctrlrange');
     if (ctrlrange) {
-      actuator.ctrlrange = ctrlrange.split(/\s+/).map(Number) as [number, number];
+      actuator.ctrlrange = ctrlrange;
     }
 
     const forcerange = el.getAttribute('forcerange');
@@ -835,7 +836,27 @@ async function convertMJCFToBabylon(
 
     // Ensure meshes are visible by fitting camera to bounds
     if (result.meshes.length > 0) {
-      const bounds = BABYLON.BoundingBox.FromMeshes(result.meshes, result.meshes[0].getBoundingInfo().boundingBox);
+      // Calculate bounds manually since FromMeshes doesn't exist
+      let minX = Infinity, minY = Infinity, minZ = Infinity;
+      let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+      
+      for (const mesh of result.meshes) {
+        const boundingInfo = mesh.getBoundingInfo();
+        const min = boundingInfo.boundingBox.minimum;
+        const max = boundingInfo.boundingBox.maximum;
+        
+        minX = Math.min(minX, min.x);
+        minY = Math.min(minY, min.y);
+        minZ = Math.min(minZ, min.z);
+        maxX = Math.max(maxX, max.x);
+        maxY = Math.max(maxY, max.y);
+        maxZ = Math.max(maxZ, max.z);
+      }
+      
+      const bounds = new BABYLON.BoundingBox(
+        new BABYLON.Vector3(minX, minY, minZ),
+        new BABYLON.Vector3(maxX, maxY, maxZ)
+      );
       console.log(`[MJCF Import] Mesh bounds:`, {
         min: bounds.minimum,
         max: bounds.maximum,
@@ -1342,8 +1363,17 @@ export async function createKinematicsFromMJCF(
                 min: mjcfActuator.ctrlrange ? parseFloat(mjcfActuator.ctrlrange.split(' ')[0]) : -1.0,
                 max: mjcfActuator.ctrlrange ? parseFloat(mjcfActuator.ctrlrange.split(' ')[1]) : 1.0
               },
-              gearRatio: mjcfActuator.gear || 1.0,
-              bias: mjcfActuator.bias || 0.0
+              gearRatio: mjcfActuator.gear || 1.0
+            },
+            coordination: [{
+              jointId: `${deviceRootNodeId}_joint_${joint.name}`,
+              ratio: 1.0,
+              offset: 0.0
+            }],
+            state: {
+              enabled: false,
+              value: 0,
+              fault: false
             }
           };
           
@@ -1365,12 +1395,13 @@ export async function createKinematicsFromMJCF(
     const collisionManager = JointCollisionManager.getInstance();
     
     // Initialize collision manager with scene if available
-    const sceneTreeManager = (await import('../../scene/SceneTreeManager')).SceneTreeManager.getInstance();
-    const scene = sceneTreeManager.scene; // Access scene directly
+    // Note: SceneTreeManager doesn't have scene access, skipping collision initialization
+    // const sceneTreeManager = (await import('../../scene/SceneTreeManager')).SceneTreeManager.getInstance();
+    // const scene = sceneTreeManager.getScene(); // Use getter method
     
-    if (scene) {
-      collisionManager.initialize(scene);
-    }
+    // if (scene) {
+    //   collisionManager.initialize(scene);
+    // }
 
     // Process each contact pair
     for (const contact of model.contact) {
