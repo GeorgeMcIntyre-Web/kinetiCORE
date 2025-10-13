@@ -40,10 +40,17 @@ const toFloatArr = (s: string | null) => {
   return vals;
 };
 
-const quatWXYZtoBabylon = (wxyz: number[]) => {
+/**
+ * Transform quaternion from MuJoCo Z-up coordinate system to Babylon.js Y-up coordinate system
+ * This applies the same coordinate system transformation as position: (x,y,z) → (x,z,y)
+ * For quaternions, this means swapping Y and Z components
+ */
+const transformQuaternionZupToYup = (wxyz: number[]) => {
   if (wxyz.length < 4) return Quaternion.Identity();
   const [w, x, y, z] = wxyz;
-  return new Quaternion(x, y, z, w);
+  // Transform from Z-up to Y-up: swap Y and Z components
+  // MuJoCo (w, x, y, z) → Babylon.js (w, x, z, y)
+  return new Quaternion(x, z, y, w);
 };
 
 const colorFromRGBA = (rgba: number[]) => {
@@ -278,7 +285,11 @@ const buildBodies = async (
     }
 
     const bodyQuat = toFloatArr(bodyEl.getAttribute("quat"));
-    if (bodyQuat !== null && bodyQuat.length >= 4) bodyNode.rotationQuaternion = quatWXYZtoBabylon(bodyQuat);
+    if (bodyQuat !== null && bodyQuat.length >= 4) {
+      // Transform quaternion from MuJoCo Z-up to Babylon.js Y-up coordinate system
+      bodyNode.rotationQuaternion = transformQuaternionZupToYup(bodyQuat);
+      console.log(`[MJCF Debug] Transformed body quaternion for ${name}: (${bodyQuat[0]}, ${bodyQuat[1]}, ${bodyQuat[2]}, ${bodyQuat[3]}) -> Z-up to Y-up`);
+    }
 
     // body-level scale (rare): MJCF bodies don't have scale; we only apply compilerScale
     if (compilerScale !== 1) multiplyScale(bodyNode, new Vector3(compilerScale, compilerScale, compilerScale));
@@ -316,7 +327,11 @@ const buildBodies = async (
       if (gpos !== null && gpos.length >= 3) geomNode.position.set(gpos[0], gpos[1], gpos[2]);
 
       const gquat = toFloatArr(geom.getAttribute("quat"));
-      if (gquat !== null && gquat.length >= 4) geomNode.rotationQuaternion = quatWXYZtoBabylon(gquat);
+      if (gquat !== null && gquat.length >= 4) {
+        // Transform quaternion from MuJoCo Z-up to Babylon.js Y-up coordinate system
+        geomNode.rotationQuaternion = transformQuaternionZupToYup(gquat);
+        console.log(`[MJCF Debug] Transformed geom quaternion for ${name}__geom_${meshRef}: (${gquat[0]}, ${gquat[1]}, ${gquat[2]}, ${gquat[3]}) -> Z-up to Y-up`);
+      }
 
       // Effective scale: compiler * mesh.scale * geom.scale
       let sx = compilerScale, sy = compilerScale, sz = compilerScale;
@@ -591,7 +606,11 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
         }
 
         const bodyQuat = toFloatArr(bodyEl.getAttribute("quat"));
-        if (bodyQuat !== null && bodyQuat.length >= 4) bodyNode.rotationQuaternion = quatWXYZtoBabylon(bodyQuat);
+        if (bodyQuat !== null && bodyQuat.length >= 4) {
+          // Transform quaternion from MuJoCo Z-up to Babylon.js Y-up coordinate system
+          bodyNode.rotationQuaternion = transformQuaternionZupToYup(bodyQuat);
+          console.log(`[MJCF Debug] Transformed body quaternion for ${name}: (${bodyQuat[0]}, ${bodyQuat[1]}, ${bodyQuat[2]}, ${bodyQuat[3]}) -> Z-up to Y-up`);
+        }
 
         // apply compiler scale on body node as scale (keeps mesh scale neutral)
         if (compilerScale !== 1) bodyNode.scaling.multiplyInPlace(new Vector3(compilerScale, compilerScale, compilerScale));
@@ -671,8 +690,8 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
           const jointQuat = toFloatArr(joint.getAttribute("quat"));
           if (jointQuat !== null && jointQuat.length >= 4) {
             // Transform joint quaternion from MuJoCo Z-up to Babylon.js Y-up coordinate system
-            const transformedQuat = quatWXYZtoBabylon(jointQuat);
-            console.log(`[MJCF Debug] Joint ${jointName} quaternion: (${jointQuat[0]}, ${jointQuat[1]}, ${jointQuat[2]}, ${jointQuat[3]}) -> applied to body`);
+            const transformedQuat = transformQuaternionZupToYup(jointQuat);
+            console.log(`[MJCF Debug] Joint ${jointName} quaternion: (${jointQuat[0]}, ${jointQuat[1]}, ${jointQuat[2]}, ${jointQuat[3]}) -> Z-up to Y-up`);
             
             // Apply joint quaternion to body node
             if (bodyNode.rotationQuaternion) {
@@ -716,7 +735,11 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
           if (gpos !== null && gpos.length >= 3) geomNode.position.set(gpos[0], gpos[1], gpos[2]);
 
           const gquat = toFloatArr(geom.getAttribute("quat"));
-          if (gquat !== null && gquat.length >= 4) geomNode.rotationQuaternion = quatWXYZtoBabylon(gquat);
+          if (gquat !== null && gquat.length >= 4) {
+            // Transform quaternion from MuJoCo Z-up to Babylon.js Y-up coordinate system
+            geomNode.rotationQuaternion = transformQuaternionZupToYup(gquat);
+            console.log(`[MJCF Debug] Transformed geom quaternion for ${name}__geom_${meshRef}: (${gquat[0]}, ${gquat[1]}, ${gquat[2]}, ${gquat[3]}) -> Z-up to Y-up`);
+          }
 
           // TEMPORARY FIX: Disable all scaling to prevent kinematic chain accumulation
           // TODO: Implement proper scaling that doesn't compound through hierarchy
