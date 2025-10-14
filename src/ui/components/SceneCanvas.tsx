@@ -149,22 +149,36 @@ export const SceneCanvas: React.FC = () => {
             const isDoubleClick = currentTime - lastClickTime < DOUBLE_CLICK_THRESHOLD;
             lastClickTime = currentTime;
 
-            // Handle double-click to set camera rotation center
-            if (isDoubleClick && pickResult.hit && pickResult.pickedPoint) {
-              const pickedPoint = pickResult.pickedPoint.clone();
-
-              // Set camera target to the picked point
-              if (camera instanceof BABYLON.ArcRotateCamera) {
-                BABYLON.Animation.CreateAndStartAnimation(
-                  'setCameraTarget',
-                  camera,
-                  'target',
-                  60,
-                  30,
-                  camera.target,
-                  pickedPoint,
-                  BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
-                );
+            // Handle double-click to zoom to clicked object
+            if (isDoubleClick && pickResult.hit && pickResult.pickedPoint && pickResult.pickedMesh) {
+              const mesh = pickResult.pickedMesh;
+              
+              // Ignore ground, grid overlay, axis meshes, and widget elements
+              if (
+                mesh.name !== 'ground' &&
+                mesh.name !== 'gridOverlay' &&
+                !mesh.name.startsWith('axis') &&
+                !mesh.name.startsWith('widget') &&
+                !mesh.name.startsWith('label') &&
+                mesh instanceof BABYLON.Mesh
+              ) {
+                // Zoom to the clicked mesh
+                sceneManager.zoomToMesh(mesh);
+              } else {
+                // For other objects, just set camera target to the picked point
+                const pickedPoint = pickResult.pickedPoint.clone();
+                if (camera instanceof BABYLON.ArcRotateCamera) {
+                  BABYLON.Animation.CreateAndStartAnimation(
+                    'setCameraTarget',
+                    camera,
+                    'target',
+                    60,
+                    30,
+                    camera.target,
+                    pickedPoint,
+                    BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+                  );
+                }
               }
               return; // Don't process as selection
             }

@@ -212,12 +212,14 @@ export class SceneManager {
 
         // Dynamic wheel precision: slower when far out, faster when close in
         // wheelPrecision = base * (radius / reference)
-        // At radius 15m (default): precision = 50 * (15 / 15) = 50 (baseline)
-        // At radius 100m (far): precision = 50 * (100 / 15) = 333 (slower)
-        // At radius 1m (close): precision = 50 * (1 / 15) = 3.3 (faster)
-        const basePrecision = 50;
+        // At radius 15m (default): precision = 20 * (15 / 15) = 20 (baseline)
+        // At radius 100m (far): precision = 20 * (100 / 15) = 133 (slower)
+        // At radius 1m (close): precision = 20 * (1 / 15) = 1.3 (faster)
+        const basePrecision = CAMERA_WHEEL_PRECISION;
         const referenceRadius = CAMERA_DEFAULT_RADIUS;
-        this.camera.wheelPrecision = basePrecision * (this.camera.radius / referenceRadius);
+        const calculatedPrecision = basePrecision * (this.camera.radius / referenceRadius);
+        // Set minimum precision to prevent extreme sensitivity when very close to objects
+        this.camera.wheelPrecision = Math.max(calculatedPrecision, 2.5);
       }
       this.scene?.render();
     });
@@ -375,8 +377,8 @@ export class SceneManager {
     const maxDimension = Math.max(size.x, size.y, size.z) * 2;
 
     // Calculate appropriate radius to fit the object
-    // Add padding factor (2.0x) to frame object nicely without clipping
-    const targetRadius = Math.max(maxDimension * 2.0, CAMERA_MIN_RADIUS);
+    // Add padding factor (0.6x) to frame object much closer for detailed inspection
+    const targetRadius = Math.max(maxDimension * 0.6, CAMERA_MIN_RADIUS);
 
     // Animate both target and radius
     BABYLON.Animation.CreateAndStartAnimation(
@@ -446,8 +448,8 @@ export class SceneManager {
     const maxDimension = Math.max(sizeX, sizeY, sizeZ);
 
     // Calculate appropriate radius to fit the object
-    // Add padding factor (2.0x) to frame object nicely without clipping
-    const targetRadius = Math.max(maxDimension * 2.0, CAMERA_MIN_RADIUS);
+    // Add padding factor (0.6x) to frame object much closer for detailed inspection
+    const targetRadius = Math.max(maxDimension * 0.6, CAMERA_MIN_RADIUS);
 
     // Animate both target and radius
     BABYLON.Animation.CreateAndStartAnimation(
