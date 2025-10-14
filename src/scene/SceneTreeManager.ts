@@ -307,6 +307,25 @@ export class SceneTreeManager {
   }
 
   /**
+   * Expand all parent nodes to reveal a specific node
+   * Useful for auto-expanding tree when selecting an object in the viewer
+   */
+  expandToNode(nodeId: string): void {
+    const node = this.nodes.get(nodeId);
+    if (!node) return;
+
+    // Recursively expand all parents
+    if (node.parentId) {
+      const parent = this.nodes.get(node.parentId);
+      if (parent && isContainerType(parent.type)) {
+        parent.expanded = true;
+        // Recursively expand grandparents
+        this.expandToNode(node.parentId);
+      }
+    }
+  }
+
+  /**
    * Delete node and its children
    */
   deleteNode(nodeId: string): boolean {

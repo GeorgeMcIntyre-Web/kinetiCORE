@@ -313,6 +313,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const node = tree.getNodeByBabylonMeshId(mesh.uniqueId.toString());
       if (node) {
         set({ selectedNodeId: node.id });
+        // Expand tree to reveal the selected node
+        tree.expandToNode(node.id);
+        window.dispatchEvent(new Event('scenetree-update'));
       }
     }
   },
@@ -483,11 +486,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         sceneManager.zoomToMesh(mesh);
       }
     }
-    // If it's a collection/TransformNode, find by name and zoom to all children
+    // If it's a collection/TransformNode, find by unique ID and zoom to all children
     else if (node.type === 'collection') {
-      const transformNode = scene.transformNodes.find(tn => tn.name === node.name);
-      if (transformNode) {
-        sceneManager.zoomToNode(transformNode);
+      // Use unique ID instead of name lookup for reliability
+      if (node.babylonTransformNodeId) {
+        const transformNode = scene.getTransformNodeByUniqueId(
+          parseInt(node.babylonTransformNodeId)
+        );
+        if (transformNode) {
+          sceneManager.zoomToNode(transformNode);
+        }
+      } else {
+        // Fallback to name lookup (legacy support for nodes without unique ID)
+        const transformNode = scene.transformNodes.find(tn => tn.name === node.name);
+        if (transformNode) {
+          sceneManager.zoomToNode(transformNode);
+        }
       }
     }
   },
@@ -1109,6 +1123,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             get().clearSelection();
             get().selectNode(modelCollection.id);
 
+            // Expand Assets node if not already expanded
+            if (assetsNode && !assetsNode.expanded) {
+              tree.toggleExpanded(assetsNode.id);
+            }
+
             // Expand the collection to show contents
             tree.toggleExpanded(modelCollection.id);
 
@@ -1327,6 +1346,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       get().clearSelection();
       get().selectNode(modelCollection.id);
 
+      // Expand Assets node if not already expanded
+      if (assetsNode && !assetsNode.expanded) {
+        tree.toggleExpanded(assetsNode.id);
+      }
+
       // Expand the collection to show contents
       tree.toggleExpanded(modelCollection.id);
 
@@ -1522,6 +1546,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Select the model collection
       get().clearSelection();
       get().selectNode(modelCollection.id);
+
+      // Expand Assets node if not already expanded
+      if (assetsNode && !assetsNode.expanded) {
+        tree.toggleExpanded(assetsNode.id);
+      }
 
       // Expand the collection to show contents
       tree.toggleExpanded(modelCollection.id);

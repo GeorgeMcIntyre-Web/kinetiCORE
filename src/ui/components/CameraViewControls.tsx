@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import { useEditorStore } from '../store/editorStore';
-import { Square, ArrowRight, ArrowUp, Box, Navigation } from 'lucide-react';
+import { Square, ArrowRight, ArrowUp, Box, Navigation, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { MoveObjectDialog } from './MoveObjectDialog';
 
 type CameraView = 'front' | 'back' | 'top' | 'bottom' | 'left' | 'right' | 'perspective';
@@ -166,6 +166,8 @@ export const CameraViewControls: React.FC = () => {
   const { setCameraView } = useCameraViewShortcuts();
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+  const camera = useEditorStore((state) => state.camera);
+  const zoomFit = useEditorStore((state) => state.zoomFit);
 
   const iconSize = 16; // Consistent icon size for all buttons
 
@@ -180,6 +182,38 @@ export const CameraViewControls: React.FC = () => {
   };
 
   const views: CameraView[] = ['front', 'right', 'top', 'perspective'];
+
+  const handleZoomIn = () => {
+    if (!camera || !(camera instanceof BABYLON.ArcRotateCamera)) return;
+    // Decrease radius by 20% to zoom in
+    const targetRadius = camera.radius * 0.8;
+    BABYLON.Animation.CreateAndStartAnimation(
+      'zoomIn',
+      camera,
+      'radius',
+      60,
+      15,
+      camera.radius,
+      targetRadius,
+      BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+    );
+  };
+
+  const handleZoomOut = () => {
+    if (!camera || !(camera instanceof BABYLON.ArcRotateCamera)) return;
+    // Increase radius by 25% to zoom out
+    const targetRadius = camera.radius * 1.25;
+    BABYLON.Animation.CreateAndStartAnimation(
+      'zoomOut',
+      camera,
+      'radius',
+      60,
+      15,
+      camera.radius,
+      targetRadius,
+      BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+    );
+  };
 
   return (
     <>
@@ -197,6 +231,32 @@ export const CameraViewControls: React.FC = () => {
             </button>
           );
         })}
+
+        {/* Separator */}
+        <div className="h-px bg-gray-700 my-1"></div>
+
+        {/* Zoom Controls */}
+        <button
+          onClick={handleZoomIn}
+          title="Zoom In"
+          className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center justify-center"
+        >
+          <ZoomIn size={iconSize} />
+        </button>
+        <button
+          onClick={handleZoomOut}
+          title="Zoom Out"
+          className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center justify-center"
+        >
+          <ZoomOut size={iconSize} />
+        </button>
+        <button
+          onClick={zoomFit}
+          title="Zoom to Fit All (Period key)"
+          className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors flex items-center justify-center"
+        >
+          <Maximize2 size={iconSize} />
+        </button>
 
         {/* Separator */}
         <div className="h-px bg-gray-700 my-1"></div>

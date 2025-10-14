@@ -227,6 +227,35 @@ export const SceneCanvas: React.FC = () => {
                 clearSelection();
               }
             }
+          } else if (evt.button === 1) {
+            // Middle click - zoom to clicked point
+            if (pickResult.hit && pickResult.pickedPoint) {
+              const pickedPoint = pickResult.pickedPoint.clone();
+              if (camera instanceof BABYLON.ArcRotateCamera) {
+                // Animate camera target to picked point
+                BABYLON.Animation.CreateAndStartAnimation(
+                  'setCameraTarget',
+                  camera,
+                  'target',
+                  60,
+                  30,
+                  camera.target,
+                  pickedPoint,
+                  BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+                );
+
+                // If middle-clicked on a mesh, zoom to fit it
+                if (pickResult.pickedMesh &&
+                    pickResult.pickedMesh.name !== 'ground' &&
+                    pickResult.pickedMesh.name !== 'gridOverlay' &&
+                    !pickResult.pickedMesh.name.startsWith('axis') &&
+                    !pickResult.pickedMesh.name.startsWith('widget') &&
+                    !pickResult.pickedMesh.name.startsWith('label') &&
+                    pickResult.pickedMesh instanceof BABYLON.Mesh) {
+                  sceneManager.zoomToMesh(pickResult.pickedMesh);
+                }
+              }
+            }
           } else if (evt.button === 2) {
             // Right click - context menu handled by onContextMenu prop
             evt.preventDefault();
