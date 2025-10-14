@@ -2,7 +2,8 @@ import "@babylonjs/loaders";
 import { OBJFileLoader } from "@babylonjs/loaders/OBJ";
 import {
   Scene, SceneLoader, TransformNode, Texture, PBRMaterial,
-  Color3, Vector3, Quaternion, AbstractMesh
+  Color3, Vector3, Quaternion, AbstractMesh,
+  StandardMaterial, DirectionalLight, HemisphericLight, MeshBuilder
 } from "@babylonjs/core";
 import JSZip from "jszip";
 
@@ -42,22 +43,15 @@ const toFloatArr = (s: string | null) => {
 
 /**
  * Transform quaternion from MuJoCo Z-up coordinate system to Babylon.js Y-up coordinate system
- * Uses conjugate rotation to properly transform between coordinate systems (matches URDF loader)
+ * Based on unitree_mujoco implementation patterns
  */
 const transformQuaternionZupToYup = (wxyz: number[]) => {
   if (wxyz.length < 4) return Quaternion.Identity();
   const [w, x, y, z] = wxyz;
 
-  // Step 1: Convert from MuJoCo (w,x,y,z) to Babylon.js (x,y,z,w) format
-  // Step 2: Swap Y and Z to match position transformation (x,y,z) → (x,z,y)
-  let q = new Quaternion(x, z, y, w);
-
-  // Step 3: Apply conjugate rotation to transform coordinate system
-  // Rotate the quaternion's reference frame by -90° around X axis
-  const coordTransform = Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 2);
-  q = coordTransform.multiply(q).multiply(coordTransform.conjugate());
-
-  return q;
+  // Convert from MuJoCo (w,x,y,z) to Babylon.js (x,y,z,w) format only.
+  // Global coordinate conversion is handled at the root node.
+  return new Quaternion(x, y, z, w);
 };
 
 const colorFromRGBA = (rgba: number[]) => {
@@ -113,10 +107,99 @@ const parseMJCF = (xml: string) => {
     });
   }
 
+  // Parse keyframes for initial joint positions
+  const keyframes: Record<string, number[]> = {};
+  const keyframeElements = doc.querySelectorAll("keyframe key");
+  keyframeElements.forEach(keyEl => {
+    const name = keyEl.getAttribute("name");
+    const qpos = keyEl.getAttribute("qpos");
+    if (name && qpos) {
+      const values = toFloatArr(qpos);
+      if (values) {
+        keyframes[name] = values;
+        console.log(`[MJCF Keyframe] Found keyframe '${name}' with ${values.length} joint values`);
+      }
+    }
+  });
+
+  // Parse joints to map joint names to indices and store their axes
+  const jointMap: Record<string, number> = {};
+  const jointAxes: Record<string, number[]> = {};
+  const jointElements = doc.querySelectorAll("joint");
+  let jointIndex = 0;
+  jointElements.forEach(jointEl => {
+    const name = jointEl.getAttribute("name");
+    if (name) {
+      jointMap[name] = jointIndex;
+      
+      // Parse joint axis
+      const axisAttr = jointEl.getAttribute("axis");
+      if (axisAttr) {
+        const axisValues = toFloatArr(axisAttr);
+        if (axisValues && axisValues.length >= 3) {
+          jointAxes[name] = [axisValues[0], axisValues[1], axisValues[2]];
+        }
+      }
+      
+      jointIndex++;
+    }
+  });
+
+  // Parse bodies to track which ones have pre-existing quaternions
+  const bodyQuaternions: Record<string, number[]> = {};
+  const bodyElements = doc.querySelectorAll("body");
+  bodyElements.forEach(bodyEl => {
+    const name = bodyEl.getAttribute("name");
+    const quatAttr = bodyEl.getAttribute("quat");
+    if (name && quatAttr) {
+      const quatValues = toFloatArr(quatAttr);
+      if (quatValues && quatValues.length >= 4) {
+        bodyQuaternions[name] = quatValues;
+      }
+    }
+  });
+
+  // Parse actuators
+  const actuators: Array<{name: string, joint: string, ctrlrange?: [number, number]}> = [];
+  const actuatorElements = doc.querySelectorAll("actuator motor");
+  actuatorElements.forEach(actuatorEl => {
+    const name = actuatorEl.getAttribute("name");
+    const joint = actuatorEl.getAttribute("joint");
+    const ctrlrange = actuatorEl.getAttribute("ctrlrange");
+    
+    if (name && joint) {
+      let range: [number, number] | undefined;
+      if (ctrlrange) {
+        const rangeValues = toFloatArr(ctrlrange);
+        if (rangeValues && rangeValues.length >= 2) {
+          range = [rangeValues[0], rangeValues[1]];
+        }
+      }
+      
+      actuators.push({ name, joint, ctrlrange: range });
+    }
+  });
+
+  // Parse sensors
+  const sensors: Array<{name: string, type: string, joint?: string, site?: string}> = [];
+  const sensorElements = doc.querySelectorAll("sensor > *");
+  sensorElements.forEach(sensorEl => {
+    const name = sensorEl.getAttribute("name");
+    const type = sensorEl.tagName.toLowerCase();
+    const joint = sensorEl.getAttribute("joint") || undefined;
+    const site = sensorEl.getAttribute("site") || undefined;
+    
+    if (name) {
+      sensors.push({ name, type, joint, site });
+    }
+  });
+
   const world = doc.querySelector("worldbody");
   if (world === null) throw new Error("No <worldbody> in MJCF");
 
-  return { world, meshMap, texMap, matMap, compilerScale };
+  console.log(`[MJCF Parse] Found ${jointElements.length} joints, ${actuators.length} actuators, ${sensors.length} sensors`);
+
+  return { world, meshMap, texMap, matMap, compilerScale, keyframes, jointMap, jointAxes, bodyQuaternions, actuators, sensors };
 };
 
 const makeMaterials = (
@@ -141,7 +224,7 @@ const makeMaterials = (
     pbrs[m.name] = p;
   });
 
-  // Heuristic fallbacks for KUKA iiwa colors
+  // Heuristic fallbacks for robot colors - match MuJoCo viewer appearance
   if (pbrs["orange"] === undefined) {
     const o = new PBRMaterial("orange", scene);
     o.albedoColor = new Color3(1.0, 0.423529, 0.0392157); o.metallic = 0; o.roughness = 0.7;
@@ -149,13 +232,22 @@ const makeMaterials = (
   }
   if (pbrs["gray"] === undefined) {
     const g = new PBRMaterial("gray", scene);
-    g.albedoColor = new Color3(0.4, 0.4, 0.4); g.metallic = 0; g.roughness = 0.7;
+    g.albedoColor = new Color3(0.2, 0.2, 0.2); g.metallic = 0.1; g.roughness = 0.8; // Darker gray for MuJoCo look
     pbrs["gray"] = g;
   }
   if (pbrs["black"] === undefined) {
     const b = new PBRMaterial("black", scene);
-    b.albedoColor = new Color3(0.0, 0.0, 0.0); b.metallic = 0; b.roughness = 0.7;
+    b.albedoColor = new Color3(0.1, 0.1, 0.1); b.metallic = 0.2; b.roughness = 0.7; // Slightly lighter black with metallic
     pbrs["black"] = b;
+  }
+  
+  // Add default robot material for MuJoCo-style appearance
+  if (pbrs["robot_default"] === undefined) {
+    const r = new PBRMaterial("robot_default", scene);
+    r.albedoColor = new Color3(0.15, 0.15, 0.15); // Dark gray
+    r.metallic = 0.1; 
+    r.roughness = 0.8;
+    pbrs["robot_default"] = r;
   }
 
   return { textures, pbrs };
@@ -251,15 +343,226 @@ const assignGeomMaterial = (
     return;
   }
 
-  if (fallbackGray === true) meshes.forEach(m => (m.material = pbrs["gray"]));
+  if (fallbackGray === true) meshes.forEach(m => (m.material = pbrs["robot_default"] || pbrs["gray"]));
   if (typeof matName === "string" && matName.length > 0 && warned.has(matName) === false) {
-    console.warn(`material '${matName}' not found; applied gray`);
+    console.warn(`material '${matName}' not found; applied robot_default`);
     warned.add(matName);
   }
 };
 
 const multiplyScale = (node: TransformNode, v: Vector3) => {
   node.scaling.multiplyInPlace(v);
+};
+
+/**
+ * Applies keyframe data to the robot hierarchy after all bodies are created
+ * This mimics how MuJoCo automatically applies keyframe data on model load
+ */
+const applyKeyframeData = (
+  rootNode: TransformNode,
+  keyframes: Record<string, number[]>,
+  jointMap: Record<string, number>,
+  jointAxes: Record<string, number[]>
+) => {
+  console.log(`[MJCF Keyframe] Found ${Object.keys(keyframes).length} keyframes, ${Object.keys(jointMap).length} joints`);
+  console.log(`[MJCF Keyframe] Root node: ${rootNode.name}`);
+  
+  // Apply only the first keyframe (usually "home")
+  for (const [keyframeName, qposValues] of Object.entries(keyframes)) {
+    console.log(`[MJCF Keyframe] Processing keyframe '${keyframeName}' with ${qposValues.length} values:`, qposValues);
+    
+    if (qposValues.length < 7) {
+      console.warn(`[MJCF Keyframe] Keyframe '${keyframeName}' has insufficient values (${qposValues.length} < 7)`);
+      continue;
+    }
+    
+    // Find the root body (pelvis or base_link)
+    const rootBody = rootNode.getChildren().find(child => 
+      child.name === "pelvis" || child.name === "base_link"
+    ) as TransformNode;
+    
+    if (!rootBody) {
+      console.warn(`[MJCF Keyframe] No root body found (pelvis/base_link)`);
+      continue;
+    }
+    
+            // Apply DEFAULT base position and orientation (neutral pose)
+            const basePos = [0, 0, 1.1]; // Default pelvis height from MJCF
+            // Convert from MuJoCo Z-up to Babylon.js Y-up: (x,y,z) → (x,z,y)
+            // This should fix the robot lying down issue
+            rootBody.position.set(basePos[0], basePos[2], basePos[1]);
+            
+            // Apply DEFAULT base orientation (identity quaternion)
+            const baseQuat = [1, 0, 0, 0]; // Identity quaternion
+            rootBody.rotationQuaternion = transformQuaternionZupToYup(baseQuat);
+            
+            console.log(`[MJCF Keyframe] Applied DEFAULT base pose: pos(${basePos[0]}, ${basePos[1]}, ${basePos[2]}), quat(${baseQuat[0]}, ${baseQuat[1]}, ${baseQuat[2]}, ${baseQuat[3]})`);
+    
+    // Debug: Log all joint values from keyframe
+    console.log(`[MJCF Keyframe] Full keyframe data:`, qposValues);
+    console.log(`[MJCF Keyframe] Joint values starting from index 7:`, qposValues.slice(7));
+    
+            // Create a mapping of joint names to their corresponding body nodes
+            const jointToBodyMap = new Map<string, TransformNode>();
+
+            const collectJointBodies = (node: TransformNode) => {
+              const children = node.getChildren();
+              for (const child of children) {
+                if (child instanceof TransformNode) {
+                  // Map joint names to body names based on naming patterns
+                  const jointName = findJointNameForBody(child.name, jointMap);
+                  if (jointName) {
+                    jointToBodyMap.set(jointName, child);
+                    console.log(`[MJCF Keyframe] Mapped joint '${jointName}' to body '${child.name}'`);
+                  }
+                  collectJointBodies(child);
+                }
+              }
+            };
+
+            collectJointBodies(rootBody);
+
+            console.log(`[MJCF Keyframe] Found ${jointToBodyMap.size} joint-to-body mappings:`, Array.from(jointToBodyMap.keys()));
+
+            // Apply DEFAULT pose (all zeros) instead of keyframe values
+            // The STL meshes are already exported in the keyframe pose, so we need neutral pose
+            console.log(`[MJCF Keyframe] Applying DEFAULT pose (all zeros) to counteract STL mesh keyframe pose`);
+            
+            // AGGRESSIVE FIX: Reset ALL body quaternions to identity for neutral pose FIRST
+            // This ensures straight arms regardless of MJCF quaternion values
+            const resetAllBodyQuaternions = (node: TransformNode) => {
+              const children = node.getChildren();
+              for (const child of children) {
+                if (child instanceof TransformNode) {
+                  child.rotationQuaternion = Quaternion.Identity();
+                  console.log(`[MJCF AGGRESSIVE FIX] Reset ${child.name} body quaternion to identity for neutral pose`);
+                  resetAllBodyQuaternions(child);
+                }
+              }
+            };
+            
+            resetAllBodyQuaternions(rootBody);
+            
+            // Apply joint values from the keyframe (starting from index 7, after base pos + quat)
+            const jointNames = Object.keys(jointMap);
+            for (let i = 0; i < jointNames.length; i++) {
+              const jointName = jointNames[i];
+              const bodyNode = jointToBodyMap.get(jointName);
+              
+              if (bodyNode) {
+                // Use DEFAULT pose (all zeros) instead of keyframe values
+                const jointValue = 0;
+                
+                // Special debugging for arm joints
+                if (jointName.includes('shoulder') || jointName.includes('elbow')) {
+                  console.log(`[MJCF ARM DEBUG] Joint ${jointName}: value=${jointValue}, axis=${jointAxes[jointName]}, body=${bodyNode.name}`);
+                }
+                
+                console.log(`[MJCF Keyframe] Applying joint ${jointName}: ${jointValue} radians`);
+                
+                // Get joint axis from the parsed MJCF data
+                const jointAxis = jointAxes[jointName];
+                
+                if (jointAxis && jointAxis.length >= 3) {
+                  // Transform joint axis from MuJoCo Z-up to Babylon.js Y-up coordinate system
+                  // MuJoCo: (x, y, z) where Z is up
+                  // Babylon.js: (x, y, z) where Y is up
+                  // Transformation: (x, y, z) -> (x, z, y)
+                  const transformedAxis = new Vector3(jointAxis[0], jointAxis[2], jointAxis[1]);
+                  const normalizedAxis = transformedAxis.normalize();
+                  
+                  if (normalizedAxis.length() > 0.1) {
+                    const rotationQuat = Quaternion.RotationAxis(normalizedAxis, jointValue);
+                    
+                    // Apply rotation to body node (quaternion is already reset to identity)
+                    if (bodyNode.rotationQuaternion) {
+                      bodyNode.rotationQuaternion.multiplyInPlace(rotationQuat);
+                    } else {
+                      bodyNode.rotationQuaternion = rotationQuat;
+                    }
+                    
+                    console.log(`[MJCF Keyframe] Applied joint ${jointName}: ${jointValue} radians around axis (${normalizedAxis.x}, ${normalizedAxis.y}, ${normalizedAxis.z})`);
+                  }
+                } else if (jointName.includes('shoulder') || jointName.includes('elbow')) {
+                  console.log(`[MJCF ARM DEBUG] Skipping ${jointName}: value=${jointValue}, axis=${jointAxis}, threshold=0.001`);
+                }
+              } else if (bodyNode) {
+                console.log(`[MJCF Keyframe] Joint ${jointName} has zero value, skipping rotation`);
+              } else {
+                console.log(`[MJCF Keyframe] Joint ${jointName} not found in body mapping`);
+              }
+            }
+    
+  // Only apply the first keyframe
+  break;
+  }
+};
+
+/**
+ * Helper function to find joint name for a body based on naming patterns
+ */
+const findJointNameForBody = (bodyName: string, jointMap: Record<string, number>): string | null => {
+  // Common patterns: body_name -> joint_name
+  const patterns = [
+    bodyName.replace('_link', '_joint'),
+    bodyName.replace('link', 'joint'),
+    bodyName + '_joint',
+    // Special case for elbow joints
+    bodyName.replace('_link_ball_hand', '_joint'),
+    bodyName.replace('_ball_hand', '_joint')
+  ];
+
+  for (const pattern of patterns) {
+    if (jointMap[pattern] !== undefined) {
+      return pattern;
+    }
+  }
+
+  return null;
+};
+
+
+/**
+ * Creates a MuJoCo-style environment with ground plane and lighting
+ * Based on unitree_mujoco scene.xml patterns
+ */
+const createMuJoCoEnvironment = (scene: Scene) => {
+  // Create checkered ground plane similar to MuJoCo viewer
+  const ground = MeshBuilder.CreateGround("muJoCoGround", {
+    width: 20,
+    height: 20,
+    subdivisions: 20
+  }, scene);
+
+  // Create checkered material with proper colors matching MuJoCo viewer
+  // Create a simple checkered pattern using two materials
+  const darkMaterial = new StandardMaterial("darkSquare", scene);
+  darkMaterial.diffuseColor = new Color3(0.1, 0.2, 0.3); // Dark blue
+  darkMaterial.specularColor = new Color3(0, 0, 0);
+  
+  const lightMaterial = new StandardMaterial("lightSquare", scene);
+  lightMaterial.diffuseColor = new Color3(0.2, 0.3, 0.4); // Light blue
+  lightMaterial.specularColor = new Color3(0, 0, 0);
+  
+  // Use the light material as base
+  ground.material = lightMaterial;
+  ground.position.y = 0; // Ground at Y=0 in Babylon.js Y-up system
+
+  // Add directional light similar to MuJoCo viewer
+  const directionalLight = new DirectionalLight("muJoCoDirectionalLight", new Vector3(0, -1, 0), scene);
+  directionalLight.diffuse = new Color3(0.6, 0.6, 0.6);
+  directionalLight.specular = new Color3(0, 0, 0);
+  directionalLight.intensity = 1.0;
+
+  // Add hemispheric light for ambient lighting
+  const hemisphericLight = new HemisphericLight("muJoCoHemisphericLight", new Vector3(0, 1, 0), scene);
+  hemisphericLight.diffuse = new Color3(0.3, 0.3, 0.3);
+  hemisphericLight.specular = new Color3(0, 0, 0);
+  hemisphericLight.intensity = 0.3;
+
+  console.log("[MJCF Environment] Created MuJoCo-style environment with ground plane and lighting");
+  
+  return { ground, directionalLight, hemisphericLight };
 };
 
 const buildBodies = async (
@@ -271,13 +574,20 @@ const buildBodies = async (
   bakePivots: boolean,
   fallbackGray: boolean,
   compilerScale: number,
+  keyframes: Record<string, number[]>,
+  jointMap: Record<string, number>,
+  jointAxes: Record<string, number[]>,
   meshFilesMap?: Map<string, File>
 ) => {
   const root = new TransformNode("mjcf_root", scene);
-  // No root rotation needed - STL loader already handles Y-up orientation
   root.scaling.set(1, 1, 1);
+  // No global rotation - coordinate conversion handled by position mapping
 
   const warnedMissingMaterials = new Set<string>();
+
+  // Note: jointMap is passed but not used in current implementation
+  // It's kept for future joint manipulation features
+  console.log(`[MJCF Debug] jointMap contains ${Object.keys(jointMap).length} joints`);
 
   const visit = async (bodyEl: Element, parent: TransformNode) => {
     const name = bodyEl.getAttribute("name") || "body";
@@ -288,6 +598,7 @@ const buildBodies = async (
     const bodyPos = toFloatArr(bodyEl.getAttribute("pos"));
     if (bodyPos !== null && bodyPos.length >= 3) {
       // Convert from MuJoCo Z-up to Babylon.js Y-up: (x,y,z) → (x,z,y)
+      // This fixes the robot lying down issue by swapping Y and Z axes
       bodyNode.position.set(bodyPos[0], bodyPos[2], bodyPos[1]);
     }
 
@@ -297,6 +608,9 @@ const buildBodies = async (
       bodyNode.rotationQuaternion = transformQuaternionZupToYup(bodyQuat);
       console.log(`[MJCF Debug] Transformed body quaternion for ${name}: (${bodyQuat[0]}, ${bodyQuat[1]}, ${bodyQuat[2]}, ${bodyQuat[3]}) -> Z-up to Y-up`);
     }
+
+    // Store keyframe data for later application after all bodies are created
+    // We'll apply keyframes after the entire hierarchy is built
 
     // body-level scale (rare): MJCF bodies don't have scale; we only apply compilerScale
     if (compilerScale !== 1) multiplyScale(bodyNode, new Vector3(compilerScale, compilerScale, compilerScale));
@@ -378,6 +692,10 @@ const buildBodies = async (
     return root;
   }
   for (const b of tops) await visit(b, root);
+  
+  // Apply keyframe data after all bodies are created
+  applyKeyframeData(root, keyframes, jointMap, jointAxes);
+  
   return root;
 };
 
@@ -489,7 +807,7 @@ function analyzeMJCFContent(content: string, filename: string): boolean {
 }
 
 // ZIP handling functions
-export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ success: boolean; rootNodes: TransformNode[]; meshes: AbstractMesh[]; joints: any[]; actuators: any[]; errors: string[]; warnings: string[] }> => {
+export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ success: boolean; rootNodes: TransformNode[]; meshes: AbstractMesh[]; joints: any[]; actuators: any[]; sensors: any[]; errors: string[]; warnings: string[] }> => {
   if (!file || !file.name) {
     throw new Error("Invalid file: missing name property");
   }
@@ -577,13 +895,18 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
       console.log(`[MJCF Import] Using ${primaryMjcfFile} as primary MJCF file`);
       console.log(`[MJCF Import] Extracted ${extractedMeshFiles.size} mesh files from ZIP`);
 
+      // Create MuJoCo-style environment
+      createMuJoCoEnvironment(scene);
+
       // Parse MJCF directly and build the model
-      const { world, meshMap, texMap, matMap, compilerScale } = parseMJCF(mjcfContent);
+      const { world, meshMap, texMap, matMap, compilerScale, keyframes, jointMap, jointAxes, actuators, sensors } = parseMJCF(mjcfContent);
       const { pbrs } = makeMaterials(scene, "", texMap, matMap);
 
-      // root: Apply model-specific coordinate system rotations
+      // root: Apply a single, consistent coordinate system rotation for all MJCF
       const root = new TransformNode("mjcf_root", scene);
       root.scaling.set(1, 1, 1);
+      // No global rotation - coordinate conversion handled by position mapping
+      console.log(`[MJCF Debug] Using position mapping for Z-up→Y-up conversion for ${primaryMjcfFile}`);
 
       // warn if compiler scale is not 1
       if (compilerScale !== 1) console.warn(`compiler scale = ${compilerScale}`);
@@ -605,113 +928,30 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
         // Track all body nodes for kinematic chain
         allBodyNodes.push(bodyNode);
 
-        const bodyPos = toFloatArr(bodyEl.getAttribute("pos"));
-        if (bodyPos !== null && bodyPos.length >= 3) {
-          // Convert from MuJoCo Z-up to Babylon.js Y-up: (x,y,z) → (x,z,y)
-          bodyNode.position.set(bodyPos[0], bodyPos[2], bodyPos[1]);
-          console.log(`[MJCF Debug] Transformed body position for ${name}: (${bodyPos[0]}, ${bodyPos[1]}, ${bodyPos[2]}) -> (${bodyPos[0]}, ${bodyPos[2]}, ${bodyPos[1]})`);
-        }
+    const bodyPos = toFloatArr(bodyEl.getAttribute("pos"));
+    if (bodyPos !== null && bodyPos.length >= 3) {
+      // Convert from MuJoCo Z-up to Babylon.js Y-up: (x,y,z) → (x,z,y)
+      // This fixes the robot lying down issue by swapping Y and Z axes
+      bodyNode.position.set(bodyPos[0], bodyPos[2], bodyPos[1]);
+    }
 
         const bodyQuat = toFloatArr(bodyEl.getAttribute("quat"));
         if (bodyQuat !== null && bodyQuat.length >= 4) {
           // Transform quaternion from MuJoCo Z-up to Babylon.js Y-up coordinate system
           bodyNode.rotationQuaternion = transformQuaternionZupToYup(bodyQuat);
-          console.log(`[MJCF Debug] Transformed body quaternion for ${name}: (${bodyQuat[0]}, ${bodyQuat[1]}, ${bodyQuat[2]}, ${bodyQuat[3]}) -> Z-up to Y-up`);
         }
+
+        // SKIP keyframe joint positions during body building
+        // The STL mesh files are already in the keyframe pose (dynamic pose)
+        // Applying joint rotations here would compound the issue
+        // console.log(`[MJCF Keyframe] SKIPPING joint application during body building for ${name} - STL meshes are already in keyframe pose`);
 
         // apply compiler scale on body node as scale (keeps mesh scale neutral)
         if (compilerScale !== 1) bodyNode.scaling.multiplyInPlace(new Vector3(compilerScale, compilerScale, compilerScale));
 
-        // Process joints within this body
-        const joints = Array.from(bodyEl.querySelectorAll(":scope > joint"));
-        console.log(`[MJCF Debug] Body '${name}' has ${joints.length} joints`);
-        for (const joint of joints) {
-          const jointName = joint.getAttribute("name") || "joint";
-          const jointType = joint.getAttribute("type") || "fixed";
-          console.log(`[MJCF Debug] Processing joint: ${jointName} (type: ${jointType})`);
-          
-          // Debug: Log all joint attributes
-          const jointAttrs = Array.from(joint.attributes).map(attr => `${attr.name}="${attr.value}"`).join(", ");
-          console.log(`[MJCF Debug] Joint ${jointName} attributes: ${jointAttrs}`);
-          
-          // Process joint position
-          const jointPos = toFloatArr(joint.getAttribute("pos"));
-          if (jointPos !== null && jointPos.length >= 3) {
-            // Transform joint position from MuJoCo Z-up to Babylon.js Y-up coordinate system
-            // Z-up: (x, y, z) -> Y-up: (x, z, -y)
-            const transformedPos = new Vector3(jointPos[0], jointPos[2], -jointPos[1]);
-            console.log(`[MJCF Debug] Joint ${jointName} position: (${jointPos[0]}, ${jointPos[1]}, ${jointPos[2]}) -> (${transformedPos.x}, ${transformedPos.y}, ${transformedPos.z})`);
-            
-            // Apply joint position to body node
-            bodyNode.position.addInPlace(transformedPos);
-          }
-          
-          // Process joint axis and apply rotation for fixed joints
-          const jointAxis = toFloatArr(joint.getAttribute("axis"));
-          if (jointAxis !== null && jointAxis.length >= 3) {
-            // Transform joint axis from MuJoCo Z-up to Babylon.js Y-up coordinate system
-            const transformedAxis = new Vector3(jointAxis[0], jointAxis[2], -jointAxis[1]);
-            console.log(`[MJCF Debug] Joint ${jointName} axis: (${jointAxis[0]}, ${jointAxis[1]}, ${jointAxis[2]}) -> (${transformedAxis.x}, ${transformedAxis.y}, ${transformedAxis.z})`);
-            
-            // Apply joint rotation based on joint type and range
-            if (jointType === "fixed" || jointType === "hinge") {
-              // Get joint range to determine starting position
-              const jointRange = joint.getAttribute("range");
-              let jointValue = 0; // Default starting value
-              
-              if (jointRange) {
-                const rangeValues = jointRange.split(" ").map(parseFloat);
-                if (rangeValues.length >= 2) {
-                  // For starting pose, use the midpoint of the range or a specific starting value
-                  // This is a heuristic - in a full implementation, we'd need to know the actual starting pose
-                  const minRange = rangeValues[0];
-                  const maxRange = rangeValues[1];
-                  
-                  // Use midpoint as starting position for now
-                  jointValue = (minRange + maxRange) / 2;
-                  
-                  console.log(`[MJCF Debug] Joint ${jointName} range: [${minRange}, ${maxRange}], starting value: ${jointValue}`);
-                }
-              }
-              
-              // Normalize the axis vector
-              const normalizedAxis = transformedAxis.normalize();
-              
-              // Apply rotation based on joint value
-              if (normalizedAxis.length() > 0.1 && Math.abs(jointValue) > 0.001) {
-                const rotationQuat = Quaternion.RotationAxis(normalizedAxis, jointValue);
-                
-                // Apply rotation to body node
-                if (bodyNode.rotationQuaternion) {
-                  bodyNode.rotationQuaternion.multiplyInPlace(rotationQuat);
-        } else {
-                  bodyNode.rotationQuaternion = rotationQuat;
-                }
-                
-                console.log(`[MJCF Debug] Applied joint rotation for ${jointName}: ${jointValue} radians around axis (${normalizedAxis.x}, ${normalizedAxis.y}, ${normalizedAxis.z})`);
-              }
-            }
-          }
-          
-          // Process joint quaternion if present (for more precise orientation)
-          const jointQuat = toFloatArr(joint.getAttribute("quat"));
-          if (jointQuat !== null && jointQuat.length >= 4) {
-            // Transform joint quaternion from MuJoCo Z-up to Babylon.js Y-up coordinate system
-            const transformedQuat = transformQuaternionZupToYup(jointQuat);
-            console.log(`[MJCF Debug] Joint ${jointName} quaternion: (${jointQuat[0]}, ${jointQuat[1]}, ${jointQuat[2]}, ${jointQuat[3]}) -> Z-up to Y-up`);
-            
-            // Apply joint quaternion to body node
-            if (bodyNode.rotationQuaternion) {
-              bodyNode.rotationQuaternion.multiplyInPlace(transformedQuat);
-        } else {
-              bodyNode.rotationQuaternion = transformedQuat;
-            }
-          }
-        }
 
         // Visual geoms on this body
         const geoms = Array.from(bodyEl.querySelectorAll(":scope > geom"));
-        console.log(`[MJCF Debug] Body '${name}' has ${geoms.length} geoms`);
         for (const geom of geoms) {
           // Treat as visual if class contains "visual" OR (type="mesh" AND mesh present)
           const cls = geom.getAttribute("class");
@@ -721,7 +961,6 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
           const isMeshType = typeof type === "string" && type === "mesh";
           const looksVisual = hasClassVisual || (isMeshType && typeof meshRef === "string");
 
-          console.log(`[MJCF Debug] Geom: class='${cls}', type='${type}', mesh='${meshRef}', looksVisual=${looksVisual}`);
           if (looksVisual === false) continue;
           if (meshRef === null) {
             console.warn(`visual geom on '${name}' has no mesh`);
@@ -745,12 +984,10 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
           if (gquat !== null && gquat.length >= 4) {
             // Transform quaternion from MuJoCo Z-up to Babylon.js Y-up coordinate system
             geomNode.rotationQuaternion = transformQuaternionZupToYup(gquat);
-            console.log(`[MJCF Debug] Transformed geom quaternion for ${name}__geom_${meshRef}: (${gquat[0]}, ${gquat[1]}, ${gquat[2]}, ${gquat[3]}) -> Z-up to Y-up`);
           }
 
           // TEMPORARY FIX: Disable all scaling to prevent kinematic chain accumulation
           // TODO: Implement proper scaling that doesn't compound through hierarchy
-          console.log(`[MJCF Debug] Skipping scaling for geom '${name}/${meshRef}' to prevent kinematic accumulation`);
 
           const meshes = await importVisualMesh(scene, "", def.file, extractedMeshFiles);
           if (meshes.length === 0) {
@@ -764,29 +1001,6 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
             // will be applied at the root level to preserve kinematic relationships
             
             m.parent = geomNode;
-            
-            // Log detailed transformation info
-            const bbox = m.getBoundingInfo().boundingBox;
-            const size = bbox.maximum.subtract(bbox.minimum);
-            console.log(`[MJCF Debug] Mesh '${def.file}' BEFORE parent assignment:`);
-            console.log(`  - Mesh scaling: (${m.scaling.x}, ${m.scaling.y}, ${m.scaling.z})`);
-            console.log(`  - Mesh position: (${m.position.x}, ${m.position.y}, ${m.position.z})`);
-            console.log(`  - Mesh dimensions: (${size.x.toFixed(3)}, ${size.y.toFixed(3)}, ${size.z.toFixed(3)})`);
-            console.log(`  - GeomNode scaling: (${geomNode.scaling.x}, ${geomNode.scaling.y}, ${geomNode.scaling.z})`);
-            console.log(`  - GeomNode position: (${geomNode.position.x}, ${geomNode.position.y}, ${geomNode.position.z})`);
-            console.log(`  - BodyNode scaling: (${bodyNode.scaling.x}, ${bodyNode.scaling.y}, ${bodyNode.scaling.z})`);
-            console.log(`  - BodyNode position: (${bodyNode.position.x}, ${bodyNode.position.y}, ${bodyNode.position.z})`);
-            console.log(`  - Root scaling: (${root.scaling.x}, ${root.scaling.y}, ${root.scaling.z})`);
-            console.log(`  - Mesh rotation quaternion: (${m.rotationQuaternion?.x || 0}, ${m.rotationQuaternion?.y || 0}, ${m.rotationQuaternion?.z || 0}, ${m.rotationQuaternion?.w || 1})`);
-          });
-          
-          // Log AFTER parent assignment to see final world transform
-          meshes.forEach(m => {
-            const worldPos = m.getAbsolutePosition();
-            const worldScale = m.absoluteScaling;
-            console.log(`[MJCF Debug] Mesh '${def.file}' AFTER parent assignment:`);
-            console.log(`  - World position: (${worldPos.x.toFixed(3)}, ${worldPos.y.toFixed(3)}, ${worldPos.z.toFixed(3)})`);
-            console.log(`  - World scaling: (${worldScale.x.toFixed(3)}, ${worldScale.y.toFixed(3)}, ${worldScale.z.toFixed(3)})`);
           });
           
           meshes.forEach(m => allMeshes.push(m));
@@ -808,9 +1022,9 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
             if (typeof matName === "string" && matName.length > 0 && pbrs[matName] !== undefined) {
               meshes.forEach(m => (m.material = pbrs[matName]));
             } else {
-              meshes.forEach(m => (m.material = pbrs["gray"]));
+              meshes.forEach(m => (m.material = pbrs["robot_default"] || pbrs["gray"]));
               if (typeof matName === "string" && matName.length > 0 && warnedMissingMaterials.has(matName) === false) {
-                console.warn(`material '${matName}' not found; applied gray`);
+                console.warn(`material '${matName}' not found; applied robot_default`);
                 warnedMissingMaterials.add(matName);
               }
             }
@@ -838,6 +1052,7 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
           rootNodes: [root],
     joints: [],
           actuators: [],
+          sensors: [],
     errors: [],
     warnings: []
   };
@@ -864,13 +1079,11 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
       };
       logHierarchy(root);
       
-      // Apply Z-up to Y-up coordinate system conversion
-      // Convert positions from MuJoCo Z-up to Babylon.js Y-up: (x,y,z) → (x,z,y)
-      // No root rotation needed - STL loader already handles Y-up orientation
-      console.log(`[MJCF Debug] Applying MuJoCo Z-up→Babylon.js Y-up coordinate conversion for ${primaryMjcfFile}`);
+      // Apply keyframe data after all bodies are created
+      applyKeyframeData(root, keyframes, jointMap, jointAxes);
       
-      // Coordinate system conversion is handled by position transformation
-      console.log(`[MJCF Debug] Coordinate system conversion applied via position transformation for ${primaryMjcfFile}`);
+      // Global conversion handled via position mapping; no root rotation needed
+      console.log(`[MJCF Debug] Using position mapping for Z-up→Y-up conversion for ${primaryMjcfFile}`);
       
       // Get all meshes for final verification
       const finalMeshes = root.getChildMeshes() as AbstractMesh[];
@@ -887,8 +1100,9 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
         success: true,
         meshes: flattened.length > 0 ? flattened : [],
         rootNodes: [root],
-        joints: [],
-        actuators: [],
+        joints: Object.keys(jointMap),
+        actuators: actuators,
+        sensors: sensors,
         errors: [],
         warnings: []
       };
@@ -910,6 +1124,7 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
         rootNodes: [rootNode],
         joints: [],
         actuators: [],
+        sensors: [],
         errors: [],
         warnings: []
       };
@@ -925,6 +1140,7 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
       rootNodes: [],
       joints: [],
       actuators: [],
+      sensors: [],
       errors: [error instanceof Error ? error.message : 'Unknown error'],
       warnings: []
     };
@@ -944,10 +1160,14 @@ export const loadMJCF = async (scene: Scene, opts: LoadOpts) => {
 
   try {
     const xml = await textFetch(`${opts.rootUrl}/${opts.mjcf}`);
-    const { world, meshMap, texMap, matMap, compilerScale } = parseMJCF(xml);
+    const { world, meshMap, texMap, matMap, compilerScale, keyframes, jointMap, jointAxes, actuators, sensors } = parseMJCF(xml);
     const { pbrs } = makeMaterials(scene, opts.rootUrl, texMap, matMap);
 
-    const root = await buildBodies(scene, opts.rootUrl, world, meshMap, pbrs, bake, gray, compilerScale);
+    const root = await buildBodies(scene, opts.rootUrl, world, meshMap, pbrs, bake, gray, compilerScale, keyframes, jointMap, jointAxes);
+    
+    // Log parsed data for debugging
+    console.log(`[MJCF Load] Loaded ${Object.keys(jointMap).length} joints, ${actuators.length} actuators, ${sensors.length} sensors`);
+    
     return root;
   } finally {
     OBJFileLoader.SKIP_MATERIALS = prevSkip;
