@@ -4,6 +4,7 @@ import { KinematicsPanel } from './ui/components/KinematicsPanel';
 import { KeyboardShortcuts } from './ui/components/KeyboardShortcuts';
 import { QuickAddMenu } from './ui/components/QuickAddMenu';
 import { ToastNotifications } from './ui/components/ToastNotifications';
+import { MJCFLoadingStatusPopup } from './ui/components/MJCFLoadingStatus';
 import { LoadingIndicator } from './ui/components/LoadingIndicator';
 import { SceneCanvas } from './ui/components/SceneCanvas';
 import { ErrorBoundary } from './ui/components/ErrorBoundary';
@@ -56,6 +57,7 @@ const AppContent: React.FC = () => {
       </ErrorBoundary>
 
       <ToastNotifications />
+      <MJCFLoadingStatusPopup />
       <LoadingIndicator />
 
       {/* Kinematics Panel - Overlay */}

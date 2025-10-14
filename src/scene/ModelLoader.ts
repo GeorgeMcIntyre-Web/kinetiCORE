@@ -134,7 +134,7 @@ export async function loadModelFromFile(
         }
 
         try {
-          const result = await loadMJCFFromFile(file, scene, meshFilesMap);
+          const result = await loadMJCFFromFile(file, scene);
           console.log('[ModelLoader] MJCF import result:', result);
           
           // Debug: Check if meshes are actually in the scene

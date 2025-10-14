@@ -175,7 +175,10 @@ const tryBakePivot = (node: TransformNode) => {
   if (meshes.length < 1) return;
   meshes.forEach(m => {
     if (m.rotationQuaternion === undefined) m.rotationQuaternion = Quaternion.Identity();
-    m.bakeCurrentTransformIntoVertices();
+    // Note: bakeCurrentTransformIntoVertices is deprecated, using bakeTransformIntoVertices instead
+    if ('bakeTransformIntoVertices' in m) {
+      (m as any).bakeTransformIntoVertices();
+    }
   });
 };
 

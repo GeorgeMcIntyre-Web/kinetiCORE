@@ -907,17 +907,32 @@ function analyzeMJCFContent(content: string, filename: string): boolean {
 }
 
 // ZIP handling functions
-export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ success: boolean; rootNodes: TransformNode[]; meshes: AbstractMesh[]; joints: any[]; actuators: any[]; sensors: any[]; errors: string[]; warnings: string[] }> => {
+export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ success: boolean; rootNodes: TransformNode[]; meshes: AbstractMesh[]; joints: any[]; actuators: any[]; sensors: any[]; errors: string[]; warnings: string[]; bounds: any }> => {
   if (!file || !file.name) {
     throw new Error("Invalid file: missing name property");
   }
   
+  // Import MJCF loading status system (optional)
+  let mjcfLoading: any = null;
+  try {
+    const mjcfLoadingModule = await import('../../ui/components/MJCFLoadingStatus');
+    mjcfLoading = mjcfLoadingModule.mjcfLoading;
+  } catch (error) {
+    console.warn('[MJCF Import] Could not load MJCF status system:', error);
+  }
+  
   console.log(`[MJCF Import] Starting import of ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
+  
+  // Start loading status popup (if available)
+  if (mjcfLoading) {
+    mjcfLoading.start(file.name);
+  }
 
   try {
     // Check if it's a ZIP file
     if (file.name.toLowerCase().endsWith('.zip')) {
       console.log(`[MJCF Import] Extracting ZIP file: ${file.name}`);
+      if (mjcfLoading) mjcfLoading.updateProgress(10, 'Extracting ZIP file...');
       
       const zip = new JSZip();
       const zipData = await file.arrayBuffer();
@@ -928,6 +943,7 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
       let primaryMjcfFile = '';
 
       // First pass: collect all MJCF files and analyze them
+      if (mjcfLoading) mjcfLoading.updateProgress(20, 'Analyzing MJCF files...');
       const mjcfFiles: Array<{basename: string, content: string, isRobotModel: boolean}> = [];
       
       for (const [filename, zipEntry] of Object.entries(zipContents.files)) {
@@ -973,6 +989,7 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
       }
       
       // Third pass: extract mesh files
+      if (mjcfLoading) mjcfLoading.updateProgress(30, 'Extracting mesh files...');
       for (const [filename, zipEntry] of Object.entries(zipContents.files)) {
         if (zipEntry.dir) continue;
 
@@ -998,8 +1015,35 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
       // Create MuJoCo-style environment
       createMuJoCoEnvironment(scene);
 
-      // Parse MJCF directly and build the model
+      // Parse MJCF content
+      if (mjcfLoading) mjcfLoading.updateProgress(40, 'Parsing MJCF content...');
       const { world, meshMap, texMap, matMap, compilerScale, keyframes, jointMap, jointAxes, actuators, sensors } = parseMJCF(mjcfContent);
+      
+      // Update model analysis
+      const objCount = Array.from(extractedMeshFiles.keys()).filter(f => f.toLowerCase().endsWith('.obj')).length;
+      const stlCount = Array.from(extractedMeshFiles.keys()).filter(f => f.toLowerCase().endsWith('.stl')).length;
+      const isOBJBased = objCount > 0 && (!stlCount || objCount >= stlCount);
+      const isSTLBased = stlCount > 0 && !objCount;
+      const isMixed = objCount > 0 && stlCount > 0;
+      
+      if (mjcfLoading) {
+        mjcfLoading.setModelAnalysis(
+          { isOBJBased, isSTLBased, isMixed },
+          { 
+            bodies: world.querySelectorAll('body').length,
+            meshes: extractedMeshFiles.size,
+            joints: Object.keys(jointMap).length,
+            actuators: actuators.length,
+            sensors: sensors.length
+          }
+        );
+        
+        mjcfLoading.setKeyframeInfo({
+          found: Object.keys(keyframes).length > 0,
+          count: Object.keys(keyframes).length,
+          applied: false // Will be updated after application
+        });
+      }
       const { pbrs } = makeMaterials(scene, "", texMap, matMap);
 
       // root: Apply a single, consistent coordinate system rotation for all MJCF
@@ -1170,15 +1214,16 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
         console.warn("No top-level <body> under <worldbody>");
         const flattened = root.getChildMeshes() as AbstractMesh[];
         return {
-    success: true,
+          success: true,
           meshes: flattened.length > 0 ? flattened : allMeshes,
           rootNodes: [root],
-    joints: [],
+          joints: [],
           actuators: [],
           sensors: [],
-    errors: [],
-    warnings: []
-  };
+          errors: [],
+          warnings: [],
+          bounds: null
+        };
       }
       
       // Process all bodies first to collect them
@@ -1203,7 +1248,14 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
       logHierarchy(root);
       
       // Apply keyframe data after all bodies are created
-       applyKeyframeData(root, keyframes, jointMap, jointAxes, extractedMeshFiles);
+      if (mjcfLoading) mjcfLoading.updateProgress(80, 'Applying keyframe data...');
+      applyKeyframeData(root, keyframes, jointMap, jointAxes, extractedMeshFiles);
+      if (mjcfLoading) mjcfLoading.setKeyframeInfo({ applied: true });
+      
+      // Check for warnings
+      if (Object.keys(keyframes).length === 0 && mjcfLoading) {
+        mjcfLoading.addWarning('No keyframes found - robot may appear in default pose');
+      }
       
       // Global conversion handled via position mapping; no root rotation needed
       console.log(`[MJCF Debug] Using position mapping for Z-up→Y-up conversion for ${primaryMjcfFile}`);
@@ -1219,6 +1271,58 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
       });
       
       const flattened = finalMeshes;
+      
+      // Final success status
+      if (mjcfLoading) {
+        mjcfLoading.updateProgress(100, 'Import complete!');
+        mjcfLoading.success(
+          `${primaryMjcfFile} loaded successfully`,
+          [
+            `Model type: ${isOBJBased ? 'OBJ-based' : isSTLBased ? 'STL-based' : isMixed ? 'Mixed' : 'Unknown'}`,
+            `Bodies: ${world.querySelectorAll('body').length}`,
+            `Meshes: ${extractedMeshFiles.size}`,
+            `Joints: ${Object.keys(jointMap).length}`,
+            `Keyframes: ${Object.keys(keyframes).length > 0 ? `${Object.keys(keyframes).length} found and applied` : 'None found'}`
+          ]
+        );
+      }
+      
+      // Calculate bounds for camera fitting
+      let bounds: any = null;
+      if (flattened.length > 0) {
+        // Create bounding info from meshes
+        const min = Vector3.Zero();
+        const max = Vector3.Zero();
+        let first = true;
+        
+        flattened.forEach(mesh => {
+          if (mesh.getBoundingInfo) {
+            const meshBounds = mesh.getBoundingInfo();
+            if (first) {
+              min.copyFrom(meshBounds.minimum);
+              max.copyFrom(meshBounds.maximum);
+              first = false;
+            } else {
+              min.x = Math.min(min.x, meshBounds.minimum.x);
+              min.y = Math.min(min.y, meshBounds.minimum.y);
+              min.z = Math.min(min.z, meshBounds.minimum.z);
+              max.x = Math.max(max.x, meshBounds.maximum.x);
+              max.y = Math.max(max.y, meshBounds.maximum.y);
+              max.z = Math.max(max.z, meshBounds.maximum.z);
+            }
+          }
+        });
+        
+        if (!first) {
+          bounds = {
+            min: min,
+            max: max,
+            center: Vector3.Center(min, max),
+            size: max.subtract(min)
+          };
+        }
+      }
+
       return {
         success: true,
         meshes: flattened.length > 0 ? flattened : [],
@@ -1227,7 +1331,8 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
         actuators: actuators,
         sensors: sensors,
         errors: [],
-        warnings: []
+        warnings: [],
+        bounds: bounds
       };
     }
 
@@ -1249,7 +1354,8 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
         actuators: [],
         sensors: [],
         errors: [],
-        warnings: []
+        warnings: [],
+        bounds: null
       };
     } finally {
       URL.revokeObjectURL(mjcfUrl);
@@ -1257,6 +1363,15 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
 
   } catch (error) {
     console.error(`[MJCF Import] Error loading MJCF:`, error);
+    
+    // Show error in popup
+    if (mjcfLoading) {
+      mjcfLoading.error(
+        `Failed to load ${file.name}`,
+        [error instanceof Error ? error.message : 'Unknown error']
+      );
+    }
+    
     return {
       success: false,
       meshes: [],
@@ -1265,7 +1380,8 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
       actuators: [],
       sensors: [],
       errors: [error instanceof Error ? error.message : 'Unknown error'],
-      warnings: []
+      warnings: [],
+      bounds: null
     };
   }
 };
