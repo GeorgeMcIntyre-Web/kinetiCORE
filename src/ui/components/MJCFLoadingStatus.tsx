@@ -65,23 +65,32 @@ export const useMJCFLoadingStore = create<MJCFLoadingStore>((set) => ({
     })),
 
   addFile: (fileName: string) =>
-    set((state) => ({
-      loadingState: {
-        ...state.loadingState,
-        files: [
-          ...state.loadingState.files,
-          {
-            fileName,
-            status: 'idle',
-            message: '',
-            stats: { bodies: 0, meshes: 0, joints: 0, actuators: 0, sensors: 0 },
-            keyframeInfo: { found: false, count: 0, applied: false },
-            modelType: { isOBJBased: false, isSTLBased: false, isMixed: false },
-          },
-        ],
-        totalFiles: state.loadingState.totalFiles + 1,
-      },
-    })),
+    set((state) => {
+      // Prevent duplicate files - check if file already exists
+      const fileExists = state.loadingState.files.some(f => f.fileName === fileName);
+      if (fileExists) {
+        console.warn(`[MJCF Status] Attempted to add duplicate file: ${fileName}`);
+        return state; // Return unchanged state
+      }
+
+      return {
+        loadingState: {
+          ...state.loadingState,
+          files: [
+            ...state.loadingState.files,
+            {
+              fileName,
+              status: 'idle',
+              message: '',
+              stats: { bodies: 0, meshes: 0, joints: 0, actuators: 0, sensors: 0 },
+              keyframeInfo: { found: false, count: 0, applied: false },
+              modelType: { isOBJBased: false, isSTLBased: false, isMixed: false },
+            },
+          ],
+          totalFiles: state.loadingState.totalFiles + 1,
+        },
+      };
+    }),
 
   updateFile: (fileName: string, update: Partial<MJCFFileLoadingState>) =>
     set((state) => ({
