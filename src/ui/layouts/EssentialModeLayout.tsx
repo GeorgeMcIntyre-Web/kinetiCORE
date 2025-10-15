@@ -105,6 +105,23 @@ export const EssentialModeLayout: React.FC = () => {
       }
     });
 
+    // Check if we have MJCF files and initialize batch processing
+    const mjcfFiles = modelFiles.filter(f => 
+      f.name.toLowerCase().endsWith('.zip') || f.name.toLowerCase().endsWith('.xml')
+    );
+    
+    if (mjcfFiles.length > 0) {
+      console.log(`[File Selection] Detected ${mjcfFiles.length} MJCF file(s), initializing batch processing`);
+      
+      // Import MJCF loading status system
+      try {
+        const { mjcfLoading } = await import('../components/MJCFLoadingStatus');
+        mjcfLoading.startBatch(mjcfFiles.map(f => f.name));
+      } catch (error) {
+        console.warn('[File Selection] Could not initialize MJCF batch processing:', error);
+      }
+    }
+
     // Import each model file sequentially
     if (modelFiles.length > 0 && importModel) {
       for (let i = 0; i < modelFiles.length; i++) {

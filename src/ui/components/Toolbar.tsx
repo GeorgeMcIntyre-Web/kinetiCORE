@@ -127,6 +127,23 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         console.log(`[File Selection]   ${i + 1}. ${files[i].name} (${(files[i].size / 1024).toFixed(2)} KB)`);
       }
 
+      // Check if we have MJCF files and initialize batch processing
+      const mjcfFiles = Array.from(files).filter(f => 
+        f.name.toLowerCase().endsWith('.zip') || f.name.toLowerCase().endsWith('.xml')
+      );
+      
+      if (mjcfFiles.length > 0) {
+        console.log(`[File Selection] Detected ${mjcfFiles.length} MJCF file(s), initializing batch processing`);
+        
+        // Import MJCF loading status system
+        try {
+          const { mjcfLoading } = await import('./MJCFLoadingStatus');
+          mjcfLoading.startBatch(mjcfFiles.map(f => f.name));
+        } catch (error) {
+          console.warn('[File Selection] Could not initialize MJCF batch processing:', error);
+        }
+      }
+
       // Import each file sequentially
       for (let i = 0; i < files.length; i++) {
         const file = files[i];

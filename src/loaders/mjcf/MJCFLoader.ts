@@ -1276,14 +1276,8 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
       if (mjcfLoading) {
         mjcfLoading.updateProgress(100, 'Import complete!');
         mjcfLoading.success(
-          `${primaryMjcfFile} loaded successfully`,
-          [
-            `Model type: ${isOBJBased ? 'OBJ-based' : isSTLBased ? 'STL-based' : isMixed ? 'Mixed' : 'Unknown'}`,
-            `Bodies: ${world.querySelectorAll('body').length}`,
-            `Meshes: ${extractedMeshFiles.size}`,
-            `Joints: ${Object.keys(jointMap).length}`,
-            `Keyframes: ${Object.keys(keyframes).length > 0 ? `${Object.keys(keyframes).length} found and applied` : 'None found'}`
-          ]
+          file.name,
+          `${primaryMjcfFile} loaded successfully - Model type: ${isOBJBased ? 'OBJ-based' : isSTLBased ? 'STL-based' : isMixed ? 'Mixed' : 'Unknown'}, Bodies: ${world.querySelectorAll('body').length}, Meshes: ${extractedMeshFiles.size}, Joints: ${Object.keys(jointMap).length}, Keyframes: ${Object.keys(keyframes).length > 0 ? `${Object.keys(keyframes).length} found and applied` : 'None found'}`
         );
       }
       
@@ -1367,8 +1361,8 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
     // Show error in popup
     if (mjcfLoading) {
       mjcfLoading.error(
-        `Failed to load ${file.name}`,
-        [error instanceof Error ? error.message : 'Unknown error']
+        file.name,
+        error instanceof Error ? error.message : 'Unknown error'
       );
     }
     

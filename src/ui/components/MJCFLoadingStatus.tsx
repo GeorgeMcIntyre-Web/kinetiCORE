@@ -231,6 +231,23 @@ export const mjcfLoading = {
         status: 'success',
         message,
       });
+      
+      // Get updated state after the update
+      const updatedStore = useMJCFLoadingStore.getState();
+      
+      // Update overall status if all files are done
+      const allDone = updatedStore.loadingState.files.every(f =>
+        f.status === 'success' || f.status === 'error' || f.status === 'warning'
+      );
+      
+      if (allDone) {
+        const hasErrors = updatedStore.loadingState.files.some(f => f.status === 'error');
+        const hasWarnings = updatedStore.loadingState.files.some(f => f.status === 'warning');
+        const newStatus = hasErrors ? 'error' : hasWarnings ? 'warning' : 'success';
+        updatedStore.setLoadingState({
+          overallStatus: newStatus,
+        });
+      }
     } else {
       // Legacy API: success(message, details[]) - applies to currently loading file
       const message = fileNameOrMessage;
@@ -240,22 +257,24 @@ export const mjcfLoading = {
           status: 'success',
           message,
         });
+        
+        // Get updated state after the update
+        const updatedStore = useMJCFLoadingStore.getState();
+        
+        // Update overall status if all files are done
+        const allDone = updatedStore.loadingState.files.every(f =>
+          f.status === 'success' || f.status === 'error' || f.status === 'warning'
+        );
+        
+        if (allDone) {
+          const hasErrors = updatedStore.loadingState.files.some(f => f.status === 'error');
+          const hasWarnings = updatedStore.loadingState.files.some(f => f.status === 'warning');
+          const newStatus = hasErrors ? 'error' : hasWarnings ? 'warning' : 'success';
+          updatedStore.setLoadingState({
+            overallStatus: newStatus,
+          });
+        }
       }
-    }
-
-    // Update overall status if all files are done
-    const allDone = store.loadingState.files.every(f =>
-      f.status === 'success' || f.status === 'error' || f.status === 'warning'
-    );
-    console.log(`[MJCF Status] Success called. All done: ${allDone}, Files:`, store.loadingState.files.map(f => `${f.fileName}:${f.status}`));
-    if (allDone) {
-      const hasErrors = store.loadingState.files.some(f => f.status === 'error');
-      const hasWarnings = store.loadingState.files.some(f => f.status === 'warning');
-      const newStatus = hasErrors ? 'error' : hasWarnings ? 'warning' : 'success';
-      console.log(`[MJCF Status] Setting overall status to: ${newStatus}`);
-      store.setLoadingState({
-        overallStatus: newStatus,
-      });
     }
   },
 
