@@ -2,8 +2,8 @@
 // Owner: George
 // Location: src/ui/components/MJCFLoadingStatus.tsx
 
-import React from 'react';
-import { CheckCircle, AlertCircle, Info, X, Loader2, Bot, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle, AlertCircle, Info, X, Loader2, Bot, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
 import { create } from 'zustand';
 
 export type MJCFLoadingStatus = 'idle' | 'loading' | 'success' | 'error' | 'warning';
@@ -313,8 +313,10 @@ export const mjcfLoading = {
   },
 };
 
-// Status indicator component for individual files
+// Status indicator component for individual files (expandable)
 const FileStatusIndicator: React.FC<{ file: MJCFFileLoadingState }> = ({ file }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const icons = {
     idle: <Info className="w-4 h-4 text-gray-400" />,
     loading: <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />,
@@ -331,13 +333,26 @@ const FileStatusIndicator: React.FC<{ file: MJCFFileLoadingState }> = ({ file })
     warning: 'bg-yellow-900/30 border-yellow-700',
   };
 
+  const modelTypeText = file.modelType.isOBJBased ? 'OBJ-based' :
+                        file.modelType.isSTLBased ? 'STL-based' :
+                        file.modelType.isMixed ? 'Mixed' : 'Unknown';
+
+  const canExpand = file.status === 'success' || file.status === 'error' || file.status === 'warning';
+
   return (
-    <div className={`${bgColors[file.status]} border rounded px-3 py-2`}>
-      <div className="flex items-center gap-2">
+    <div className={`${bgColors[file.status]} border rounded`}>
+      {/* Main row - always visible */}
+      <div
+        className={`flex items-center gap-2 px-3 py-2 ${canExpand ? 'cursor-pointer hover:bg-white/5' : ''}`}
+        onClick={() => canExpand && setIsExpanded(!isExpanded)}
+      >
+        {canExpand && (
+          isExpanded ? <ChevronDown className="w-3 h-3 text-gray-400 flex-shrink-0" /> : <ChevronRight className="w-3 h-3 text-gray-400 flex-shrink-0" />
+        )}
         {icons[file.status]}
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium text-white truncate">{file.fileName}</p>
-          {file.status === 'success' && (
+          {file.status === 'success' && !isExpanded && (
             <p className="text-xs text-gray-400">
               {file.stats.bodies}B • {file.stats.meshes}M • {file.stats.joints}J
               {file.keyframeInfo.found && ` • ${file.keyframeInfo.count}K`}
@@ -346,11 +361,77 @@ const FileStatusIndicator: React.FC<{ file: MJCFFileLoadingState }> = ({ file })
           {file.status === 'loading' && (
             <p className="text-xs text-blue-400">Loading...</p>
           )}
-          {file.status === 'error' && file.message && (
+          {file.status === 'error' && file.message && !isExpanded && (
             <p className="text-xs text-red-400 truncate">{file.message}</p>
           )}
         </div>
       </div>
+
+      {/* Expanded details */}
+      {isExpanded && (
+        <div className="px-3 pb-2 pt-1 border-t border-gray-700/50 space-y-2">
+          {/* Success details */}
+          {file.status === 'success' && (
+            <>
+              <div>
+                <p className="text-xs font-medium text-gray-300 mb-1">Model Type:</p>
+                <p className="text-xs text-gray-400">{modelTypeText}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-300 mb-1">Statistics:</p>
+                <div className="grid grid-cols-2 gap-1 text-xs text-gray-400">
+                  <div>• Bodies: {file.stats.bodies}</div>
+                  <div>• Meshes: {file.stats.meshes}</div>
+                  <div>• Joints: {file.stats.joints}</div>
+                  <div>• Actuators: {file.stats.actuators}</div>
+                  {file.stats.sensors > 0 && <div>• Sensors: {file.stats.sensors}</div>}
+                </div>
+              </div>
+              {file.keyframeInfo.found && (
+                <div>
+                  <p className="text-xs font-medium text-gray-300 mb-1">Keyframes:</p>
+                  <p className="text-xs text-gray-400">
+                    Found {file.keyframeInfo.count} keyframe{file.keyframeInfo.count !== 1 ? 's' : ''}
+                    {file.keyframeInfo.applied && ' (applied)'}
+                  </p>
+                </div>
+              )}
+              {file.message && (
+                <div>
+                  <p className="text-xs text-gray-400">{file.message}</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Error details */}
+          {file.status === 'error' && (
+            <div>
+              <p className="text-xs font-medium text-red-300 mb-1">Error:</p>
+              <p className="text-xs text-red-400">{file.message || 'Unknown error occurred'}</p>
+            </div>
+          )}
+
+          {/* Warning details */}
+          {file.status === 'warning' && (
+            <>
+              <div>
+                <p className="text-xs font-medium text-yellow-300 mb-1">Warning:</p>
+                <p className="text-xs text-yellow-400">{file.message || 'Import completed with warnings'}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-300 mb-1">Statistics:</p>
+                <div className="grid grid-cols-2 gap-1 text-xs text-gray-400">
+                  <div>• Bodies: {file.stats.bodies}</div>
+                  <div>• Meshes: {file.stats.meshes}</div>
+                  <div>• Joints: {file.stats.joints}</div>
+                  <div>• Actuators: {file.stats.actuators}</div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 };
