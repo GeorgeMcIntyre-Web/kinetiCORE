@@ -3,19 +3,15 @@
 // Location: src/ui/components/MJCFLoadingStatus.tsx
 
 import React from 'react';
-import { CheckCircle, AlertCircle, Info, X, Loader2, Bot, FileText, AlertTriangle } from 'lucide-react';
+import { CheckCircle, AlertCircle, Info, X, Loader2, Bot, AlertTriangle } from 'lucide-react';
 import { create } from 'zustand';
 
 export type MJCFLoadingStatus = 'idle' | 'loading' | 'success' | 'error' | 'warning';
 
-export interface MJCFLoadingState {
-  status: MJCFLoadingStatus;
+export interface MJCFFileLoadingState {
   fileName: string;
-  progress: number;
+  status: MJCFLoadingStatus;
   message: string;
-  details: string[];
-  warnings: string[];
-  errors: string[];
   stats: {
     bodies: number;
     meshes: number;
@@ -35,39 +31,28 @@ export interface MJCFLoadingState {
   };
 }
 
+export interface MJCFLoadingState {
+  files: MJCFFileLoadingState[];
+  currentFileIndex: number;
+  totalFiles: number;
+  overallStatus: MJCFLoadingStatus;
+}
+
 interface MJCFLoadingStore {
   loadingState: MJCFLoadingState;
   setLoadingState: (state: Partial<MJCFLoadingState>) => void;
+  addFile: (fileName: string) => void;
+  updateFile: (fileName: string, update: Partial<MJCFFileLoadingState>) => void;
   resetLoadingState: () => void;
   showPopup: boolean;
   setShowPopup: (show: boolean) => void;
 }
 
 const initialLoadingState: MJCFLoadingState = {
-  status: 'idle',
-  fileName: '',
-  progress: 0,
-  message: '',
-  details: [],
-  warnings: [],
-  errors: [],
-  stats: {
-    bodies: 0,
-    meshes: 0,
-    joints: 0,
-    actuators: 0,
-    sensors: 0,
-  },
-  keyframeInfo: {
-    found: false,
-    count: 0,
-    applied: false,
-  },
-  modelType: {
-    isOBJBased: false,
-    isSTLBased: false,
-    isMixed: false,
-  },
+  files: [],
+  currentFileIndex: 0,
+  totalFiles: 0,
+  overallStatus: 'idle',
 };
 
 export const useMJCFLoadingStore = create<MJCFLoadingStore>((set) => ({
@@ -77,6 +62,35 @@ export const useMJCFLoadingStore = create<MJCFLoadingStore>((set) => ({
   setLoadingState: (newState) =>
     set((state) => ({
       loadingState: { ...state.loadingState, ...newState },
+    })),
+
+  addFile: (fileName: string) =>
+    set((state) => ({
+      loadingState: {
+        ...state.loadingState,
+        files: [
+          ...state.loadingState.files,
+          {
+            fileName,
+            status: 'idle',
+            message: '',
+            stats: { bodies: 0, meshes: 0, joints: 0, actuators: 0, sensors: 0 },
+            keyframeInfo: { found: false, count: 0, applied: false },
+            modelType: { isOBJBased: false, isSTLBased: false, isMixed: false },
+          },
+        ],
+        totalFiles: state.loadingState.totalFiles + 1,
+      },
+    })),
+
+  updateFile: (fileName: string, update: Partial<MJCFFileLoadingState>) =>
+    set((state) => ({
+      loadingState: {
+        ...state.loadingState,
+        files: state.loadingState.files.map((file) =>
+          file.fileName === fileName ? { ...file, ...update } : file
+        ),
+      },
     })),
 
   resetLoadingState: () =>
@@ -90,84 +104,259 @@ export const useMJCFLoadingStore = create<MJCFLoadingStore>((set) => ({
 
 // Helper functions for updating loading state
 export const mjcfLoading = {
-  start: (fileName: string) => {
+  startBatch: (fileNames: string[]) => {
+    useMJCFLoadingStore.getState().resetLoadingState();
+    fileNames.forEach(fileName => {
+      useMJCFLoadingStore.getState().addFile(fileName);
+    });
     useMJCFLoadingStore.getState().setLoadingState({
-      status: 'loading',
-      fileName,
-      progress: 0,
-      message: 'Starting MJCF import...',
-      details: [],
-      warnings: [],
-      errors: [],
+      overallStatus: 'loading',
     });
     useMJCFLoadingStore.getState().setShowPopup(true);
   },
 
-  updateProgress: (progress: number, message: string, details?: string[]) => {
-    useMJCFLoadingStore.getState().setLoadingState({
-      progress,
-      message,
-      details: details || [],
+  start: (fileName: string) => {
+    const store = useMJCFLoadingStore.getState();
+    const existingFile = store.loadingState.files.find(f => f.fileName === fileName);
+
+    if (!existingFile) {
+      store.addFile(fileName);
+    }
+
+    store.updateFile(fileName, {
+      status: 'loading',
+      message: 'Starting MJCF import...',
     });
+    store.setLoadingState({ overallStatus: 'loading' });
+    store.setShowPopup(true);
   },
 
-  setModelAnalysis: (modelType: Partial<MJCFLoadingState['modelType']>, stats: Partial<MJCFLoadingState['stats']>) => {
-    useMJCFLoadingStore.getState().setLoadingState({
-      modelType: { ...useMJCFLoadingStore.getState().loadingState.modelType, ...modelType },
-      stats: { ...useMJCFLoadingStore.getState().loadingState.stats, ...stats },
-    });
+  // Update progress (legacy - ignored in new system)
+  updateProgress: (_progress: number, _message: string) => {
+    // No-op in new system - kept for backward compatibility
   },
 
-  setKeyframeInfo: (keyframeInfo: Partial<MJCFLoadingState['keyframeInfo']>) => {
-    useMJCFLoadingStore.getState().setLoadingState({
-      keyframeInfo: { ...useMJCFLoadingStore.getState().loadingState.keyframeInfo, ...keyframeInfo },
-    });
+  // Add warning (legacy - ignored in new system)
+  addWarning: (_warning: string) => {
+    // No-op in new system - kept for backward compatibility
   },
 
-  addWarning: (warning: string) => {
-    const state = useMJCFLoadingStore.getState().loadingState;
-    useMJCFLoadingStore.getState().setLoadingState({
-      warnings: [...state.warnings, warning],
-    });
+  // Add error (legacy - ignored in new system)
+  addError: (_error: string) => {
+    // No-op in new system - kept for backward compatibility
   },
 
-  addError: (error: string) => {
-    const state = useMJCFLoadingStore.getState().loadingState;
-    useMJCFLoadingStore.getState().setLoadingState({
-      errors: [...state.errors, error],
-    });
+  setModelAnalysis: (fileNameOrModelType: string | Partial<MJCFFileLoadingState['modelType']>, statsOrModelType?: Partial<MJCFFileLoadingState['stats']> | Partial<MJCFFileLoadingState['modelType']>, maybeStats?: Partial<MJCFFileLoadingState['stats']>) => {
+    const store = useMJCFLoadingStore.getState();
+
+    // New API: setModelAnalysis(fileName, modelType, stats)
+    if (typeof fileNameOrModelType === 'string') {
+      const fileName = fileNameOrModelType;
+      const modelType = statsOrModelType as Partial<MJCFFileLoadingState['modelType']>;
+      const stats = maybeStats!;
+      const file = store.loadingState.files.find(f => f.fileName === fileName);
+      if (file) {
+        store.updateFile(fileName, {
+          modelType: { ...file.modelType, ...modelType },
+          stats: { ...file.stats, ...stats },
+        });
+      }
+    } else {
+      // Legacy API: setModelAnalysis(modelType, stats) - applies to currently loading file
+      const modelType = fileNameOrModelType;
+      const stats = statsOrModelType as Partial<MJCFFileLoadingState['stats']>;
+      const currentFile = store.loadingState.files.find(f => f.status === 'loading');
+      if (currentFile) {
+        store.updateFile(currentFile.fileName, {
+          modelType: { ...currentFile.modelType, ...modelType },
+          stats: { ...currentFile.stats, ...stats },
+        });
+      }
+    }
   },
 
-  success: (message: string, details?: string[]) => {
-    useMJCFLoadingStore.getState().setLoadingState({
-      status: 'success',
-      progress: 100,
-      message,
-      details: details || [],
-    });
+  setKeyframeInfo: (fileNameOrKeyframeInfo: string | Partial<MJCFFileLoadingState['keyframeInfo']>, maybeKeyframeInfo?: Partial<MJCFFileLoadingState['keyframeInfo']>) => {
+    const store = useMJCFLoadingStore.getState();
+
+    // New API: setKeyframeInfo(fileName, keyframeInfo)
+    if (typeof fileNameOrKeyframeInfo === 'string') {
+      const fileName = fileNameOrKeyframeInfo;
+      const keyframeInfo = maybeKeyframeInfo!;
+      const file = store.loadingState.files.find(f => f.fileName === fileName);
+      if (file) {
+        store.updateFile(fileName, {
+          keyframeInfo: { ...file.keyframeInfo, ...keyframeInfo },
+        });
+      }
+    } else {
+      // Legacy API: setKeyframeInfo(keyframeInfo) - applies to currently loading file
+      const keyframeInfo = fileNameOrKeyframeInfo;
+      const currentFile = store.loadingState.files.find(f => f.status === 'loading');
+      if (currentFile) {
+        store.updateFile(currentFile.fileName, {
+          keyframeInfo: { ...currentFile.keyframeInfo, ...keyframeInfo },
+        });
+      }
+    }
   },
 
-  error: (message: string, errors?: string[]) => {
-    useMJCFLoadingStore.getState().setLoadingState({
-      status: 'error',
-      progress: 0,
-      message,
-      errors: errors || [],
-    });
+  success: (fileNameOrMessage: string, maybeDetails?: string | string[]) => {
+    const store = useMJCFLoadingStore.getState();
+
+    // Determine if this is new API (fileName, message) or legacy API (message, details[])
+    const isNewAPI = store.loadingState.files.some(f => f.fileName === fileNameOrMessage);
+
+    if (isNewAPI) {
+      // New API: success(fileName, message)
+      const fileName = fileNameOrMessage;
+      const message = typeof maybeDetails === 'string' ? maybeDetails : 'Import complete';
+      store.updateFile(fileName, {
+        status: 'success',
+        message,
+      });
+    } else {
+      // Legacy API: success(message, details[]) - applies to currently loading file
+      const message = fileNameOrMessage;
+      const currentFile = store.loadingState.files.find(f => f.status === 'loading');
+      if (currentFile) {
+        store.updateFile(currentFile.fileName, {
+          status: 'success',
+          message,
+        });
+      }
+    }
+
+    // Update overall status if all files are done
+    const allDone = store.loadingState.files.every(f =>
+      f.status === 'success' || f.status === 'error' || f.status === 'warning'
+    );
+    if (allDone) {
+      const hasErrors = store.loadingState.files.some(f => f.status === 'error');
+      const hasWarnings = store.loadingState.files.some(f => f.status === 'warning');
+      store.setLoadingState({
+        overallStatus: hasErrors ? 'error' : hasWarnings ? 'warning' : 'success',
+      });
+    }
   },
 
-  warning: (message: string, warnings?: string[]) => {
-    useMJCFLoadingStore.getState().setLoadingState({
-      status: 'warning',
-      progress: 100,
-      message,
-      warnings: warnings || [],
-    });
+  error: (fileNameOrMessage: string, maybeErrors?: string | string[]) => {
+    const store = useMJCFLoadingStore.getState();
+
+    // Determine if this is new API (fileName, message) or legacy API (message, errors[])
+    const isNewAPI = store.loadingState.files.some(f => f.fileName === fileNameOrMessage);
+
+    if (isNewAPI) {
+      // New API: error(fileName, message)
+      const fileName = fileNameOrMessage;
+      const message = typeof maybeErrors === 'string' ? maybeErrors : 'Import failed';
+      store.updateFile(fileName, {
+        status: 'error',
+        message,
+      });
+    } else {
+      // Legacy API: error(message, errors[]) - applies to currently loading file
+      const message = fileNameOrMessage;
+      const currentFile = store.loadingState.files.find(f => f.status === 'loading');
+      if (currentFile) {
+        store.updateFile(currentFile.fileName, {
+          status: 'error',
+          message,
+        });
+      }
+    }
+
+    // Update overall status if all files are done
+    const allDone = store.loadingState.files.every(f =>
+      f.status === 'success' || f.status === 'error' || f.status === 'warning'
+    );
+    if (allDone) {
+      store.setLoadingState({ overallStatus: 'error' });
+    }
+  },
+
+  warning: (fileNameOrMessage: string, maybeWarnings?: string | string[]) => {
+    const store = useMJCFLoadingStore.getState();
+
+    // Determine if this is new API (fileName, message) or legacy API (message, warnings[])
+    const isNewAPI = store.loadingState.files.some(f => f.fileName === fileNameOrMessage);
+
+    if (isNewAPI) {
+      // New API: warning(fileName, message)
+      const fileName = fileNameOrMessage;
+      const message = typeof maybeWarnings === 'string' ? maybeWarnings : 'Import completed with warnings';
+      store.updateFile(fileName, {
+        status: 'warning',
+        message,
+      });
+    } else {
+      // Legacy API: warning(message, warnings[]) - applies to currently loading file
+      const message = fileNameOrMessage;
+      const currentFile = store.loadingState.files.find(f => f.status === 'loading');
+      if (currentFile) {
+        store.updateFile(currentFile.fileName, {
+          status: 'warning',
+          message,
+        });
+      }
+    }
+
+    // Update overall status if all files are done
+    const allDone = store.loadingState.files.every(f =>
+      f.status === 'success' || f.status === 'error' || f.status === 'warning'
+    );
+    if (allDone) {
+      const hasErrors = store.loadingState.files.some(f => f.status === 'error');
+      store.setLoadingState({
+        overallStatus: hasErrors ? 'error' : 'warning',
+      });
+    }
   },
 };
 
-// Status indicator component
-const StatusIndicator: React.FC<{ status: MJCFLoadingStatus }> = ({ status }) => {
+// Status indicator component for individual files
+const FileStatusIndicator: React.FC<{ file: MJCFFileLoadingState }> = ({ file }) => {
+  const icons = {
+    idle: <Info className="w-4 h-4 text-gray-400" />,
+    loading: <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />,
+    success: <CheckCircle className="w-4 h-4 text-green-400" />,
+    error: <AlertCircle className="w-4 h-4 text-red-400" />,
+    warning: <AlertTriangle className="w-4 h-4 text-yellow-400" />,
+  };
+
+  const bgColors = {
+    idle: 'bg-gray-800 border-gray-700',
+    loading: 'bg-blue-900/30 border-blue-700',
+    success: 'bg-green-900/30 border-green-700',
+    error: 'bg-red-900/30 border-red-700',
+    warning: 'bg-yellow-900/30 border-yellow-700',
+  };
+
+  return (
+    <div className={`${bgColors[file.status]} border rounded px-3 py-2`}>
+      <div className="flex items-center gap-2">
+        {icons[file.status]}
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-white truncate">{file.fileName}</p>
+          {file.status === 'success' && (
+            <p className="text-xs text-gray-400">
+              {file.stats.bodies}B • {file.stats.meshes}M • {file.stats.joints}J
+              {file.keyframeInfo.found && ` • ${file.keyframeInfo.count}K`}
+            </p>
+          )}
+          {file.status === 'loading' && (
+            <p className="text-xs text-blue-400">Loading...</p>
+          )}
+          {file.status === 'error' && file.message && (
+            <p className="text-xs text-red-400 truncate">{file.message}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Overall status header
+const OverallStatusHeader: React.FC<{ status: MJCFLoadingStatus; totalFiles: number; completedFiles: number }> = ({ status, totalFiles, completedFiles }) => {
   const icons = {
     idle: <Info className="w-5 h-5 text-gray-400" />,
     loading: <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />,
@@ -185,41 +374,21 @@ const StatusIndicator: React.FC<{ status: MJCFLoadingStatus }> = ({ status }) =>
   };
 
   return (
-    <div className={`${bgColors[status]} border rounded-lg p-4 shadow-lg max-w-md`}>
+    <div className={`${bgColors[status]} border rounded-lg p-3`}>
       <div className="flex items-center gap-3">
         {icons[status]}
         <div className="flex-1">
-          <h3 className="text-sm font-medium text-white mb-1">
+          <h3 className="text-sm font-medium text-white">
             MJCF Import Status
           </h3>
           <p className="text-xs text-gray-300">
-            {status === 'loading' ? 'Processing...' : 
-             status === 'success' ? 'Import Complete' :
-             status === 'error' ? 'Import Failed' :
-             status === 'warning' ? 'Import Complete with Warnings' : 'Ready'}
+            {status === 'loading' ? `Processing ${completedFiles}/${totalFiles}...` :
+             status === 'success' ? `Import Complete (${completedFiles}/${totalFiles})` :
+             status === 'error' ? `Import Failed (${completedFiles}/${totalFiles})` :
+             status === 'warning' ? `Complete with Warnings (${completedFiles}/${totalFiles})` : 'Ready'}
           </p>
         </div>
       </div>
-    </div>
-  );
-};
-
-// Progress bar component
-const ProgressBar: React.FC<{ progress: number; status: MJCFLoadingStatus }> = ({ progress, status }) => {
-  const colors = {
-    idle: 'bg-gray-600',
-    loading: 'bg-blue-500',
-    success: 'bg-green-500',
-    error: 'bg-red-500',
-    warning: 'bg-yellow-500',
-  };
-
-  return (
-    <div className="w-full bg-gray-700 rounded-full h-2">
-      <div
-        className={`${colors[status]} h-2 rounded-full transition-all duration-300`}
-        style={{ width: `${progress}%` }}
-      />
     </div>
   );
 };
@@ -238,135 +407,50 @@ export const MJCFLoadingStatusPopup: React.FC = () => {
     }, 1000);
   };
 
-  const getStatusMessage = () => {
-    const { status, message, fileName, keyframeInfo, modelType, stats } = loadingState;
-    
-    if (status === 'success') {
-      const modelTypeText = modelType.isOBJBased ? 'OBJ-based' : 
-                           modelType.isSTLBased ? 'STL-based' : 
-                           modelType.isMixed ? 'Mixed' : 'Unknown';
-      
-      const keyframeText = keyframeInfo.found ? 
-        `Found ${keyframeInfo.count} keyframe${keyframeInfo.count !== 1 ? 's' : ''}` : 
-        'No keyframes found';
-      
-      return `${fileName} loaded successfully! ${modelTypeText} model with ${stats.bodies} bodies, ${stats.meshes} meshes, ${stats.joints} joints. ${keyframeText}.`;
-    }
-    
-    if (status === 'error') {
-      return `Failed to load ${fileName}: ${message}`;
-    }
-    
-    if (status === 'warning') {
-      return `${fileName} loaded with warnings: ${message}`;
-    }
-    
-    return message || 'Processing MJCF file...';
-  };
+  const completedFiles = loadingState.files.filter(f =>
+    f.status === 'success' || f.status === 'error' || f.status === 'warning'
+  ).length;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
-      <div className="bg-gray-800 border border-gray-600 rounded-lg p-6 max-w-lg w-full mx-4 shadow-xl">
+      <div className="bg-gray-800 border border-gray-600 rounded-lg p-4 max-w-md w-full mx-4 shadow-xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Bot className="w-6 h-6 text-blue-400" />
-            <h2 className="text-lg font-semibold text-white">MJCF Import</h2>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Bot className="w-5 h-5 text-blue-400" />
+            <h2 className="text-base font-semibold text-white">MJCF Import</h2>
           </div>
           <button
             onClick={handleClose}
             className="text-gray-400 hover:text-white transition-colors"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Status indicator */}
-        <div className="mb-4">
-          <StatusIndicator status={loadingState.status} />
+        {/* Overall status header */}
+        <div className="mb-3">
+          <OverallStatusHeader
+            status={loadingState.overallStatus}
+            totalFiles={loadingState.totalFiles}
+            completedFiles={completedFiles}
+          />
         </div>
 
-        {/* Progress bar */}
-        {loadingState.status === 'loading' && (
-          <div className="mb-4">
-            <div className="flex justify-between text-xs text-gray-400 mb-1">
-              <span>Progress</span>
-              <span>{loadingState.progress}%</span>
-            </div>
-            <ProgressBar progress={loadingState.progress} status={loadingState.status} />
-          </div>
-        )}
-
-        {/* Main message */}
-        <div className="mb-4">
-          <p className="text-sm text-white">{getStatusMessage()}</p>
+        {/* File list - compact scrollable */}
+        <div className="space-y-2 max-h-96 overflow-y-auto mb-3 pr-1">
+          {loadingState.files.map((file, index) => (
+            <FileStatusIndicator key={index} file={file} />
+          ))}
         </div>
-
-        {/* Details */}
-        {loadingState.details.length > 0 && (
-          <div className="mb-4">
-            <h4 className="text-xs font-medium text-gray-300 mb-2">Details:</h4>
-            <ul className="text-xs text-gray-400 space-y-1">
-              {loadingState.details.map((detail, index) => (
-                <li key={index} className="flex items-center gap-2">
-                  <FileText size={12} />
-                  {detail}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Warnings */}
-        {loadingState.warnings.length > 0 && (
-          <div className="mb-4">
-            <h4 className="text-xs font-medium text-yellow-300 mb-2">Warnings:</h4>
-            <ul className="text-xs text-yellow-400 space-y-1">
-              {loadingState.warnings.map((warning, index) => (
-                <li key={index} className="flex items-center gap-2">
-                  <AlertTriangle size={12} />
-                  {warning}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Errors */}
-        {loadingState.errors.length > 0 && (
-          <div className="mb-4">
-            <h4 className="text-xs font-medium text-red-300 mb-2">Errors:</h4>
-            <ul className="text-xs text-red-400 space-y-1">
-              {loadingState.errors.map((error, index) => (
-                <li key={index} className="flex items-center gap-2">
-                  <AlertCircle size={12} />
-                  {error}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Stats */}
-        {loadingState.status === 'success' && (
-          <div className="mb-4">
-            <h4 className="text-xs font-medium text-gray-300 mb-2">Model Statistics:</h4>
-            <div className="grid grid-cols-2 gap-2 text-xs text-gray-400">
-              <div>Bodies: {loadingState.stats.bodies}</div>
-              <div>Meshes: {loadingState.stats.meshes}</div>
-              <div>Joints: {loadingState.stats.joints}</div>
-              <div>Actuators: {loadingState.stats.actuators}</div>
-            </div>
-          </div>
-        )}
 
         {/* Close button */}
         <div className="flex justify-end">
           <button
             onClick={handleClose}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
+            className="px-4 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
           >
-            {loadingState.status === 'loading' ? 'Cancel' : 'Close'}
+            {loadingState.overallStatus === 'loading' ? 'Hide' : 'Close'}
           </button>
         </div>
       </div>
