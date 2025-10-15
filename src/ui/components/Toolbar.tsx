@@ -119,15 +119,30 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
-      console.log(`[File Selection] Selected ${files.length} file(s)`);
+      console.log(`[File Selection] ========================================`);
+      console.log(`[File Selection] Selected ${files.length} file(s):`);
+
+      // Log all selected files first
+      for (let i = 0; i < files.length; i++) {
+        console.log(`[File Selection]   ${i + 1}. ${files[i].name} (${(files[i].size / 1024).toFixed(2)} KB)`);
+      }
 
       // Import each file sequentially
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        console.log(`[File Selection] Loading file ${i + 1}/${files.length}: ${file.name}`);
-        console.log(`[File Selection] webkitRelativePath: ${file.webkitRelativePath || 'not available'}`);
-        await importModel(file);
+        console.log(`[File Selection] ----------------------------------------`);
+        console.log(`[File Selection] 🔄 Starting import ${i + 1}/${files.length}: ${file.name}`);
+
+        try {
+          await importModel(file);
+          console.log(`[File Selection] ✅ Completed import ${i + 1}/${files.length}: ${file.name}`);
+        } catch (error) {
+          console.error(`[File Selection] ❌ Failed import ${i + 1}/${files.length}: ${file.name}`, error);
+        }
       }
+
+      console.log(`[File Selection] ========================================`);
+      console.log(`[File Selection] ✅ All ${files.length} file(s) processed`);
 
       // Reset input so same files can be loaded again
       if (fileInputRef.current) {
