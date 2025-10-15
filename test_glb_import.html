@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLB Import Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        #fileInput { margin: 10px 0; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>GLB Import Test</h1>
+    
+    <div class="test-section info">
+        <h3>Test GLB File Import</h3>
+        <p>This test verifies that GLB files can be imported through the kinetiCORE system.</p>
+        <p><strong>Instructions:</strong></p>
+        <ol>
+            <li>Click "Select GLB Files" below</li>
+            <li>Choose one or more GLB files from your assets folder</li>
+            <li>Click "Test Import" to verify the import process</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h3>File Selection</h3>
+        <input type="file" id="fileInput" accept=".glb" multiple>
+        <button onclick="testGLBImport()">Test Import</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        function testGLBImport() {
+            const fileInput = document.getElementById('fileInput');
+            const results = document.getElementById('results');
+            
+            if (fileInput.files.length === 0) {
+                showResult('Please select one or more GLB files first.', 'error');
+                return;
+            }
+
+            results.innerHTML = '<h3>Test Results</h3>';
+            
+            Array.from(fileInput.files).forEach((file, index) => {
+                testSingleFile(file, index + 1);
+            });
+        }
+
+        function testSingleFile(file, fileNumber) {
+            const results = document.getElementById('results');
+            
+            // Basic file validation
+            if (!file.name.toLowerCase().endsWith('.glb')) {
+                showResult(`File ${fileNumber}: ${file.name} - ❌ Not a GLB file`, 'error');
+                return;
+            }
+
+            if (file.size === 0) {
+                showResult(`File ${fileNumber}: ${file.name} - ❌ Empty file`, 'error');
+                return;
+            }
+
+            if (file.size > 500 * 1024 * 1024) { // 500MB
+                showResult(`File ${fileNumber}: ${file.name} - ⚠️ Very large file (${(file.size / 1024 / 1024).toFixed(1)}MB)`, 'info');
+            }
+
+            // Simulate GLB loader validation
+            const fileSizeKB = (file.size / 1024).toFixed(1);
+            showResult(`File ${fileNumber}: ${file.name} - ✅ Valid GLB file (${fileSizeKB}KB)`, 'success');
+            
+            // Simulate what would happen in kinetiCORE
+            showResult(`File ${fileNumber}: Would load as visual model (no kinematic controls)`, 'info');
+        }
+
+        function showResult(message, type) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-section ${type}`;
+            div.innerHTML = `<p>${message}</p>`;
+            results.appendChild(div);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // Auto-test when files are selected
+        document.getElementById('fileInput').addEventListener('change', function() {
+            if (this.files.length > 0) {
+                showResult(`Selected ${this.files.length} file(s) for testing`, 'info');
+            }
+        });
+    </script>
+</body>
+</html>

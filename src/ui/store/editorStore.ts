@@ -1074,7 +1074,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           // MJCF loader will handle ZIP extraction internally
           const mjcfResult = await loadMJCFFromFile(file, scene);
 
-          if (mjcfResult.success && mjcfResult.meshes.length > 0) {
+          if (mjcfResult.success) {
             console.log(`[File Import] Successfully loaded MJCF from ZIP: ${mjcfResult.meshes.length} meshes`);
 
             // Get the model name from the file
@@ -1268,6 +1268,42 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             metadata: node.metadata
           });
         });
+      }
+      
+      // Debug: Log mesh details for GLB files
+      if (file.name.endsWith('.glb')) {
+        console.log('[EditorStore] GLB Debug - Mesh Details:');
+        result.meshes.forEach((mesh, index) => {
+          console.log(`[EditorStore] GLB Mesh ${index}:`, {
+            name: mesh.name,
+            enabled: mesh.isEnabled(),
+            visible: mesh.isVisible,
+            position: `(${mesh.position.x.toFixed(2)}, ${mesh.position.y.toFixed(2)}, ${mesh.position.z.toFixed(2)})`,
+            parent: mesh.parent ? mesh.parent.name : 'none',
+            material: mesh.material ? mesh.material.name : 'none',
+            uniqueId: mesh.uniqueId,
+            verticesCount: mesh.getTotalVertices(),
+            boundingInfo: mesh.getBoundingInfo() ? 'exists' : 'missing',
+            metadata: mesh.metadata
+          });
+        });
+        
+        console.log('[EditorStore] GLB Debug - Root Node Details:');
+        result.rootNodes.forEach((node, index) => {
+          console.log(`[EditorStore] GLB Root Node ${index}:`, {
+            name: node.name,
+            enabled: node.isEnabled(),
+            position: `(${node.position.x.toFixed(2)}, ${node.position.y.toFixed(2)}, ${node.position.z.toFixed(2)})`,
+            childrenCount: node.getChildren().length,
+            uniqueId: node.uniqueId,
+            metadata: node.metadata
+          });
+        });
+        
+        // GLB-specific user messaging
+        console.warn('[EditorStore] GLB file loaded - visual model only');
+        console.warn('[EditorStore] No kinematic controls available for GLB files');
+        console.warn('[EditorStore] Use MJCF format for robot functionality');
       }
       
       meshes = result.meshes;

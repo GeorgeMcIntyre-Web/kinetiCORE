@@ -28,6 +28,9 @@ import { loadDWGFromFile } from '../loaders/dwg/DWGLoader';
 // Import MJCF loader
 import { loadMJCFFromFile } from '../loaders/mjcf/MJCFLoader';
 
+// Import GLB loader
+import { loadGLBFromFile } from '../loaders/glb/GLBLoader';
+
 // Configure Draco decoder
 DracoCompression.Configuration = {
   decoder: {
@@ -167,6 +170,71 @@ export async function loadModelFromFile(
           throw error;
         }
       }
+
+  // Handle GLB files with MJCF-compatible interface
+  if (extension === '.glb') {
+    console.log('[ModelLoader] Detected GLB file:', file.name);
+    
+    try {
+      // Load GLB with comprehensive error handling and guard rails
+      const result = await loadGLBFromFile(file, scene, {
+        enableProgressCallback: true,
+        enableBoundsCalculation: true,
+        enableMetadataExtraction: true,
+        fallbackToBasicLoader: true,
+        onProgress: (progress, message) => {
+          console.log(`[ModelLoader] GLB Progress: ${progress}% - ${message}`);
+        }
+      });
+
+      console.log('[ModelLoader] GLB import result:', result);
+      
+      // Guard rail: Validate result structure
+      if (!result || typeof result !== 'object') {
+        throw new Error('Invalid GLB load result structure');
+      }
+
+      // Guard rail: Check for critical errors
+      if (result.errors && result.errors.length > 0) {
+        console.warn('[ModelLoader] GLB load completed with errors:', result.errors);
+      }
+
+      // Guard rail: Ensure meshes are in scene
+      if (result.meshes && result.meshes.length > 0) {
+        result.meshes.forEach((mesh, index) => {
+          const inScene = scene.meshes.includes(mesh);
+          if (!inScene) {
+            console.log(`[ModelLoader] GLB Debug - Mesh ${index} (${mesh.name}) not in scene, adding manually...`);
+            scene.meshes.push(mesh);
+          }
+        });
+      }
+
+      // Guard rail: Handle bounds for camera fitting
+      if (result.bounds && result.meshes && result.meshes.length > 0) {
+        console.log('[ModelLoader] Fitting camera to GLB bounds:', result.bounds);
+        (result as any).cameraBounds = result.bounds;
+      }
+
+      // Guard rail: Log warnings for user awareness
+      if (result.warnings && result.warnings.length > 0) {
+        console.warn('[ModelLoader] GLB load warnings:', result.warnings);
+      }
+
+      // Return MJCF-compatible structure
+      return {
+        meshes: result.meshes || [],
+        rootNodes: result.rootNodes || []
+      };
+
+    } catch (error) {
+      console.error('[ModelLoader] GLB import failed:', error);
+      
+      // Guard rail: Provide fallback error message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown GLB loading error';
+      throw new Error(`GLB import failed: ${errorMessage}`);
+    }
+  }
 
   // Handle DXF files
   if (extension === '.dxf') {

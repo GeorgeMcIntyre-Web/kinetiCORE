@@ -16,9 +16,10 @@ import JSZip from 'jszip';
 **Added `extractZipFile` function** (lines 214-258):
 - Extracts ZIP file contents using JSZip
 - Finds MJCF XML file (`.xml` extension)
-- Finds all mesh files (`.stl`, `.obj`, `.dae` extensions)
+- Finds all mesh files (`.stl`, `.obj`, `.dae`, `.glb` extensions)
 - Returns File objects for MJCF and Map of mesh files
 - Handles nested directory structures (extracts basename)
+- Supports GLB files as visual assets alongside traditional meshes
 
 **Updated `loadMJCFFromFile` function** (lines 272-276):
 - Detects ZIP files by `.zip` extension

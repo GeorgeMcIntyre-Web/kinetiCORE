@@ -269,7 +269,32 @@ const importVisualMesh = async (scene: Scene, rootUrl: string, file: string, mes
     console.log(`[MJCF Import] Loading mesh from ZIP: ${file} (${meshFile.size} bytes)`);
 
     try {
-          // Read file as ArrayBuffer
+      // Handle GLB files with GLB loader
+      if (file.toLowerCase().endsWith('.glb')) {
+        console.log(`[MJCF Import] Loading GLB file: ${file}`);
+        
+        // Import GLB loader dynamically
+        const { loadGLBFromFile } = await import('../glb/GLBLoader');
+        
+        // Load GLB file
+        const glbResult = await loadGLBFromFile(meshFile, scene, {
+          enableProgressCallback: false,
+          enableBoundsCalculation: false,
+          enableMetadataExtraction: false,
+          fallbackToBasicLoader: true
+        });
+        
+        if (glbResult.success && glbResult.meshes.length > 0) {
+          console.log(`[MJCF Import] Successfully loaded GLB: ${file} (${glbResult.meshes.length} meshes)`);
+          return glbResult.meshes;
+        } else {
+          console.warn(`[MJCF Import] GLB load failed for ${file}:`, glbResult.errors);
+          return [];
+        }
+      }
+
+      // Handle traditional mesh files (OBJ, STL)
+      // Read file as ArrayBuffer
       const arrayBuffer = await meshFile.arrayBuffer();
           const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
           const objectURL = URL.createObjectURL(blob);
@@ -975,10 +1000,12 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
         const lowerName = filename.toLowerCase();
         const basename = filename.split('/').pop() || filename;
 
-        // Look for mesh files
-        if (lowerName.endsWith('.obj') || lowerName.endsWith('.stl')) {
+        // Look for mesh files (including GLB files)
+        if (lowerName.endsWith('.obj') || lowerName.endsWith('.stl') || lowerName.endsWith('.glb')) {
           const blob = await zipEntry.async('blob');
-          const meshFile = new File([blob], basename, { type: 'application/octet-stream' });
+          const meshFile = new File([blob], basename, { 
+            type: lowerName.endsWith('.glb') ? 'model/gltf-binary' : 'application/octet-stream' 
+          });
           extractedMeshFiles.set(basename, meshFile);
           console.log(`[MJCF Import] Found mesh file in ZIP: ${basename} (from ${filename})`);
         }
@@ -1001,9 +1028,11 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
       // Update model analysis
       const objCount = Array.from(extractedMeshFiles.keys()).filter(f => f.toLowerCase().endsWith('.obj')).length;
       const stlCount = Array.from(extractedMeshFiles.keys()).filter(f => f.toLowerCase().endsWith('.stl')).length;
+      const glbCount = Array.from(extractedMeshFiles.keys()).filter(f => f.toLowerCase().endsWith('.glb')).length;
       const isOBJBased = objCount > 0 && (!stlCount || objCount >= stlCount);
       const isSTLBased = stlCount > 0 && !objCount;
       const isMixed = objCount > 0 && stlCount > 0;
+      const hasGLBAssets = glbCount > 0;
       
       if (mjcfLoading) {
         mjcfLoading.setModelAnalysis(
@@ -1256,7 +1285,7 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
         mjcfLoading.updateProgress(100, 'Import complete!');
         mjcfLoading.success(
           file.name,
-          `${primaryMjcfFile} loaded successfully - Model type: ${isOBJBased ? 'OBJ-based' : isSTLBased ? 'STL-based' : isMixed ? 'Mixed' : 'Unknown'}, Bodies: ${world.querySelectorAll('body').length}, Meshes: ${extractedMeshFiles.size}, Joints: ${Object.keys(jointMap).length}, Keyframes: ${Object.keys(keyframes).length > 0 ? `${Object.keys(keyframes).length} found and applied` : 'None found'}`
+          `${primaryMjcfFile} loaded successfully - Model type: ${isOBJBased ? 'OBJ-based' : isSTLBased ? 'STL-based' : isMixed ? 'Mixed' : 'Unknown'}${hasGLBAssets ? ' + GLB assets' : ''}, Bodies: ${world.querySelectorAll('body').length}, Meshes: ${extractedMeshFiles.size} (${objCount} OBJ, ${stlCount} STL, ${glbCount} GLB), Joints: ${Object.keys(jointMap).length}, Keyframes: ${Object.keys(keyframes).length > 0 ? `${Object.keys(keyframes).length} found and applied` : 'None found'}`
         );
       }
       
