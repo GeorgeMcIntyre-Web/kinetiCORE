@@ -230,11 +230,14 @@ export const mjcfLoading = {
     const allDone = store.loadingState.files.every(f =>
       f.status === 'success' || f.status === 'error' || f.status === 'warning'
     );
+    console.log(`[MJCF Status] Success called. All done: ${allDone}, Files:`, store.loadingState.files.map(f => `${f.fileName}:${f.status}`));
     if (allDone) {
       const hasErrors = store.loadingState.files.some(f => f.status === 'error');
       const hasWarnings = store.loadingState.files.some(f => f.status === 'warning');
+      const newStatus = hasErrors ? 'error' : hasWarnings ? 'warning' : 'success';
+      console.log(`[MJCF Status] Setting overall status to: ${newStatus}`);
       store.setLoadingState({
-        overallStatus: hasErrors ? 'error' : hasWarnings ? 'warning' : 'success',
+        overallStatus: newStatus,
       });
     }
   },
