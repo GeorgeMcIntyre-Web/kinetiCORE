@@ -168,9 +168,10 @@ interface TreeNodeProps {
   node: SceneNode;
   level: number;
   searchTerm: string;
+  maxDepth?: number; // Add depth limit to prevent infinite recursion
 }
 
-const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm }) => {
+const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth = 50 }) => {
   const tree = SceneTreeManager.getInstance();
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
@@ -205,8 +206,11 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm }) => {
   // Get status badges
   const statusBadges = useMemo(() => getNodeStatusBadges(node), [node]);
 
-  // Don't render if filtered out by search
-  if (!shouldShow) {
+  // Don't render if filtered out by search or if we've exceeded max depth
+  if (!shouldShow || level > maxDepth) {
+    if (level > maxDepth) {
+      console.error(`[SceneTree] Maximum depth exceeded for node ${node.id} (${node.name}) at level ${level}`);
+    }
     return null;
   }
 
@@ -334,6 +338,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm }) => {
       onZoom: () => zoomToNode(node.id),
     }
   ) : [];
+
 
   return (
     <div className="tree-node">
@@ -467,6 +472,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm }) => {
               node={child}
               level={level + 1}
               searchTerm={searchTerm}
+              maxDepth={maxDepth}
             />
           ))}
         </div>
@@ -496,16 +502,10 @@ export const SceneTree: React.FC = () => {
   const rootNode = tree.getRootNode();
   const createCollection = useEditorStore((state) => state.createCollection);
   const deleteNode = useEditorStore((state) => state.deleteNode);
-  
-  // Debug: Log tree state
-  console.log('🌳 SceneTree render - rootNode:', rootNode);
-  console.log('🌳 SceneTree render - all nodes:', tree.getAllNodes());
 
   // Listen for tree updates
   useEffect(() => {
     const handleUpdate = () => {
-      console.log('🔄 SceneTree received scenetree-update event, forcing update...');
-      console.log('🌳 Current tree nodes:', tree.getAllNodes());
       forceUpdate((n) => n + 1);
     };
 

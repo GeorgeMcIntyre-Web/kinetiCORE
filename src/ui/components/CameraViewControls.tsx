@@ -185,8 +185,8 @@ export const CameraViewControls: React.FC = () => {
 
   const handleZoomIn = () => {
     if (!camera || !(camera instanceof BABYLON.ArcRotateCamera)) return;
-    // Decrease radius by 20% to zoom in
-    const targetRadius = camera.radius * 0.8;
+    // Decrease radius by 20% to zoom in, but respect lower bounds
+    const targetRadius = Math.max(camera.radius * 0.8, camera.lowerRadiusLimit || 1);
     BABYLON.Animation.CreateAndStartAnimation(
       'zoomIn',
       camera,
@@ -201,8 +201,8 @@ export const CameraViewControls: React.FC = () => {
 
   const handleZoomOut = () => {
     if (!camera || !(camera instanceof BABYLON.ArcRotateCamera)) return;
-    // Increase radius by 25% to zoom out
-    const targetRadius = camera.radius * 1.25;
+    // Increase radius by 25% to zoom out, but respect upper bounds
+    const targetRadius = Math.min(camera.radius * 1.25, camera.upperRadiusLimit || 1000);
     BABYLON.Animation.CreateAndStartAnimation(
       'zoomOut',
       camera,

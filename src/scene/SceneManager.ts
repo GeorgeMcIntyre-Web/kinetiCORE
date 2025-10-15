@@ -159,7 +159,10 @@ export class SceneManager {
       this.scene
     );
 
-    // Camera controls
+    // Camera controls - use Babylon.js defaults
+    // NO custom button overrides - let Babylon handle all mouse interactions natively
+    // Default Babylon behavior: LMB = rotate, MMB = zoom (via drag), RMB = pan, Wheel = zoom
+    // Note: Custom button mappings were removed to fix wheel zoom issues
     this.camera.attachControl(canvas, true);
     this.camera.lowerRadiusLimit = CAMERA_MIN_RADIUS;
     this.camera.upperRadiusLimit = CAMERA_MAX_RADIUS;

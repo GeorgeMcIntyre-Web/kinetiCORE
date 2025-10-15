@@ -1,22 +1,22 @@
 // Scene Canvas component - renders Babylon.js scene
 // Owner: Edwin/Cole
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import { SceneManager } from '../../scene/SceneManager';
 import { RapierPhysicsEngine } from '../../physics/RapierPhysicsEngine';
 import { EntityRegistry } from '../../entities/EntityRegistry';
-// import { SceneTreeManager } from '../../scene/SceneTreeManager';
+import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { TransformGizmo } from '../../manipulation/TransformGizmo';
 import { useEditorStore } from '../store/editorStore';
 import { useUserLevel } from '../core/UserLevelContext';
 import { CoordinateFrame } from './CoordinateFrame';
-import { ContextMenu, useViewportContextMenu } from './ContextMenu';
 import { CameraViewControls } from './CameraViewControls';
 import { TransformSettings } from './TransformSettings';
 import { TemporaryOrigin } from './TemporaryOrigin';
 import { AlignTool } from './AlignTool';
 import { SnapToolbar } from './SnapSettings';
+import { isZoomableObject, isSelectableObject } from '../../scene/SceneUtils';
 
 export const SceneCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -31,7 +31,6 @@ export const SceneCanvas: React.FC = () => {
   const transformMode = useEditorStore((state) => state.transformMode);
   const selectMesh = useEditorStore((state) => state.selectMesh);
   const clearSelection = useEditorStore((state) => state.clearSelection);
-  const createObject = useEditorStore((state) => state.createObject);
   const initializeCoordinateFrameWidget = useEditorStore((state) => state.initializeCoordinateFrameWidget);
   const handleAlignClick = useEditorStore((state) => state.handleAlignClick);
   const handleSceneClickForCustomFrame = useEditorStore((state) => state.handleSceneClickForCustomFrame);
@@ -62,8 +61,6 @@ export const SceneCanvas: React.FC = () => {
   const gizmoRef = useRef<TransformGizmo | null>(null);
   const highlightLayerRef = useRef<BABYLON.HighlightLayer | null>(null);
 
-  const { contextMenu, showContextMenu, hideContextMenu } = useViewportContextMenu();
-  const [menuItems, setMenuItems] = useState<any[]>([]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -122,11 +119,13 @@ export const SceneCanvas: React.FC = () => {
         let lastClickTime = 0;
         const DOUBLE_CLICK_THRESHOLD = 300; // ms
 
+        // Mouse wheel zoom is handled by Babylon.js native controls
+        // No custom handlers needed - Babylon handles it perfectly with adaptive speed
+        // See SceneManager.ts for wheelPrecision configuration (lines 167, 220-229)
+
         // Add click selection
         scene.onPointerDown = (evt, pickResult) => {
           if (evt.button === 0) {
-            // Left click - always close context menu
-            hideContextMenu();
 
             // Check if we're in alignment mode
             const currentAlignMode = useEditorStore.getState().alignMode;
@@ -150,22 +149,17 @@ export const SceneCanvas: React.FC = () => {
             lastClickTime = currentTime;
 
             // Handle double-click to zoom to clicked object
-            if (isDoubleClick && pickResult.hit && pickResult.pickedPoint && pickResult.pickedMesh) {
+            if (isDoubleClick && pickResult.hit && pickResult.pickedPoint) {
               const mesh = pickResult.pickedMesh;
-              
-              // Ignore ground, grid overlay, axis meshes, and widget elements
-              if (
-                mesh.name !== 'ground' &&
-                mesh.name !== 'gridOverlay' &&
-                !mesh.name.startsWith('axis') &&
-                !mesh.name.startsWith('widget') &&
-                !mesh.name.startsWith('label') &&
-                mesh instanceof BABYLON.Mesh
-              ) {
-                // Zoom to the clicked mesh
+
+              // Check if mesh is zoomable (using centralized filtering from SceneUtils.ts)
+              if (mesh && mesh instanceof BABYLON.Mesh && isZoomableObject(mesh)) {
                 sceneManager.zoomToMesh(mesh);
+              } else if (mesh && mesh instanceof BABYLON.TransformNode && !isZoomableObject(mesh)) {
+                // TransformNode (collection) - zoom to all children
+                sceneManager.zoomToNode(mesh);
               } else {
-                // For other objects, just set camera target to the picked point
+                // Empty space or infrastructure - just center camera target
                 const pickedPoint = pickResult.pickedPoint.clone();
                 if (camera instanceof BABYLON.ArcRotateCamera) {
                   BABYLON.Animation.CreateAndStartAnimation(
@@ -187,15 +181,8 @@ export const SceneCanvas: React.FC = () => {
             if (pickResult.hit && pickResult.pickedMesh) {
               const mesh = pickResult.pickedMesh;
 
-              // Ignore ground, grid overlay, axis meshes, and widget elements
-              if (
-                mesh.name !== 'ground' &&
-                mesh.name !== 'gridOverlay' &&
-                !mesh.name.startsWith('axis') &&
-                !mesh.name.startsWith('widget') &&
-                !mesh.name.startsWith('label') &&
-                mesh instanceof BABYLON.Mesh
-              ) {
+              // Check if mesh is selectable (using centralized filtering from SceneUtils.ts)
+              if (mesh instanceof BABYLON.Mesh && isSelectableObject(mesh)) {
                 // Check if this mesh belongs to a device entity
                 const deviceEntity = registry.getDeviceByMesh(mesh);
 
@@ -220,6 +207,15 @@ export const SceneCanvas: React.FC = () => {
                     selectMesh(mesh);
                   }
                 }
+              } else if (mesh instanceof BABYLON.TransformNode) {
+                // Handle TransformNode selection - find corresponding tree node
+                const tree = SceneTreeManager.getInstance();
+                const node = tree.getNodeByBabylonTransformNodeId(mesh.uniqueId.toString());
+                if (node) {
+                  // Use the store's selectNode function which handles collections properly
+                  const { selectNode } = useEditorStore.getState();
+                  selectNode(node.id);
+                }
               }
             } else {
               // Clicked on empty space - clear selection unless Ctrl is held
@@ -227,38 +223,10 @@ export const SceneCanvas: React.FC = () => {
                 clearSelection();
               }
             }
-          } else if (evt.button === 1) {
-            // Middle click - zoom to clicked point
-            if (pickResult.hit && pickResult.pickedPoint) {
-              const pickedPoint = pickResult.pickedPoint.clone();
-              if (camera instanceof BABYLON.ArcRotateCamera) {
-                // Animate camera target to picked point
-                BABYLON.Animation.CreateAndStartAnimation(
-                  'setCameraTarget',
-                  camera,
-                  'target',
-                  60,
-                  30,
-                  camera.target,
-                  pickedPoint,
-                  BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
-                );
-
-                // If middle-clicked on a mesh, zoom to fit it
-                if (pickResult.pickedMesh &&
-                    pickResult.pickedMesh.name !== 'ground' &&
-                    pickResult.pickedMesh.name !== 'gridOverlay' &&
-                    !pickResult.pickedMesh.name.startsWith('axis') &&
-                    !pickResult.pickedMesh.name.startsWith('widget') &&
-                    !pickResult.pickedMesh.name.startsWith('label') &&
-                    pickResult.pickedMesh instanceof BABYLON.Mesh) {
-                  sceneManager.zoomToMesh(pickResult.pickedMesh);
-                }
-              }
-            }
           } else if (evt.button === 2) {
-            // Right click - context menu handled by onContextMenu prop
+            // Right click - prevent context menu
             evt.preventDefault();
+            return;
           }
         };
 
@@ -474,15 +442,6 @@ export const SceneCanvas: React.FC = () => {
     };
   }, [userLevel]);
 
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const items = showContextMenu(e, (type: string) => {
-      if (type === 'box' || type === 'sphere' || type === 'cylinder') {
-        createObject(type);
-      }
-    });
-    setMenuItems(items);
-  };
 
   return (
     <div
@@ -492,7 +451,6 @@ export const SceneCanvas: React.FC = () => {
         zIndex: 1,
         pointerEvents: 'none',
       }}
-      onContextMenu={handleContextMenu}
     >
       <canvas
         ref={canvasRef}
@@ -532,15 +490,6 @@ export const SceneCanvas: React.FC = () => {
         </div>
       )}
 
-      {/* Context menu */}
-      {contextMenu && (
-        <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          items={menuItems}
-          onClose={hideContextMenu}
-        />
-      )}
 
       {camera && <CoordinateFrame camera={camera as BABYLON.ArcRotateCamera} />}
     </div>

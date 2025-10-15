@@ -360,7 +360,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
     // If it's a mesh node with babylonMeshId (legacy/non-device meshes)
     else if (node && node.babylonMeshId && scene) {
-      const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+      const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
       if (mesh && mesh instanceof BABYLON.Mesh) {
         set({ selectedMeshes: [mesh] });
       }
@@ -368,7 +368,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     // If it's a collection/TransformNode, show coordinate frame at its origin
     if (node && node.type === 'collection' && scene) {
-      const transformNode = scene.transformNodes.find(tn => tn.name === node.name);
+      let transformNode: BABYLON.TransformNode | undefined;
+      
+      // Use uniqueId lookup first for reliability, fallback to name lookup
+      if (node.babylonTransformNodeId) {
+        const uniqueId = parseInt(node.babylonTransformNodeId, 10);
+        const foundNode = scene.getTransformNodeByUniqueId(uniqueId);
+        transformNode = foundNode ? foundNode : undefined;
+      } else {
+        // Fallback to name lookup (legacy support for nodes without unique ID)
+        transformNode = scene.transformNodes.find(tn => tn.name === node.name);
+      }
+      
       if (transformNode) {
         // For collection nodes, we need to trigger gizmo activation
         // by setting a special flag that SceneCanvas can detect
@@ -481,7 +492,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     // If it's a mesh node, zoom to the specific mesh
     if (node.type === 'mesh' && node.babylonMeshId) {
-      const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+      const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
       if (mesh) {
         sceneManager.zoomToMesh(mesh);
       }
@@ -491,7 +502,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Use unique ID instead of name lookup for reliability
       if (node.babylonTransformNodeId) {
         const transformNode = scene.getTransformNodeByUniqueId(
-          parseInt(node.babylonTransformNodeId)
+          parseInt(node.babylonTransformNodeId, 10)
         );
         if (transformNode) {
           sceneManager.zoomToNode(transformNode);
@@ -944,9 +955,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         const isMesh = node instanceof BABYLON.Mesh;
         const children = getAllChildren(node);
         
-        // Skip __root__ and duplicate filename nodes
+        // Skip synthetic root nodes and duplicate filename nodes
+        // This ensures synthetic containers don't appear in the tree UI
         if (node.name === '__root__' ||
             node.name.startsWith('__root') ||
+            node.name === 'mjcf_root' ||
+            node.name.startsWith('mjcf_root') ||
             node.name === modelName) {
           for (const child of children) {
             buildTreeForNode(child, parentNodeId, depth);
@@ -1078,10 +1092,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
               const isMesh = node instanceof BABYLON.Mesh;
               const children = getAllChildren(node);
 
-              // Skip __root__ and duplicate filename nodes - process children directly
+              // Skip synthetic root nodes and duplicate filename nodes - process children directly
+              // This ensures synthetic containers don't appear in the tree UI
               // But don't skip MJCF root nodes as they contain the actual geometry
               if (node.name === '__root__' ||
                   node.name.startsWith('__root') ||
+                  node.name === 'mjcf_root' ||
+                  node.name.startsWith('mjcf_root') ||
                   (node.name === modelName && node.metadata?.sourceFormat !== 'mjcf')) {
                 for (const child of children) {
                   buildTreeForNode(child, parentNodeId, depth);
@@ -1114,6 +1131,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
               }
             };
 
+            // Special handling for MJCF: Link the model collection to the mjcf_root TransformNode
+            // This ensures the gizmo works properly for the main model collection
+            const mjcfRootNode = scene.transformNodes.find(tn => tn.name === 'mjcf_root');
+            if (mjcfRootNode) {
+              modelCollection.babylonTransformNodeId = mjcfRootNode.uniqueId.toString();
+              console.log('[EditorStore] Linked MJCF model collection to mjcf_root TransformNode:', mjcfRootNode.uniqueId);
+            }
+
             // Build tree starting from root nodes
             for (const rootNode of mjcfResult.rootNodes) {
               buildTreeForNode(rootNode, modelCollection.id);
@@ -1126,6 +1151,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             // Expand Assets node if not already expanded
             if (assetsNode && !assetsNode.expanded) {
               tree.toggleExpanded(assetsNode.id);
+              window.dispatchEvent(new Event('scenetree-update'));
             }
 
             // Expand the collection to show contents
@@ -1288,6 +1314,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         // But don't skip MJCF root nodes as they contain the actual geometry
         if (node.name === '__root__' ||
             node.name.startsWith('__root') ||
+            node.name === 'mjcf_root' ||
+            node.name.startsWith('mjcf_root') ||
             (node.name === modelName && node.metadata?.sourceFormat !== 'mjcf')) {
           for (const child of children) {
             buildTreeForNode(child, parentNodeId, depth);
@@ -1349,6 +1377,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Expand Assets node if not already expanded
       if (assetsNode && !assetsNode.expanded) {
         tree.toggleExpanded(assetsNode.id);
+        window.dispatchEvent(new Event('scenetree-update'));
       }
 
       // Expand the collection to show contents
@@ -1489,6 +1518,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         // But don't skip MJCF root nodes as they contain the actual geometry
         if (node.name === '__root__' ||
             node.name.startsWith('__root') ||
+            node.name === 'mjcf_root' ||
+            node.name.startsWith('mjcf_root') ||
             (node.name === modelName && node.metadata?.sourceFormat !== 'mjcf')) {
           for (const child of children) {
             buildTreeForNode(child, parentNodeId, depth);
@@ -1550,6 +1581,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Expand Assets node if not already expanded
       if (assetsNode && !assetsNode.expanded) {
         tree.toggleExpanded(assetsNode.id);
+        window.dispatchEvent(new Event('scenetree-update'));
       }
 
       // Expand the collection to show contents
@@ -1742,7 +1774,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
       // Also dispose Babylon mesh directly if it exists
       if (node.babylonMeshId && scene) {
-        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
         if (mesh) {
           mesh.dispose();
         }
@@ -1750,7 +1782,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
       // Dispose TransformNode if it exists
       if (node.babylonTransformNodeId && scene) {
-        const transformNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId));
+        const transformNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId, 10));
         if (transformNode) {
           transformNode.dispose();
         }
@@ -1771,7 +1803,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     // Also dispose any orphaned meshes in the scene (safety cleanup)
     if (scene) {
       const meshesToDispose = scene.meshes.filter(
-        mesh => mesh.name !== 'ground' && mesh.name !== '__root__' && !mesh.name.startsWith('grid')
+        mesh => mesh.name !== 'ground' && mesh.name !== '__root__' && mesh.name !== 'mjcf_root' && !mesh.name.startsWith('grid')
       );
       meshesToDispose.forEach(mesh => {
         try {
@@ -1783,7 +1815,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
       // Also dispose orphaned transform nodes
       const transformNodesToDispose = scene.transformNodes.filter(
-        node => node.name !== '__root__' && !node.name.startsWith('__root')
+        node => node.name !== '__root__' && !node.name.startsWith('__root') && 
+                node.name !== 'mjcf_root' && !node.name.startsWith('mjcf_root')
       );
       transformNodesToDispose.forEach(node => {
         try {
@@ -1832,7 +1865,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     let babylonNode: BABYLON.TransformNode | null = null;
     if (node.babylonMeshId) {
       // It's a mesh
-      babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+      babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
     } else if (node.type === 'collection') {
       // It's a collection/TransformNode - find by name
       babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
@@ -1876,7 +1909,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     // Update Babylon node (Mesh or TransformNode)
     let babylonNode: BABYLON.TransformNode | null = null;
     if (node.babylonMeshId) {
-      babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+      babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
     } else if (node.type === 'collection') {
       babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
     }
@@ -1922,7 +1955,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     // Update Babylon node (Mesh or TransformNode)
     let babylonNode: BABYLON.TransformNode | null = null;
     if (node.babylonMeshId) {
-      babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+      babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
     } else if (node.type === 'collection') {
       babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
     }

@@ -158,7 +158,23 @@ export class SceneTreeManager {
   }
 
   /**
+   * Get node by Babylon TransformNode ID
+   */
+  getNodeByBabylonTransformNodeId(transformNodeId: string): SceneNode | undefined {
+    for (const node of this.nodes.values()) {
+      if (node.babylonTransformNodeId === transformNodeId) {
+        return node;
+      }
+    }
+    return undefined;
+  }
+
+  /**
    * Get node by entity ID
+   * Used to find tree nodes associated with physics entities
+   *
+   * @param entityId - The entity ID from EntityRegistry
+   * @returns The scene node associated with this entity, or undefined
    */
   getNodeByEntityId(entityId: string): SceneNode | undefined {
     for (const node of this.nodes.values()) {
@@ -309,20 +325,38 @@ export class SceneTreeManager {
   /**
    * Expand all parent nodes to reveal a specific node
    * Useful for auto-expanding tree when selecting an object in the viewer
+   *
+   * Note: Includes cycle detection to prevent infinite loops if tree structure is corrupted
    */
   expandToNode(nodeId: string): void {
     const node = this.nodes.get(nodeId);
     if (!node) return;
 
-    // Recursively expand all parents
-    if (node.parentId) {
-      const parent = this.nodes.get(node.parentId);
-      if (parent && isContainerType(parent.type)) {
-        parent.expanded = true;
-        // Recursively expand grandparents
-        this.expandToNode(node.parentId);
+    // Defensive cycle protection - track visited nodes to prevent infinite recursion
+    const visited = new Set<string>();
+    
+    const expandRecursively = (currentNodeId: string): void => {
+      if (visited.has(currentNodeId)) {
+        console.warn(`[SceneTree] Cycle detected in expandToNode for node ${currentNodeId}`);
+        return;
       }
-    }
+      visited.add(currentNodeId);
+
+      const currentNode = this.nodes.get(currentNodeId);
+      if (!currentNode) return;
+
+      // Recursively expand all parents
+      if (currentNode.parentId) {
+        const parent = this.nodes.get(currentNode.parentId);
+        if (parent && isContainerType(parent.type)) {
+          parent.expanded = true;
+          // Recursively expand grandparents
+          expandRecursively(currentNode.parentId);
+        }
+      }
+    };
+
+    expandRecursively(nodeId);
   }
 
   /**
@@ -447,7 +481,7 @@ export class SceneTreeManager {
 
       // Handle mesh nodes
       if (node.babylonMeshId) {
-        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
         if (mesh) {
           mesh.setEnabled(visible);
           console.log(`[SceneTree] Set mesh "${mesh.name}" visibility to ${visible}`);
@@ -456,7 +490,7 @@ export class SceneTreeManager {
 
       // Handle transform node collections
       if (node.babylonTransformNodeId) {
-        const transformNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId));
+        const transformNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId, 10));
         if (transformNode) {
           transformNode.setEnabled(visible);
           console.log(`[SceneTree] Set transform node "${transformNode.name}" visibility to ${visible}`);
