@@ -582,31 +582,10 @@ const applyKeyframeData = (
 
 
 /**
- * Creates a MuJoCo-style environment with ground plane and lighting
- * Based on unitree_mujoco scene.xml patterns
+ * Creates MuJoCo-style lighting for MJCF models
+ * Note: Floor is handled by the main scene manager to avoid duplication
  */
 const createMuJoCoEnvironment = (scene: Scene) => {
-  // Create checkered ground plane similar to MuJoCo viewer
-  const ground = MeshBuilder.CreateGround("muJoCoGround", {
-    width: 20,
-    height: 20,
-    subdivisions: 20
-  }, scene);
-
-  // Create checkered material with proper colors matching MuJoCo viewer
-  // Create a simple checkered pattern using two materials
-  const darkMaterial = new StandardMaterial("darkSquare", scene);
-  darkMaterial.diffuseColor = new Color3(0.1, 0.2, 0.3); // Dark blue
-  darkMaterial.specularColor = new Color3(0, 0, 0);
-  
-  const lightMaterial = new StandardMaterial("lightSquare", scene);
-  lightMaterial.diffuseColor = new Color3(0.2, 0.3, 0.4); // Light blue
-  lightMaterial.specularColor = new Color3(0, 0, 0);
-  
-  // Use the light material as base
-  ground.material = lightMaterial;
-  ground.position.y = 0; // Ground at Y=0 in Babylon.js Y-up system
-
   // Add directional light similar to MuJoCo viewer
   const directionalLight = new DirectionalLight("muJoCoDirectionalLight", new Vector3(0, -1, 0), scene);
   directionalLight.diffuse = new Color3(0.6, 0.6, 0.6);
@@ -619,9 +598,9 @@ const createMuJoCoEnvironment = (scene: Scene) => {
   hemisphericLight.specular = new Color3(0, 0, 0);
   hemisphericLight.intensity = 0.3;
 
-  console.log("[MJCF Environment] Created MuJoCo-style environment with ground plane and lighting");
+  console.log("[MJCF Environment] Created MuJoCo-style lighting (using existing scene floor)");
   
-  return { ground, directionalLight, hemisphericLight };
+  return { directionalLight, hemisphericLight };
 };
 
 const buildBodies = async (
