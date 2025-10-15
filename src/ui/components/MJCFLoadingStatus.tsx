@@ -117,16 +117,24 @@ export const mjcfLoading = {
 
   start: (fileName: string) => {
     const store = useMJCFLoadingStore.getState();
+    console.log(`[MJCF Status] start() called for: ${fileName}`);
+    console.log(`[MJCF Status] Current files:`, store.loadingState.files.map(f => `${f.fileName}:${f.status}`));
+
     const existingFile = store.loadingState.files.find(f => f.fileName === fileName);
+    console.log(`[MJCF Status] Existing file found:`, existingFile ? 'YES' : 'NO');
 
     if (!existingFile) {
+      console.log(`[MJCF Status] Adding new file: ${fileName}`);
       store.addFile(fileName);
     }
 
+    console.log(`[MJCF Status] Updating file ${fileName} to loading status`);
     store.updateFile(fileName, {
       status: 'loading',
       message: 'Starting MJCF import...',
     });
+    console.log(`[MJCF Status] Files after update:`, store.loadingState.files.map(f => `${f.fileName}:${f.status}`));
+
     store.setLoadingState({ overallStatus: 'loading' });
     store.setShowPopup(true);
   },
