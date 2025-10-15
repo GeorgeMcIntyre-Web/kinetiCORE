@@ -81,26 +81,47 @@ export const EssentialModeLayout: React.FC = () => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    // Find the main model file (MJCF, URDF, etc.)
-    const modelFile = Array.from(files).find(f => {
+    console.log(`[File Selection] ========================================`);
+    console.log(`[File Selection] Selected ${files.length} file(s):`);
+
+    // Log all selected files first
+    for (let i = 0; i < files.length; i++) {
+      console.log(`[File Selection]   ${i + 1}. ${files[i].name} (${(files[i].size / 1024).toFixed(2)} KB)`);
+    }
+
+    // Separate files into model files (.zip, .xml, .urdf, etc.) and mesh files (.stl, .obj, .dae)
+    const modelFiles: File[] = [];
+    const meshFiles: File[] = [];
+
+    Array.from(files).forEach(f => {
       const ext = f.name.toLowerCase();
-      return ext.endsWith('.xml') || ext.endsWith('.urdf') || ext.endsWith('.gltf') ||
-             ext.endsWith('.glb') || ext.endsWith('.obj') || ext.endsWith('.stl') ||
-             ext.endsWith('.jt') || ext.endsWith('.dwg') || ext.endsWith('.dxf') || 
-             ext.endsWith('.zip');
+      if (ext.endsWith('.xml') || ext.endsWith('.urdf') || ext.endsWith('.gltf') ||
+          ext.endsWith('.glb') || ext.endsWith('.obj') || ext.endsWith('.stl') ||
+          ext.endsWith('.jt') || ext.endsWith('.dwg') || ext.endsWith('.dxf') ||
+          ext.endsWith('.zip')) {
+        modelFiles.push(f);
+      } else if (ext.endsWith('.stl') || ext.endsWith('.obj') || ext.endsWith('.dae')) {
+        meshFiles.push(f);
+      }
     });
 
-    if (modelFile && importModel) {
-      // Collect mesh files (STL, OBJ, DAE) - exclude the main model file
-      const meshFiles = Array.from(files).filter(f => {
-        const ext = f.name.toLowerCase();
-        return (ext.endsWith('.stl') || ext.endsWith('.obj') || ext.endsWith('.dae')) && f !== modelFile;
-      });
+    // Import each model file sequentially
+    if (modelFiles.length > 0 && importModel) {
+      for (let i = 0; i < modelFiles.length; i++) {
+        const modelFile = modelFiles[i];
+        console.log(`[File Selection] ----------------------------------------`);
+        console.log(`[File Selection] 🔄 Starting import ${i + 1}/${modelFiles.length}: ${modelFile.name}`);
 
-      console.log(`[File Upload] Model: ${modelFile.name}, Mesh files: ${meshFiles.length}`);
+        try {
+          await importModel(modelFile, meshFiles);
+          console.log(`[File Selection] ✅ Completed import ${i + 1}/${modelFiles.length}: ${modelFile.name}`);
+        } catch (error) {
+          console.error(`[File Selection] ❌ Failed import ${i + 1}/${modelFiles.length}: ${modelFile.name}`, error);
+        }
+      }
 
-      // Pass model file and mesh files to importModel
-      await importModel(modelFile, meshFiles);
+      console.log(`[File Selection] ========================================`);
+      console.log(`[File Selection] ✅ All ${modelFiles.length} model file(s) processed`);
     }
 
     if (event.target) {
