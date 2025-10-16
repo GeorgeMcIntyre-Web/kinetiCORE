@@ -3,9 +3,17 @@ import { OBJFileLoader } from "@babylonjs/loaders/OBJ";
 import {
   Scene, SceneLoader, TransformNode, Texture, PBRMaterial,
   Color3, Vector3, Quaternion, AbstractMesh,
-  StandardMaterial, DirectionalLight, HemisphericLight, MeshBuilder
+  DirectionalLight, HemisphericLight
 } from "@babylonjs/core";
 import JSZip from "jszip";
+import {
+  convertPosition,
+  convertQuaternion,
+  convertAxis,
+  convertScale
+} from "./MJCFCoordinateSystem";
+import { MJCFModelTypeDetector } from "./MJCFModelTypeDetector";
+import { MJCFKeyframeManager } from "./MJCFKeyframeManager";
 
 type LoadOpts = {
   rootUrl: string;         // folder that contains the XML and /assets
@@ -43,15 +51,11 @@ const toFloatArr = (s: string | null) => {
 
 /**
  * Transform quaternion from MuJoCo Z-up coordinate system to Babylon.js Y-up coordinate system
- * Based on unitree_mujoco implementation patterns
+ * Uses the unified coordinate conversion system
  */
 const transformQuaternionZupToYup = (wxyz: number[]) => {
   if (wxyz.length < 4) return Quaternion.Identity();
-  const [w, x, y, z] = wxyz;
-
-  // Convert from MuJoCo (w,x,y,z) to Babylon.js (x,y,z,w) format only.
-  // Global coordinate conversion is handled at the root node.
-  return new Quaternion(x, y, z, w);
+  return convertQuaternion([wxyz[0], wxyz[1], wxyz[2], wxyz[3]]);
 };
 
 const colorFromRGBA = (rgba: number[]) => {
@@ -384,13 +388,29 @@ const assignGeomMaterial = (
   }
 };
 
-const multiplyScale = (node: TransformNode, v: Vector3) => {
-  node.scaling.multiplyInPlace(v);
+/**
+ * Recursively collect all meshes from a hierarchy without flattening the structure
+ * This preserves parent-child relationships for kinematic chains
+ */
+const collectMeshesRecursively = (node: TransformNode): AbstractMesh[] => {
+  const meshes: AbstractMesh[] = [];
+  
+  // Collect meshes from this node
+  const nodeMeshes = node.getChildMeshes(false) as AbstractMesh[];
+  meshes.push(...nodeMeshes);
+  
+  // Recursively collect from child transform nodes
+  const childNodes = node.getChildTransformNodes(false);
+  for (const childNode of childNodes) {
+    meshes.push(...collectMeshesRecursively(childNode));
+  }
+  
+  return meshes;
 };
 
 /**
  * Applies keyframe data to the robot hierarchy after all bodies are created
- * This mimics how MuJoCo automatically applies keyframe data on model load
+ * Uses unified coordinate system conversion and model type detection
  */
 const applyKeyframeData = (
   rootNode: TransformNode,
@@ -399,208 +419,120 @@ const applyKeyframeData = (
   jointAxes: Record<string, number[]>,
   meshFilesMap?: Map<string, File>
 ) => {
-  // Guard against double application - check if keyframes have already been applied
-  // Only disable for OBJ-based models that need debugging
-  const isOBJBasedModel = meshFilesMap ? Array.from(meshFilesMap.keys()).some(f => f.toLowerCase().endsWith('.obj')) : false;
-  const hasSTLFiles = meshFilesMap ? Array.from(meshFilesMap.keys()).some(f => f.toLowerCase().endsWith('.stl')) : false;
-  const isPureOBJModel = isOBJBasedModel && !hasSTLFiles;
-  
-  if (!isPureOBJModel && rootNode.metadata && rootNode.metadata.keyframesApplied) {
-    console.log('[MJCF Keyframe] Keyframes already applied to this STL-based model, skipping to prevent double application');
-    return;
-  }
+  // Use MJCFModelTypeDetector for clean model type detection
+  const modelAnalysis = MJCFModelTypeDetector.analyzeModel(meshFilesMap || new Map());
+  console.log(`[MJCF Keyframe] Model type: ${modelAnalysis.primary}, confidence: ${modelAnalysis.confidence}`);
+
+  // Use MJCFKeyframeManager for strict idempotence (no exceptions!)
+  const keyframeManager = MJCFKeyframeManager.getInstance();
+  const modelId = rootNode.name;
+
+  // Register all keyframes from the model
+  const keyframeObjects = Object.entries(keyframes).map(([name, values]) => ({
+    name,
+    jointValues: values,
+    description: `${values.length} joint values`
+  }));
+  keyframeManager.registerKeyframes(modelId, keyframeObjects);
+
   console.log(`[MJCF Keyframe] Found ${Object.keys(keyframes).length} keyframes, ${Object.keys(jointMap).length} joints`);
   console.log(`[MJCF Keyframe] Root node: ${rootNode.name}`);
-  console.log(`[MJCF Keyframe] DEBUGGING: applyKeyframeData function called - idempotence guard disabled`);
-  
+
   // Apply only the first keyframe (usually "home")
   for (const [keyframeName, qposValues] of Object.entries(keyframes)) {
-    console.log(`[MJCF Keyframe] Processing keyframe '${keyframeName}' with ${qposValues.length} values:`, qposValues);
-    
+    // Check if this keyframe has already been applied (strict idempotence)
+    if (keyframeManager.hasBeenApplied(modelId, keyframeName)) {
+      console.log(`[MJCF Keyframe] Keyframe '${keyframeName}' already applied, skipping to prevent double application`);
+      continue;
+    }
+
+    console.log(`[MJCF Keyframe] Processing keyframe '${keyframeName}' with ${qposValues.length} values`);
+
     if (qposValues.length < 7) {
       console.warn(`[MJCF Keyframe] Keyframe '${keyframeName}' has insufficient values (${qposValues.length} < 7)`);
       continue;
     }
-    
+
     // Find the root body (pelvis or base_link)
-    const rootBody = rootNode.getChildren().find(child => 
+    const rootBody = rootNode.getChildren().find(child =>
       child.name === "pelvis" || child.name === "base_link"
     ) as TransformNode;
-    
+
     if (!rootBody) {
       console.warn(`[MJCF Keyframe] No root body found (pelvis/base_link)`);
       continue;
     }
-    
-            // Determine model type based on mesh files to apply appropriate pose logic
-            // STL models (H1/H1_2): meshes are pre-posed, need neutral pose
-            // OBJ models (B2/B2W/GO2/G1): meshes are neutral, need keyframe pose
-            const objCount = Array.from(meshFilesMap?.keys() || []).filter(f => f.toLowerCase().endsWith('.obj')).length;
-            const stlCount = Array.from(meshFilesMap?.keys() || []).filter(f => f.toLowerCase().endsWith('.stl')).length;
-            const hasOBJFiles = objCount > 0;
-            const hasSTLFiles = stlCount > 0;
-            
-            // Heuristic:
-            // - Pure OBJ => OBJ-based
-            // - Pure STL => STL-based
-            // - Mixed => treat as OBJ-based if OBJ count >= STL count (base meshes are usually OBJ)
-            const isOBJBasedModel = hasOBJFiles && (!hasSTLFiles || objCount >= stlCount);
-            const isSTLBasedModel = hasSTLFiles && !hasOBJFiles;
-            const isMixedModel = hasOBJFiles && hasSTLFiles;
-            
-            console.log(`[MJCF Keyframe] Model analysis: OBJ=${hasOBJFiles}(${objCount}), STL=${hasSTLFiles}(${stlCount}), Type=${isOBJBasedModel ? 'OBJ-based' : isSTLBasedModel ? 'STL-based' : isMixedModel ? 'Mixed' : 'Unknown'}`);
-            
-            // Apply base pose: use keyframe base for OBJ-based; use default neutral for STL-based
-            if (isOBJBasedModel) {
-              // qpos[0..2] = base position (x,y,z) in Z-up; qpos[3..6] = base quat (w,x,y,z)
-              const kBasePos = [qposValues[0] || 0, qposValues[1] || 0, qposValues[2] || 0];
-              const kBaseQuat = [qposValues[3] || 1, qposValues[4] || 0, qposValues[5] || 0, qposValues[6] || 0];
-              // Convert Z-up (x,y,z) → Y-up (x,z,y)
-              rootBody.position.set(kBasePos[0], kBasePos[2], kBasePos[1]);
-              
-              // OBJ meshes are authored lying on their side - apply rotation to stand upright
-              const keyframeQuat = transformQuaternionZupToYup(kBaseQuat);
-              const uprightRotation = Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 2); // -90° around X-axis
-              rootBody.rotationQuaternion = uprightRotation.multiply(keyframeQuat);
-              
-              console.log(`[MJCF Keyframe] Applied KEYFRAME base pose (OBJ): pos(${kBasePos[0]}, ${kBasePos[1]}, ${kBasePos[2]}), quat(${kBaseQuat[0]}, ${kBaseQuat[1]}, ${kBaseQuat[2]}, ${kBaseQuat[3]}) + upright rotation`);
-            } else {
-              // Use keyframe base position for STL-based models with proper coordinate conversion
-              const kBasePos = [qposValues[0] || 0, qposValues[1] || 0, qposValues[2] || 0];
-              const kBaseQuat = [qposValues[3] || 1, qposValues[4] || 0, qposValues[5] || 0, qposValues[6] || 0];
-              // Convert Z-up (x,y,z) → Y-up (x,z,y) for base position
-              rootBody.position.set(kBasePos[0], kBasePos[2], kBasePos[1]);
-              // Transform quaternion from MuJoCo Z-up to Babylon.js Y-up coordinate system
-              rootBody.rotationQuaternion = transformQuaternionZupToYup(kBaseQuat);
-              console.log(`[MJCF Keyframe] Applied KEYFRAME base pose (STL): pos(${kBasePos[0]}, ${kBasePos[1]}, ${kBasePos[2]}), quat(${kBaseQuat[0]}, ${kBaseQuat[1]}, ${kBaseQuat[2]}, ${kBaseQuat[3]})`);
-            }
-            
-            // Apply joint rotations: OBJ-based models use keyframe values, STL-based models use default poses
-            if (isOBJBasedModel) {
-              console.log(`[MJCF Keyframe] OBJ-based model detected - applying actual keyframe values for correct joint positioning`);
-              
-              // Extract joint values from keyframe (starting from index 7, after base pos + quat)
-              const jointValues: Record<string, number> = {};
-              const jointNames = Object.keys(jointMap);
-              for (let i = 0; i < jointNames.length; i++) {
-                const jointName = jointNames[i];
-                const keyframeIndex = 7 + i;
-                const jointValue = keyframeIndex < qposValues.length ? qposValues[keyframeIndex] : 0;
-                jointValues[jointName] = jointValue;
-                console.log(`[MJCF Keyframe] OBJ model - using keyframe value for ${jointName}: ${jointValue} radians`);
-              }
-              
-              // Reset all joint rotations first to ensure clean application
-              console.log(`[MJCF Keyframe] Resetting all joint rotations for clean reapplication`);
-              for (const jointName of Object.keys(jointValues)) {
-                const bodyName = jointMap[jointName];
-                if (bodyName && bodyName !== 'NONE') {
-                  const bodyNode = rootNode.getChildTransformNodes(false).find(n => n.name === bodyName);
-                  if (bodyNode) {
-                    bodyNode.rotationQuaternion = Quaternion.Identity();
-                  }
-                }
-              }
-              
-              // Apply joint rotations to all bodies
-              for (const [jointName, jointValue] of Object.entries(jointValues)) {
-                const bodyName = jointMap[jointName];
-                if (bodyName && bodyName !== 'NONE') {
-                  const bodyNode = rootNode.getChildTransformNodes(false).find(n => n.name === bodyName);
-                  if (bodyNode) {
-                    console.log(`[MJCF Keyframe] Applying joint ${jointName}: ${jointValue} radians`);
-                    console.log(`[MJCF Debug] BEFORE rotation - ${bodyName} rotationQuaternion:`, bodyNode.rotationQuaternion);
-                    const axisSrc = jointAxes[jointName] || [1, 0, 0];
-                    console.log(`[MJCF Debug] ${jointName} axisSrc: [${axisSrc[0]}, ${axisSrc[1]}, ${axisSrc[2]}]`);
-                    let axis = new Vector3(axisSrc[0], axisSrc[2], axisSrc[1]); // Convert from MuJoCo Z-up to Babylon.js Y-up (swap Y and Z)
-                    console.log(`[MJCF Debug] ${jointName} converted axis: (${axis.x}, ${axis.y}, ${axis.z})`);
-                    
-                    // Mirror fix for right-side legs in OBJ-based models
-                    if (isOBJBasedModel) {
-                      const isRightSide = /^(FR_|RR_)/i.test(jointName);
-                      const isThighOrCalf = /(thigh_joint|calf_joint)/i.test(jointName);
-                      const isYAxisSrc = Array.isArray(axisSrc) && axisSrc.length === 3 && axisSrc[0] === 0 && axisSrc[1] === 1 && axisSrc[2] === 0;
-                      if (isRightSide && isThighOrCalf && isYAxisSrc) {
-                        axis = axis.scale(-1);
-                        console.log(`[MJCF Mirror] Mirrored axis for right-side ${jointName}: (${axis.x.toFixed(6)}, ${axis.y.toFixed(6)}, ${axis.z.toFixed(6)})`);
-                      }
-                    }
-                    
-                    // Apply joint rotation as local rotation
-                    const q = Quaternion.RotationAxis(axis, jointValue);
-                    console.log(`[MJCF Debug] ${jointName} quaternion from axis/angle:`, q);
-                    bodyNode.rotationQuaternion = q;
-                    bodyNode.rotationQuaternion.normalize();
-                    console.log(`[MJCF Debug] AFTER rotation - ${bodyName} rotationQuaternion:`, bodyNode.rotationQuaternion);
-                    
-                    console.log(`[MJCF Keyframe] Applied joint ${jointName}: ${jointValue} radians around axis (${axis.x}, ${axis.y}, ${axis.z})`);
-                  }
-                }
-              }
-            } else {
-              console.log(`[MJCF Keyframe] STL-based model detected - applying keyframe joint rotations`);
-              
-              // Extract joint values from keyframe (starting from index 7, after base pos + quat)
-              const jointValues: Record<string, number> = {};
-              const jointNames = Object.keys(jointMap);
-              for (let i = 0; i < jointNames.length; i++) {
-                const jointName = jointNames[i];
-                const keyframeIndex = 7 + i;
-                const jointValue = keyframeIndex < qposValues.length ? qposValues[keyframeIndex] : 0;
-                jointValues[jointName] = jointValue;
-                console.log(`[MJCF Keyframe] STL model - using keyframe value for ${jointName}: ${jointValue} radians`);
-              }
-              
-              // Reset all joint rotations first to ensure clean application
-              console.log(`[MJCF Keyframe] Resetting all joint rotations for clean reapplication`);
-              for (const jointName of Object.keys(jointValues)) {
-                const bodyName = jointMap[jointName];
-                if (bodyName && bodyName !== 'NONE') {
-                  const bodyNode = rootNode.getChildTransformNodes(false).find(n => n.name === bodyName);
-                  if (bodyNode) {
-                    bodyNode.rotationQuaternion = Quaternion.Identity();
-                  }
-                }
-              }
-              
-              // Apply joint rotations to all bodies
-              for (const [jointName, jointValue] of Object.entries(jointValues)) {
-                const bodyName = jointMap[jointName];
-                if (bodyName && bodyName !== 'NONE') {
-                  const bodyNode = rootNode.getChildTransformNodes(false).find(n => n.name === bodyName);
-                  if (bodyNode) {
-                    console.log(`[MJCF Keyframe] Applying joint ${jointName}: ${jointValue} radians`);
-                    console.log(`[MJCF Debug] BEFORE rotation - ${bodyName} rotationQuaternion:`, bodyNode.rotationQuaternion);
-                    const axisSrc = jointAxes[jointName] || [1, 0, 0];
-                    console.log(`[MJCF Debug] ${jointName} axisSrc: [${axisSrc[0]}, ${axisSrc[1]}, ${axisSrc[2]}]`);
-                    let axis = new Vector3(axisSrc[0], axisSrc[2], axisSrc[1]); // Convert from MuJoCo Z-up to Babylon.js Y-up (swap Y and Z)
-                    console.log(`[MJCF Debug] ${jointName} converted axis: (${axis.x}, ${axis.y}, ${axis.z})`);
-                    
-                    // Apply joint rotation as local rotation
-                    const q = Quaternion.RotationAxis(axis, jointValue);
-                    console.log(`[MJCF Debug] ${jointName} quaternion from axis/angle:`, q);
-                    bodyNode.rotationQuaternion = q;
-                    bodyNode.rotationQuaternion.normalize();
-                    console.log(`[MJCF Debug] AFTER rotation - ${bodyName} rotationQuaternion:`, bodyNode.rotationQuaternion);
-                    
-                    console.log(`[MJCF Keyframe] Applied joint ${jointName}: ${jointValue} radians around axis (${axis.x}, ${axis.y}, ${axis.z})`);
-                  }
-                }
-              }
-            }
-    
-    
-  // Only apply the first keyframe
-  break;
-  }
-  
-  // Mark that keyframes have been applied to prevent double application
-  // Only set flag for STL-based models to prevent double application
-  if (!isPureOBJModel) {
-    if (!rootNode.metadata) {
-      rootNode.metadata = {};
+
+    // Extract base pose from keyframe (first 7 values)
+    // qpos[0..2] = base position (x,y,z) in MuJoCo Z-up
+    // qpos[3..6] = base quaternion (w,x,y,z) in MuJoCo format
+    const kBasePos: [number, number, number] = [qposValues[0] || 0, qposValues[1] || 0, qposValues[2] || 0];
+    const kBaseQuat: [number, number, number, number] = [qposValues[3] || 1, qposValues[4] || 0, qposValues[5] || 0, qposValues[6] || 0];
+
+    // Apply UNIFIED coordinate conversion for position (same for ALL models)
+    rootBody.position = convertPosition(kBasePos);
+
+    // Apply UNIFIED coordinate conversion for quaternion (same for ALL models)
+    let finalQuat = convertQuaternion(kBaseQuat);
+
+    // Apply upright rotation ONLY if model type requires it (OBJ-based models)
+    if (modelAnalysis.requiresUprightRotation) {
+      const uprightRotation = Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 2); // -90° around X
+      finalQuat = uprightRotation.multiply(finalQuat);
+      console.log(`[MJCF Keyframe] Applied upright rotation for ${modelAnalysis.primary} model`);
     }
-    rootNode.metadata.keyframesApplied = true;
+
+    rootBody.rotationQuaternion = finalQuat;
+    console.log(`[MJCF Keyframe] Applied base pose: pos(${kBasePos[0].toFixed(3)}, ${kBasePos[1].toFixed(3)}, ${kBasePos[2].toFixed(3)})`);
+
+    // Extract joint values from keyframe (starting from index 7, after base pose)
+    const jointValues: Record<string, number> = {};
+    const jointNames = Object.keys(jointMap);
+    for (let i = 0; i < jointNames.length; i++) {
+      const jointName = jointNames[i];
+      const keyframeIndex = 7 + i;
+      const jointValue = keyframeIndex < qposValues.length ? qposValues[keyframeIndex] : 0;
+      jointValues[jointName] = jointValue;
+    }
+
+    // Reset all joint rotations first to ensure clean application
+    console.log(`[MJCF Keyframe] Resetting all joint rotations for clean reapplication`);
+    for (const jointName of Object.keys(jointValues)) {
+      const bodyName = jointMap[jointName];
+      if (bodyName && bodyName !== 'NONE') {
+        const bodyNode = rootNode.getChildTransformNodes(false).find(n => n.name === bodyName);
+        if (bodyNode) {
+          bodyNode.rotationQuaternion = Quaternion.Identity();
+        }
+      }
+    }
+
+    // Apply joint rotations using UNIFIED coordinate conversion (same for ALL models)
+    for (const [jointName, jointValue] of Object.entries(jointValues)) {
+      const bodyName = jointMap[jointName];
+      if (bodyName && bodyName !== 'NONE') {
+        const bodyNode = rootNode.getChildTransformNodes(false).find(n => n.name === bodyName);
+        if (bodyNode) {
+          const axisSrc = jointAxes[jointName] || [1, 0, 0];
+
+          // Use unified axis conversion (same for ALL models)
+          const axis = convertAxis(axisSrc as [number, number, number]);
+
+          // Apply joint rotation as local rotation
+          const q = Quaternion.RotationAxis(axis, jointValue);
+          bodyNode.rotationQuaternion = q;
+          bodyNode.rotationQuaternion.normalize();
+
+          console.log(`[MJCF Keyframe] Applied joint ${jointName}: ${jointValue.toFixed(3)} rad around axis (${axis.x.toFixed(3)}, ${axis.y.toFixed(3)}, ${axis.z.toFixed(3)})`);
+        }
+      }
+    }
+
+    // Mark keyframe as applied
+    keyframeManager.markApplied(modelId, keyframeName);
+
+    // Only apply the first keyframe
+    break;
   }
 };
 
@@ -648,15 +580,15 @@ const buildBodies = async (
 
   const warnedMissingMaterials = new Set<string>();
 
-  // Determine model type for position handling
-  const objCountForBuild = Array.from(meshFilesMap?.keys() || []).filter(f => f.toLowerCase().endsWith('.obj')).length;
-  const stlCountForBuild = Array.from(meshFilesMap?.keys() || []).filter(f => f.toLowerCase().endsWith('.stl')).length;
-  const hasOBJForBuild = objCountForBuild > 0;
-  const hasSTLForBuild = stlCountForBuild > 0;
-  const isSTLBasedForBuild = hasSTLForBuild && !hasOBJForBuild; // H1/H1_2
+  // Simple mesh file inventory - no conditional logic needed
+  const meshInventory = {
+    objCount: Array.from(meshFilesMap?.keys() || []).filter(f => f.toLowerCase().endsWith('.obj')).length,
+    stlCount: Array.from(meshFilesMap?.keys() || []).filter(f => f.toLowerCase().endsWith('.stl')).length,
+    glbCount: Array.from(meshFilesMap?.keys() || []).filter(f => f.toLowerCase().endsWith('.glb')).length,
+    total: meshFilesMap?.size || 0
+  };
 
-  // Note: jointMap is passed but not used in current implementation
-  // It's kept for future joint manipulation features
+  console.log(`[MJCF Debug] Mesh inventory: OBJ=${meshInventory.objCount}, STL=${meshInventory.stlCount}, GLB=${meshInventory.glbCount}, Total=${meshInventory.total}`);
   console.log(`[MJCF Debug] jointMap contains ${Object.keys(jointMap).length} joints`);
 
   const visit = async (bodyEl: Element, parent: TransformNode) => {
@@ -667,15 +599,9 @@ const buildBodies = async (
 
     const bodyPos = toFloatArr(bodyEl.getAttribute("pos"));
     if (bodyPos !== null && bodyPos.length >= 3) {
-      // STL-based models require Y/Z swap for local positions
-      if (isSTLBasedForBuild) {
-        bodyNode.position.set(bodyPos[0], bodyPos[2], bodyPos[1]);
-        console.log(`[MJCF Debug] STL-based model - transformed body position for ${name}: (${bodyPos[0]}, ${bodyPos[1]}, ${bodyPos[2]}) -> (${bodyPos[0]}, ${bodyPos[2]}, ${bodyPos[1]})`);
-      } else {
-        // OBJ-based (or mixed) keep original local coordinates
-        bodyNode.position.set(bodyPos[0], bodyPos[1], bodyPos[2]);
-        console.log(`[MJCF Debug] OBJ-based model - body position for ${name}: (${bodyPos[0]}, ${bodyPos[1]}, ${bodyPos[2]}) (no conversion)`);
-      }
+      // Use unified coordinate conversion for all mesh types
+      bodyNode.position = convertPosition([bodyPos[0], bodyPos[1], bodyPos[2]]);
+      console.log(`[MJCF Debug] Converted body position for ${name}: (${bodyPos[0]}, ${bodyPos[1]}, ${bodyPos[2]}) -> (${bodyNode.position.x}, ${bodyNode.position.y}, ${bodyNode.position.z})`);
     }
 
     const bodyQuat = toFloatArr(bodyEl.getAttribute("quat"));
@@ -688,8 +614,8 @@ const buildBodies = async (
     // Store keyframe data for later application after all bodies are created
     // We'll apply keyframes after the entire hierarchy is built
 
-    // body-level scale (rare): MJCF bodies don't have scale; we only apply compilerScale
-    if (compilerScale !== 1) multiplyScale(bodyNode, new Vector3(compilerScale, compilerScale, compilerScale));
+    // DO NOT apply compiler scale to body node - it will be applied at geom level only
+    // This prevents scale accumulation through the kinematic hierarchy
 
     // Visual geoms on this body
     const geoms = Array.from(bodyEl.querySelectorAll(":scope > geom"));
@@ -722,15 +648,9 @@ const buildBodies = async (
 
       const gpos = toFloatArr(geom.getAttribute("pos"));
       if (gpos !== null && gpos.length >= 3) {
-        // STL-based models require Y/Z swap for geom positions
-        if (isSTLBasedForBuild) {
-          geomNode.position.set(gpos[0], gpos[2], gpos[1]);
-          console.log(`[MJCF Debug] STL-based model - transformed geom position for ${name}__geom_${meshRef}: (${gpos[0]}, ${gpos[1]}, ${gpos[2]}) -> (${gpos[0]}, ${gpos[2]}, ${gpos[1]})`);
-        } else {
-          // OBJ-based (or mixed) keep original local coordinates
-          geomNode.position.set(gpos[0], gpos[1], gpos[2]);
-          console.log(`[MJCF Debug] OBJ-based model - geom position for ${name}__geom_${meshRef}: (${gpos[0]}, ${gpos[1]}, ${gpos[2]}) (no conversion)`);
-        }
+        // Use unified coordinate conversion for all mesh types
+        geomNode.position = convertPosition([gpos[0], gpos[1], gpos[2]]);
+        console.log(`[MJCF Debug] Converted geom position for ${name}__geom_${meshRef}: (${gpos[0]}, ${gpos[1]}, ${gpos[2]}) -> (${geomNode.position.x}, ${geomNode.position.y}, ${geomNode.position.z})`);
       }
 
       const gquat = toFloatArr(geom.getAttribute("quat"));
@@ -740,21 +660,30 @@ const buildBodies = async (
         console.log(`[MJCF Debug] Transformed geom quaternion for ${name}__geom_${meshRef}: (${gquat[0]}, ${gquat[1]}, ${gquat[2]}, ${gquat[3]}) -> Z-up to Y-up`);
       }
 
-      // Effective scale: compiler * mesh.scale * geom.scale
-      let sx = compilerScale, sy = compilerScale, sz = compilerScale;
+      // Calculate effective scale: compilerScale × meshAssetScale × geomScale
+      // Apply scale ONLY at geom node level to prevent accumulation through hierarchy
+      let effectiveScale = new Vector3(compilerScale, compilerScale, compilerScale);
+      
+      // Apply mesh asset scale if defined
       if (Array.isArray(def.scale) && def.scale.length === 3) {
-        sx *= def.scale[0]; sy *= def.scale[1]; sz *= def.scale[2];
+        const meshScale = convertScale([def.scale[0], def.scale[1], def.scale[2]]);
+        effectiveScale = effectiveScale.multiply(meshScale);
         console.log(`[MJCF Scale] Mesh '${meshRef}' has scale: (${def.scale[0]}, ${def.scale[1]}, ${def.scale[2]})`);
       }
+      
+      // Apply geom-level scale if defined
       const gscale = toFloatArr(geom.getAttribute("scale"));
       if (Array.isArray(gscale) && gscale.length >= 3) {
-        sx *= gscale[0]; sy *= gscale[1]; sz *= gscale[2];
+        const geomScale = convertScale([gscale[0], gscale[1], gscale[2]]);
+        effectiveScale = effectiveScale.multiply(geomScale);
         console.log(`[MJCF Scale] Geom '${name}/${meshRef}' has scale: (${gscale[0]}, ${gscale[1]}, ${gscale[2]})`);
       }
 
-      multiplyScale(geomNode, new Vector3(sx, sy, sz));
-      if (sx !== 1 || sy !== 1 || sz !== 1) {
-        console.warn(`[MJCF Scale] Final effective scale @ '${name}/${meshRef}': (${sx.toFixed(4)}, ${sy.toFixed(4)}, ${sz.toFixed(4)})`);
+      // Apply effective scale to geom node ONLY
+      geomNode.scaling = effectiveScale;
+      
+      if (!effectiveScale.equals(new Vector3(1, 1, 1))) {
+        console.log(`[MJCF Scale] Applied effective scale to geom '${name}/${meshRef}': (${effectiveScale.x.toFixed(4)}, ${effectiveScale.y.toFixed(4)}, ${effectiveScale.z.toFixed(4)})`);
       }
 
       const meshes = await importVisualMesh(scene, rootUrl, def.file, meshFilesMap);
@@ -763,24 +692,6 @@ const buildBodies = async (
         continue;
       }
       meshes.forEach(m => { m.parent = geomNode; m.scaling.set(1, 1, 1); });
-
-      // Apply local upright rotation to OBJ meshes ONLY for OBJ-based models (not STL-based models like H1/H1_2)
-      // Check if this is an OBJ-based model by looking at the meshFilesMap
-      const isOBJBasedModel = meshFilesMap ? Array.from(meshFilesMap.keys()).some(f => f.toLowerCase().endsWith('.obj')) : false;
-      const hasSTLFiles = meshFilesMap ? Array.from(meshFilesMap.keys()).some(f => f.toLowerCase().endsWith('.stl')) : false;
-      const isPureOBJModel = isOBJBasedModel && !hasSTLFiles;
-      
-      if (def.file.toLowerCase().endsWith('.obj') && isPureOBJModel) {
-        const objUprightRotation = Quaternion.RotationAxis(Vector3.Right(), Math.PI / 2); // +90° around X-axis
-        if (geomNode.rotationQuaternion) {
-          geomNode.rotationQuaternion = objUprightRotation.multiply(geomNode.rotationQuaternion);
-        } else {
-          geomNode.rotationQuaternion = objUprightRotation;
-        }
-        console.log(`[MJCF Mesh] Applied local upright rotation to OBJ mesh: ${geomNode.name} (OBJ-based model)`);
-      } else if (def.file.toLowerCase().endsWith('.obj')) {
-        console.log(`[MJCF Mesh] Skipping OBJ mesh rotation for ${geomNode.name} (mixed model - STL files present)`);
-      }
 
       assignGeomMaterial(meshes, geom, pbrs, fallbackGray, warnedMissingMaterials);
       if (bakePivots === true) bakePivotsIfRequested(meshes);
@@ -1070,12 +981,15 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
 
       const allBodyNodes: TransformNode[] = [];
       
-      // Determine model type for position handling (same logic as buildBodies)
-      const objCountForZip = Array.from(extractedMeshFiles?.keys() || []).filter(f => f.toLowerCase().endsWith('.obj')).length;
-      const stlCountForZip = Array.from(extractedMeshFiles?.keys() || []).filter(f => f.toLowerCase().endsWith('.stl')).length;
-      const hasOBJForZip = objCountForZip > 0;
-      const hasSTLForZip = stlCountForZip > 0;
-      const isSTLBasedForZip = hasSTLForZip && !hasOBJForZip; // H1/H1_2
+      // Simple mesh file inventory - no conditional logic needed
+      const zipMeshInventory = {
+        objCount: Array.from(extractedMeshFiles?.keys() || []).filter(f => f.toLowerCase().endsWith('.obj')).length,
+        stlCount: Array.from(extractedMeshFiles?.keys() || []).filter(f => f.toLowerCase().endsWith('.stl')).length,
+        glbCount: Array.from(extractedMeshFiles?.keys() || []).filter(f => f.toLowerCase().endsWith('.glb')).length,
+        total: extractedMeshFiles?.size || 0
+      };
+
+      console.log(`[MJCF Debug] ZIP mesh inventory: OBJ=${zipMeshInventory.objCount}, STL=${zipMeshInventory.stlCount}, GLB=${zipMeshInventory.glbCount}, Total=${zipMeshInventory.total}`);
       
       const visit = async (bodyEl: Element, parent: TransformNode): Promise<TransformNode> => {
         const name = bodyEl.getAttribute("name") || "body";
@@ -1089,15 +1003,9 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
 
         const bodyPos = toFloatArr(bodyEl.getAttribute("pos"));
         if (bodyPos !== null && bodyPos.length >= 3) {
-          // STL-based models require Y/Z swap for local positions
-          if (isSTLBasedForZip) {
-            bodyNode.position.set(bodyPos[0], bodyPos[2], bodyPos[1]);
-            console.log(`[MJCF Debug] STL-based model - transformed body position for ${name}: (${bodyPos[0]}, ${bodyPos[1]}, ${bodyPos[2]}) -> (${bodyPos[0]}, ${bodyPos[2]}, ${bodyPos[1]})`);
-          } else {
-            // OBJ-based (or mixed) keep original local coordinates
-            bodyNode.position.set(bodyPos[0], bodyPos[1], bodyPos[2]);
-            console.log(`[MJCF Debug] OBJ-based model - body position for ${name}: (${bodyPos[0]}, ${bodyPos[1]}, ${bodyPos[2]}) (no conversion)`);
-          }
+          // Use unified coordinate conversion for all mesh types
+          bodyNode.position = convertPosition([bodyPos[0], bodyPos[1], bodyPos[2]]);
+          console.log(`[MJCF Debug] Converted ZIP body position for ${name}: (${bodyPos[0]}, ${bodyPos[1]}, ${bodyPos[2]}) -> (${bodyNode.position.x}, ${bodyNode.position.y}, ${bodyNode.position.z})`);
         }
 
         const bodyQuat = toFloatArr(bodyEl.getAttribute("quat"));
@@ -1111,8 +1019,8 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
         // Applying joint rotations here would compound the issue
         // console.log(`[MJCF Keyframe] SKIPPING joint application during body building for ${name} - STL meshes are already in keyframe pose`);
 
-        // apply compiler scale on body node as scale (keeps mesh scale neutral)
-        if (compilerScale !== 1) bodyNode.scaling.multiplyInPlace(new Vector3(compilerScale, compilerScale, compilerScale));
+        // DO NOT apply compiler scale to body node - it will be applied at geom level only
+        // This prevents scale accumulation through the kinematic hierarchy
 
 
         // Visual geoms on this body
@@ -1144,15 +1052,9 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
 
           const gpos = toFloatArr(geom.getAttribute("pos"));
           if (gpos !== null && gpos.length >= 3) {
-            // STL-based models require Y/Z swap for geom positions
-            if (isSTLBasedForZip) {
-              geomNode.position.set(gpos[0], gpos[2], gpos[1]);
-              console.log(`[MJCF Debug] STL-based model - transformed geom position for ${name}__geom_${meshRef}: (${gpos[0]}, ${gpos[1]}, ${gpos[2]}) -> (${gpos[0]}, ${gpos[2]}, ${gpos[1]})`);
-            } else {
-              // OBJ-based (or mixed) keep original local coordinates
-              geomNode.position.set(gpos[0], gpos[1], gpos[2]);
-              console.log(`[MJCF Debug] OBJ-based model - geom position for ${name}__geom_${meshRef}: (${gpos[0]}, ${gpos[1]}, ${gpos[2]}) (no conversion)`);
-            }
+            // Use unified coordinate conversion for all mesh types
+            geomNode.position = convertPosition([gpos[0], gpos[1], gpos[2]]);
+            console.log(`[MJCF Debug] Converted ZIP geom position for ${name}__geom_${meshRef}: (${gpos[0]}, ${gpos[1]}, ${gpos[2]}) -> (${geomNode.position.x}, ${geomNode.position.y}, ${geomNode.position.z})`);
           }
 
           const gquat = toFloatArr(geom.getAttribute("quat"));
@@ -1161,8 +1063,31 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
             geomNode.rotationQuaternion = transformQuaternionZupToYup(gquat);
           }
 
-          // TEMPORARY FIX: Disable all scaling to prevent kinematic chain accumulation
-          // TODO: Implement proper scaling that doesn't compound through hierarchy
+          // Calculate effective scale: compilerScale × meshAssetScale × geomScale
+          // Apply scale ONLY at geom node level to prevent accumulation through hierarchy
+          let effectiveScale = new Vector3(compilerScale, compilerScale, compilerScale);
+          
+          // Apply mesh asset scale if defined
+          if (Array.isArray(def.scale) && def.scale.length === 3) {
+            const meshScale = convertScale([def.scale[0], def.scale[1], def.scale[2]]);
+            effectiveScale = effectiveScale.multiply(meshScale);
+            console.log(`[MJCF Scale] ZIP Mesh '${meshRef}' has scale: (${def.scale[0]}, ${def.scale[1]}, ${def.scale[2]})`);
+          }
+          
+          // Apply geom-level scale if defined
+          const gscale = toFloatArr(geom.getAttribute("scale"));
+          if (Array.isArray(gscale) && gscale.length >= 3) {
+            const geomScale = convertScale([gscale[0], gscale[1], gscale[2]]);
+            effectiveScale = effectiveScale.multiply(geomScale);
+            console.log(`[MJCF Scale] ZIP Geom '${name}/${meshRef}' has scale: (${gscale[0]}, ${gscale[1]}, ${gscale[2]})`);
+          }
+
+          // Apply effective scale to geom node ONLY
+          geomNode.scaling = effectiveScale;
+          
+          if (!effectiveScale.equals(new Vector3(1, 1, 1))) {
+            console.log(`[MJCF Scale] Applied effective scale to ZIP geom '${name}/${meshRef}': (${effectiveScale.x.toFixed(4)}, ${effectiveScale.y.toFixed(4)}, ${effectiveScale.z.toFixed(4)})`);
+          }
 
           const meshes = await importVisualMesh(scene, "", def.file, extractedMeshFiles);
           if (meshes.length === 0) {
@@ -1220,10 +1145,10 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
       const tops = Array.from(world.querySelectorAll(":scope > body"));
       if (tops.length === 0) {
         console.warn("No top-level <body> under <worldbody>");
-        const flattened = root.getChildMeshes() as AbstractMesh[];
+        const collectedMeshes = collectMeshesRecursively(root);
         return {
           success: true,
-          meshes: flattened.length > 0 ? flattened : allMeshes,
+          meshes: collectedMeshes.length > 0 ? collectedMeshes : allMeshes,
           rootNodes: [root],
           joints: [],
           actuators: [],
@@ -1268,8 +1193,8 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
       // Global conversion handled via position mapping; no root rotation needed
       console.log(`[MJCF Debug] Using position mapping for Z-up→Y-up conversion for ${primaryMjcfFile}`);
       
-      // Get all meshes for final verification
-      const finalMeshes = root.getChildMeshes() as AbstractMesh[];
+      // Get all meshes for final verification (preserving hierarchy)
+      const finalMeshes = collectMeshesRecursively(root);
       
       // Final verification: check world positions after coordinate transformation
       console.log(`[MJCF Debug] Final verification - checking world positions after coordinate transformation:`);
@@ -1418,7 +1343,7 @@ export const loadMJCF = async (scene: Scene, opts: LoadOpts) => {
 // ---------- VERIFICATION ----------
 export const verifyMJCFLoad = (root: TransformNode) => {
   if (!root) throw new Error("verify: root missing");
-  const meshes = root.getChildMeshes() as AbstractMesh[];
+  const meshes = collectMeshesRecursively(root);
   if (meshes.length === 0) throw new Error("verify: no meshes under root");
 
   const bad = meshes.filter(m =>
