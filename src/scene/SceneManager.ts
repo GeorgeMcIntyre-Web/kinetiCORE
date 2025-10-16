@@ -197,9 +197,9 @@ export class SceneManager {
     this.camera.orthoTop = orthoSize;
     this.camera.orthoBottom = -orthoSize;
 
-    // Set clipping planes to handle large range (0.001m to 20km)
-    // Allow very close inspection (1mm near plane) for detailed work
-    this.camera.minZ = 0.001; // 1mm near plane - allows very close inspection
+    // Set clipping planes to handle large range (0.01m to 20km)
+    // Match near plane to minimum radius to prevent clipping issues
+    this.camera.minZ = CAMERA_MIN_RADIUS; // Match minimum radius
     this.camera.maxZ = 20000; // 20km far plane
 
     // Render loop
@@ -212,17 +212,6 @@ export class SceneManager {
         this.camera.orthoRight = orthoSize * aspectRatio;
         this.camera.orthoTop = orthoSize;
         this.camera.orthoBottom = -orthoSize;
-
-        // Dynamic wheel precision: slower when far out, faster when close in
-        // wheelPrecision = base * (radius / reference)
-        // At radius 15m (default): precision = 20 * (15 / 15) = 20 (baseline)
-        // At radius 100m (far): precision = 20 * (100 / 15) = 133 (slower)
-        // At radius 1m (close): precision = 20 * (1 / 15) = 1.3 (faster)
-        const basePrecision = CAMERA_WHEEL_PRECISION;
-        const referenceRadius = CAMERA_DEFAULT_RADIUS;
-        const calculatedPrecision = basePrecision * (this.camera.radius / referenceRadius);
-        // Set minimum precision to prevent extreme sensitivity when very close to objects
-        this.camera.wheelPrecision = Math.max(calculatedPrecision, 2.5);
       }
       this.scene?.render();
     });
