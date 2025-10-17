@@ -10,7 +10,21 @@ import '@babylonjs/loaders';
 import { TransformNode, Scene, AbstractMesh } from '@babylonjs/core';
 
 // Import up-axis detection utilities
-import { autoFixUpAxis, UpAxisDetectionResult } from './upAxis';
+import { autoFixUpAxis, UpAxisDetectionResult, clearUpAxisCache, normalizeYawOnGroundPlane } from './upAxis';
+
+/**
+ * Create a canonical file key for stable sibling cache
+ * Collapses UNIT_104L.glb and UNIT_104L_.glb to the same key
+ */
+function makeCanonicalFileKey(name: string): string {
+  // remove extension (case-insensitive)
+  const base = name.replace(/\.[^.]+$/i, "");
+  // collapse all non-alphanum, drop trailing underscores/dashes, lower-case
+  return base
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "")   // remove punctuation/underscores/spaces
+    .replace(/[_-]+$/g, "");      // just in case
+}
 
 /**
  * GLB Loading Result Interface
@@ -63,6 +77,8 @@ export class GLBLoader {
   public static getInstance(): GLBLoader {
     if (!GLBLoader.instance) {
       GLBLoader.instance = new GLBLoader();
+      // Clear stale cache on first use to ensure new detection logic runs
+      clearUpAxisCache();
     }
     return GLBLoader.instance;
   }
@@ -148,35 +164,114 @@ export class GLBLoader {
       if (defaultOptions.enableUpAxisDetection && result.rootNodes.length > 0) {
         defaultOptions.onProgress?.(80, 'Detecting and fixing up-axis orientation...');
 
-        const primaryRoot = result.rootNodes[0];
+        // CRITICAL DIAGNOSTIC: Log original positions BEFORE any transformations
+        console.group(`🔍 GLB LOAD: ${file.name}`);
+        console.log('Root nodes:', result.rootNodes.length);
+        result.rootNodes.forEach((root, i) => {
+          const pos = root.getAbsolutePosition();
+          const isSignificant = pos.length() > 0.1;
+          console.log(`  Root ${i}: position (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}) ${isSignificant ? '✅ SIGNIFICANT' : '❌ AT ORIGIN'}`);
+        });
+        console.log('Bounds:', result.bounds);
+        console.log('Bounds center:', result.bounds?.center.toString());
+        console.groupEnd();
+
+        // Create a single file container for all root nodes to ensure consistent orientation
+        const fileContainer = new TransformNode(file.name, scene);
+        
+        // ALWAYS use bounds center as canonical CAD position - this is the true model position
+        let modelWorldPos = new BABYLON.Vector3(0, 0, 0);
+        if (result.bounds) {
+          modelWorldPos = result.bounds.center.clone();
+          console.log(`[GLB] Bounds center: ${modelWorldPos.toString()}`);
+        } else {
+          // Calculate bounds if not provided
+          const meshes = result.rootNodes.flatMap(r => r.getChildMeshes(false));
+          if (meshes.length > 0) {
+            const tempBounds = this.calculateBounds(meshes);
+            modelWorldPos = tempBounds ? tempBounds.center.clone() : new BABYLON.Vector3(0, 0, 0);
+          }
+        }
+
+        // Store original CAD position before any transformations
+        fileContainer.metadata = { originalCADPosition: modelWorldPos.clone() };
+        fileContainer.position.copyFrom(modelWorldPos);
+        
+        console.log(`[GLB] Container positioned at CAD coordinates: ${modelWorldPos.toString()}`);
+
+        // Parent GLB roots under the container, calculating local offsets
+        for (const root of result.rootNodes) {
+          const worldPos = root.getAbsolutePosition().clone();
+          const worldRot = root.absoluteRotationQuaternion?.clone();
+          
+          // Parent to container
+          root.setParent(fileContainer);
+          
+          // Calculate local offset from container position
+          root.position = worldPos.subtract(modelWorldPos);
+          if (worldRot) {
+            root.rotationQuaternion = worldRot;
+          }
+        }
 
         console.log(`[GLB Loader] Starting up-axis detection for: ${file.name}`);
+        console.log(`[GLB Loader] Model positioned at original CAD coordinates`);
 
-        const upAxisResult = autoFixUpAxis(primaryRoot, {
-          bake: defaultOptions.upAxisBake ?? false,  // Changed default to false
-          verbose: true,  // Force verbose for debugging
+        // Generate file key for sibling consistency
+        const fileKey = makeCanonicalFileKey(file.name);
+
+        // Apply up-axis correction (creates wrapper if needed)
+        const upAxisResult = autoFixUpAxis(fileContainer, {
           autoFix: true,
-          confidenceThreshold: 0.6
+          useWrapper: true,
+          verbose: true,
+          confidenceThreshold: 0.5, // Lowered from 0.55
+          fileKey,
         });
 
         result.upAxisDetection = upAxisResult;
 
+        // CRITICAL: Restore CAD position after up-axis correction
+        // The wrapper may have changed the effective position
+        const finalRoot = upAxisResult.applied 
+          ? (fileContainer.parent as TransformNode) 
+          : fileContainer;
+
+        if (upAxisResult.applied && finalRoot !== fileContainer) {
+          // Wrapper was created - set wrapper position to original CAD position
+          finalRoot.position.copyFrom(modelWorldPos);
+          console.log(`[GLB] Position restored after up-axis correction: ${finalRoot.position.toString()}`);
+        }
+
+        // Apply yaw normalization (reuses wrapper)
+        const yaw = normalizeYawOnGroundPlane(fileContainer, { fileKey, verbose: true });
+
+        // Update result.rootNodes to return the final root (wrapper or container)
+        result.rootNodes = [finalRoot];
+
         console.log(`[GLB Loader] Up-axis result for ${file.name}:`, {
-          detected: upAxisResult.detectedAxis,
+          detected: upAxisResult.detected,
           confidence: upAxisResult.confidence,
           method: upAxisResult.method,
-          applied: upAxisResult.applied
+          applied: upAxisResult.applied,
+          fileKey: fileKey
         });
+
+        if (yaw.applied) {
+          result.warnings.push(
+            `Yaw normalized: rotated ${(yaw.angle * 180 / Math.PI).toFixed(0)}° around Y for consistent orientation`
+          );
+        }
 
         if (upAxisResult.applied) {
           result.warnings.push(
-            `Up-axis corrected: ${upAxisResult.detectedAxis}-up → Y-up (${upAxisResult.method}, confidence: ${(upAxisResult.confidence * 100).toFixed(0)}%)`
+            `Up-axis corrected: ${upAxisResult.detected}-up → Y-up (${upAxisResult.method}, confidence: ${(upAxisResult.confidence * 100).toFixed(0)}%)`
           );
-        } else if (upAxisResult.detectedAxis === 'Y') {
+        } else if (upAxisResult.detected === 'Y') {
           result.warnings.push(
             `Up-axis detected as Y-up (no correction needed, ${upAxisResult.method}, confidence: ${(upAxisResult.confidence * 100).toFixed(0)}%)`
           );
-        } else if (upAxisResult.detectedAxis === 'Unknown') {
+        } else {
           result.warnings.push(
             `Up-axis could not be determined with confidence (${upAxisResult.method}, confidence: ${(upAxisResult.confidence * 100).toFixed(0)}%)`
           );
@@ -573,3 +668,121 @@ export const loadGLB = async (
     fallbackToBasicLoader: true
   });
 };
+
+/**
+ * Manually set the up-axis for specific files before loading
+ * Use this if automatic detection fails
+ * 
+ * Example usage:
+ * ```
+ * import { setManualUpAxis } from './GLBLoader';
+ * 
+ * // Before loading files
+ * setManualUpAxis('unit101', 'Y'); // Force UNIT_101 files to Y-up
+ * setManualUpAxis('unit104l', 'Z'); // Force UNIT_104L files to Z-up
+ * ```
+ */
+export function setManualUpAxis(fileKey: string, axis: 'Y' | 'Z'): void {
+  // Access the cache from upAxis module
+  const { decisionCache } = require('./upAxis');
+  decisionCache.set(fileKey, axis);
+  console.log(`[GLB Loader] Manual override set: ${fileKey} -> ${axis}-up`);
+}
+
+/**
+ * Diagnostic function to analyze loaded GLB files
+ * Call this from browser console after loading your files
+ */
+export function diagnoseAllLoadedFiles(scene: BABYLON.Scene): void {
+  console.group('🔍 UP-AXIS DIAGNOSTIC REPORT');
+  
+  const allNodes = scene.transformNodes;
+  const glbFiles = allNodes.filter(node => 
+    node.name.endsWith('.glb') || node.name.endsWith('.GLB')
+  );
+  
+  console.log(`Found ${glbFiles.length} GLB file containers\n`);
+  
+  glbFiles.forEach((container, index) => {
+    console.group(`📦 File ${index + 1}: ${container.name}`);
+    
+    // Get bounds
+    const meshes = container.getChildMeshes(false);
+    let minY = Infinity, maxY = -Infinity;
+    let minZ = Infinity, maxZ = -Infinity;
+    let minX = Infinity, maxX = -Infinity;
+    
+    meshes.forEach(mesh => {
+      const bounds = mesh.getBoundingInfo();
+      const min = bounds.boundingBox.minimumWorld;
+      const max = bounds.boundingBox.maximumWorld;
+      
+      minX = Math.min(minX, min.x);
+      maxX = Math.max(maxX, max.x);
+      minY = Math.min(minY, min.y);
+      maxY = Math.max(maxY, max.y);
+      minZ = Math.min(minZ, min.z);
+      maxZ = Math.max(maxZ, max.z);
+    });
+    
+    const extX = maxX - minX;
+    const extY = maxY - minY;
+    const extZ = maxZ - minZ;
+    
+    console.log('📏 Dimensions:');
+    console.log(`   X: ${extX.toFixed(3)} (${minX.toFixed(2)} to ${maxX.toFixed(2)})`);
+    console.log(`   Y: ${extY.toFixed(3)} (${minY.toFixed(2)} to ${maxY.toFixed(2)})`);
+    console.log(`   Z: ${extZ.toFixed(3)} (${minZ.toFixed(2)} to ${maxZ.toFixed(2)})`);
+    
+    const tallest = Math.max(extX, extY, extZ);
+    let expectedUp = 'UNKNOWN';
+    if (tallest === extY) expectedUp = 'Y';
+    else if (tallest === extZ) expectedUp = 'Z';
+    else expectedUp = 'X';
+    
+    console.log(`\n🎯 Expected Up-Axis: ${expectedUp}-up (tallest dimension)`);
+    
+    // Check for wrapper
+    const hasWrapper = container.parent && 
+                      container.parent.metadata && 
+                      container.parent.metadata.__axisWrapper;
+    
+    if (hasWrapper) {
+      console.log('✅ Has axis wrapper (rotation applied)');
+      const wrapper = container.parent as BABYLON.TransformNode;
+      const rotation = wrapper.rotationQuaternion?.toEulerAngles() || wrapper.rotation;
+      console.log(`   Rotation: ${rotation.x.toFixed(2)}, ${rotation.y.toFixed(2)}, ${rotation.z.toFixed(2)}`);
+    } else {
+      console.log('❌ No axis wrapper found');
+    }
+    
+    // Check metadata
+    if (container.metadata) {
+      console.log('\n📋 Metadata:', container.metadata);
+    }
+    
+    // Position
+    console.log(`\n📍 Position: (${container.position.x.toFixed(2)}, ${container.position.y.toFixed(2)}, ${container.position.z.toFixed(2)})`);
+    
+    // Recommendation
+    if (expectedUp === 'Y' && !hasWrapper) {
+      console.log('\n✅ CORRECT: Y-up file with no rotation (as expected)');
+    } else if (expectedUp === 'Z' && hasWrapper) {
+      console.log('\n✅ CORRECT: Z-up file with rotation applied');
+    } else if (expectedUp === 'Y' && hasWrapper) {
+      console.log('\n⚠️  WARNING: Y-up file incorrectly rotated!');
+    } else if (expectedUp === 'Z' && !hasWrapper) {
+      console.log('\n⚠️  WARNING: Z-up file missing rotation!');
+    }
+    
+    console.groupEnd();
+    console.log('\n');
+  });
+  
+  console.groupEnd();
+}
+
+// Make it available globally for console access
+if (typeof window !== 'undefined') {
+  (window as any).diagnoseGLBFiles = diagnoseAllLoadedFiles;
+}

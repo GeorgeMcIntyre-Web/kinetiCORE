@@ -1,517 +1,590 @@
-// GLB Up-Axis Auto-Detection & Fix Utility
-// Owner: George (Architecture)
-// Purpose: Detect Z-up vs Y-up geometry and normalize to Y-up (Babylon standard)
-// Strategy: PCA + AABB heuristics + rotation analysis
-
+// upAxis.ts - Improved multi-method up-axis detection
 import {
-  Mesh,
+  AbstractMesh,
+  Matrix,
+  Quaternion,
   TransformNode,
   Vector3,
-  Quaternion,
-  VertexBuffer,
-  Angle
-} from '@babylonjs/core';
+  Scene,
+} from "@babylonjs/core";
 
-export type UpAxis = 'Y' | 'Z' | 'Unknown';
+type UpAxis = "Y" | "Z";
+type Method = "PCA" | "AABB" | "NORMALS" | "COMBINED";
 
-export interface UpAxisDetectionResult {
-  detectedAxis: UpAxis;
-  confidence: number; // 0.0 - 1.0
-  method: 'PCA' | 'AABB' | 'Rotation' | 'Combined';
-  applied: boolean;
+export type UpAxisDetectionResult = {
+  detected: UpAxis;
+  confidence: number;     // 0..1
+  method: Method;
+  applied: boolean;       // rotation/wrapper applied
+  logs?: string[];
+};
+
+export type UpAxisOptions = {
+  autoFix?: boolean;              // default true
+  verbose?: boolean;              // default false
+  confidenceThreshold?: number;   // default 0.6
+  useWrapper?: boolean;           // default true (rotate container, no baking)
+  fileKey?: string;               // cache key so siblings get same decision
+};
+
+const decisionCache = new Map<string, UpAxis>();
+const yawCache = new Map<string, number>();
+const radNeg90X = Quaternion.FromEulerAngles(-Math.PI / 2, 0, 0);
+
+export function clearUpAxisCache(): void {
+  decisionCache.clear();
+  yawCache.clear();
+  console.log("[UpAxis] Decision cache cleared");
 }
 
-export interface UpAxisOptions {
-  bake?: boolean;
-  verbose?: boolean;
-  confidenceThreshold?: number;
-  autoFix?: boolean;
-}
-
-/**
- * Auto-detect and optionally fix up-axis orientation of a GLB model
- * Guard rail: Comprehensive detection with multiple fallback strategies
- */
 export function autoFixUpAxis(
+  fileContainer: TransformNode,
+  opts: UpAxisOptions = {},
+): UpAxisDetectionResult {
+  const logs: string[] = [];
+  const verbose = opts.verbose === true;
+  const autoFix = opts.autoFix !== false;
+  const useWrapper = opts.useWrapper !== false;
+  const minConf = opts.confidenceThreshold ?? 0.5;
+
+  if (!fileContainer) {
+    return { detected: "Y", confidence: 1, method: "COMBINED", applied: false };
+  }
+
+  // 1) Cache: force siblings to share the same decision
+  if (opts.fileKey && decisionCache.has(opts.fileKey)) {
+    const forced = decisionCache.get(opts.fileKey)!;
+    const applied = autoFix ? applyDecision(fileContainer, forced, useWrapper, logs) : false;
+    if (verbose) logs.push(`[UpAxis] Using cached decision for ${opts.fileKey}: ${forced}`);
+    console.log(`[UpAxis] CACHE HIT: ${opts.fileKey} -> ${forced} (sibling consistency)`);
+    return { detected: forced, confidence: 1, method: "COMBINED", applied, logs };
+  }
+
+  // 2) Detect using all three methods
+  const bbox = computeExtents(fileContainer);
+  const pca = detectViaPCA(fileContainer, logs);
+  const aabb = detectViaAABB(bbox, logs);
+  const combined = combineDecisions(pca, aabb, bbox, fileContainer, logs);
+
+  if (verbose) {
+    logs.push(`[UpAxis] === DETECTION SUMMARY ===`);
+    logs.push(`[UpAxis] PCA => ${pca.detected} (${(pca.confidence*100).toFixed(0)}%)`);
+    logs.push(`[UpAxis] AABB => ${aabb.detected} (${(aabb.confidence*100).toFixed(0)}%)`);
+    logs.push(`[UpAxis] Combined => ${combined.detected} (${(combined.confidence*100).toFixed(0)}%)`);
+    logs.push(`[UpAxis] Extents: X=${bbox.x.toFixed(3)}, Y=${bbox.y.toFixed(3)}, Z=${bbox.z.toFixed(3)}`);
+    logs.push(`[UpAxis] Confidence threshold: ${(minConf*100).toFixed(0)}%`);
+    logs.forEach(log => console.log(log));
+  }
+
+  let decided: UpAxis = combined.detected as UpAxis;
+  let confidence = combined.confidence;
+  let method: Method = combined.method as Method;
+
+  // 3) If confidence is low, default to Y (safer no-op)
+  if (confidence < minConf) {
+    decided = "Y";
+    method = "COMBINED";
+    confidence = minConf;
+    if (verbose) {
+      logs.push(`[UpAxis] Confidence too low (${(confidence*100).toFixed(0)}% < ${(minConf*100).toFixed(0)}%), defaulting to Y-up (no rotation).`);
+      console.log(`[UpAxis] LOW CONFIDENCE - defaulting to Y-up for safety`);
+    }
+  } else {
+    if (verbose) {
+      logs.push(`[UpAxis] High confidence decision: ${decided}-up (${(confidence*100).toFixed(0)}%)`);
+      console.log(`[UpAxis] HIGH CONFIDENCE - using ${decided}-up detection`);
+    }
+  }
+
+  // 4) Special case: If we have strong evidence for Z-up but low combined confidence,
+  // trust the individual methods that agree
+  if (decided === "Y" && confidence < minConf) {
+    // Check if PCA and AABB both agree on Z-up with high confidence
+    if (pca.detected === "Z" && aabb.detected === "Z" && 
+        pca.confidence > 0.7 && aabb.confidence > 0.7) {
+      decided = "Z";
+      confidence = Math.min(pca.confidence, aabb.confidence);
+      method = "COMBINED";
+      if (verbose) {
+        logs.push(`[UpAxis] OVERRIDE: Strong PCA/AABB agreement on Z-up despite low combined confidence`);
+        console.log(`[UpAxis] OVERRIDE: Using Z-up based on strong PCA/AABB agreement`);
+      }
+    }
+  }
+
+  if (opts.fileKey) {
+    decisionCache.set(opts.fileKey, decided);
+    console.log(`[UpAxis] CACHE SET: ${opts.fileKey} -> ${decided} (confidence: ${(confidence*100).toFixed(0)}%)`);
+  }
+
+  const applied = autoFix ? applyDecision(fileContainer, decided, useWrapper, logs) : false;
+  return { detected: decided, confidence, method, applied, logs };
+}
+
+/* ---------------------- detection helpers ---------------------- */
+
+function computeExtents(root: TransformNode) {
+  let min = new Vector3(+Infinity, +Infinity, +Infinity);
+  let max = new Vector3(-Infinity, -Infinity, -Infinity);
+
+  const meshes = root.getChildMeshes(false) as AbstractMesh[];
+  for (const m of meshes) {
+    if (!m.isVisible || m.getTotalVertices() === 0) continue;
+    m.refreshBoundingInfo({});
+    const bi = m.getBoundingInfo();
+    const v = bi.boundingBox.vectors; // 8 corners in world space
+    for (let i = 0; i < v.length; i++) {
+      min.minimizeInPlace(v[i]);
+      max.maximizeInPlace(v[i]);
+    }
+  }
+  const ext = max.subtract(min);
+  return { min, max, x: Math.abs(ext.x), y: Math.abs(ext.y), z: Math.abs(ext.z) };
+}
+
+function detectViaPCA(root: TransformNode, logs: string[]) {
+  // PCA on vertex positions - identifies the axis with greatest spread
+  const sums = { xx: 0, yy: 0, zz: 0, xy: 0, xz: 0, yz: 0 };
+  let totalVerts = 0;
+  
+  const meshes = root.getChildMeshes(false) as AbstractMesh[];
+
+  for (const m of meshes) {
+    const ps = m.getVerticesData("position");
+    const idx = m.getIndices();
+    if (!ps || !idx) continue;
+
+    const world = m.getWorldMatrix();
+    for (let i = 0; i < idx.length; i++) {
+      const pi = idx[i] * 3;
+      const pw = Vector3.TransformCoordinates(
+        new Vector3(ps[pi], ps[pi + 1], ps[pi + 2]),
+        world,
+      );
+      sums.xx += pw.x * pw.x;
+      sums.yy += pw.y * pw.y;
+      sums.zz += pw.z * pw.z;
+      sums.xy += pw.x * pw.y;
+      sums.xz += pw.x * pw.z;
+      sums.yz += pw.y * pw.z;
+      totalVerts++;
+    }
+  }
+
+  if (totalVerts === 0) {
+    return { detected: "Y" as UpAxis, confidence: 0.3, method: "PCA" as const };
+  }
+
+  // Normalize by vertex count
+  const varY = sums.yy / totalVerts;
+  const varZ = sums.zz / totalVerts;
+  
+  // Calculate relative difference
+  const total = varY + varZ || 1;
+  const diff = Math.abs(varZ - varY);
+  const relDiff = diff / total;
+  
+  // Confidence based on variance separation
+  let conf: number;
+  if (relDiff < 0.1) {
+    conf = 0.35; // Very similar variance
+  } else if (relDiff < 0.25) {
+    conf = 0.55;
+  } else if (relDiff < 0.4) {
+    conf = 0.7;
+  } else if (relDiff < 0.6) {
+    conf = 0.85;
+  } else {
+    conf = 0.95; // Clear dominant axis
+  }
+
+  const detected: UpAxis = varZ > varY ? "Z" : "Y";
+  logs.push(`[UpAxis] PCA varY=${varY.toFixed(3)} varZ=${varZ.toFixed(3)} relDiff=${(relDiff*100).toFixed(1)}% conf=${conf.toFixed(2)}`);
+  return { detected, confidence: conf, method: "PCA" as const };
+}
+
+function detectViaAABB(ext: { y: number; z: number }, logs: string[]) {
+  const y = ext.y;
+  const z = ext.z;
+  
+  // Calculate ratio and difference
+  const ratio = y > z ? y / (z || 1e-6) : z / (y || 1e-6);
+  const diff = Math.abs(y - z);
+  const larger = Math.max(y, z);
+  const relDiff = diff / (larger || 1e-6);
+  
+  const detected: UpAxis = z > y ? "Z" : "Y";
+  
+  // Nuanced confidence based on relative difference
+  let conf: number;
+  
+  if (relDiff < 0.05) {
+    // Nearly equal - very uncertain (within 5%)
+    conf = 0.3;
+  } else if (relDiff < 0.15) {
+    // Close but distinguishable (5-15%)
+    conf = 0.5;
+  } else if (relDiff < 0.3) {
+    // Moderate difference (15-30%)
+    conf = 0.7;
+  } else if (relDiff < 0.5) {
+    // Clear difference (30-50%)
+    conf = 0.85;
+  } else {
+    // Very clear difference (>50%)
+    conf = 0.95;
+  }
+  
+  logs.push(`[UpAxis] AABB y=${y.toFixed(3)} z=${z.toFixed(3)} ratio=${ratio.toFixed(2)} relDiff=${(relDiff*100).toFixed(1)}% conf=${conf.toFixed(2)}`);
+  return { detected, confidence: conf, method: "AABB" as const };
+}
+
+function normalsVote(root: TransformNode, logs: string[]) {
+  // Weighted triangle normal vote - most reliable for flat objects
+  let sumY = 0;
+  let sumZ = 0;
+  let totalArea = 0;
+
+  const meshes = root.getChildMeshes(false) as AbstractMesh[];
+  for (const m of meshes) {
+    const p = m.getVerticesData("position");
+    const idx = m.getIndices();
+    if (!p || !idx) continue;
+
+    const w = m.getWorldMatrix();
+    for (let i = 0; i < idx.length; i += 3) {
+      const a = idx[i] * 3, b = idx[i + 1] * 3, c = idx[i + 2] * 3;
+      const A = Vector3.TransformCoordinates(new Vector3(p[a], p[a + 1], p[a + 2]), w);
+      const B = Vector3.TransformCoordinates(new Vector3(p[b], p[b + 1], p[b + 2]), w);
+      const C = Vector3.TransformCoordinates(new Vector3(p[c], p[c + 1], p[c + 2]), w);
+      const n = Vector3.Cross(B.subtract(A), C.subtract(A));
+      const area = n.length() * 0.5;
+      
+      if (area < 1e-10) continue; // Skip degenerate triangles
+      
+      const an = n.normalizeToNew();
+
+      sumY += Math.abs(an.y) * area;
+      sumZ += Math.abs(an.z) * area;
+      totalArea += area;
+    }
+  }
+
+  const total = sumY + sumZ || 1;
+  const relDiff = Math.abs(sumZ - sumY) / total;
+  
+  // More aggressive confidence scaling for normals
+  // They are the most reliable indicator of orientation
+  let conf: number;
+  if (relDiff < 0.05) {
+    conf = 0.3; // Very balanced - unclear
+  } else if (relDiff < 0.15) {
+    conf = 0.5; // Slight preference
+  } else if (relDiff < 0.25) {
+    conf = 0.7; // Moderate confidence
+  } else if (relDiff < 0.35) {
+    conf = 0.85; // Strong confidence
+  } else {
+    conf = 0.95; // Very strong confidence
+  }
+  
+  const detected: UpAxis = sumZ > sumY ? "Z" : "Y";
+  logs.push(`[UpAxis] NORMALS vote y=${sumY.toFixed(3)} z=${sumZ.toFixed(3)} relDiff=${(relDiff*100).toFixed(1)}% totalArea=${totalArea.toFixed(2)} conf=${conf.toFixed(2)}`);
+  return { detected, confidence: conf, method: "NORMALS" as const };
+}
+
+function combineDecisions(
+  pca: { detected: UpAxis; confidence: number; method: Method },
+  aabb: { detected: UpAxis; confidence: number; method: Method },
+  ext: { y: number; z: number },
   root: TransformNode,
-  opts?: UpAxisOptions
-): UpAxisDetectionResult {
-  const defaultOpts: Required<UpAxisOptions> = {
-    bake: true,
-    verbose: false,
-    confidenceThreshold: 0.6,
-    autoFix: true,
-    ...opts
-  };
-
-  const meshes = root.getChildMeshes() as Mesh[];
-
-  // Guard: No meshes to analyze
-  if (meshes.length === 0) {
-    return createResult('Unknown', 0, 'PCA', false);
+  logs: string[],
+) {
+  const nv = normalsVote(root, logs);
+  
+  // Check for ambiguous geometry
+  const yzRatio = Math.min(ext.y, ext.z) / Math.max(ext.y, ext.z);
+  const isAmbiguous = yzRatio > 0.7; // Within 30% = ambiguous
+  
+  // RULE 1: Strong PCA/AABB agreement (>80%) overrides everything
+  if (pca.detected === aabb.detected && 
+      pca.confidence > 0.8 && 
+      aabb.confidence > 0.8) {
+    const conf = Math.max(pca.confidence, aabb.confidence);
+    logs.push(`[UpAxis] STRONG PCA/AABB AGREEMENT: ${pca.detected}-up (PCA: ${(pca.confidence*100).toFixed(0)}%, AABB: ${(aabb.confidence*100).toFixed(0)}%)`);
+    return { detected: pca.detected, confidence: conf, method: "COMBINED" as const };
   }
-
-  const positions = collectWorldPositions(meshes);
-
-  // Guard: Insufficient vertex data
-  if (positions.length < 3) {
-    return createResult('Unknown', 0, 'PCA', false);
+  
+  // RULE 2: Triple agreement (all methods agree)
+  if (pca.detected === aabb.detected && aabb.detected === nv.detected) {
+    const avgConf = (pca.confidence + aabb.confidence + nv.confidence) / 3;
+    logs.push(`[UpAxis] TRIPLE AGREEMENT: ${pca.detected}-up (all methods agree)`);
+    return { detected: pca.detected, confidence: Math.min(0.95, avgConf + 0.15), method: "COMBINED" as const };
   }
-
-  // Strategy 1: Principal Component Analysis
-  const pcaResult = detectViaPCA(positions);
-
-  // Guard: High confidence from PCA
-  if (pcaResult.confidence >= defaultOpts.confidenceThreshold) {
-    return applyFix(root, pcaResult, defaultOpts);
+  
+  // RULE 3: High-confidence normals (>60%)
+  if (nv.confidence > 0.6) {
+    logs.push(`[UpAxis] HIGH-CONFIDENCE NORMALS: ${nv.detected}-up (${(nv.confidence*100).toFixed(0)}%)`);
+    return { detected: nv.detected, confidence: nv.confidence, method: "NORMALS" as const };
   }
-
-  // Strategy 2: AABB extent ratio analysis
-  const aabbResult = detectViaAABB(positions);
-
-  // Guard: High confidence from AABB
-  if (aabbResult.confidence >= defaultOpts.confidenceThreshold) {
-    return applyFix(root, aabbResult, defaultOpts);
+  
+  // RULE 4: Ambiguous geometry - trust normals at lower confidence
+  if (isAmbiguous && nv.confidence >= 0.45) {
+    logs.push(`[UpAxis] AMBIGUOUS GEOMETRY: trusting normals at ${(nv.confidence*100).toFixed(0)}%`);
+    return { detected: nv.detected, confidence: nv.confidence + 0.1, method: "NORMALS" as const };
   }
-
-  // Guard: AABB detected something (even weak) - trust it for flat objects
-  if (aabbResult.detectedAxis !== 'Unknown') {
-    console.log(`[UpAxis] Using AABB result (${aabbResult.detectedAxis}-up) - PCA was ambiguous`);
-    return applyFix(root, aabbResult, defaultOpts);
+  
+  // RULE 5: Majority vote (2 out of 3)
+  const votes = [
+    { method: 'PCA', axis: pca.detected, conf: pca.confidence },
+    { method: 'AABB', axis: aabb.detected, conf: aabb.confidence },
+    { method: 'NORMALS', axis: nv.detected, conf: nv.confidence }
+  ];
+  
+  const yVotes = votes.filter(v => v.axis === 'Y');
+  const zVotes = votes.filter(v => v.axis === 'Z');
+  
+  if (yVotes.length >= 2) {
+    const avgConf = yVotes.reduce((sum, v) => sum + v.conf, 0) / yVotes.length;
+    logs.push(`[UpAxis] MAJORITY: Y-up (${yVotes.map(v => v.method).join(', ')})`);
+    return { detected: 'Y', confidence: Math.min(0.8, avgConf + 0.1), method: "COMBINED" as const };
   }
-
-  // Strategy 3: Root rotation analysis (only if AABB failed)
-  const rotationResult = detectViaRotation(root);
-
-  // Guard: High confidence from rotation
-  if (rotationResult.confidence >= defaultOpts.confidenceThreshold) {
-    return applyFix(root, rotationResult, defaultOpts);
+  
+  if (zVotes.length >= 2) {
+    const avgConf = zVotes.reduce((sum, v) => sum + v.conf, 0) / zVotes.length;
+    logs.push(`[UpAxis] MAJORITY: Z-up (${zVotes.map(v => v.method).join(', ')})`);
+    return { detected: 'Z', confidence: Math.min(0.8, avgConf + 0.1), method: "COMBINED" as const };
   }
-
-  // Strategy 4: Combined weighted decision (last resort)
-  const combinedResult = combineDetectionResults([pcaResult, aabbResult, rotationResult]);
-
-  return applyFix(root, combinedResult, defaultOpts);
+  
+  // RULE 6: Weighted scoring (last resort)
+  const weights = isAmbiguous 
+    ? { PCA: 0.2, AABB: 0.2, NORMALS: 0.6 }
+    : { PCA: 0.3, AABB: 0.3, NORMALS: 0.4 };
+  
+  let yScore = 0, zScore = 0;
+  if (pca.detected === 'Y') yScore += weights.PCA * pca.confidence;
+  else zScore += weights.PCA * pca.confidence;
+  if (aabb.detected === 'Y') yScore += weights.AABB * aabb.confidence;
+  else zScore += weights.AABB * aabb.confidence;
+  if (nv.detected === 'Y') yScore += weights.NORMALS * nv.confidence;
+  else zScore += weights.NORMALS * nv.confidence;
+  
+  const detected: UpAxis = yScore > zScore ? 'Y' : 'Z';
+  const confidence = Math.max(yScore, zScore);
+  
+  logs.push(`[UpAxis] WEIGHTED: ${detected}-up (Y=${yScore.toFixed(2)}, Z=${zScore.toFixed(2)})`);
+  return { detected, confidence, method: "COMBINED" as const };
 }
 
-/**
- * Collect world-space vertex positions from all meshes
- * Guard rail: Handles missing vertex data gracefully
- */
-function collectWorldPositions(meshes: Mesh[]): Vector3[] {
-  const positions: Vector3[] = [];
+/* ---------------------- application helpers ---------------------- */
 
-  for (const mesh of meshes) {
-    // Guard: Skip meshes without position data
-    const posData = mesh.getVerticesData(VertexBuffer.PositionKind);
-    if (posData === null) {
-      continue;
-    }
+function applyDecision(
+  container: TransformNode,
+  decided: UpAxis,
+  useWrapper: boolean,
+  logs: string[],
+) {
+  if (decided === "Y") return false; // no change needed
 
-    const worldMatrix = mesh.getWorldMatrix();
-
-    // Sample vertices (use all for small meshes, sample for large ones)
-    const stride = posData.length > 30000 ? 9 : 3; // Sample every 3rd vertex for large meshes
-
-    for (let i = 0; i < posData.length; i += stride) {
-      const localPos = new Vector3(posData[i], posData[i + 1], posData[i + 2]);
-      const worldPos = Vector3.TransformCoordinates(localPos, worldMatrix);
-      positions.push(worldPos);
-    }
+  if (useWrapper) {
+    applyWrapperZtoY(container, logs);
+    return true;
   }
 
-  return positions;
+  // fallback: destructive bake (not recommended)
+  rotateContainerZtoY_Bake(container, logs);
+  return true;
 }
 
-/**
- * Detect up-axis using Principal Component Analysis
- * Returns the dominant geometric direction
- */
-function detectViaPCA(points: Vector3[]): UpAxisDetectionResult {
-  const mean = computeCentroid(points);
+function applyWrapperZtoY(container: TransformNode, logs: string[]) {
+  const scene = container.getScene() as Scene;
+  const parent = container.parent as TransformNode | null;
+  
+  // Get container's current world position (this is the intended CAD position)
+  const worldPos = container.getAbsolutePosition().clone();
+  
+  // Create wrapper at the SAME position as container
+  const wrapper = new TransformNode(`${container.name}__upfix`, scene);
+  wrapper.position.copyFrom(worldPos);
 
-  // Compute covariance matrix elements
-  let xx = 0, xy = 0, xz = 0;
-  let yy = 0, yz = 0, zz = 0;
+  if (parent) wrapper.setParent(parent, true);
+  
+  // CRITICAL: Parent container to wrapper WITHOUT changing world matrix
+  container.setParent(wrapper, true); // keepWorldMatrix=true preserves world position
+  
+  // Now apply rotation to wrapper
+  // Since container's local position relative to wrapper is (0,0,0), 
+  // rotation happens around the wrapper's position (which is the model's position)
+  const q = wrapper.rotationQuaternion ?? Quaternion.Identity();
+  wrapper.rotationQuaternion = q.multiply(radNeg90X);
 
-  for (const p of points) {
-    const dx = p.x - mean.x;
-    const dy = p.y - mean.y;
-    const dz = p.z - mean.z;
+  wrapper.metadata = wrapper.metadata || {};
+  wrapper.metadata.__axisWrapper = true;
 
-    xx += dx * dx;
-    xy += dx * dy;
-    xz += dx * dz;
-    yy += dy * dy;
-    yz += dy * dz;
-    zz += dz * dz;
-  }
+  container.metadata = container.metadata || {};
+  container.metadata.__axisFixed = true;
+  container.metadata.__wrapperNode = wrapper;
 
-  // Power iteration to find dominant eigenvector
-  const principal = computeDominantEigenvector(xx, xy, xz, yy, yz, zz);
-
-  // Compare principal direction to world Y and Z axes
-  const yDot = Math.abs(Vector3.Dot(principal, Vector3.Up()));
-  const zDot = Math.abs(Vector3.Dot(principal, new Vector3(0, 0, 1)));
-
-  const diff = Math.abs(zDot - yDot);
-
-  console.log(`[UpAxis] PCA Analysis:`, {
-    principalDir: `(${principal.x.toFixed(3)}, ${principal.y.toFixed(3)}, ${principal.z.toFixed(3)})`,
-    yDot: yDot.toFixed(3),
-    zDot: zDot.toFixed(3),
-    diff: diff.toFixed(3)
-  });
-
-  // Guard: Clear Z-up detection
-  if (zDot > yDot && diff > 0.2) {
-    console.log(`[UpAxis] PCA detected Z-up (Z-dot: ${zDot.toFixed(3)} > Y-dot: ${yDot.toFixed(3)})`);
-    return createResult('Z', Math.min(diff * 2, 1.0), 'PCA', false);
-  }
-
-  // Guard: Clear Y-up detection
-  if (yDot > zDot && diff > 0.2) {
-    console.log(`[UpAxis] PCA detected Y-up (Y-dot: ${yDot.toFixed(3)} > Z-dot: ${zDot.toFixed(3)})`);
-    return createResult('Y', Math.min(diff * 2, 1.0), 'PCA', false);
-  }
-
-  // Ambiguous result
-  console.log(`[UpAxis] PCA ambiguous (diff: ${diff.toFixed(3)} < 0.2)`);
-  return createResult('Unknown', diff, 'PCA', false);
+  logs.push(`[UpAxis] Wrapper created at ${worldPos.toString()}, rotation applied in-place`);
 }
 
-/**
- * Detect up-axis using AABB extent ratios
- * Assumes tall objects are oriented along up-axis
- */
-function detectViaAABB(points: Vector3[]): UpAxisDetectionResult {
-  const extents = computeAABBExtents(points);
+function rotateContainerZtoY_Bake(container: TransformNode, logs: string[]) {
+  const meshes = container.getChildMeshes(false) as AbstractMesh[];
+  const rmat = Matrix.RotationX(-Math.PI / 2);
 
-  const yToZ = extents.y / Math.max(extents.z, 1e-6);
-  const zToY = extents.z / Math.max(extents.y, 1e-6);
-
-  console.log(`[UpAxis] AABB Analysis:`, {
-    extentX: extents.x.toFixed(3),
-    extentY: extents.y.toFixed(3),
-    extentZ: extents.z.toFixed(3),
-    yToZ: yToZ.toFixed(3),
-    zToY: zToY.toFixed(3)
-  });
-
-  // Guard: Strong Z-up detection (high confidence)
-  if (zToY > 1.6) {
-    const confidence = Math.min((zToY - 1.0) / 2.0, 1.0);
-    console.log(`[UpAxis] AABB detected Z-up (strong) (Z/Y ratio: ${zToY.toFixed(2)} > 1.6)`);
-    return createResult('Z', confidence, 'AABB', false);
+  for (const m of meshes) {
+    if (!(m instanceof AbstractMesh)) continue;
+    // Apply rotation to the mesh's transform instead of baking into vertices
+    m.rotationQuaternion = (m.rotationQuaternion ?? Quaternion.Identity()).multiply(Quaternion.FromRotationMatrix(rmat));
+    m.refreshBoundingInfo({});
+    m.computeWorldMatrix(true);
   }
 
-  // Guard: Strong Y-up detection (high confidence)
-  if (yToZ > 1.6) {
-    const confidence = Math.min((yToZ - 1.0) / 2.0, 1.0);
-    console.log(`[UpAxis] AABB detected Y-up (strong) (Y/Z ratio: ${yToZ.toFixed(2)} > 1.6)`);
-    return createResult('Y', confidence, 'AABB', false);
-  }
+  container.rotation = Vector3.Zero();
+  container.rotationQuaternion = Quaternion.Identity();
+  container.computeWorldMatrix(true);
 
-  // Guard: Weak Z-up detection (lower threshold for flat parts)
-  if (zToY > 1.05 && zToY > yToZ) {
-    const confidence = Math.min((zToY - 1.0) / 1.0, 0.6);
-    console.log(`[UpAxis] AABB detected Z-up (weak) (Z/Y ratio: ${zToY.toFixed(2)} > 1.05)`);
-    return createResult('Z', confidence, 'AABB', false);
-  }
-
-  // Guard: Weak Y-up detection (lower threshold for flat parts)
-  if (yToZ > 1.05 && yToZ > zToY) {
-    const confidence = Math.min((yToZ - 1.0) / 1.0, 0.6);
-    console.log(`[UpAxis] AABB detected Y-up (weak) (Y/Z ratio: ${yToZ.toFixed(2)} > 1.05)`);
-    return createResult('Y', confidence, 'AABB', false);
-  }
-
-  // Similar extents - truly ambiguous
-  console.log(`[UpAxis] AABB ambiguous (ratios too close: Y/Z=${yToZ.toFixed(2)}, Z/Y=${zToY.toFixed(2)})`);
-  return createResult('Unknown', 0.3, 'AABB', false);
+  logs.push(`[UpAxis] Applied Z→Y via baking`);
 }
 
-/**
- * Detect up-axis by analyzing root node rotation
- * Checks for ~90° rotation about X axis (common Z-up→Y-up conversion)
- */
-function detectViaRotation(root: TransformNode): UpAxisDetectionResult {
-  const rotation = root.rotation;
-  const rotQuat = root.rotationQuaternion;
+/* ---------------------- yaw normalization ---------------------- */
 
-  // Check Euler rotation
-  if (rotation) {
-    const xRotDeg = Math.abs(Angle.FromRadians(rotation.x).degrees());
-
-    // Guard: Near 90° or 270° rotation about X
-    if (Math.abs(xRotDeg - 90) < 15 || Math.abs(xRotDeg - 270) < 15) {
-      const confidence = 1.0 - Math.min(Math.abs(xRotDeg - 90), Math.abs(xRotDeg - 270)) / 15;
-      return createResult('Z', confidence, 'Rotation', false);
+function ensureAxisWrapper(container: TransformNode): TransformNode {
+  // 1) Check if wrapper already exists in metadata
+  if (container.metadata?.__wrapperNode) {
+    const existing = container.metadata.__wrapperNode as TransformNode;
+    if (existing && !existing.isDisposed()) {
+      return existing;
     }
   }
 
-  // Check quaternion rotation
-  if (rotQuat) {
-    const euler = rotQuat.toEulerAngles();
-    const xRotDeg = Math.abs(Angle.FromRadians(euler.x).degrees());
-
-    if (Math.abs(xRotDeg - 90) < 15 || Math.abs(xRotDeg - 270) < 15) {
-      const confidence = 1.0 - Math.min(Math.abs(xRotDeg - 90), Math.abs(xRotDeg - 270)) / 15;
-      return createResult('Z', confidence, 'Rotation', false);
-    }
+  // 2) Check if parent is already a wrapper
+  const parent = container.parent as TransformNode | null;
+  if (parent?.metadata?.__axisWrapper === true) {
+    container.metadata = container.metadata || {};
+    container.metadata.__wrapperNode = parent;
+    return parent;
   }
 
-  return createResult('Y', 0.5, 'Rotation', false);
+  // 3) Prevent circular references
+  if (parent && (parent.name.includes('__wrap') || parent.name.includes('__upfix'))) {
+    console.warn(`[UpAxis] Circular reference prevented for ${container.name}`);
+    return container; // Return self to avoid creating wrapper
+  }
+
+  // 4) Create new wrapper
+  const scene = container.getScene() as Scene;
+  const wrapper = new TransformNode(`${container.name}__wrap`, scene);
+  
+  // Preserve world position
+  const worldPos = container.getAbsolutePosition().clone();
+  wrapper.position.copyFrom(worldPos);
+
+  // Maintain hierarchy
+  if (parent) wrapper.setParent(parent, true);
+  container.setParent(wrapper, true); // keepWorldMatrix
+
+  // Mark as wrapper
+  wrapper.metadata = { __axisWrapper: true };
+  container.metadata = container.metadata || {};
+  container.metadata.__wrapperNode = wrapper;
+
+  return wrapper;
 }
 
 /**
- * Combine multiple detection results using weighted voting
+ * Normalize yaw on the ground plane so similar files share the same "landscape" orientation.
+ * Rule: if extX < extZ by a small margin, rotate +90° around Y.
  */
-function combineDetectionResults(results: UpAxisDetectionResult[]): UpAxisDetectionResult {
-  let zScore = 0;
-  let yScore = 0;
+export function normalizeYawOnGroundPlane(
+  container: TransformNode,
+  opts: { fileKey?: string; verbose?: boolean } = {}
+): { applied: boolean; angle: number } {
+  const verbose = !!opts.verbose;
 
-  for (const result of results) {
-    if (result.detectedAxis === 'Z') {
-      zScore += result.confidence;
-    } else if (result.detectedAxis === 'Y') {
-      yScore += result.confidence;
+  // 1) Check cache
+  if (opts.fileKey && yawCache.has(opts.fileKey)) {
+    const cached = yawCache.get(opts.fileKey)!;
+    if (cached !== 0) {
+      // Reuse existing wrapper if available
+      const w = container.metadata?.__wrapperNode || ensureAxisWrapper(container);
+      const q = w.rotationQuaternion ?? Quaternion.Identity();
+      w.rotationQuaternion = q.multiply(Quaternion.FromEulerAngles(0, cached, 0));
     }
+    if (verbose) console.log(`[Yaw] Cached: ${(cached * 180 / Math.PI).toFixed(0)}°`);
+    return { applied: cached !== 0, angle: cached };
   }
 
-  const totalScore = zScore + yScore;
+  // 2) Calculate angle
+  const ext = computeExtents(container);
+  const x = Math.abs(ext.x);
+  const z = Math.abs(ext.z);
+  const THRESH = 1.05;
+  const angle = z > x * THRESH ? Math.PI / 2 : 0;
 
-  // Guard: No clear winner
-  if (totalScore < 0.1) {
-    return createResult('Unknown', 0, 'Combined', false);
+  if (opts.fileKey) yawCache.set(opts.fileKey, angle);
+  if (angle === 0) {
+    if (verbose) console.log("[Yaw] No rotation needed");
+    return { applied: false, angle: 0 };
   }
 
-  if (zScore > yScore) {
-    return createResult('Z', zScore / totalScore, 'Combined', false);
-  }
-
-  return createResult('Y', yScore / totalScore, 'Combined', false);
+  // 3) Apply rotation - REUSE existing wrapper
+  const w = container.metadata?.__wrapperNode || ensureAxisWrapper(container);
+  const q = w.rotationQuaternion ?? Quaternion.Identity();
+  w.rotationQuaternion = q.multiply(Quaternion.FromEulerAngles(0, angle, 0));
+  
+  if (verbose) console.log(`[Yaw] Applied +90° around Y`);
+  return { applied: true, angle };
 }
 
-/**
- * Apply Z-up to Y-up conversion and optionally bake transforms
- */
-function applyFix(
-  root: TransformNode,
-  result: UpAxisDetectionResult,
-  opts: Required<UpAxisOptions>
-): UpAxisDetectionResult {
-  // Guard: Don't fix if not Z-up
-  if (result.detectedAxis !== 'Z') {
-    if (opts.verbose) {
-      console.log(`[UpAxis] No fix needed - detected as ${result.detectedAxis}-up (${result.method}, confidence: ${result.confidence.toFixed(2)})`);
-    }
-    return result;
-  }
-
-  // Guard: Don't fix if auto-fix disabled
-  if (opts.autoFix === false) {
-    if (opts.verbose) {
-      console.log(`[UpAxis] Z-up detected but auto-fix disabled (${result.method}, confidence: ${result.confidence.toFixed(2)})`);
-    }
-    return result;
-  }
-
-  // Apply Z-up → Y-up rotation (-90° about X)
-  rotateZupToYup(root);
-
-  if (opts.verbose) {
-    console.log(`[UpAxis] Applied Z→Y fix (${result.method}, confidence: ${result.confidence.toFixed(2)})`);
-  }
-
-  // ALWAYS bake transforms when applying up-axis fix to ensure correct positioning
-  // This is critical - without baking, meshes appear scattered due to transform inheritance
-  bakeHierarchyTransforms(root);
-
-  if (opts.verbose) {
-    console.log('[UpAxis] Baked rotation into vertices');
-  }
-
-  return { ...result, applied: true };
-}
+/* ---------------------- diagnostic utilities ---------------------- */
 
 /**
- * Rotate Z-up model to Y-up by applying -90° rotation about X axis
+ * Diagnose up-axis without applying any transformations
+ * Useful for debugging and understanding what detection thinks
  */
-function rotateZupToYup(root: TransformNode): void {
-  const rotationQuat = Quaternion.RotationAxis(
-    Vector3.Right(),
-    Angle.FromDegrees(-90).radians()
-  );
-
-  // Guard: Preserve existing rotation
-  if (root.rotationQuaternion === null) {
-    root.rotationQuaternion = Quaternion.Identity();
-  }
-
-  root.rotationQuaternion = rotationQuat.multiply(root.rotationQuaternion);
-}
-
-/**
- * Bake root rotation into all child meshes without losing relative positions
- * Guard rail: Only bakes meshes with vertex data
- *
- * Strategy: Temporarily detach meshes, convert to world-space, apply rotation,
- * bake, then reattach with original local transforms.
- */
-function bakeHierarchyTransforms(root: TransformNode): void {
-  const meshes = root.getChildMeshes() as Mesh[];
-
-  // Guard: No rotation to bake
-  if (root.rotationQuaternion === null || root.rotationQuaternion.equals(Quaternion.Identity())) {
-    return;
-  }
-
-  const rootRotation = root.rotationQuaternion.clone();
-
-  for (const mesh of meshes) {
-    // Guard: Only bake if mesh has vertex data
-    if (mesh.getVerticesData(VertexBuffer.PositionKind) === null) {
-      continue;
-    }
-
-    // Store original local transform before detaching
-    const originalParent = mesh.parent;
-    const originalPosition = mesh.position.clone();
-    const originalRotation = mesh.rotation.clone();
-    const originalScaling = mesh.scaling.clone();
-    const originalRotationQuat = mesh.rotationQuaternion?.clone() || null;
-
-    // Get world matrix BEFORE detaching
-    const worldMatrix = mesh.getWorldMatrix().clone();
-
-    // Detach from parent
-    mesh.parent = null;
-
-    // Decompose world matrix to set world-space transform
-    const worldPosition = new Vector3();
-    const worldRotation = new Quaternion();
-    const worldScaling = new Vector3();
-    worldMatrix.decompose(worldScaling, worldRotation, worldPosition);
-
-    mesh.position = worldPosition;
-    mesh.scaling = worldScaling;
-    mesh.rotationQuaternion = worldRotation;
-
-    // Apply root rotation in world space
-    mesh.rotationQuaternion = rootRotation.multiply(mesh.rotationQuaternion);
-
-    // Bake the world-space transform into vertices
-    mesh.bakeCurrentTransformIntoVertices();
-
-    // Reset to identity in world space
-    mesh.position.set(0, 0, 0);
-    mesh.rotation.set(0, 0, 0);
-    mesh.scaling.set(1, 1, 1);
-    mesh.rotationQuaternion = Quaternion.Identity();
-
-    // Reattach to parent and restore original LOCAL transform
-    mesh.parent = originalParent;
-    mesh.position = originalPosition;
-    mesh.rotation = originalRotation;
-    mesh.scaling = originalScaling;
-    mesh.rotationQuaternion = originalRotationQuat;
-  }
-
-  // Reset root transform to identity (rotation is now baked into all children)
-  root.position.set(0, 0, 0);
-  root.scaling.set(1, 1, 1);
-  root.rotation = Vector3.Zero();
-  root.rotationQuaternion = Quaternion.Identity();
-}
-
-/**
- * Compute dominant eigenvector via power iteration
- */
-function computeDominantEigenvector(
-  xx: number, xy: number, xz: number,
-  yy: number, yz: number, zz: number
-): Vector3 {
-  let v = new Vector3(0.0, 1.0, 0.1).normalize(); // Initial seed
-
-  for (let iter = 0; iter < 20; iter++) {
-    const nx = xx * v.x + xy * v.y + xz * v.z;
-    const ny = xy * v.x + yy * v.y + yz * v.z;
-    const nz = xz * v.x + yz * v.y + zz * v.z;
-
-    const nv = new Vector3(nx, ny, nz);
-    const len = nv.length();
-
-    // Guard: Degenerate case
-    if (len < 1e-9) {
-      break;
-    }
-
-    const nvNorm = nv.scale(1 / len);
-
-    // Guard: Converged
-    if (Vector3.DistanceSquared(nvNorm, v) < 1e-8) {
-      break;
-    }
-
-    v = nvNorm;
-  }
-
-  return v.normalize();
-}
-
-/**
- * Compute centroid of point cloud
- */
-function computeCentroid(points: Vector3[]): Vector3 {
-  let sx = 0, sy = 0, sz = 0;
-
-  for (const p of points) {
-    sx += p.x;
-    sy += p.y;
-    sz += p.z;
-  }
-
-  const inv = 1.0 / points.length;
-  return new Vector3(sx * inv, sy * inv, sz * inv);
-}
-
-/**
- * Compute AABB extents
- */
-function computeAABBExtents(points: Vector3[]): { x: number; y: number; z: number } {
-  let minX = Infinity, minY = Infinity, minZ = Infinity;
-  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-
-  for (const p of points) {
-    if (p.x < minX) minX = p.x;
-    if (p.y < minY) minY = p.y;
-    if (p.z < minZ) minZ = p.z;
-    if (p.x > maxX) maxX = p.x;
-    if (p.y > maxY) maxY = p.y;
-    if (p.z > maxZ) maxZ = p.z;
-  }
-
+export function diagnoseUpAxis(
+  container: TransformNode,
+  fileKey?: string
+): {
+  extents: { x: number; y: number; z: number };
+  pca: { detected: UpAxis; confidence: number };
+  aabb: { detected: UpAxis; confidence: number };
+  normals: { detected: UpAxis; confidence: number };
+  recommendation: { detected: UpAxis; confidence: number };
+  logs: string[];
+} {
+  const logs: string[] = [];
+  
+  const bbox = computeExtents(container);
+  const pca = detectViaPCA(container, logs);
+  const aabb = detectViaAABB(bbox, logs);
+  const nv = normalsVote(container, logs);
+  const combined = combineDecisions(pca, aabb, bbox, container, logs);
+  
+  console.group(`[UpAxis Diagnostic]${fileKey ? ` ${fileKey}` : ''}`);
+  console.log('Extents:', `X=${bbox.x.toFixed(3)}, Y=${bbox.y.toFixed(3)}, Z=${bbox.z.toFixed(3)}`);
+  console.log('PCA:', `${pca.detected}-up (${(pca.confidence*100).toFixed(0)}% confidence)`);
+  console.log('AABB:', `${aabb.detected}-up (${(aabb.confidence*100).toFixed(0)}% confidence)`);
+  console.log('Normals:', `${nv.detected}-up (${(nv.confidence*100).toFixed(0)}% confidence)`);
+  console.log('Recommendation:', `${combined.detected}-up (${(combined.confidence*100).toFixed(0)}% confidence)`);
+  logs.forEach(log => console.log(log));
+  console.groupEnd();
+  
   return {
-    x: maxX - minX,
-    y: maxY - minY,
-    z: maxZ - minZ
+    extents: { x: bbox.x, y: bbox.y, z: bbox.z },
+    pca: { detected: pca.detected as UpAxis, confidence: pca.confidence },
+    aabb: { detected: aabb.detected as UpAxis, confidence: aabb.confidence },
+    normals: { detected: nv.detected as UpAxis, confidence: nv.confidence },
+    recommendation: { detected: combined.detected as UpAxis, confidence: combined.confidence },
+    logs
   };
 }
 
 /**
- * Create detection result object
+ * Test if a file should be detected as Y-up or Z-up by manually inspecting
+ * You can call this from console: window.testUpAxis(yourTransformNode, "test-file")
  */
-function createResult(
-  axis: UpAxis,
-  confidence: number,
-  method: UpAxisDetectionResult['method'],
-  applied: boolean
-): UpAxisDetectionResult {
-  return {
-    detectedAxis: axis,
-    confidence: Math.max(0, Math.min(1, confidence)),
-    method,
-    applied
-  };
+if (typeof window !== 'undefined') {
+  (window as any).diagnoseUpAxis = diagnoseUpAxis;
 }
