@@ -324,12 +324,12 @@ function applyFix(
     console.log(`[UpAxis] Applied Z→Y fix (${result.method}, confidence: ${result.confidence.toFixed(2)})`);
   }
 
-  // Optionally bake transforms
-  if (opts.bake) {
-    bakeHierarchyTransforms(root);
-    if (opts.verbose) {
-      console.log('[UpAxis] Baked transforms into vertices');
-    }
+  // ALWAYS bake transforms when applying up-axis fix to ensure correct positioning
+  // This is critical - without baking, meshes appear scattered due to transform inheritance
+  bakeHierarchyTransforms(root);
+
+  if (opts.verbose) {
+    console.log('[UpAxis] Baked rotation into vertices');
   }
 
   return { ...result, applied: true };
