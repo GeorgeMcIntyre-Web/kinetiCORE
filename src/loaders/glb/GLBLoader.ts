@@ -9,6 +9,9 @@ import '@babylonjs/loaders';
 // Import MJCF types for interface compatibility
 import { TransformNode, Scene, AbstractMesh } from '@babylonjs/core';
 
+// Import up-axis detection utilities
+import { autoFixUpAxis, UpAxisDetectionResult } from './upAxis';
+
 /**
  * GLB Loading Result Interface
  * Compatible with MJCF loader interface to ensure seamless integration
@@ -23,6 +26,7 @@ export interface GLBLoadResult {
   errors: string[];
   warnings: string[];
   bounds: BABYLON.BoundingBox | null;
+  upAxisDetection?: UpAxisDetectionResult;
   metadata?: {
     fileSize: number;
     loadTime: number;
@@ -41,6 +45,9 @@ export interface GLBLoadOptions {
   enableBoundsCalculation?: boolean;
   enableMetadataExtraction?: boolean;
   fallbackToBasicLoader?: boolean;
+  enableUpAxisDetection?: boolean;
+  upAxisBake?: boolean;
+  upAxisVerbose?: boolean;
 }
 
 /**
@@ -74,6 +81,9 @@ export class GLBLoader {
       enableBoundsCalculation: true,
       enableMetadataExtraction: true,
       fallbackToBasicLoader: true,
+      enableUpAxisDetection: true,
+      upAxisBake: false,  // Changed to false - don't bake by default to preserve positions
+      upAxisVerbose: true,  // Enable verbose logging
       ...options
     };
 
@@ -132,6 +142,45 @@ export class GLBLoader {
       // Guard rail 5: Validate loaded data
       if (result.meshes.length === 0) {
         result.warnings.push('No meshes found in GLB file');
+      }
+
+      // Guard rail 6: Up-axis detection and correction
+      if (defaultOptions.enableUpAxisDetection && result.rootNodes.length > 0) {
+        defaultOptions.onProgress?.(80, 'Detecting and fixing up-axis orientation...');
+
+        const primaryRoot = result.rootNodes[0];
+
+        console.log(`[GLB Loader] Starting up-axis detection for: ${file.name}`);
+
+        const upAxisResult = autoFixUpAxis(primaryRoot, {
+          bake: defaultOptions.upAxisBake ?? false,  // Changed default to false
+          verbose: true,  // Force verbose for debugging
+          autoFix: true,
+          confidenceThreshold: 0.6
+        });
+
+        result.upAxisDetection = upAxisResult;
+
+        console.log(`[GLB Loader] Up-axis result for ${file.name}:`, {
+          detected: upAxisResult.detectedAxis,
+          confidence: upAxisResult.confidence,
+          method: upAxisResult.method,
+          applied: upAxisResult.applied
+        });
+
+        if (upAxisResult.applied) {
+          result.warnings.push(
+            `Up-axis corrected: ${upAxisResult.detectedAxis}-up → Y-up (${upAxisResult.method}, confidence: ${(upAxisResult.confidence * 100).toFixed(0)}%)`
+          );
+        } else if (upAxisResult.detectedAxis === 'Y') {
+          result.warnings.push(
+            `Up-axis detected as Y-up (no correction needed, ${upAxisResult.method}, confidence: ${(upAxisResult.confidence * 100).toFixed(0)}%)`
+          );
+        } else if (upAxisResult.detectedAxis === 'Unknown') {
+          result.warnings.push(
+            `Up-axis could not be determined with confidence (${upAxisResult.method}, confidence: ${(upAxisResult.confidence * 100).toFixed(0)}%)`
+          );
+        }
       }
 
       // Extract metadata
@@ -393,8 +442,27 @@ export class GLBLoader {
     try {
       if (meshes.length === 0) return null;
 
-      const boundingInfo = BABYLON.BoundingInfo.FromMeshes(meshes);
-      return boundingInfo.boundingBox;
+      // Calculate combined bounding box manually
+      let minX = Infinity, minY = Infinity, minZ = Infinity;
+      let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+
+      for (const mesh of meshes) {
+        mesh.computeWorldMatrix(true);
+        const boundingInfo = mesh.getBoundingInfo();
+        const min = boundingInfo.boundingBox.minimumWorld;
+        const max = boundingInfo.boundingBox.maximumWorld;
+
+        minX = Math.min(minX, min.x);
+        minY = Math.min(minY, min.y);
+        minZ = Math.min(minZ, min.z);
+        maxX = Math.max(maxX, max.x);
+        maxY = Math.max(maxY, max.y);
+        maxZ = Math.max(maxZ, max.z);
+      }
+
+      const minimum = new BABYLON.Vector3(minX, minY, minZ);
+      const maximum = new BABYLON.Vector3(maxX, maxY, maxZ);
+      return new BABYLON.BoundingBox(minimum, maximum);
     } catch (error) {
       console.warn('[GLB Loader] Could not calculate bounds:', error);
       return null;
