@@ -353,11 +353,21 @@ function rotateZupToYup(root: TransformNode): void {
 }
 
 /**
- * Bake all transforms into vertices and reset transforms to identity
+ * Bake root rotation into all child meshes without losing relative positions
  * Guard rail: Only bakes meshes with vertex data
+ *
+ * Strategy: Apply root rotation to each mesh's vertices in world space,
+ * then restore the mesh's local transform. This preserves relative positioning.
  */
 function bakeHierarchyTransforms(root: TransformNode): void {
   const meshes = root.getChildMeshes() as Mesh[];
+
+  // Guard: No rotation to bake
+  if (root.rotationQuaternion === null || root.rotationQuaternion.equals(Quaternion.Identity())) {
+    return;
+  }
+
+  const rootRotation = root.rotationQuaternion.clone();
 
   for (const mesh of meshes) {
     // Guard: Only bake if mesh has vertex data
@@ -365,17 +375,29 @@ function bakeHierarchyTransforms(root: TransformNode): void {
       continue;
     }
 
-    mesh.bakeCurrentTransformIntoVertices();
-    mesh.position.set(0, 0, 0);
-    mesh.rotation.set(0, 0, 0);
-    mesh.scaling.set(1, 1, 1);
+    // Store original local transform
+    const originalPosition = mesh.position.clone();
+    const originalRotation = mesh.rotation.clone();
+    const originalScaling = mesh.scaling.clone();
+    const originalRotationQuat = mesh.rotationQuaternion?.clone() || null;
 
-    if (mesh.rotationQuaternion !== null) {
+    // Apply root rotation to this mesh
+    if (mesh.rotationQuaternion === null) {
       mesh.rotationQuaternion = Quaternion.Identity();
     }
+    mesh.rotationQuaternion = rootRotation.multiply(mesh.rotationQuaternion);
+
+    // Bake the combined rotation into vertices
+    mesh.bakeCurrentTransformIntoVertices();
+
+    // Restore original local transform (preserves relative position)
+    mesh.position = originalPosition;
+    mesh.rotation = originalRotation;
+    mesh.scaling = originalScaling;
+    mesh.rotationQuaternion = originalRotationQuat;
   }
 
-  // Reset root transform
+  // Reset root transform to identity (rotation is now baked into all children)
   root.position.set(0, 0, 0);
   root.scaling.set(1, 1, 1);
   root.rotation = Vector3.Zero();
