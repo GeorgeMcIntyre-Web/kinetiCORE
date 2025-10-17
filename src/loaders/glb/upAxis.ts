@@ -356,8 +356,8 @@ function rotateZupToYup(root: TransformNode): void {
  * Bake root rotation into all child meshes without losing relative positions
  * Guard rail: Only bakes meshes with vertex data
  *
- * Strategy: Apply root rotation to each mesh's vertices in world space,
- * then restore the mesh's local transform. This preserves relative positioning.
+ * Strategy: Temporarily detach meshes from hierarchy, bake root rotation,
+ * then reattach. This prevents double-rotation from parent transforms.
  */
 function bakeHierarchyTransforms(root: TransformNode): void {
   const meshes = root.getChildMeshes() as Mesh[];
@@ -375,26 +375,30 @@ function bakeHierarchyTransforms(root: TransformNode): void {
       continue;
     }
 
-    // Store original local transform
-    const originalPosition = mesh.position.clone();
-    const originalRotation = mesh.rotation.clone();
-    const originalScaling = mesh.scaling.clone();
-    const originalRotationQuat = mesh.rotationQuaternion?.clone() || null;
+    // Store original parent and world position
+    const originalParent = mesh.parent;
+    const worldMatrix = mesh.getWorldMatrix().clone();
 
-    // Apply root rotation to this mesh
-    if (mesh.rotationQuaternion === null) {
-      mesh.rotationQuaternion = Quaternion.Identity();
-    }
-    mesh.rotationQuaternion = rootRotation.multiply(mesh.rotationQuaternion);
+    // Detach from parent (mesh keeps world position/rotation)
+    mesh.parent = null;
 
-    // Bake the combined rotation into vertices
+    // Compute world transform from the stored matrix
+    worldMatrix.decompose(mesh.scaling, mesh.rotationQuaternion!, mesh.position);
+
+    // Now apply the root rotation in world space
+    mesh.rotationQuaternion = rootRotation.multiply(mesh.rotationQuaternion!);
+
+    // Bake this final transform into vertices
     mesh.bakeCurrentTransformIntoVertices();
 
-    // Restore original local transform (preserves relative position)
-    mesh.position = originalPosition;
-    mesh.rotation = originalRotation;
-    mesh.scaling = originalScaling;
-    mesh.rotationQuaternion = originalRotationQuat;
+    // Reset mesh transform to identity
+    mesh.position.set(0, 0, 0);
+    mesh.rotation.set(0, 0, 0);
+    mesh.scaling.set(1, 1, 1);
+    mesh.rotationQuaternion = Quaternion.Identity();
+
+    // Reattach to original parent
+    mesh.parent = originalParent;
   }
 
   // Reset root transform to identity (rotation is now baked into all children)
