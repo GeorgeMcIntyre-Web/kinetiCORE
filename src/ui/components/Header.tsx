@@ -1,0 +1,235 @@
+import React, { useState } from 'react';
+import { Menu, X, Settings, HelpCircle, Zap, ZapOff, ZapIcon } from 'lucide-react';
+import { zIndex, colors } from '../styles/design-tokens';
+
+export interface HeaderProps {
+  currentMode: 'essential' | 'professional' | 'expert';
+  onModeChange: (mode: 'essential' | 'professional' | 'expert') => void;
+  onSettingsClick: () => void;
+  onHelpClick: () => void;
+  className?: string;
+}
+
+const modeConfig = {
+  essential: {
+    label: 'Essential',
+    icon: ZapOff,
+    description: 'Simplified interface for basic operations',
+    color: colors.primary[500],
+  },
+  professional: {
+    label: 'Professional',
+    icon: Zap,
+    description: 'Full feature set for advanced users',
+    color: colors.success[500],
+  },
+  expert: {
+    label: 'Expert',
+    icon: ZapIcon,
+    description: 'Complete toolkit for power users',
+    color: colors.warning[500],
+  },
+};
+
+export const Header: React.FC<HeaderProps> = ({
+  currentMode,
+  onModeChange,
+  onSettingsClick,
+  onHelpClick,
+  className = '',
+}) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
+
+  const currentModeConfig = modeConfig[currentMode];
+  const CurrentModeIcon = currentModeConfig.icon;
+
+  return (
+    <header
+      className={`
+        fixed top-0 left-0 right-0 bg-white border-b border-gray-200
+        flex items-center justify-between px-4 py-3
+        ${className}
+      `}
+      style={{ zIndex: zIndex.toolbar }}
+    >
+      {/* Logo and App Name */}
+      <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-sm">K</span>
+          </div>
+          <div className="hidden sm:block">
+            <h1 className="text-xl font-bold text-gray-900">kinetiCORE</h1>
+            <p className="text-xs text-gray-500">Industrial Simulation</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Mode Switcher - Desktop */}
+      <div className="hidden md:flex items-center space-x-2">
+        <div className="relative">
+          <button
+            onClick={() => setIsModeMenuOpen(!isModeMenuOpen)}
+            className={`
+              flex items-center space-x-2 px-3 py-2 rounded-lg border
+              transition-colors duration-200
+              ${isModeMenuOpen 
+                ? 'bg-gray-50 border-gray-300' 
+                : 'bg-white border-gray-200 hover:bg-gray-50'
+              }
+            `}
+          >
+            <CurrentModeIcon 
+              className="w-4 h-4" 
+              style={{ color: currentModeConfig.color }}
+            />
+            <span className="text-sm font-medium text-gray-700">
+              {currentModeConfig.label}
+            </span>
+            <div className={`w-2 h-2 rounded-full`} style={{ backgroundColor: currentModeConfig.color }} />
+          </button>
+
+          {/* Mode Dropdown */}
+          {isModeMenuOpen && (
+            <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+              <div className="p-2">
+                {Object.entries(modeConfig).map(([mode, config]) => {
+                  const Icon = config.icon;
+                  const isActive = mode === currentMode;
+                  
+                  return (
+                    <button
+                      key={mode}
+                      onClick={() => {
+                        onModeChange(mode as 'essential' | 'professional' | 'expert');
+                        setIsModeMenuOpen(false);
+                      }}
+                      className={`
+                        w-full flex items-start space-x-3 p-3 rounded-lg
+                        transition-colors duration-200 text-left
+                        ${isActive 
+                          ? 'bg-blue-50 border border-blue-200' 
+                          : 'hover:bg-gray-50'
+                        }
+                      `}
+                    >
+                      <Icon 
+                        className="w-5 h-5 mt-0.5 flex-shrink-0" 
+                        style={{ color: config.color }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-2">
+                          <span className={`text-sm font-medium ${isActive ? 'text-blue-900' : 'text-gray-900'}`}>
+                            {config.label}
+                          </span>
+                          {isActive && (
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: config.color }} />
+                          )}
+                        </div>
+                        <p className={`text-xs mt-1 ${isActive ? 'text-blue-700' : 'text-gray-500'}`}>
+                          {config.description}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex items-center space-x-2">
+        {/* Settings */}
+        <button
+          onClick={onSettingsClick}
+          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+          title="Settings"
+        >
+          <Settings className="w-5 h-5" />
+        </button>
+
+        {/* Help */}
+        <button
+          onClick={onHelpClick}
+          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+          title="Help & Documentation"
+        >
+          <HelpCircle className="w-5 h-5" />
+        </button>
+
+        {/* Mobile Menu Button */}
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="md:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+        >
+          {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+      </div>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg md:hidden">
+          <div className="p-4 space-y-4">
+            {/* Mobile Mode Switcher */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-gray-700">Interface Mode</h3>
+              {Object.entries(modeConfig).map(([mode, config]) => {
+                const Icon = config.icon;
+                const isActive = mode === currentMode;
+                
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => {
+                      onModeChange(mode as 'essential' | 'professional' | 'expert');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`
+                      w-full flex items-center space-x-3 p-3 rounded-lg
+                      transition-colors duration-200 text-left
+                      ${isActive 
+                        ? 'bg-blue-50 border border-blue-200' 
+                        : 'hover:bg-gray-50'
+                      }
+                    `}
+                  >
+                    <Icon 
+                      className="w-5 h-5 flex-shrink-0" 
+                      style={{ color: config.color }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <span className={`text-sm font-medium ${isActive ? 'text-blue-900' : 'text-gray-900'}`}>
+                          {config.label}
+                        </span>
+                        {isActive && (
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: config.color }} />
+                        )}
+                      </div>
+                      <p className={`text-xs mt-1 ${isActive ? 'text-blue-700' : 'text-gray-500'}`}>
+                        {config.description}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Click outside to close mode menu */}
+      {isModeMenuOpen && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setIsModeMenuOpen(false)}
+        />
+      )}
+    </header>
+  );
+};
+
+export default Header;

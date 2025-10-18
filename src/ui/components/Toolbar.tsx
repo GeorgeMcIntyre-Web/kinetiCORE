@@ -10,6 +10,7 @@ import { CreateProjectionViewCommand } from '../../history/commands/CreateProjec
 import { toast } from './ToastNotifications';
 import { IconButton, IconPaths } from '../icons/IconRegistry';
 import { ButtonTemplate } from './buttons/ButtonTemplate';
+import { zIndex } from '../styles/design-tokens';
 import './Toolbar.css';
 
 interface ToolbarProps {
@@ -304,11 +305,19 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   };
 
   return (
-    <div className="toolbar">
+    <div 
+      className="toolbar bg-white border-r border-gray-200 overflow-y-auto"
+      style={{ 
+        zIndex: zIndex.toolbar,
+        minWidth: '200px',
+        maxWidth: '300px',
+        width: '250px'
+      }}
+    >
       {/* Transform Tools - Segmented Button Group */}
-      <div className="toolbar-section">
-        <h3>Transform</h3>
-        <div className="button-group-segmented">
+      <div className="toolbar-section p-4 border-b border-gray-100">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Transform</h3>
+        <div className="button-group-segmented flex rounded-md overflow-hidden border border-gray-200">
           {modes.map(({ mode, label, key, iconPath }) => (
             <IconButton
               key={mode}
@@ -323,13 +332,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="toolbar-divider" />
-
       {/* Object Creation */}
-      <div className="toolbar-section">
-        <h3>Objects</h3>
-        <div className="button-group">
+      <div className="toolbar-section p-4 border-b border-gray-100">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Objects</h3>
+        <div className="button-group grid grid-cols-3 gap-2">
           <IconButton
             iconPath={IconPaths.BOX}
             label="Box"
@@ -351,13 +357,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="toolbar-divider" />
-
       {/* Import */}
-      <div className="toolbar-section">
-        <h3>Import</h3>
-        <div className="button-group">
+      <div className="toolbar-section p-4 border-b border-gray-100">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Import</h3>
+        <div className="button-group space-y-2">
           <IconButton
             iconPath={IconPaths.IMPORT}
             label="Load File"
@@ -391,12 +394,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="toolbar-divider" />
-
       {/* Organize */}
-      <div className="toolbar-section">
-        <h3>Organize</h3>
+      <div className="toolbar-section p-4 border-b border-gray-100">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Organize</h3>
         <div className="button-group">
           <IconButton
             iconPath="tool.package"
@@ -407,13 +407,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="toolbar-divider" />
-
       {/* World */}
-      <div className="toolbar-section">
-        <h3>World</h3>
-        <div className="button-group">
+      <div className="toolbar-section p-4 border-b border-gray-100">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">World</h3>
+        <div className="button-group space-y-2">
           <IconButton
             iconPath={IconPaths.SAVE}
             label="Save"
@@ -450,12 +447,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="toolbar-divider" />
-
       {/* Projection View */}
-      <div className="toolbar-section">
-        <h3>Views</h3>
+      <div className="toolbar-section p-4 border-b border-gray-100">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Views</h3>
         <div className="button-group">
           <IconButton
             iconPath="view.projection"
@@ -467,12 +461,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="toolbar-divider" />
-
       {/* Kinematics */}
-      <div className="toolbar-section">
-        <h3>Kinematics</h3>
+      <div className="toolbar-section p-4 border-b border-gray-100">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Kinematics</h3>
         <div className="button-group">
           <IconButton
             iconPath={IconPaths.KINEMATICS_SETUP}
@@ -484,9 +475,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       </div>
 
       {/* Device Management */}
-      <div className="toolbar-section">
-        <h3>Devices</h3>
-        <div className="button-group">
+      <div className="toolbar-section p-4 border-b border-gray-100">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Devices</h3>
+        <div className="button-group space-y-2">
           <ButtonTemplate
             id="toolbar_device_library"
             label="Library"
@@ -517,9 +508,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       </div>
 
       {/* Physics & Collision */}
-      <div className="toolbar-section">
-        <h3>Physics</h3>
-        <div className="button-group">
+      <div className="toolbar-section p-4">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Physics</h3>
+        <div className="button-group space-y-2">
           <ButtonTemplate
             id="toolbar_physics_settings"
             label="Settings"

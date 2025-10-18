@@ -105,12 +105,21 @@ const selected = useEditorStore.getState().selectedMeshes;
 
 ## Current Sprint
 
-**Week 1: Foundation (Days 1-5)**
-- George: Physics abstraction layer (PRIORITY #1)
-- Cole: Babylon scene setup & camera
-- Edwin: React UI shell & Zustand store
+**Week 1: Foundation (Days 1-5)** ✅ COMPLETE
+- ✅ George (Agent 1): Physics abstraction layer, TypeScript error fixes
+- ✅ Cole: Babylon scene setup & camera
+- ✅ Edwin: React UI shell & Zustand store
 
-**Focus:** Get all three modules working independently by Friday integration session
+**Current Focus: Frontend Testing & Deployment**
+- Agent 1 (Claude Code): TypeScript compilation fixes, integration work
+- Agent 3 (Cursor): Frontend testing readiness, Cloudflare deployment
+  - ✅ FloatingPanel reusable component
+  - ✅ Header component with mode switching
+  - ✅ Design tokens system
+  - ✅ EssentialModeLayout Tailwind refactor
+  - ✅ USD server error handling
+  - ✅ Testing documentation
+  - 🔄 Cloudflare Pages deployment workflow
 
 ## Development Workflow
 
@@ -133,6 +142,40 @@ npm run type-check
 npm run build
 ```
 
+### Deployment Workflow (Agent 3 - Cursor):
+
+**Local Testing:**
+```bash
+# 1. Fix TypeScript build errors
+npm run type-check
+
+# 2. Start local development server
+npm run dev
+# Open http://localhost:5173 to test locally
+
+# 3. Test application works as expected
+```
+
+**Cloudflare Pages Deployment:**
+```bash
+# 1. Fix remaining TypeScript build issues
+npm run build
+
+# 2. Create production build
+npm run build
+
+# 3. Deploy to Cloudflare Pages
+# Agent 3 handles the deployment flow using Cloudflare dashboard or Wrangler CLI
+```
+
+**Deployment Checklist:**
+- ✅ TypeScript errors preventing build resolved
+- ✅ Local development server running successfully
+- ✅ Test application locally
+- ✅ Fix remaining build issues
+- ✅ Create production build
+- ✅ Deploy to Cloudflare Pages
+
 ### Communication:
 - Announce in Slack before editing shared files
 - PR review turnaround: 2 hours max
@@ -141,19 +184,22 @@ npm run build
 
 ## AI Tool Usage
 
-### Claude Code (George):
+### Claude Code (Agent 1 - George):
 - System-wide refactoring
 - Multi-file architecture changes
 - Integration testing
-- CI/CD setup
+- TypeScript error fixes
 - Documentation generation
+- Backend architecture
 
-### Cursor (Cole & Edwin):
+### Cursor (Agent 3 - Cole & Edwin):
 - Fast feature iteration
 - Component development
 - Inline debugging
 - Visual UI work
 - Real-time suggestions
+- Frontend testing
+- **Cloudflare deployment workflow**
 
 ## Resources
 

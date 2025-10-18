@@ -65,9 +65,8 @@ export const UpAxisTest: React.FC = () => {
   };
 
   // Logging function
-  const log = (message: string, type?: 'success' | 'error' | 'warning' | 'info' | '') => {
+  const log = (message: string, _type: 'success' | 'error' | 'warning' | 'info' | '' = '') => {
     const timestamp = new Date().toLocaleTimeString();
-    void type; // Future use for styling
     setConsoleOutput(prev => [...prev, `[${timestamp}] ${message}`]);
     console.log(message);
   };
@@ -137,7 +136,7 @@ export const UpAxisTest: React.FC = () => {
           method: 'ERROR',
           applied: false,
           isCorrect: false,
-          position: 'N/A',
+          position: 'Unknown',
           error: result.errors.join(', ')
         });
         return;
@@ -211,7 +210,7 @@ export const UpAxisTest: React.FC = () => {
         method: 'ERROR',
         applied: false,
         isCorrect: false,
-        position: 'N/A',
+        position: 'Unknown',
         error: error instanceof Error ? error.message : String(error)
       });
     }

@@ -76,7 +76,7 @@ export const UpAxisTestPage: React.FC = () => {
   }, []);
 
   // Logging function
-  const log = (message: string) => {
+  const log = (message: string, _type: 'success' | 'error' | 'warning' | 'info' | '' = '') => {
     const timestamp = new Date().toLocaleTimeString();
     setConsoleOutput(prev => [...prev, `[${timestamp}] ${message}`]);
     console.log(message);
@@ -85,7 +85,7 @@ export const UpAxisTestPage: React.FC = () => {
   // Test files
   const testFiles = async (files: FileList) => {
     if (!sceneRef.current) {
-      log('Scene not initialized');
+      log('Scene not initialized', 'error');
       return;
     }
 
@@ -93,7 +93,7 @@ export const UpAxisTestPage: React.FC = () => {
     setTestResults([]);
     setConsoleOutput(['Starting test...']);
 
-    log(`\n=== Testing ${files.length} files ===`);
+    log(`\n=== Testing ${files.length} files ===`, 'warning');
 
     const results: TestResult[] = [];
 
@@ -111,7 +111,7 @@ export const UpAxisTestPage: React.FC = () => {
     const incorrect = successful.filter(r => !r.isCorrect);
     const errors = results.filter(r => r.error);
 
-    log(`\n=== SUMMARY ===`);
+    log(`\n=== SUMMARY ===`, 'warning');
     log(`Total files: ${results.length}`);
     log(`Successful loads: ${successful.length}`);
     log(`Correct detections: ${correct.length}`);
@@ -122,14 +122,14 @@ export const UpAxisTestPage: React.FC = () => {
 
   // Test a single file
   const testSingleFile = async (file: File, index: number, results: TestResult[]) => {
-    log(`\n--- Testing ${file.name} ---`);
+    log(`\n--- Testing ${file.name} ---`, 'warning');
 
     try {
       // Determine expected up-axis from filename
       const expectedUpAxis = file.name.toLowerCase().includes('_yup') ? 'Y' : 
                             file.name.toLowerCase().includes('_zup') ? 'Z' : 'UNKNOWN';
       
-      log(`Expected: ${expectedUpAxis}-up`);
+      log(`Expected: ${expectedUpAxis}-up`, expectedUpAxis === 'UNKNOWN' ? 'warning' : 'info');
 
       // Load the file using our GLB loader
       const result = await loadGLBFromFile(file, sceneRef.current!, {
@@ -139,7 +139,7 @@ export const UpAxisTestPage: React.FC = () => {
       });
 
       if (!result.success) {
-        log(`❌ Failed to load: ${result.errors.join(', ')}`);
+        log(`❌ Failed to load: ${result.errors.join(', ')}`, 'error');
         results.push({
           filename: file.name,
           expectedUpAxis,
@@ -148,30 +148,30 @@ export const UpAxisTestPage: React.FC = () => {
           method: 'ERROR',
           applied: false,
           isCorrect: false,
-          position: 'unknown',
+          position: 'Unknown',
           error: result.errors.join(', ')
         });
         return;
       }
 
-      log(`✅ Loaded successfully`);
+      log(`✅ Loaded successfully`, 'success');
 
       // Get detection results
       const detection = result.upAxisDetection;
       if (detection) {
-        log(`Detected: ${detection.detected}-up (${Math.round(detection.confidence * 100)}%)`);
-        log(`Method: ${detection.method}`);
-        log(`Applied: ${detection.applied ? 'Yes' : 'No'}`);
+        log(`Detected: ${detection.detected}-up (${Math.round(detection.confidence * 100)}%)`, 'info');
+        log(`Method: ${detection.method}`, 'info');
+        log(`Applied: ${detection.applied ? 'Yes' : 'No'}`, 'info');
         
         // Check if correct
         const isCorrect = expectedUpAxis === 'UNKNOWN' || detection.detected === expectedUpAxis;
         if (isCorrect) {
-          log(`✅ CORRECT`);
+          log(`✅ CORRECT`, 'success');
         } else {
-          log(`❌ INCORRECT - Expected ${expectedUpAxis}-up, got ${detection.detected}-up`);
+          log(`❌ INCORRECT - Expected ${expectedUpAxis}-up, got ${detection.detected}-up`, 'error');
         }
       } else {
-        log(`❌ No detection result`);
+        log(`❌ No detection result`, 'error');
       }
 
       // Position the model
@@ -179,20 +179,20 @@ export const UpAxisTestPage: React.FC = () => {
       if (rootNode) {
         rootNode.position.x = (index % 3) * 5 - 5;
         rootNode.position.z = Math.floor(index / 3) * 5;
-        log(`Positioned at: ${rootNode.position.toString()}`);
+        log(`Positioned at: ${rootNode.position.toString()}`, 'info');
       }
 
       // Run diagnosis
       if (rootNode) {
         try {
           const diagnosis = diagnoseUpAxis(rootNode);
-          log(`Diagnosis:`);
-          log(`  PCA: ${diagnosis.pca.detected}-up (${Math.round(diagnosis.pca.confidence * 100)}%)`);
-          log(`  AABB: ${diagnosis.aabb.detected}-up (${Math.round(diagnosis.aabb.confidence * 100)}%)`);
-          log(`  Normals: ${diagnosis.normals.detected}-up (${Math.round(diagnosis.normals.confidence * 100)}%)`);
-          log(`  Final: ${diagnosis.recommendation.detected}-up (${Math.round(diagnosis.recommendation.confidence * 100)}%)`);
+          log(`Diagnosis:`, 'info');
+          log(`  PCA: ${diagnosis.pca.detected}-up (${Math.round(diagnosis.pca.confidence * 100)}%)`, 'info');
+          log(`  AABB: ${diagnosis.aabb.detected}-up (${Math.round(diagnosis.aabb.confidence * 100)}%)`, 'info');
+          log(`  Normals: ${diagnosis.normals.detected}-up (${Math.round(diagnosis.normals.confidence * 100)}%)`, 'info');
+          log(`  Final: ${diagnosis.recommendation.detected}-up (${Math.round(diagnosis.recommendation.confidence * 100)}%)`, 'info');
         } catch (error) {
-          log(`  Diagnosis error: ${error instanceof Error ? error.message : String(error)}`);
+          log(`  Diagnosis error: ${error instanceof Error ? error.message : String(error)}`, 'error');
         }
       }
 
@@ -213,7 +213,7 @@ export const UpAxisTestPage: React.FC = () => {
       });
 
     } catch (error) {
-      log(`❌ Exception: ${error instanceof Error ? error.message : String(error)}`);
+      log(`❌ Exception: ${error instanceof Error ? error.message : String(error)}`, 'error');
       results.push({
         filename: file.name,
         expectedUpAxis: 'UNKNOWN',
@@ -222,7 +222,7 @@ export const UpAxisTestPage: React.FC = () => {
         method: 'ERROR',
         applied: false,
         isCorrect: false,
-        position: 'N/A',
+        position: 'Unknown',
         error: error instanceof Error ? error.message : String(error)
       });
     }
