@@ -34,22 +34,21 @@
   align-items: center;
 }
 
-/* Floating Toolbar - centered in viewport - 30% bigger icons */
+/* Floating Toolbar - COMPACT - left-aligned */
 .floating-toolbar {
   position: fixed;
   top: 76px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 260px; /* Left-align after sidebar (240px + 20px margin) */
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  background: rgba(26, 32, 44, 0.95);
-  border-radius: 8px;
+  gap: 6px;
+  padding: 6px 8px;
+  background: rgba(26, 32, 44, 0.98);
+  border-radius: 6px;
   border: 1px solid #4a5568;
   z-index: 1000;
   backdrop-filter: blur(8px);
-  height: 44px;
+  height: 38px; /* More compact */
   pointer-events: auto;
 }
 
@@ -155,9 +154,12 @@
   min-height: 0;
 }
 
-/* Left Sidebar */
+/* Left Sidebar - FORCE COMPACT WIDTH */
 .essential-sidebar {
-  width: 360px;
+  width: 240px !important; /* Reduced from 360px - FORCED */
+  min-width: 240px !important;
+  max-width: 240px !important;
+  flex: 0 0 240px !important; /* Prevent flex grow/shrink, fixed 240px basis */
   background: #2d3748;
   border-right: 1px solid #4a5568;
   display: flex;
@@ -440,16 +442,7 @@
   opacity: 0.3;
 }
 
-/* Left Sidebar - Scene Tree & Kinematics */
-.essential-left-sidebar {
-  width: 320px;
-  background: #2d3748;
-  border-right: 1px solid #4a5568;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-}
-
+/* Left Sidebar - Scene Tree & Kinematics - COMPACT */
 .sidebar-section {
   border-bottom: 1px solid #4a5568;
   display: flex;
@@ -545,16 +538,29 @@
 
 /* Responsive */
 @media (max-width: 1400px) {
-  .essential-left-sidebar {
-    width: 280px;
+  .essential-sidebar {
+    width: 220px;
+  }
+  .floating-toolbar {
+    left: 240px;
   }
 }
 
 @media (max-width: 1024px) {
   .essential-sidebar {
-    width: 300px;
+    width: 200px;
   }
-  .essential-left-sidebar {
-    display: none; /* Hide on smaller screens */
+  .floating-toolbar {
+    left: 220px;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 768px) {
+  .essential-sidebar {
+    display: none;
+  }
+  .floating-toolbar {
+    left: 20px;
   }
 }

@@ -17,7 +17,9 @@ import {
   Cog,
   Settings,
   Trash2,
+  Plus,
 } from 'lucide-react';
+import { ToolbarDropdown } from '../components/ToolbarDropdown';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { useAssetLibraryStore } from '../store/assetLibraryStore';
@@ -89,7 +91,7 @@ export const EssentialModeLayout: React.FC = () => {
       console.log(`[File Selection]   ${i + 1}. ${files[i].name} (${(files[i].size / 1024).toFixed(2)} KB)`);
     }
 
-    // Separate files into model files (.zip, .xml, .urdf, etc.) and mesh files (.stl, .obj, .dae)
+    // Separate files into model files (.zip, .xml, .urdf, .usd, etc.) and mesh files (.stl, .obj, .dae)
     const modelFiles: File[] = [];
     const meshFiles: File[] = [];
 
@@ -98,7 +100,7 @@ export const EssentialModeLayout: React.FC = () => {
       if (ext.endsWith('.xml') || ext.endsWith('.urdf') || ext.endsWith('.gltf') ||
           ext.endsWith('.glb') || ext.endsWith('.obj') || ext.endsWith('.stl') ||
           ext.endsWith('.jt') || ext.endsWith('.dwg') || ext.endsWith('.dxf') ||
-          ext.endsWith('.zip')) {
+          ext.endsWith('.usd') || ext.endsWith('.usdz') || ext.endsWith('.zip')) {
         modelFiles.push(f);
       } else if (ext.endsWith('.stl') || ext.endsWith('.obj') || ext.endsWith('.dae')) {
         meshFiles.push(f);
@@ -394,6 +396,23 @@ export const EssentialModeLayout: React.FC = () => {
     };
   }, [selectedNodeId]);
 
+  // FORCE sidebar width - browser cache workaround
+  useEffect(() => {
+    const forceSidebarWidth = () => {
+      const sidebar = document.querySelector('.essential-sidebar') as HTMLElement;
+      if (sidebar) {
+        sidebar.style.width = '240px';
+        sidebar.style.minWidth = '240px';
+        sidebar.style.maxWidth = '240px';
+        sidebar.style.flex = '0 0 240px';
+      }
+    };
+
+    forceSidebarWidth();
+    setTimeout(forceSidebarWidth, 100);
+    setTimeout(forceSidebarWidth, 500);
+  }, []);
+
   return (
     <div className="essential-layout">
       {/* Header */}
@@ -423,8 +442,8 @@ export const EssentialModeLayout: React.FC = () => {
 
       {/* Main Content */}
       <div className="essential-content">
-        {/* Left Sidebar */}
-        <aside className="essential-sidebar">
+        {/* Left Sidebar - COMPACT 240px */}
+        <aside className="essential-sidebar" style={{ width: '240px', minWidth: '240px', maxWidth: '240px' }}>
           <div className="sidebar-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0 }}>
             <h3 className="sidebar-title" style={{ padding: '12px 8px' }}>Scene Tree</h3>
             <div style={{ flex: 1, overflow: 'auto', padding: 0 }}>
@@ -437,68 +456,69 @@ export const EssentialModeLayout: React.FC = () => {
         <main id="viewport-essential" className="essential-viewport"></main>
       </div>
 
-      {/* Floating Toolbar */}
+      {/* Floating Toolbar - CONSOLIDATED (5 primary actions) */}
       <div className="floating-toolbar">
-        <button className="toolbar-btn active" onClick={() => {}} title="Move & Rotate (Combined)">
-          <div style={{ position: 'relative', width: 18, height: 18 }}>
-            <Move size={16} style={{ position: 'absolute', top: 0, left: 0 }} />
-            <RotateCw size={12} style={{ position: 'absolute', bottom: 0, right: 0 }} />
-          </div>
-        </button>
-        <button className="toolbar-btn" onClick={() => createObject('box')} title="Create Box">
-          <Box size={18} />
-        </button>
-        <button className="toolbar-btn" onClick={() => createObject('sphere')} title="Create Sphere">
-          <Circle size={18} />
-        </button>
-        <button className="toolbar-btn" onClick={() => createObject('cylinder')} title="Create Cylinder">
-          <Cylinder size={18} />
-        </button>
+        {/* Create Shapes Dropdown */}
+        <ToolbarDropdown
+          label="Create"
+          icon={<Plus size={16} />}
+          items={[
+            { id: 'box', label: 'Box', icon: <Box size={16} />, onClick: () => createObject('box') },
+            { id: 'sphere', label: 'Sphere', icon: <Circle size={16} />, onClick: () => createObject('sphere') },
+            { id: 'cylinder', label: 'Cylinder', icon: <Cylinder size={16} />, onClick: () => createObject('cylinder') },
+          ]}
+        />
+
         <div className="toolbar-separator" />
+
+        {/* Import Button (PRIMARY ACTION - COMPACT) */}
+        <button
+          className="toolbar-btn primary"
+          onClick={handleFileImport}
+          title="Import MJCF, URDF, STL, GLB"
+          style={{ padding: '6px 12px', background: '#48bb78', borderColor: '#48bb78', color: 'white', height: '30px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}
+        >
+          <Upload size={14} />
+          <span>Import</span>
+        </button>
+
+        <div className="toolbar-separator" />
+
+        {/* Robot Tools Dropdown (MJCF Features) */}
+        <ToolbarDropdown
+          label="Robot"
+          icon={<Cog size={16} />}
+          items={[
+            { id: 'kinematics', label: 'Kinematics Panel', icon: <Cog size={16} />, onClick: () => setShowKinematicsPanel(!showKinematicsPanel) },
+            { id: 'devices', label: 'Device Library', icon: <Library size={16} />, onClick: () => setShowDeviceLibrary(!showDeviceLibrary) },
+            { id: 'actuators', label: 'Actuator Control', icon: <Settings size={16} />, onClick: () => setShowActuatorPanel(!showActuatorPanel) },
+          ]}
+        />
+
+        <div className="toolbar-separator" />
+
+        {/* Tools Dropdown */}
+        <ToolbarDropdown
+          label="Tools"
+          icon={<Layers size={16} />}
+          items={[
+            { id: 'projection', label: 'Projection View', icon: <Layers size={16} />, onClick: handleCreateProjectionView, disabled: selectedNodeIds.length === 0 },
+            { id: 'physics', label: 'Physics Settings', icon: <Settings size={16} />, onClick: () => setShowPhysicsSettings(!showPhysicsSettings) },
+            { id: 'collision', label: 'Collision Viz', icon: <Circle size={16} />, onClick: () => setShowCollisionVisualizer(!showCollisionVisualizer) },
+            { id: 'library', label: 'Asset Library', icon: <Library size={16} />, onClick: toggleLibrary },
+          ]}
+        />
+
+        <div className="toolbar-separator" />
+
+        {/* Save Button - COMPACT */}
         <button
           className="toolbar-btn"
-          onClick={handleCreateProjectionView}
-          title="Create Projection View (Select 1+ objects)"
-          disabled={selectedNodeIds.length === 0}
+          onClick={saveComprehensiveWorld}
+          title="Save World"
+          style={{ width: '30px', height: '30px', padding: '4px' }}
         >
-          <Layers size={18} />
-        </button>
-        <div className="toolbar-separator" />
-        <button className="toolbar-btn" onClick={toggleLibrary} title="Asset Library">
-          <Library size={18} />
-        </button>
-        <button className="toolbar-btn" onClick={() => setShowKinematicsPanel(!showKinematicsPanel)} title="Kinematics">
-          <Cog size={18} />
-        </button>
-        <button className="toolbar-btn" onClick={() => setShowActuatorPanel(!showActuatorPanel)} title="Actuator Control">
-          <Settings size={18} />
-        </button>
-        <button className="toolbar-btn" onClick={() => setShowDeviceLibrary(!showDeviceLibrary)} title="Device Library">
-          <Library size={18} />
-        </button>
-        <div className="toolbar-separator" />
-        <button className="toolbar-btn" onClick={() => setShowPhysicsSettings(!showPhysicsSettings)} title="Physics Settings">
-          <Cog size={18} />
-        </button>
-        <button className="toolbar-btn" onClick={() => setShowCollisionVisualizer(!showCollisionVisualizer)} title="Collision Visualizer">
-          <Settings size={18} />
-        </button>
-        <div className="toolbar-separator" />
-        <button className="toolbar-btn" onClick={handleFileImport} title="Import Model">
-          <Upload size={18} />
-        </button>
-        <button className="toolbar-btn" onClick={handleLoadWorld} title="Load World">
-          <FolderOpen size={18} />
-        </button>
-        <button 
-          className="toolbar-btn" 
-          onClick={saveComprehensiveWorld} 
-          title="Save World (All Assets & Data)"
-        >
-          <Save size={18} />
-        </button>
-        <button className="toolbar-btn" onClick={handleClearWorld} title="Clear World">
-          <Trash2 size={18} />
+          <Save size={16} />
         </button>
       </div>
 
@@ -673,7 +693,7 @@ export const EssentialModeLayout: React.FC = () => {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".urdf,.stl,.obj,.dae,.gltf,.glb,.dxf,.dwg,.jt,.xml,.zip"
+        accept=".urdf,.stl,.obj,.dae,.gltf,.glb,.dxf,.dwg,.jt,.xml,.usd,.usdz,.zip"
         multiple
         style={{ display: 'none' }}
         onChange={handleFileChange}

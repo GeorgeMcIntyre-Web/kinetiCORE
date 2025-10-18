@@ -1,0 +1,120 @@
+/* Toolbar Dropdown Styles */
+
+.toolbar-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px; /* More compact */
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 4px;
+  color: #e2e8f0;
+  font-size: 12px; /* Smaller text */
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  height: 30px; /* Compact height */
+}
+
+.dropdown-trigger:hover {
+  background: #374151;
+  border-color: #6b7280;
+}
+
+.dropdown-trigger.primary {
+  background: #48bb78;
+  border-color: #48bb78;
+  color: white;
+}
+
+.dropdown-trigger.primary:hover {
+  background: #38a169;
+  border-color: #38a169;
+}
+
+.dropdown-icon {
+  display: flex;
+  align-items: center;
+}
+
+.dropdown-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.dropdown-chevron {
+  transition: transform 0.2s ease;
+}
+
+.dropdown-chevron.open {
+  transform: rotate(180deg);
+}
+
+/* Dropdown Menu */
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 180px;
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  z-index: 2000;
+  overflow: hidden;
+  animation: slideDown 0.15s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  color: #e2e8f0;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.dropdown-item:hover:not(:disabled) {
+  background: #48bb78;
+  color: white;
+}
+
+.dropdown-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.item-icon {
+  display: flex;
+  align-items: center;
+  width: 18px;
+  height: 18px;
+}
+
+.item-label {
+  flex: 1;
+  font-weight: 500;
+}

@@ -467,7 +467,7 @@ export const SceneCanvas: React.FC = () => {
       <CameraViewControls />
 
       {/* Transform Settings - Vertical icon strip on left side (ALWAYS VISIBLE) */}
-      <div className="absolute top-72 left-4 flex flex-col gap-1 z-50">
+      <div className="absolute top-72 left-[260px] flex flex-col gap-1 z-50">
         <TransformSettings />
         <SnapToolbar />
         <AlignTool />
