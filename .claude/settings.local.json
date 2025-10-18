@@ -91,7 +91,9 @@
       "Bash(npx vite build:*)",
       "Bash(unzip:*)",
       "Read(//c/tmp/**)",
-      "Bash(git rebase --continue)"
+      "Bash(git rebase --continue)",
+      "Bash(npx wrangler whoami)",
+      "Bash(npx wrangler login)"
     ],
     "deny": [],
     "ask": []

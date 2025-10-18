@@ -9,14 +9,10 @@ import {
   Cylinder,
   Save,
   Upload,
-  FolderOpen,
-  Move,
-  RotateCw,
   Layers,
   Library,
   Cog,
   Settings,
-  Trash2,
   Plus,
 } from 'lucide-react';
 import { ToolbarDropdown } from '../components/ToolbarDropdown';
@@ -45,7 +41,6 @@ export const EssentialModeLayout: React.FC = () => {
   const loadWorld = useEditorStore((state) => state.loadWorld);
   const loadComprehensiveWorld = useEditorStore((state) => state.loadComprehensiveWorld);
   const saveComprehensiveWorld = useEditorStore((state) => state.saveComprehensiveWorld);
-  const clearWorld = useEditorStore((state) => state.clearWorld);
   const zoomFit = useEditorStore((state) => state.zoomFit);
   const zoomToNode = useEditorStore((state) => state.zoomToNode);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
@@ -73,10 +68,6 @@ export const EssentialModeLayout: React.FC = () => {
 
   const handleFileImport = () => {
     fileInputRef.current?.click();
-  };
-
-  const handleLoadWorld = () => {
-    loadFileInputRef.current?.click();
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -203,12 +194,6 @@ export const EssentialModeLayout: React.FC = () => {
   const handleZoomToSelected = () => {
     if (selectedNodeId) {
       zoomToNode(selectedNodeId);
-    }
-  };
-
-  const handleClearWorld = () => {
-    if (window.confirm('Are you sure you want to clear the entire world? This cannot be undone.')) {
-      clearWorld();
     }
   };
 
