@@ -212,6 +212,7 @@ npm run build
 ## Resources
 
 - **Coordinate System Standard:** `COORDINATE_SYSTEM.md` (READ THIS FIRST for loaders!)
+- **Physics API Guide:** `docs/PHYSICS_API.md` (Fast & efficient physics integration)
 - **CI/CD Pipeline:** `docs/CI_CD.md` (GitHub Actions setup and troubleshooting)
 - Babylon.js Docs: https://doc.babylonjs.com
 - Rapier Docs: https://rapier.rs/docs/
