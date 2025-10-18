@@ -9,7 +9,7 @@ A comprehensive web-based platform for industrial robot simulation, kinematics a
 kinetiCORE is a sophisticated 3D simulation platform that enables engineers, roboticists, and manufacturers to:
 
 - **Simulate Industrial Robots** - Complete kinematic chains with forward/inverse kinematics
-- **Import CAD Models** - Support for JT, URDF, CATIA, DXF, STL, OBJ, and glTF formats
+- **Import CAD Models** - Support for JT, URDF, CATIA, DXF, STL, OBJ, glTF, and USD formats
 - **Real-time Physics** - Interactive simulation with collision detection and dynamics
 - **Path Planning** - Advanced trajectory planning and optimization
 - **Professional UI** - Progressive disclosure interface (Essential/Professional/Expert modes)
@@ -41,8 +41,9 @@ Web Browser (React + Babylon.js + Rapier Physics)
 ### Backend Services
 - **Node.js** - Runtime for server-side services
 - **Express** - Web server framework
-- **Python** - JT file conversion services
+- **Python Flask** - USD conversion server with CORS support
 - **PyOpenJt** - JT file parsing and conversion
+- **Omniverse Create** - NVIDIA USD to glTF conversion (optional)
 
 ### Development Tools
 - **Vitest** - Unit testing framework
@@ -68,9 +69,13 @@ npm install
 
 # Start development server
 npm run dev
+
+# Start USD conversion server (in separate terminal)
+npm run usd-server
 ```
 
 The application will be available at `http://localhost:5173`
+The USD conversion server will be available at `http://localhost:5001`
 
 ### Development Commands
 
@@ -95,6 +100,15 @@ npm run preview
 
 # Lint and fix code
 npm run lint:fix
+
+# Start USD conversion server
+npm run usd-server
+
+# Start USD server in development mode
+npm run usd-server:dev
+
+# Download USD test models
+npm run download-usd-models
 ```
 
 ## ✨ Features
@@ -120,6 +134,7 @@ npm run lint:fix
 - **DXF** - 2D CAD drawings with layer support
 - **STL/OBJ** - 3D mesh formats
 - **glTF/GLB** - Standard 3D asset format
+- **USD/USDZ** - NVIDIA Omniverse Universal Scene Description with server-side conversion
 
 ### ⚡ Physics Simulation
 - **Real-time Physics** - Rapier3D physics engine
@@ -153,10 +168,11 @@ npm run lint:fix
 - **Boolean Operations** - CSG operations with undo/redo
 - **Command System** - Full undo/redo with command pattern
 - **Keyboard Shortcuts** - Industry-standard hotkeys
-- **File Import** - JT, URDF, CATIA, DXF, STL, OBJ, glTF
+- **File Import** - JT, URDF, CATIA, DXF, STL, OBJ, glTF, USD/USDZ
 - **Progressive UI** - Essential/Professional/Expert modes
 - **Physics Engine** - Rapier3D integration
 - **Snapping System** - 13 snap types for precision
+- **USD Pipeline** - Full-stack USD support with Python Flask server
 
 ### 🧪 Testing Infrastructure
 - **100+ Unit Tests** - Comprehensive test coverage
@@ -166,6 +182,9 @@ npm run lint:fix
 - **Snapping Tests** - 73 tests for precision system
 
 ### 📊 Recent Achievements
+- **USD Format Support** - Complete NVIDIA Omniverse USD pipeline implementation
+- **Full-Stack Architecture** - Python Flask server for USD conversion with CORS
+- **MJCF Essential Mode** - Complete MJCF UI/UX integration with keyframe playback
 - **Critical Bug Fixed** - Snapping system buttons now functional
 - **Test Infrastructure** - Complete testing framework setup
 - **Code Quality** - TypeScript strict mode, ESLint, Prettier
@@ -183,6 +202,9 @@ npm run lint:fix
    
    // Or import JT assembly
    const assembly = await ModelLoader.loadJT('assembly.jt');
+   
+   // Or import USD model (requires USD server running)
+   const usdModel = await ModelLoader.loadUSD('model.usd');
    ```
 
 2. **Set Up Kinematics**
@@ -217,6 +239,54 @@ npm run lint:fix
 | `F` | Frame selected |
 | `.` | Zoom fit all |
 
+## 🌐 USD Pipeline Architecture
+
+### Full-Stack USD Support
+
+kinetiCORE includes a complete USD (Universal Scene Description) pipeline for NVIDIA Omniverse compatibility:
+
+```
+USD File → Python Flask Server → glTF → Babylon.js → 3D Scene
+```
+
+### USD Server Features
+
+- **Python Flask Server** - Runs on port 5001 with CORS support
+- **Omniverse Create Integration** - Uses NVIDIA's official USD tools when available
+- **Fallback System** - Creates simple glTF cube when Omniverse tools unavailable
+- **Error Handling** - Comprehensive error management and user feedback
+- **Metadata Extraction** - USD file information and properties
+
+### USD Server Setup
+
+```bash
+# Install Python dependencies
+pip install flask flask-cors
+
+# Start USD conversion server
+npm run usd-server
+
+# Test server health
+curl http://localhost:5001/api/health
+```
+
+### USD File Support
+
+- **USD Files** - Native USD format (.usd)
+- **USDZ Files** - Compressed USD format (.usdz)
+- **Server-side Conversion** - USD → glTF → Babylon.js
+- **Fallback Geometry** - Simple cube when conversion fails
+- **Loading Indicators** - User feedback during conversion
+
+### USD Test Models
+
+```bash
+# Download USD test models
+npm run download-usd-models
+
+# Models will be available in test_assets/usd/
+```
+
 ## 🐛 Troubleshooting
 
 ### Common Issues
@@ -249,6 +319,13 @@ npm ls
 - Check file format compatibility
 - Verify file permissions
 - Review browser console for detailed errors
+
+**USD Loading Issues:**
+- Ensure USD server is running: `npm run usd-server`
+- Check server health: `curl http://localhost:5001/api/health`
+- Verify CORS headers in server response
+- Check Python dependencies: `pip install flask flask-cors`
+- Review server logs for conversion errors
 
 ### Performance Optimization
 
@@ -296,10 +373,13 @@ src/
 ├── entities/       # Scene entity system
 ├── kinematics/     # Robot kinematics
 ├── loaders/        # CAD file importers
+│   ├── mjcf/      # MJCF robot models
+│   └── usd/       # USD file support
 ├── manipulation/   # Transform tools
 ├── ui/             # React components
 ├── history/        # Command system
-└── __tests__/      # Unit tests
+├── __tests__/      # Unit tests
+└── server/         # Python Flask USD server
 ```
 
 ## 🧪 Testing
@@ -353,6 +433,8 @@ describe('SnappingHelper', () => {
 ## 🚀 Future Enhancements
 
 ### Short Term (Next 4 weeks)
+- [x] USD format support with full-stack pipeline
+- [x] MJCF Essential Mode completion
 - [ ] Web Workers for CSG operations
 - [ ] Advanced material editor
 - [ ] Animation timeline
