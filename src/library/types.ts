@@ -42,6 +42,8 @@ export type LoaderType =
   | 'step'
   | 'stl'
   | 'obj'
+  | 'mjcf'
+  | 'usd'
   | 'primitive';
 
 /**

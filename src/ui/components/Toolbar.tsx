@@ -367,7 +367,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <input
             ref={fileInputRef}
             type="file"
-            accept=".gltf,.glb,.obj,.stl,.babylon,.dxf,.dwg,.jt,.catpart,.catproduct,.catdrawing,.catprocess,.urdf,.zip"
+            accept=".gltf,.glb,.obj,.stl,.babylon,.dxf,.dwg,.jt,.catpart,.catproduct,.catdrawing,.catprocess,.urdf,.usd,.usdz,.zip"
             multiple
             onChange={handleFileChange}
             style={{ display: 'none' }}

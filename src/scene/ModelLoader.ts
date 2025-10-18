@@ -31,6 +31,9 @@ import { loadMJCFFromFile } from '../loaders/mjcf/MJCFLoader';
 // Import GLB loader
 import { loadGLBFromFile } from '../loaders/glb/GLBLoader';
 
+// Import USD loader
+import { loadUSDFromFile } from '../loaders/usd/USDLoader';
+
 // Configure Draco decoder
 DracoCompression.Configuration = {
   decoder: {
@@ -59,6 +62,8 @@ export const SUPPORTED_FORMATS = {
   URDF: '.urdf',
   MJCF: '.xml',
   ZIP: '.zip',
+  USD: '.usd',
+  USDZ: '.usdz',
 } as const;
 
 /**
@@ -95,6 +100,8 @@ function getMimeType(extension: string): string {
     '.catprocess': 'application/catia',
     '.urdf': 'application/xml',
     '.zip': 'application/zip',
+    '.usd': 'model/vnd.usd+usd',
+    '.usdz': 'model/vnd.usdz+zip',
   };
   return mimeTypes[extension] || 'application/octet-stream';
 }
@@ -166,10 +173,46 @@ export async function loadModelFromFile(
             rootNodes: result.rootNodes || []
           };
         } catch (error) {
-          console.error('[ModelLoader] MJCF import failed:', error);
           throw error;
         }
       }
+
+  // Handle USD files (NVIDIA Omniverse Universal Scene Description)
+  if (extension === '.usd' || extension === '.usdz') {
+    console.log('[ModelLoader] Detected USD file:', file.name);
+    
+    try {
+      const result = await loadUSDFromFile(file, scene, {
+        enablePhysics: true,
+        enableMaterials: true,
+        enableAnimations: true,
+        conversionStrategy: 'server', // Use server-side conversion
+        quality: 'medium',
+        enableLOD: true
+      });
+      
+      console.log('[ModelLoader] USD import result:', result);
+      
+      // Ensure meshes are in scene
+      if (result.meshes && result.meshes.length > 0) {
+        result.meshes.forEach((mesh, index) => {
+          const inScene = scene.meshes.includes(mesh);
+          if (!inScene) {
+            console.log(`[ModelLoader] USD Debug - Mesh ${index} (${mesh.name}) not in scene, adding manually...`);
+            scene.meshes.push(mesh);
+          }
+        });
+      }
+      
+      return {
+        meshes: result.meshes,
+        rootNodes: result.rootNodes || []
+      };
+    } catch (error) {
+      console.error('[ModelLoader] USD import failed:', error);
+      throw error;
+    }
+  }
 
   // Handle GLB files with MJCF-compatible interface
   if (extension === '.glb') {

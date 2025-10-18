@@ -1,0 +1,18 @@
+#usda 1.0
+(
+    defaultPrim = "TestCube"
+    upAxis = "Z"
+)
+
+def Xform "TestCube" (
+    kind = "component"
+)
+{
+    def Cube "Cube"
+    {
+        double3 xformOp:translate = (0, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        
+        float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
+    }
+}

@@ -1,0 +1,15 @@
+# USD Conversion Server Dependencies
+# Owner: George (Agent 2 - Architecture)
+
+# Core web framework
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# File handling
+pathlib2==2.3.7
+
+# Optional: USD Python API (if available)
+# usd-core==23.11  # Uncomment if USD Python API is installed
+
+# Development dependencies
+python-dotenv==1.0.0

@@ -19,7 +19,10 @@
     "prepare": "husky install",
     "deploy:preview": "npm run build && wrangler pages deploy dist --project-name=kineticore",
     "deploy:production": "npm run build && wrangler pages deploy dist --project-name=kineticore --branch=main",
-    "pages:dev": "wrangler pages dev dist"
+    "pages:dev": "wrangler pages dev dist",
+    "usd-server": "python server/usd_converter.py",
+    "usd-server:dev": "FLASK_ENV=development python server/usd_converter.py",
+    "download-usd-models": "python scripts/download_usd_models.py"
   },
   "dependencies": {
     "@babylonjs/addons": "^8.30.4",

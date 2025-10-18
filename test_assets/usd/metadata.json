@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "created": "2025-10-18",
+  "total_files": 7,
+  "categories": {
+    "robots": 0,
+    "vehicles": 0,
+    "mechanical": 0,
+    "test": 0
+  },
+  "files": [
+    "test_assets\\usd\\robots\\spherebot.usd",
+    "test_assets\\usd\\mechanical\\gearbox.usd",
+    "test_assets\\usd\\vehicles\\speeder.usd",
+    "test_assets\\usd\\test\\simple_cube.usd",
+    "test_assets\\usd\\robots\\robot_arm.usd",
+    "test_assets\\usd\\mechanical\\conveyor.usd",
+    "test_assets\\usd\\test\\factory_floor.usd"
+  ]
+}
