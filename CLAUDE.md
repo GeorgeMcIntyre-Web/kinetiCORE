@@ -111,7 +111,11 @@ const selected = useEditorStore.getState().selectedMeshes;
 - ✅ Edwin: React UI shell & Zustand store
 
 **Current Focus: Frontend Testing & Deployment**
-- Agent 1 (Claude Code): TypeScript compilation fixes, integration work
+- Agent 1 (Claude Code): TypeScript fixes, integration work, CI/CD
+  - ✅ TypeScript compilation errors resolved
+  - ✅ Custom reference frame integration complete
+  - ✅ CI/CD pipeline enhanced (4 parallel jobs)
+  - ✅ Comprehensive CI/CD documentation
 - Agent 3 (Cursor): Frontend testing readiness, Cloudflare deployment
   - ✅ FloatingPanel reusable component
   - ✅ Header component with mode switching
@@ -136,10 +140,14 @@ git add .
 git commit -m "feat: descriptive message"
 git push origin feature/your-branch
 
-# Before PR
-npm run lint
-npm run type-check
-npm run build
+# Before PR (CI checks - must pass)
+npm run lint              # ESLint checks
+npm run type-check        # TypeScript compilation
+npm test                  # Unit tests
+npm run build             # Production build
+
+# Full CI check locally
+npm run lint && npm run type-check && npm test && npm run build
 ```
 
 ### Deployment Workflow (Agent 3 - Cursor):
@@ -204,6 +212,7 @@ npm run build
 ## Resources
 
 - **Coordinate System Standard:** `COORDINATE_SYSTEM.md` (READ THIS FIRST for loaders!)
+- **CI/CD Pipeline:** `docs/CI_CD.md` (GitHub Actions setup and troubleshooting)
 - Babylon.js Docs: https://doc.babylonjs.com
 - Rapier Docs: https://rapier.rs/docs/
 - Zustand Docs: https://docs.pmnd.rs/zustand/

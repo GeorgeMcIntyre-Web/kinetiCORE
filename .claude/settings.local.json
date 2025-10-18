@@ -91,7 +91,8 @@
       "Bash(npx vite build:*)",
       "Bash(unzip:*)",
       "Read(//c/tmp/**)",
-      "Bash(git rebase --continue)"
+      "Bash(git rebase --continue)",
+      "Bash(git check-ignore -v docs/CI_CD_GUIDE.md)"
     ],
     "deny": [],
     "ask": []
