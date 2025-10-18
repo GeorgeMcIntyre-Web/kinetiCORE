@@ -62,7 +62,7 @@ async function testUpAxisDetection(): Promise<void> {
 
       if (result.upAxisDetection) {
         console.log('\nUp-Axis Detection:');
-        console.log(`  Detected Axis: ${result.upAxisDetection.detectedAxis}`);
+        console.log(`  Detected Axis: ${result.upAxisDetection.detected}`);
         console.log(`  Confidence: ${(result.upAxisDetection.confidence * 100).toFixed(1)}%`);
         console.log(`  Method: ${result.upAxisDetection.method}`);
         console.log(`  Fix Applied: ${result.upAxisDetection.applied ? '✅' : '❌'}`);
