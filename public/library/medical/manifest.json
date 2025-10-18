@@ -1,6 +1,166 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2025-10-07T00:00:00Z",
-  "totalAssets": 0,
-  "assets": []
+  "lastUpdated": "2025-10-18T00:00:00Z",
+  "totalAssets": 6,
+  "assets": [
+    {
+      "id": "surgical-robot-davinci",
+      "name": "Da Vinci Surgical Robot",
+      "manufacturer": "Generic",
+      "domain": "medical",
+      "assetClass": "robot",
+      "assetType": "surgical-robot",
+      "loaderType": "gltf",
+      "filePath": "/models/medical/surgical_robot.gltf",
+      "source": "generic",
+      "tags": [
+        "surgical",
+        "robot",
+        "medical",
+        "minimally-invasive"
+      ],
+      "searchKeywords": [
+        "surgical robot",
+        "da vinci",
+        "minimally invasive",
+        "surgery"
+      ],
+      "description": "Multi-arm surgical robot system for minimally invasive procedures",
+      "capabilities": {
+        "hasKinematics": true,
+        "dof": 7,
+        "arms": 4
+      }
+    },
+    {
+      "id": "hospital-bed-adjustable",
+      "name": "Adjustable Hospital Bed",
+      "manufacturer": "Generic",
+      "domain": "medical",
+      "assetClass": "furniture",
+      "assetType": "hospital-bed",
+      "loaderType": "gltf",
+      "filePath": "/models/medical/hospital_bed.gltf",
+      "source": "generic",
+      "tags": [
+        "hospital",
+        "bed",
+        "patient-care"
+      ],
+      "searchKeywords": [
+        "hospital bed",
+        "patient bed",
+        "medical bed"
+      ],
+      "description": "Electric adjustable hospital bed with rails, 200kg capacity",
+      "capabilities": {
+        "hasKinematics": true,
+        "maxLoad": 200
+      }
+    },
+    {
+      "id": "wheelchair-standard",
+      "name": "Standard Wheelchair",
+      "manufacturer": "Generic",
+      "domain": "medical",
+      "assetClass": "mobility",
+      "assetType": "wheelchair",
+      "loaderType": "gltf",
+      "filePath": "/models/medical/wheelchair.gltf",
+      "source": "generic",
+      "tags": [
+        "wheelchair",
+        "mobility",
+        "patient-transport"
+      ],
+      "searchKeywords": [
+        "wheelchair",
+        "mobility",
+        "patient transport"
+      ],
+      "description": "Standard manual wheelchair, foldable, 125kg capacity",
+      "capabilities": {
+        "hasKinematics": true,
+        "maxLoad": 125
+      }
+    },
+    {
+      "id": "patient-stretcher",
+      "name": "Emergency Stretcher",
+      "manufacturer": "Generic",
+      "domain": "medical",
+      "assetClass": "transport",
+      "assetType": "stretcher",
+      "loaderType": "gltf",
+      "filePath": "/models/medical/stretcher.gltf",
+      "source": "generic",
+      "tags": [
+        "stretcher",
+        "emergency",
+        "patient-transport"
+      ],
+      "searchKeywords": [
+        "stretcher",
+        "gurney",
+        "emergency",
+        "patient transport"
+      ],
+      "description": "Height-adjustable emergency stretcher with wheels, 250kg capacity",
+      "capabilities": {
+        "hasKinematics": true,
+        "maxLoad": 250
+      }
+    },
+    {
+      "id": "iv-stand",
+      "name": "IV Pole Stand",
+      "manufacturer": "Generic",
+      "domain": "medical",
+      "assetClass": "equipment",
+      "assetType": "iv-stand",
+      "loaderType": "gltf",
+      "filePath": "/models/medical/iv_stand.gltf",
+      "source": "generic",
+      "tags": [
+        "iv",
+        "pole",
+        "medical-equipment"
+      ],
+      "searchKeywords": [
+        "iv pole",
+        "iv stand",
+        "medical equipment"
+      ],
+      "description": "Height-adjustable IV pole with 4 hooks, mobile base",
+      "capabilities": {
+        "hasKinematics": true
+      }
+    },
+    {
+      "id": "exam-table",
+      "name": "Medical Examination Table",
+      "manufacturer": "Generic",
+      "domain": "medical",
+      "assetClass": "furniture",
+      "assetType": "exam-table",
+      "loaderType": "gltf",
+      "filePath": "/models/medical/exam_table.gltf",
+      "source": "generic",
+      "tags": [
+        "exam",
+        "table",
+        "medical-furniture"
+      ],
+      "searchKeywords": [
+        "exam table",
+        "examination table",
+        "medical table"
+      ],
+      "description": "Adjustable medical examination table, 200kg capacity",
+      "capabilities": {
+        "hasKinematics": true,
+        "maxLoad": 200
+      }
+    }
+  ]
 }
