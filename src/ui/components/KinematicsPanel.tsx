@@ -9,6 +9,7 @@ import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolve
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { useEditorStore } from '../store/editorStore';
 import { RobotJoggingPanel } from './RobotJoggingPanel';
+import { KeyframePlaybackPanel } from './KeyframePlaybackPanel';
 import './KinematicsPanel.css';
 
 interface KinematicsPanelProps {
@@ -245,8 +246,27 @@ export const KinematicsPanel: React.FC<KinematicsPanelProps> = () => {
               </div>
 
               {/* Device Controls */}
-              <div style={{ flex: 1, overflow: 'hidden' }}>
-                {activeRobotId && <RobotJoggingPanel joints={joints} fkSolver={fkSolver} robotId={activeRobotId} />}
+              <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px' }}>
+                {/* Keyframe Playback Section */}
+                {activeRobotId && activeDevice && (
+                  <KeyframePlaybackPanel
+                    robotId={activeRobotId}
+                    robotName={activeDevice.name}
+                    joints={joints}
+                  />
+                )}
+
+                {/* Robot Jogging Section */}
+                {activeRobotId && (
+                  <div style={{
+                    border: '1px solid #4a5568',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    background: '#1a1a1a'
+                  }}>
+                    <RobotJoggingPanel joints={joints} fkSolver={fkSolver} robotId={activeRobotId} />
+                  </div>
+                )}
               </div>
             </>
           ) : (

@@ -49,6 +49,20 @@ export class MJCFKeyframeManager {
   }
 
   /**
+   * Get registered keyframes for a model
+   */
+  getKeyframes(modelId: string): KeyframeObject[] {
+    return this.registeredKeyframes.get(modelId) || [];
+  }
+
+  /**
+   * Get all registered models with keyframes
+   */
+  getAllModels(): string[] {
+    return Array.from(this.registeredKeyframes.keys());
+  }
+
+  /**
    * Check if a keyframe has already been applied
    */
   hasBeenApplied(modelId: string, keyframeName: string): boolean {

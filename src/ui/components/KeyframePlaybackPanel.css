@@ -1,0 +1,315 @@
+/* Keyframe Playback Panel Styles */
+
+.keyframe-playback-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: var(--panel-bg, #1a1a1a);
+  border-radius: 8px;
+  border: 1px solid var(--panel-border, #333);
+}
+
+/* Header */
+.keyframe-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--panel-border, #333);
+}
+
+.keyframe-header h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+}
+
+.keyframe-count {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #888);
+  padding: 2px 8px;
+  background: var(--badge-bg, #2a2a2a);
+  border-radius: 12px;
+}
+
+/* Empty State */
+.keyframe-empty-state {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-secondary, #888);
+}
+
+.empty-message {
+  font-size: 0.9rem;
+  margin: 0 0 8px 0;
+  color: var(--text-primary, #ffffff);
+}
+
+.empty-hint {
+  font-size: 0.8rem;
+  margin: 0;
+  color: var(--text-secondary, #888);
+}
+
+/* Keyframe List */
+.keyframe-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--list-bg, #0f0f0f);
+  border-radius: 6px;
+}
+
+.keyframe-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--item-bg, #1a1a1a);
+  border: 1px solid var(--item-border, #2a2a2a);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.keyframe-item:hover {
+  background: var(--item-hover-bg, #252525);
+  border-color: var(--item-hover-border, #3a3a3a);
+}
+
+.keyframe-item.active {
+  background: var(--item-active-bg, #1e3a8a);
+  border-color: var(--item-active-border, #3b82f6);
+}
+
+.keyframe-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.keyframe-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary, #ffffff);
+}
+
+.keyframe-description {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #888);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.keyframe-active-icon {
+  color: var(--accent-color, #3b82f6);
+  flex-shrink: 0;
+}
+
+/* Playback Controls */
+.keyframe-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: var(--control-bg, #0f0f0f);
+  border-radius: 6px;
+}
+
+.playback-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--button-bg, #2a2a2a);
+  border: 1px solid var(--button-border, #3a3a3a);
+  border-radius: 6px;
+  color: var(--text-primary, #ffffff);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.control-btn:hover {
+  background: var(--button-hover-bg, #3a3a3a);
+  border-color: var(--button-hover-border, #4a4a4a);
+}
+
+.control-btn:active {
+  transform: scale(0.95);
+}
+
+.control-btn.play-pause {
+  width: 44px;
+  height: 44px;
+  background: var(--primary-bg, #3b82f6);
+  border-color: var(--primary-border, #60a5fa);
+}
+
+.control-btn.play-pause:hover {
+  background: var(--primary-hover-bg, #2563eb);
+  border-color: var(--primary-hover-border, #3b82f6);
+}
+
+/* Playback Options */
+.playback-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid var(--divider, #2a2a2a);
+}
+
+.playback-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-primary, #ffffff);
+  cursor: pointer;
+}
+
+.playback-option input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.playback-speed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-primary, #ffffff);
+}
+
+.playback-speed label {
+  color: var(--text-secondary, #888);
+}
+
+.playback-speed select {
+  padding: 2px 6px;
+  background: var(--input-bg, #1a1a1a);
+  border: 1px solid var(--input-border, #3a3a3a);
+  border-radius: 4px;
+  color: var(--text-primary, #ffffff);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+/* Action Buttons */
+.keyframe-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+}
+
+.action-btn.primary {
+  background: var(--primary-bg, #3b82f6);
+  color: #ffffff;
+}
+
+.action-btn.primary:hover {
+  background: var(--primary-hover-bg, #2563eb);
+}
+
+.action-btn.primary:disabled {
+  background: var(--disabled-bg, #2a2a2a);
+  color: var(--disabled-text, #555);
+  cursor: not-allowed;
+}
+
+.action-btn.secondary {
+  background: var(--secondary-bg, #2a2a2a);
+  color: var(--text-primary, #ffffff);
+  border: 1px solid var(--secondary-border, #3a3a3a);
+}
+
+.action-btn.secondary:hover {
+  background: var(--secondary-hover-bg, #3a3a3a);
+  border-color: var(--secondary-hover-border, #4a4a4a);
+}
+
+/* Keyframe Info */
+.keyframe-info {
+  padding: 8px;
+  background: var(--info-bg, #0f0f0f);
+  border-radius: 6px;
+  border: 1px solid var(--info-border, #2a2a2a);
+}
+
+.info-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+
+.info-label {
+  color: var(--text-secondary, #888);
+}
+
+.info-value {
+  color: var(--text-primary, #ffffff);
+  font-weight: 500;
+}
+
+/* Scrollbar Styling */
+.keyframe-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.keyframe-list::-webkit-scrollbar-track {
+  background: var(--scrollbar-track, #0f0f0f);
+  border-radius: 3px;
+}
+
+.keyframe-list::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, #3a3a3a);
+  border-radius: 3px;
+}
+
+.keyframe-list::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover, #4a4a4a);
+}

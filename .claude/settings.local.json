@@ -90,7 +90,8 @@
       "Bash(\"C:\\Users\\georgem\\source\\repos\\kinetiCORE\\JTReaderWrapper\\bin\\Debug\\net8.0-windows\\JTReaderWrapper.exe\" \"C:\\Users\\georgem\\source\\repos\\drawingflow\\exampes_bmw\\01\\MNF_DATA\\100\\20240208\\AUTOMATION\\3BCE959__A__1__A__301030300-20SML1-ST013FX001.jt\")",
       "Bash(npx vite build:*)",
       "Bash(unzip:*)",
-      "Read(//c/tmp/**)"
+      "Read(//c/tmp/**)",
+      "Bash(git rebase --continue)"
     ],
     "deny": [],
     "ask": []

@@ -1,262 +1,424 @@
-# JT Converter Wrapper for kinetiCORE
+# kinetiCORE
 
-This solution provides a robust JT file conversion system using the lineSim JT libraries, replacing the previous PyOpenJt implementation with a more reliable C++ wrapper.
+**Web-based 3D Industrial Simulation and Kinematics Platform**
+
+A comprehensive web-based platform for industrial robot simulation, kinematics analysis, and 3D CAD integration. Built with modern web technologies to provide professional-grade simulation capabilities directly in the browser.
 
 ## 🎯 Overview
 
-The JT Converter Wrapper consists of:
-- **C++ Wrapper**: Direct interface to JT Open Toolkit libraries
-- **Python Server**: FastAPI server that uses the C++ wrapper
-- **GLTF Output**: Converts JT files to GLTF/GLB format for web rendering
+kinetiCORE is a sophisticated 3D simulation platform that enables engineers, roboticists, and manufacturers to:
+
+- **Simulate Industrial Robots** - Complete kinematic chains with forward/inverse kinematics
+- **Import CAD Models** - Support for JT, URDF, CATIA, DXF, STL, OBJ, and glTF formats
+- **Real-time Physics** - Interactive simulation with collision detection and dynamics
+- **Path Planning** - Advanced trajectory planning and optimization
+- **Professional UI** - Progressive disclosure interface (Essential/Professional/Expert modes)
+- **Boolean Operations** - CSG operations for complex geometry manipulation
 
 ## 🏗️ Architecture
 
 ```
-JT File → C++ Wrapper → GLTF → kinetiCORE Frontend
-                ↓
-        JT Open Toolkit Libraries
-        (from lineSim implementation)
+Web Browser (React + Babylon.js + Rapier Physics)
+├── 3D Scene Management (Babylon.js)
+├── Physics Engine (Rapier3D)
+├── Kinematics Engine (Custom)
+├── CAD Import Pipeline (Multiple formats)
+├── UI Framework (React + TypeScript)
+└── State Management (Zustand)
 ```
 
-## 📋 Prerequisites
+## 🛠️ Technology Stack
 
-### Required Software
-- **Visual Studio 2019/2022** with C++ development tools
-- **CMake** 3.20 or later
-- **Python 3.8+** with FastAPI and uvicorn
-- **JT Open Toolkit** libraries (from lineSim)
+### Frontend
+- **React 18** - Modern UI framework with hooks and context
+- **TypeScript** - Type-safe development with strict mode
+- **Babylon.js 8.30** - 3D rendering engine with WebGL/WebGPU support
+- **Rapier3D** - High-performance physics engine
+- **Zustand** - Lightweight state management
+- **Tailwind CSS** - Utility-first styling framework
+- **Vite** - Fast build tool and dev server
 
-### JT Libraries Location
-The solution expects JT libraries to be located at:
-```
-C:\Users\George\source\repos\lineSim\lib3\
-```
+### Backend Services
+- **Node.js** - Runtime for server-side services
+- **Express** - Web server framework
+- **Python** - JT file conversion services
+- **PyOpenJt** - JT file parsing and conversion
 
-Required files:
-- `JtReader.dll`
-- `Jt951.dll`
-- `JtTk105.dll`
-- `JtConfig.dll`
-- `plmxmlAdapterJT60.dll`
-- And other JT-related DLLs
+### Development Tools
+- **Vitest** - Unit testing framework
+- **ESLint + Prettier** - Code quality and formatting
+- **Husky** - Git hooks for quality gates
+- **Wrangler** - Cloudflare Pages deployment
 
 ## 🚀 Quick Start
 
-### 1. Build the C++ Wrapper
+### Prerequisites
+- **Node.js 18+** and npm 9+
+- **Modern web browser** (Chrome, Firefox, Safari, Edge)
+
+### Installation
 
 ```bash
-# Run the build script
-build.bat
+# Clone the repository
+git clone https://github.com/your-org/kineticore.git
+cd kineticore
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
 
-Or manually:
-```bash
-mkdir build
-cd build
-cmake .. -G "Visual Studio 17 2022" -A x64
-cmake --build . --config Release
-```
+The application will be available at `http://localhost:5173`
 
-### 2. Start the Conversion Server
-
-```bash
-python jt_conversion_server.py
-```
-
-The server will start at `http://localhost:8000`
-
-### 3. Test the Conversion
+### Development Commands
 
 ```bash
-# Direct C++ wrapper usage
-jt_converter_wrapper.exe input.jt output.gltf
+# Development server with hot reload
+npm run dev
 
-# Or via HTTP API
-curl -X POST "http://localhost:8000/convert/jt-to-gltf" \
-     -F "file=@input.jt" \
-     -F "load_geometry=true"
+# Type checking
+npm run type-check
+
+# Run tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Lint and fix code
+npm run lint:fix
 ```
 
-## 🔧 Configuration
+## ✨ Features
 
-### CMake Configuration
-Edit `CMakeLists.txt` to adjust JT library paths:
+### 🎮 3D Scene Management
+- **Multi-selection System** - Ctrl+Click selection with visual feedback
+- **Transform Gizmos** - Interactive translate, rotate, and scale tools
+- **Scene Tree** - Hierarchical object management with context menus
+- **Camera Controls** - Orbit, pan, zoom with keyboard shortcuts
+- **Snapping System** - 13 snap types for precise positioning
 
-```cmake
-# JT Open Toolkit paths
-set(JT_ROOT "C:/Users/George/source/repos/lineSim/lib3")
-set(JT_INCLUDE_DIR "${JT_ROOT}")
-set(JT_LIB_DIR "${JT_ROOT}")
-```
+### 🤖 Kinematics & Robotics
+- **Forward Kinematics** - Real-time joint angle calculations
+- **Inverse Kinematics** - Target-based robot positioning
+- **Kinematic Chains** - Multi-joint robot arm simulation
+- **Joint Limits** - Configurable joint constraints and ranges
+- **Path Planning** - RRT-based trajectory planning algorithms
 
-### Server Configuration
-The Python server automatically:
-- Finds the C++ wrapper executable
-- Creates temporary directories
-- Handles file cleanup
-- Provides detailed logging
+### 📁 CAD Import & Export
+- **JT Files** - Siemens JT format with kinematic data extraction
+- **URDF** - Robot model import with joint definitions
+- **CATIA** - Native CATIA file support
+- **DXF** - 2D CAD drawings with layer support
+- **STL/OBJ** - 3D mesh formats
+- **glTF/GLB** - Standard 3D asset format
 
-## 📚 API Endpoints
+### ⚡ Physics Simulation
+- **Real-time Physics** - Rapier3D physics engine
+- **Collision Detection** - Accurate collision response
+- **Rigid Body Dynamics** - Mass, inertia, and force simulation
+- **Gravity & Constraints** - Realistic physical behavior
 
-### Health Check
-```http
-GET /health
-```
+### 🔧 Boolean Operations
+- **CSG Operations** - Union, Subtract, Intersect
+- **Manifold Integration** - High-quality mesh operations
+- **Undo/Redo Support** - Full command pattern implementation
+- **Material Preservation** - Maintains material properties
 
-### Convert JT to GLTF
-```http
-POST /convert/jt-to-gltf
-Content-Type: multipart/form-data
+### 🎨 User Interface
+- **Progressive Disclosure** - Essential/Professional/Expert modes
+- **Keyboard Shortcuts** - Industry-standard hotkeys
+- **Context Menus** - Right-click object manipulation
+- **Inspector Panel** - Property editing and configuration
+- **Toast Notifications** - User feedback and status updates
 
-file: JT file
-load_geometry: boolean (optional, default: true)
-```
+### 🔄 Command System
+- **Undo/Redo** - Complete command history with branching
+- **Command Pattern** - Extensible action system
+- **Keyboard Shortcuts** - Ctrl+Z, Ctrl+Y, Ctrl+D
+- **State Management** - Consistent application state
 
-### Convert JT to GLB
-```http
-POST /convert/jt-to-glb
-Content-Type: multipart/form-data
+## 🎯 Current Status
 
-file: JT file
-load_geometry: boolean (optional, default: true)
-```
+### ✅ Production Ready Features
+- **Multi-selection System** - Complete with visual feedback
+- **Boolean Operations** - CSG operations with undo/redo
+- **Command System** - Full undo/redo with command pattern
+- **Keyboard Shortcuts** - Industry-standard hotkeys
+- **File Import** - JT, URDF, CATIA, DXF, STL, OBJ, glTF
+- **Progressive UI** - Essential/Professional/Expert modes
+- **Physics Engine** - Rapier3D integration
+- **Snapping System** - 13 snap types for precision
 
-### Server Info
-```http
-GET /info
-```
+### 🧪 Testing Infrastructure
+- **100+ Unit Tests** - Comprehensive test coverage
+- **Vitest Framework** - Modern testing with coverage
+- **Babylon.js Mocks** - Lightweight testing without WebGL
+- **Command Testing** - Undo/redo system validation
+- **Snapping Tests** - 73 tests for precision system
 
-## 🔍 Features
+### 📊 Recent Achievements
+- **Critical Bug Fixed** - Snapping system buttons now functional
+- **Test Infrastructure** - Complete testing framework setup
+- **Code Quality** - TypeScript strict mode, ESLint, Prettier
+- **Performance** - Optimized build with code splitting
+- **Documentation** - Comprehensive technical documentation
 
-### JT File Support
-- ✅ JT file loading and parsing
-- ✅ Geometry extraction (vertices, faces, normals)
-- ✅ Material properties (diffuse, specular, ambient, emission)
-- ✅ Transform matrices
-- ✅ Hierarchy preservation
-- ✅ Multiple LOD support
+## 🚀 Getting Started
 
-### Output Formats
-- ✅ GLTF (JSON format)
-- ✅ GLB (Binary format)
-- ✅ Optimized for web rendering
-- ✅ Compatible with Babylon.js
+### Basic Workflow
 
-### Performance
-- ✅ Native C++ performance
-- ✅ Memory efficient
-- ✅ Parallel processing support
-- ✅ Streaming for large files
+1. **Import CAD Model**
+   ```typescript
+   // Load robot model
+   const robot = await ModelLoader.loadURDF('robot.urdf');
+   
+   // Or import JT assembly
+   const assembly = await ModelLoader.loadJT('assembly.jt');
+   ```
+
+2. **Set Up Kinematics**
+   ```typescript
+   // Create kinematic chain
+   const chain = KinematicsManager.createChain(robot);
+   
+   // Set joint limits
+   chain.setJointLimits(0, { min: -180, max: 180 });
+   ```
+
+3. **Simulate Motion**
+   ```typescript
+   // Forward kinematics
+   const pose = chain.forwardKinematics([0, 45, -90, 0, 0, 0]);
+   
+   // Inverse kinematics
+   const angles = chain.inverseKinematics(targetPose);
+   ```
+
+### Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `W` | Translate mode |
+| `E` | Rotate mode |
+| `R` | Scale mode |
+| `Ctrl+Z` | Undo |
+| `Ctrl+Y` | Redo |
+| `Ctrl+D` | Duplicate |
+| `Delete` | Delete selected |
+| `F` | Frame selected |
+| `.` | Zoom fit all |
 
 ## 🐛 Troubleshooting
 
-### Build Issues
+### Common Issues
 
-**CMake not found:**
+**TypeScript Errors:**
 ```bash
-# Install CMake from https://cmake.org/download/
-# Or use package manager
-choco install cmake
+# Run type checking
+npm run type-check
+
+# Fix auto-fixable issues
+npm run lint:fix
 ```
 
-**Visual Studio not found:**
+**Build Failures:**
 ```bash
-# Install Visual Studio Community with C++ tools
-# Or use Build Tools for Visual Studio
+# Clear cache and reinstall
+rm -rf node_modules package-lock.json
+npm install
+
+# Check for dependency conflicts
+npm ls
 ```
 
-**JT libraries not found:**
-- Ensure JT libraries are in the correct directory
-- Check DLL dependencies
-- Verify library versions compatibility
+**Physics Issues:**
+- Ensure Rapier3D is properly initialized
+- Check coordinate system alignment (Z-up)
+- Verify rigid body creation parameters
 
-### Runtime Issues
-
-**Wrapper executable not found:**
-```bash
-# Check if build completed successfully
-ls build/bin/Release/jt_converter_wrapper.exe
-
-# Copy to accessible location
-copy build/bin/Release/jt_converter_wrapper.exe .
-```
-
-**Conversion fails:**
-- Check JT file format compatibility
+**Import Issues:**
+- Check file format compatibility
 - Verify file permissions
-- Review server logs for detailed error messages
+- Review browser console for detailed errors
 
-**Memory issues:**
-- Large JT files may require more memory
-- Consider implementing streaming for very large files
+### Performance Optimization
 
-## 🔄 Integration with kinetiCORE
+**Large Models:**
+- Use LOD (Level of Detail) for complex meshes
+- Enable frustum culling for off-screen objects
+- Consider mesh simplification for distant objects
 
-### Frontend Integration
-Update the JT loader in kinetiCORE to use the new server:
+**Physics Performance:**
+- Adjust physics timestep for better performance
+- Use simplified collision shapes when possible
+- Enable sleeping for static objects
+
+## 🏗️ Architecture Details
+
+### Core Systems
+
+**Scene Management:**
+- Hierarchical scene tree with parent-child relationships
+- Entity registry for efficient object lookup
+- Transform synchronization between 3D and physics
+
+**Physics Engine:**
+- Rapier3D integration with coordinate conversion
+- Rigid body dynamics and collision detection
+- Constraint system for joints and mechanisms
+
+**Kinematics Engine:**
+- Forward kinematics solver for joint chains
+- Inverse kinematics with multiple algorithms
+- Joint limit enforcement and validation
+
+**Command System:**
+- Command pattern for all user actions
+- Undo/redo with branching support
+- State consistency across operations
+
+### File Structure
+
+```
+src/
+├── core/           # Core types and utilities
+├── physics/        # Physics engine abstraction
+├── scene/          # 3D scene management
+├── entities/       # Scene entity system
+├── kinematics/     # Robot kinematics
+├── loaders/        # CAD file importers
+├── manipulation/   # Transform tools
+├── ui/             # React components
+├── history/        # Command system
+└── __tests__/      # Unit tests
+```
+
+## 🧪 Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run tests in watch mode
+npm test -- --watch
+
+# Run specific test file
+npm test SnappingHelper.test.ts
+```
+
+### Test Coverage
+
+Current test coverage includes:
+- **SnappingHelper** - 73 tests covering all snap types
+- **CommandManager** - 30 tests for undo/redo system
+- **TransformCommand** - 22 tests for transform operations
+- **Babylon.js Mocks** - Lightweight mocks for testing
+
+### Writing Tests
 
 ```typescript
-// src/loaders/jt/JTConversionService.ts
-const JT_SERVER_URL = 'http://localhost:8000';
+import { describe, it, expect } from 'vitest';
+import { SnappingHelper } from '../SnappingHelper';
 
-export async function convertJTToGLTF(jtFile: File): Promise<ArrayBuffer> {
-    const formData = new FormData();
-    formData.append('file', jtFile);
-    formData.append('load_geometry', 'true');
+describe('SnappingHelper', () => {
+  it('should snap to nearest vertex', () => {
+    // Arrange
+    const helper = SnappingHelper.getInstance();
+    const point = new Vector3(1, 1, 1);
     
-    const response = await fetch(`${JT_SERVER_URL}/convert/jt-to-gltf`, {
-        method: 'POST',
-        body: formData
-    });
+    // Act
+    const result = helper.snapToVertex(point, meshes);
     
-    if (!response.ok) {
-        throw new Error(`Conversion failed: ${response.statusText}`);
-    }
-    
-    return await response.arrayBuffer();
-}
+    // Assert
+    expect(result.snapped).toBe(true);
+    expect(result.position).toBeDefined();
+  });
+});
 ```
-
-### Backend Integration
-The server can be deployed as:
-- Standalone service
-- Docker container
-- Windows service
-- Cloud function
-
-## 📈 Performance Comparison
-
-| Method | Speed | Memory | Reliability | Features |
-|--------|-------|--------|--------------|----------|
-| PyOpenJt | ⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐⭐ |
-| C++ Wrapper | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
 
 ## 🚀 Future Enhancements
 
-- [ ] Batch conversion support
-- [ ] Progress tracking
-- [ ] Custom material mapping
-- [ ] Animation support
-- [ ] Cloud deployment
-- [ ] Docker containerization
-- [ ] WebAssembly version
+### Short Term (Next 4 weeks)
+- [ ] Web Workers for CSG operations
+- [ ] Advanced material editor
+- [ ] Animation timeline
+- [ ] Constraint editor
+- [ ] Performance profiling tools
+
+### Medium Term (Next 3 months)
+- [ ] Cloud storage integration
+- [ ] Real-time collaboration
+- [ ] Advanced path planning algorithms
+- [ ] Machine learning integration
+- [ ] Mobile responsive UI
+
+### Long Term (6+ months)
+- [ ] WebAssembly physics engine
+- [ ] VR/AR support
+- [ ] Enterprise features
+- [ ] Plugin system
+- [ ] API for third-party integrations
 
 ## 📄 License
 
-This project uses JT Open Toolkit libraries which have their own licensing terms. Please ensure compliance with JT Open Toolkit licensing requirements.
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🤝 Contributing
 
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Setup
+
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+2. Clone your fork: `git clone https://github.com/your-username/kineticore.git`
+3. Install dependencies: `npm install`
+4. Create a feature branch: `git checkout -b feature/amazing-feature`
+5. Make your changes and add tests
+6. Run tests: `npm test`
+7. Commit your changes: `git commit -m 'feat: add amazing feature'`
+8. Push to your branch: `git push origin feature/amazing-feature`
+9. Open a Pull Request
+
+### Code Standards
+
+- TypeScript strict mode
+- ESLint + Prettier formatting
+- Write tests for new features
+- Follow conventional commits
+- Update documentation
 
 ## 📞 Support
 
-For issues and questions:
-- Check the troubleshooting section
-- Review server logs
-- Test with simple JT files first
-- Verify JT library installation
+### Getting Help
+
+- **Documentation** - Check the `/docs` folder for detailed guides
+- **Issues** - Report bugs and request features on GitHub
+- **Discussions** - Join community discussions
+- **Email** - Contact the team directly
+
+### Resources
+
+- [Architecture Decisions](ARCHITECTURE_DECISIONS.md)
+- [Implementation Status](IMPLEMENTATION_STATUS.md)
+- [Testing Guide](UNIT_TESTING_GUIDE.md)
+- [Technical Debt Audit](TECHNICAL_DEBT_AUDIT.md)
+
+---
+
+**Built with ❤️ by the kinetiCORE team**
+
+*George (Architecture Lead) • Cole (3D/Babylon) • Edwin (UI/UX)*
