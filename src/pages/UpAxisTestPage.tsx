@@ -42,7 +42,7 @@ export const UpAxisTestPage: React.FC = () => {
     const engine = new BABYLON.Engine(canvas, true);
     const scene = new BABYLON.Scene(engine);
     const camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI / 3, 10, BABYLON.Vector3.Zero(), scene);
-    camera.attachControls(canvas, true);
+    camera.attachControl(canvas, true);
 
     const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
     light.intensity = 0.7;
@@ -76,7 +76,7 @@ export const UpAxisTestPage: React.FC = () => {
   }, []);
 
   // Logging function
-  const log = (message: string, type: 'success' | 'error' | 'warning' | 'info' | '' = '') => {
+  const log = (message: string, _type: 'success' | 'error' | 'warning' | 'info' | '' = '') => {
     const timestamp = new Date().toLocaleTimeString();
     setConsoleOutput(prev => [...prev, `[${timestamp}] ${message}`]);
     console.log(message);
@@ -148,6 +148,7 @@ export const UpAxisTestPage: React.FC = () => {
           method: 'ERROR',
           applied: false,
           isCorrect: false,
+          position: 'Unknown',
           error: result.errors.join(', ')
         });
         return;
@@ -221,6 +222,7 @@ export const UpAxisTestPage: React.FC = () => {
         method: 'ERROR',
         applied: false,
         isCorrect: false,
+        position: 'Unknown',
         error: error instanceof Error ? error.message : String(error)
       });
     }

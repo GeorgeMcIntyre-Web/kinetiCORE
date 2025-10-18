@@ -9,17 +9,15 @@ import {
   Cylinder,
   Save,
   Upload,
-  FolderOpen,
-  Move,
-  RotateCw,
   Layers,
   Library,
   Cog,
   Settings,
-  Trash2,
   Plus,
 } from 'lucide-react';
 import { ToolbarDropdown } from '../components/ToolbarDropdown';
+import { Header } from '../components/Header';
+import { FloatingPanel } from '../components/FloatingPanel';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { useAssetLibraryStore } from '../store/assetLibraryStore';
@@ -36,6 +34,7 @@ import { EntityRegistry } from '../../entities/EntityRegistry';
 import { babylonToUser } from '../../core/CoordinateSystem';
 import { CreateProjectionViewCommand } from '../../history/commands/CreateProjectionViewCommand';
 import { toast } from '../components/ToastNotifications';
+import { zIndex } from '../styles/design-tokens';
 import './EssentialModeLayout.css';
 
 export const EssentialModeLayout: React.FC = () => {
@@ -45,7 +44,6 @@ export const EssentialModeLayout: React.FC = () => {
   const loadWorld = useEditorStore((state) => state.loadWorld);
   const loadComprehensiveWorld = useEditorStore((state) => state.loadComprehensiveWorld);
   const saveComprehensiveWorld = useEditorStore((state) => state.saveComprehensiveWorld);
-  const clearWorld = useEditorStore((state) => state.clearWorld);
   const zoomFit = useEditorStore((state) => state.zoomFit);
   const zoomToNode = useEditorStore((state) => state.zoomToNode);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
@@ -73,10 +71,6 @@ export const EssentialModeLayout: React.FC = () => {
 
   const handleFileImport = () => {
     fileInputRef.current?.click();
-  };
-
-  const handleLoadWorld = () => {
-    loadFileInputRef.current?.click();
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -203,12 +197,6 @@ export const EssentialModeLayout: React.FC = () => {
   const handleZoomToSelected = () => {
     if (selectedNodeId) {
       zoomToNode(selectedNodeId);
-    }
-  };
-
-  const handleClearWorld = () => {
-    if (window.confirm('Are you sure you want to clear the entire world? This cannot be undone.')) {
-      clearWorld();
     }
   };
 
@@ -396,68 +384,41 @@ export const EssentialModeLayout: React.FC = () => {
     };
   }, [selectedNodeId]);
 
-  // FORCE sidebar width - browser cache workaround
-  useEffect(() => {
-    const forceSidebarWidth = () => {
-      const sidebar = document.querySelector('.essential-sidebar') as HTMLElement;
-      if (sidebar) {
-        sidebar.style.width = '240px';
-        sidebar.style.minWidth = '240px';
-        sidebar.style.maxWidth = '240px';
-        sidebar.style.flex = '0 0 240px';
-      }
-    };
-
-    forceSidebarWidth();
-    setTimeout(forceSidebarWidth, 100);
-    setTimeout(forceSidebarWidth, 500);
-  }, []);
 
   return (
-    <div className="essential-layout">
+    <div className="flex h-screen w-full overflow-hidden bg-gray-50">
       {/* Header */}
-      <header className="essential-header">
-        <div className="header-left">
-          <h1 className="logo">kinetiCORE</h1>
-          <span className="mode-badge">Essential</span>
-        </div>
-        <div className="header-center"></div>
-        <div className="header-right">
-          <select
-            value={userLevel}
-            onChange={(e) => {
-              const newLevel = e.target.value;
-              if (newLevel === 'essential' || newLevel === 'professional' || newLevel === 'expert') {
-                setUserLevel(newLevel);
-              }
-            }}
-            className="user-level-select"
-          >
-            <option value="essential">Essential</option>
-            <option value="professional">Professional</option>
-            <option value="expert">Expert</option>
-          </select>
-        </div>
-      </header>
+      <Header
+        currentMode={userLevel as 'essential' | 'professional' | 'expert'}
+        onModeChange={(mode) => setUserLevel(mode)}
+        onSettingsClick={() => toast.info('Settings panel coming soon')}
+        onHelpClick={() => toast.info('Help documentation coming soon')}
+        className="fixed top-0 left-0 right-0 z-50"
+      />
 
       {/* Main Content */}
-      <div className="essential-content">
-        {/* Left Sidebar - COMPACT 240px */}
-        <aside className="essential-sidebar" style={{ width: '240px', minWidth: '240px', maxWidth: '240px' }}>
-          <div className="sidebar-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0 }}>
-            <h3 className="sidebar-title" style={{ padding: '12px 8px' }}>Scene Tree</h3>
-            <div style={{ flex: 1, overflow: 'auto', padding: 0 }}>
+      <div className="flex flex-1 pt-16 overflow-hidden">
+        {/* Left Sidebar */}
+        <aside className="w-64 border-r border-gray-200 bg-white overflow-y-auto flex-shrink-0">
+          <div className="p-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Scene Tree</h3>
+            <div className="h-full overflow-auto">
               <SceneTree />
             </div>
           </div>
         </aside>
 
         {/* Main Viewport */}
-        <main id="viewport-essential" className="essential-viewport"></main>
+        <main className="flex-1 relative bg-gray-100">
+          <div id="viewport-essential" className="w-full h-full"></div>
+        </main>
       </div>
 
-      {/* Floating Toolbar - CONSOLIDATED (5 primary actions) */}
-      <div className="floating-toolbar">
+      {/* Floating Toolbar */}
+      <div 
+        className="fixed top-20 left-4 flex items-center space-x-2 bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-40"
+        style={{ zIndex: zIndex.toolbar }}
+      >
         {/* Create Shapes Dropdown */}
         <ToolbarDropdown
           label="Create"
@@ -469,22 +430,21 @@ export const EssentialModeLayout: React.FC = () => {
           ]}
         />
 
-        <div className="toolbar-separator" />
+        <div className="w-px h-6 bg-gray-300" />
 
-        {/* Import Button (PRIMARY ACTION - COMPACT) */}
+        {/* Import Button */}
         <button
-          className="toolbar-btn primary"
+          className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors duration-200 text-sm"
           onClick={handleFileImport}
-          title="Import MJCF, URDF, STL, GLB"
-          style={{ padding: '6px 12px', background: '#48bb78', borderColor: '#48bb78', color: 'white', height: '30px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}
+          title="Import MJCF, URDF, STL, GLB, USD"
         >
           <Upload size={14} />
           <span>Import</span>
         </button>
 
-        <div className="toolbar-separator" />
+        <div className="w-px h-6 bg-gray-300" />
 
-        {/* Robot Tools Dropdown (MJCF Features) */}
+        {/* Robot Tools Dropdown */}
         <ToolbarDropdown
           label="Robot"
           icon={<Cog size={16} />}
@@ -495,7 +455,7 @@ export const EssentialModeLayout: React.FC = () => {
           ]}
         />
 
-        <div className="toolbar-separator" />
+        <div className="w-px h-6 bg-gray-300" />
 
         {/* Tools Dropdown */}
         <ToolbarDropdown
@@ -509,25 +469,34 @@ export const EssentialModeLayout: React.FC = () => {
           ]}
         />
 
-        <div className="toolbar-separator" />
+        <div className="w-px h-6 bg-gray-300" />
 
-        {/* Save Button - COMPACT */}
+        {/* Save Button */}
         <button
-          className="toolbar-btn"
+          className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors duration-200"
           onClick={saveComprehensiveWorld}
           title="Save World"
-          style={{ width: '30px', height: '30px', padding: '4px' }}
         >
           <Save size={16} />
         </button>
       </div>
 
       {/* Viewport Controls */}
-      <div className="viewport-controls">
-        <button className="control-btn" onClick={handleResetView}>Reset View</button>
-        <button className="control-btn" onClick={handleZoomFit}>Zoom Fit</button>
+      <div className="fixed bottom-4 right-4 flex flex-col space-y-2 z-40">
+        <button 
+          className="px-3 py-2 bg-white border border-gray-200 rounded-md shadow-sm hover:bg-gray-50 transition-colors duration-200 text-sm"
+          onClick={handleResetView}
+        >
+          Reset View
+        </button>
+        <button 
+          className="px-3 py-2 bg-white border border-gray-200 rounded-md shadow-sm hover:bg-gray-50 transition-colors duration-200 text-sm"
+          onClick={handleZoomFit}
+        >
+          Zoom Fit
+        </button>
         <button
-          className="control-btn"
+          className="px-3 py-2 bg-white border border-gray-200 rounded-md shadow-sm hover:bg-gray-50 transition-colors duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={handleZoomToSelected}
           disabled={!selectedNodeId}
         >
@@ -538,156 +507,103 @@ export const EssentialModeLayout: React.FC = () => {
 
       {/* Transform Display */}
       {transform && (
-        <div className="transform-display">
-          <div className="transform-row">
-            <span className="transform-value">X:{transform.x}</span>
-            <span className="transform-value">Y:{transform.y}</span>
-            <span className="transform-value">Z:{transform.z}</span>
+        <div className="fixed bottom-4 left-4 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-40">
+          <div className="flex space-x-4 text-sm">
+            <div className="flex space-x-2">
+              <span className="text-gray-500">X:</span>
+              <span className="font-mono">{transform.x}</span>
+            </div>
+            <div className="flex space-x-2">
+              <span className="text-gray-500">Y:</span>
+              <span className="font-mono">{transform.y}</span>
+            </div>
+            <div className="flex space-x-2">
+              <span className="text-gray-500">Z:</span>
+              <span className="font-mono">{transform.z}</span>
+            </div>
           </div>
-          <div className="transform-row">
-            <span className="transform-value">RX:{transform.rx}°</span>
-            <span className="transform-value">RY:{transform.ry}°</span>
-            <span className="transform-value">RZ:{transform.rz}°</span>
+          <div className="flex space-x-4 text-sm mt-1">
+            <div className="flex space-x-2">
+              <span className="text-gray-500">RX:</span>
+              <span className="font-mono">{transform.rx}°</span>
+            </div>
+            <div className="flex space-x-2">
+              <span className="text-gray-500">RY:</span>
+              <span className="font-mono">{transform.ry}°</span>
+            </div>
+            <div className="flex space-x-2">
+              <span className="text-gray-500">RZ:</span>
+              <span className="font-mono">{transform.rz}°</span>
+            </div>
           </div>
         </div>
       )}
 
       {/* Floating Panels */}
-      {showKinematicsPanel && (
-        <div style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '500px',
-          height: '600px',
-          background: '#1a1a1a',
-          borderRadius: '12px',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
-          zIndex: 1000,
-          overflow: 'hidden'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: '#252526', borderBottom: '2px solid #646cff' }}>
-            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#ffffff' }}>Kinematics</h2>
-            <button onClick={() => setShowKinematicsPanel(false)} style={{
-              background: 'none', border: 'none', color: '#888', fontSize: '1.5rem', cursor: 'pointer',
-              width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: '4px', transition: 'all 0.15s'
-            }}>×</button>
-          </div>
-          <div style={{ height: 'calc(100% - 60px)', overflow: 'auto' }}>
-            <KinematicsPanel />
-          </div>
-        </div>
-      )}
-      {showActuatorPanel && (
-        <div style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '600px',
-          height: '700px',
-          background: '#1a1a1a',
-          borderRadius: '12px',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
-          zIndex: 1000,
-          overflow: 'hidden'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: '#252526', borderBottom: '2px solid #646cff' }}>
-            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#ffffff' }}>Actuator Control</h2>
-            <button onClick={() => setShowActuatorPanel(false)} style={{
-              background: 'none', border: 'none', color: '#888', fontSize: '1.5rem', cursor: 'pointer',
-              width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: '4px', transition: 'all 0.15s'
-            }}>×</button>
-          </div>
-          <div style={{ height: 'calc(100% - 60px)', overflow: 'auto' }}>
-            <ActuatorControlPanel />
-          </div>
-        </div>
-      )}
-      {showDeviceLibrary && (
-        <div style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '800px',
-          height: '600px',
-          background: '#1a1a1a',
-          borderRadius: '12px',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
-          zIndex: 1000,
-          overflow: 'hidden'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: '#252526', borderBottom: '2px solid #646cff' }}>
-            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#ffffff' }}>Device Library</h2>
-            <button onClick={() => setShowDeviceLibrary(false)} style={{
-              background: 'none', border: 'none', color: '#888', fontSize: '1.5rem', cursor: 'pointer',
-              width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: '4px', transition: 'all 0.15s'
-            }}>×</button>
-          </div>
-          <div style={{ height: 'calc(100% - 60px)', overflow: 'auto' }}>
-            <DeviceLibrary />
-          </div>
-        </div>
-      )}
-      {showPhysicsSettings && (
-        <div style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '500px',
-          height: '500px',
-          background: '#1a1a1a',
-          borderRadius: '12px',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
-          zIndex: 1000,
-          overflow: 'hidden'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: '#252526', borderBottom: '2px solid #646cff' }}>
-            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#ffffff' }}>Physics Settings</h2>
-            <button onClick={() => setShowPhysicsSettings(false)} style={{
-              background: 'none', border: 'none', color: '#888', fontSize: '1.5rem', cursor: 'pointer',
-              width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: '4px', transition: 'all 0.15s'
-            }}>×</button>
-          </div>
-          <div style={{ height: 'calc(100% - 60px)', overflow: 'auto' }}>
-            <PhysicsSettings />
-          </div>
-        </div>
-      )}
-      {showCollisionVisualizer && (
-        <div style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '400px',
-          height: '400px',
-          background: '#1a1a1a',
-          borderRadius: '12px',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
-          zIndex: 1000,
-          overflow: 'hidden'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: '#252526', borderBottom: '2px solid #646cff' }}>
-            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#ffffff' }}>Collision Visualizer</h2>
-            <button onClick={() => setShowCollisionVisualizer(false)} style={{
-              background: 'none', border: 'none', color: '#888', fontSize: '1.5rem', cursor: 'pointer',
-              width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: '4px', transition: 'all 0.15s'
-            }}>×</button>
-          </div>
-          <div style={{ height: 'calc(100% - 60px)', overflow: 'auto' }}>
-            <CollisionVisualizer />
-          </div>
-        </div>
-      )}
+      <FloatingPanel
+        isOpen={showKinematicsPanel}
+        onClose={() => setShowKinematicsPanel(false)}
+        title="Kinematics Panel"
+        size="md"
+        position="center"
+        draggable={true}
+        resizable={false}
+        zIndex={zIndex.modal}
+      >
+        <KinematicsPanel />
+      </FloatingPanel>
+
+      <FloatingPanel
+        isOpen={showActuatorPanel}
+        onClose={() => setShowActuatorPanel(false)}
+        title="Actuator Control Panel"
+        size="lg"
+        position="center"
+        draggable={true}
+        resizable={false}
+        zIndex={zIndex.modal}
+      >
+        <ActuatorControlPanel />
+      </FloatingPanel>
+
+      <FloatingPanel
+        isOpen={showDeviceLibrary}
+        onClose={() => setShowDeviceLibrary(false)}
+        title="Device Library"
+        size="xl"
+        position="center"
+        draggable={true}
+        resizable={false}
+        zIndex={zIndex.modal}
+      >
+        <DeviceLibrary />
+      </FloatingPanel>
+
+      <FloatingPanel
+        isOpen={showPhysicsSettings}
+        onClose={() => setShowPhysicsSettings(false)}
+        title="Physics Settings"
+        size="md"
+        position="center"
+        draggable={true}
+        resizable={false}
+        zIndex={zIndex.modal}
+      >
+        <PhysicsSettings />
+      </FloatingPanel>
+
+      <FloatingPanel
+        isOpen={showCollisionVisualizer}
+        onClose={() => setShowCollisionVisualizer(false)}
+        title="Collision Visualizer"
+        size="sm"
+        position="center"
+        draggable={true}
+        resizable={false}
+        zIndex={zIndex.modal}
+      >
+        <CollisionVisualizer />
+      </FloatingPanel>
 
       {/* Hidden file inputs */}
       <input

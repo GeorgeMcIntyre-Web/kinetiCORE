@@ -65,7 +65,39 @@ def find_usd_converter() -> Optional[str]:
 def create_fallback_gltf(output_path: str) -> bool:
     """Create a simple fallback glTF file when USD conversion fails"""
     try:
-        # Create a simple cube glTF (minimal version)
+        # Create a simple cube glTF with proper binary data
+        import struct
+        
+        # Cube vertices (8 vertices)
+        vertices = [
+            -0.5, -0.5, -0.5,  # 0
+             0.5, -0.5, -0.5,  # 1
+             0.5,  0.5, -0.5,  # 2
+            -0.5,  0.5, -0.5,  # 3
+            -0.5, -0.5,  0.5,  # 4
+             0.5, -0.5,  0.5,  # 5
+             0.5,  0.5,  0.5,  # 6
+            -0.5,  0.5,  0.5,  # 7
+        ]
+        
+        # Cube indices (12 triangles)
+        indices = [
+            0, 1, 2,  0, 2, 3,  # front
+            4, 7, 6,  4, 6, 5,  # back
+            0, 4, 5,  0, 5, 1,  # bottom
+            2, 6, 7,  2, 7, 3,  # top
+            0, 3, 7,  0, 7, 4,  # left
+            1, 5, 6,  1, 6, 2,  # right
+        ]
+        
+        # Convert to bytes
+        vertex_bytes = struct.pack('<' + 'f' * len(vertices), *vertices)
+        index_bytes = struct.pack('<' + 'H' * len(indices), *indices)
+        
+        # Create buffer data
+        buffer_data = vertex_bytes + index_bytes
+        
+        # Create glTF structure
         gltf_data = {
             "asset": {"version": "2.0", "generator": "kinetiCORE USD Fallback"},
             "scene": 0,
@@ -80,7 +112,7 @@ def create_fallback_gltf(output_path: str) -> bool:
             "accessors": [
                 {
                     "bufferView": 0,
-                    "componentType": 5126,
+                    "componentType": 5126,  # FLOAT
                     "count": 8,
                     "type": "VEC3",
                     "min": [-0.5, -0.5, -0.5],
@@ -88,27 +120,34 @@ def create_fallback_gltf(output_path: str) -> bool:
                 },
                 {
                     "bufferView": 1,
-                    "componentType": 5123,
+                    "componentType": 5123,  # UNSIGNED_SHORT
                     "count": 36,
                     "type": "SCALAR"
                 }
             ],
             "bufferViews": [
-                {"buffer": 0, "byteOffset": 0, "byteLength": 96},
-                {"buffer": 0, "byteOffset": 96, "byteLength": 72}
+                {"buffer": 0, "byteOffset": 0, "byteLength": len(vertex_bytes)},
+                {"buffer": 0, "byteOffset": len(vertex_bytes), "byteLength": len(index_bytes)}
             ],
-            "buffers": [{"byteLength": 168}]
+            "buffers": [{"byteLength": len(buffer_data)}]
         }
         
         # Write glTF file
         with open(output_path, 'w') as f:
             json.dump(gltf_data, f, indent=2)
         
+        # Write binary buffer file
+        buffer_path = output_path.replace('.gltf', '.bin')
+        with open(buffer_path, 'wb') as f:
+            f.write(buffer_data)
+        
         logger.info(f"Created simple fallback glTF: {output_path}")
+        logger.info(f"Created binary buffer: {buffer_path}")
         return True
         
     except Exception as e:
         logger.error(f"Failed to create fallback glTF: {e}")
+        logger.error(traceback.format_exc())
         return False
 
 def convert_usd_to_gltf(input_path: str, output_path: str, options: Dict[str, Any]) -> bool:
@@ -253,11 +292,19 @@ def convert_usd():
         success = convert_usd_to_gltf(temp_usd.name, temp_gltf.name, options)
         
         if not success:
-            return jsonify({'error': 'USD conversion failed'}), 500
+            logger.error("USD conversion failed, attempting fallback")
+            # Try fallback conversion
+            success = create_fallback_gltf(temp_gltf.name)
+            
+        if not success:
+            return jsonify({'error': 'USD conversion failed and fallback generation failed'}), 500
         
         # Check if glTF file was created
         if not os.path.exists(temp_gltf.name) or os.path.getsize(temp_gltf.name) == 0:
-            return jsonify({'error': 'Conversion produced empty file'}), 500
+            logger.error("Conversion produced empty file, attempting fallback")
+            success = create_fallback_gltf(temp_gltf.name)
+            if not success:
+                return jsonify({'error': 'Conversion produced empty file and fallback failed'}), 500
         
         # Return converted glTF file
         return send_file(
@@ -368,10 +415,10 @@ if __name__ == '__main__':
         logger.warning("Server will start but conversions will fail.")
     
     # Start server
-    port = int(os.getenv('PORT', 5000))
+    port = int(os.getenv('PORT', 5001))  # Default to 5001
     debug = os.getenv('DEBUG', 'false').lower() == 'true'
     
     logger.info(f"Starting USD conversion server on port {port}")
     logger.info(f"Debug mode: {debug}")
     
-    app.run(host='0.0.0.0', port=5001, debug=debug)
+    app.run(host='0.0.0.0', port=port, debug=debug)
