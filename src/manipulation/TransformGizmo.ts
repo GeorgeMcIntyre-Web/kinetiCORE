@@ -31,6 +31,9 @@ export class TransformGizmo {
 
     // Set initial mode
     this.setMode('translate');
+
+    // Add drag end handlers to update Inspector when gizmo moves objects
+    this.setupGizmoHandlers();
   }
 
   /**
@@ -96,6 +99,36 @@ export class TransformGizmo {
    */
   getMode(): TransformMode {
     return this.currentMode;
+  }
+
+  /**
+   * Set up drag end handlers to notify editorStore when transforms change
+   */
+  private setupGizmoHandlers(): void {
+    if (!this.gizmoManager) return;
+
+    // Position gizmo drag end
+    this.gizmoManager.gizmos.positionGizmo?.onDragEndObservable.add(() => {
+      this.notifyTransformChange();
+    });
+
+    // Rotation gizmo drag end
+    this.gizmoManager.gizmos.rotationGizmo?.onDragEndObservable.add(() => {
+      this.notifyTransformChange();
+    });
+
+    // Scale gizmo drag end
+    this.gizmoManager.gizmos.scaleGizmo?.onDragEndObservable.add(() => {
+      this.notifyTransformChange();
+    });
+  }
+
+  /**
+   * Notify editorStore that a transform has changed (updates Inspector)
+   */
+  private notifyTransformChange(): void {
+    // Trigger a scene tree update event to refresh Inspector
+    window.dispatchEvent(new Event('scenetree-update'));
   }
 
   /**

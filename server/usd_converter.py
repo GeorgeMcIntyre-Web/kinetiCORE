@@ -65,39 +65,7 @@ def find_usd_converter() -> Optional[str]:
 def create_fallback_gltf(output_path: str) -> bool:
     """Create a simple fallback glTF file when USD conversion fails"""
     try:
-        # Create a simple cube glTF with proper binary data
-        import struct
-        
-        # Cube vertices (8 vertices)
-        vertices = [
-            -0.5, -0.5, -0.5,  # 0
-             0.5, -0.5, -0.5,  # 1
-             0.5,  0.5, -0.5,  # 2
-            -0.5,  0.5, -0.5,  # 3
-            -0.5, -0.5,  0.5,  # 4
-             0.5, -0.5,  0.5,  # 5
-             0.5,  0.5,  0.5,  # 6
-            -0.5,  0.5,  0.5,  # 7
-        ]
-        
-        # Cube indices (12 triangles)
-        indices = [
-            0, 1, 2,  0, 2, 3,  # front
-            4, 7, 6,  4, 6, 5,  # back
-            0, 4, 5,  0, 5, 1,  # bottom
-            2, 6, 7,  2, 7, 3,  # top
-            0, 3, 7,  0, 7, 4,  # left
-            1, 5, 6,  1, 6, 2,  # right
-        ]
-        
-        # Convert to bytes
-        vertex_bytes = struct.pack('<' + 'f' * len(vertices), *vertices)
-        index_bytes = struct.pack('<' + 'H' * len(indices), *indices)
-        
-        # Create buffer data
-        buffer_data = vertex_bytes + index_bytes
-        
-        # Create glTF structure
+        # Create a simple cube glTF (JSON only, no binary data)
         gltf_data = {
             "asset": {"version": "2.0", "generator": "kinetiCORE USD Fallback"},
             "scene": 0,
@@ -126,23 +94,17 @@ def create_fallback_gltf(output_path: str) -> bool:
                 }
             ],
             "bufferViews": [
-                {"buffer": 0, "byteOffset": 0, "byteLength": len(vertex_bytes)},
-                {"buffer": 0, "byteOffset": len(vertex_bytes), "byteLength": len(index_bytes)}
+                {"buffer": 0, "byteOffset": 0, "byteLength": 96},
+                {"buffer": 0, "byteOffset": 96, "byteLength": 72}
             ],
-            "buffers": [{"byteLength": len(buffer_data)}]
+            "buffers": [{"byteLength": 168}]
         }
         
         # Write glTF file
         with open(output_path, 'w') as f:
             json.dump(gltf_data, f, indent=2)
         
-        # Write binary buffer file
-        buffer_path = output_path.replace('.gltf', '.bin')
-        with open(buffer_path, 'wb') as f:
-            f.write(buffer_data)
-        
         logger.info(f"Created simple fallback glTF: {output_path}")
-        logger.info(f"Created binary buffer: {buffer_path}")
         return True
         
     except Exception as e:
