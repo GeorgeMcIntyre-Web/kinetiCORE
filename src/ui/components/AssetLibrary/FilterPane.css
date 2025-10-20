@@ -1,0 +1,218 @@
+/* FilterPane - Category tree and filters */
+
+.filter-pane {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  height: 100%;
+  background: rgba(18, 18, 21, 0.95);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  overflow-y: auto;
+}
+
+/* Search */
+.filter-search {
+  position: relative;
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.filter-search-icon {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+}
+
+.filter-search-input {
+  width: 100%;
+  padding: 8px 12px 8px 32px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.filter-search-input:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.filter-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Section */
+.filter-section {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.filter-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-reset-btn {
+  padding: 4px 8px;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-reset-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Category Tree */
+.category-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.category-node {
+  display: flex;
+  flex-direction: column;
+}
+
+.category-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.category-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.category-item.active {
+  background: rgba(59, 130, 246, 0.15);
+  color: rgb(96, 165, 250);
+}
+
+.category-chevron {
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.category-spacer {
+  width: 14px;
+  flex-shrink: 0;
+}
+
+.category-label {
+  flex: 1;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.category-count {
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.category-children {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Filters */
+.filter-group {
+  margin-bottom: 16px;
+}
+
+.filter-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.filter-slider {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.filter-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: rgb(59, 130, 246);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.filter-slider::-webkit-slider-thumb:hover {
+  background: rgb(96, 165, 250);
+  transform: scale(1.1);
+}
+
+.filter-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: rgb(59, 130, 246);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.filter-slider::-moz-range-thumb:hover {
+  background: rgb(96, 165, 250);
+  transform: scale(1.1);
+}
+
+.filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.filter-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: rgb(59, 130, 246);
+}
+
+.filter-checkbox span {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+}
