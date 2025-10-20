@@ -45,36 +45,50 @@ export const FloorSelector: React.FC = () => {
   };
 
   return (
-    <div className="floor-selector">
-      <div className="floor-selector-dropdown">
-        <label htmlFor="floor-type" className="floor-label">
-          Floor:
-        </label>
-        <select
-          id="floor-type"
-          value={currentFloor}
-          onChange={handleFloorChange}
-          className="floor-select"
-          title="Select floor material"
-        >
-          {FLOOR_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '3px',
+      padding: '2px 4px',
+      background: 'rgba(40, 40, 45, 0.95)',
+      borderRadius: '3px',
+      border: '1px solid rgba(60, 60, 65, 0.8)',
+      fontSize: '9px',
+    }}>
+      <label style={{ color: '#e0e0e0', fontSize: '9px', whiteSpace: 'nowrap' }}>
+        Floor:
+      </label>
+      <select
+        value={currentFloor}
+        onChange={handleFloorChange}
+        title="Select floor material"
+        style={{
+          background: 'rgba(30, 30, 35, 0.95)',
+          border: '1px solid rgba(80, 80, 85, 0.8)',
+          borderRadius: '3px',
+          color: '#e0e0e0',
+          padding: '2px 4px',
+          fontSize: '9px',
+          cursor: 'pointer',
+          outline: 'none',
+          width: '75px',
+        }}
+      >
+        {FLOOR_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
 
-      <div className="grid-toggle">
-        <label className="grid-checkbox-label">
-          <input
-            type="checkbox"
-            checked={showGrid}
-            onChange={handleGridToggle}
-            className="grid-checkbox"
-          />
-          <span className="grid-label-text">Grid</span>
-        </label>
+      <div style={{ borderLeft: '1px solid rgba(80, 80, 85, 0.5)', paddingLeft: '3px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+        <input
+          type="checkbox"
+          checked={showGrid}
+          onChange={handleGridToggle}
+          style={{ width: '11px', height: '11px', cursor: 'pointer', accentColor: '#4a9eff' }}
+        />
+        <span style={{ fontSize: '9px', color: '#e0e0e0' }}>Grid</span>
       </div>
     </div>
   );

@@ -31,7 +31,20 @@ export const ToolbarDropdown: React.FC<ToolbarDropdownProps> = ({
   variant = 'secondary'
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Calculate menu position when opened
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 4,
+        left: rect.left
+      });
+    }
+  }, [isOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -55,6 +68,7 @@ export const ToolbarDropdown: React.FC<ToolbarDropdownProps> = ({
   return (
     <div className="toolbar-dropdown" ref={dropdownRef}>
       <button
+        ref={buttonRef}
         className={`dropdown-trigger ${variant}`}
         onClick={() => setIsOpen(!isOpen)}
         title={label}
@@ -65,7 +79,13 @@ export const ToolbarDropdown: React.FC<ToolbarDropdownProps> = ({
       </button>
 
       {isOpen && (
-        <div className="dropdown-menu">
+        <div
+          className="dropdown-menu"
+          style={{
+            top: `${menuPosition.top}px`,
+            left: `${menuPosition.left}px`
+          }}
+        >
           {items.map(item => (
             <button
               key={item.id}

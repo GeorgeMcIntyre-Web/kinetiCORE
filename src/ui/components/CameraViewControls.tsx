@@ -217,7 +217,7 @@ export const CameraViewControls: React.FC = () => {
 
   return (
     <>
-      <div className="absolute top-4 left-4 flex flex-col gap-2 bg-gray-900 bg-opacity-90 rounded-lg p-2 border border-gray-700">
+      <div className="absolute top-20 left-4 flex flex-col gap-2 bg-gray-900 bg-opacity-90 rounded-lg p-2 border border-gray-700">
         {views.map((view) => {
           const preset = cameraPresets[view];
           return (

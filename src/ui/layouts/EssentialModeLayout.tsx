@@ -14,6 +14,9 @@ import {
   Cog,
   Settings,
   Plus,
+  RotateCcw,
+  Maximize2,
+  Target,
 } from 'lucide-react';
 import { ToolbarDropdown } from '../components/ToolbarDropdown';
 import { Header } from '../components/Header';
@@ -399,13 +402,8 @@ export const EssentialModeLayout: React.FC = () => {
       {/* Main Content */}
       <div className="flex flex-1 pt-16 overflow-hidden">
         {/* Left Sidebar */}
-        <aside className="w-64 border-r border-gray-200 bg-white overflow-y-auto flex-shrink-0">
-          <div className="p-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Scene Tree</h3>
-            <div className="h-full overflow-auto">
-              <SceneTree />
-            </div>
-          </div>
+        <aside className="w-64 border-r border-gray-200 bg-white flex-shrink-0 flex flex-col min-h-0">
+          <SceneTree />
         </aside>
 
         {/* Main Viewport */}
@@ -415,8 +413,8 @@ export const EssentialModeLayout: React.FC = () => {
       </div>
 
       {/* Floating Toolbar */}
-      <div 
-        className="fixed top-20 left-4 flex items-center space-x-2 bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-40"
+      <div
+        className="fixed top-20 left-72 flex items-center space-x-2 bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-40"
         style={{ zIndex: zIndex.toolbar }}
       >
         {/* Create Shapes Dropdown */}
@@ -482,32 +480,72 @@ export const EssentialModeLayout: React.FC = () => {
       </div>
 
       {/* Viewport Controls */}
-      <div className="fixed bottom-4 right-4 flex flex-col space-y-2 z-40">
-        <button 
-          className="px-3 py-2 bg-white border border-gray-200 rounded-md shadow-sm hover:bg-gray-50 transition-colors duration-200 text-sm"
+      <div className="fixed top-32 right-4 flex flex-col z-40" style={{ gap: '2px' }}>
+        <button
           onClick={handleResetView}
+          title="Reset View"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '6px',
+            background: 'white',
+            border: '1px solid #d1d5db',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+            width: '32px',
+            height: '32px',
+          }}
         >
-          Reset View
-        </button>
-        <button 
-          className="px-3 py-2 bg-white border border-gray-200 rounded-md shadow-sm hover:bg-gray-50 transition-colors duration-200 text-sm"
-          onClick={handleZoomFit}
-        >
-          Zoom Fit
+          <RotateCcw size={16} style={{ color: '#374151' }} />
         </button>
         <button
-          className="px-3 py-2 bg-white border border-gray-200 rounded-md shadow-sm hover:bg-gray-50 transition-colors duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={handleZoomFit}
+          title="Zoom Fit"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '6px',
+            background: 'white',
+            border: '1px solid #d1d5db',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+            width: '32px',
+            height: '32px',
+          }}
+        >
+          <Maximize2 size={16} style={{ color: '#374151' }} />
+        </button>
+        <button
           onClick={handleZoomToSelected}
           disabled={!selectedNodeId}
+          title="Zoom to Selected"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '6px',
+            background: 'white',
+            border: '1px solid #d1d5db',
+            borderRadius: '4px',
+            cursor: selectedNodeId ? 'pointer' : 'not-allowed',
+            opacity: selectedNodeId ? 1 : 0.5,
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+            width: '32px',
+            height: '32px',
+          }}
         >
-          Zoom to Selected
+          <Target size={16} style={{ color: '#374151' }} />
         </button>
         <FloorSelector />
       </div>
 
       {/* Transform Display */}
       {transform && (
-        <div className="fixed bottom-4 left-4 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-40">
+        <div className="fixed bottom-20 left-72 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-40">
           <div className="flex space-x-4 text-sm">
             <div className="flex space-x-2">
               <span className="text-gray-500">X:</span>
