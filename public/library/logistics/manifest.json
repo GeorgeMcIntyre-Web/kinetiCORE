@@ -1,6 +1,211 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2025-10-07T00:00:00Z",
-  "totalAssets": 0,
-  "assets": []
+  "lastUpdated": "2025-10-18T00:00:00Z",
+  "totalAssets": 7,
+  "assets": [
+    {
+      "id": "agv-mobile-robot",
+      "name": "Autonomous Mobile Robot (AMR)",
+      "manufacturer": "Generic",
+      "domain": "logistics",
+      "assetClass": "vehicle",
+      "assetType": "amr",
+      "loaderType": "gltf",
+      "filePath": "/models/logistics/amr_standard.gltf",
+      "source": "generic",
+      "tags": [
+        "agv",
+        "amr",
+        "autonomous",
+        "mobile-robot"
+      ],
+      "searchKeywords": [
+        "agv",
+        "amr",
+        "autonomous",
+        "mobile robot",
+        "warehouse"
+      ],
+      "description": "Autonomous mobile robot for warehouse material transport, 500kg payload",
+      "capabilities": {
+        "hasKinematics": true,
+        "payload": 500,
+        "maxSpeed": 1.5,
+        "autonomous": true
+      }
+    },
+    {
+      "id": "forklift-electric",
+      "name": "Electric Forklift 2.5T",
+      "manufacturer": "Generic",
+      "domain": "logistics",
+      "assetClass": "vehicle",
+      "assetType": "forklift",
+      "loaderType": "gltf",
+      "filePath": "/models/logistics/forklift_electric_2500kg.gltf",
+      "source": "generic",
+      "tags": [
+        "forklift",
+        "material-handling",
+        "warehouse"
+      ],
+      "searchKeywords": [
+        "forklift",
+        "warehouse",
+        "lifting",
+        "material handling"
+      ],
+      "description": "Electric forklift, 2.5 ton capacity, 6m lift height",
+      "capabilities": {
+        "hasKinematics": true,
+        "payload": 2500,
+        "liftHeight": 6000
+      }
+    },
+    {
+      "id": "conveyor-roller-5m",
+      "name": "Roller Conveyor 5m",
+      "manufacturer": "Generic",
+      "domain": "logistics",
+      "assetClass": "material-handling",
+      "assetType": "conveyor",
+      "loaderType": "gltf",
+      "filePath": "/models/logistics/roller_conveyor_5m.gltf",
+      "source": "generic",
+      "tags": [
+        "conveyor",
+        "roller",
+        "material-handling"
+      ],
+      "searchKeywords": [
+        "roller conveyor",
+        "material handling",
+        "warehouse"
+      ],
+      "description": "5-meter gravity roller conveyor, 800mm width",
+      "capabilities": {
+        "hasKinematics": false,
+        "length": 5000,
+        "width": 800
+      }
+    },
+    {
+      "id": "pallet-jack-electric",
+      "name": "Electric Pallet Jack",
+      "manufacturer": "Generic",
+      "domain": "logistics",
+      "assetClass": "vehicle",
+      "assetType": "pallet-jack",
+      "loaderType": "gltf",
+      "filePath": "/models/logistics/pallet_jack_electric.gltf",
+      "source": "generic",
+      "tags": [
+        "pallet-jack",
+        "material-handling",
+        "warehouse"
+      ],
+      "searchKeywords": [
+        "pallet jack",
+        "warehouse",
+        "material handling"
+      ],
+      "description": "Electric pallet jack, 2 ton capacity, low-profile",
+      "capabilities": {
+        "hasKinematics": true,
+        "payload": 2000
+      }
+    },
+    {
+      "id": "storage-rack-selective",
+      "name": "Selective Pallet Rack 5m",
+      "manufacturer": "Generic",
+      "domain": "logistics",
+      "assetClass": "storage",
+      "assetType": "rack",
+      "loaderType": "gltf",
+      "filePath": "/models/logistics/selective_rack_5m.gltf",
+      "source": "generic",
+      "tags": [
+        "storage",
+        "rack",
+        "warehouse",
+        "pallet"
+      ],
+      "searchKeywords": [
+        "pallet rack",
+        "storage",
+        "warehouse",
+        "racking"
+      ],
+      "description": "Selective pallet racking, 5m height, 4 beam levels",
+      "capabilities": {
+        "hasKinematics": false,
+        "dimensions": {
+          "height": 5000,
+          "width": 2700,
+          "depth": 1100
+        },
+        "levels": 4,
+        "loadCapacityPerLevel": 1200
+      }
+    },
+    {
+      "id": "dock-leveler",
+      "name": "Hydraulic Dock Leveler",
+      "manufacturer": "Generic",
+      "domain": "logistics",
+      "assetClass": "loading-equipment",
+      "assetType": "dock-leveler",
+      "loaderType": "gltf",
+      "filePath": "/models/logistics/dock_leveler.gltf",
+      "source": "generic",
+      "tags": [
+        "dock",
+        "loading",
+        "warehouse"
+      ],
+      "searchKeywords": [
+        "dock leveler",
+        "loading dock",
+        "warehouse"
+      ],
+      "description": "Hydraulic dock leveler, 3m width, 10 ton capacity",
+      "capabilities": {
+        "hasKinematics": true,
+        "width": 3000,
+        "capacity": 10000
+      }
+    },
+    {
+      "id": "shipping-container-40ft",
+      "name": "Shipping Container 40ft",
+      "manufacturer": "Generic",
+      "domain": "logistics",
+      "assetClass": "storage",
+      "assetType": "container",
+      "loaderType": "gltf",
+      "filePath": "/models/logistics/container_40ft.gltf",
+      "source": "generic",
+      "tags": [
+        "container",
+        "shipping",
+        "storage"
+      ],
+      "searchKeywords": [
+        "shipping container",
+        "cargo",
+        "storage"
+      ],
+      "description": "Standard 40ft high-cube shipping container",
+      "capabilities": {
+        "hasKinematics": false,
+        "dimensions": {
+          "length": 12192,
+          "width": 2438,
+          "height": 2896
+        },
+        "maxLoad": 26500
+      }
+    }
+  ]
 }

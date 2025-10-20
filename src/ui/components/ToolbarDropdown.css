@@ -58,9 +58,9 @@
 
 /* Dropdown Menu */
 .dropdown-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
+  position: fixed; /* Use fixed positioning to escape parent overflow */
+  top: auto; /* Will be set via JS or calc */
+  left: auto; /* Will be set via JS or calc */
   min-width: 180px;
   background: #2d3748;
   border: 1px solid #4a5568;

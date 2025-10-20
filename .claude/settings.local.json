@@ -92,7 +92,9 @@
       "Bash(unzip:*)",
       "Read(//c/tmp/**)",
       "Bash(git rebase --continue)",
-      "Bash(git check-ignore -v docs/CI_CD_GUIDE.md)"
+      "Bash(git check-ignore -v docs/CI_CD_GUIDE.md)",
+      "Bash(npx wrangler whoami)",
+      "Bash(npx wrangler login)"
     ],
     "deny": [],
     "ask": []
