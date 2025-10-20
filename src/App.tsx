@@ -12,20 +12,12 @@ import { UserLevelProvider, useUserLevel } from './ui/core/UserLevelContext';
 import { EssentialModeLayout } from './ui/layouts/EssentialModeLayout';
 import { ProfessionalModeLayout } from './ui/layouts/ProfessionalModeLayout';
 import { ExpertModeLayout } from './ui/layouts/ExpertModeLayout';
-import { AssetLibraryPanel } from './ui/components/AssetLibrary/AssetLibraryPanel';
-import { useAssetLibrary } from './ui/hooks/useAssetLibrary';
-import { useAssetLibraryStore } from './ui/store/assetLibraryStore';
+import { AssetLibraryPanelV2 } from './ui/components/AssetLibrary/AssetLibraryPanelV2';
 
 // Main app content that switches layouts based on user level
 const AppContent: React.FC = () => {
   const { userLevel } = useUserLevel();
   const [showKinematicsPanel, setShowKinematicsPanel] = useState(false);
-  const showAssetLibrary = useAssetLibraryStore((state) => state.isVisible);
-  const {
-    handleAssetSelect,
-    handleAssetDragStart,
-    handleAssetDragEnd,
-  } = useAssetLibrary();
 
   // Render the appropriate layout based on user level
   const renderLayout = () => {
@@ -67,16 +59,10 @@ const AppContent: React.FC = () => {
         </ErrorBoundary>
       )}
 
-      {/* Asset Library Panel - Floating Glassmorphic */}
-      {showAssetLibrary && (
-        <ErrorBoundary fallbackMessage="Asset library failed">
-          <AssetLibraryPanel
-            onAssetSelect={handleAssetSelect}
-            onAssetDragStart={handleAssetDragStart}
-            onAssetDragEnd={handleAssetDragEnd}
-          />
-        </ErrorBoundary>
-      )}
+      {/* Asset Library Panel V2 - Three-Pane Engineering UI */}
+      <ErrorBoundary fallbackMessage="Asset library failed">
+        <AssetLibraryPanelV2 />
+      </ErrorBoundary>
 
       {/* SceneCanvas rendered ONCE at root level - never unmounts during layout switches */}
       <ErrorBoundary fallbackMessage="3D scene rendering failed">

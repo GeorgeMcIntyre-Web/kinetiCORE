@@ -26,11 +26,9 @@ export interface FetchOptions {
 
 export class MetadataFetcherService {
   private static instance: MetadataFetcherService;
-  private apiKey: string | null = null;
 
   private constructor() {
-    // Load API key from environment
-    this.apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY || null;
+    // Constructor intentionally empty - API key loading moved to services that need it
   }
 
   public static getInstance(): MetadataFetcherService {

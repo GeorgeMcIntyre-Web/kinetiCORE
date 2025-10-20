@@ -255,22 +255,72 @@ kineticore-assets/
 │   ├── ur5e.urdf
 │   └── panda-arm.mjcf
 ├── thumbnails/
-│   ├── fanuc-lr-mate-200id.jpg
-│   ├── ur5e.jpg
-│   └── panda-arm.jpg
+│   ├── fanuc-lr-mate-200id.png       # 512x512 pre-rendered 3D view
+│   ├── ur5e.png                       # Used in BrowserPane grid
+│   └── panda-arm.png                  # Fast loading, ~50 KB each
 └── documentation/
     ├── fanuc-lr-mate-200id.pdf
     └── ur5e-specs.pdf
 ```
 
+### Thumbnail Strategy (Confirmed Architecture)
+
+**Decision:** Use **pre-rendered PNG thumbnails** for grid view + full 3D preview for details pane
+
+**Rationale:**
+- **Grid View Performance:** Loading 33+ live 3D scenes = GPU overload
+- **Industry Standard:** McMaster-Carr, GrabCAD use pre-rendered thumbnails
+- **Best of Both Worlds:** Fast browsing + full 3D inspection when selected
+
+**Implementation Plan:**
+
+1. **Thumbnail Generation:**
+   - 512x512 PNG renders of each asset
+   - Babylon.js server-side or screenshot tool during upload
+   - Standard camera angle: 45° isometric view
+   - Neutral background (transparent or light gray)
+   - ~50 KB per thumbnail (optimized PNG)
+
+2. **Grid View (`BrowserPane.tsx`):**
+   ```typescript
+   <img
+     src={asset.thumbnailUrl}    // Pre-rendered PNG from R2
+     alt={asset.name}
+     loading="lazy"               // Browser lazy-loads as user scrolls
+     className="asset-thumbnail"
+   />
+   ```
+
+3. **Details Pane (`PreviewCanvas.tsx`):**
+   - Full interactive 3D preview with orbit controls
+   - Loads complete GLB/URDF/MJCF file
+   - Only rendered when asset is selected
+   - User can rotate, zoom, inspect
+
+**Performance Comparison:**
+
+| Approach              | Load Time | Memory/Asset | GPU Load |
+|-----------------------|-----------|--------------|----------|
+| Placeholder icons     | Instant   | ~10 KB       | None     |
+| Pre-rendered PNGs ✅  | ~100ms    | ~50 KB       | Minimal  |
+| Live 3D thumbnails    | ~2-5s     | ~5 MB        | Heavy    |
+
+**Storage Cost:**
+- 1000 assets × 50 KB = ~50 MB thumbnails
+- Cloudflare R2: $0.015/GB/month = **$0.00075/month** for thumbnails
+
 ### Upload Flow
 
-1. Admin uploads file via Admin Panel
-2. Backend validates file (size, type)
-3. Backend uploads to R2 using S3 SDK
-4. R2 returns public URL
-5. Backend saves URL to MongoDB
-6. Frontend fetches URL and displays asset
+1. Admin uploads file via Admin Panel (GLB/URDF/MJCF)
+2. Backend validates file (size, type, format)
+3. Backend uploads to R2 using S3 SDK → `models/asset-id.glb`
+4. **Backend auto-generates thumbnail:**
+   - Load GLB in headless Babylon.js
+   - Render 512x512 PNG from isometric angle
+   - Upload to R2 → `thumbnails/asset-id.png`
+5. R2 returns public URLs for both model and thumbnail
+6. Backend saves URLs to MongoDB
+7. Frontend fetches thumbnail URL for grid, model URL for preview
 
 ### CDN Configuration
 
@@ -299,9 +349,10 @@ kineticore-assets/
 
 **Features:**
 - Bulk import from CSV
-- Auto-generate thumbnails (if possible)
+- **Auto-generate thumbnails** (confirmed: Babylon.js headless rendering)
 - Validation warnings for missing data
 - Preview 3D models before publishing
+- Thumbnail regeneration tool (if camera angle needs adjustment)
 
 ---
 

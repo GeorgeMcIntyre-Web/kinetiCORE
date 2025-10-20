@@ -5,7 +5,6 @@
 import { Plus, FileText, Star } from 'lucide-react';
 import { useAssetLibraryStore } from '../../store/assetLibraryStore';
 import { PreviewCanvas } from './PreviewCanvas';
-import { SceneManager } from '../../../scene/SceneManager';
 import { AssetLibraryManager } from '../../../library/AssetLibraryManager';
 import './DetailsPane.css';
 
@@ -16,17 +15,18 @@ export function DetailsPane() {
     if (!selectedAsset) return;
 
     try {
-      const sceneManager = SceneManager.getInstance();
       const libraryManager = AssetLibraryManager.getInstance();
 
-      // Load asset into main scene
-      await sceneManager.loadAssetFromLibrary(selectedAsset);
+      // TODO: Implement asset loading into main scene
+      // This will require SceneManager.loadAssetFromLibrary method
+      console.log('Asset selected for scene:', selectedAsset.name);
+      console.log('File path:', selectedAsset.filePath);
 
       // Record usage
       libraryManager.recordUsage(selectedAsset.id);
 
       // TODO: Show success notification
-      console.log('Asset added to scene:', selectedAsset.name);
+      alert(`Asset "${selectedAsset.name}" ready to add to scene (integration pending)`);
     } catch (error) {
       console.error('Failed to add asset to scene:', error);
       // TODO: Show error notification

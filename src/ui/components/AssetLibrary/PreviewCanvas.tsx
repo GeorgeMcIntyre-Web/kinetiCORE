@@ -95,7 +95,6 @@ export function PreviewCanvas({ asset }: PreviewCanvasProps) {
     if (!asset || !sceneRef.current || !engineRef.current) return;
 
     const scene = sceneRef.current;
-    const engine = engineRef.current;
 
     setIsLoading(true);
     setError(null);
