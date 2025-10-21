@@ -1,0 +1,40 @@
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Opener-Policy: same-origin
+
+# Allow WASM files
+/*.wasm
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Opener-Policy: same-origin
+
+# Allow worker files
+/*.worker.js
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Opener-Policy: same-origin
+
+# Allow GLB/GLTF files
+/*.glb
+  Cross-Origin-Resource-Policy: cross-origin
+
+/*.gltf
+  Cross-Origin-Resource-Policy: cross-origin
+
+# Allow JT files
+/*.jt
+  Cross-Origin-Resource-Policy: cross-origin
+
+# Allow USD files
+/*.usd
+  Cross-Origin-Resource-Policy: cross-origin
+
+# Allow URDF files
+/*.urdf
+  Cross-Origin-Resource-Policy: cross-origin
+
+# Allow MJCF files
+/*.mjcf
+  Cross-Origin-Resource-Policy: cross-origin

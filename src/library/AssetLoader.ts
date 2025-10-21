@@ -47,11 +47,11 @@ export class AssetLoader {
   private static readonly CACHE_EXPIRY_TIME = 30 * 60 * 1000; // 30 minutes
   
   // Performance optimization: Parallel loading
-  private static loadingPromises = new Map<string, Promise<LoadResult>>();
+  // private static loadingPromises = new Map<string, Promise<LoadResult>>();
   
   // Performance optimization: Memory management
   private static loadedAssets = new Set<string>();
-  private static readonly MAX_LOADED_ASSETS = 100;
+  // private static readonly MAX_LOADED_ASSETS = 100;
 
   constructor(scene: BABYLON.Scene) {
     this.scene = scene;

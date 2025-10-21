@@ -1,0 +1,5 @@
+# SPA routing - redirect all routes to index.html
+/*    /index.html   200
+
+# API routes (if you have any backend functions)
+/api/*    https://your-backend-api.com/api/:splat    200

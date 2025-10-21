@@ -16,9 +16,7 @@ import {
   FolderUp,
   Save,
   FolderOpen,
-  Eye,
   Wrench,
-  BookOpen,
   Gamepad2,
   Zap,
   Cylinder as CylinderIcon,
@@ -29,9 +27,6 @@ import {
   FolderKanban,
   RotateCcw,
   Target,
-  ArrowRight,
-  ArrowUp,
-  Box as BoxIcon,
 } from 'lucide-react';
 
 // Custom Quick Move Icon combining speed lines with move arrows
@@ -97,7 +92,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onActuatorsClick,
   onPhysicsClick,
   onCollisionsClick,
-  onProjectionClick,
+  onProjectionClick: _onProjectionClick,
   onProjectManagerClick,
   onAssetLibraryClick,
   onQuickMoveClick,

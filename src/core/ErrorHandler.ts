@@ -189,7 +189,7 @@ export class ErrorHandler {
     });
 
     // Count errors
-    this.errorLog.forEach(({ error, context, severity }) => {
+    this.errorLog.forEach(({ context, severity }) => {
       stats.bySeverity[severity]++;
       stats.byComponent[context.component] = (stats.byComponent[context.component] || 0) + 1;
     });

@@ -5,7 +5,6 @@ import * as BABYLON from '@babylonjs/core';
 
 export class LightingService {
   private static instance: LightingService | null = null;
-  private scene: BABYLON.Scene | null = null;
   private hemisphericLight: BABYLON.HemisphericLight | null = null;
   private directionalLight: BABYLON.DirectionalLight | null = null;
 
@@ -22,7 +21,6 @@ export class LightingService {
    * Initialize lighting for the scene
    */
   initialize(scene: BABYLON.Scene): void {
-    this.scene = scene;
 
     // Create realistic environment with HDR lighting
     const hdrTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
@@ -79,6 +77,5 @@ export class LightingService {
     this.directionalLight?.dispose();
     this.hemisphericLight = null;
     this.directionalLight = null;
-    this.scene = null;
   }
 }

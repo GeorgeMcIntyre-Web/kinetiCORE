@@ -64,15 +64,15 @@ export class ProjectWorldLoader implements IProjectWorldLoader {
         description: 'Exported from current world state',
         version: 1,
         createdAt: new Date(),
-        updatedAt: new Date(),
         createdBy: 'current_user',
-        updatedBy: 'current_user',
         isAutoSave: false,
         sceneState: await this.captureCurrentSceneState(),
         assetInstances: await this.captureCurrentAssetInstances(),
         comments: [],
         annotations: [],
-        changes: [],
+        changesSinceLastSave: [],
+        fileSize: 0,
+        checksum: '',
       };
       
       console.log(`[ProjectWorldLoader] Successfully exported world to save: ${save.name}`);
