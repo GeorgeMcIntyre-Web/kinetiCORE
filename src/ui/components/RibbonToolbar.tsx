@@ -274,9 +274,6 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
       <div className="ribbon-category-excel">
         <div className="ribbon-category-label">View</div>
         <div className="ribbon-buttons-row">
-          <button className="ribbon-btn" onClick={onProjectionClick} title="Projection View">
-            <Eye size={32} />
-          </button>
           <button className="ribbon-btn" onClick={onResetViewClick} title="Reset View">
             <RotateCcw size={32} />
           </button>
