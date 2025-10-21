@@ -29,6 +29,7 @@ import { FloatingKinematicsPanel } from '../components/FloatingKinematicsPanel';
 import { FloatingActuatorPanel } from '../components/FloatingActuatorPanel';
 import { FloatingPhysicsPanel } from '../components/FloatingPhysicsPanel';
 import { FloatingCollisionPanel } from '../components/FloatingCollisionPanel';
+import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
 import { FloorSelector } from '../components/FloorSelector';
 import { ProjectManagerPanelV2 } from '../components/ProjectManager/ProjectManagerPanelV2';
 import { ProjectSaveDialog } from '../components/ProjectSaveDialog';
@@ -73,6 +74,7 @@ export const EssentialModeLayout: React.FC = () => {
   const [showActuatorPanel, setShowActuatorPanel] = useState(false);
   const [showPhysicsSettings, setShowPhysicsSettings] = useState(false);
   const [showCollisionVisualizer, setShowCollisionVisualizer] = useState(false);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
 
   // Resizable sidebar state
@@ -510,7 +512,7 @@ export const EssentialModeLayout: React.FC = () => {
         <Header
           currentMode={userLevel as 'essential' | 'professional' | 'expert'}
           onModeChange={(mode) => setUserLevel(mode)}
-          onSettingsClick={() => toast.info('Settings panel coming soon')}
+          onSettingsClick={() => setShowSettingsPanel(!showSettingsPanel)}
           onHelpClick={() => toast.info('Help documentation coming soon')}
           className="fixed top-0 left-0 right-0 z-50"
           style={{ zIndex: 100 }}
@@ -641,6 +643,12 @@ export const EssentialModeLayout: React.FC = () => {
         isVisible={showCollisionVisualizer}
         onClose={() => setShowCollisionVisualizer(false)}
         zIndex={1004}
+      />
+
+      <FloatingSettingsPanel
+        isVisible={showSettingsPanel}
+        onClose={() => setShowSettingsPanel(false)}
+        zIndex={1005}
       />
 
       {/* Hidden file inputs */}

@@ -1,0 +1,410 @@
+/* Floating Settings Panel Styles */
+/* Owner: George */
+
+.floating-settings-panel {
+  --settings-bg: #1a1a1a;
+  --settings-surface: #2a2a2a;
+  --settings-border: #3a3a3a;
+  --settings-text: #ffffff;
+  --settings-text-secondary: #a0a0a0;
+  --settings-accent: #3b82f6;
+  --settings-accent-hover: #2563eb;
+  --settings-success: #10b981;
+  --settings-warning: #f59e0b;
+  --settings-error: #ef4444;
+}
+
+.settings-panel-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--settings-bg);
+  color: var(--settings-text);
+}
+
+/* Tab Navigation */
+.settings-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--settings-border);
+  background: var(--settings-surface);
+  padding: 0;
+  margin: 0;
+  overflow-x: auto;
+}
+
+.settings-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: var(--settings-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+}
+
+.settings-tab:hover {
+  color: var(--settings-text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.settings-tab.active {
+  color: var(--settings-accent);
+  border-bottom-color: var(--settings-accent);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+/* Tab Content */
+.settings-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background: var(--settings-bg);
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Settings Groups */
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--settings-text);
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--settings-border);
+}
+
+/* Settings Options */
+.settings-option {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--settings-text);
+  margin-bottom: 4px;
+}
+
+/* Input Styles */
+.settings-input {
+  padding: 8px 12px;
+  background: var(--settings-surface);
+  border: 1px solid var(--settings-border);
+  border-radius: 6px;
+  color: var(--settings-text);
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.settings-input:focus {
+  outline: none;
+  border-color: var(--settings-accent);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.settings-input:hover {
+  border-color: var(--settings-accent);
+}
+
+.settings-input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-input-group .settings-input {
+  flex: 1;
+}
+
+.settings-select {
+  padding: 8px 12px;
+  background: var(--settings-surface);
+  border: 1px solid var(--settings-border);
+  border-radius: 6px;
+  color: var(--settings-text);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-select:focus {
+  outline: none;
+  border-color: var(--settings-accent);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.settings-select:hover {
+  border-color: var(--settings-accent);
+}
+
+.settings-range {
+  width: 100%;
+  height: 6px;
+  background: var(--settings-surface);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.settings-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--settings-accent);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-range::-webkit-slider-thumb:hover {
+  background: var(--settings-accent-hover);
+  transform: scale(1.1);
+}
+
+.settings-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: var(--settings-accent);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.settings-range::-moz-range-thumb:hover {
+  background: var(--settings-accent-hover);
+  transform: scale(1.1);
+}
+
+/* Checkbox Styles */
+.settings-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--settings-text);
+  transition: color 0.2s ease;
+}
+
+.settings-checkbox:hover {
+  color: var(--settings-text);
+}
+
+.settings-checkbox input[type="checkbox"] {
+  display: none;
+}
+
+.checkmark {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  background: var(--settings-surface);
+  border: 2px solid var(--settings-border);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.settings-checkbox input[type="checkbox"]:checked + .checkmark {
+  background: var(--settings-accent);
+  border-color: var(--settings-accent);
+}
+
+.settings-checkbox input[type="checkbox"]:checked + .checkmark::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.settings-checkbox input[type="checkbox"]:focus + .checkmark {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Radio Group Styles */
+.settings-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  padding: 12px;
+  border: 1px solid var(--settings-border);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.settings-radio-option:hover {
+  border-color: var(--settings-accent);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.settings-radio-option input[type="radio"] {
+  margin: 0;
+  margin-top: 2px;
+}
+
+.settings-radio-option input[type="radio"]:checked + .radio-content {
+  color: var(--settings-accent);
+}
+
+.radio-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.radio-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--settings-text);
+}
+
+.radio-description {
+  font-size: 12px;
+  color: var(--settings-text-secondary);
+}
+
+/* Settings Grid */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+/* Action Buttons */
+.settings-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-top: 1px solid var(--settings-border);
+  background: var(--settings-surface);
+  gap: 12px;
+}
+
+.settings-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.settings-btn-primary {
+  background: var(--settings-accent);
+  color: white;
+}
+
+.settings-btn-primary:hover {
+  background: var(--settings-accent-hover);
+  transform: translateY(-1px);
+}
+
+.settings-btn-secondary {
+  background: transparent;
+  color: var(--settings-text-secondary);
+  border: 1px solid var(--settings-border);
+}
+
+.settings-btn-secondary:hover {
+  background: var(--settings-surface);
+  color: var(--settings-text);
+  border-color: var(--settings-accent);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .settings-tabs {
+    flex-wrap: wrap;
+  }
+  
+  .settings-tab {
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+  }
+  
+  .settings-content {
+    padding: 16px;
+  }
+  
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .settings-actions {
+    flex-direction: column;
+  }
+  
+  .settings-btn {
+    width: 100%;
+  }
+}
+
+/* Scrollbar Styling */
+.settings-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.settings-content::-webkit-scrollbar-track {
+  background: var(--settings-surface);
+}
+
+.settings-content::-webkit-scrollbar-thumb {
+  background: var(--settings-border);
+  border-radius: 3px;
+}
+
+.settings-content::-webkit-scrollbar-thumb:hover {
+  background: var(--settings-text-secondary);
+}
+
+/* Animation for tab switching */
+.settings-content {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
