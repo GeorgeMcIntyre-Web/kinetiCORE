@@ -14,17 +14,73 @@ import { spawn } from 'child_process';
 const app = express();
 const PORT = 8006; // Different port from Python service
 
+// Security: Rate limiting
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 10; // Max 10 requests per minute per IP
+
+const rateLimitMiddleware = (req, res, next) => {
+    const clientIP = req.ip || req.connection.remoteAddress;
+    const now = Date.now();
+    
+    if (!rateLimitMap.has(clientIP)) {
+        rateLimitMap.set(clientIP, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+        return next();
+    }
+    
+    const clientData = rateLimitMap.get(clientIP);
+    
+    if (now > clientData.resetTime) {
+        // Reset window
+        rateLimitMap.set(clientIP, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+        return next();
+    }
+    
+    if (clientData.count >= RATE_LIMIT_MAX_REQUESTS) {
+        return res.status(429).json({ 
+            error: 'Too many requests. Please try again later.',
+            retryAfter: Math.ceil((clientData.resetTime - now) / 1000)
+        });
+    }
+    
+    clientData.count++;
+    next();
+};
+
 // Configure multer for file uploads
 const upload = multer({ 
     dest: 'temp/',
     limits: { fileSize: 100 * 1024 * 1024 } // 100MB limit
 });
 
-// Enable CORS for frontend
+// Security: Configure CORS with specific origins
+const ALLOWED_ORIGINS = [
+    'http://localhost:5173',
+    'http://localhost:5174', 
+    'http://localhost:5175',
+    'http://localhost:5176',
+    'https://kineticore.com',
+    'https://www.kineticore.com'
+];
+
+// Enable CORS for frontend with security restrictions
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    const origin = req.headers.origin;
+    
+    // Security: Only allow specific origins
+    if (ALLOWED_ORIGINS.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+    }
+    
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    res.header('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
+    
+    // Security: Add security headers
+    res.header('X-Content-Type-Options', 'nosniff');
+    res.header('X-Frame-Options', 'DENY');
+    res.header('X-XSS-Protection', '1; mode=block');
+    
     if (req.method === 'OPTIONS') {
         res.sendStatus(200);
     } else {
@@ -46,7 +102,7 @@ app.get('/health', (req, res) => {
 });
 
 // Convert JT file to GLTF using actual DLL
-app.post('/convert', upload.single('jtfile'), async (req, res) => {
+app.post('/convert', rateLimitMiddleware, upload.single('jtfile'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No JT file provided' });

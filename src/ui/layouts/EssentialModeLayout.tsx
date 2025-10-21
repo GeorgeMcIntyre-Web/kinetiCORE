@@ -1,58 +1,48 @@
 // Essential Mode Layout - Beginner-friendly interface
 // Owner: George (Architecture)
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as BABYLON from '@babylonjs/core';
-import {
-  Box,
-  Circle,
-  Cylinder,
-  Save,
-  Upload,
-  Layers,
-  Library,
-  Cog,
-  Settings,
-  Plus,
-  RotateCcw,
-  Maximize2,
-  Target,
-} from 'lucide-react';
-import { ToolbarDropdown } from '../components/ToolbarDropdown';
 import { Header } from '../components/Header';
-import { FloatingPanel } from '../components/FloatingPanel';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { useAssetLibraryStore } from '../store/assetLibraryStore';
 import { SceneTree } from '../components/SceneTree';
-import { KinematicsPanel } from '../components/KinematicsPanel';
-import { ActuatorControlPanel } from '../components/ActuatorControlPanel';
-import { DeviceLibrary } from '../components/DeviceLibrary';
-import { PhysicsSettings } from '../components/PhysicsSettings';
-import { CollisionVisualizer } from '../components/CollisionVisualizer';
-import { FloorSelector } from '../components/FloorSelector';
+import { SceneCanvas } from '../components/SceneCanvas';
+import { FloatingKinematicsPanel } from '../components/FloatingKinematicsPanel';
+import { FloatingActuatorPanel } from '../components/FloatingActuatorPanel';
+import { FloatingPhysicsPanel } from '../components/FloatingPhysicsPanel';
+import { FloatingCollisionPanel } from '../components/FloatingCollisionPanel';
+import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
+import { MoveObjectDialog } from '../components/MoveObjectDialog';
+import { ProjectManagerPanelV2 } from '../components/ProjectManager/ProjectManagerPanelV2';
+import { ProjectSaveDialog } from '../components/ProjectSaveDialog';
+import { useProjectManagerStore } from '../store/projectManagerStore';
 import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { EntityRegistry } from '../../entities/EntityRegistry';
 import { babylonToUser } from '../../core/CoordinateSystem';
 import { CreateProjectionViewCommand } from '../../history/commands/CreateProjectionViewCommand';
 import { toast } from '../components/ToastNotifications';
-import { zIndex } from '../styles/design-tokens';
+import { useTreeAutoResize } from '../hooks/useTreeAutoResize';
 import './EssentialModeLayout.css';
 
 export const EssentialModeLayout: React.FC = () => {
   const { userLevel, setUserLevel } = useUserLevel();
-  const createObject = useEditorStore((state) => state.createObject);
   const importModel = useEditorStore((state) => state.importModel);
   const loadWorld = useEditorStore((state) => state.loadWorld);
   const loadComprehensiveWorld = useEditorStore((state) => state.loadComprehensiveWorld);
-  const saveComprehensiveWorld = useEditorStore((state) => state.saveComprehensiveWorld);
   const zoomFit = useEditorStore((state) => state.zoomFit);
   const zoomToNode = useEditorStore((state) => state.zoomToNode);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
   const commandManager = useEditorStore((state) => state.commandManager);
   const toggleLibrary = useAssetLibraryStore((state) => state.toggleVisibility);
+  const showProjectManager = useProjectManagerStore((state) => state.show);
+
+  // Project Management
+  const saveProject = useEditorStore((state) => state.saveProject);
+  const currentProject = useEditorStore((state) => state.currentProject);
 
   const [transform, setTransform] = useState<{
     x: number;
@@ -65,16 +55,40 @@ export const EssentialModeLayout: React.FC = () => {
 
   const [showKinematicsPanel, setShowKinematicsPanel] = useState(false);
   const [showActuatorPanel, setShowActuatorPanel] = useState(false);
-  const [showDeviceLibrary, setShowDeviceLibrary] = useState(false);
   const [showPhysicsSettings, setShowPhysicsSettings] = useState(false);
   const [showCollisionVisualizer, setShowCollisionVisualizer] = useState(false);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
+
+  // Resizable sidebar state
+  const [sidebarWidth, setSidebarWidth] = useState(256); // Default 256px (w-64)
+  const [isResizing, setIsResizing] = useState(false);
+  const minSidebarWidth = 200; // Minimum width in pixels
+  const maxSidebarWidth = 600; // Maximum width in pixels
+
+  // Auto-resize hook for optimal tree width
+  const { optimalWidth } = useTreeAutoResize({
+    minWidth: minSidebarWidth,
+    maxWidth: maxSidebarWidth,
+    padding: 16,
+    fontSize: 13,
+    iconWidth: 16,
+    arrowWidth: 14,
+    badgeWidth: 40
+  });
+
+  // Update sidebar width when optimal width changes
+  useEffect(() => {
+    if (!isResizing && optimalWidth > sidebarWidth) {
+      console.log(`🔄 Auto-expanding sidebar from ${sidebarWidth}px to ${optimalWidth}px`);
+      setSidebarWidth(optimalWidth);
+    }
+  }, [optimalWidth, isResizing, sidebarWidth]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadFileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileImport = () => {
-    fileInputRef.current?.click();
-  };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -203,6 +217,65 @@ export const EssentialModeLayout: React.FC = () => {
     }
   };
 
+  // Camera view handlers
+  const handleTopView = () => {
+    const sceneManager = SceneManager.getInstance();
+    const camera = sceneManager.getCamera();
+    if (camera) {
+      camera.alpha = 0;
+      camera.beta = 0;
+      camera.target = BABYLON.Vector3.Zero();
+    }
+  };
+
+  const handleRightView = () => {
+    const sceneManager = SceneManager.getInstance();
+    const camera = sceneManager.getCamera();
+    if (camera) {
+      camera.alpha = Math.PI / 2;
+      camera.beta = Math.PI / 2;
+      camera.target = BABYLON.Vector3.Zero();
+    }
+  };
+
+  const handleFrontView = () => {
+    const sceneManager = SceneManager.getInstance();
+    const camera = sceneManager.getCamera();
+    if (camera) {
+      camera.alpha = 0;
+      camera.beta = Math.PI / 2;
+      camera.target = BABYLON.Vector3.Zero();
+    }
+  };
+
+  const handleIsoView = () => {
+    const sceneManager = SceneManager.getInstance();
+    const camera = sceneManager.getCamera();
+    if (camera) {
+      camera.alpha = -Math.PI / 4;
+      camera.beta = Math.PI / 3;
+      camera.target = BABYLON.Vector3.Zero();
+    }
+  };
+
+  // Project Management Handlers
+
+
+  const handleSaveProjectConfirm = async (config: {
+    name: string;
+    description?: string;
+    isAutoSave?: boolean;
+    includeComments?: boolean;
+    includeAnnotations?: boolean;
+  }) => {
+    try {
+      await saveProject(config);
+      setShowSaveDialog(false);
+    } catch (error) {
+      console.error('Failed to save project:', error);
+    }
+  };
+
   const handleCreateProjectionView = () => {
     if (selectedNodeIds.length === 0) {
       toast.warning('Select object(s) to project');
@@ -302,6 +375,47 @@ export const EssentialModeLayout: React.FC = () => {
     }
   };
 
+  // Sidebar resize handlers
+  const handleMouseDown = useCallback(() => {
+    setIsResizing(true);
+  }, []);
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizing) return;
+
+      const newWidth = e.clientX;
+      // Prevent reducing width below optimal width, but allow increasing
+      const effectiveMinWidth = Math.max(minSidebarWidth, optimalWidth);
+      
+      if (newWidth >= effectiveMinWidth && newWidth <= maxSidebarWidth) {
+        setSidebarWidth(newWidth);
+      }
+    },
+    [isResizing, minSidebarWidth, maxSidebarWidth, optimalWidth]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  // Add mouse event listeners for resizing
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+    }
+  }, [isResizing, handleMouseMove, handleMouseUp]);
+
   // Update transform display when selection changes
   useEffect(() => {
     if (!selectedNodeId) {
@@ -390,162 +504,86 @@ export const EssentialModeLayout: React.FC = () => {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-gray-50">
-      {/* Header */}
-      <Header
-        currentMode={userLevel as 'essential' | 'professional' | 'expert'}
-        onModeChange={(mode) => setUserLevel(mode)}
-        onSettingsClick={() => toast.info('Settings panel coming soon')}
-        onHelpClick={() => toast.info('Help documentation coming soon')}
-        className="fixed top-0 left-0 right-0 z-50"
-      />
+      {/* Header with integrated Ribbon */}
+        <Header
+          currentMode={userLevel as 'essential' | 'professional' | 'expert'}
+          onModeChange={(mode) => setUserLevel(mode)}
+          onSettingsClick={() => setShowSettingsPanel(!showSettingsPanel)}
+          onHelpClick={() => toast.info('Help documentation coming soon')}
+          className="fixed top-0 left-0 right-0 z-50"
+          style={{ zIndex: 100 }}
+          ribbonProps={{
+            onKinematicsClick: () => setShowKinematicsPanel(!showKinematicsPanel),
+            onActuatorsClick: () => setShowActuatorPanel(!showActuatorPanel),
+            onPhysicsClick: () => setShowPhysicsSettings(!showPhysicsSettings),
+            onCollisionsClick: () => setShowCollisionVisualizer(!showCollisionVisualizer),
+            onProjectionClick: handleCreateProjectionView,
+            onProjectManagerClick: showProjectManager,
+            onAssetLibraryClick: toggleLibrary,
+            onQuickMoveClick: () => setShowMoveDialog(true),
+            onResetViewClick: handleResetView,
+            onZoomFitClick: handleZoomFit,
+            onZoomToSelectedClick: handleZoomToSelected,
+            onTopViewClick: handleTopView,
+            onRightViewClick: handleRightView,
+            onFrontViewClick: handleFrontView,
+            onIsoViewClick: handleIsoView,
+          }}
+        />
 
       {/* Main Content */}
-      <div className="flex flex-1 pt-16 overflow-hidden">
-        {/* Left Sidebar */}
-        <aside className="w-64 border-r border-gray-200 bg-white flex-shrink-0 flex flex-col min-h-0">
+      <div className="flex flex-1 overflow-hidden" style={{ paddingTop: '80px' }}>
+        {/* Left Sidebar - Resizable */}
+        <aside
+          className="border-r border-gray-200 bg-white flex-shrink-0 flex flex-col min-h-0 relative"
+          style={{ width: `${sidebarWidth}px` }}
+        >
           <SceneTree />
+
+          {/* Resize Handle */}
+          <div
+            onMouseDown={handleMouseDown}
+            className="absolute top-0 right-0 w-1 h-full cursor-ew-resize hover:bg-blue-500 transition-colors z-50"
+            style={{
+              background: isResizing ? 'rgb(59, 130, 246)' : 'transparent',
+            }}
+          />
         </aside>
 
         {/* Main Viewport */}
         <main className="flex-1 relative bg-gray-100">
-          <div id="viewport-essential" className="w-full h-full"></div>
+          <div id="viewport-essential" className="w-full h-full">
+            <SceneCanvas />
+          </div>
         </main>
       </div>
 
-      {/* Floating Toolbar */}
-      <div
-        className="fixed top-20 left-72 flex items-center space-x-2 bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-40"
-        style={{ zIndex: zIndex.toolbar }}
-      >
-        {/* Create Shapes Dropdown */}
-        <ToolbarDropdown
-          label="Create"
-          icon={<Plus size={16} />}
-          items={[
-            { id: 'box', label: 'Box', icon: <Box size={16} />, onClick: () => createObject('box') },
-            { id: 'sphere', label: 'Sphere', icon: <Circle size={16} />, onClick: () => createObject('sphere') },
-            { id: 'cylinder', label: 'Cylinder', icon: <Cylinder size={16} />, onClick: () => createObject('cylinder') },
-          ]}
-        />
-
-        <div className="w-px h-6 bg-gray-300" />
-
-        {/* Import Button */}
-        <button
-          className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors duration-200 text-sm"
-          onClick={handleFileImport}
-          title="Import MJCF, URDF, STL, GLB, USD"
-        >
-          <Upload size={14} />
-          <span>Import</span>
-        </button>
-
-        <div className="w-px h-6 bg-gray-300" />
-
-        {/* Robot Tools Dropdown */}
-        <ToolbarDropdown
-          label="Robot"
-          icon={<Cog size={16} />}
-          items={[
-            { id: 'kinematics', label: 'Kinematics Panel', icon: <Cog size={16} />, onClick: () => setShowKinematicsPanel(!showKinematicsPanel) },
-            { id: 'devices', label: 'Device Library', icon: <Library size={16} />, onClick: () => setShowDeviceLibrary(!showDeviceLibrary) },
-            { id: 'actuators', label: 'Actuator Control', icon: <Settings size={16} />, onClick: () => setShowActuatorPanel(!showActuatorPanel) },
-          ]}
-        />
-
-        <div className="w-px h-6 bg-gray-300" />
-
-        {/* Tools Dropdown */}
-        <ToolbarDropdown
-          label="Tools"
-          icon={<Layers size={16} />}
-          items={[
-            { id: 'projection', label: 'Projection View', icon: <Layers size={16} />, onClick: handleCreateProjectionView, disabled: selectedNodeIds.length === 0 },
-            { id: 'physics', label: 'Physics Settings', icon: <Settings size={16} />, onClick: () => setShowPhysicsSettings(!showPhysicsSettings) },
-            { id: 'collision', label: 'Collision Viz', icon: <Circle size={16} />, onClick: () => setShowCollisionVisualizer(!showCollisionVisualizer) },
-            { id: 'library', label: 'Asset Library', icon: <Library size={16} />, onClick: toggleLibrary },
-          ]}
-        />
-
-        <div className="w-px h-6 bg-gray-300" />
-
-        {/* Save Button */}
-        <button
-          className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors duration-200"
-          onClick={saveComprehensiveWorld}
-          title="Save World"
-        >
-          <Save size={16} />
-        </button>
-      </div>
-
-      {/* Viewport Controls */}
-      <div className="fixed top-32 right-4 flex flex-col z-40" style={{ gap: '2px' }}>
-        <button
-          onClick={handleResetView}
-          title="Reset View"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '6px',
-            background: 'white',
-            border: '1px solid #d1d5db',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-            width: '32px',
-            height: '32px',
-          }}
-        >
-          <RotateCcw size={16} style={{ color: '#374151' }} />
-        </button>
-        <button
-          onClick={handleZoomFit}
-          title="Zoom Fit"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '6px',
-            background: 'white',
-            border: '1px solid #d1d5db',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-            width: '32px',
-            height: '32px',
-          }}
-        >
-          <Maximize2 size={16} style={{ color: '#374151' }} />
-        </button>
-        <button
-          onClick={handleZoomToSelected}
-          disabled={!selectedNodeId}
-          title="Zoom to Selected"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '6px',
-            background: 'white',
-            border: '1px solid #d1d5db',
-            borderRadius: '4px',
-            cursor: selectedNodeId ? 'pointer' : 'not-allowed',
-            opacity: selectedNodeId ? 1 : 0.5,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-            width: '32px',
-            height: '32px',
-          }}
-        >
-          <Target size={16} style={{ color: '#374151' }} />
-        </button>
-        <FloorSelector />
-      </div>
+      {/* Hidden file inputs for ribbon buttons */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".urdf,.stl,.obj,.dae,.gltf,.glb,.dxf,.dwg,.jt,.xml,.usd,.usdz,.zip"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
+      <input
+        ref={loadFileInputRef}
+        type="file"
+        accept=".json"
+        style={{ display: 'none' }}
+        onChange={handleLoadFileChange}
+      />
 
       {/* Transform Display */}
       {transform && (
-        <div className="fixed bottom-20 left-72 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-40">
+        <div
+          className="fixed bottom-20 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-40"
+          style={{
+            left: `${sidebarWidth + 16}px`,
+            transition: isResizing ? 'none' : 'left 0.2s ease',
+          }}
+        >
           <div className="flex space-x-4 text-sm">
             <div className="flex space-x-2">
               <span className="text-gray-500">X:</span>
@@ -578,70 +616,35 @@ export const EssentialModeLayout: React.FC = () => {
       )}
 
       {/* Floating Panels */}
-      <FloatingPanel
-        isOpen={showKinematicsPanel}
+      <FloatingKinematicsPanel
+        isVisible={showKinematicsPanel}
         onClose={() => setShowKinematicsPanel(false)}
-        title="Kinematics Panel"
-        size="md"
-        position="center"
-        draggable={true}
-        resizable={false}
-        zIndex={zIndex.modal}
-      >
-        <KinematicsPanel />
-      </FloatingPanel>
+        zIndex={1001}
+      />
 
-      <FloatingPanel
-        isOpen={showActuatorPanel}
+      <FloatingActuatorPanel
+        isVisible={showActuatorPanel}
         onClose={() => setShowActuatorPanel(false)}
-        title="Actuator Control Panel"
-        size="lg"
-        position="center"
-        draggable={true}
-        resizable={false}
-        zIndex={zIndex.modal}
-      >
-        <ActuatorControlPanel />
-      </FloatingPanel>
+        zIndex={1002}
+      />
 
-      <FloatingPanel
-        isOpen={showDeviceLibrary}
-        onClose={() => setShowDeviceLibrary(false)}
-        title="Device Library"
-        size="xl"
-        position="center"
-        draggable={true}
-        resizable={false}
-        zIndex={zIndex.modal}
-      >
-        <DeviceLibrary />
-      </FloatingPanel>
-
-      <FloatingPanel
-        isOpen={showPhysicsSettings}
+      <FloatingPhysicsPanel
+        isVisible={showPhysicsSettings}
         onClose={() => setShowPhysicsSettings(false)}
-        title="Physics Settings"
-        size="md"
-        position="center"
-        draggable={true}
-        resizable={false}
-        zIndex={zIndex.modal}
-      >
-        <PhysicsSettings />
-      </FloatingPanel>
+        zIndex={1003}
+      />
 
-      <FloatingPanel
-        isOpen={showCollisionVisualizer}
+      <FloatingCollisionPanel
+        isVisible={showCollisionVisualizer}
         onClose={() => setShowCollisionVisualizer(false)}
-        title="Collision Visualizer"
-        size="sm"
-        position="center"
-        draggable={true}
-        resizable={false}
-        zIndex={zIndex.modal}
-      >
-        <CollisionVisualizer />
-      </FloatingPanel>
+        zIndex={1004}
+      />
+
+      <FloatingSettingsPanel
+        isVisible={showSettingsPanel}
+        onClose={() => setShowSettingsPanel(false)}
+        zIndex={1005}
+      />
 
       {/* Hidden file inputs */}
       <input
@@ -659,6 +662,24 @@ export const EssentialModeLayout: React.FC = () => {
         style={{ display: 'none' }}
         onChange={handleLoadFileChange}
       />
+
+      {/* Project Save Dialog */}
+      {showSaveDialog && currentProject && (
+        <ProjectSaveDialog
+          project={currentProject}
+          onClose={() => setShowSaveDialog(false)}
+          onSave={handleSaveProjectConfirm}
+        />
+      )}
+
+      {/* Move Object Dialog */}
+      <MoveObjectDialog 
+        isOpen={showMoveDialog} 
+        onClose={() => setShowMoveDialog(false)} 
+      />
+
+      {/* Project Manager Panel */}
+      <ProjectManagerPanelV2 />
     </div>
   );
 };

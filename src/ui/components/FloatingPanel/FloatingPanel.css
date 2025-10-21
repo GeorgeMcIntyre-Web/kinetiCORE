@@ -1,0 +1,240 @@
+/**
+ * FloatingPanel - Clean Dark Design System
+ * Simple, professional styling without fancy effects
+ */
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.floating-panel {
+  position: absolute;
+  min-width: 300px;
+  min-height: 200px;
+  max-width: 1200px;
+  max-height: 90vh;
+
+  /* Clean Dark Style - Asset Library Style */
+  background: rgba(12, 12, 15, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+
+  /* Animation */
+  animation: slideIn 0.3s ease-out;
+
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.95);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.floating-panel:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Header */
+.floating-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: rgba(18, 18, 21, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px 12px 0 0;
+}
+
+.floating-panel-title-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.floating-panel-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.floating-panel-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.floating-panel-pin-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(59, 130, 246, 0.8);
+}
+
+.floating-panel-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.floating-panel-control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.floating-panel-control-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  display: block;
+  flex-shrink: 0;
+  opacity: 1;
+  visibility: visible;
+}
+
+.floating-panel-control-btn svg * {
+  stroke: inherit;
+}
+
+.floating-panel-control-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.95);
+  transform: scale(1.05);
+}
+
+/* Pin button - blue accent when pinned */
+.floating-panel-control-btn.pin-btn.pinned {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: rgba(59, 130, 246, 0.9);
+}
+
+.floating-panel-control-btn.pin-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.2);
+  color: rgba(59, 130, 246, 0.9);
+}
+
+/* Minimize button - yellow accent on hover */
+.floating-panel-control-btn.minimize-btn:hover {
+  background: rgba(234, 179, 8, 0.15);
+  border-color: rgba(234, 179, 8, 0.3);
+  color: rgba(234, 179, 8, 0.9);
+}
+
+/* Maximize/Dock button - green accent on hover */
+.floating-panel-control-btn.maximize-btn:hover {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: rgba(34, 197, 94, 0.9);
+}
+
+/* Close button - red accent on hover */
+.floating-panel-control-btn.close-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: rgb(252, 165, 165);
+}
+
+/* Content */
+.floating-panel-content {
+  flex: 1;
+  overflow: hidden; /* Let child handle scrolling */
+  min-height: 0; /* Critical for flex children */
+}
+
+/* Dragging state */
+.floating-panel.dragging {
+  opacity: 0.9;
+  transform: scale(1.02);
+  box-shadow: 0 30px 100px rgba(0, 0, 0, 0.4);
+}
+
+/* Docked positions */
+.floating-panel.docked-left {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 400px;
+  max-width: 50vw;
+  border-radius: 0;
+  border-left: none;
+}
+
+.floating-panel.docked-right {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 400px;
+  max-width: 50vw;
+  border-radius: 0;
+  border-right: none;
+}
+
+.floating-panel.docked-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 300px;
+  max-height: 50vh;
+  border-radius: 0;
+  border-bottom: none;
+}
+
+/* Minimized state */
+.floating-panel.minimized {
+  height: auto;
+}
+
+.floating-panel.minimized .floating-panel-content {
+  display: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .floating-panel {
+    min-width: 280px;
+    max-width: 95vw;
+  }
+  
+  .floating-panel-header {
+    padding: 12px 16px;
+  }
+  
+  .floating-panel-content {
+    padding: 16px;
+  }
+}

@@ -1,0 +1,264 @@
+/* ProjectManagerPanel V2 - Three-pane layout */
+
+.project-manager-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.project-manager-container-v2 {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1400px;
+  height: 100%;
+  max-height: 900px;
+  background: rgba(12, 12, 15, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+/* Header */
+.project-manager-header-v2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: rgba(18, 18, 21, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.project-manager-title-v2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: -0.02em;
+}
+
+/* Header Actions Container */
+.project-manager-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Action Button Group (Create, Grid, List) */
+.project-manager-action-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 16px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.project-manager-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.project-manager-action-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  display: block;
+  flex-shrink: 0;
+  opacity: 1;
+  visibility: visible;
+}
+
+.project-manager-action-btn svg * {
+  stroke: inherit;
+}
+
+.project-manager-action-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
+}
+
+/* Create Button - Green accent */
+.project-manager-action-btn.create-btn:hover {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: rgba(34, 197, 94, 0.9);
+}
+
+/* View Buttons - Blue accent when active */
+.project-manager-action-btn.view-btn.active {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: rgba(59, 130, 246, 0.9);
+}
+
+.project-manager-action-btn.view-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.2);
+  color: rgba(59, 130, 246, 0.9);
+}
+
+/* Header Controls */
+.project-manager-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.project-manager-control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.project-manager-control-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  display: block;
+  flex-shrink: 0;
+  opacity: 1;
+  visibility: visible;
+}
+
+.project-manager-control-btn svg * {
+  stroke: inherit;
+}
+
+.project-manager-control-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.95);
+  transform: scale(1.05);
+}
+
+/* Pin button - blue accent when pinned */
+.project-manager-control-btn.pin-btn.pinned {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: rgba(59, 130, 246, 0.9);
+}
+
+.project-manager-control-btn.pin-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.2);
+  color: rgba(59, 130, 246, 0.9);
+}
+
+/* Minimize button - yellow accent on hover */
+.project-manager-control-btn.minimize-btn:hover {
+  background: rgba(234, 179, 8, 0.15);
+  border-color: rgba(234, 179, 8, 0.3);
+  color: rgba(234, 179, 8, 0.9);
+}
+
+/* Maximize/Dock button - green accent on hover */
+.project-manager-control-btn.maximize-btn:hover {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: rgba(34, 197, 94, 0.9);
+}
+
+/* Close button - red accent on hover */
+.project-manager-control-btn.close-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: rgb(252, 165, 165);
+}
+
+/* Legacy close button (remove when migration complete) */
+.project-manager-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.project-manager-close-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: rgb(252, 165, 165);
+}
+
+/* Body - Three panes */
+.project-manager-body-v2 {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .project-manager-container-v2 {
+    max-width: 95%;
+  }
+}
+
+@media (max-width: 900px) {
+  .project-manager-overlay {
+    padding: 20px;
+  }
+
+  .project-manager-container-v2 {
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  /* Stack panes vertically on small screens */
+  .project-manager-body-v2 {
+    flex-direction: column;
+  }
+
+  .project-filter-pane,
+  .project-details-pane {
+    width: 100%;
+    max-height: 40vh;
+  }
+}

@@ -43,15 +43,76 @@ export class AssetLibraryManager {
    */
   public async initialize(manifestPath = '/library/manifest.json'): Promise<void> {
     try {
+      // Load optional converted asset roots and index GLB assets
+      await this.loadConvertedAssetRoots();
+
+      // Load existing structured manifest if available (non-blocking)
       const response = await fetch(manifestPath);
-      if (!response.ok) {
-        throw new Error(`Failed to load manifest: ${response.statusText}`);
+      if (response.ok) {
+        this.manifest = await response.json();
+        await this.loadAllAssets();
       }
-      this.manifest = await response.json();
-      await this.loadAllAssets();
     } catch (error) {
       console.error('Failed to initialize asset library:', error);
-      throw error;
+      // Not fatal; library can work with converted sources only
+    }
+  }
+
+  /**
+   * Load configured converted asset roots and index .glb files via server API
+   */
+  private async loadConvertedAssetRoots(): Promise<void> {
+    try {
+      // Try public config file for dev
+      try {
+        const res = await fetch('/assetsources.json', { cache: 'no-store' });
+        if (res.ok) {
+          const json = await res.json();
+          if (Array.isArray(json?.roots)) {
+            // Process roots if needed
+          }
+        }
+      } catch {}
+
+      // Ask backend for enumerated GLB assets under ASSET_ROOTS
+      const api = await fetch('/api/assets/list', { cache: 'no-store' });
+      if (!api.ok) return;
+      const data = await api.json();
+      if (!data || !Array.isArray(data.roots)) return;
+
+      const discovered: LibraryAsset[] = [] as any;
+      for (const root of data.roots) {
+        const files = Array.isArray(root.files) ? root.files : [];
+        for (const f of files) {
+          // Build a minimal LibraryAsset for GLB
+          const asset: LibraryAsset = {
+            id: f.id,
+            name: f.name,
+            domain: 'custom',
+            assetClass: 'structures',
+            assetType: 'glb',
+            loaderType: 'glb' as any,
+            filePath: f.absoluteUrl, // use API URL for loading
+            fileSize: Math.round((f.size || 0) / (1024 * 1024)),
+            tags: ['glb', 'converted'],
+            searchKeywords: [f.relativePath || f.name],
+            description: f.relativePath || f.name,
+            source: 'local',
+          };
+          discovered.push(asset);
+        }
+      }
+
+      if (discovered.length > 0) {
+        // Merge into allAssets; de-duplicate by id
+        const byId = new Map<string, LibraryAsset>();
+        for (const a of [...this.allAssets, ...discovered]) {
+          byId.set(a.id, a);
+        }
+        this.allAssets = Array.from(byId.values());
+      }
+    } catch (e) {
+      console.warn('Converted asset root loading failed:', e);
     }
   }
 

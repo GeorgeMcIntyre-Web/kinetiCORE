@@ -8,6 +8,7 @@
 import * as BABYLON from '@babylonjs/core';
 import type { LibraryAsset, AssetInsertionConfig } from './types';
 import type { SceneNode } from '../scene/SceneTreeNode';
+import { GLBLoader } from '../loaders/glb/GLBLoader';
 
 // TODO: Re-enable when specialized loaders are implemented
 // import { loadURDFWithMeshes } from '../loaders/urdf/URDFLoaderWithMeshes';
@@ -25,13 +26,73 @@ export interface LoadResult {
 }
 
 /**
+ * Asset cache entry
+ */
+interface AssetCacheEntry {
+  asset: BABYLON.TransformNode;
+  timestamp: number;
+  size: number;
+}
+
+/**
  * Asset loader - converts library assets into scene objects
+ * Optimized with caching, parallel loading, and memory management
  */
 export class AssetLoader {
   private scene: BABYLON.Scene;
+  
+  // Performance optimization: Asset caching
+  private static assetCache = new Map<string, AssetCacheEntry>();
+  private static readonly MAX_CACHE_SIZE = 50 * 1024 * 1024; // 50MB cache
+  private static readonly CACHE_EXPIRY_TIME = 30 * 60 * 1000; // 30 minutes
+  
+  // Performance optimization: Parallel loading
+  private static loadingPromises = new Map<string, Promise<LoadResult>>();
+  
+  // Performance optimization: Memory management
+  private static loadedAssets = new Set<string>();
+  private static readonly MAX_LOADED_ASSETS = 100;
 
   constructor(scene: BABYLON.Scene) {
     this.scene = scene;
+    
+    // Start cache cleanup interval (only once)
+    if (AssetLoader.assetCache.size === 0) {
+      setInterval(() => AssetLoader.cleanupCache(), 5 * 60 * 1000); // Every 5 minutes
+    }
+  }
+
+  /**
+   * Clean up expired cache entries
+   */
+  private static cleanupCache(): void {
+    const now = Date.now();
+    let totalSize = 0;
+    
+    for (const [key, entry] of AssetLoader.assetCache.entries()) {
+      totalSize += entry.size;
+      
+      // Remove expired entries
+      if (now - entry.timestamp > AssetLoader.CACHE_EXPIRY_TIME) {
+        entry.asset.dispose();
+        AssetLoader.assetCache.delete(key);
+        AssetLoader.loadedAssets.delete(key);
+        continue;
+      }
+      
+      // Remove oldest entries if cache is too large
+      if (totalSize > AssetLoader.MAX_CACHE_SIZE) {
+        const oldestKey = AssetLoader.assetCache.keys().next().value;
+        if (oldestKey) {
+          const oldestEntry = AssetLoader.assetCache.get(oldestKey);
+          if (oldestEntry) {
+            oldestEntry.asset.dispose();
+            AssetLoader.assetCache.delete(oldestKey);
+            AssetLoader.loadedAssets.delete(oldestKey);
+          }
+        }
+      }
+    }
   }
 
   /**
@@ -51,6 +112,8 @@ export class AssetLoader {
           return await this.loadDWG(asset, config);
         case 'gltf':
           return await this.loadGLTF(asset, config);
+        case 'glb':
+          return await this.loadGLB(asset, config);
         case 'stl':
         case 'obj':
           return await this.loadMesh(asset, config);
@@ -100,49 +163,6 @@ export class AssetLoader {
     };
   }
 
-  /**
-   * Load JT CAD file (old version - disabled)
-   *
-   * TODO: This is a legacy implementation kept for reference.
-   * Will be replaced with proper JTLoader integration when ready.
-   *
-   * @deprecated Use loadJT() instead (currently returns stub)
-   */
-  // @ts-expect-error - Legacy method kept for future JT loader implementation
-  private async loadJTOld(
-    asset: LibraryAsset,
-    config: AssetInsertionConfig
-  ): Promise<LoadResult> {
-    try {
-      const response = await fetch(asset.filePath);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch JT file: ${response.statusText}`);
-      }
-      await response.arrayBuffer();
-
-      const result = { meshes: [], rootMesh: null } as any;
-
-      // Position the loaded meshes
-      if (result.rootMesh) {
-        const position = this.getInsertionPosition(config);
-        result.rootMesh.position = new BABYLON.Vector3(
-          position.x,
-          position.z, // Z-up to Y-up
-          position.y
-        );
-      }
-
-      return {
-        success: true,
-        meshes: result.meshes,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
 
   /**
    * Load DWG file
@@ -200,6 +220,37 @@ export class AssetLoader {
         }
       );
     });
+  }
+
+  /**
+   * Load GLB file from URL (converted library)
+   */
+  private async loadGLB(
+    asset: LibraryAsset,
+    config: AssetInsertionConfig
+  ): Promise<LoadResult> {
+    try {
+      const loader = GLBLoader.getInstance();
+      const result = await loader.loadGLBFromFile(asset.filePath, this.scene, {
+        enableBoundsCalculation: true,
+        enableProgressCallback: true,
+      });
+
+      if (!result.success || result.rootNodes.length === 0) {
+        return { success: false, error: result.errors.join('; ') || 'GLB load failed' };
+      }
+
+      const parent = result.rootNodes[0];
+      const pos = this.getInsertionPosition(config);
+      parent.position = new BABYLON.Vector3(pos.x, pos.z, pos.y);
+
+      // Freeze static meshes for perf
+      result.meshes.forEach(m => { try { m.freezeWorldMatrix(); } catch {} });
+
+      return { success: true, meshes: result.meshes as BABYLON.Mesh[] };
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : String(e) };
+    }
   }
 
   /**

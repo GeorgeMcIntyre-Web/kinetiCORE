@@ -10,6 +10,7 @@ import { SceneManager } from '../../scene/SceneManager';
 import { AssetLoader } from '../../library/AssetLoader';
 import type { LibraryAsset, AssetInsertionConfig } from '../../library/types';
 import { useToastStore } from '../components/ToastNotifications';
+import { SceneManager as SM } from '../../scene/SceneManager';
 
 export function useAssetLibrary() {
   const addToast = useToastStore((state) => state.addToast);
@@ -35,14 +36,20 @@ export function useAssetLibrary() {
         message: `Loading ${asset.name}...`,
       });
 
-      const loader = new AssetLoader(scene);
-      const config: AssetInsertionConfig = {
-        placement: 'floor',
-        enablePhysics: false,
-        loadKinematics: asset.capabilities?.hasKinematics || false,
-      };
-
       try {
+        if (asset.loaderType === 'glb') {
+          const sm = SM.getInstance();
+          await sm.addModelFromLibrary(asset.filePath);
+          addToast({ type: 'success', message: `Loaded ${asset.name}` });
+          return;
+        }
+
+        const loader = new AssetLoader(scene);
+        const config: AssetInsertionConfig = {
+          placement: 'floor',
+          enablePhysics: false,
+          loadKinematics: asset.capabilities?.hasKinematics || false,
+        };
         const result = await loader.loadAsset(asset, config);
 
         if (result.success) {

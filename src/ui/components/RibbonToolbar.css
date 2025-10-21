@@ -1,0 +1,177 @@
+/* Ribbon Toolbar - Excel-style with all icons visible */
+/* Owner: George */
+
+/* Main ribbon container - horizontal layout */
+.ribbon-toolbar-excel {
+  display: flex;
+  align-items: stretch;
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+/* Individual category section */
+.ribbon-category-excel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  min-width: fit-content;
+}
+
+.ribbon-category-excel:last-child {
+  border-right: none;
+}
+
+/* Category label */
+.ribbon-category-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
+/* Buttons row within category */
+.ribbon-buttons-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Individual ribbon button */
+.ribbon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.ribbon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.ribbon-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Active state (for toggle buttons) */
+.ribbon-btn.active {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: rgb(96, 165, 250);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+}
+
+.ribbon-btn.active:hover {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+/* Icon styling */
+.ribbon-btn svg {
+  width: 32px;
+  height: 32px;
+  color: inherit;
+  stroke-width: 2;
+}
+
+/* Focus states for accessibility */
+.ribbon-btn:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.5);
+  outline-offset: 2px;
+}
+
+/* Disabled state */
+.ribbon-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.ribbon-btn:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Responsive - hide labels on small screens */
+@media (max-width: 1200px) {
+  .ribbon-category-label {
+    font-size: 9px;
+  }
+
+  .ribbon-category-excel {
+    padding: 3px 6px;
+  }
+
+  .ribbon-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .ribbon-btn svg {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+@media (max-width: 900px) {
+  .ribbon-category-label {
+    display: none;
+  }
+
+  .ribbon-category-excel {
+    flex-direction: row;
+    padding: 4px;
+  }
+
+  .ribbon-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .ribbon-btn svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .ribbon-toolbar-excel {
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  .ribbon-category-excel {
+    border-right-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .ribbon-btn {
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .ribbon-btn.active {
+    background: rgba(59, 130, 246, 0.4);
+    border-color: rgba(59, 130, 246, 0.7);
+  }
+}

@@ -30,6 +30,9 @@ import { loading } from '../components/LoadingIndicator';
 import { CommandManager } from '../../history/CommandManager';
 import { DeleteObjectCommand } from '../../history/commands/DeleteObjectCommand';
 import { DuplicateObjectCommand } from '../../history/commands/DuplicateObjectCommand';
+import { ProjectManager } from '../../project/ProjectManager';
+import { ProjectWorldLoader } from '../../project/ProjectWorldLoader';
+import type { Project, ProjectSave, AssetInstance } from '../../project/types';
 
 type ObjectType = 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'plane' | 'ground' | 'capsule' | 'disc' | 'torusknot' | 'polyhedron';
 
@@ -48,10 +51,39 @@ interface EditorState {
   coordinateFrameWidget: CoordinateFrameWidget | null;
   commandManager: CommandManager;
   panelLayout: any | null; // Dockview panel layout state
+  
+  // Project Manager Integration
+  projectManager: ProjectManager;
+  worldLoader: ProjectWorldLoader;
+  currentProject: Project | null;
+  assetInstances: AssetInstance[];
 
   // UI state - which toolbar popup is currently open (only one at a time)
   openToolbarPopup: 'transform-settings' | 'snap-geometric' | 'snap-object' | 'snap-auxiliary' | null;
   setOpenToolbarPopup: (popup: 'transform-settings' | 'snap-geometric' | 'snap-object' | 'snap-auxiliary' | null) => void;
+  
+  // Camera view state
+  currentView: 'front' | 'right' | 'top' | 'iso';
+  setCurrentView: (view: 'front' | 'right' | 'top' | 'iso') => void;
+
+  // Project Management Methods
+  createProject: (config: {
+    name: string;
+    description?: string;
+    category: 'simulation' | 'layout' | 'prototype' | 'production' | 'training' | 'research';
+    visibility: 'private' | 'team' | 'public';
+    tags?: string[];
+  }) => Promise<Project>;
+  loadProject: (projectId: string) => Promise<void>;
+  saveProject: (config: {
+    name: string;
+    description?: string;
+    isAutoSave?: boolean;
+    includeComments?: boolean;
+    includeAnnotations?: boolean;
+  }) => Promise<ProjectSave>;
+  loadProjectSave: (projectId: string, saveId: string) => Promise<void>;
+  exportCurrentWorldToProject: (projectId: string, saveName: string) => Promise<ProjectSave>;
   
   // File system state - track last used directory for better UX
   lastUsedDirectory: string | null;
@@ -217,9 +249,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   commandManager: new CommandManager(),
   panelLayout: null,
 
+  // Project Manager Integration
+  projectManager: ProjectManager.getInstance(),
+  worldLoader: ProjectWorldLoader.getInstance(),
+  currentProject: null,
+  assetInstances: [],
+
   // UI state defaults
   openToolbarPopup: null,
   setOpenToolbarPopup: (popup) => set({ openToolbarPopup: popup }),
+  
+  // Camera view state defaults
+  currentView: 'front',
+  setCurrentView: (view) => set({ currentView: view }),
   
   // File system state defaults
   lastUsedDirectory: null,
@@ -327,7 +369,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const node = tree.getNode(nodeId);
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
-    const registry = EntityRegistry.getInstance();
     const { coordinateFrameWidget } = get();
 
     // Check if this is a device root mesh node (ending in _device_root)
@@ -340,29 +381,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           get().selectNode(parentNode.id);
           return; // Exit early
         }
-      }
-    }
-
-    // Check if this node has an entity ID (device or link entity)
-    if (node && node.entityId) {
-      const entity = registry.get(node.entityId);
-
-      if (entity) {
-        // If it's a device entity, select the device mesh (triggers device highlighting)
-        if (entity.getIsDevice()) {
-          set({ selectedMeshes: [entity.getMesh()] });
-        } else {
-          // Check if this entity is a child of a device (it's a link)
-          // For links, select the link mesh directly
-          set({ selectedMeshes: [entity.getMesh()] });
-        }
-      }
-    }
-    // If it's a mesh node with babylonMeshId (legacy/non-device meshes)
-    else if (node && node.babylonMeshId && scene) {
-      const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
-      if (mesh && mesh instanceof BABYLON.Mesh) {
-        set({ selectedMeshes: [mesh] });
       }
     }
 
@@ -383,66 +401,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (transformNode) {
         // For collection nodes, we need to trigger gizmo activation
         // by setting a special flag that SceneCanvas can detect
+        // Clear any existing mesh selection to avoid conflicts
         set({ 
+          selectedMeshes: [], // Clear mesh selection
           selectedCollectionNodeId: nodeId,
           selectedCollectionTransformNode: transformNode 
         });
 
-        if (coordinateFrameWidget) {
-        // Get world position and orientation of TransformNode
-        const worldMatrix = transformNode.computeWorldMatrix(true);
-        const position = worldMatrix.getTranslation();
-
-        // Get rotation axes from world matrix (direction vectors, not positions)
-        const xAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Right(), worldMatrix).normalize();
-        const yAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Up(), worldMatrix).normalize();
-        const zAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Forward(), worldMatrix).normalize();
-
-        // Create custom frame feature for visualization
-        // NOTE: CoordinateFrameWidget.show() will call userToBabylon on origin, so pass user coords
-        const frame: CustomFrameFeature = {
-          featureType: 'object',
-          nodeId: nodeId,
-          origin: babylonToUser(position),
-          xAxis: { x: xAxis.x, y: xAxis.y, z: xAxis.z },
-          yAxis: { x: yAxis.x, y: yAxis.y, z: yAxis.z },
-          zAxis: { x: zAxis.x, y: zAxis.y, z: zAxis.z },
-        };
-
-        // Calculate appropriate axis length based on bounding box
-        const meshes = transformNode.getChildMeshes(false);
-        let axisLength = 0.1; // Default 0.1 Babylon units (100mm)
-
-        if (meshes.length > 0) {
-          // Calculate combined bounding box diagonal
-          let minX = Infinity, minY = Infinity, minZ = Infinity;
-          let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-
-          meshes.forEach(mesh => {
-            if (!mesh.isVisible) return;
-            mesh.computeWorldMatrix(true);
-            const boundingBox = mesh.getBoundingInfo().boundingBox;
-            const min = boundingBox.minimumWorld;
-            const max = boundingBox.maximumWorld;
-
-            minX = Math.min(minX, min.x);
-            minY = Math.min(minY, min.y);
-            minZ = Math.min(minZ, min.z);
-            maxX = Math.max(maxX, max.x);
-            maxY = Math.max(maxY, max.y);
-            maxZ = Math.max(maxZ, max.z);
-          });
-
-          const diagonal = Math.sqrt(
-            (maxX - minX) ** 2 + (maxY - minY) ** 2 + (maxZ - minZ) ** 2
-          );
-
-          // Set axis length to 20% of diagonal (in Babylon units = meters)
-          axisLength = diagonal * 0.2;
-        }
-
-        coordinateFrameWidget.show(frame, axisLength);
-        }
       }
     } else {
       // Hide coordinate frame widget if not a collection
@@ -512,6 +477,44 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         const transformNode = scene.transformNodes.find(tn => tn.name === node.name);
         if (transformNode) {
           sceneManager.zoomToNode(transformNode);
+        }
+      }
+    }
+    // Handle mesh/entity selection for non-collection nodes
+    else {
+      // Check if this node has an entity ID (device or link entity)
+      if (node && node.entityId) {
+        const registry = EntityRegistry.getInstance();
+        const entity = registry.get(node.entityId);
+
+        if (entity) {
+          // If it's a device entity, select the device mesh (triggers device highlighting)
+          if (entity.getIsDevice()) {
+            set({ 
+              selectedMeshes: [entity.getMesh()],
+              selectedCollectionNodeId: null, // Clear collection selection
+              selectedCollectionTransformNode: null
+            });
+          } else {
+            // Check if this entity is a child of a device (it's a link)
+            // For links, select the link mesh directly
+            set({ 
+              selectedMeshes: [entity.getMesh()],
+              selectedCollectionNodeId: null, // Clear collection selection
+              selectedCollectionTransformNode: null
+            });
+          }
+        }
+      }
+      // If it's a mesh node with babylonMeshId (legacy/non-device meshes)
+      else if (node && node.babylonMeshId && scene) {
+        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
+        if (mesh && mesh instanceof BABYLON.Mesh) {
+          set({ 
+            selectedMeshes: [mesh],
+            selectedCollectionNodeId: null, // Clear collection selection
+            selectedCollectionTransformNode: null
+          });
         }
       }
     }
@@ -1024,6 +1027,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       console.log('[URDF Loader] Dispatching scenetree-update event');
       window.dispatchEvent(new CustomEvent('scenetree-update'));
       
+      // Notify that model import is complete for auto-resize
+      setTimeout(() => {
+        window.dispatchEvent(new Event('model-import-complete'));
+      }, 100);
+      
       loading.end();
       toast.success(`Loaded ${modelName} with ${meshes.length} meshes`);
       
@@ -1131,13 +1139,30 @@ export const useEditorStore = create<EditorState>((set, get) => ({
               }
             };
 
-            // Special handling for MJCF: Link the model collection to the mjcf_root TransformNode
-            // This ensures the gizmo works properly for the main model collection
-            const mjcfRootNode = scene.transformNodes.find(tn => tn.name === 'mjcf_root');
-            if (mjcfRootNode) {
-              modelCollection.babylonTransformNodeId = mjcfRootNode.uniqueId.toString();
-              console.log('[EditorStore] Linked MJCF model collection to mjcf_root TransformNode:', mjcfRootNode.uniqueId);
+            // Special handling for MJCF: Create a unique root TransformNode for this model
+            // This ensures each model has its own transform node for proper gizmo selection
+            const uniqueRootName = `mjcf_root_${modelName}`;
+            let mjcfRootNode = scene.transformNodes.find(tn => tn.name === uniqueRootName);
+            
+            if (!mjcfRootNode) {
+              // Create a new unique root TransformNode for this model
+              mjcfRootNode = new BABYLON.TransformNode(uniqueRootName, scene);
+              mjcfRootNode.scaling.set(1, 1, 1);
+              console.log('[EditorStore] Created unique MJCF root TransformNode:', uniqueRootName, 'with uniqueId:', mjcfRootNode.uniqueId);
+              
+              // Reparent all the MJCF root nodes to this unique root
+              // This ensures each model has its own transform hierarchy
+              for (const rootNode of mjcfResult.rootNodes) {
+                if (rootNode.parent !== mjcfRootNode) {
+                  rootNode.parent = mjcfRootNode;
+                  console.log('[EditorStore] Reparented MJCF root node:', rootNode.name, 'to unique root:', uniqueRootName);
+                }
+              }
             }
+            
+            // Link the model collection to this unique root TransformNode
+            modelCollection.babylonTransformNodeId = mjcfRootNode.uniqueId.toString();
+            console.log('[EditorStore] Linked MJCF model collection to unique root TransformNode:', mjcfRootNode.uniqueId);
 
             // Build tree starting from root nodes
             for (const rootNode of mjcfResult.rootNodes) {
@@ -1421,6 +1446,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
       // Notify tree to update
       window.dispatchEvent(new Event('scenetree-update'));
+      
+      // Notify that model import is complete for auto-resize
+      setTimeout(() => {
+        window.dispatchEvent(new Event('model-import-complete'));
+      }, 100);
 
       // Auto-extract kinematics from URDF (single file import)
       if (isURDF) {
@@ -1479,6 +1509,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         loading.end();
         toast.success(`Imported ${meshes.length} meshes from ${file.name}`);
         console.log(`Imported ${meshes.length} meshes with ${rootNodes.length} root nodes`);
+        
+        // Final notification that model import is complete
+        setTimeout(() => {
+          window.dispatchEvent(new Event('model-import-complete'));
+        }, 200);
       }
     } catch (error) {
       loading.end();
@@ -2689,5 +2724,90 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     setTimeout(() => {
       get().cancelAlignment();
     }, 1500);
+  },
+
+  // ============================================================================
+  // Project Management Methods
+  // ============================================================================
+
+  createProject: async (config) => {
+    const { projectManager } = get();
+    const project = await projectManager.createProject(config);
+    set({ currentProject: project });
+    toast.success(`Project "${project.name}" created successfully`);
+    return project;
+  },
+
+  loadProject: async (projectId) => {
+    const { projectManager } = get();
+    await projectManager.setCurrentProject(projectId);
+    const project = projectManager.getCurrentProject();
+    set({ 
+      currentProject: project,
+      assetInstances: project?.assetInstances || []
+    });
+    toast.success(`Project "${project?.name}" loaded successfully`);
+  },
+
+  saveProject: async (config) => {
+    const { projectManager, currentProject } = get();
+    if (!currentProject) {
+      throw new Error('No project selected');
+    }
+    
+    try {
+      loading.start('Saving project...', 'processing');
+      const save = await projectManager.saveProject(currentProject.id, config);
+      loading.end();
+      toast.success(`Project saved: "${save.name}"`);
+      return save;
+    } catch (error) {
+      loading.end();
+      console.error('Failed to save project:', error);
+      toast.error('Failed to save project. Check console for details.');
+      throw error;
+    }
+  },
+
+  loadProjectSave: async (projectId, saveId) => {
+    const { projectManager, worldLoader } = get();
+    
+    try {
+      loading.start('Loading project save...', 'loading');
+      await worldLoader.loadProjectSave(projectId, saveId);
+      loading.end();
+      
+      // Update current project state
+      const project = projectManager.getCurrentProject();
+      set({ 
+        currentProject: project,
+        assetInstances: project?.assetInstances || []
+      });
+      
+      toast.success('Project save loaded successfully');
+      window.dispatchEvent(new Event('scenetree-update'));
+    } catch (error) {
+      loading.end();
+      console.error('Failed to load project save:', error);
+      toast.error('Failed to load project save. Check console for details.');
+      throw error;
+    }
+  },
+
+  exportCurrentWorldToProject: async (projectId, saveName) => {
+    const { worldLoader } = get();
+    
+    try {
+      loading.start('Exporting world to project...', 'processing');
+      const save = await worldLoader.exportCurrentWorldToSave(projectId, saveName);
+      loading.end();
+      toast.success(`World exported to project save: "${save.name}"`);
+      return save;
+    } catch (error) {
+      loading.end();
+      console.error('Failed to export world to project:', error);
+      toast.error('Failed to export world to project. Check console for details.');
+      throw error;
+    }
   },
 }));
