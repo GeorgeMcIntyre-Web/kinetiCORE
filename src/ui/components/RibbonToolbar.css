@@ -1,0 +1,329 @@
+/* Ribbon Toolbar - Dark mode styling matching Asset Library */
+/* Owner: George */
+
+.ribbon-toolbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: rgba(12, 12, 15, 0.98);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Category Container */
+.ribbon-category {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 120px;
+}
+
+/* Category Header */
+.ribbon-category-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: all 0.2s;
+  gap: 4px;
+  padding: 8px;
+}
+
+.ribbon-category-header:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.ribbon-category-header:active {
+  transform: translateY(0);
+}
+
+.ribbon-category-header svg {
+  width: 24px;
+  height: 24px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.ribbon-category-header span {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Category Content (Dropdown) */
+.ribbon-category-content {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: rgba(12, 12, 15, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  padding: 16px;
+  margin-top: 8px;
+  z-index: 1001;
+  min-width: 300px;
+  max-width: 500px;
+}
+
+/* Section within category */
+.ribbon-section {
+  margin-bottom: 20px;
+}
+
+.ribbon-section:last-child {
+  margin-bottom: 0;
+}
+
+.ribbon-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Button Groups */
+.ribbon-button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Individual Buttons */
+.ribbon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.ribbon-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.ribbon-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.ribbon-button.active {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: rgb(96, 165, 250);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+.ribbon-button.large {
+  min-width: 48px;
+  height: 48px;
+  font-size: 14px;
+}
+
+.ribbon-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.ribbon-button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Icon styling */
+.ribbon-button svg {
+  width: 18px;
+  height: 18px;
+  color: inherit;
+}
+
+.ribbon-button.large svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Special button variants */
+.ribbon-button.primary {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: rgb(96, 165, 250);
+}
+
+.ribbon-button.primary:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: rgb(147, 197, 253);
+}
+
+.ribbon-button.danger {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: rgb(252, 165, 165);
+}
+
+.ribbon-button.danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: rgb(254, 202, 202);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .ribbon-toolbar {
+    padding: 0 16px;
+    gap: 16px;
+  }
+  
+  .ribbon-category {
+    min-width: 100px;
+  }
+  
+  .ribbon-category-content {
+    min-width: 280px;
+  }
+}
+
+@media (max-width: 900px) {
+  .ribbon-toolbar {
+    height: 70px;
+    padding: 0 12px;
+    gap: 12px;
+  }
+  
+  .ribbon-category-header {
+    height: 50px;
+    padding: 6px;
+  }
+  
+  .ribbon-category-header svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .ribbon-category-header span {
+    font-size: 11px;
+  }
+  
+  .ribbon-category {
+    min-width: 80px;
+  }
+  
+  .ribbon-category-content {
+    min-width: 250px;
+    padding: 12px;
+  }
+  
+  .ribbon-button {
+    min-width: 32px;
+    height: 32px;
+    padding: 6px;
+    font-size: 11px;
+  }
+  
+  .ribbon-button.large {
+    min-width: 40px;
+    height: 40px;
+    font-size: 12px;
+  }
+  
+  .ribbon-button svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .ribbon-button.large svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* Animation for dropdown */
+.ribbon-category-content {
+  animation: ribbonDropdownIn 0.2s ease-out;
+}
+
+@keyframes ribbonDropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Focus states for accessibility */
+.ribbon-category-header:focus,
+.ribbon-button:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.5);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .ribbon-toolbar {
+    background: rgba(0, 0, 0, 0.95);
+    border-bottom-color: rgba(255, 255, 255, 0.3);
+  }
+  
+  .ribbon-category-header {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  .ribbon-button {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  .ribbon-button.active {
+    background: rgba(59, 130, 246, 0.3);
+    border-color: rgba(59, 130, 246, 0.6);
+  }
+}

@@ -12,10 +12,7 @@ import { useEditorStore } from '../store/editorStore';
 import { useUserLevel } from '../core/UserLevelContext';
 import { CoordinateFrame } from './CoordinateFrame';
 import { CameraViewControls } from './CameraViewControls';
-import { TransformSettings } from './TransformSettings';
-import { TemporaryOrigin } from './TemporaryOrigin';
-import { AlignTool } from './AlignTool';
-import { SnapToolbar } from './SnapSettings';
+import { RibbonToolbar } from './RibbonToolbar';
 import { isZoomableObject, isSelectableObject } from '../../scene/SceneUtils';
 
 export const SceneCanvas: React.FC = () => {
@@ -483,13 +480,8 @@ export const SceneCanvas: React.FC = () => {
       {/* Camera view controls */}
       <CameraViewControls />
 
-      {/* Transform Settings - Vertical icon strip on left side (ALWAYS VISIBLE) */}
-      <div className="absolute bottom-32 left-4 flex flex-col gap-1 z-50">
-        <TransformSettings />
-        <SnapToolbar />
-        <AlignTool />
-        <TemporaryOrigin />
-      </div>
+      {/* Ribbon Toolbar - Horizontal ribbon at top */}
+      <RibbonToolbar />
 
       {/* Multi-selection indicator */}
       {selectedNodeIds.length > 1 && (
