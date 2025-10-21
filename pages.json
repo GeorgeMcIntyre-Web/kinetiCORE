@@ -1,0 +1,6 @@
+{
+  "buildCommand": "npm run build",
+  "buildOutputDirectory": "dist",
+  "rootDirectory": "/",
+  "nodeVersion": "18"
+}
