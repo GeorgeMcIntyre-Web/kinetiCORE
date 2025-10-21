@@ -64,13 +64,12 @@ export class AssetLibraryManager {
   private async loadConvertedAssetRoots(): Promise<void> {
     try {
       // Try public config file for dev
-      let roots: string[] = [];
       try {
         const res = await fetch('/assetsources.json', { cache: 'no-store' });
         if (res.ok) {
           const json = await res.json();
           if (Array.isArray(json?.roots)) {
-            roots = json.roots;
+            // Process roots if needed
           }
         }
       } catch {}

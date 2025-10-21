@@ -27,10 +27,12 @@ import { useAssetLibraryStore } from '../store/assetLibraryStore';
 import { SceneTree } from '../components/SceneTree';
 import { KinematicsPanel } from '../components/KinematicsPanel';
 import { ActuatorControlPanel } from '../components/ActuatorControlPanel';
-import { DeviceLibrary } from '../components/DeviceLibrary';
 import { PhysicsSettings } from '../components/PhysicsSettings';
 import { CollisionVisualizer } from '../components/CollisionVisualizer';
 import { FloorSelector } from '../components/FloorSelector';
+import { ProjectManagerPanelV2 } from '../components/ProjectManager/ProjectManagerPanelV2';
+import { ProjectSaveDialog } from '../components/ProjectSaveDialog';
+import { useProjectManagerStore } from '../store/projectManagerStore';
 import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { EntityRegistry } from '../../entities/EntityRegistry';
@@ -53,6 +55,11 @@ export const EssentialModeLayout: React.FC = () => {
   const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
   const commandManager = useEditorStore((state) => state.commandManager);
   const toggleLibrary = useAssetLibraryStore((state) => state.toggleVisibility);
+  const showProjectManager = useProjectManagerStore((state) => state.show);
+
+  // Project Management
+  const saveProject = useEditorStore((state) => state.saveProject);
+  const currentProject = useEditorStore((state) => state.currentProject);
 
   const [transform, setTransform] = useState<{
     x: number;
@@ -65,9 +72,9 @@ export const EssentialModeLayout: React.FC = () => {
 
   const [showKinematicsPanel, setShowKinematicsPanel] = useState(false);
   const [showActuatorPanel, setShowActuatorPanel] = useState(false);
-  const [showDeviceLibrary, setShowDeviceLibrary] = useState(false);
   const [showPhysicsSettings, setShowPhysicsSettings] = useState(false);
   const [showCollisionVisualizer, setShowCollisionVisualizer] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadFileInputRef = useRef<HTMLInputElement>(null);
@@ -200,6 +207,31 @@ export const EssentialModeLayout: React.FC = () => {
   const handleZoomToSelected = () => {
     if (selectedNodeId) {
       zoomToNode(selectedNodeId);
+    }
+  };
+
+  // Project Management Handlers
+
+  const handleSaveProject = async () => {
+    if (!currentProject) {
+      toast.warning('No project selected. Create or select a project first.');
+      return;
+    }
+    setShowSaveDialog(true);
+  };
+
+  const handleSaveProjectConfirm = async (config: {
+    name: string;
+    description?: string;
+    isAutoSave?: boolean;
+    includeComments?: boolean;
+    includeAnnotations?: boolean;
+  }) => {
+    try {
+      await saveProject(config);
+      setShowSaveDialog(false);
+    } catch (error) {
+      console.error('Failed to save project:', error);
     }
   };
 
@@ -430,6 +462,19 @@ export const EssentialModeLayout: React.FC = () => {
 
         <div className="w-px h-6 bg-gray-300" />
 
+          {/* Project Dropdown */}
+          <ToolbarDropdown
+            label="Project"
+            icon={<Library size={16} />}
+            items={[
+              { id: 'projects', label: 'Project Manager', icon: <Library size={16} />, onClick: showProjectManager },
+              { id: 'save', label: 'Save Project', icon: <Save size={16} />, onClick: handleSaveProject, disabled: !currentProject },
+              { id: 'library', label: 'Asset Library', icon: <Library size={16} />, onClick: toggleLibrary },
+            ]}
+          />
+
+        <div className="w-px h-6 bg-gray-300" />
+
         {/* Import Button */}
         <button
           className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors duration-200 text-sm"
@@ -442,38 +487,36 @@ export const EssentialModeLayout: React.FC = () => {
 
         <div className="w-px h-6 bg-gray-300" />
 
-        {/* Robot Tools Dropdown */}
+        {/* Device Tools Dropdown */}
         <ToolbarDropdown
-          label="Robot"
+          label="Device"
           icon={<Cog size={16} />}
           items={[
             { id: 'kinematics', label: 'Kinematics Panel', icon: <Cog size={16} />, onClick: () => setShowKinematicsPanel(!showKinematicsPanel) },
-            { id: 'devices', label: 'Device Library', icon: <Library size={16} />, onClick: () => setShowDeviceLibrary(!showDeviceLibrary) },
             { id: 'actuators', label: 'Actuator Control', icon: <Settings size={16} />, onClick: () => setShowActuatorPanel(!showActuatorPanel) },
           ]}
         />
 
         <div className="w-px h-6 bg-gray-300" />
 
-        {/* Tools Dropdown */}
-        <ToolbarDropdown
-          label="Tools"
-          icon={<Layers size={16} />}
-          items={[
-            { id: 'projection', label: 'Projection View', icon: <Layers size={16} />, onClick: handleCreateProjectionView, disabled: selectedNodeIds.length === 0 },
-            { id: 'physics', label: 'Physics Settings', icon: <Settings size={16} />, onClick: () => setShowPhysicsSettings(!showPhysicsSettings) },
-            { id: 'collision', label: 'Collision Viz', icon: <Circle size={16} />, onClick: () => setShowCollisionVisualizer(!showCollisionVisualizer) },
-            { id: 'library', label: 'Asset Library', icon: <Library size={16} />, onClick: toggleLibrary },
-          ]}
-        />
+          {/* Tools Dropdown */}
+          <ToolbarDropdown
+            label="Tools"
+            icon={<Layers size={16} />}
+            items={[
+              { id: 'projection', label: 'Projection View', icon: <Layers size={16} />, onClick: handleCreateProjectionView, disabled: selectedNodeIds.length === 0 },
+              { id: 'physics', label: 'Physics Settings', icon: <Settings size={16} />, onClick: () => setShowPhysicsSettings(!showPhysicsSettings) },
+              { id: 'collision', label: 'Collision Viz', icon: <Circle size={16} />, onClick: () => setShowCollisionVisualizer(!showCollisionVisualizer) },
+            ]}
+          />
 
         <div className="w-px h-6 bg-gray-300" />
 
-        {/* Save Button */}
+        {/* Legacy Save Button */}
         <button
           className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors duration-200"
           onClick={saveComprehensiveWorld}
-          title="Save World"
+          title="Save World (Legacy)"
         >
           <Save size={16} />
         </button>
@@ -605,19 +648,6 @@ export const EssentialModeLayout: React.FC = () => {
       </FloatingPanel>
 
       <FloatingPanel
-        isOpen={showDeviceLibrary}
-        onClose={() => setShowDeviceLibrary(false)}
-        title="Device Library"
-        size="xl"
-        position="center"
-        draggable={true}
-        resizable={false}
-        zIndex={zIndex.modal}
-      >
-        <DeviceLibrary />
-      </FloatingPanel>
-
-      <FloatingPanel
         isOpen={showPhysicsSettings}
         onClose={() => setShowPhysicsSettings(false)}
         title="Physics Settings"
@@ -659,6 +689,18 @@ export const EssentialModeLayout: React.FC = () => {
         style={{ display: 'none' }}
         onChange={handleLoadFileChange}
       />
+
+      {/* Project Save Dialog */}
+      {showSaveDialog && currentProject && (
+        <ProjectSaveDialog
+          project={currentProject}
+          onClose={() => setShowSaveDialog(false)}
+          onSave={handleSaveProjectConfirm}
+        />
+      )}
+
+      {/* Project Manager Panel */}
+      <ProjectManagerPanelV2 />
     </div>
   );
 };

@@ -1,0 +1,226 @@
+/* ProjectFilterPane - Category tree and filters */
+
+.project-filter-pane {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  height: 100%;
+  background: rgba(18, 18, 21, 0.95);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  overflow-y: auto;
+}
+
+/* Search */
+.project-filter-search {
+  position: relative;
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.project-filter-search-icon {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+}
+
+.project-filter-search-input {
+  width: 100%;
+  padding: 8px 12px 8px 32px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.project-filter-search-input:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.project-filter-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Section */
+.project-filter-section {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.project-filter-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.project-filter-reset-btn {
+  padding: 4px 8px;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.project-filter-reset-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Category Tree */
+.project-category-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.project-category-node {
+  display: flex;
+  flex-direction: column;
+}
+
+.project-category-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.project-category-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.project-category-item.active {
+  background: rgba(59, 130, 246, 0.15);
+  color: rgb(96, 165, 250);
+}
+
+.project-category-label {
+  flex: 1;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.project-category-count {
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Status Tree */
+.project-status-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.project-status-node {
+  display: flex;
+  flex-direction: column;
+}
+
+.project-status-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.project-status-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.project-status-item.active {
+  background: rgba(59, 130, 246, 0.15);
+  color: rgb(96, 165, 250);
+}
+
+.project-status-icon {
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.project-status-label {
+  flex: 1;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.project-status-count {
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Visibility Tree */
+.project-visibility-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.project-visibility-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.project-visibility-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.project-visibility-item.active {
+  background: rgba(59, 130, 246, 0.15);
+  color: rgb(96, 165, 250);
+}
+
+.project-visibility-icon {
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.project-visibility-label {
+  flex: 1;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.project-visibility-count {
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}

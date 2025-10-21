@@ -1,5 +1,5 @@
 import './App.css';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { KinematicsPanel } from './ui/components/KinematicsPanel';
 import { KeyboardShortcuts } from './ui/components/KeyboardShortcuts';
 import { QuickAddMenu } from './ui/components/QuickAddMenu';
@@ -13,11 +13,31 @@ import { EssentialModeLayout } from './ui/layouts/EssentialModeLayout';
 import { ProfessionalModeLayout } from './ui/layouts/ProfessionalModeLayout';
 import { ExpertModeLayout } from './ui/layouts/ExpertModeLayout';
 import { AssetLibraryPanelV2 } from './ui/components/AssetLibrary/AssetLibraryPanelV2';
+import { ProjectManager } from './project/ProjectManager';
 
 // Main app content that switches layouts based on user level
 const AppContent: React.FC = () => {
   const { userLevel } = useUserLevel();
   const [showKinematicsPanel, setShowKinematicsPanel] = useState(false);
+  const [projectManagerInitialized, setProjectManagerInitialized] = useState(false);
+
+  // Initialize Project Manager on app startup
+  React.useEffect(() => {
+    const initializeProjectManager = async () => {
+      try {
+        const projectManager = ProjectManager.getInstance();
+        await projectManager.initialize();
+        setProjectManagerInitialized(true);
+        console.log('[App] Project Manager initialized successfully');
+      } catch (error) {
+        console.error('[App] Failed to initialize Project Manager:', error);
+        // Continue without project manager
+        setProjectManagerInitialized(true);
+      }
+    };
+
+    initializeProjectManager();
+  }, []);
 
   // Render the appropriate layout based on user level
   const renderLayout = () => {
@@ -32,6 +52,19 @@ const AppContent: React.FC = () => {
         return <EssentialModeLayout />;
     }
   };
+
+  // Show loading screen while Project Manager initializes
+  if (!projectManagerInitialized) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Initializing kinetiCORE</h2>
+          <p className="text-gray-600">Setting up project management system...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

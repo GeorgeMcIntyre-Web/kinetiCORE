@@ -30,6 +30,9 @@ import { loading } from '../components/LoadingIndicator';
 import { CommandManager } from '../../history/CommandManager';
 import { DeleteObjectCommand } from '../../history/commands/DeleteObjectCommand';
 import { DuplicateObjectCommand } from '../../history/commands/DuplicateObjectCommand';
+import { ProjectManager } from '../../project/ProjectManager';
+import { ProjectWorldLoader } from '../../project/ProjectWorldLoader';
+import type { Project, ProjectSave, AssetInstance } from '../../project/types';
 
 type ObjectType = 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'plane' | 'ground' | 'capsule' | 'disc' | 'torusknot' | 'polyhedron';
 
@@ -48,10 +51,35 @@ interface EditorState {
   coordinateFrameWidget: CoordinateFrameWidget | null;
   commandManager: CommandManager;
   panelLayout: any | null; // Dockview panel layout state
+  
+  // Project Manager Integration
+  projectManager: ProjectManager;
+  worldLoader: ProjectWorldLoader;
+  currentProject: Project | null;
+  assetInstances: AssetInstance[];
 
   // UI state - which toolbar popup is currently open (only one at a time)
   openToolbarPopup: 'transform-settings' | 'snap-geometric' | 'snap-object' | 'snap-auxiliary' | null;
   setOpenToolbarPopup: (popup: 'transform-settings' | 'snap-geometric' | 'snap-object' | 'snap-auxiliary' | null) => void;
+
+  // Project Management Methods
+  createProject: (config: {
+    name: string;
+    description?: string;
+    category: 'simulation' | 'layout' | 'prototype' | 'production' | 'training' | 'research';
+    visibility: 'private' | 'team' | 'public';
+    tags?: string[];
+  }) => Promise<Project>;
+  loadProject: (projectId: string) => Promise<void>;
+  saveProject: (config: {
+    name: string;
+    description?: string;
+    isAutoSave?: boolean;
+    includeComments?: boolean;
+    includeAnnotations?: boolean;
+  }) => Promise<ProjectSave>;
+  loadProjectSave: (projectId: string, saveId: string) => Promise<void>;
+  exportCurrentWorldToProject: (projectId: string, saveName: string) => Promise<ProjectSave>;
   
   // File system state - track last used directory for better UX
   lastUsedDirectory: string | null;
@@ -216,6 +244,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   coordinateFrameWidget: null,
   commandManager: new CommandManager(),
   panelLayout: null,
+
+  // Project Manager Integration
+  projectManager: ProjectManager.getInstance(),
+  worldLoader: ProjectWorldLoader.getInstance(),
+  currentProject: null,
+  assetInstances: [],
 
   // UI state defaults
   openToolbarPopup: null,
@@ -2689,5 +2723,90 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     setTimeout(() => {
       get().cancelAlignment();
     }, 1500);
+  },
+
+  // ============================================================================
+  // Project Management Methods
+  // ============================================================================
+
+  createProject: async (config) => {
+    const { projectManager } = get();
+    const project = await projectManager.createProject(config);
+    set({ currentProject: project });
+    toast.success(`Project "${project.name}" created successfully`);
+    return project;
+  },
+
+  loadProject: async (projectId) => {
+    const { projectManager } = get();
+    await projectManager.setCurrentProject(projectId);
+    const project = projectManager.getCurrentProject();
+    set({ 
+      currentProject: project,
+      assetInstances: project?.assetInstances || []
+    });
+    toast.success(`Project "${project?.name}" loaded successfully`);
+  },
+
+  saveProject: async (config) => {
+    const { projectManager, currentProject } = get();
+    if (!currentProject) {
+      throw new Error('No project selected');
+    }
+    
+    try {
+      loading.start('Saving project...', 'processing');
+      const save = await projectManager.saveProject(currentProject.id, config);
+      loading.end();
+      toast.success(`Project saved: "${save.name}"`);
+      return save;
+    } catch (error) {
+      loading.end();
+      console.error('Failed to save project:', error);
+      toast.error('Failed to save project. Check console for details.');
+      throw error;
+    }
+  },
+
+  loadProjectSave: async (projectId, saveId) => {
+    const { projectManager, worldLoader } = get();
+    
+    try {
+      loading.start('Loading project save...', 'loading');
+      await worldLoader.loadProjectSave(projectId, saveId);
+      loading.end();
+      
+      // Update current project state
+      const project = projectManager.getCurrentProject();
+      set({ 
+        currentProject: project,
+        assetInstances: project?.assetInstances || []
+      });
+      
+      toast.success('Project save loaded successfully');
+      window.dispatchEvent(new Event('scenetree-update'));
+    } catch (error) {
+      loading.end();
+      console.error('Failed to load project save:', error);
+      toast.error('Failed to load project save. Check console for details.');
+      throw error;
+    }
+  },
+
+  exportCurrentWorldToProject: async (projectId, saveName) => {
+    const { worldLoader } = get();
+    
+    try {
+      loading.start('Exporting world to project...', 'processing');
+      const save = await worldLoader.exportCurrentWorldToSave(projectId, saveName);
+      loading.end();
+      toast.success(`World exported to project save: "${save.name}"`);
+      return save;
+    } catch (error) {
+      loading.end();
+      console.error('Failed to export world to project:', error);
+      toast.error('Failed to export world to project. Check console for details.');
+      throw error;
+    }
   },
 }));

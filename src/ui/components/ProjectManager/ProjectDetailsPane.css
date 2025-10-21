@@ -1,0 +1,397 @@
+/* ProjectDetailsPane - Project details and actions */
+
+.project-details-pane {
+  display: flex;
+  flex-direction: column;
+  width: 320px;
+  height: 100%;
+  background: rgba(18, 18, 21, 0.95);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+/* Empty State */
+.project-details-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 40px 20px;
+}
+
+.project-details-empty-icon {
+  font-size: 64px;
+  opacity: 0.3;
+  margin-bottom: 16px;
+}
+
+.project-details-empty-text {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+}
+
+/* Header */
+.project-details-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 15, 18, 0.95);
+}
+
+.project-details-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.project-details-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.project-details-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-details-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.project-details-status-select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.project-details-status-select:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.project-details-status-select:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.5);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.project-details-status-select.project-status-draft {
+  color: rgb(251, 191, 36);
+}
+
+.project-details-status-select.project-status-active {
+  color: rgb(59, 130, 246);
+}
+
+.project-details-status-select.project-status-completed {
+  color: rgb(34, 197, 94);
+}
+
+.project-details-status-select.project-status-archived {
+  color: rgb(156, 163, 175);
+}
+
+/* Content */
+.project-details-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.project-details-section {
+  margin-bottom: 24px;
+}
+
+.project-details-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.project-details-section-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.project-details-new-save-btn {
+  padding: 4px 8px;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+  color: rgb(96, 165, 250);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.project-details-new-save-btn:hover {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: rgb(147, 197, 253);
+}
+
+/* Project Info */
+.project-details-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.project-details-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.project-details-info-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.project-details-info-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: capitalize;
+}
+
+/* Description */
+.project-details-description {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Tags */
+.project-details-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.project-details-tag {
+  padding: 4px 8px;
+  background: rgba(59, 130, 246, 0.15);
+  border-radius: 4px;
+  font-size: 11px;
+  color: rgba(96, 165, 250, 0.9);
+  white-space: nowrap;
+}
+
+/* Loading */
+.project-details-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.project-details-loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top: 2px solid rgb(59, 130, 246);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 8px;
+}
+
+/* Error */
+.project-details-error {
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+}
+
+.project-details-error-text {
+  font-size: 12px;
+  color: rgb(252, 165, 165);
+}
+
+/* Empty Saves */
+.project-details-empty-saves {
+  padding: 20px;
+  text-align: center;
+}
+
+.project-details-empty-saves-text {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Saves List */
+.project-details-saves {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.project-details-save-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.project-details-save-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.project-details-save-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.project-details-save-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-details-save-meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.project-details-save-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.project-details-save-load-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 10px;
+}
+
+.project-details-save-load-btn:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: rgb(96, 165, 250);
+}
+
+/* Actions */
+.project-details-actions {
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 15, 18, 0.95);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.project-details-actions-row {
+  display: flex;
+  gap: 6px;
+}
+
+.project-details-action-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  outline: none;
+  white-space: nowrap;
+}
+
+.project-details-action-btn.primary {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: rgb(96, 165, 250);
+}
+
+.project-details-action-btn.primary:hover {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: rgb(147, 197, 253);
+}
+
+.project-details-action-btn.secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.project-details-action-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.project-details-action-btn.danger {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: rgb(248, 113, 113);
+}
+
+.project-details-action-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: rgb(252, 165, 165);
+}
+
+/* Status Colors */
+.project-status-draft {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.project-status-active {
+  color: rgb(34, 197, 94);
+}
+
+.project-status-completed {
+  color: rgb(59, 130, 246);
+}
+
+.project-status-archived {
+  color: rgba(255, 255, 255, 0.4);
+}

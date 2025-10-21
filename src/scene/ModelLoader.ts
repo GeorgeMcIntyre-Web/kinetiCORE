@@ -31,7 +31,11 @@ import { loadMJCFFromFile } from '../loaders/mjcf/MJCFLoader';
 // Import GLB loader
 import { loadGLBFromFile } from '../loaders/glb/GLBLoader';
 export async function loadGLB(url: string, scene: BABYLON.Scene, options?: any) {
-  return loadGLBFromFile(url, scene, options);
+  // Convert URL to File-like object for GLB loader
+  const response = await fetch(url);
+  const blob = await response.blob();
+  const file = new File([blob], url.split('/').pop() || 'model.glb', { type: 'model/gltf-binary' });
+  return loadGLBFromFile(file, scene, options);
 }
 
 // Import USD loader

@@ -91,6 +91,9 @@ export class GLBLoader {
     scene: Scene,
     options: GLBLoadOptions = {}
   ): Promise<GLBLoadResult> {
+    // Guard rail 0: Determine input type
+    const isUrl = typeof fileOrUrl === 'string';
+    
     const startTime = performance.now();
     const defaultOptions: GLBLoadOptions = {
       enableProgressCallback: true,
@@ -115,7 +118,7 @@ export class GLBLoader {
       warnings: [],
       bounds: null,
       metadata: {
-        fileSize: file.size,
+        fileSize: isUrl ? 0 : (fileOrUrl as File).size,
         loadTime: 0,
         meshCount: 0,
         hasAnimations: false,
@@ -123,9 +126,9 @@ export class GLBLoader {
       }
     };
 
+    // Guard rail 1: Validate input
+    
     try {
-      // Guard rail 1: Validate input
-      const isUrl = typeof fileOrUrl === 'string';
       if (!isUrl && !this.validateFile(fileOrUrl as File)) {
         result.errors.push('Invalid GLB file: File validation failed');
         return result;
@@ -215,7 +218,7 @@ export class GLBLoader {
           }
         }
 
-        console.log(`[GLB Loader] Starting up-axis detection for: ${file.name}`);
+        console.log(`[GLB Loader] Starting up-axis detection for: ${isUrl ? (fileOrUrl as string) : (fileOrUrl as File).name}`);
         console.log(`[GLB Loader] Model positioned at original CAD coordinates`);
 
         // Generate file key for sibling consistency
@@ -281,7 +284,9 @@ export class GLBLoader {
 
       // Extract metadata
       if (defaultOptions.enableMetadataExtraction) {
-        result.metadata = this.extractMetadata(loadResult, isUrl ? undefined : (fileOrUrl as File), startTime);
+        if (!isUrl) {
+          result.metadata = this.extractMetadata(loadResult, fileOrUrl as File, startTime);
+        }
       }
 
       // Add GLB-specific warnings
@@ -305,7 +310,7 @@ export class GLBLoader {
       if (defaultOptions.fallbackToBasicLoader) {
         try {
           console.warn('[GLB Loader] Attempting fallback to basic loader...');
-          const fallbackResult = await this.loadWithBasicLoader(file, scene);
+          const fallbackResult = await this.loadWithBasicLoader(fileOrUrl as File, scene);
           if (fallbackResult.success) {
             result.success = true;
             result.meshes = fallbackResult.meshes;
