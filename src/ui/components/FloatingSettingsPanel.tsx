@@ -17,10 +17,12 @@ import {
   Camera,
   Target,
   Sliders,
+  Database,
 } from 'lucide-react';
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { useEditorStore } from '../store/editorStore';
 import { useUserLevel } from '../core/UserLevelContext';
+import { AdminPanel } from './Admin/AdminPanel';
 import './FloatingSettingsPanel.css';
 
 interface FloatingSettingsPanelProps {
@@ -85,59 +87,61 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
   // General Settings Component
   const GeneralSettings = () => (
     <div className="settings-section">
-      <div className="settings-group">
-        <h4 className="settings-group-title">
-          <User size={16} />
-          User Experience Level
-        </h4>
-        <div className="settings-option">
-          <label className="settings-label">Interface Mode</label>
-          <div className="settings-radio-group">
-            {[
-              { value: 'essential', label: 'Essential', description: 'Simplified interface for beginners' },
-              { value: 'professional', label: 'Professional', description: 'Full feature set for engineers' },
-              { value: 'expert', label: 'Expert', description: 'Advanced features for power users' }
-            ].map(({ value, label, description }) => (
-              <label key={value} className="settings-radio-option">
-                <input
-                  type="radio"
-                  name="userLevel"
-                  value={value}
-                  checked={userLevel === value}
-                  onChange={() => setUserLevel(value as any)}
-                />
-                <div className="radio-content">
-                  <span className="radio-label">{label}</span>
-                  <span className="radio-description">{description}</span>
-                </div>
-              </label>
-            ))}
+      <div className="settings-grid">
+        <div className="settings-compact-group">
+          <h4 className="settings-group-title">
+            <User size={16} />
+            User Experience Level
+          </h4>
+          <div className="settings-option">
+            <label className="settings-label">Interface Mode</label>
+            <div className="settings-radio-group">
+              {[
+                { value: 'essential', label: 'Essential', description: 'Simplified interface for beginners' },
+                { value: 'professional', label: 'Professional', description: 'Full feature set for engineers' },
+                { value: 'expert', label: 'Expert', description: 'Advanced features for power users' }
+              ].map(({ value, label, description }) => (
+                <label key={value} className="settings-radio-option">
+                  <input
+                    type="radio"
+                    name="userLevel"
+                    value={value}
+                    checked={userLevel === value}
+                    onChange={() => setUserLevel(value as any)}
+                  />
+                  <div className="radio-content">
+                    <span className="radio-label">{label}</span>
+                    <span className="radio-description">{description}</span>
+                  </div>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="settings-group">
-        <h4 className="settings-group-title">
-          <Palette size={16} />
-          Appearance
-        </h4>
-        <div className="settings-option">
-          <label className="settings-label">Theme</label>
-          <select className="settings-select" defaultValue="dark">
-            <option value="dark">Dark Theme</option>
-            <option value="light">Light Theme</option>
-            <option value="auto">Auto (System)</option>
-          </select>
-        </div>
-        <div className="settings-option">
-          <label className="settings-label">Language</label>
-          <select className="settings-select" defaultValue="en">
-            <option value="en">English</option>
-            <option value="es">Español</option>
-            <option value="fr">Français</option>
-            <option value="de">Deutsch</option>
-            <option value="zh">中文</option>
-          </select>
+        <div className="settings-compact-group">
+          <h4 className="settings-group-title">
+            <Palette size={16} />
+            Appearance
+          </h4>
+          <div className="settings-compact-option">
+            <label className="settings-compact-label">Theme</label>
+            <select className="settings-select settings-compact-control" defaultValue="dark">
+              <option value="dark">Dark Theme</option>
+              <option value="light">Light Theme</option>
+              <option value="auto">Auto (System)</option>
+            </select>
+          </div>
+          <div className="settings-compact-option">
+            <label className="settings-compact-label">Language</label>
+            <select className="settings-select settings-compact-control" defaultValue="en">
+              <option value="en">English</option>
+              <option value="es">Español</option>
+              <option value="fr">Français</option>
+              <option value="de">Deutsch</option>
+              <option value="zh">中文</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -146,16 +150,16 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
           <Save size={16} />
           Auto-Save
         </h4>
-        <div className="settings-option">
+        <div className="settings-compact-option">
           <label className="settings-checkbox">
             <input type="checkbox" defaultChecked />
             <span className="checkmark"></span>
             Enable auto-save
           </label>
         </div>
-        <div className="settings-option">
-          <label className="settings-label">Auto-save interval</label>
-          <select className="settings-select" defaultValue="5">
+        <div className="settings-compact-option">
+          <label className="settings-compact-label">Auto-save interval</label>
+          <select className="settings-select settings-compact-control" defaultValue="5">
             <option value="1">Every 1 minute</option>
             <option value="5">Every 5 minutes</option>
             <option value="10">Every 10 minutes</option>
@@ -486,6 +490,7 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
     { id: 'physics', label: 'Physics', icon: <Zap size={16} />, component: <PhysicsSettings /> },
     { id: 'view', label: 'View', icon: <Eye size={16} />, component: <ViewSettings /> },
     { id: 'project', label: 'Project', icon: <Folder size={16} />, component: <ProjectSettings /> },
+    { id: 'admin', label: 'Asset Admin', icon: <Database size={16} />, component: <AdminPanel /> },
   ];
 
   return (
@@ -495,11 +500,11 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
       onClose={onClose}
       isVisible={isVisible}
       zIndex={zIndex}
-      defaultSize={{ width: 500, height: 600 }}
-      minWidth={450}
+      defaultSize={{ width: 800, height: 700 }}
+      minWidth={600}
       minHeight={500}
-      maxWidth={700}
-      maxHeight={800}
+      maxWidth={1200}
+      maxHeight={900}
       className="floating-settings-panel"
     >
       <div className="settings-panel-content">

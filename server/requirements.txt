@@ -1,15 +1,51 @@
-# USD Conversion Server Dependencies
-# Owner: George (Agent 2 - Architecture)
+# Requirements for kinetiCORE Asset Management Backend Services
+# Owner: George
 
 # Core web framework
-Flask==3.0.0
-Werkzeug==3.0.1
+Flask==2.3.3
+Flask-CORS==4.0.0
 
-# File handling
-pathlib2==2.3.7
+# Database
+pymongo==4.5.0
+motor==3.2.0  # Async MongoDB driver
 
-# Optional: USD Python API (if available)
-# usd-core==23.11  # Uncomment if USD Python API is installed
+# Cloud storage
+boto3==1.28.62
+botocore==1.31.62
 
-# Development dependencies
+# HTTP requests and web scraping
+requests==2.31.0
+aiohttp==3.8.5
+beautifulsoup4==4.12.2
+lxml==4.9.3
+
+# PDF processing
+PyPDF2==3.0.1
+pdfplumber==0.9.0
+
+# AI/ML services
+openai==1.3.0
+anthropic==0.7.0
+
+# Image processing
+Pillow==10.0.1
+opencv-python==4.8.1.78
+
+# Data processing
+pandas==2.1.1
+numpy==1.24.3
+
+# Utilities
 python-dotenv==1.0.0
+python-multipart==0.0.6
+pydantic==2.4.2
+
+# Development and testing
+pytest==7.4.2
+pytest-asyncio==0.21.1
+black==23.9.1
+flake8==6.1.0
+
+# Optional: For advanced 3D processing
+# trimesh==3.23.5
+# open3d==0.17.0
