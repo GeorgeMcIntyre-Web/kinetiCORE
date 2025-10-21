@@ -204,11 +204,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           >
             <Maximize2 size={32} />
           </button>
-          <button
-            className="ribbon-btn"
-            onClick={onQuickMoveClick}
-            title="Quick Move Dialog"
-          >
+          <button className="ribbon-btn" onClick={onQuickMoveClick} title="Quick Move Dialog">
             <Move3D size={32} />
           </button>
         </div>
@@ -221,7 +217,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           <button className="ribbon-btn" onClick={onProjectionClick} title="Projection View">
             <Eye size={32} />
           </button>
-          <button className="ribbon-btn" onClick={onResetViewClick} title="Reset View">
+          <button className="ribbon-btn" onClick={onResetViewClick} title="Reset Views">
             <RotateCcw size={32} />
           </button>
           <button className="ribbon-btn" onClick={onZoomFitClick} title="Zoom Fit">
