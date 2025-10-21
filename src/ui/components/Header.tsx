@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Menu, X, Settings, HelpCircle, Zap, ZapOff, ZapIcon } from 'lucide-react';
 import { zIndex, colors } from '../styles/design-tokens';
+import { RibbonToolbar, RibbonToolbarProps } from './RibbonToolbar';
 
 export interface HeaderProps {
   currentMode: 'essential' | 'professional' | 'expert';
@@ -9,6 +10,9 @@ export interface HeaderProps {
   onHelpClick: () => void;
   className?: string;
   style?: React.CSSProperties;
+  sidebarWidth?: number;
+  isResizing?: boolean;
+  ribbonProps?: RibbonToolbarProps;
 }
 
 const modeConfig = {
@@ -39,6 +43,9 @@ export const Header: React.FC<HeaderProps> = ({
   onHelpClick,
   className = '',
   style = {},
+  sidebarWidth = 256,
+  isResizing = false,
+  ribbonProps,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
@@ -50,24 +57,25 @@ export const Header: React.FC<HeaderProps> = ({
     <header
       className={`
         fixed top-0 left-0 right-0 bg-gray-900 border-b border-gray-700
-        flex items-center justify-between px-4 py-3
         ${className}
       `}
       style={{ zIndex: zIndex.toolbar, ...style }}
     >
-      {/* Logo and App Name */}
-      <div className="flex items-center space-x-2">
-        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-          <span className="text-white font-bold text-sm">K</span>
+      {/* Top Row: Logo, Mode Switcher, Actions */}
+      <div className="flex items-center justify-between px-4 py-2">
+        {/* Logo and App Name */}
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-sm">K</span>
+          </div>
+          <div className="hidden sm:block">
+            <h1 className="text-xl font-bold text-white">kinetiCORE</h1>
+            <p className="text-xs text-gray-400">Industrial Simulation</p>
+          </div>
         </div>
-        <div className="hidden sm:block">
-          <h1 className="text-xl font-bold text-white">kinetiCORE</h1>
-          <p className="text-xs text-gray-400">Industrial Simulation</p>
-        </div>
-      </div>
 
-      {/* Mode Switcher - Desktop */}
-      <div className="hidden md:flex items-center space-x-2">
+        {/* Mode Switcher - Desktop */}
+        <div className="hidden md:flex items-center space-x-2">
         <div className="relative">
           <button
             onClick={() => setIsModeMenuOpen(!isModeMenuOpen)}
@@ -140,34 +148,51 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-center space-x-2">
-        {/* Settings */}
-        <button
-          onClick={onSettingsClick}
-          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-          title="Settings"
-        >
-          <Settings className="w-5 h-5" />
-        </button>
+        {/* Action Buttons */}
+        <div className="flex items-center space-x-2">
+          {/* Settings */}
+          <button
+            onClick={onSettingsClick}
+            className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors duration-200"
+            title="Settings"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
 
-        {/* Help */}
-        <button
-          onClick={onHelpClick}
-          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-          title="Help & Documentation"
-        >
-          <HelpCircle className="w-5 h-5" />
-        </button>
+          {/* Help */}
+          <button
+            onClick={onHelpClick}
+            className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors duration-200"
+            title="Help & Documentation"
+          >
+            <HelpCircle className="w-5 h-5" />
+          </button>
 
-        {/* Mobile Menu Button */}
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="md:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-        >
-          {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors duration-200"
+          >
+            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
+
+      {/* Bottom Row: Ribbon Toolbar */}
+      {ribbonProps && (
+        <div
+          className="border-t border-gray-800"
+          style={{
+            paddingLeft: `${sidebarWidth}px`,
+            paddingRight: '8px',
+            paddingTop: '4px',
+            paddingBottom: '4px',
+            transition: isResizing ? 'none' : 'padding-left 0.2s ease',
+          }}
+        >
+          <RibbonToolbar {...ribbonProps} />
+        </div>
+      )}
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (

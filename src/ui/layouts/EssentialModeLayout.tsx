@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import { ToolbarDropdown } from '../components/ToolbarDropdown';
 import { Header } from '../components/Header';
-import { RibbonToolbar } from '../components/RibbonToolbar';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { useAssetLibraryStore } from '../store/assetLibraryStore';
@@ -466,7 +465,7 @@ export const EssentialModeLayout: React.FC = () => {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-gray-50">
-      {/* Header */}
+      {/* Header with integrated Ribbon */}
         <Header
           currentMode={userLevel as 'essential' | 'professional' | 'expert'}
           onModeChange={(mode) => setUserLevel(mode)}
@@ -474,10 +473,22 @@ export const EssentialModeLayout: React.FC = () => {
           onHelpClick={() => toast.info('Help documentation coming soon')}
           className="fixed top-0 left-0 right-0 z-50"
           style={{ zIndex: 100 }}
+          sidebarWidth={sidebarWidth}
+          isResizing={isResizing}
+          ribbonProps={{
+            onKinematicsClick: () => setShowKinematicsPanel(!showKinematicsPanel),
+            onDevicesClick: () => console.log('Device Library - coming soon'),
+            onActuatorsClick: () => setShowActuatorPanel(!showActuatorPanel),
+            onPhysicsClick: () => setShowPhysicsSettings(!showPhysicsSettings),
+            onCollisionsClick: () => setShowCollisionVisualizer(!showCollisionVisualizer),
+            onProjectionClick: handleCreateProjectionView,
+            onProjectManagerClick: showProjectManager,
+            onAssetLibraryClick: toggleLibrary,
+          }}
         />
 
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden" style={{ paddingTop: '64px' }}>
+      <div className="flex flex-1 overflow-hidden" style={{ paddingTop: '120px' }}>
         {/* Left Sidebar - Resizable */}
         <aside
           className="border-r border-gray-200 bg-white flex-shrink-0 flex flex-col min-h-0 relative"
@@ -494,30 +505,6 @@ export const EssentialModeLayout: React.FC = () => {
             }}
           />
         </aside>
-
-        {/* Ribbon Toolbar - Positioned at top of viewer, aligned with tree boundary */}
-        <div
-          className="fixed z-40 bg-gray-900"
-          style={{
-            top: '64px', // Below header
-            left: `${sidebarWidth}px`,
-            right: 0,
-            transition: isResizing ? 'none' : 'left 0.2s ease',
-            padding: '4px 8px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-          }}
-        >
-          <RibbonToolbar
-            onKinematicsClick={() => setShowKinematicsPanel(!showKinematicsPanel)}
-            onDevicesClick={() => console.log('Device Library - coming soon')}
-            onActuatorsClick={() => setShowActuatorPanel(!showActuatorPanel)}
-            onPhysicsClick={() => setShowPhysicsSettings(!showPhysicsSettings)}
-            onCollisionsClick={() => setShowCollisionVisualizer(!showCollisionVisualizer)}
-            onProjectionClick={handleCreateProjectionView}
-            onProjectManagerClick={showProjectManager}
-            onAssetLibraryClick={toggleLibrary}
-          />
-        </div>
 
         {/* Main Viewport */}
         <main className="flex-1 relative bg-gray-100">
