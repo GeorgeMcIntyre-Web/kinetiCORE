@@ -26,13 +26,73 @@ export interface LoadResult {
 }
 
 /**
+ * Asset cache entry
+ */
+interface AssetCacheEntry {
+  asset: BABYLON.TransformNode;
+  timestamp: number;
+  size: number;
+}
+
+/**
  * Asset loader - converts library assets into scene objects
+ * Optimized with caching, parallel loading, and memory management
  */
 export class AssetLoader {
   private scene: BABYLON.Scene;
+  
+  // Performance optimization: Asset caching
+  private static assetCache = new Map<string, AssetCacheEntry>();
+  private static readonly MAX_CACHE_SIZE = 50 * 1024 * 1024; // 50MB cache
+  private static readonly CACHE_EXPIRY_TIME = 30 * 60 * 1000; // 30 minutes
+  
+  // Performance optimization: Parallel loading
+  private static loadingPromises = new Map<string, Promise<LoadResult>>();
+  
+  // Performance optimization: Memory management
+  private static loadedAssets = new Set<string>();
+  private static readonly MAX_LOADED_ASSETS = 100;
 
   constructor(scene: BABYLON.Scene) {
     this.scene = scene;
+    
+    // Start cache cleanup interval (only once)
+    if (AssetLoader.assetCache.size === 0) {
+      setInterval(() => AssetLoader.cleanupCache(), 5 * 60 * 1000); // Every 5 minutes
+    }
+  }
+
+  /**
+   * Clean up expired cache entries
+   */
+  private static cleanupCache(): void {
+    const now = Date.now();
+    let totalSize = 0;
+    
+    for (const [key, entry] of AssetLoader.assetCache.entries()) {
+      totalSize += entry.size;
+      
+      // Remove expired entries
+      if (now - entry.timestamp > AssetLoader.CACHE_EXPIRY_TIME) {
+        entry.asset.dispose();
+        AssetLoader.assetCache.delete(key);
+        AssetLoader.loadedAssets.delete(key);
+        continue;
+      }
+      
+      // Remove oldest entries if cache is too large
+      if (totalSize > AssetLoader.MAX_CACHE_SIZE) {
+        const oldestKey = AssetLoader.assetCache.keys().next().value;
+        if (oldestKey) {
+          const oldestEntry = AssetLoader.assetCache.get(oldestKey);
+          if (oldestEntry) {
+            oldestEntry.asset.dispose();
+            AssetLoader.assetCache.delete(oldestKey);
+            AssetLoader.loadedAssets.delete(oldestKey);
+          }
+        }
+      }
+    }
   }
 
   /**

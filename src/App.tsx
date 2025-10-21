@@ -13,6 +13,7 @@ import { ProfessionalModeLayout } from './ui/layouts/ProfessionalModeLayout';
 import { ExpertModeLayout } from './ui/layouts/ExpertModeLayout';
 import { AssetLibraryPanelV2 } from './ui/components/AssetLibrary/AssetLibraryPanelV2';
 import { ProjectManager } from './project/ProjectManager';
+import { initializeServices } from './core/ServiceRegistry';
 
 // Main app content that switches layouts based on user level
 const AppContent: React.FC = () => {
@@ -24,6 +25,9 @@ const AppContent: React.FC = () => {
   React.useEffect(() => {
     const initializeProjectManager = async () => {
       try {
+        // Initialize services first to resolve circular dependencies
+        initializeServices();
+        
         const projectManager = ProjectManager.getInstance();
         await projectManager.initialize();
         setProjectManagerInitialized(true);

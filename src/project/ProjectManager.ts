@@ -27,7 +27,8 @@ import type {
 import { ProjectDatabase } from './ProjectDatabase';
 import { AssetInstanceManager } from './AssetInstanceManager';
 import { CollaborationManager } from './CollaborationManager';
-import { ProjectWorldLoader } from './ProjectWorldLoader';
+import { IProjectWorldLoader } from './IProjectWorldLoader';
+import { DIContainer } from '../core/DIContainer';
 
 /**
  * Main Project Manager implementation
@@ -37,7 +38,7 @@ export class ProjectManager implements IProjectManager {
   private projectDatabase: ProjectDatabase;
   private assetInstanceManager: AssetInstanceManager;
   private collaborationManager: CollaborationManager;
-  private worldLoader: ProjectWorldLoader;
+  private diContainer: DIContainer;
   private currentProject: Project | null = null;
   private currentUserId: string = 'current_user'; // TODO: Get from auth system
 
@@ -45,8 +46,7 @@ export class ProjectManager implements IProjectManager {
     this.projectDatabase = ProjectDatabase.getInstance();
     this.assetInstanceManager = AssetInstanceManager.getInstance();
     this.collaborationManager = CollaborationManager.getInstance();
-    // Lazy initialization to avoid circular dependency
-    this.worldLoader = null as any;
+    this.diContainer = DIContainer.getInstance();
   }
 
   /**
@@ -60,13 +60,10 @@ export class ProjectManager implements IProjectManager {
   }
 
   /**
-   * Get world loader with lazy initialization
+   * Get world loader with dependency injection
    */
-  private getWorldLoader(): ProjectWorldLoader {
-    if (!this.worldLoader) {
-      this.worldLoader = ProjectWorldLoader.getInstance();
-    }
-    return this.worldLoader;
+  private getWorldLoader(): IProjectWorldLoader {
+    return this.diContainer.get<IProjectWorldLoader>('ProjectWorldLoader');
   }
 
   /**
