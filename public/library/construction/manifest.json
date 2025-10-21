@@ -1,6 +1,226 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2025-10-07T00:00:00Z",
-  "totalAssets": 0,
-  "assets": []
+  "lastUpdated": "2025-10-18T00:00:00Z",
+  "totalAssets": 8,
+  "assets": [
+    {
+      "id": "excavator-20ton",
+      "name": "Hydraulic Excavator 20T",
+      "manufacturer": "Generic",
+      "domain": "construction",
+      "assetClass": "heavy-equipment",
+      "assetType": "excavator",
+      "loaderType": "gltf",
+      "filePath": "/models/construction/excavator_20t.gltf",
+      "source": "generic",
+      "tags": [
+        "excavator",
+        "heavy-equipment",
+        "earthmoving"
+      ],
+      "searchKeywords": [
+        "excavator",
+        "digger",
+        "heavy equipment",
+        "earthmoving"
+      ],
+      "description": "20-ton hydraulic excavator, 6m reach, 1.2m3 bucket",
+      "capabilities": {
+        "hasKinematics": true,
+        "weight": 20000,
+        "reach": 6000,
+        "bucketCapacity": 1200
+      }
+    },
+    {
+      "id": "tower-crane",
+      "name": "Tower Crane 60m",
+      "manufacturer": "Generic",
+      "domain": "construction",
+      "assetClass": "heavy-equipment",
+      "assetType": "tower-crane",
+      "loaderType": "gltf",
+      "filePath": "/models/construction/tower_crane_60m.gltf",
+      "source": "generic",
+      "tags": [
+        "crane",
+        "tower-crane",
+        "heavy-equipment"
+      ],
+      "searchKeywords": [
+        "tower crane",
+        "construction crane",
+        "lifting"
+      ],
+      "description": "Tower crane, 60m height, 50m jib, 8 ton capacity",
+      "capabilities": {
+        "hasKinematics": true,
+        "height": 60000,
+        "jibLength": 50000,
+        "maxLoad": 8000
+      }
+    },
+    {
+      "id": "mobile-crane-50ton",
+      "name": "Mobile Crane 50T",
+      "manufacturer": "Generic",
+      "domain": "construction",
+      "assetClass": "heavy-equipment",
+      "assetType": "mobile-crane",
+      "loaderType": "gltf",
+      "filePath": "/models/construction/mobile_crane_50t.gltf",
+      "source": "generic",
+      "tags": [
+        "crane",
+        "mobile-crane",
+        "heavy-equipment"
+      ],
+      "searchKeywords": [
+        "mobile crane",
+        "truck crane",
+        "lifting"
+      ],
+      "description": "Mobile crane, 50 ton capacity, 40m boom",
+      "capabilities": {
+        "hasKinematics": true,
+        "maxLoad": 50000,
+        "boomLength": 40000
+      }
+    },
+    {
+      "id": "bulldozer",
+      "name": "Crawler Bulldozer",
+      "manufacturer": "Generic",
+      "domain": "construction",
+      "assetClass": "heavy-equipment",
+      "assetType": "bulldozer",
+      "loaderType": "gltf",
+      "filePath": "/models/construction/bulldozer.gltf",
+      "source": "generic",
+      "tags": [
+        "bulldozer",
+        "heavy-equipment",
+        "earthmoving"
+      ],
+      "searchKeywords": [
+        "bulldozer",
+        "dozer",
+        "earthmoving",
+        "grading"
+      ],
+      "description": "Crawler bulldozer, 3.5m blade width, 200HP",
+      "capabilities": {
+        "hasKinematics": true,
+        "bladeWidth": 3500,
+        "horsePower": 200
+      }
+    },
+    {
+      "id": "concrete-mixer-truck",
+      "name": "Concrete Mixer Truck",
+      "manufacturer": "Generic",
+      "domain": "construction",
+      "assetClass": "vehicle",
+      "assetType": "concrete-mixer",
+      "loaderType": "gltf",
+      "filePath": "/models/construction/concrete_mixer.gltf",
+      "source": "generic",
+      "tags": [
+        "concrete",
+        "mixer",
+        "truck",
+        "vehicle"
+      ],
+      "searchKeywords": [
+        "concrete mixer",
+        "cement truck",
+        "concrete truck"
+      ],
+      "description": "Concrete mixer truck, 8m3 capacity",
+      "capabilities": {
+        "hasKinematics": true,
+        "capacity": 8000
+      }
+    },
+    {
+      "id": "scaffolding-frame",
+      "name": "Frame Scaffolding System",
+      "manufacturer": "Generic",
+      "domain": "construction",
+      "assetClass": "support-structure",
+      "assetType": "scaffolding",
+      "loaderType": "gltf",
+      "filePath": "/models/construction/scaffolding.gltf",
+      "source": "generic",
+      "tags": [
+        "scaffolding",
+        "support",
+        "temporary-structure"
+      ],
+      "searchKeywords": [
+        "scaffolding",
+        "scaffold",
+        "work platform"
+      ],
+      "description": "Modular frame scaffolding system, 2m section",
+      "capabilities": {
+        "hasKinematics": false,
+        "moduleHeight": 2000,
+        "loadCapacity": 200
+      }
+    },
+    {
+      "id": "telehandler",
+      "name": "Telescopic Handler",
+      "manufacturer": "Generic",
+      "domain": "construction",
+      "assetClass": "heavy-equipment",
+      "assetType": "telehandler",
+      "loaderType": "gltf",
+      "filePath": "/models/construction/telehandler.gltf",
+      "source": "generic",
+      "tags": [
+        "telehandler",
+        "forklift",
+        "material-handling"
+      ],
+      "searchKeywords": [
+        "telehandler",
+        "telescopic handler",
+        "reach forklift"
+      ],
+      "description": "Telescopic handler, 3.5 ton capacity, 14m reach",
+      "capabilities": {
+        "hasKinematics": true,
+        "payload": 3500,
+        "maxReach": 14000
+      }
+    },
+    {
+      "id": "skid-steer-loader",
+      "name": "Skid Steer Loader",
+      "manufacturer": "Generic",
+      "domain": "construction",
+      "assetClass": "heavy-equipment",
+      "assetType": "skid-steer",
+      "loaderType": "gltf",
+      "filePath": "/models/construction/skid_steer.gltf",
+      "source": "generic",
+      "tags": [
+        "skid-steer",
+        "loader",
+        "compact-equipment"
+      ],
+      "searchKeywords": [
+        "skid steer",
+        "compact loader",
+        "bobcat"
+      ],
+      "description": "Compact skid steer loader, 1200kg capacity",
+      "capabilities": {
+        "hasKinematics": true,
+        "payload": 1200
+      }
+    }
+  ]
 }

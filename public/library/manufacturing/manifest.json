@@ -1,6 +1,249 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2025-10-07T00:00:00Z",
-  "totalAssets": 0,
-  "assets": []
+  "lastUpdated": "2025-10-18T00:00:00Z",
+  "totalAssets": 9,
+  "assets": [
+    {
+      "id": "fanuc-m20ia",
+      "name": "Fanuc M-20iA",
+      "manufacturer": "Fanuc",
+      "domain": "manufacturing",
+      "assetClass": "robot",
+      "assetType": "industrial-robot",
+      "loaderType": "urdf",
+      "filePath": "/models/fanuc/m20ia/robot.urdf",
+      "source": "manufacturer",
+      "tags": [
+        "robot",
+        "industrial",
+        "6-axis",
+        "welding"
+      ],
+      "searchKeywords": [
+        "fanuc",
+        "m20ia",
+        "welding"
+      ],
+      "description": "6-axis industrial robot, 20kg payload, 1811mm reach",
+      "capabilities": {
+        "hasKinematics": true,
+        "dof": 6,
+        "payload": 20,
+        "reach": 1811
+      }
+    },
+    {
+      "id": "abb-irb1200",
+      "name": "ABB IRB 1200",
+      "manufacturer": "ABB",
+      "domain": "manufacturing",
+      "assetClass": "robot",
+      "assetType": "industrial-robot",
+      "loaderType": "urdf",
+      "filePath": "/models/abb/irb1200/robot.urdf",
+      "source": "manufacturer",
+      "tags": [
+        "robot",
+        "industrial",
+        "6-axis",
+        "compact"
+      ],
+      "searchKeywords": [
+        "abb",
+        "irb1200",
+        "assembly"
+      ],
+      "description": "Compact 6-axis robot, 7kg payload, 901mm reach",
+      "capabilities": {
+        "hasKinematics": true,
+        "dof": 6,
+        "payload": 7,
+        "reach": 901
+      }
+    },
+    {
+      "id": "ur5e",
+      "name": "Universal Robots UR5e",
+      "manufacturer": "Universal Robots",
+      "domain": "manufacturing",
+      "assetClass": "robot",
+      "assetType": "collaborative-robot",
+      "loaderType": "urdf",
+      "filePath": "/models/universal_robots/ur5e/robot.urdf",
+      "source": "manufacturer",
+      "tags": [
+        "robot",
+        "collaborative",
+        "cobot",
+        "6-axis"
+      ],
+      "searchKeywords": [
+        "ur5e",
+        "cobot",
+        "collaborative"
+      ],
+      "description": "6-axis cobot, 5kg payload, 850mm reach",
+      "capabilities": {
+        "hasKinematics": true,
+        "dof": 6,
+        "payload": 5,
+        "reach": 850,
+        "collaborative": true
+      }
+    },
+    {
+      "id": "kuka-kr6",
+      "name": "KUKA KR 6 R900",
+      "manufacturer": "KUKA",
+      "domain": "manufacturing",
+      "assetClass": "robot",
+      "assetType": "industrial-robot",
+      "loaderType": "urdf",
+      "filePath": "/models/kuka/kr6/robot.urdf",
+      "source": "manufacturer",
+      "tags": [
+        "robot",
+        "industrial",
+        "6-axis"
+      ],
+      "searchKeywords": [
+        "kuka",
+        "kr6",
+        "assembly"
+      ],
+      "description": "Compact 6-axis robot, 6kg payload, 901mm reach",
+      "capabilities": {
+        "hasKinematics": true,
+        "dof": 6,
+        "payload": 6,
+        "reach": 901
+      }
+    },
+    {
+      "id": "yaskawa-gp8",
+      "name": "Yaskawa Motoman GP8",
+      "manufacturer": "Yaskawa",
+      "domain": "manufacturing",
+      "assetClass": "robot",
+      "assetType": "industrial-robot",
+      "loaderType": "urdf",
+      "filePath": "/models/yaskawa/gp8/robot.urdf",
+      "source": "manufacturer",
+      "tags": [
+        "robot",
+        "industrial",
+        "6-axis"
+      ],
+      "searchKeywords": [
+        "yaskawa",
+        "motoman",
+        "gp8"
+      ],
+      "description": "General-purpose 6-axis robot, 8kg payload, 729mm reach",
+      "capabilities": {
+        "hasKinematics": true,
+        "dof": 6,
+        "payload": 8,
+        "reach": 729
+      }
+    },
+    {
+      "id": "cnc-mill-haas-vf2",
+      "name": "Haas VF-2 CNC Mill",
+      "manufacturer": "Haas",
+      "domain": "manufacturing",
+      "assetClass": "machine-tool",
+      "assetType": "cnc-mill",
+      "loaderType": "gltf",
+      "filePath": "/models/haas/vf2/machine.gltf",
+      "source": "manufacturer",
+      "tags": [
+        "cnc",
+        "mill",
+        "machining"
+      ],
+      "searchKeywords": [
+        "haas",
+        "vf2",
+        "cnc mill"
+      ],
+      "description": "3-axis CNC mill, 762x406mm table",
+      "capabilities": {
+        "hasKinematics": false,
+        "dof": 3
+      }
+    },
+    {
+      "id": "welding-table-1200x800",
+      "name": "Welding Table 1200x800",
+      "manufacturer": "Generic",
+      "domain": "manufacturing",
+      "assetClass": "fixture",
+      "assetType": "welding-table",
+      "loaderType": "gltf",
+      "filePath": "/models/fixtures/welding_table_1200x800.gltf",
+      "source": "generic",
+      "tags": [
+        "welding",
+        "fixture",
+        "table"
+      ],
+      "searchKeywords": [
+        "welding table",
+        "fixture"
+      ],
+      "description": "Heavy-duty welding table, 1200x800mm surface",
+      "capabilities": {
+        "hasKinematics": false
+      }
+    },
+    {
+      "id": "conveyor-belt-3m",
+      "name": "Belt Conveyor 3m",
+      "manufacturer": "Generic",
+      "domain": "manufacturing",
+      "assetClass": "material-handling",
+      "assetType": "conveyor",
+      "loaderType": "gltf",
+      "filePath": "/models/conveyors/belt_conveyor_3m.gltf",
+      "source": "generic",
+      "tags": [
+        "conveyor",
+        "material-handling"
+      ],
+      "searchKeywords": [
+        "conveyor belt",
+        "material handling"
+      ],
+      "description": "3-meter belt conveyor, 600mm width",
+      "capabilities": {
+        "hasKinematics": false,
+        "length": 3000,
+        "width": 600
+      }
+    },
+    {
+      "id": "workbench-industrial-2000",
+      "name": "Industrial Workbench 2000mm",
+      "manufacturer": "Generic",
+      "domain": "manufacturing",
+      "assetClass": "fixture",
+      "assetType": "workbench",
+      "loaderType": "gltf",
+      "filePath": "/models/fixtures/workbench_2000.gltf",
+      "source": "generic",
+      "tags": [
+        "workbench",
+        "assembly"
+      ],
+      "searchKeywords": [
+        "workbench",
+        "assembly table"
+      ],
+      "description": "Industrial workbench, 2000x800mm surface",
+      "capabilities": {
+        "hasKinematics": false
+      }
+    }
+  ]
 }

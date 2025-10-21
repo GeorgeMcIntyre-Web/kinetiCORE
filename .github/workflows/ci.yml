@@ -7,8 +7,10 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  # Job 1: Lint and Type Check (Fast feedback)
+  lint-and-typecheck:
     runs-on: ubuntu-latest
+    name: Lint & Type Check
 
     steps:
       - uses: actions/checkout@v3
@@ -28,8 +30,102 @@ jobs:
       - name: Type check
         run: npm run type-check
 
-      - name: Run tests
-        run: npm run test
+  # Job 2: Unit Tests with Coverage
+  test:
+    runs-on: ubuntu-latest
+    name: Unit Tests
 
-      - name: Build
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/coverage-final.json
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+  # Job 3: Build Verification
+  build:
+    runs-on: ubuntu-latest
+    name: Build
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
         run: npm run build
+
+      - name: Check build output
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "Build failed - dist directory not created"
+            exit 1
+          fi
+          echo "Build successful - dist directory created"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-output
+          path: dist/
+          retention-days: 7
+
+  # Job 4: Check bundle size
+  bundle-size:
+    runs-on: ubuntu-latest
+    name: Bundle Size Check
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-output
+          path: dist/
+
+      - name: Check bundle size
+        run: |
+          echo "Checking bundle sizes..."
+          ls -lh dist/assets/*.js | awk '{print $9, $5}'
+
+          # Optional: Add bundle size limits here
+          # For example, fail if main bundle is over 10MB
+          # main_size=$(stat -f%z dist/assets/index-*.js 2>/dev/null || stat -c%s dist/assets/index-*.js)
+          # if [ $main_size -gt 10485760 ]; then
+          #   echo "Main bundle too large: $main_size bytes"
+          #   exit 1
+          # fi

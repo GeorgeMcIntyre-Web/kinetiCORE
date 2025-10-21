@@ -97,9 +97,9 @@ export class GLBLoader {
       enableBoundsCalculation: true,
       enableMetadataExtraction: true,
       fallbackToBasicLoader: true,
-      enableUpAxisDetection: true,
-      upAxisBake: false,  // Changed to false - don't bake by default to preserve positions
-      upAxisVerbose: true,  // Enable verbose logging
+      enableUpAxisDetection: false,  // GLB files are Y-up by spec (glTF 2.0), use presentation layer conversion
+      upAxisBake: false,
+      upAxisVerbose: false,  // Disable verbose logging since detection is off
       ...options
     };
 

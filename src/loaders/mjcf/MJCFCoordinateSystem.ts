@@ -42,12 +42,15 @@ export function convertQuaternion(mujocoQuat: [number, number, number, number]):
   if (!Array.isArray(mujocoQuat) || mujocoQuat.length < 4) {
     throw new Error(`Invalid MuJoCo quaternion: expected [w,x,y,z], got ${mujocoQuat}`);
   }
-  
+
   const [w, x, y, z] = mujocoQuat;
-  
-  // Convert from MuJoCo (w,x,y,z) to Babylon.js (x,y,z,w) format
-  // The quaternion represents the same rotation, just reordered
-  return new Quaternion(x, y, z, w);
+
+  // Convert from MuJoCo Z-up to Babylon Y-up coordinate system
+  // 1. Swap Y and Z components (coordinate system transformation)
+  // 2. Convert format from MuJoCo (w,x,y,z) to Babylon.js (x,y,z,w)
+  // MuJoCo: (w, x, y, z) where rotation is in Z-up space
+  // Babylon: (x, z, y, w) where rotation is in Y-up space
+  return new Quaternion(x, z, y, w);
 }
 
 /**
@@ -98,8 +101,12 @@ export function convertPositionToMuJoCo(babylonPos: Vector3): [number, number, n
  * @returns Quaternion in MuJoCo format [w, x, y, z]
  */
 export function convertQuaternionToMuJoCo(babylonQuat: Quaternion): [number, number, number, number] {
-  // Convert from Babylon.js (x,y,z,w) to MuJoCo (w,x,y,z) format
-  return [babylonQuat.w, babylonQuat.x, babylonQuat.y, babylonQuat.z];
+  // Convert from Babylon Y-up to MuJoCo Z-up coordinate system
+  // 1. Swap Y and Z components back (coordinate system transformation)
+  // 2. Convert format from Babylon.js (x,y,z,w) to MuJoCo (w,x,y,z)
+  // Babylon: (x, z, y, w) where rotation is in Y-up space
+  // MuJoCo: (w, x, y, z) where rotation is in Z-up space
+  return [babylonQuat.w, babylonQuat.x, babylonQuat.z, babylonQuat.y];
 }
 
 /**
@@ -190,11 +197,12 @@ export function runCoordinateSystemTests(): boolean {
     [1, 0, 0, 0],
     new Quaternion(0, 0, 0, 1)
   ) && allPassed;
-  
+
+  // Note: After Y/Z swap fix, MuJoCo Z-axis (0,0,z) becomes Babylon Y-axis (0,y,0)
   allPassed = validateConversion(
-    "Quaternion: 90° around Z",
+    "Quaternion: 90° around MuJoCo Z (becomes Babylon Y)",
     [0.7071, 0, 0, 0.7071],
-    new Quaternion(0, 0, 0.7071, 0.7071)
+    new Quaternion(0, 0.7071, 0, 0.7071)  // Y/Z components swapped
   ) && allPassed;
   
   // Test axis conversions
