@@ -32,8 +32,6 @@ import {
   ArrowRight,
   ArrowUp,
   Box as BoxIcon,
-  MapPin,
-  MousePointer,
   Move3D,
 } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';

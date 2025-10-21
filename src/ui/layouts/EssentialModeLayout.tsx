@@ -3,22 +3,6 @@
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as BABYLON from '@babylonjs/core';
-import {
-  Box,
-  Circle,
-  Cylinder,
-  Save,
-  Upload,
-  Layers,
-  Library,
-  Cog,
-  Settings,
-  Plus,
-  RotateCcw,
-  Maximize2,
-  Target,
-} from 'lucide-react';
-import { ToolbarDropdown } from '../components/ToolbarDropdown';
 import { Header } from '../components/Header';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
@@ -30,7 +14,6 @@ import { FloatingActuatorPanel } from '../components/FloatingActuatorPanel';
 import { FloatingPhysicsPanel } from '../components/FloatingPhysicsPanel';
 import { FloatingCollisionPanel } from '../components/FloatingCollisionPanel';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
-import { FloorSelector } from '../components/FloorSelector';
 import { ProjectManagerPanelV2 } from '../components/ProjectManager/ProjectManagerPanelV2';
 import { ProjectSaveDialog } from '../components/ProjectSaveDialog';
 import { useProjectManagerStore } from '../store/projectManagerStore';
@@ -40,15 +23,14 @@ import { EntityRegistry } from '../../entities/EntityRegistry';
 import { babylonToUser } from '../../core/CoordinateSystem';
 import { CreateProjectionViewCommand } from '../../history/commands/CreateProjectionViewCommand';
 import { toast } from '../components/ToastNotifications';
+import { useTreeAutoResize } from '../hooks/useTreeAutoResize';
 import './EssentialModeLayout.css';
 
 export const EssentialModeLayout: React.FC = () => {
   const { userLevel, setUserLevel } = useUserLevel();
-  const createObject = useEditorStore((state) => state.createObject);
   const importModel = useEditorStore((state) => state.importModel);
   const loadWorld = useEditorStore((state) => state.loadWorld);
   const loadComprehensiveWorld = useEditorStore((state) => state.loadComprehensiveWorld);
-  const saveComprehensiveWorld = useEditorStore((state) => state.saveComprehensiveWorld);
   const zoomFit = useEditorStore((state) => state.zoomFit);
   const zoomToNode = useEditorStore((state) => state.zoomToNode);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
@@ -83,12 +65,28 @@ export const EssentialModeLayout: React.FC = () => {
   const minSidebarWidth = 200; // Minimum width in pixels
   const maxSidebarWidth = 600; // Maximum width in pixels
 
+  // Auto-resize hook for optimal tree width
+  const { optimalWidth } = useTreeAutoResize({
+    minWidth: minSidebarWidth,
+    maxWidth: maxSidebarWidth,
+    padding: 16,
+    fontSize: 13,
+    iconWidth: 16,
+    arrowWidth: 14,
+    badgeWidth: 40
+  });
+
+  // Update sidebar width when optimal width changes
+  useEffect(() => {
+    if (!isResizing && optimalWidth > sidebarWidth) {
+      console.log(`🔄 Auto-expanding sidebar from ${sidebarWidth}px to ${optimalWidth}px`);
+      setSidebarWidth(optimalWidth);
+    }
+  }, [optimalWidth, isResizing, sidebarWidth]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadFileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileImport = () => {
-    fileInputRef.current?.click();
-  };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -260,13 +258,6 @@ export const EssentialModeLayout: React.FC = () => {
 
   // Project Management Handlers
 
-  const handleSaveProject = async () => {
-    if (!currentProject) {
-      toast.warning('No project selected. Create or select a project first.');
-      return;
-    }
-    setShowSaveDialog(true);
-  };
 
   const handleSaveProjectConfirm = async (config: {
     name: string;
@@ -392,11 +383,14 @@ export const EssentialModeLayout: React.FC = () => {
       if (!isResizing) return;
 
       const newWidth = e.clientX;
-      if (newWidth >= minSidebarWidth && newWidth <= maxSidebarWidth) {
+      // Prevent reducing width below optimal width, but allow increasing
+      const effectiveMinWidth = Math.max(minSidebarWidth, optimalWidth);
+      
+      if (newWidth >= effectiveMinWidth && newWidth <= maxSidebarWidth) {
         setSidebarWidth(newWidth);
       }
     },
-    [isResizing, minSidebarWidth, maxSidebarWidth]
+    [isResizing, minSidebarWidth, maxSidebarWidth, optimalWidth]
   );
 
   const handleMouseUp = useCallback(() => {
