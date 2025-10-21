@@ -126,6 +126,57 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
 
   return (
     <div className="ribbon-toolbar-excel">
+      {/* Project Category */}
+      <div className="ribbon-category-excel">
+        <div className="ribbon-category-label">Project</div>
+        <div className="ribbon-buttons-row">
+          <button className="ribbon-btn" onClick={onProjectManagerClick} title="Project Manager">
+            <FolderKanban size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={saveWorld} title="Save">
+            <Save size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={handleLoadWorld} title="Load">
+            <FolderOpen size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={onAssetLibraryClick} title="Asset Library">
+            <Library size={32} />
+          </button>
+        </div>
+      </div>
+
+      {/* Import Category */}
+      <div className="ribbon-category-excel">
+        <div className="ribbon-category-label">Import</div>
+        <div className="ribbon-buttons-row">
+          <button className="ribbon-btn" onClick={handleImportFile} title="Load File">
+            <FileUp size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={handleImportFolder} title="Load Folder">
+            <FolderUp size={32} />
+          </button>
+        </div>
+      </div>
+
+      {/* Create Category */}
+      <div className="ribbon-category-excel">
+        <div className="ribbon-category-label">Create</div>
+        <div className="ribbon-buttons-row">
+          <button className="ribbon-btn" onClick={() => createObject('box')} title="Box">
+            <Box size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={() => createObject('sphere')} title="Sphere">
+            <Circle size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={() => createObject('cylinder')} title="Cylinder">
+            <CylinderIcon size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={() => createCollection()} title="Collection">
+            <Package size={32} />
+          </button>
+        </div>
+      </div>
+
       {/* Transform Category */}
       <div className="ribbon-category-excel">
         <div className="ribbon-category-label">Transform</div>
@@ -157,57 +208,6 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
             title="Quick Move Dialog"
           >
             <Navigation size={32} />
-          </button>
-        </div>
-      </div>
-
-      {/* Create Category */}
-      <div className="ribbon-category-excel">
-        <div className="ribbon-category-label">Create</div>
-        <div className="ribbon-buttons-row">
-          <button className="ribbon-btn" onClick={() => createObject('box')} title="Box">
-            <Box size={32} />
-          </button>
-          <button className="ribbon-btn" onClick={() => createObject('sphere')} title="Sphere">
-            <Circle size={32} />
-          </button>
-          <button className="ribbon-btn" onClick={() => createObject('cylinder')} title="Cylinder">
-            <CylinderIcon size={32} />
-          </button>
-          <button className="ribbon-btn" onClick={() => createCollection()} title="Collection">
-            <Package size={32} />
-          </button>
-        </div>
-      </div>
-
-      {/* Import Category */}
-      <div className="ribbon-category-excel">
-        <div className="ribbon-category-label">Import</div>
-        <div className="ribbon-buttons-row">
-          <button className="ribbon-btn" onClick={handleImportFile} title="Load File">
-            <FileUp size={32} />
-          </button>
-          <button className="ribbon-btn" onClick={handleImportFolder} title="Load Folder">
-            <FolderUp size={32} />
-          </button>
-        </div>
-      </div>
-
-      {/* Project Category */}
-      <div className="ribbon-category-excel">
-        <div className="ribbon-category-label">Project</div>
-        <div className="ribbon-buttons-row">
-          <button className="ribbon-btn" onClick={onProjectManagerClick} title="Project Manager">
-            <FolderKanban size={32} />
-          </button>
-          <button className="ribbon-btn" onClick={saveWorld} title="Save">
-            <Save size={32} />
-          </button>
-          <button className="ribbon-btn" onClick={handleLoadWorld} title="Load">
-            <FolderOpen size={32} />
-          </button>
-          <button className="ribbon-btn" onClick={onAssetLibraryClick} title="Asset Library">
-            <Library size={32} />
           </button>
         </div>
       </div>

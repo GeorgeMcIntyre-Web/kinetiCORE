@@ -11,7 +11,6 @@ import { TransformGizmo } from '../../manipulation/TransformGizmo';
 import { useEditorStore } from '../store/editorStore';
 import { useUserLevel } from '../core/UserLevelContext';
 import { CoordinateFrame } from './CoordinateFrame';
-import { CameraViewControls } from './CameraViewControls';
 import { isZoomableObject, isSelectableObject } from '../../scene/SceneUtils';
 
 export const SceneCanvas: React.FC = () => {
@@ -476,8 +475,6 @@ export const SceneCanvas: React.FC = () => {
         }}
       />
 
-      {/* Camera view controls */}
-      <CameraViewControls />
 
       {/* Multi-selection indicator */}
       {selectedNodeIds.length > 1 && (

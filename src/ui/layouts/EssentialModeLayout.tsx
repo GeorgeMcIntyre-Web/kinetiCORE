@@ -561,152 +561,22 @@ export const EssentialModeLayout: React.FC = () => {
         </main>
       </div>
 
-      {/* Floating Toolbar */}
-      <div
-        className="fixed flex items-center space-x-2 bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-40"
-        style={{
-          top: '5rem',
-          left: `${sidebarWidth + 16}px`,
-          zIndex: 150,
-          transition: isResizing ? 'none' : 'left 0.2s ease',
-        }}
-      >
-        {/* Create Shapes Dropdown */}
-        <ToolbarDropdown
-          label="Create"
-          icon={<Plus size={16} />}
-          items={[
-            { id: 'box', label: 'Box', icon: <Box size={16} />, onClick: () => createObject('box') },
-            { id: 'sphere', label: 'Sphere', icon: <Circle size={16} />, onClick: () => createObject('sphere') },
-            { id: 'cylinder', label: 'Cylinder', icon: <Cylinder size={16} />, onClick: () => createObject('cylinder') },
-          ]}
-        />
-
-        <div className="w-px h-6 bg-gray-300" />
-
-          {/* Project Dropdown */}
-          <ToolbarDropdown
-            label="Project"
-            icon={<Library size={16} />}
-            items={[
-              { id: 'projects', label: 'Project Manager', icon: <Library size={16} />, onClick: showProjectManager },
-              { id: 'save', label: 'Save Project', icon: <Save size={16} />, onClick: handleSaveProject, disabled: !currentProject },
-              { id: 'library', label: 'Asset Library', icon: <Library size={16} />, onClick: toggleLibrary },
-            ]}
-          />
-
-        <div className="w-px h-6 bg-gray-300" />
-
-        {/* Import Button */}
-        <button
-          className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors duration-200 text-sm"
-          onClick={handleFileImport}
-          title="Import MJCF, URDF, STL, GLB, USD"
-        >
-          <Upload size={14} />
-          <span>Import</span>
-        </button>
-
-        <div className="w-px h-6 bg-gray-300" />
-
-        {/* Device Tools Dropdown */}
-        <ToolbarDropdown
-          label="Device"
-          icon={<Cog size={16} />}
-          items={[
-            { id: 'kinematics', label: 'Kinematics Panel', icon: <Cog size={16} />, onClick: () => setShowKinematicsPanel(!showKinematicsPanel) },
-            { id: 'actuators', label: 'Actuator Control', icon: <Settings size={16} />, onClick: () => setShowActuatorPanel(!showActuatorPanel) },
-          ]}
-        />
-
-        <div className="w-px h-6 bg-gray-300" />
-
-          {/* Tools Dropdown */}
-          <ToolbarDropdown
-            label="Tools"
-            icon={<Layers size={16} />}
-            items={[
-              { id: 'projection', label: 'Projection View', icon: <Layers size={16} />, onClick: handleCreateProjectionView, disabled: selectedNodeIds.length === 0 },
-              { id: 'physics', label: 'Physics Settings', icon: <Settings size={16} />, onClick: () => setShowPhysicsSettings(!showPhysicsSettings) },
-              { id: 'collision', label: 'Collision Viz', icon: <Circle size={16} />, onClick: () => setShowCollisionVisualizer(!showCollisionVisualizer) },
-            ]}
-          />
-
-        <div className="w-px h-6 bg-gray-300" />
-
-        {/* Legacy Save Button */}
-        <button
-          className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors duration-200"
-          onClick={saveComprehensiveWorld}
-          title="Save World (Legacy)"
-        >
-          <Save size={16} />
-        </button>
-      </div>
-
-      {/* Viewport Controls */}
-      <div className="fixed top-32 right-4 flex flex-col z-40" style={{ gap: '2px' }}>
-        <button
-          onClick={handleResetView}
-          title="Reset View"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '6px',
-            background: 'white',
-            border: '1px solid #d1d5db',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-            width: '32px',
-            height: '32px',
-          }}
-        >
-          <RotateCcw size={16} style={{ color: '#374151' }} />
-        </button>
-        <button
-          onClick={handleZoomFit}
-          title="Zoom Fit"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '6px',
-            background: 'white',
-            border: '1px solid #d1d5db',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-            width: '32px',
-            height: '32px',
-          }}
-        >
-          <Maximize2 size={16} style={{ color: '#374151' }} />
-        </button>
-        <button
-          onClick={handleZoomToSelected}
-          disabled={!selectedNodeId}
-          title="Zoom to Selected"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '6px',
-            background: 'white',
-            border: '1px solid #d1d5db',
-            borderRadius: '4px',
-            cursor: selectedNodeId ? 'pointer' : 'not-allowed',
-            opacity: selectedNodeId ? 1 : 0.5,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-            width: '32px',
-            height: '32px',
-          }}
-        >
-          <Target size={16} style={{ color: '#374151' }} />
-        </button>
-        <FloorSelector />
-      </div>
+      {/* Hidden file inputs for ribbon buttons */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".urdf,.stl,.obj,.dae,.gltf,.glb,.dxf,.dwg,.jt,.xml,.usd,.usdz,.zip"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
+      <input
+        ref={loadFileInputRef}
+        type="file"
+        accept=".json"
+        style={{ display: 'none' }}
+        onChange={handleLoadFileChange}
+      />
 
       {/* Transform Display */}
       {transform && (

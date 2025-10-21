@@ -85,22 +85,20 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => setIsModeMenuOpen(!isModeMenuOpen)}
             className={`
-              flex items-center space-x-2 px-3 py-2 rounded-lg border
+              flex items-center space-x-1 px-2 py-1.5 rounded-md border
               transition-colors duration-200
               ${isModeMenuOpen 
                 ? 'bg-gray-50 border-gray-300' 
                 : 'bg-white border-gray-200 hover:bg-gray-50'
               }
             `}
+            title={`${currentModeConfig.label} - ${currentModeConfig.description}`}
           >
             <CurrentModeIcon 
-              className="w-4 h-4" 
+              className="w-3.5 h-3.5" 
               style={{ color: currentModeConfig.color }}
             />
-            <span className="text-sm font-medium text-gray-700">
-              {currentModeConfig.label}
-            </span>
-            <div className={`w-2 h-2 rounded-full`} style={{ backgroundColor: currentModeConfig.color }} />
+            <div className={`w-1.5 h-1.5 rounded-full`} style={{ backgroundColor: currentModeConfig.color }} />
           </button>
 
           {/* Mode Dropdown */}
