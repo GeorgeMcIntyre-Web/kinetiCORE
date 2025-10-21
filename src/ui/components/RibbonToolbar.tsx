@@ -71,11 +71,11 @@ const QuickMoveIcon = ({ size = 32 }: { size?: number }) => (
   </svg>
 );
 import { useEditorStore } from '../store/editorStore';
+import { ViewDropdown } from './ViewDropdown';
 import './RibbonToolbar.css';
 
 export interface RibbonToolbarProps {
   onKinematicsClick?: () => void;
-  onDevicesClick?: () => void;
   onActuatorsClick?: () => void;
   onPhysicsClick?: () => void;
   onCollisionsClick?: () => void;
@@ -94,7 +94,6 @@ export interface RibbonToolbarProps {
 
 export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onKinematicsClick,
-  onDevicesClick,
   onActuatorsClick,
   onPhysicsClick,
   onCollisionsClick,
@@ -123,6 +122,8 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   const importURDFFolder = useEditorStore((state) => state.importURDFFolder);
   const saveWorld = useEditorStore((state) => state.saveWorld);
   const loadWorld = useEditorStore((state) => state.loadWorld);
+  const currentView = useEditorStore((state) => state.currentView);
+  const setCurrentView = useEditorStore((state) => state.setCurrentView);
 
   // File input refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -158,6 +159,27 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
       await loadWorld(file);
     }
     event.target.value = '';
+  };
+
+  // View button handlers that update currentView state
+  const handleTopViewClick = () => {
+    setCurrentView('top');
+    onTopViewClick?.();
+  };
+
+  const handleRightViewClick = () => {
+    setCurrentView('right');
+    onRightViewClick?.();
+  };
+
+  const handleFrontViewClick = () => {
+    setCurrentView('front');
+    onFrontViewClick?.();
+  };
+
+  const handleIsoViewClick = () => {
+    setCurrentView('iso');
+    onIsoViewClick?.();
   };
 
   return (
@@ -252,9 +274,6 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
       <div className="ribbon-category-excel">
         <div className="ribbon-category-label">View</div>
         <div className="ribbon-buttons-row">
-          <button className="ribbon-btn" onClick={onProjectionClick} title="Projection View">
-            <Eye size={32} />
-          </button>
           <button className="ribbon-btn" onClick={onResetViewClick} title="Reset View">
             <RotateCcw size={32} />
           </button>
@@ -264,18 +283,13 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           <button className="ribbon-btn" onClick={onZoomToSelectedClick} title="Zoom to Selected">
             <Target size={32} />
           </button>
-          <button className="ribbon-btn" onClick={onTopViewClick} title="Top View">
-            <Square size={32} />
-          </button>
-          <button className="ribbon-btn" onClick={onRightViewClick} title="Right View">
-            <ArrowRight size={32} />
-          </button>
-          <button className="ribbon-btn" onClick={onFrontViewClick} title="Front View">
-            <ArrowUp size={32} />
-          </button>
-          <button className="ribbon-btn" onClick={onIsoViewClick} title="Isometric View">
-            <BoxIcon size={32} />
-          </button>
+          <ViewDropdown
+            onTopViewClick={handleTopViewClick}
+            onRightViewClick={handleRightViewClick}
+            onFrontViewClick={handleFrontViewClick}
+            onIsoViewClick={handleIsoViewClick}
+            currentView={currentView}
+          />
         </div>
       </div>
 
@@ -330,9 +344,6 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
         <div className="ribbon-buttons-row">
           <button className="ribbon-btn" onClick={onKinematicsClick} title="Kinematics Panel">
             <Wrench size={32} />
-          </button>
-          <button className="ribbon-btn" onClick={onDevicesClick} title="Device Library">
-            <BookOpen size={32} />
           </button>
           <button className="ribbon-btn" onClick={onActuatorsClick} title="Actuator Control">
             <Gamepad2 size={32} />

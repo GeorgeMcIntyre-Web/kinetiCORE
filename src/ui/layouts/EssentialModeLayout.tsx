@@ -514,7 +514,6 @@ export const EssentialModeLayout: React.FC = () => {
           style={{ zIndex: 100 }}
           ribbonProps={{
             onKinematicsClick: () => setShowKinematicsPanel(!showKinematicsPanel),
-            onDevicesClick: () => console.log('Device Library - coming soon'),
             onActuatorsClick: () => setShowActuatorPanel(!showActuatorPanel),
             onPhysicsClick: () => setShowPhysicsSettings(!showPhysicsSettings),
             onCollisionsClick: () => setShowCollisionVisualizer(!showCollisionVisualizer),
