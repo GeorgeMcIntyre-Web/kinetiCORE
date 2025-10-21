@@ -477,7 +477,7 @@ export const EssentialModeLayout: React.FC = () => {
         />
 
       {/* Main Content */}
-      <div className="flex flex-1 pt-16 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden" style={{ paddingTop: '64px' }}>
         {/* Left Sidebar - Resizable */}
         <aside
           className="border-r border-gray-200 bg-white flex-shrink-0 flex flex-col min-h-0 relative"
@@ -495,12 +495,16 @@ export const EssentialModeLayout: React.FC = () => {
           />
         </aside>
 
-        {/* Ribbon Toolbar - Positioned at tree/viewer boundary */}
+        {/* Ribbon Toolbar - Positioned at top of viewer, aligned with tree boundary */}
         <div
-          className="fixed top-16 z-40"
+          className="fixed z-40 bg-gray-900"
           style={{
+            top: '64px', // Below header
             left: `${sidebarWidth}px`,
+            right: 0,
             transition: isResizing ? 'none' : 'left 0.2s ease',
+            padding: '4px 8px',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
           }}
         >
           <RibbonToolbar
@@ -510,6 +514,8 @@ export const EssentialModeLayout: React.FC = () => {
             onPhysicsClick={() => setShowPhysicsSettings(!showPhysicsSettings)}
             onCollisionsClick={() => setShowCollisionVisualizer(!showCollisionVisualizer)}
             onProjectionClick={handleCreateProjectionView}
+            onProjectManagerClick={showProjectManager}
+            onAssetLibraryClick={toggleLibrary}
           />
         </div>
 

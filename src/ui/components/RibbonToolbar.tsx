@@ -25,6 +25,8 @@ import {
   Move,
   RotateCw,
   Maximize2,
+  Library,
+  FolderKanban,
 } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import './RibbonToolbar.css';
@@ -36,6 +38,8 @@ export interface RibbonToolbarProps {
   onPhysicsClick?: () => void;
   onCollisionsClick?: () => void;
   onProjectionClick?: () => void;
+  onProjectManagerClick?: () => void;
+  onAssetLibraryClick?: () => void;
 }
 
 export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
@@ -45,6 +49,8 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onPhysicsClick,
   onCollisionsClick,
   onProjectionClick,
+  onProjectManagerClick,
+  onAssetLibraryClick,
 }) => {
   // Store connections
   const transformMode = useEditorStore((state) => state.transformMode);
@@ -162,11 +168,17 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
       <div className="ribbon-category-excel">
         <div className="ribbon-category-label">Project</div>
         <div className="ribbon-buttons-row">
+          <button className="ribbon-btn" onClick={onProjectManagerClick} title="Project Manager">
+            <FolderKanban size={32} />
+          </button>
           <button className="ribbon-btn" onClick={saveWorld} title="Save">
             <Save size={32} />
           </button>
           <button className="ribbon-btn" onClick={handleLoadWorld} title="Load">
             <FolderOpen size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={onAssetLibraryClick} title="Asset Library">
+            <Library size={32} />
           </button>
         </div>
       </div>
