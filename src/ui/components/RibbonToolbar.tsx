@@ -27,12 +27,14 @@ import {
   Maximize2,
   Library,
   FolderKanban,
-  Navigation,
   RotateCcw,
   Target,
   ArrowRight,
   ArrowUp,
   Box as BoxIcon,
+  MapPin,
+  MousePointer,
+  Move3D,
 } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import './RibbonToolbar.css';
@@ -207,7 +209,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
             onClick={onQuickMoveClick}
             title="Quick Move Dialog"
           >
-            <Navigation size={32} />
+            <Move3D size={32} />
           </button>
         </div>
       </div>
