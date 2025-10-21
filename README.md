@@ -114,6 +114,28 @@ npm run usd-server
 The application will be available at `http://localhost:5173`
 The USD conversion server will be available at `http://localhost:5001`
 
+## 🌐 Deployment
+
+### Deploy to Cloudflare Pages (Recommended)
+
+kinetiCORE is configured for automatic deployment to Cloudflare Pages:
+
+1. **One-Time Setup** (5 minutes)
+   - Connect your GitHub repository to [Cloudflare Pages](https://dash.cloudflare.com)
+   - Configure build settings (already configured in `wrangler.toml`)
+   - Deploy instantly
+
+2. **Automatic Deployments**
+   - Every push to `main` triggers automatic deployment
+   - Preview deployments for all branches
+   - Live in 2-3 minutes at `https://kineticore.pages.dev`
+
+3. **Full Documentation**
+   - See [CLOUDFLARE_DEPLOYMENT.md](docs/CLOUDFLARE_DEPLOYMENT.md) for complete guide
+   - Includes troubleshooting, custom domains, and team workflow
+
+**Current Deployment:** [![Deploy Status](https://img.shields.io/badge/Cloudflare-Pages-orange)](https://kineticore.pages.dev)
+
 ### Development Commands
 
 ```bash
