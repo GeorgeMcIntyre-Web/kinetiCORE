@@ -482,6 +482,10 @@ export const EssentialModeLayout: React.FC = () => {
             onProjectionClick: handleCreateProjectionView,
             onProjectManagerClick: showProjectManager,
             onAssetLibraryClick: toggleLibrary,
+            onQuickMoveClick: () => console.log('Quick Move - coming soon'),
+            onResetViewClick: handleResetView,
+            onZoomFitClick: handleZoomFit,
+            onZoomToSelectedClick: handleZoomToSelected,
           }}
         />
 

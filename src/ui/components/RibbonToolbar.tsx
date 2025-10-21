@@ -27,6 +27,9 @@ import {
   Maximize2,
   Library,
   FolderKanban,
+  Navigation,
+  RotateCcw,
+  Target,
 } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import './RibbonToolbar.css';
@@ -40,6 +43,10 @@ export interface RibbonToolbarProps {
   onProjectionClick?: () => void;
   onProjectManagerClick?: () => void;
   onAssetLibraryClick?: () => void;
+  onQuickMoveClick?: () => void;
+  onResetViewClick?: () => void;
+  onZoomFitClick?: () => void;
+  onZoomToSelectedClick?: () => void;
 }
 
 export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
@@ -51,6 +58,10 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onProjectionClick,
   onProjectManagerClick,
   onAssetLibraryClick,
+  onQuickMoveClick,
+  onResetViewClick,
+  onZoomFitClick,
+  onZoomToSelectedClick,
 }) => {
   // Store connections
   const transformMode = useEditorStore((state) => state.transformMode);
@@ -129,6 +140,13 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           >
             <Maximize2 size={32} />
           </button>
+          <button
+            className="ribbon-btn"
+            onClick={onQuickMoveClick}
+            title="Quick Move Dialog"
+          >
+            <Navigation size={32} />
+          </button>
         </div>
       </div>
 
@@ -189,6 +207,15 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
         <div className="ribbon-buttons-row">
           <button className="ribbon-btn" onClick={onProjectionClick} title="Projection View">
             <Eye size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={onResetViewClick} title="Reset View">
+            <RotateCcw size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={onZoomFitClick} title="Zoom Fit">
+            <Maximize2 size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={onZoomToSelectedClick} title="Zoom to Selected">
+            <Target size={32} />
           </button>
         </div>
       </div>
