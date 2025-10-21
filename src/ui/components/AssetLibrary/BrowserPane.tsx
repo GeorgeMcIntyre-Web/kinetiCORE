@@ -3,14 +3,14 @@
 // Card-based view showing key specs at a glance
 
 import { useState, useEffect } from 'react';
-import { Grid3x3, List, Package } from 'lucide-react';
+import { Package } from 'lucide-react';
 import { useAssetLibraryStore } from '../../store/assetLibraryStore';
 import { AssetLibraryManager } from '../../../library/AssetLibraryManager';
 import type { LibraryAsset } from '../../../library/types';
 import './BrowserPane.css';
 
 export function BrowserPane() {
-  const { viewMode, setViewMode, filters, setSelectedAsset, selectedAsset } =
+  const { viewMode, filters, setSelectedAsset, selectedAsset } =
     useAssetLibraryStore();
   const [filteredAssets, setFilteredAssets] = useState<LibraryAsset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,27 +66,11 @@ export function BrowserPane() {
 
   return (
     <div className="browser-pane">
-      {/* Header with view toggles */}
+      {/* Header */}
       <div className="browser-header">
         <span className="browser-title">
           Assets ({filteredAssets.length})
         </span>
-        <div className="browser-view-toggle">
-          <button
-            className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
-            onClick={() => setViewMode('grid')}
-            title="Grid View"
-          >
-            <Grid3x3 size={16} />
-          </button>
-          <button
-            className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
-            onClick={() => setViewMode('list')}
-            title="List View"
-          >
-            <List size={16} />
-          </button>
-        </div>
       </div>
 
       {/* Content */}

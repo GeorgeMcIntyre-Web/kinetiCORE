@@ -8,6 +8,7 @@ export interface HeaderProps {
   onSettingsClick: () => void;
   onHelpClick: () => void;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 const modeConfig = {
@@ -37,6 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSettingsClick,
   onHelpClick,
   className = '',
+  style = {},
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
@@ -51,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
         flex items-center justify-between px-4 py-3
         ${className}
       `}
-      style={{ zIndex: zIndex.toolbar }}
+      style={{ zIndex: zIndex.toolbar, ...style }}
     >
       {/* Logo and App Name */}
       <div className="flex items-center space-x-3">

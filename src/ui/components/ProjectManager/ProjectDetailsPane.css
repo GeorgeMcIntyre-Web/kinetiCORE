@@ -332,6 +332,9 @@
 }
 
 .project-details-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex: 1;
   padding: 8px 12px;
   border-radius: 4px;

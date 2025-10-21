@@ -6,6 +6,34 @@
  */
 
 import React from 'react';
+import { 
+  Search, 
+  Gamepad2, 
+  Building2, 
+  FlaskConical, 
+  Factory, 
+  GraduationCap, 
+  Microscope,
+  FileText,
+  PlayCircle,
+  CheckCircle,
+  Archive,
+  Lock,
+  Users,
+  Globe,
+  RotateCcw,
+  FolderOpen,
+  Activity,
+  Eye,
+  Palette,
+  BarChart3,
+  TestTube,
+  Wrench,
+  BookOpen,
+  Network,
+  TrendingUp,
+  ShieldCheck
+} from 'lucide-react';
 import { useProjectManagerStore } from '../../store/projectManagerStore';
 import type { ProjectCategory, ProjectStatus } from '../../../project/types';
 import './ProjectFilterPane.css';
@@ -17,27 +45,37 @@ export const ProjectFilterPane: React.FC = () => {
     resetFilters
   } = useProjectManagerStore();
 
-  const categories: { key: ProjectCategory; label: string; icon: string; count?: number }[] = [
-    { key: 'simulation', label: 'Simulation', icon: '🎮', count: 12 },
-    { key: 'layout', label: 'Layout', icon: '🏗️', count: 8 },
-    { key: 'prototype', label: 'Prototype', icon: '🔬', count: 5 },
-    { key: 'production', label: 'Production', icon: '🏭', count: 15 },
-    { key: 'training', label: 'Training', icon: '🎓', count: 3 },
-    { key: 'research', label: 'Research', icon: '🔬', count: 7 },
+  const categories: { key: ProjectCategory; label: string; icon: React.ReactNode; count?: number }[] = [
+    { key: 'simulation', label: 'Simulation', icon: <Gamepad2 size={14} />, count: 12 },
+    { key: 'layout', label: 'Layout', icon: <Building2 size={14} />, count: 8 },
+    { key: 'prototype', label: 'Prototype', icon: <FlaskConical size={14} />, count: 5 },
+    { key: 'production', label: 'Production', icon: <Factory size={14} />, count: 15 },
+    { key: 'training', label: 'Training', icon: <GraduationCap size={14} />, count: 3 },
+    { key: 'research', label: 'Research', icon: <Microscope size={14} />, count: 7 },
+    { key: 'design', label: 'Design', icon: <Palette size={14} />, count: 9 },
+    { key: 'analysis', label: 'Analysis', icon: <BarChart3 size={14} />, count: 6 },
+    { key: 'testing', label: 'Testing', icon: <TestTube size={14} />, count: 4 },
+    { key: 'maintenance', label: 'Maintenance', icon: <Wrench size={14} />, count: 8 },
+    { key: 'documentation', label: 'Documentation', icon: <BookOpen size={14} />, count: 2 },
+    { key: 'integration', label: 'Integration', icon: <Network size={14} />, count: 5 },
+    { key: 'optimization', label: 'Optimization', icon: <TrendingUp size={14} />, count: 3 },
+    { key: 'compliance', label: 'Compliance', icon: <ShieldCheck size={14} />, count: 1 },
   ];
 
-  const statuses: { key: ProjectStatus; label: string; icon: string; count?: number }[] = [
-    { key: 'draft', label: 'Draft', icon: '📝', count: 8 },
-    { key: 'active', label: 'Active', icon: '🔄', count: 25 },
-    { key: 'completed', label: 'Completed', icon: '✅', count: 12 },
-    { key: 'archived', label: 'Archived', icon: '📦', count: 5 },
+  const statuses: { key: ProjectStatus; label: string; icon: React.ReactNode; count?: number }[] = [
+    { key: 'draft', label: 'Draft', icon: <FileText size={14} />, count: 8 },
+    { key: 'active', label: 'Active', icon: <PlayCircle size={14} />, count: 25 },
+    { key: 'completed', label: 'Completed', icon: <CheckCircle size={14} />, count: 12 },
+    { key: 'archived', label: 'Archived', icon: <Archive size={14} />, count: 5 },
   ];
 
   return (
     <div className="project-filter-pane">
       {/* Search */}
       <div className="project-filter-search">
-        <div className="project-filter-search-icon">🔍</div>
+        <div className="project-filter-search-icon">
+          <Search size={14} />
+        </div>
         <input
           type="text"
           placeholder="Q Search..."
@@ -50,8 +88,12 @@ export const ProjectFilterPane: React.FC = () => {
       {/* Categories */}
       <div className="project-filter-section">
         <div className="project-filter-section-header">
-          <span>CATEGORIES</span>
+          <div className="project-filter-section-title">
+            <FolderOpen size={12} />
+            <span>CATEGORIES</span>
+          </div>
           <button className="project-filter-reset-btn" onClick={resetFilters}>
+            <RotateCcw size={10} />
             Reset
           </button>
         </div>
@@ -70,6 +112,7 @@ export const ProjectFilterPane: React.FC = () => {
                   setFilter('category', newCategories.length > 0 ? newCategories : undefined);
                 }}
               >
+                <span className="project-category-icon">{category.icon}</span>
                 <span className="project-category-label">{category.label}</span>
                 {category.count && (
                   <span className="project-category-count">{category.count}</span>
@@ -83,7 +126,10 @@ export const ProjectFilterPane: React.FC = () => {
       {/* Status Filter */}
       <div className="project-filter-section">
         <div className="project-filter-section-header">
-          <span>STATUS</span>
+          <div className="project-filter-section-title">
+            <Activity size={12} />
+            <span>STATUS</span>
+          </div>
         </div>
         <div className="project-status-tree">
           {statuses.map((status) => (
@@ -114,7 +160,10 @@ export const ProjectFilterPane: React.FC = () => {
       {/* Visibility Filter */}
       <div className="project-filter-section">
         <div className="project-filter-section-header">
-          <span>VISIBILITY</span>
+          <div className="project-filter-section-title">
+            <Eye size={12} />
+            <span>VISIBILITY</span>
+          </div>
         </div>
         <div className="project-visibility-tree">
           <div 
@@ -129,7 +178,7 @@ export const ProjectFilterPane: React.FC = () => {
               setFilter('visibility', newVisibility.length > 0 ? newVisibility as ('private' | 'team' | 'public')[] : undefined);
             }}
           >
-            <span className="project-visibility-icon">🔒</span>
+            <span className="project-visibility-icon"><Lock size={14} /></span>
             <span className="project-visibility-label">Private</span>
             <span className="project-visibility-count">32</span>
           </div>
@@ -145,7 +194,7 @@ export const ProjectFilterPane: React.FC = () => {
               setFilter('visibility', newVisibility.length > 0 ? newVisibility as ('private' | 'team' | 'public')[] : undefined);
             }}
           >
-            <span className="project-visibility-icon">👥</span>
+            <span className="project-visibility-icon"><Users size={14} /></span>
             <span className="project-visibility-label">Team</span>
             <span className="project-visibility-count">15</span>
           </div>
@@ -161,7 +210,7 @@ export const ProjectFilterPane: React.FC = () => {
               setFilter('visibility', newVisibility.length > 0 ? newVisibility as ('private' | 'team' | 'public')[] : undefined);
             }}
           >
-            <span className="project-visibility-icon">🌐</span>
+            <span className="project-visibility-icon"><Globe size={14} /></span>
             <span className="project-visibility-label">Public</span>
             <span className="project-visibility-count">8</span>
           </div>

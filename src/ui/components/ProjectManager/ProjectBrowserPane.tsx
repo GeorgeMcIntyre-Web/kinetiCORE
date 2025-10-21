@@ -6,18 +6,45 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import {
+  Gamepad2,
+  Building2,
+  FlaskConical,
+  Factory,
+  GraduationCap,
+  Microscope,
+  Palette,
+  BarChart3,
+  TestTube,
+  Wrench,
+  BookOpen,
+  Network,
+  TrendingUp,
+  ShieldCheck,
+  FileText,
+  PlayCircle,
+  CheckCircle,
+  Archive,
+  FolderOpen,
+  AlertTriangle,
+  Package,
+  Calendar,
+  Lock,
+  Users,
+  Globe,
+  Eye
+} from 'lucide-react';
 import { useProjectManagerStore } from '../../store/projectManagerStore';
 import { ProjectManager } from '../../../project/ProjectManager';
 import type { Project } from '../../../project/types';
 import './ProjectBrowserPane.css';
 
 export const ProjectBrowserPane: React.FC<{ onCreateProject?: () => void }> = ({ onCreateProject }) => {
-  const { 
-    filters, 
-    viewMode, 
-    setViewMode, 
-    selectedProject, 
-    setSelectedProject 
+  const {
+    filters,
+    viewMode,
+    selectedProject,
+    setSelectedProject
   } = useProjectManagerStore();
 
   const [projects, setProjects] = useState<Project[]>([]);
@@ -48,35 +75,52 @@ export const ProjectBrowserPane: React.FC<{ onCreateProject?: () => void }> = ({
     setSelectedProject(project);
   };
 
-  const getCategoryIcon = (category: string): string => {
+  const getCategoryIcon = (category: string): React.ReactNode => {
     switch (category) {
-      case 'simulation': return '🎮';
-      case 'layout': return '🏗️';
-      case 'prototype': return '🔬';
-      case 'production': return '🏭';
-      case 'training': return '🎓';
-      case 'research': return '🔬';
-      default: return '📁';
+      case 'simulation': return <Gamepad2 size={20} />;
+      case 'layout': return <Building2 size={20} />;
+      case 'prototype': return <FlaskConical size={20} />;
+      case 'production': return <Factory size={20} />;
+      case 'training': return <GraduationCap size={20} />;
+      case 'research': return <Microscope size={20} />;
+      case 'design': return <Palette size={20} />;
+      case 'analysis': return <BarChart3 size={20} />;
+      case 'testing': return <TestTube size={20} />;
+      case 'maintenance': return <Wrench size={20} />;
+      case 'documentation': return <BookOpen size={20} />;
+      case 'integration': return <Network size={20} />;
+      case 'optimization': return <TrendingUp size={20} />;
+      case 'compliance': return <ShieldCheck size={20} />;
+      default: return <FolderOpen size={20} />;
     }
   };
 
-  const getStatusIcon = (status: string): string => {
+  const getStatusIcon = (status: string): React.ReactNode => {
     switch (status) {
-      case 'draft': return '📝';
-      case 'active': return '🔄';
-      case 'completed': return '✅';
-      case 'archived': return '📦';
-      default: return '📝';
+      case 'draft': return <FileText size={12} />;
+      case 'active': return <PlayCircle size={12} />;
+      case 'completed': return <CheckCircle size={12} />;
+      case 'archived': return <Archive size={12} />;
+      default: return <FileText size={12} />;
     }
   };
 
   const getStatusColor = (status: string): string => {
-    switch (status) {
-      case 'draft': return 'project-status-draft';
-      case 'active': return 'project-status-active';
-      case 'completed': return 'project-status-completed';
-      case 'archived': return 'project-status-archived';
-      default: return 'project-status-draft';
+  switch (status) {
+    case 'draft': return 'status-draft';
+    case 'active': return 'status-active';
+    case 'completed': return 'status-completed';
+    case 'archived': return 'status-archived';
+    default: return 'status-draft';
+  }
+};
+
+const getVisibilityIcon = (visibility: string): React.ReactNode => {
+    switch (visibility) {
+      case 'private': return <Lock size={10} />;
+      case 'team': return <Users size={10} />;
+      case 'public': return <Globe size={10} />;
+      default: return <Eye size={10} />;
     }
   };
 
@@ -85,33 +129,6 @@ export const ProjectBrowserPane: React.FC<{ onCreateProject?: () => void }> = ({
       {/* Header */}
       <div className="project-browser-header">
         <h3 className="project-browser-title">Projects ({projects.length})</h3>
-        <div className="project-browser-header-actions">
-          {projects.length > 0 && (
-            <button
-              className="project-browser-add-btn"
-              onClick={onCreateProject}
-              title="Create New Project"
-            >
-              +
-            </button>
-          )}
-          <div className="project-browser-view-toggle">
-            <button
-              className={`project-view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
-              onClick={() => setViewMode('grid')}
-              title="Grid View"
-            >
-              ⊞
-            </button>
-            <button
-              className={`project-view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
-              onClick={() => setViewMode('list')}
-              title="List View"
-            >
-              ☰
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Content */}
@@ -123,12 +140,16 @@ export const ProjectBrowserPane: React.FC<{ onCreateProject?: () => void }> = ({
           </div>
         ) : error ? (
           <div className="project-browser-error">
-            <div className="project-browser-error-icon">⚠️</div>
+            <div className="project-browser-error-icon">
+              <AlertTriangle size={48} />
+            </div>
             <div className="project-browser-error-text">{error}</div>
           </div>
         ) : projects.length === 0 ? (
           <div className="project-browser-empty">
-            <div className="project-browser-empty-icon">📁</div>
+            <div className="project-browser-empty-icon">
+              <FolderOpen size={48} />
+            </div>
             <div className="project-browser-empty-text">No projects found</div>
             <button
               className="project-browser-empty-btn"
@@ -157,19 +178,35 @@ export const ProjectBrowserPane: React.FC<{ onCreateProject?: () => void }> = ({
                   <div className="project-card-category">{project.category}</div>
                   <div className="project-card-specs">
                     <div className="project-spec-row">
-                      <span className="project-spec-label">Assets:</span>
+                      <span className="project-spec-label">
+                        <Package size={10} />
+                        Assets:
+                      </span>
                       <span className="project-spec-value">{project.assetInstances.length}</span>
                     </div>
                     <div className="project-spec-row">
-                      <span className="project-spec-label">Status:</span>
+                      <span className="project-spec-label">
+                        Status:
+                      </span>
                       <span className={`project-spec-value ${getStatusColor(project.status)}`}>
                         {getStatusIcon(project.status)} {project.status}
                       </span>
                     </div>
                     <div className="project-spec-row">
-                      <span className="project-spec-label">Updated:</span>
+                      <span className="project-spec-label">
+                        <Calendar size={10} />
+                        Updated:
+                      </span>
                       <span className="project-spec-value">
                         {new Date(project.updatedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="project-spec-row">
+                      <span className="project-spec-label">
+                        Visibility:
+                      </span>
+                      <span className="project-spec-value">
+                        {getVisibilityIcon(project.visibility)} {project.visibility}
                       </span>
                     </div>
                   </div>
@@ -214,11 +251,9 @@ export const ProjectBrowserPane: React.FC<{ onCreateProject?: () => void }> = ({
                     <span className={`project-spec-chip ${getStatusColor(project.status)}`}>
                       {getStatusIcon(project.status)} {project.status}
                     </span>
-                    {project.visibility !== 'private' && (
-                      <span className="project-spec-chip">
-                        {project.visibility}
-                      </span>
-                    )}
+                    <span className="project-spec-chip">
+                      {getVisibilityIcon(project.visibility)} {project.visibility}
+                    </span>
                   </div>
                 </div>
               </div>

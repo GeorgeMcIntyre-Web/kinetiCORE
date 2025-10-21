@@ -53,7 +53,7 @@ export interface Project {
 
 export type ProjectVisibility = 'private' | 'team' | 'public';
 export type ProjectStatus = 'draft' | 'active' | 'completed' | 'archived';
-export type ProjectCategory = 'simulation' | 'layout' | 'prototype' | 'production' | 'training' | 'research';
+export type ProjectCategory = 'simulation' | 'layout' | 'prototype' | 'production' | 'training' | 'research' | 'design' | 'analysis' | 'testing' | 'maintenance' | 'documentation' | 'integration' | 'optimization' | 'compliance';
 
 export interface TeamMember {
   userId: string;

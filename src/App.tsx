@@ -6,7 +6,6 @@ import { QuickAddMenu } from './ui/components/QuickAddMenu';
 import { ToastNotifications } from './ui/components/ToastNotifications';
 import { MJCFLoadingStatusPopup } from './ui/components/MJCFLoadingStatus';
 import { LoadingIndicator } from './ui/components/LoadingIndicator';
-import { SceneCanvas } from './ui/components/SceneCanvas';
 import { ErrorBoundary } from './ui/components/ErrorBoundary';
 import { UserLevelProvider, useUserLevel } from './ui/core/UserLevelContext';
 import { EssentialModeLayout } from './ui/layouts/EssentialModeLayout';
@@ -97,10 +96,6 @@ const AppContent: React.FC = () => {
         <AssetLibraryPanelV2 />
       </ErrorBoundary>
 
-      {/* SceneCanvas rendered ONCE at root level - never unmounts during layout switches */}
-      <ErrorBoundary fallbackMessage="3D scene rendering failed">
-        <SceneCanvas />
-      </ErrorBoundary>
     </>
   );
 };

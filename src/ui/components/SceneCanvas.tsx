@@ -408,7 +408,7 @@ export const SceneCanvas: React.FC = () => {
       container.style.left = `${rect.left}px`;
       container.style.width = `${rect.width}px`;
       container.style.height = `${rect.height}px`;
-      container.style.pointerEvents = 'auto';
+      container.style.pointerEvents = 'none';
 
       // Trigger engine resize to match new dimensions
       const sceneManager = SceneManager.getInstance();
@@ -439,6 +439,19 @@ export const SceneCanvas: React.FC = () => {
       if (resizeObserver) {
         resizeObserver.disconnect();
       }
+      
+      // Remove canvas from viewport on cleanup
+      const viewportId = userLevel === 'essential' ? 'viewport-essential' : 
+                        userLevel === 'professional' ? 'viewport-professional' : 
+                        'viewport-expert';
+      const viewportContainer = document.getElementById(viewportId);
+      if (viewportContainer && canvasRef.current) {
+        try {
+          viewportContainer.removeChild(canvasRef.current);
+        } catch (e) {
+          // Canvas might already be removed
+        }
+      }
     };
   }, [userLevel]);
 
@@ -447,8 +460,12 @@ export const SceneCanvas: React.FC = () => {
     <div
       ref={containerRef}
       style={{
-        position: 'fixed',
-        zIndex: 1,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 30,
         pointerEvents: 'none',
       }}
     >

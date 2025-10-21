@@ -20,15 +20,15 @@ import {
 } from 'lucide-react';
 import { ToolbarDropdown } from '../components/ToolbarDropdown';
 import { Header } from '../components/Header';
-import { FloatingPanel } from '../components/FloatingPanel';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { useAssetLibraryStore } from '../store/assetLibraryStore';
 import { SceneTree } from '../components/SceneTree';
-import { KinematicsPanel } from '../components/KinematicsPanel';
-import { ActuatorControlPanel } from '../components/ActuatorControlPanel';
-import { PhysicsSettings } from '../components/PhysicsSettings';
-import { CollisionVisualizer } from '../components/CollisionVisualizer';
+import { SceneCanvas } from '../components/SceneCanvas';
+import { FloatingKinematicsPanel } from '../components/FloatingKinematicsPanel';
+import { FloatingActuatorPanel } from '../components/FloatingActuatorPanel';
+import { FloatingPhysicsPanel } from '../components/FloatingPhysicsPanel';
+import { FloatingCollisionPanel } from '../components/FloatingCollisionPanel';
 import { FloorSelector } from '../components/FloorSelector';
 import { ProjectManagerPanelV2 } from '../components/ProjectManager/ProjectManagerPanelV2';
 import { ProjectSaveDialog } from '../components/ProjectSaveDialog';
@@ -39,7 +39,6 @@ import { EntityRegistry } from '../../entities/EntityRegistry';
 import { babylonToUser } from '../../core/CoordinateSystem';
 import { CreateProjectionViewCommand } from '../../history/commands/CreateProjectionViewCommand';
 import { toast } from '../components/ToastNotifications';
-import { zIndex } from '../styles/design-tokens';
 import './EssentialModeLayout.css';
 
 export const EssentialModeLayout: React.FC = () => {
@@ -423,13 +422,14 @@ export const EssentialModeLayout: React.FC = () => {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-gray-50">
       {/* Header */}
-      <Header
-        currentMode={userLevel as 'essential' | 'professional' | 'expert'}
-        onModeChange={(mode) => setUserLevel(mode)}
-        onSettingsClick={() => toast.info('Settings panel coming soon')}
-        onHelpClick={() => toast.info('Help documentation coming soon')}
-        className="fixed top-0 left-0 right-0 z-50"
-      />
+        <Header
+          currentMode={userLevel as 'essential' | 'professional' | 'expert'}
+          onModeChange={(mode) => setUserLevel(mode)}
+          onSettingsClick={() => toast.info('Settings panel coming soon')}
+          onHelpClick={() => toast.info('Help documentation coming soon')}
+          className="fixed top-0 left-0 right-0 z-50"
+          style={{ zIndex: 100 }}
+        />
 
       {/* Main Content */}
       <div className="flex flex-1 pt-16 overflow-hidden">
@@ -440,14 +440,16 @@ export const EssentialModeLayout: React.FC = () => {
 
         {/* Main Viewport */}
         <main className="flex-1 relative bg-gray-100">
-          <div id="viewport-essential" className="w-full h-full"></div>
+          <div id="viewport-essential" className="w-full h-full">
+            <SceneCanvas />
+          </div>
         </main>
       </div>
 
       {/* Floating Toolbar */}
       <div
         className="fixed top-20 left-72 flex items-center space-x-2 bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-40"
-        style={{ zIndex: zIndex.toolbar }}
+        style={{ zIndex: 150 }}
       >
         {/* Create Shapes Dropdown */}
         <ToolbarDropdown
@@ -621,57 +623,29 @@ export const EssentialModeLayout: React.FC = () => {
       )}
 
       {/* Floating Panels */}
-      <FloatingPanel
-        isOpen={showKinematicsPanel}
+      <FloatingKinematicsPanel
+        isVisible={showKinematicsPanel}
         onClose={() => setShowKinematicsPanel(false)}
-        title="Kinematics Panel"
-        size="md"
-        position="center"
-        draggable={true}
-        resizable={false}
-        zIndex={zIndex.modal}
-      >
-        <KinematicsPanel />
-      </FloatingPanel>
+        zIndex={1001}
+      />
 
-      <FloatingPanel
-        isOpen={showActuatorPanel}
+      <FloatingActuatorPanel
+        isVisible={showActuatorPanel}
         onClose={() => setShowActuatorPanel(false)}
-        title="Actuator Control Panel"
-        size="lg"
-        position="center"
-        draggable={true}
-        resizable={false}
-        zIndex={zIndex.modal}
-      >
-        <ActuatorControlPanel />
-      </FloatingPanel>
+        zIndex={1002}
+      />
 
-      <FloatingPanel
-        isOpen={showPhysicsSettings}
+      <FloatingPhysicsPanel
+        isVisible={showPhysicsSettings}
         onClose={() => setShowPhysicsSettings(false)}
-        title="Physics Settings"
-        size="md"
-        position="center"
-        draggable={true}
-        resizable={false}
-        zIndex={zIndex.modal}
-      >
-        <PhysicsSettings />
-      </FloatingPanel>
+        zIndex={1003}
+      />
 
-      <FloatingPanel
-        isOpen={showCollisionVisualizer}
+      <FloatingCollisionPanel
+        isVisible={showCollisionVisualizer}
         onClose={() => setShowCollisionVisualizer(false)}
-        title="Collision Visualizer"
-        size="sm"
-        position="center"
-        draggable={true}
-        resizable={false}
-        zIndex={zIndex.modal}
-      >
-        <CollisionVisualizer />
-      </FloatingPanel>
+        zIndex={1004}
+      />
 
       {/* Hidden file inputs */}
       <input

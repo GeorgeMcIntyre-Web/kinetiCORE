@@ -94,7 +94,8 @@
       "Bash(git rebase --continue)",
       "Bash(git check-ignore -v docs/CI_CD_GUIDE.md)",
       "Bash(npx wrangler whoami)",
-      "Bash(npx wrangler login)"
+      "Bash(npx wrangler login)",
+      "Bash(del \"c:\\Users\\georgem\\source\\repos\\kinetiCORE\\src\\ui\\components\\FloatingPanel.tsx\")"
     ],
     "deny": [],
     "ask": []
