@@ -163,49 +163,6 @@ export class AssetLoader {
     };
   }
 
-  /**
-   * Load JT CAD file (old version - disabled)
-   *
-   * TODO: This is a legacy implementation kept for reference.
-   * Will be replaced with proper JTLoader integration when ready.
-   *
-   * @deprecated Use loadJT() instead (currently returns stub)
-   */
-  // @ts-expect-error - Legacy method kept for future JT loader implementation
-  private async loadJTOld(
-    asset: LibraryAsset,
-    config: AssetInsertionConfig
-  ): Promise<LoadResult> {
-    try {
-      const response = await fetch(asset.filePath);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch JT file: ${response.statusText}`);
-      }
-      await response.arrayBuffer();
-
-      const result = { meshes: [], rootMesh: null } as any;
-
-      // Position the loaded meshes
-      if (result.rootMesh) {
-        const position = this.getInsertionPosition(config);
-        result.rootMesh.position = new BABYLON.Vector3(
-          position.x,
-          position.z, // Z-up to Y-up
-          position.y
-        );
-      }
-
-      return {
-        success: true,
-        meshes: result.meshes,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
 
   /**
    * Load DWG file
