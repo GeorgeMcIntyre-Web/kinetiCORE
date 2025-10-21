@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useEditorStore } from '../store/editorStore';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
-import type { SceneNode, NodeType } from '../../scene/SceneTreeNode';
+import type { SceneNode } from '../../scene/SceneTreeNode';
 import {
   Globe,
   Folder,
@@ -14,12 +14,12 @@ import {
   Cylinder as CylinderIcon,
   Package,
   Bot,
-  Hand,
-  Cpu,
+  Grip,
+  Zap,
   Link2,
   Settings,
-  Camera,
-  Lightbulb,
+  Monitor,
+  Sun,
   ChevronRight,
   ChevronDown,
   Eye,
@@ -32,18 +32,93 @@ import {
   X,
   Layers,
   Anchor,
+  // Enhanced icons for better identification
+  RotateCcw,
+  Move,
+  Rotate3D,
+  Move3D,
+  Navigation,
+  Shield,
+  HardDrive,
+  Wrench,
+  Factory,
 } from 'lucide-react';
 import { ContextMenu, useNodeContextMenu } from './ContextMenu';
 import { EntityRegistry } from '../../entities/EntityRegistry';
 import './SceneTree.css';
 
 /**
- * Get icon component for node type
+ * Get icon component for node type with enhanced specificity
  */
-function getNodeIcon(type: NodeType, expanded?: boolean): React.ReactNode {
+function getNodeIcon(node: SceneNode, expanded?: boolean): React.ReactNode {
   const iconProps = { size: 16 };
 
-  switch (type) {
+  // Handle joint-specific icons
+  if (node.type === 'joint' && node.jointData) {
+    switch (node.jointData.jointType) {
+      case 'revolute':
+        return <RotateCcw {...iconProps} />;
+      case 'prismatic':
+        return <Move {...iconProps} />;
+      case 'spherical':
+        return <Rotate3D {...iconProps} />;
+      case 'cylindrical':
+        return <Move3D {...iconProps} />;
+      case 'planar':
+        return <Navigation {...iconProps} />;
+      case 'fixed':
+        return <Shield {...iconProps} />;
+      default:
+        return <Settings {...iconProps} />;
+    }
+  }
+
+  // Handle device-specific icons
+  if (node.deviceData) {
+    switch (node.deviceData.deviceType) {
+      case 'robot':
+        return <Bot {...iconProps} />;
+      case 'gripper':
+        return <Grip {...iconProps} />;
+      case 'actuator':
+        return <Zap {...iconProps} />;
+      case 'conveyor':
+        return <Factory {...iconProps} />;
+      default:
+        return <Factory {...iconProps} />;
+    }
+  }
+
+  // Handle link-specific icons
+  if (node.type === 'link') {
+    if (node.linkData?.collision) {
+      return <HardDrive {...iconProps} />; // Collision-enabled link
+    }
+    return <Link2 {...iconProps} />; // Regular link
+  }
+
+  // Handle light-specific icons
+  if (node.type === 'light') {
+    // Could be enhanced based on light type if we add that data
+    return <Sun {...iconProps} />;
+  }
+
+  // Handle camera-specific icons
+  if (node.type === 'camera') {
+    return <Monitor {...iconProps} />;
+  }
+
+  // Handle mesh-specific icons based on metadata
+  if (node.type === 'mesh') {
+    // Check if it's a URDF mesh
+    if (node.userData?.isURDFMesh) {
+      return <Wrench {...iconProps} />;
+    }
+    return <Package {...iconProps} />;
+  }
+
+  // Standard node type icons
+  switch (node.type) {
     case 'world':
       return <Globe {...iconProps} />;
     case 'scene':
@@ -57,22 +132,12 @@ function getNodeIcon(type: NodeType, expanded?: boolean): React.ReactNode {
       return <Circle {...iconProps} />;
     case 'cylinder':
       return <CylinderIcon {...iconProps} />;
-    case 'mesh':
-      return <Package {...iconProps} />;
     case 'robot':
       return <Bot {...iconProps} />;
     case 'gripper':
-      return <Hand {...iconProps} />;
+      return <Grip {...iconProps} />;
     case 'actuator':
-      return <Cpu {...iconProps} />;
-    case 'link':
-      return <Link2 {...iconProps} />;
-    case 'joint':
-      return <Settings {...iconProps} />;
-    case 'camera':
-      return <Camera {...iconProps} />;
-    case 'light':
-      return <Lightbulb {...iconProps} />;
+      return <Zap {...iconProps} />;
     default:
       return <Package {...iconProps} />;
   }
@@ -372,7 +437,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
         </div>
 
         {/* Icon */}
-        <div className="tree-node-icon">{getNodeIcon(node.type, node.expanded)}</div>
+        <div className="tree-node-icon">{getNodeIcon(node, node.expanded)}</div>
 
         {/* Name */}
         <div className="tree-node-name" title={node.name}>
