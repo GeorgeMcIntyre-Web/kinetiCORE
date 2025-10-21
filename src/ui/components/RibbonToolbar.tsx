@@ -32,8 +32,44 @@ import {
   ArrowRight,
   ArrowUp,
   Box as BoxIcon,
-  Move3D,
 } from 'lucide-react';
+
+// Custom Quick Move Icon combining speed lines with move arrows
+const QuickMoveIcon = ({ size = 32 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    {/* Speed lines (left side) - shorter to make room for move symbol */}
+    <line x1="2" y1="6" x2="6" y2="6" />
+    <line x1="2" y1="10" x2="8" y2="10" />
+    <line x1="2" y1="14" x2="10" y2="14" />
+    <line x1="2" y1="18" x2="12" y2="18" />
+    
+    {/* Move arrows (right side) - much larger and clearer */}
+    {/* Up arrow */}
+    <path d="M14 6l2 2-2 2" />
+    <path d="M16 8V4" />
+    
+    {/* Down arrow */}
+    <path d="M14 16l2-2-2-2" />
+    <path d="M16 14v4" />
+    
+    {/* Left arrow */}
+    <path d="M6 14l2 2-2 2" />
+    <path d="M8 16H4" />
+    
+    {/* Right arrow */}
+    <path d="M18 14l-2 2 2 2" />
+    <path d="M16 16h4" />
+  </svg>
+);
 import { useEditorStore } from '../store/editorStore';
 import './RibbonToolbar.css';
 
@@ -207,7 +243,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
             onClick={onQuickMoveClick}
             title="Quick Move Dialog"
           >
-            <Move3D size={32} />
+            <QuickMoveIcon size={32} />
           </button>
         </div>
       </div>

@@ -73,6 +73,37 @@
   text-overflow: ellipsis;
 }
 
+.move-dialog-toggle {
+  display: flex;
+  gap: 2px;
+  background: rgba(37, 37, 38, 0.6);
+  padding: 2px;
+  border-radius: 3px;
+}
+
+.toggle-btn {
+  padding: 3px 6px;
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  border-radius: 2px;
+  font-size: 9px;
+  font-weight: 500;
+  transition: all 0.15s;
+  min-width: 32px;
+}
+
+.toggle-btn:hover {
+  background: rgba(42, 42, 42, 0.8);
+  color: #fff;
+}
+
+.toggle-btn.active {
+  background: #646cff;
+  color: #ffffff;
+}
+
 .move-dialog-close {
   background: none;
   border: none;

@@ -14,6 +14,7 @@ import { FloatingActuatorPanel } from '../components/FloatingActuatorPanel';
 import { FloatingPhysicsPanel } from '../components/FloatingPhysicsPanel';
 import { FloatingCollisionPanel } from '../components/FloatingCollisionPanel';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
+import { MoveObjectDialog } from '../components/MoveObjectDialog';
 import { ProjectManagerPanelV2 } from '../components/ProjectManager/ProjectManagerPanelV2';
 import { ProjectSaveDialog } from '../components/ProjectSaveDialog';
 import { useProjectManagerStore } from '../store/projectManagerStore';
@@ -58,6 +59,7 @@ export const EssentialModeLayout: React.FC = () => {
   const [showCollisionVisualizer, setShowCollisionVisualizer] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
 
   // Resizable sidebar state
   const [sidebarWidth, setSidebarWidth] = useState(256); // Default 256px (w-64)
@@ -519,7 +521,7 @@ export const EssentialModeLayout: React.FC = () => {
             onProjectionClick: handleCreateProjectionView,
             onProjectManagerClick: showProjectManager,
             onAssetLibraryClick: toggleLibrary,
-            onQuickMoveClick: () => console.log('Quick Move - coming soon'),
+            onQuickMoveClick: () => setShowMoveDialog(true),
             onResetViewClick: handleResetView,
             onZoomFitClick: handleZoomFit,
             onZoomToSelectedClick: handleZoomToSelected,
@@ -670,6 +672,12 @@ export const EssentialModeLayout: React.FC = () => {
           onSave={handleSaveProjectConfirm}
         />
       )}
+
+      {/* Move Object Dialog */}
+      <MoveObjectDialog 
+        isOpen={showMoveDialog} 
+        onClose={() => setShowMoveDialog(false)} 
+      />
 
       {/* Project Manager Panel */}
       <ProjectManagerPanelV2 />

@@ -42,6 +42,9 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
   
   // Track if user has manually edited values (prevents gizmo from overwriting typed values)
   const [hasUserEdited, setHasUserEdited] = useState(false);
+  
+  // Coordinate system toggle: true = world, false = local
+  const [useWorldCoordinates, setUseWorldCoordinates] = useState(true);
 
   // Helper function to read current transform from Babylon (always reads, no blocking)
   const readCurrentTransformUnsafe = useCallback(() => {
@@ -52,19 +55,52 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
     const scene = sceneManager.getScene();
     const node = tree.getNode(selectedNodeId);
 
-    if (!node || !scene) return;
+    if (!node || !scene) {
+      console.log('❌ No node or scene found');
+      return;
+    }
+
+    console.log('🔍 Reading transform for node:', node.name, 'type:', node.type);
+    console.log('   babylonMeshId:', node.babylonMeshId);
+    console.log('   babylonTransformNodeId:', node.babylonTransformNodeId);
 
     // Get Babylon node
     let babylonNode: BABYLON.TransformNode | null = null;
+    
     if (node.babylonMeshId) {
+      // Try to find mesh by unique ID
       babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
-    } else if (node.type === 'collection') {
+      console.log('   Found mesh by babylonMeshId:', babylonNode?.name);
+    } 
+    
+    if (!babylonNode && node.babylonTransformNodeId) {
+      // Try to find transform node by unique ID
+      babylonNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId));
+      console.log('   Found transform node by babylonTransformNodeId:', babylonNode?.name);
+    }
+    
+    if (!babylonNode && node.type === 'collection') {
+      // Fallback: try to find by name
       babylonNode = scene.transformNodes.find((tn) => tn.name === node.name) || null;
+      console.log('   Found transform node by name:', babylonNode?.name);
     }
 
-    if (babylonNode) {
+    if (!babylonNode) {
+      console.log('❌ No Babylon node found for:', node.name);
+      console.log('   Available transform nodes:', scene.transformNodes.map(tn => tn.name));
+      console.log('   Available meshes:', scene.meshes.map(m => m.name));
+      return;
+    }
+
+    console.log('✅ Found Babylon node:', babylonNode.name);
+
+    let pos: { x: number; y: number; z: number };
+    let rot: { x: number; y: number; z: number };
+
+    if (useWorldCoordinates) {
       // Get WORLD position - use babylonToUser for Z-up CAD standard
-      const pos = babylonToUser(babylonNode.getAbsolutePosition());
+      const worldPos = babylonNode.getAbsolutePosition();
+      pos = babylonToUser(worldPos);
 
       // Get WORLD rotation to match world position
       // Extract rotation from world matrix
@@ -75,16 +111,37 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
 
       // Convert world quaternion to Euler angles
       const worldEuler = worldRotationQuat.toEulerAngles();
-      const rot = {
+      rot = {
         x: worldEuler.x * RAD_TO_DEG,
         y: worldEuler.y * RAD_TO_DEG,
         z: worldEuler.z * RAD_TO_DEG,
       };
+    } else {
+      // Get LOCAL position - use babylonToUser for Z-up CAD standard
+      pos = babylonToUser(babylonNode.position);
 
-      setPosition(pos);
-      setRotation(rot);
+      // Get LOCAL rotation
+      let localEuler: BABYLON.Vector3;
+      if (babylonNode.rotationQuaternion) {
+        localEuler = babylonNode.rotationQuaternion.toEulerAngles();
+      } else {
+        localEuler = babylonNode.rotation;
+      }
+      
+      rot = {
+        x: localEuler.x * RAD_TO_DEG,
+        y: localEuler.y * RAD_TO_DEG,
+        z: localEuler.z * RAD_TO_DEG,
+      };
     }
-  }, [selectedNodeId]);
+
+    console.log('📍 Current transform (' + (useWorldCoordinates ? 'WORLD' : 'LOCAL') + '):');
+    console.log('   Position:', pos.x, pos.y, pos.z);
+    console.log('   Rotation:', rot.x, rot.y, rot.z);
+
+    setPosition(pos);
+    setRotation(rot);
+  }, [selectedNodeId, useWorldCoordinates]);
 
   // Safe wrapper that respects user input
   const readCurrentTransform = useCallback(() => {
@@ -285,26 +342,33 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
     }
 
     // Apply position if changed
-    // The position from dialog is world position in user coordinate system
-    // We need to convert it to local position for the TransformCommand
-    const worldPosition = position; // This is the world position from dialog in user coords
-    const parentWorldPosition = babylonNode.parent && 'getAbsolutePosition' in babylonNode.parent
-      ? babylonToUser((babylonNode.parent as BABYLON.TransformNode).getAbsolutePosition())
-      : { x: 0, y: 0, z: 0 };
-    const localPosition = {
-      x: worldPosition.x - parentWorldPosition.x,
-      y: worldPosition.y - parentWorldPosition.y,
-      z: worldPosition.z - parentWorldPosition.z,
-    };
-
-    const posChanged = localPosition.x !== oldPosition.x || localPosition.y !== oldPosition.y || localPosition.z !== oldPosition.z;
+    let localPosition: { x: number; y: number; z: number };
+    let posChanged: boolean;
+    
+    if (useWorldCoordinates) {
+      // The position from dialog is world position in user coordinate system
+      // We need to convert it to local position for the TransformCommand
+      const worldPosition = position; // This is the world position from dialog in user coords
+      const parentWorldPosition = babylonNode.parent && 'getAbsolutePosition' in babylonNode.parent
+        ? babylonToUser((babylonNode.parent as BABYLON.TransformNode).getAbsolutePosition())
+        : { x: 0, y: 0, z: 0 };
+      localPosition = {
+        x: worldPosition.x - parentWorldPosition.x,
+        y: worldPosition.y - parentWorldPosition.y,
+        z: worldPosition.z - parentWorldPosition.z,
+      };
+      posChanged = localPosition.x !== oldPosition.x || localPosition.y !== oldPosition.y || localPosition.z !== oldPosition.z;
+    } else {
+      // The position from dialog is already local position in user coordinate system
+      localPosition = position;
+      posChanged = localPosition.x !== oldPosition.x || localPosition.y !== oldPosition.y || localPosition.z !== oldPosition.z;
+    }
 
     console.log('📍 Position change:');
     console.log('  posChanged:', posChanged);
+    console.log('  useWorldCoordinates:', useWorldCoordinates);
     console.log('  oldPosition:', oldPosition.x, oldPosition.y, oldPosition.z);
     console.log('  newLocalPosition:', localPosition.x, localPosition.y, localPosition.z);
-    console.log('  worldPosition (from dialog):', worldPosition.x, worldPosition.y, worldPosition.z);
-    console.log('  parentWorldPosition:', parentWorldPosition.x, parentWorldPosition.y, parentWorldPosition.z);
 
     if (posChanged) {
       const positionCommand = new TransformCommand(
@@ -325,46 +389,57 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
     }
 
     // Apply rotation if changed
-    // The rotation from dialog is WORLD rotation, need to check if changed using world values
-    const rotChanged = rotation.x !== oldWorldRotation.x || rotation.y !== oldWorldRotation.y || rotation.z !== oldWorldRotation.z;
+    let newLocalRotation: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
+    let rotChanged: boolean;
+    
+    if (useWorldCoordinates) {
+      // The rotation from dialog is WORLD rotation, need to check if changed using world values
+      rotChanged = rotation.x !== oldWorldRotation.x || rotation.y !== oldWorldRotation.y || rotation.z !== oldWorldRotation.z;
+
+      if (rotChanged) {
+        // Convert new world rotation to local rotation (similar to position conversion)
+        // Get parent world rotation quaternion
+        let parentWorldRotationQuat = BABYLON.Quaternion.Identity();
+        if (babylonNode.parent && 'getWorldMatrix' in babylonNode.parent) {
+          const parentWorldMatrix = (babylonNode.parent as BABYLON.TransformNode).getWorldMatrix();
+          parentWorldMatrix.decompose(undefined, parentWorldRotationQuat, undefined);
+        }
+
+        // Convert dialog rotation (degrees) to quaternion
+        const newWorldRotationQuat = BABYLON.Quaternion.RotationYawPitchRoll(
+          rotation.y * (Math.PI / 180), // yaw
+          rotation.x * (Math.PI / 180), // pitch
+          rotation.z * (Math.PI / 180)  // roll
+        );
+
+        // Compute local rotation: local = parent^-1 * world
+        const parentInverseQuat = parentWorldRotationQuat.invert();
+        const localRotationQuat = parentInverseQuat.multiply(newWorldRotationQuat);
+
+        // Convert to Euler angles for TransformCommand
+        const localEuler = localRotationQuat.toEulerAngles();
+        newLocalRotation = {
+          x: localEuler.x * RAD_TO_DEG,
+          y: localEuler.y * RAD_TO_DEG,
+          z: localEuler.z * RAD_TO_DEG,
+        };
+      }
+    } else {
+      // The rotation from dialog is already local rotation
+      rotChanged = rotation.x !== oldRotation.x || rotation.y !== oldRotation.y || rotation.z !== oldRotation.z;
+      newLocalRotation = rotation;
+    }
 
     console.log('🔄 Rotation change:', {
       rotChanged,
+      useWorldCoordinates,
       oldWorldRotation,
-      newWorldRotation: rotation,
-      oldLocalRotation: oldRotation
+      oldLocalRotation: oldRotation,
+      newRotation: rotation,
+      newLocalRotation
     });
 
     if (rotChanged) {
-      // Convert new world rotation to local rotation (similar to position conversion)
-      // Get parent world rotation quaternion
-      let parentWorldRotationQuat = BABYLON.Quaternion.Identity();
-      if (babylonNode.parent && 'getWorldMatrix' in babylonNode.parent) {
-        const parentWorldMatrix = (babylonNode.parent as BABYLON.TransformNode).getWorldMatrix();
-        parentWorldMatrix.decompose(undefined, parentWorldRotationQuat, undefined);
-      }
-
-      // Convert dialog rotation (degrees) to quaternion
-      const newWorldRotationQuat = BABYLON.Quaternion.RotationYawPitchRoll(
-        rotation.y * (Math.PI / 180), // yaw
-        rotation.x * (Math.PI / 180), // pitch
-        rotation.z * (Math.PI / 180)  // roll
-      );
-
-      // Compute local rotation: local = parent^-1 * world
-      const parentInverseQuat = parentWorldRotationQuat.invert();
-      const localRotationQuat = parentInverseQuat.multiply(newWorldRotationQuat);
-
-      // Convert to Euler angles for TransformCommand
-      const localEuler = localRotationQuat.toEulerAngles();
-      const newLocalRotation = {
-        x: localEuler.x * RAD_TO_DEG,
-        y: localEuler.y * RAD_TO_DEG,
-        z: localEuler.z * RAD_TO_DEG,
-      };
-
-      console.log('🔄 Computed local rotation:', newLocalRotation);
-
       const rotationCommand = new TransformCommand(
         selectedNodeId,
         'rotation',
@@ -443,6 +518,22 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
           <Move size={12} />
           <h3>{node.name}</h3>
         </div>
+        <div className="move-dialog-toggle">
+          <button
+            className={`toggle-btn ${useWorldCoordinates ? 'active' : ''}`}
+            onClick={() => setUseWorldCoordinates(true)}
+            title="World Coordinates"
+          >
+            World
+          </button>
+          <button
+            className={`toggle-btn ${!useWorldCoordinates ? 'active' : ''}`}
+            onClick={() => setUseWorldCoordinates(false)}
+            title="Local Coordinates"
+          >
+            Local
+          </button>
+        </div>
         <button className="move-dialog-close" onClick={handleCancel}>
           <X size={14} />
         </button>
@@ -451,7 +542,7 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
       <div className="move-dialog-content">
         {/* Position */}
         <div className="move-section">
-          <label className="move-section-label">POSITION (MM)</label>
+          <label className="move-section-label">POSITION (MM) - {useWorldCoordinates ? 'WORLD' : 'LOCAL'}</label>
           <div className="move-inputs-row">
             <div className="move-input">
               <label className="axis-label-x">X</label>
@@ -500,7 +591,7 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
 
         {/* Rotation */}
         <div className="move-section">
-          <label className="move-section-label">ROTATION (°)</label>
+          <label className="move-section-label">ROTATION (°) - {useWorldCoordinates ? 'WORLD' : 'LOCAL'}</label>
           <div className="move-inputs-row">
             <div className="move-input">
               <label className="axis-label-x">Rx</label>
