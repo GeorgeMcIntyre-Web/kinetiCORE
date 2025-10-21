@@ -30,6 +30,9 @@ import {
   Navigation,
   RotateCcw,
   Target,
+  ArrowRight,
+  ArrowUp,
+  Box as BoxIcon,
 } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import './RibbonToolbar.css';
@@ -47,6 +50,10 @@ export interface RibbonToolbarProps {
   onResetViewClick?: () => void;
   onZoomFitClick?: () => void;
   onZoomToSelectedClick?: () => void;
+  onTopViewClick?: () => void;
+  onRightViewClick?: () => void;
+  onFrontViewClick?: () => void;
+  onIsoViewClick?: () => void;
 }
 
 export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
@@ -62,6 +69,10 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onResetViewClick,
   onZoomFitClick,
   onZoomToSelectedClick,
+  onTopViewClick,
+  onRightViewClick,
+  onFrontViewClick,
+  onIsoViewClick,
 }) => {
   // Store connections
   const transformMode = useEditorStore((state) => state.transformMode);
@@ -216,6 +227,18 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           </button>
           <button className="ribbon-btn" onClick={onZoomToSelectedClick} title="Zoom to Selected">
             <Target size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={onTopViewClick} title="Top View">
+            <Square size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={onRightViewClick} title="Right View">
+            <ArrowRight size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={onFrontViewClick} title="Front View">
+            <ArrowUp size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={onIsoViewClick} title="Isometric View">
+            <BoxIcon size={32} />
           </button>
         </div>
       </div>

@@ -215,6 +215,47 @@ export const EssentialModeLayout: React.FC = () => {
     }
   };
 
+  // Camera view handlers
+  const handleTopView = () => {
+    const sceneManager = SceneManager.getInstance();
+    const camera = sceneManager.getCamera();
+    if (camera) {
+      camera.alpha = 0;
+      camera.beta = 0;
+      camera.target = BABYLON.Vector3.Zero();
+    }
+  };
+
+  const handleRightView = () => {
+    const sceneManager = SceneManager.getInstance();
+    const camera = sceneManager.getCamera();
+    if (camera) {
+      camera.alpha = Math.PI / 2;
+      camera.beta = Math.PI / 2;
+      camera.target = BABYLON.Vector3.Zero();
+    }
+  };
+
+  const handleFrontView = () => {
+    const sceneManager = SceneManager.getInstance();
+    const camera = sceneManager.getCamera();
+    if (camera) {
+      camera.alpha = 0;
+      camera.beta = Math.PI / 2;
+      camera.target = BABYLON.Vector3.Zero();
+    }
+  };
+
+  const handleIsoView = () => {
+    const sceneManager = SceneManager.getInstance();
+    const camera = sceneManager.getCamera();
+    if (camera) {
+      camera.alpha = -Math.PI / 4;
+      camera.beta = Math.PI / 3;
+      camera.target = BABYLON.Vector3.Zero();
+    }
+  };
+
   // Project Management Handlers
 
   const handleSaveProject = async () => {
@@ -486,6 +527,10 @@ export const EssentialModeLayout: React.FC = () => {
             onResetViewClick: handleResetView,
             onZoomFitClick: handleZoomFit,
             onZoomToSelectedClick: handleZoomToSelected,
+            onTopViewClick: handleTopView,
+            onRightViewClick: handleRightView,
+            onFrontViewClick: handleFrontView,
+            onIsoViewClick: handleIsoView,
           }}
         />
 
