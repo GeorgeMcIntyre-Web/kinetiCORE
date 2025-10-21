@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Menu, X, Settings, HelpCircle, Zap, ZapOff, ZapIcon } from 'lucide-react';
 import { zIndex, colors } from '../styles/design-tokens';
-import { RibbonToolbar } from './RibbonToolbar';
 
 export interface HeaderProps {
   currentMode: 'essential' | 'professional' | 'expert';
@@ -57,20 +56,13 @@ export const Header: React.FC<HeaderProps> = ({
       style={{ zIndex: zIndex.toolbar, ...style }}
     >
       {/* Logo and App Name */}
-      <div className="flex items-center space-x-6">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">K</span>
-          </div>
-          <div className="hidden sm:block">
-            <h1 className="text-xl font-bold text-white">kinetiCORE</h1>
-            <p className="text-xs text-gray-400">Industrial Simulation</p>
-          </div>
+      <div className="flex items-center space-x-2">
+        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+          <span className="text-white font-bold text-sm">K</span>
         </div>
-
-        {/* Ribbon Toolbar - Integrated horizontally */}
-        <div className="hidden lg:block">
-          <RibbonToolbar />
+        <div className="hidden sm:block">
+          <h1 className="text-xl font-bold text-white">kinetiCORE</h1>
+          <p className="text-xs text-gray-400">Industrial Simulation</p>
         </div>
       </div>
 

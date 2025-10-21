@@ -1,7 +1,7 @@
 // Essential Mode Layout - Beginner-friendly interface
 // Owner: George (Architecture)
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import {
   Box,
@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { ToolbarDropdown } from '../components/ToolbarDropdown';
 import { Header } from '../components/Header';
+import { RibbonToolbar } from '../components/RibbonToolbar';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { useAssetLibraryStore } from '../store/assetLibraryStore';
@@ -74,6 +75,12 @@ export const EssentialModeLayout: React.FC = () => {
   const [showPhysicsSettings, setShowPhysicsSettings] = useState(false);
   const [showCollisionVisualizer, setShowCollisionVisualizer] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+
+  // Resizable sidebar state
+  const [sidebarWidth, setSidebarWidth] = useState(256); // Default 256px (w-64)
+  const [isResizing, setIsResizing] = useState(false);
+  const minSidebarWidth = 200; // Minimum width in pixels
+  const maxSidebarWidth = 600; // Maximum width in pixels
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadFileInputRef = useRef<HTMLInputElement>(null);
@@ -333,6 +340,44 @@ export const EssentialModeLayout: React.FC = () => {
     }
   };
 
+  // Sidebar resize handlers
+  const handleMouseDown = useCallback(() => {
+    setIsResizing(true);
+  }, []);
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizing) return;
+
+      const newWidth = e.clientX;
+      if (newWidth >= minSidebarWidth && newWidth <= maxSidebarWidth) {
+        setSidebarWidth(newWidth);
+      }
+    },
+    [isResizing, minSidebarWidth, maxSidebarWidth]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  // Add mouse event listeners for resizing
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+    }
+  }, [isResizing, handleMouseMove, handleMouseUp]);
+
   // Update transform display when selection changes
   useEffect(() => {
     if (!selectedNodeId) {
@@ -433,10 +478,40 @@ export const EssentialModeLayout: React.FC = () => {
 
       {/* Main Content */}
       <div className="flex flex-1 pt-16 overflow-hidden">
-        {/* Left Sidebar */}
-        <aside className="w-64 border-r border-gray-200 bg-white flex-shrink-0 flex flex-col min-h-0">
+        {/* Left Sidebar - Resizable */}
+        <aside
+          className="border-r border-gray-200 bg-white flex-shrink-0 flex flex-col min-h-0 relative"
+          style={{ width: `${sidebarWidth}px` }}
+        >
           <SceneTree />
+
+          {/* Resize Handle */}
+          <div
+            onMouseDown={handleMouseDown}
+            className="absolute top-0 right-0 w-1 h-full cursor-ew-resize hover:bg-blue-500 transition-colors z-50"
+            style={{
+              background: isResizing ? 'rgb(59, 130, 246)' : 'transparent',
+            }}
+          />
         </aside>
+
+        {/* Ribbon Toolbar - Positioned at tree/viewer boundary */}
+        <div
+          className="fixed top-16 z-40"
+          style={{
+            left: `${sidebarWidth}px`,
+            transition: isResizing ? 'none' : 'left 0.2s ease',
+          }}
+        >
+          <RibbonToolbar
+            onKinematicsClick={() => setShowKinematicsPanel(!showKinematicsPanel)}
+            onDevicesClick={() => console.log('Device Library - coming soon')}
+            onActuatorsClick={() => setShowActuatorPanel(!showActuatorPanel)}
+            onPhysicsClick={() => setShowPhysicsSettings(!showPhysicsSettings)}
+            onCollisionsClick={() => setShowCollisionVisualizer(!showCollisionVisualizer)}
+            onProjectionClick={handleCreateProjectionView}
+          />
+        </div>
 
         {/* Main Viewport */}
         <main className="flex-1 relative bg-gray-100">
@@ -448,8 +523,13 @@ export const EssentialModeLayout: React.FC = () => {
 
       {/* Floating Toolbar */}
       <div
-        className="fixed top-20 left-72 flex items-center space-x-2 bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-40"
-        style={{ zIndex: 150 }}
+        className="fixed flex items-center space-x-2 bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-40"
+        style={{
+          top: '5rem',
+          left: `${sidebarWidth + 16}px`,
+          zIndex: 150,
+          transition: isResizing ? 'none' : 'left 0.2s ease',
+        }}
       >
         {/* Create Shapes Dropdown */}
         <ToolbarDropdown
@@ -590,7 +670,13 @@ export const EssentialModeLayout: React.FC = () => {
 
       {/* Transform Display */}
       {transform && (
-        <div className="fixed bottom-20 left-72 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-40">
+        <div
+          className="fixed bottom-20 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-40"
+          style={{
+            left: `${sidebarWidth + 16}px`,
+            transition: isResizing ? 'none' : 'left 0.2s ease',
+          }}
+        >
           <div className="flex space-x-4 text-sm">
             <div className="flex space-x-2">
               <span className="text-gray-500">X:</span>

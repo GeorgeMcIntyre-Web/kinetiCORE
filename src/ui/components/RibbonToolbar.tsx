@@ -29,7 +29,23 @@ import {
 import { useEditorStore } from '../store/editorStore';
 import './RibbonToolbar.css';
 
-export const RibbonToolbar: React.FC = () => {
+export interface RibbonToolbarProps {
+  onKinematicsClick?: () => void;
+  onDevicesClick?: () => void;
+  onActuatorsClick?: () => void;
+  onPhysicsClick?: () => void;
+  onCollisionsClick?: () => void;
+  onProjectionClick?: () => void;
+}
+
+export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
+  onKinematicsClick,
+  onDevicesClick,
+  onActuatorsClick,
+  onPhysicsClick,
+  onCollisionsClick,
+  onProjectionClick,
+}) => {
   // Store connections
   const transformMode = useEditorStore((state) => state.transformMode);
   const setTransformMode = useEditorStore((state) => state.setTransformMode);
@@ -159,7 +175,7 @@ export const RibbonToolbar: React.FC = () => {
       <div className="ribbon-category-excel">
         <div className="ribbon-category-label">View</div>
         <div className="ribbon-buttons-row">
-          <button className="ribbon-btn" onClick={() => console.log('Projection')} title="Projection">
+          <button className="ribbon-btn" onClick={onProjectionClick} title="Projection View">
             <Eye size={32} />
           </button>
         </div>
@@ -214,13 +230,13 @@ export const RibbonToolbar: React.FC = () => {
       <div className="ribbon-category-excel">
         <div className="ribbon-category-label">Kinematics</div>
         <div className="ribbon-buttons-row">
-          <button className="ribbon-btn" title="Setup">
+          <button className="ribbon-btn" onClick={onKinematicsClick} title="Kinematics Panel">
             <Wrench size={32} />
           </button>
-          <button className="ribbon-btn" title="Devices">
+          <button className="ribbon-btn" onClick={onDevicesClick} title="Device Library">
             <BookOpen size={32} />
           </button>
-          <button className="ribbon-btn" title="Actuators">
+          <button className="ribbon-btn" onClick={onActuatorsClick} title="Actuator Control">
             <Gamepad2 size={32} />
           </button>
         </div>
@@ -230,10 +246,10 @@ export const RibbonToolbar: React.FC = () => {
       <div className="ribbon-category-excel">
         <div className="ribbon-category-label">Physics</div>
         <div className="ribbon-buttons-row">
-          <button className="ribbon-btn" title="Settings">
+          <button className="ribbon-btn" onClick={onPhysicsClick} title="Physics Settings">
             <Settings size={32} />
           </button>
-          <button className="ribbon-btn" title="Collisions">
+          <button className="ribbon-btn" onClick={onCollisionsClick} title="Collision Visualizer">
             <Zap size={32} />
           </button>
         </div>
