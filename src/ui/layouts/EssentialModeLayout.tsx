@@ -473,8 +473,6 @@ export const EssentialModeLayout: React.FC = () => {
           onHelpClick={() => toast.info('Help documentation coming soon')}
           className="fixed top-0 left-0 right-0 z-50"
           style={{ zIndex: 100 }}
-          sidebarWidth={sidebarWidth}
-          isResizing={isResizing}
           ribbonProps={{
             onKinematicsClick: () => setShowKinematicsPanel(!showKinematicsPanel),
             onDevicesClick: () => console.log('Device Library - coming soon'),
@@ -488,7 +486,7 @@ export const EssentialModeLayout: React.FC = () => {
         />
 
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden" style={{ paddingTop: '120px' }}>
+      <div className="flex flex-1 overflow-hidden" style={{ paddingTop: '80px' }}>
         {/* Left Sidebar - Resizable */}
         <aside
           className="border-r border-gray-200 bg-white flex-shrink-0 flex flex-col min-h-0 relative"

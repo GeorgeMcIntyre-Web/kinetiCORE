@@ -10,8 +10,6 @@ export interface HeaderProps {
   onHelpClick: () => void;
   className?: string;
   style?: React.CSSProperties;
-  sidebarWidth?: number;
-  isResizing?: boolean;
   ribbonProps?: RibbonToolbarProps;
 }
 
@@ -43,8 +41,6 @@ export const Header: React.FC<HeaderProps> = ({
   onHelpClick,
   className = '',
   style = {},
-  sidebarWidth = 256,
-  isResizing = false,
   ribbonProps,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -61,10 +57,10 @@ export const Header: React.FC<HeaderProps> = ({
       `}
       style={{ zIndex: zIndex.toolbar, ...style }}
     >
-      {/* Top Row: Logo, Mode Switcher, Actions */}
-      <div className="flex items-center justify-between px-4 py-2">
+      {/* Single Row: Logo, Ribbon, Mode Switcher, Actions */}
+      <div className="flex items-center justify-between px-4 py-2 gap-4">
         {/* Logo and App Name */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 flex-shrink-0">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-sm">K</span>
           </div>
@@ -74,8 +70,17 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Mode Switcher - Desktop */}
-        <div className="hidden md:flex items-center space-x-2">
+        {/* Ribbon Toolbar - Centered */}
+        {ribbonProps && (
+          <div className="flex-1 flex justify-center overflow-x-auto">
+            <RibbonToolbar {...ribbonProps} />
+          </div>
+        )}
+
+        {/* Right side: Mode Switcher + Actions */}
+        <div className="flex items-center space-x-2 flex-shrink-0">
+          {/* Mode Switcher - Desktop */}
+          <div className="hidden md:block">
         <div className="relative">
           <button
             onClick={() => setIsModeMenuOpen(!isModeMenuOpen)}
@@ -148,9 +153,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center space-x-2">
-          {/* Settings */}
+          {/* Action Buttons */}
           <button
             onClick={onSettingsClick}
             className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors duration-200"
@@ -159,7 +162,6 @@ export const Header: React.FC<HeaderProps> = ({
             <Settings className="w-5 h-5" />
           </button>
 
-          {/* Help */}
           <button
             onClick={onHelpClick}
             className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors duration-200"
@@ -177,22 +179,6 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </div>
       </div>
-
-      {/* Bottom Row: Ribbon Toolbar */}
-      {ribbonProps && (
-        <div
-          className="border-t border-gray-800"
-          style={{
-            paddingLeft: `${sidebarWidth}px`,
-            paddingRight: '8px',
-            paddingTop: '4px',
-            paddingBottom: '4px',
-            transition: isResizing ? 'none' : 'padding-left 0.2s ease',
-          }}
-        >
-          <RibbonToolbar {...ribbonProps} />
-        </div>
-      )}
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
