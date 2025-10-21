@@ -1019,6 +1019,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       console.log('[URDF Loader] Dispatching scenetree-update event');
       window.dispatchEvent(new CustomEvent('scenetree-update'));
       
+      // Notify that model import is complete for auto-resize
+      setTimeout(() => {
+        window.dispatchEvent(new Event('model-import-complete'));
+      }, 100);
+      
       loading.end();
       toast.success(`Loaded ${modelName} with ${meshes.length} meshes`);
       
@@ -1433,6 +1438,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
       // Notify tree to update
       window.dispatchEvent(new Event('scenetree-update'));
+      
+      // Notify that model import is complete for auto-resize
+      setTimeout(() => {
+        window.dispatchEvent(new Event('model-import-complete'));
+      }, 100);
 
       // Auto-extract kinematics from URDF (single file import)
       if (isURDF) {
@@ -1491,6 +1501,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         loading.end();
         toast.success(`Imported ${meshes.length} meshes from ${file.name}`);
         console.log(`Imported ${meshes.length} meshes with ${rootNodes.length} root nodes`);
+        
+        // Final notification that model import is complete
+        setTimeout(() => {
+          window.dispatchEvent(new Event('model-import-complete'));
+        }, 200);
       }
     } catch (error) {
       loading.end();

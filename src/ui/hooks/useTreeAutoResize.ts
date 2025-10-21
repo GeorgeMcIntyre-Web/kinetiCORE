@@ -70,7 +70,9 @@ export function useTreeAutoResize(options: TreeAutoResizeOptions = {}) {
     const children = tree.getChildren(nodeId);
     let maxChildWidth = 0;
     
-    if (node.expanded && children.length > 0) {
+    // Always calculate children width to ensure we account for all visible nodes
+    // This ensures the tree auto-resizes properly when importing new models
+    if (children.length > 0) {
       for (const child of children) {
         const childWidth = calculateNodeWidth(child.id, level + 1);
         maxChildWidth = Math.max(maxChildWidth, childWidth);
@@ -123,8 +125,18 @@ export function useTreeAutoResize(options: TreeAutoResizeOptions = {}) {
       }, 100);
     };
 
-    // Add event listener for tree updates
+    // Listen for model import completion events
+    const handleModelImport = () => {
+      console.log('🔄 Model import completed, recalculating optimal width...');
+      // Add a longer delay to ensure all tree updates are complete
+      setTimeout(() => {
+        calculateOptimalWidth();
+      }, 200);
+    };
+
+    // Add event listeners for tree updates and model imports
     window.addEventListener('scenetree-update', handleTreeUpdate);
+    window.addEventListener('model-import-complete', handleModelImport);
 
     // Fallback polling for cases where events might be missed
     const interval = setInterval(() => {
@@ -141,6 +153,7 @@ export function useTreeAutoResize(options: TreeAutoResizeOptions = {}) {
 
     return () => {
       window.removeEventListener('scenetree-update', handleTreeUpdate);
+      window.removeEventListener('model-import-complete', handleModelImport);
       clearInterval(interval);
     };
   }, [calculateOptimalWidth]);
