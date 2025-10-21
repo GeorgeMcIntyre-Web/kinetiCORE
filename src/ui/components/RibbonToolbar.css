@@ -2,20 +2,9 @@
 /* Owner: George */
 
 .ribbon-toolbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 80px;
-  background: rgba(12, 12, 15, 0.98);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(8px);
-  z-index: 1000;
   display: flex;
   align-items: center;
-  padding: 0 20px;
-  gap: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  gap: 12px;
 }
 
 /* Category Container */
@@ -24,25 +13,24 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 120px;
 }
 
 /* Category Header */
 .ribbon-category-header {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 60px;
+  height: 40px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  border-radius: 6px;
   color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   transition: all 0.2s;
-  gap: 4px;
-  padding: 8px;
+  gap: 6px;
+  padding: 8px 12px;
+  white-space: nowrap;
 }
 
 .ribbon-category-header:hover {
@@ -57,17 +45,16 @@
 }
 
 .ribbon-category-header svg {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   color: rgba(255, 255, 255, 0.9);
+  flex-shrink: 0;
 }
 
 .ribbon-category-header span {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.8);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 /* Category Content (Dropdown) */

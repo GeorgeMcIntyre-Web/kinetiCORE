@@ -12,7 +12,6 @@ import { useEditorStore } from '../store/editorStore';
 import { useUserLevel } from '../core/UserLevelContext';
 import { CoordinateFrame } from './CoordinateFrame';
 import { CameraViewControls } from './CameraViewControls';
-import { RibbonToolbar } from './RibbonToolbar';
 import { isZoomableObject, isSelectableObject } from '../../scene/SceneUtils';
 
 export const SceneCanvas: React.FC = () => {
@@ -479,9 +478,6 @@ export const SceneCanvas: React.FC = () => {
 
       {/* Camera view controls */}
       <CameraViewControls />
-
-      {/* Ribbon Toolbar - Horizontal ribbon at top */}
-      <RibbonToolbar />
 
       {/* Multi-selection indicator */}
       {selectedNodeIds.length > 1 && (
