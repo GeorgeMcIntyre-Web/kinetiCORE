@@ -197,3 +197,9 @@ test-jt-loading.html
 
 # JT test files
 test.jt
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Wrangler debug files
+wrangler-debug.toml
