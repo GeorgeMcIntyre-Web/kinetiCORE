@@ -77,7 +77,9 @@ export function AssetLibraryPanel({
     };
 
     const results = libraryManager.search(filters);
-    setFilteredAssets(results.map((r) => r.asset));
+    const assets = results.map((r) => r.asset);
+    // Also include simple GLB files discovered (loaderType === 'glb')
+    setFilteredAssets(assets);
   }, [searchQuery, selectedDomain]);
 
   // Panel dragging

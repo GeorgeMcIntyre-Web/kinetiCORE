@@ -30,6 +30,9 @@ import { loadMJCFFromFile } from '../loaders/mjcf/MJCFLoader';
 
 // Import GLB loader
 import { loadGLBFromFile } from '../loaders/glb/GLBLoader';
+export async function loadGLB(url: string, scene: BABYLON.Scene, options?: any) {
+  return loadGLBFromFile(url, scene, options);
+}
 
 // Import USD loader
 import { loadUSDFromFile } from '../loaders/usd/USDLoader';

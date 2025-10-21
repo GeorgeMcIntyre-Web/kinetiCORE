@@ -39,6 +39,7 @@ export type LoaderType =
   | 'jt'
   | 'dwg'
   | 'gltf'
+  | 'glb'
   | 'step'
   | 'stl'
   | 'obj'

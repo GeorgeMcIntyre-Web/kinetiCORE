@@ -87,8 +87,8 @@ export class GLBLoader {
    * Load GLB file with comprehensive error handling and guard rails
    */
   public async loadGLBFromFile(
-    file: File, 
-    scene: Scene, 
+    fileOrUrl: File | string,
+    scene: Scene,
     options: GLBLoadOptions = {}
   ): Promise<GLBLoadResult> {
     const startTime = performance.now();
@@ -124,14 +124,15 @@ export class GLBLoader {
     };
 
     try {
-      // Guard rail 1: Validate file
-      if (!this.validateFile(file)) {
+      // Guard rail 1: Validate input
+      const isUrl = typeof fileOrUrl === 'string';
+      if (!isUrl && !this.validateFile(fileOrUrl as File)) {
         result.errors.push('Invalid GLB file: File validation failed');
         return result;
       }
 
       // Guard rail 2: Initialize loading status
-      await this.initializeLoadingStatus(file.name);
+      await this.initializeLoadingStatus(isUrl ? (fileOrUrl as string) : (fileOrUrl as File).name);
 
       // Guard rail 3: Check scene validity
       if (!scene || scene.isDisposed) {
@@ -143,7 +144,7 @@ export class GLBLoader {
       defaultOptions.onProgress?.(10, 'Starting GLB file load...');
 
       // Guard rail 4: Load GLB with fallback mechanism
-      const loadResult = await this.loadGLBWithFallback(file, scene, defaultOptions);
+      const loadResult = await this.loadGLBWithFallback(fileOrUrl, scene, defaultOptions);
       
       if (!loadResult.success) {
         result.errors.push(...loadResult.errors);
@@ -165,7 +166,7 @@ export class GLBLoader {
         defaultOptions.onProgress?.(80, 'Detecting and fixing up-axis orientation...');
 
         // CRITICAL DIAGNOSTIC: Log original positions BEFORE any transformations
-        console.group(`🔍 GLB LOAD: ${file.name}`);
+        console.group(`🔍 GLB LOAD: ${isUrl ? (fileOrUrl as string) : (fileOrUrl as File).name}`);
         console.log('Root nodes:', result.rootNodes.length);
         result.rootNodes.forEach((root, i) => {
           const pos = root.getAbsolutePosition();
@@ -177,7 +178,7 @@ export class GLBLoader {
         console.groupEnd();
 
         // Create a single file container for all root nodes to ensure consistent orientation
-        const fileContainer = new TransformNode(file.name, scene);
+        const fileContainer = new TransformNode(isUrl ? (fileOrUrl as string) : (fileOrUrl as File).name, scene);
         
         // ALWAYS use bounds center as canonical CAD position - this is the true model position
         let modelWorldPos = new BABYLON.Vector3(0, 0, 0);
@@ -218,7 +219,7 @@ export class GLBLoader {
         console.log(`[GLB Loader] Model positioned at original CAD coordinates`);
 
         // Generate file key for sibling consistency
-        const fileKey = makeCanonicalFileKey(file.name);
+        const fileKey = makeCanonicalFileKey((isUrl ? (fileOrUrl as string) : (fileOrUrl as File).name));
 
         // Apply up-axis correction (creates wrapper if needed)
         const upAxisResult = autoFixUpAxis(fileContainer, {
@@ -249,7 +250,7 @@ export class GLBLoader {
         // Update result.rootNodes to return the final root (wrapper or container)
         result.rootNodes = [finalRoot];
 
-        console.log(`[GLB Loader] Up-axis result for ${file.name}:`, {
+        console.log(`[GLB Loader] Up-axis result for ${(isUrl ? (fileOrUrl as string) : (fileOrUrl as File).name)}:`, {
           detected: upAxisResult.detected,
           confidence: upAxisResult.confidence,
           method: upAxisResult.method,
@@ -280,7 +281,7 @@ export class GLBLoader {
 
       // Extract metadata
       if (defaultOptions.enableMetadataExtraction) {
-        result.metadata = this.extractMetadata(loadResult, file, startTime);
+        result.metadata = this.extractMetadata(loadResult, isUrl ? undefined : (fileOrUrl as File), startTime);
       }
 
       // Add GLB-specific warnings
@@ -297,7 +298,7 @@ export class GLBLoader {
 
     } catch (error) {
       // Guard rail 6: Comprehensive error handling
-      const errorMessage = this.handleError(error, file.name);
+      const errorMessage = this.handleError(error, isUrl ? (fileOrUrl as string) : (fileOrUrl as File).name);
       result.errors.push(errorMessage);
       
       // Try fallback loader if enabled
@@ -373,7 +374,7 @@ export class GLBLoader {
    * Load GLB with fallback mechanism
    */
   private async loadGLBWithFallback(
-    file: File, 
+    fileOrUrl: File | string,
     scene: Scene, 
     options: GLBLoadOptions
   ): Promise<{ success: boolean; meshes?: AbstractMesh[]; rootNodes?: TransformNode[]; bounds?: BABYLON.BoundingBox | null; errors: string[] }> {
@@ -384,14 +385,14 @@ export class GLBLoader {
       this.ensureGLTFPluginRegistered();
 
       // Method 1: Try SceneLoader.ImportMeshAsync
-      const result = await this.loadWithSceneLoader(file, scene, options);
+      const result = await this.loadWithSceneLoader(fileOrUrl, scene, options);
       if (result.success) {
         return result;
       }
       errors.push(...result.errors);
 
       // Method 2: Try SceneLoader.AppendAsync
-      const result2 = await this.loadWithAppendLoader(file, scene, options);
+      const result2 = await this.loadWithAppendLoader(fileOrUrl, scene, options);
       if (result2.success) {
         return result2;
       }
@@ -409,12 +410,13 @@ export class GLBLoader {
    * Load using SceneLoader.ImportMeshAsync
    */
   private async loadWithSceneLoader(
-    file: File, 
+    fileOrUrl: File | string,
     scene: Scene, 
     options: GLBLoadOptions
   ): Promise<{ success: boolean; meshes?: AbstractMesh[]; rootNodes?: TransformNode[]; bounds?: BABYLON.BoundingBox | null; errors: string[] }> {
     try {
-      const url = URL.createObjectURL(file);
+      const isUrl = typeof fileOrUrl === 'string';
+      const url = isUrl ? (fileOrUrl as string) : URL.createObjectURL(fileOrUrl as File);
       
       // Debug: Check available plugins
       console.log('[GLB Loader] Available plugins:', BABYLON.SceneLoader.GetPluginForExtension('.glb'));
@@ -429,7 +431,7 @@ export class GLBLoader {
         '.glb'  // Explicitly specify GLB extension
       );
 
-      URL.revokeObjectURL(url);
+      if (!isUrl) URL.revokeObjectURL(url);
 
       const bounds = options.enableBoundsCalculation ? this.calculateBounds(result.meshes) : null;
 
@@ -453,12 +455,13 @@ export class GLBLoader {
    * Load using SceneLoader.AppendAsync
    */
   private async loadWithAppendLoader(
-    file: File, 
+    fileOrUrl: File | string,
     scene: Scene, 
     options: GLBLoadOptions
   ): Promise<{ success: boolean; meshes?: AbstractMesh[]; rootNodes?: TransformNode[]; bounds?: BABYLON.BoundingBox | null; errors: string[] }> {
     try {
-      const url = URL.createObjectURL(file);
+      const isUrl = typeof fileOrUrl === 'string';
+      const url = isUrl ? (fileOrUrl as string) : URL.createObjectURL(fileOrUrl as File);
       
       const result = await BABYLON.SceneLoader.AppendAsync(
         '',
@@ -468,7 +471,7 @@ export class GLBLoader {
         '.glb'  // Explicitly specify GLB extension
       );
 
-      URL.revokeObjectURL(url);
+      if (!isUrl) URL.revokeObjectURL(url);
 
       const bounds = options.enableBoundsCalculation ? this.calculateBounds(result.meshes) : null;
 

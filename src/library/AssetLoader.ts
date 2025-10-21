@@ -8,6 +8,7 @@
 import * as BABYLON from '@babylonjs/core';
 import type { LibraryAsset, AssetInsertionConfig } from './types';
 import type { SceneNode } from '../scene/SceneTreeNode';
+import { GLBLoader } from '../loaders/glb/GLBLoader';
 
 // TODO: Re-enable when specialized loaders are implemented
 // import { loadURDFWithMeshes } from '../loaders/urdf/URDFLoaderWithMeshes';
@@ -51,6 +52,8 @@ export class AssetLoader {
           return await this.loadDWG(asset, config);
         case 'gltf':
           return await this.loadGLTF(asset, config);
+        case 'glb':
+          return await this.loadGLB(asset, config);
         case 'stl':
         case 'obj':
           return await this.loadMesh(asset, config);
@@ -200,6 +203,37 @@ export class AssetLoader {
         }
       );
     });
+  }
+
+  /**
+   * Load GLB file from URL (converted library)
+   */
+  private async loadGLB(
+    asset: LibraryAsset,
+    config: AssetInsertionConfig
+  ): Promise<LoadResult> {
+    try {
+      const loader = GLBLoader.getInstance();
+      const result = await loader.loadGLBFromFile(asset.filePath, this.scene, {
+        enableBoundsCalculation: true,
+        enableProgressCallback: true,
+      });
+
+      if (!result.success || result.rootNodes.length === 0) {
+        return { success: false, error: result.errors.join('; ') || 'GLB load failed' };
+      }
+
+      const parent = result.rootNodes[0];
+      const pos = this.getInsertionPosition(config);
+      parent.position = new BABYLON.Vector3(pos.x, pos.z, pos.y);
+
+      // Freeze static meshes for perf
+      result.meshes.forEach(m => { try { m.freezeWorldMatrix(); } catch {} });
+
+      return { success: true, meshes: result.meshes as BABYLON.Mesh[] };
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : String(e) };
+    }
   }
 
   /**

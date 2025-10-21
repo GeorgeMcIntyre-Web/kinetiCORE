@@ -40,6 +40,22 @@ export class SceneManager {
   }
 
   /**
+   * Load a GLB by URL using ModelLoader helper and attach under scene root
+   */
+  async addModelFromLibrary(url: string): Promise<BABYLON.TransformNode | null> {
+    if (!this.scene) return null;
+    const { loadGLB } = await import('./ModelLoader');
+    const res = await loadGLB(url, this.scene, { enableBoundsCalculation: true });
+    if ((res as any).rootNodes && (res as any).rootNodes.length > 0) {
+      const node = (res as any).rootNodes[0] as BABYLON.TransformNode;
+      // Frame camera
+      this.zoomToNode(node);
+      return node;
+    }
+    return null;
+  }
+
+  /**
    * Initialize the Babylon.js scene
    */
   async initialize(canvas: HTMLCanvasElement): Promise<void> {
