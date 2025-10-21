@@ -2,15 +2,15 @@
 // Owner: George
 // Replaces vertical toolbar with horizontal ribbon layout
 
-import React, { useState } from 'react';
-import { 
-  Settings, 
-  Target, 
-  Home, 
-  MousePointer, 
+import React, { useState, useRef } from 'react';
+import {
+  Settings,
+  Target,
+  Home,
+  MousePointer,
   XCircle,
-  Shapes, 
-  Layers3, 
+  Shapes,
+  Layers3,
   CornerDownRight,
   Minus,
   Square,
@@ -22,6 +22,17 @@ import {
   AlignLeft,
   Plane,
   Axis3D,
+  Package,
+  FileUp,
+  FolderUp,
+  Save,
+  FolderOpen,
+  Eye,
+  Wrench,
+  BookOpen,
+  Gamepad2,
+  Zap,
+  Cylinder as CylinderIcon,
 } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import { SceneManager } from '../../scene/SceneManager';
@@ -475,13 +486,403 @@ const AlignCategory: React.FC = () => {
   );
 };
 
+// Create Category Component
+const CreateCategory: React.FC = () => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const createObject = useEditorStore((state) => state.createObject);
+  const createCollection = useEditorStore((state) => state.createCollection);
+
+  return (
+    <div className="ribbon-category">
+      <button
+        className="ribbon-category-header"
+        onClick={() => setIsExpanded(!isExpanded)}
+        title="Create Objects"
+      >
+        <Package size={18} />
+        <span>Create</span>
+      </button>
+
+      {isExpanded && (
+        <div className="ribbon-category-content">
+          <div className="ribbon-section">
+            <div className="ribbon-section-title">Primitives</div>
+            <div className="ribbon-button-group">
+              <button
+                className="ribbon-button"
+                onClick={() => createObject('box')}
+                title="Create Box"
+              >
+                <Box size={18} />
+              </button>
+              <button
+                className="ribbon-button"
+                onClick={() => createObject('sphere')}
+                title="Create Sphere"
+              >
+                <Circle size={18} />
+              </button>
+              <button
+                className="ribbon-button"
+                onClick={() => createObject('cylinder')}
+                title="Create Cylinder"
+              >
+                <CylinderIcon size={18} />
+              </button>
+            </div>
+          </div>
+
+          <div className="ribbon-section">
+            <div className="ribbon-section-title">Organize</div>
+            <button
+              className="ribbon-button large"
+              onClick={() => createCollection()}
+              title="Create Collection"
+            >
+              <Package size={20} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Import Category Component
+const ImportCategory: React.FC = () => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const importModel = useEditorStore((state) => state.importModel);
+  const importURDFFolder = useEditorStore((state) => state.importURDFFolder);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFolderClick = () => {
+    folderInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      for (let i = 0; i < files.length; i++) {
+        await importModel(files[i]);
+      }
+    }
+    event.target.value = '';
+  };
+
+  const handleFolderChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      await importURDFFolder(Array.from(files));
+    }
+    event.target.value = '';
+  };
+
+  return (
+    <div className="ribbon-category">
+      <button
+        className="ribbon-category-header"
+        onClick={() => setIsExpanded(!isExpanded)}
+        title="Import Files"
+      >
+        <FileUp size={18} />
+        <span>Import</span>
+      </button>
+
+      {isExpanded && (
+        <div className="ribbon-category-content">
+          <div className="ribbon-section">
+            <div className="ribbon-section-title">Load</div>
+            <div className="ribbon-button-group">
+              <button
+                className="ribbon-button"
+                onClick={handleImportClick}
+                title="Load File"
+              >
+                <FileUp size={18} />
+              </button>
+              <button
+                className="ribbon-button"
+                onClick={handleFolderClick}
+                title="Load Folder"
+              >
+                <FolderUp size={18} />
+              </button>
+            </div>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".gltf,.glb,.obj,.stl,.babylon,.dxf,.dwg,.jt,.catpart,.catproduct,.urdf,.usd,.usdz,.zip"
+            multiple
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
+          />
+          <input
+            ref={folderInputRef}
+            type="file"
+            /* @ts-expect-error - webkitdirectory not in types */
+            webkitdirectory=""
+            directory=""
+            multiple
+            onChange={handleFolderChange}
+            style={{ display: 'none' }}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Project Category Component
+const ProjectCategory: React.FC = () => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const saveWorld = useEditorStore((state) => state.saveWorld);
+  const loadWorld = useEditorStore((state) => state.loadWorld);
+  const saveComprehensiveWorld = useEditorStore((state) => state.saveComprehensiveWorld);
+  const worldLoadInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLoadClick = () => {
+    worldLoadInputRef.current?.click();
+  };
+
+  const handleWorldFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      await loadWorld(file);
+    }
+    event.target.value = '';
+  };
+
+  return (
+    <div className="ribbon-category">
+      <button
+        className="ribbon-category-header"
+        onClick={() => setIsExpanded(!isExpanded)}
+        title="Project Management"
+      >
+        <FolderOpen size={18} />
+        <span>Project</span>
+      </button>
+
+      {isExpanded && (
+        <div className="ribbon-category-content">
+          <div className="ribbon-section">
+            <div className="ribbon-section-title">World</div>
+            <div className="ribbon-button-group">
+              <button
+                className="ribbon-button"
+                onClick={saveWorld}
+                title="Save World"
+              >
+                <Save size={18} />
+              </button>
+              <button
+                className="ribbon-button"
+                onClick={saveComprehensiveWorld}
+                title="Save Full"
+              >
+                <Save size={18} />
+              </button>
+              <button
+                className="ribbon-button"
+                onClick={handleLoadClick}
+                title="Load World"
+              >
+                <FolderOpen size={18} />
+              </button>
+            </div>
+          </div>
+
+          <input
+            ref={worldLoadInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleWorldFileChange}
+            style={{ display: 'none' }}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+// View Category Component
+const ViewCategory: React.FC = () => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleProjectionView = () => {
+    // Projection view logic will be implemented
+    console.log('Create projection view');
+  };
+
+  return (
+    <div className="ribbon-category">
+      <button
+        className="ribbon-category-header"
+        onClick={() => setIsExpanded(!isExpanded)}
+        title="View Tools"
+      >
+        <Eye size={18} />
+        <span>View</span>
+      </button>
+
+      {isExpanded && (
+        <div className="ribbon-category-content">
+          <div className="ribbon-section">
+            <div className="ribbon-section-title">Projections</div>
+            <button
+              className="ribbon-button large"
+              onClick={handleProjectionView}
+              title="Create Projection View"
+            >
+              <Eye size={20} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Kinematics Category Component
+const KinematicsCategory: React.FC = () => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleKinematicsSetup = () => {
+    console.log('Open Kinematics Setup panel');
+    // Panel opening logic will be added
+  };
+
+  const handleDeviceLibrary = () => {
+    console.log('Open Device Library panel');
+    // Panel opening logic will be added
+  };
+
+  const handleActuatorControl = () => {
+    console.log('Open Actuator Control panel');
+    // Panel opening logic will be added
+  };
+
+  return (
+    <div className="ribbon-category">
+      <button
+        className="ribbon-category-header"
+        onClick={() => setIsExpanded(!isExpanded)}
+        title="Kinematics Tools"
+      >
+        <Wrench size={18} />
+        <span>Kinematics</span>
+      </button>
+
+      {isExpanded && (
+        <div className="ribbon-category-content">
+          <div className="ribbon-section">
+            <div className="ribbon-section-title">Setup</div>
+            <button
+              className="ribbon-button"
+              onClick={handleKinematicsSetup}
+              title="Kinematics Setup"
+            >
+              <Wrench size={18} />
+            </button>
+          </div>
+
+          <div className="ribbon-section">
+            <div className="ribbon-section-title">Devices</div>
+            <div className="ribbon-button-group">
+              <button
+                className="ribbon-button"
+                onClick={handleDeviceLibrary}
+                title="Device Library"
+              >
+                <BookOpen size={18} />
+              </button>
+              <button
+                className="ribbon-button"
+                onClick={handleActuatorControl}
+                title="Actuator Control"
+              >
+                <Gamepad2 size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Physics Category Component
+const PhysicsCategory: React.FC = () => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const handlePhysicsSettings = () => {
+    console.log('Open Physics Settings panel');
+    // Panel opening logic will be added
+  };
+
+  const handleCollisionVisualizer = () => {
+    console.log('Toggle Collision Visualizer');
+    // Toggle logic will be added
+  };
+
+  return (
+    <div className="ribbon-category">
+      <button
+        className="ribbon-category-header"
+        onClick={() => setIsExpanded(!isExpanded)}
+        title="Physics Tools"
+      >
+        <Zap size={18} />
+        <span>Physics</span>
+      </button>
+
+      {isExpanded && (
+        <div className="ribbon-category-content">
+          <div className="ribbon-section">
+            <div className="ribbon-section-title">Physics</div>
+            <div className="ribbon-button-group">
+              <button
+                className="ribbon-button"
+                onClick={handlePhysicsSettings}
+                title="Physics Settings"
+              >
+                <Settings size={18} />
+              </button>
+              <button
+                className="ribbon-button"
+                onClick={handleCollisionVisualizer}
+                title="Collision Visualizer"
+              >
+                <Zap size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Main Ribbon Toolbar Component
 export const RibbonToolbar: React.FC = () => {
   return (
     <div className="ribbon-toolbar">
       <TransformCategory />
+      <CreateCategory />
+      <ImportCategory />
+      <ProjectCategory />
+      <ViewCategory />
       <SnapCategory />
       <AlignCategory />
+      <KinematicsCategory />
+      <PhysicsCategory />
     </div>
   );
 };

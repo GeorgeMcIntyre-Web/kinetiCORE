@@ -63,10 +63,10 @@
   top: 100%;
   left: 0;
   right: 0;
-  background: rgba(12, 12, 15, 0.98);
+  background: rgb(17, 24, 39); /* bg-gray-900 to match header */
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(12px);
   padding: 16px;
   margin-top: 8px;
