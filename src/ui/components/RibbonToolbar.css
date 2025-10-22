@@ -28,9 +28,9 @@
 
 /* Category label */
 .ribbon-category-label {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(203, 219, 229, 0.9);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 2px;
@@ -49,9 +49,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 35px;
+  height: 35px;
   padding: 0;
+  margin: 10;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
