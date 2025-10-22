@@ -24,6 +24,14 @@ export default defineConfig({
     target: 'es2020',
     outDir: 'dist',
     sourcemap: true,
+    // Cloudflare Pages optimizations
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
     rollupOptions: {
       output: {
         // Optimize chunking strategy to reduce main bundle size

@@ -600,19 +600,36 @@ def convert_usd():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
     
+    # Security: Validate file type and size
     if not allowed_file(file.filename):
         return jsonify({'error': 'Invalid file type. Only USD and USDZ files are supported.'}), 400
     
-    logger.info(f"Converting USD file: {file.filename}")
+    # Security: Check file size (max 100MB)
+    MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
+    file.seek(0, 2)  # Seek to end
+    file_size = file.tell()
+    file.seek(0)  # Reset to beginning
+    
+    if file_size > MAX_FILE_SIZE:
+        return jsonify({'error': f'File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB'}), 413
+    
+    # Security: Sanitize filename to prevent path traversal
+    import re
+    safe_filename = re.sub(r'[^a-zA-Z0-9._-]', '_', file.filename)
+    if safe_filename != file.filename:
+        logger.warning(f"Sanitized filename: {file.filename} -> {safe_filename}")
+    
+    logger.info(f"Converting USD file: {safe_filename} ({file_size} bytes)")
     
     temp_usd = None
     temp_gltf = None
     
     try:
-        # Save uploaded file temporarily
+        # Security: Use secure temporary file creation
         temp_usd = tempfile.NamedTemporaryFile(
-            suffix='.usd' if file.filename.endswith('.usd') else '.usdz',
-            delete=False
+            suffix='.usd' if safe_filename.lower().endswith('.usd') else '.usdz',
+            delete=False,
+            dir=tempfile.gettempdir()  # Ensure we're in temp directory
         )
         file.save(temp_usd.name)
         

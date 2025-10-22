@@ -13,6 +13,8 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
   private bodies = new Map<string, RAPIER.RigidBody>();
   private colliders = new Map<string, RAPIER.Collider>();
   private joints = new Map<string, RAPIER.ImpulseJoint>();
+  // Performance optimization: reverse mapping for O(1) collider lookup
+  private colliderToHandle = new Map<RAPIER.Collider, string>();
 
   async initialize(gravity: Vector3 = DEFAULT_GRAVITY): Promise<void> {
     // Initialize Rapier WASM
@@ -121,6 +123,7 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
     // Store references
     this.bodies.set(handle, rigidBody);
     this.colliders.set(handle, collider);
+    this.colliderToHandle.set(collider, handle);
 
     return handle;
   }
@@ -141,6 +144,7 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
           console.warn('Error removing collider:', e);
         }
         this.colliders.delete(handle);
+        this.colliderToHandle.delete(collider); // Clean up reverse mapping
       }
 
       // Now remove the rigid body
@@ -208,12 +212,10 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
     const intersecting: string[] = [];
 
     this.world.intersectionsWith(collider, (otherCollider) => {
-      // Find the handle for this collider
-      for (const [otherHandle, otherCol] of this.colliders.entries()) {
-        if (otherCol === otherCollider) {
-          intersecting.push(otherHandle);
-          break;
-        }
+      // Performance optimization: O(1) lookup instead of O(n) search
+      const otherHandle = this.colliderToHandle.get(otherCollider);
+      if (otherHandle) {
+        intersecting.push(otherHandle);
       }
       return true; // Continue iteration
     });
@@ -222,12 +224,41 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
   }
 
   dispose(): void {
-    if (this.world) {
-      this.world.free();
-      this.world = null;
+    if (!this.world) return;
+
+    // Properly dispose all rigid bodies and colliders
+    for (const [handle, rigidBody] of this.bodies) {
+      try {
+        // Remove collider first
+        const collider = this.colliders.get(handle);
+        if (collider) {
+          this.world.removeCollider(collider, false);
+        }
+        
+        // Remove rigid body
+        this.world.removeRigidBody(rigidBody);
+      } catch (e) {
+        console.warn(`Error disposing body ${handle}:`, e);
+      }
     }
+
+    // Dispose all joints
+    for (const [handle, joint] of this.joints) {
+      try {
+        this.world.removeImpulseJoint(joint, true);
+      } catch (e) {
+        console.warn(`Error disposing joint ${handle}:`, e);
+      }
+    }
+
+    // Free the world
+    this.world.free();
+    this.world = null;
+
+    // Clear all maps
     this.bodies.clear();
     this.colliders.clear();
+    this.colliderToHandle.clear();
     this.joints.clear();
     this.RAPIER = null;
   }
