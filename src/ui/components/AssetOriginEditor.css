@@ -1,0 +1,206 @@
+/**
+ * Asset Origin Editor Styles
+ */
+
+.asset-origin-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: rgba(31, 41, 55, 0.5);
+  border-radius: 8px;
+  border: 1px solid rgba(75, 85, 99, 0.3);
+}
+
+.origin-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.origin-icon {
+  font-size: 16px;
+}
+
+.origin-label {
+  color: #e5e7eb;
+  font-weight: 500;
+}
+
+.origin-detail {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.edit-origin-btn {
+  padding: 4px 8px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+  color: #93c5fd;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-origin-btn:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.asset-origin-editor {
+  padding: 16px;
+  background: rgba(31, 41, 55, 0.5);
+  border-radius: 8px;
+  border: 1px solid rgba(75, 85, 99, 0.3);
+}
+
+.asset-origin-editor h4 {
+  margin: 0 0 16px 0;
+  color: #e5e7eb;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.origin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  color: #d1d5db;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.origin-type-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.origin-type-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  background: rgba(55, 65, 81, 0.5);
+  border: 1px solid rgba(75, 85, 99, 0.3);
+  border-radius: 6px;
+  color: #d1d5db;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.origin-type-btn:hover {
+  background: rgba(55, 65, 81, 0.7);
+  border-color: rgba(75, 85, 99, 0.5);
+}
+
+.origin-type-btn.active {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+}
+
+.type-icon {
+  font-size: 20px;
+}
+
+.type-label {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.origin-input,
+.origin-textarea {
+  padding: 8px 12px;
+  background: rgba(55, 65, 81, 0.5);
+  border: 1px solid rgba(75, 85, 99, 0.3);
+  border-radius: 6px;
+  color: #e5e7eb;
+  font-size: 13px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.origin-input:focus,
+.origin-textarea:focus {
+  background: rgba(55, 65, 81, 0.7);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.origin-input::placeholder,
+.origin-textarea::placeholder {
+  color: #9ca3af;
+}
+
+.origin-textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.save-btn,
+.cancel-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.save-btn {
+  background: rgba(59, 130, 246, 0.8);
+  color: white;
+}
+
+.save-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 1);
+}
+
+.save-btn:disabled {
+  background: rgba(75, 85, 99, 0.5);
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.cancel-btn {
+  background: rgba(75, 85, 99, 0.5);
+  color: #d1d5db;
+}
+
+.cancel-btn:hover {
+  background: rgba(75, 85, 99, 0.7);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .origin-type-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .save-btn,
+  .cancel-btn {
+    width: 100%;
+  }
+}

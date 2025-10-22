@@ -458,6 +458,11 @@ export interface ProjectFilters {
     start: Date;
     end: Date;
   };
+  
+  // Asset Origin Filters
+  assetOriginTypes?: import('../library/types').AssetOriginType[];
+  assetOwnerCompanies?: string[];
+  assetSupplierCompanies?: string[];
 }
 
 // ============================================================================

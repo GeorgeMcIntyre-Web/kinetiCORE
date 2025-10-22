@@ -195,6 +195,25 @@ export class AssetLibraryManager {
       );
     }
 
+    // Asset Origin Filters
+    if (filters.originTypes && filters.originTypes.length > 0) {
+      results = results.filter((asset) =>
+        asset.origin?.type && filters.originTypes!.includes(asset.origin.type)
+      );
+    }
+
+    if (filters.owners && filters.owners.length > 0) {
+      results = results.filter((asset) =>
+        asset.origin?.owner && filters.owners!.includes(asset.origin.owner)
+      );
+    }
+
+    if (filters.suppliers && filters.suppliers.length > 0) {
+      results = results.filter((asset) =>
+        asset.origin?.supplier && filters.suppliers!.includes(asset.origin.supplier)
+      );
+    }
+
     // DOF range filter
     if (filters.dofRange) {
       const [min, max] = filters.dofRange;

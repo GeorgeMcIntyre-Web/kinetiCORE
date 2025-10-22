@@ -1,0 +1,135 @@
+/**
+ * Asset Origin Indicator Styles
+ * Matches existing dark theme
+ */
+
+.asset-origin-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.asset-origin-indicator.asset-origin-small {
+  font-size: 10px;
+  padding: 1px 4px;
+}
+
+.asset-origin-indicator.asset-origin-medium {
+  font-size: 12px;
+  padding: 2px 6px;
+}
+
+.asset-origin-indicator.asset-origin-large {
+  font-size: 14px;
+  padding: 4px 8px;
+}
+
+.asset-origin-icon {
+  font-size: 1.2em;
+  line-height: 1;
+}
+
+.asset-origin-label {
+  font-size: 0.9em;
+}
+
+/* Badge variant for asset cards */
+.asset-origin-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+/* Summary for details pane */
+.asset-origin-summary {
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(31, 41, 55, 0.5);
+  border-radius: 8px;
+  border: 1px solid rgba(75, 85, 99, 0.3);
+}
+
+.asset-origin-summary h4 {
+  margin: 0 0 12px 0;
+  color: #e5e7eb;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.origin-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.origin-type {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.origin-icon {
+  font-size: 16px;
+}
+
+.origin-label {
+  color: #93c5fd;
+  font-weight: 500;
+}
+
+.origin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.origin-field strong {
+  color: #d1d5db;
+  font-weight: 600;
+}
+
+.origin-field:not(:last-child) {
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(75, 85, 99, 0.2);
+}
+
+.no-origin-info {
+  color: #9ca3af;
+  font-style: italic;
+  margin: 0;
+  font-size: 12px;
+}
+
+/* Hover effects */
+.asset-origin-indicator:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .asset-origin-badge {
+    top: 4px;
+    right: 4px;
+    font-size: 10px;
+  }
+  
+  .asset-origin-summary {
+    padding: 8px;
+  }
+}

@@ -32,7 +32,9 @@ import {
   BookOpen,
   Network,
   TrendingUp,
-  ShieldCheck
+  ShieldCheck,
+  Gift,
+  ShoppingCart
 } from 'lucide-react';
 import { useProjectManagerStore } from '../../store/projectManagerStore';
 import type { ProjectCategory, ProjectStatus } from '../../../project/types';
@@ -213,6 +215,82 @@ export const ProjectFilterPane: React.FC = () => {
             <span className="project-visibility-icon"><Globe size={14} /></span>
             <span className="project-visibility-label">Public</span>
             <span className="project-visibility-count">8</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Asset Origin Filter */}
+      <div className="project-filter-section">
+        <div className="project-filter-section-header">
+          <div className="project-filter-section-title">
+            <Factory size={12} />
+            <span>ASSET ORIGIN</span>
+          </div>
+        </div>
+        <div className="project-origin-tree">
+          <div 
+            className={`project-origin-item ${
+              filters.assetOriginTypes?.includes('freeIssue') ? 'active' : ''
+            }`}
+            onClick={() => {
+              const currentOrigins = filters.assetOriginTypes || [];
+              const newOrigins = currentOrigins.includes('freeIssue')
+                ? currentOrigins.filter(o => o !== 'freeIssue')
+                : [...currentOrigins, 'freeIssue'];
+              setFilter('assetOriginTypes', newOrigins.length > 0 ? newOrigins as ('freeIssue' | 'reused' | 'purchased' | 'internal' | 'custom')[] : undefined);
+            }}
+          >
+            <span className="project-origin-icon"><Gift size={14} /></span>
+            <span className="project-origin-label">Free Issue</span>
+            <span className="project-origin-count">3</span>
+          </div>
+          <div 
+            className={`project-origin-item ${
+              filters.assetOriginTypes?.includes('reused') ? 'active' : ''
+            }`}
+            onClick={() => {
+              const currentOrigins = filters.assetOriginTypes || [];
+              const newOrigins = currentOrigins.includes('reused')
+                ? currentOrigins.filter(o => o !== 'reused')
+                : [...currentOrigins, 'reused'];
+              setFilter('assetOriginTypes', newOrigins.length > 0 ? newOrigins as ('freeIssue' | 'reused' | 'purchased' | 'internal' | 'custom')[] : undefined);
+            }}
+          >
+            <span className="project-origin-icon"><RotateCcw size={14} /></span>
+            <span className="project-origin-label">Reused</span>
+            <span className="project-origin-count">7</span>
+          </div>
+          <div 
+            className={`project-origin-item ${
+              filters.assetOriginTypes?.includes('purchased') ? 'active' : ''
+            }`}
+            onClick={() => {
+              const currentOrigins = filters.assetOriginTypes || [];
+              const newOrigins = currentOrigins.includes('purchased')
+                ? currentOrigins.filter(o => o !== 'purchased')
+                : [...currentOrigins, 'purchased'];
+              setFilter('assetOriginTypes', newOrigins.length > 0 ? newOrigins as ('freeIssue' | 'reused' | 'purchased' | 'internal' | 'custom')[] : undefined);
+            }}
+          >
+            <span className="project-origin-icon"><ShoppingCart size={14} /></span>
+            <span className="project-origin-label">Purchased</span>
+            <span className="project-origin-count">15</span>
+          </div>
+          <div 
+            className={`project-origin-item ${
+              filters.assetOriginTypes?.includes('internal') ? 'active' : ''
+            }`}
+            onClick={() => {
+              const currentOrigins = filters.assetOriginTypes || [];
+              const newOrigins = currentOrigins.includes('internal')
+                ? currentOrigins.filter(o => o !== 'internal')
+                : [...currentOrigins, 'internal'];
+              setFilter('assetOriginTypes', newOrigins.length > 0 ? newOrigins as ('freeIssue' | 'reused' | 'purchased' | 'internal' | 'custom')[] : undefined);
+            }}
+          >
+            <span className="project-origin-icon"><Factory size={14} /></span>
+            <span className="project-origin-label">Internal</span>
+            <span className="project-origin-count">5</span>
           </div>
         </div>
       </div>

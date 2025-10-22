@@ -11,7 +11,7 @@ import type { LibraryAsset } from './types';
 /**
  * Database schema versions
  */
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Incremented for asset origin support
 const DB_NAME = 'kineticore_asset_library';
 
 /**
@@ -42,6 +42,10 @@ export interface AssetDatabaseEntry {
   usageCount: number;
   lastUsed?: Date;
   isFavorite: boolean;
+  
+  // Asset Origin & Provenance
+  origin?: import('./types').AssetOrigin;
+  provenanceHistory?: import('./types').AssetProvenanceEntry[];
 }
 
 /**
@@ -77,6 +81,11 @@ export interface DatabaseFilters {
   minUsageCount?: number;
   isFavorite?: boolean;
   searchQuery?: string;
+  
+  // Asset Origin Filters
+  originTypes?: import('./types').AssetOriginType[];
+  ownerCompanies?: string[];
+  supplierCompanies?: string[];
 }
 
 /**

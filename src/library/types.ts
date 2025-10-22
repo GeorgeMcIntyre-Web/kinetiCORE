@@ -53,6 +53,39 @@ export type LoaderType =
 export type AssetSource = 'local' | 'cloud' | 'url' | 'generated';
 
 /**
+ * Asset origin types for provenance tracking
+ * Designed to be extensible - can add more types in the future
+ */
+export type AssetOriginType = 'freeIssue' | 'reused' | 'purchased' | 'internal' | 'custom';
+
+/**
+ * Minimal asset origin information
+ * All fields are optional to maintain flexibility
+ */
+export interface AssetOrigin {
+  type?: AssetOriginType;
+  owner?: string;           // Simple string, can be company name or ID
+  supplier?: string;         // Simple string, can be company name or ID
+  sourceProject?: string;    // For reused assets
+  notes?: string;           // Free-form notes
+  createdAt?: Date;         // When origin was set
+  createdBy?: string;       // Who set the origin
+}
+
+/**
+ * Simple provenance entry for tracking changes
+ * Minimal structure that can be extended later
+ */
+export interface AssetProvenanceEntry {
+  type: 'created' | 'transferred' | 'modified' | 'reused';
+  projectId?: string;
+  company?: string;
+  notes?: string;
+  timestamp: Date;
+  userId: string;
+}
+
+/**
  * Bounding box dimensions (mm)
  */
 export interface BoundingBox {
@@ -145,6 +178,11 @@ export interface LibraryAsset {
   source: AssetSource;
   vendor?: VendorInfo;
 
+  // === Asset Origin (Optional) ===
+  // Completely optional - existing assets work without any changes
+  origin?: AssetOrigin;
+  provenanceHistory?: AssetProvenanceEntry[];
+
   // === Usage Tracking ===
   usageCount?: number; // Popularity metric
   lastUsed?: Date;
@@ -209,6 +247,11 @@ export interface LibraryFilters {
   manufacturers?: string[];
   tags?: string[];
   hasKinematics?: boolean;
+
+  // Asset Origin Filters (Optional)
+  originTypes?: AssetOriginType[];
+  owners?: string[];
+  suppliers?: string[];
 
   // Numeric range filters
   dofRange?: [number, number];

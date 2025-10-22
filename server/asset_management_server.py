@@ -122,6 +122,10 @@ class AssetManager:
                 'source': asset_data.get('source', 'local'),
                 'vendor': asset_data.get('vendor'),
                 
+                # Asset Origin & Provenance
+                'origin': asset_data.get('origin'),
+                'provenanceHistory': asset_data.get('provenanceHistory', []),
+                
                 # Usage tracking
                 'usageCount': 0,
                 'lastUsed': None,
