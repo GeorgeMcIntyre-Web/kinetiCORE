@@ -27,6 +27,7 @@ import {
   FolderKanban,
   RotateCcw,
   Target,
+  Users,
 } from 'lucide-react';
 
 // Custom Quick Move Icon combining speed lines with move arrows
@@ -73,6 +74,7 @@ export interface RibbonToolbarProps {
   onKinematicsClick?: () => void;
   onKinematicsAnalysisClick?: () => void;
   onActuatorsClick?: () => void;
+  onWholeBodyIKClick?: () => void;
   onPhysicsClick?: () => void;
   onCollisionsClick?: () => void;
   onProjectionClick?: () => void;
@@ -92,6 +94,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onKinematicsClick,
   onKinematicsAnalysisClick,
   onActuatorsClick,
+  onWholeBodyIKClick,
   onPhysicsClick,
   onCollisionsClick,
   onProjectionClick: _onProjectionClick,
@@ -350,6 +353,9 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           </button>
           <button className="ribbon-btn" onClick={onActuatorsClick} title="Actuator Control">
             <Gamepad2 size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={onWholeBodyIKClick} title="Whole-Body IK">
+            <Users size={32} />
           </button>
         </div>
       </div>
