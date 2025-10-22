@@ -1074,6 +1074,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
         // No URDF found, try MJCF
         console.log(`[File Import] No URDF found in ZIP, trying MJCF...`);
+        console.log('🔴🔴🔴 EDITOR STORE MJCF IMPORT CODE IS RUNNING - VERSION 2025.01.22.1341 🔴🔴🔴');
 
         // Import MJCF loader
         const { loadMJCFFromFile } = await import('../../loaders/mjcf/MJCFLoader');
@@ -1081,6 +1082,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         try {
           // MJCF loader will handle ZIP extraction internally
           const mjcfResult = await loadMJCFFromFile(file, scene);
+          console.log('🔴🔴🔴 MJCF LOAD COMPLETE - ABOUT TO CHECK RESULT 🔴🔴🔴');
 
           if (mjcfResult.success) {
             console.log(`[File Import] Successfully loaded MJCF from ZIP: ${mjcfResult.meshes.length} meshes`);
