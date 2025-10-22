@@ -1085,6 +1085,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           if (mjcfResult.success) {
             console.log(`[File Import] Successfully loaded MJCF from ZIP: ${mjcfResult.meshes.length} meshes`);
 
+            // DEBUG: Check what's in mjcfResult
+            console.log('[EditorStore] mjcfResult keys:', Object.keys(mjcfResult));
+            console.log('[EditorStore] mjcfResult.actuators:', (mjcfResult as any).actuators);
+            console.log('[EditorStore] mjcfResult.rootNodes:', mjcfResult.rootNodes);
+            console.log('[EditorStore] mjcfResult.keyframes:', (mjcfResult as any).keyframes);
+
             // Get the model name from the file
             const modelName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
 
