@@ -341,8 +341,8 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
         <div className="ribbon-buttons-row">
           <button className="ribbon-btn" onClick={onKinematicsClick} title="Motion Panel">
             <div style={{ position: 'relative', width: '32px', height: '32px' }}>
-              <Move size={20} style={{ position: 'absolute', left: '2px', top: '2px' }} />
-              <RotateCw size={20} style={{ position: 'absolute', right: '2px', bottom: '2px' }} />
+              <Move size={16} style={{ position: 'absolute', left: '4px', top: '4px' }} />
+              <RotateCw size={16} style={{ position: 'absolute', right: '4px', bottom: '4px' }} />
             </div>
           </button>
           <button className="ribbon-btn" onClick={onKinematicsAnalysisClick} title="Kinematics Analysis">
