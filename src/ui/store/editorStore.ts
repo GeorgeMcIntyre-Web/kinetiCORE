@@ -1135,7 +1135,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
                   const robotRootNodeId = mjcfResult.rootNodes[0].id || mjcfResult.rootNodes[0].uniqueId.toString();
 
                   // Find the kinematic chain for this robot
-                  const chains = kinematicsManager.getKinematicChains();
+                  const chains = kinematicsManager.getAllChains();
                   let chainId = robotRootNodeId;
                   for (const chain of chains) {
                     if (chain.rootNodeId === robotRootNodeId) {
