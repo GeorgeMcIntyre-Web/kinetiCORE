@@ -575,46 +575,6 @@ export const EssentialModeLayout: React.FC = () => {
         onChange={handleLoadFileChange}
       />
 
-      {/* Transform Display */}
-      {transform && (
-        <div
-          className="fixed bottom-20 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-40"
-          style={{
-            left: `${sidebarWidth + 16}px`,
-            transition: isResizing ? 'none' : 'left 0.2s ease',
-          }}
-        >
-          <div className="flex space-x-4 text-sm">
-            <div className="flex space-x-2">
-              <span className="text-gray-500">X:</span>
-              <span className="font-mono">{transform.x}</span>
-            </div>
-            <div className="flex space-x-2">
-              <span className="text-gray-500">Y:</span>
-              <span className="font-mono">{transform.y}</span>
-            </div>
-            <div className="flex space-x-2">
-              <span className="text-gray-500">Z:</span>
-              <span className="font-mono">{transform.z}</span>
-            </div>
-          </div>
-          <div className="flex space-x-4 text-sm mt-1">
-            <div className="flex space-x-2">
-              <span className="text-gray-500">RX:</span>
-              <span className="font-mono">{transform.rx}°</span>
-            </div>
-            <div className="flex space-x-2">
-              <span className="text-gray-500">RY:</span>
-              <span className="font-mono">{transform.ry}°</span>
-            </div>
-            <div className="flex space-x-2">
-              <span className="text-gray-500">RZ:</span>
-              <span className="font-mono">{transform.rz}°</span>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Floating Panels */}
       <FloatingKinematicsPanel
         isVisible={showKinematicsPanel}
@@ -645,6 +605,51 @@ export const EssentialModeLayout: React.FC = () => {
         onClose={() => setShowSettingsPanel(false)}
         zIndex={1005}
       />
+
+      {/* Transform Display - Bottom-right corner */}
+      {transform && (
+        <div
+          className="fixed bottom-1 right-1 z-40"
+          style={{
+            background: 'transparent',
+            color: '#ffffff',
+            textShadow: '0 0 4px rgba(0, 0, 0, 0.8)',
+            fontFamily: 'monospace',
+            fontSize: '13px',
+            fontWeight: '500',
+            minWidth: '280px',
+          }}
+        >
+          <div className="flex justify-between text-sm">
+            <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+              <span style={{ color: '#4A90E2', fontWeight: '600' }}>X:</span>
+              <span style={{ color: '#ffffff', fontWeight: '700', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.x.toFixed(1)}</span>
+            </div>
+            <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+              <span style={{ color: '#7ED321', fontWeight: '600' }}>Y:</span>
+              <span style={{ color: '#ffffff', fontWeight: '700', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.y.toFixed(1)}</span>
+            </div>
+            <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+              <span style={{ color: '#D0021B', fontWeight: '600' }}>Z:</span>
+              <span style={{ color: '#ffffff', fontWeight: '700', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.z.toFixed(1)}</span>
+            </div>
+          </div>
+          <div className="flex justify-between text-sm mt-1">
+            <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+              <span style={{ color: '#4A90E2', fontWeight: '600' }}>RX:</span>
+              <span style={{ color: '#ffffff', fontWeight: '700', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rx.toFixed(1)}°</span>
+            </div>
+            <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+              <span style={{ color: '#7ED321', fontWeight: '600' }}>RY:</span>
+              <span style={{ color: '#ffffff', fontWeight: '700', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.ry.toFixed(1)}°</span>
+            </div>
+            <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+              <span style={{ color: '#D0021B', fontWeight: '600' }}>RZ:</span>
+              <span style={{ color: '#ffffff', fontWeight: '700', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rz.toFixed(1)}°</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hidden file inputs */}
       <input
