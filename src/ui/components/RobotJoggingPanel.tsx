@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { Move, RotateCw, Minus, Plus, Play, Save, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import * as BABYLON from '@babylonjs/core';
 import { KinematicsManager, RobotKeyframe } from '../../kinematics/KinematicsManager';
 import type { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
 import { InverseKinematicsSolver } from '../../kinematics/InverseKinematicsSolver';
@@ -15,7 +16,7 @@ import { detectJointGroups, shouldUseJointGroups, JointGroup } from '../../kinem
 import './RobotJoggingPanel.css';
 
 type JogMode = 'joint' | 'tcp' | 'poses';
-type JogAxis = 'X' | 'Y' | 'Z' | 'Rx' | 'Ry' | 'Rz';
+type JogAxis = 'X' | 'Y' | 'Z' | 'RX' | 'RY' | 'RZ';
 
 interface RobotJoggingPanelProps {
   joints: any[]; // Filtered joints for this specific robot
@@ -155,16 +156,42 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
     // Convert USER delta (Z-up, mm) to BABYLON delta (Y-up, meters)
     const positionDelta = userToBabylon(userDelta);
 
-    // Rotary motion (TODO: requires orientation IK)
+    let success = false;
+
+    // Rotary motion (orientation IK)
     if (axis.startsWith('R')) {
-      console.log(
-        `Rotary TCP jogging (${axis}) not yet implemented - requires orientation IK. Step: ${jogStepTcpRotary}°`
-      );
+      // Convert rotation step from degrees to radians
+      const angleRadians = (jogStepTcpRotary * Math.PI / 180) * direction;
+
+      // Determine rotation axis in USER coordinate system (Z-up)
+      let rotationAxis = new BABYLON.Vector3(0, 0, 0);
+      if (axis === 'RX') {
+        rotationAxis = new BABYLON.Vector3(1, 0, 0); // Roll (around X)
+      } else if (axis === 'RY') {
+        rotationAxis = new BABYLON.Vector3(0, 1, 0); // Pitch (around Y)
+      } else if (axis === 'RZ') {
+        rotationAxis = new BABYLON.Vector3(0, 0, 1); // Yaw (around Z)
+      }
+
+      // Convert axis from USER (Z-up) to BABYLON (Y-up)
+      const babylonAxis = userToBabylon(rotationAxis);
+
+      // Create rotation quaternion
+      const rotationDelta = BABYLON.Quaternion.RotationAxis(babylonAxis.normalize(), angleRadians);
+
+      // Apply rotation using Jacobian method (supports orientation control)
+      success = ikSolver.rotateEndEffector(chainName, rotationDelta, 'jacobian');
+
+      if (!success) {
+        console.warn(`Rotary IK failed for: ${axis} ${direction > 0 ? '+' : '-'}${jogStepTcpRotary}°`);
+      }
+
       return;
     }
 
+    // Linear motion (position IK)
     // Try CCD first (more robust), fallback to Jacobian
-    let success = ikSolver.moveEndEffector(chainName, positionDelta, 'ccd');
+    success = ikSolver.moveEndEffector(chainName, positionDelta, 'ccd');
 
     if (!success) {
       console.log('CCD failed, trying Jacobian method...');
@@ -431,7 +458,7 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
             <div className="tcp-section">
               <h4>Rotary</h4>
               <div className="tcp-axis-group">
-                {(['Rx', 'Ry', 'Rz'] as JogAxis[]).map(axis => (
+                {(['RX', 'RY', 'RZ'] as JogAxis[]).map(axis => (
                   <div key={axis} className="tcp-axis">
                     <span className="axis-label">{axis}</span>
                     <button

@@ -11,6 +11,7 @@
     "usd:server:win": "py server/usd_converter.py",
     "dev": "concurrently -k -n VITE,USD \"vite\" \"python server/usd_converter.py\"",
     "dev:ui": "vite",
+    "dev:full": "concurrently -k -n VITE,USD,SUPABASE \"vite\" \"python server/usd_converter.py\" \"supabase start\"",
     "build": "tsc && vite build",
     "build:ci": "npm ci && tsc && vite build",
     "preview": "vite preview",
@@ -26,7 +27,15 @@
     "pages:dev": "wrangler pages dev dist",
     "usd-server": "python server/usd_converter.py",
     "usd-server:dev": "FLASK_ENV=development python server/usd_converter.py",
-    "download-usd-models": "python scripts/download_usd_models.py"
+    "download-usd-models": "python scripts/download_usd_models.py",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:reset": "supabase db reset",
+    "supabase:types": "supabase gen types typescript --local > src/types/supabase.ts",
+    "supabase:deploy": "supabase db push && supabase functions deploy",
+    "supabase:functions:deploy": "supabase functions deploy",
+    "supabase:storage:create": "supabase storage create",
+    "supabase:logs": "supabase logs"
   },
   "dependencies": {
     "@babylonjs/addons": "^8.30.4",
@@ -77,6 +86,7 @@
     "lint-staged": "^15.2.2",
     "postcss": "^8.5.6",
     "prettier": "^3.2.5",
+    "supabase": "^2.53.6",
     "tailwindcss": "^3.4.17",
     "terser": "^5.44.0",
     "typescript": "^5.4.2",
