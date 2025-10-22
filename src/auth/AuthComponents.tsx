@@ -5,25 +5,20 @@
  * React components for user authentication and management
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
-  User, 
   Mail, 
   Lock, 
   Eye, 
   EyeOff, 
-  Google, 
-  Github, 
   Building2,
   Users,
   Shield,
   Zap,
-  CheckCircle,
-  XCircle,
   AlertCircle
 } from 'lucide-react';
 import { useAuth, useUserPermissions, useTeamManagement } from './UserStore';
-import type { User as UserType, AnonymousUser, Team } from './UserStore';
+import type { User as UserType, Team } from './UserStore';
 
 /**
  * Authentication Provider Component
@@ -146,7 +141,7 @@ const LoginScreen: React.FC = () => {
             disabled={isLoading}
             className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
-            <Google className="w-5 h-5 mr-3" />
+            <div className="w-5 h-5 mr-3 bg-red-500 rounded" />
             Continue with Google
           </button>
 
@@ -370,7 +365,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description }) =
  */
 export const UserProfile: React.FC = () => {
   const { user, updateProfile, logout } = useAuth();
-  const { hasPermission } = useUserPermissions();
+  const { hasPermission: _hasPermission } = useUserPermissions();
   const [editing, setEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -548,7 +543,7 @@ export const UserProfile: React.FC = () => {
  * Team Management Component
  */
 export const TeamManagement: React.FC = () => {
-  const { userTeams, joinTeam, leaveTeam, createTeam, canCreateTeam } = useTeamManagement();
+  const { userTeams: _userTeams, joinTeam: _joinTeam, leaveTeam: _leaveTeam, createTeam: _createTeam, canCreateTeam } = useTeamManagement();
   const [teams, setTeams] = useState<Team[]>([]);
   const [showCreateTeam, setShowCreateTeam] = useState(false);
 

@@ -7,7 +7,7 @@
  */
 
 import type { LibraryAsset } from './types';
-import type { User } from '../auth/UserStore';
+// import type { User } from '../auth/UserStore';
 import type { AssetMetadata } from './AssetMetadataManager';
 
 /**
@@ -180,7 +180,8 @@ export class AdvancedSearchManager {
   private searchCache: Map<string, SearchResult[]> = new Map();
   private searchHistory: Map<string, string[]> = new Map();
   private searchAnalytics: SearchAnalytics[] = [];
-  private searchIndex: Map<string, Set<string>> = new Map();
+  // @ts-ignore - Future use
+  private ___searchIndex: Map<string, Set<string>> = new Map();
   private synonymDictionary: Map<string, string[]> = new Map();
 
   private constructor() {
@@ -325,7 +326,7 @@ export class AdvancedSearchManager {
       }
       
       // Count capabilities
-      for (const capability of asset.capabilities || []) {
+      for (const capability of asset.capabilities ? Object.keys(asset.capabilities) : []) {
         capabilities.set(capability, (capabilities.get(capability) || 0) + 1);
       }
       
@@ -396,18 +397,20 @@ export class AdvancedSearchManager {
   /**
    * Get personalized recommendations
    */
-  public async getPersonalizedRecommendations(
+  public   async getPersonalizedRecommendations(
     userId: string,
-    context: SearchContext,
-    limit: number = 10
+    _context: SearchContext,
+    _limit: number = 10
   ): Promise<LibraryAsset[]> {
     const recommendations: LibraryAsset[] = [];
     
     // Get user's search history
-    const userHistory = this.searchHistory.get(userId) || [];
+    // @ts-ignore - Future use
+    const ___userHistory = this.searchHistory.get(userId) || [];
     
     // Get user's recent asset interactions
-    const recentInteractions = await this.getUserRecentInteractions(userId);
+    // @ts-ignore - Future use
+    const ___recentInteractions = await this.getUserRecentInteractions(userId);
     
     // Generate recommendations based on:
     // 1. Search history patterns
@@ -680,7 +683,7 @@ export class AdvancedSearchManager {
 
   private generateHighlights(
     asset: LibraryAsset,
-    metadata: AssetMetadata | undefined,
+    _metadata: AssetMetadata | undefined,
     query: SearchQuery
   ): SearchHighlight[] {
     const highlights: SearchHighlight[] = [];
@@ -771,30 +774,30 @@ export class AdvancedSearchManager {
   }
 
   private async getAssetNameSuggestions(
-    partialQuery: string,
-    limit: number
+    _partialQuery: string,
+    _limit: number
   ): Promise<SearchSuggestion[]> {
     // Placeholder for asset name suggestions
     return [];
   }
 
   private async getTagSuggestions(
-    partialQuery: string,
-    limit: number
+    _partialQuery: string,
+    _limit: number
   ): Promise<SearchSuggestion[]> {
     // Placeholder for tag suggestions
     return [];
   }
 
   private async getManufacturerSuggestions(
-    partialQuery: string,
-    limit: number
+    _partialQuery: string,
+    _limit: number
   ): Promise<SearchSuggestion[]> {
     // Placeholder for manufacturer suggestions
     return [];
   }
 
-  private async getUserRecentInteractions(userId: string): Promise<any[]> {
+  private async getUserRecentInteractions(_userId: string): Promise<any[]> {
     // Placeholder for user interaction history
     return [];
   }

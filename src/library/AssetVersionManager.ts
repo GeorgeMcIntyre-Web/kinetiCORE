@@ -294,7 +294,12 @@ export class AssetVersionManager {
     // Calculate next version number
     const nextVersionNumber = this.calculateNextVersionNumber(
       parentVersion.versionNumber,
-      versionData.changes
+      versionData.changes.map(change => ({
+        ...change,
+        id: this.generateChangeId(),
+        timestamp: new Date(),
+        userId: user.id
+      }))
     );
 
     const version: AssetVersion = {
@@ -568,7 +573,7 @@ export class AssetVersionManager {
   public async addReviewComment(
     versionId: string,
     comment: Omit<ReviewComment, 'id' | 'timestamp'>,
-    user: User
+    _user: User
   ): Promise<ReviewComment> {
     const version = this.versionCache.get(versionId);
     if (!version) {

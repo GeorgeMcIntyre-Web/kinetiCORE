@@ -600,11 +600,7 @@ export const EssentialModeLayout: React.FC = () => {
         zIndex={1003}
       />
 
-      <WholeBodyIKPanel
-        isVisible={showWholeBodyIKPanel}
-        onClose={() => setShowWholeBodyIKPanel(false)}
-        zIndex={1004}
-      />
+      {showWholeBodyIKPanel && <WholeBodyIKPanel />}
 
       <FloatingPhysicsPanel
         isVisible={showPhysicsSettings}

@@ -12,6 +12,7 @@ import { AdvancedSearchManager } from './AdvancedSearchManager';
 import { AssetCollaborationManager } from './AssetCollaborationManager';
 import { CDNCacheManager } from './CDNCacheManager';
 import type { LibraryAsset } from './types';
+import type { EnhancedAssetOwnership } from './UserAwareAssetTypes';
 import type { User } from '../auth/UserStore';
 import type { AssetMetadata } from './AssetMetadataManager';
 import type { AssetVersion } from './AssetVersionManager';
@@ -109,7 +110,7 @@ export class AssetManagementSystem {
     const asset: LibraryAsset = {
       id: this.generateAssetId(),
       name: assetData.name || file.name,
-      domain: assetData.domain || 'general',
+      domain: assetData.domain || 'manufacturing',
       assetClass: assetData.assetClass || 'structures',
       assetType: assetData.assetType || 'generic',
       loaderType: this.determineLoaderType(file.name),
@@ -154,7 +155,7 @@ export class AssetManagementSystem {
     // Save asset
     const assetId = await this.assetManager.saveAsset(
       asset,
-      asset.customMetadata!.ownership,
+      asset.customMetadata?.ownership as EnhancedAssetOwnership,
       undefined, // thumbnail
       undefined  // mesh data
     );

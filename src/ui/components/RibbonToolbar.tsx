@@ -27,7 +27,6 @@ import {
   FolderKanban,
   RotateCcw,
   Target,
-  Users,
 } from 'lucide-react';
 
 // Custom Quick Move Icon combining speed lines with move arrows

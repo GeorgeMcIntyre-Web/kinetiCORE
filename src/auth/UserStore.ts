@@ -516,7 +516,7 @@ async function signInWithGoogle(): Promise<User> {
   };
 }
 
-async function signInWithEmail(email: string, password: string): Promise<User> {
+async function signInWithEmail(email: string, _password: string): Promise<User> {
   // Placeholder for email/password authentication
   // In real implementation, this would integrate with Supabase Auth
   return {

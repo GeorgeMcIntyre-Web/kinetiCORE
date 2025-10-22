@@ -187,6 +187,7 @@ export interface LibraryAsset {
   usageCount?: number; // Popularity metric
   lastUsed?: Date;
   isFavorite?: boolean;
+  createdAt?: Date; // When asset was added to library
 
   // === Extensibility ===
   customMetadata?: Record<string, unknown>;

@@ -306,7 +306,7 @@ export class CDNCacheManager {
         userId: user.isAnonymous ? undefined : user.id,
         accessLevel: this.determineAccessLevel(asset, user),
         optimizationLevel: metadata.quality.optimizationLevel,
-        edgeLocations: this.cdnConfig.performance.edgeCacheRegions,
+        edgeLocations: [], // TODO: Add edgeCacheRegions to CDNPerformance interface
         cdnProvider: this.cdnConfig.provider,
         cacheStatus: 'hit'
       },
@@ -406,7 +406,7 @@ export class CDNCacheManager {
   public async preloadAssets(
     assetIds: string[],
     user: User,
-    priority: 'low' | 'medium' | 'high' = 'medium'
+    _priority: 'low' | 'medium' | 'high' = 'medium'
   ): Promise<void> {
     if (!this.cdnConfig.performance.preloadEnabled) {
       return;
@@ -568,7 +568,7 @@ export class CDNCacheManager {
       totalRequests: this.cacheStore.size,
       cacheHitRate: this.calculateCurrentHitRate(),
       bandwidthSaved: this.calculateBandwidthSaved(),
-      responseTime: this.calculateAverageResponseTime(),
+      responseTime: this.calculateAverageResponseTime([]),
       requestsByRegion: new Map(),
       topCountries: [],
       averageResponseTime: 0,
@@ -603,7 +603,7 @@ export class CDNCacheManager {
     return `${baseKey}_${userKey}${optionsKey}`;
   }
 
-  private async uploadToCDN(file: File, cacheKey: string): Promise<string> {
+  private async uploadToCDN(_file: File, cacheKey: string): Promise<string> {
     // Upload file to CDN and return URL
     const cdnUrl = `${this.cdnConfig.endpoint}/${cacheKey}`;
     console.log(`[CDNCacheManager] Uploaded to CDN: ${cdnUrl}`);
@@ -638,9 +638,9 @@ export class CDNCacheManager {
     
     // Check asset visibility and user permissions
     const ownership = asset.customMetadata?.ownership;
-    if (ownership?.visibility === 'public') {
+    if ((ownership as any)?.visibility === 'public') {
       return 'public';
-    } else if (ownership?.visibility === 'private') {
+    } else if ((ownership as any)?.visibility === 'private') {
       return 'private';
     } else {
       return 'restricted';
@@ -652,7 +652,7 @@ export class CDNCacheManager {
     return file; // Placeholder
   }
 
-  private async uploadOptimizedToCDN(data: Blob, cacheKey: string): Promise<void> {
+  private async uploadOptimizedToCDN(_data: Blob, cacheKey: string): Promise<void> {
     // Upload optimized asset to CDN
     console.log(`[CDNCacheManager] Uploaded optimized asset: ${cacheKey}`);
   }
@@ -662,7 +662,7 @@ export class CDNCacheManager {
     console.log(`[CDNCacheManager] Purging ${keys.length} assets from CDN`);
   }
 
-  private async recordCacheHit(cacheEntry: CacheEntry): Promise<void> {
+  private async recordCacheHit(_cacheEntry: CacheEntry): Promise<void> {
     // Record cache hit for analytics
   }
 
@@ -689,7 +689,7 @@ export class CDNCacheManager {
     return analytics.reduce((sum, a) => sum + a.averageResponseTime, 0) / analytics.length;
   }
 
-  private calculatePercentileResponseTime(analytics: CDNAnalytics[], percentile: number): number {
+  private calculatePercentileResponseTime(_analytics: CDNAnalytics[], _percentile: number): number {
     // Calculate percentile response time
     return 0; // Placeholder
   }
@@ -709,7 +709,7 @@ export class CDNCacheManager {
     return aggregated;
   }
 
-  private getTopCountries(analytics: CDNAnalytics[]): Array<{ country: string; requests: number }> {
+  private getTopCountries(_analytics: CDNAnalytics[]): Array<{ country: string; requests: number }> {
     // Aggregate and return top countries
     return []; // Placeholder
   }

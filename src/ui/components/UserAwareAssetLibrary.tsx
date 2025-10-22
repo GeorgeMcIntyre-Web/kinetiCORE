@@ -9,7 +9,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Upload, 
   Search, 
-  Filter, 
   Share2, 
   Download, 
   Eye, 
@@ -22,17 +21,15 @@ import {
   Lock,
   Clock,
   HardDrive,
-  Cloud,
   Server
 } from 'lucide-react';
-import { UserAwareAssetManager } from './UserAwareAssetManager';
+import { UserAwareAssetManager } from '../../library/UserAwareAssetManager';
 import type { 
   User, 
-  LibraryAsset, 
   EnhancedAssetOwnership,
-  AssetShareRequest,
   AssetAnalytics
-} from './UserAwareAssetTypes';
+} from '../../library/UserAwareAssetTypes';
+import type { LibraryAsset } from '../../library/types';
 
 interface AssetLibraryProps {
   user: User;
@@ -59,13 +56,7 @@ interface AssetUploadZoneProps {
   allowedTypes?: string[];
 }
 
-interface AssetShareDialogProps {
-  asset: LibraryAsset;
-  ownership: EnhancedAssetOwnership;
-  isOpen: boolean;
-  onClose: () => void;
-  onShare: (targetUsers: string[], permission: 'view' | 'edit' | 'admin') => void;
-}
+// AssetShareDialogProps interface removed - unused
 
 /**
  * Main Asset Library Component
@@ -73,7 +64,7 @@ interface AssetShareDialogProps {
 export const UserAwareAssetLibrary: React.FC<AssetLibraryProps> = ({
   user,
   onAssetSelect,
-  onAssetUpload
+  onAssetUpload: _onAssetUpload
 }) => {
   const [assetManager] = useState(() => UserAwareAssetManager.getInstance());
   const [assets, setAssets] = useState<LibraryAsset[]>([]);
@@ -368,7 +359,7 @@ const AssetCard: React.FC<AssetCardProps> = ({
         {/* Tags */}
         {asset.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2">
-            {asset.tags.slice(0, 3).map((tag, index) => (
+            {asset.tags.slice(0, 3).map((tag: string, index: number) => (
               <span 
                 key={index}
                 className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded"
@@ -654,78 +645,3 @@ const AssetUploadZone: React.FC<AssetUploadZoneProps> = ({
   );
 };
 
-/**
- * Asset Share Dialog Component
- */
-const AssetShareDialog: React.FC<AssetShareDialogProps> = ({
-  asset,
-  ownership,
-  isOpen,
-  onClose,
-  onShare
-}) => {
-  const [targetUsers, setTargetUsers] = useState<string[]>([]);
-  const [permission, setPermission] = useState<'view' | 'edit' | 'admin'>('view');
-  const [message, setMessage] = useState('');
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 className="text-lg font-semibold mb-4">Share "{asset.name}"</h3>
-
-        <div className="space-y-4">
-          {/* Permission Level */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Permission Level
-            </label>
-            <select
-              value={permission}
-              onChange={(e) => setPermission(e.target.value as any)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="view">View Only</option>
-              <option value="edit">Can Edit</option>
-              <option value="admin">Full Access</option>
-            </select>
-          </div>
-
-          {/* Message */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Message (Optional)
-            </label>
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Add a message for the recipients..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={3}
-            />
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex justify-end space-x-3 mt-6">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => {
-              onShare(targetUsers, permission);
-              onClose();
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Share Asset
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};

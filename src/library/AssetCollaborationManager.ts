@@ -6,10 +6,10 @@
  * permission management, and workflow automation
  */
 
-import type { LibraryAsset } from './types';
+// import type { LibraryAsset } from './types';
 import type { User } from '../auth/UserStore';
-import type { AssetMetadata } from './AssetMetadataManager';
-import type { AssetVersion } from './AssetVersionManager';
+// import type { AssetMetadata } from './AssetMetadataManager';
+// import type { AssetVersion } from './AssetVersionManager';
 
 /**
  * Sharing and Collaboration Types
@@ -347,7 +347,8 @@ export class AssetCollaborationManager {
       senderId: approver.id,
       senderName: approver.name,
       assetId: shareRequest.assetId,
-      assetName: shareRequest.assetId
+      assetName: shareRequest.assetId,
+      actionRequired: false
     });
   }
 
@@ -379,7 +380,8 @@ export class AssetCollaborationManager {
       senderId: rejector.id,
       senderName: rejector.name,
       assetId: shareRequest.assetId,
-      assetName: shareRequest.assetId
+      assetName: shareRequest.assetId,
+      actionRequired: false
     });
   }
 
@@ -468,7 +470,8 @@ export class AssetCollaborationManager {
       senderId: removedBy,
       senderName: '', // Would be fetched from user service
       assetId,
-      assetName: assetId
+      assetName: assetId,
+      actionRequired: false
     });
   }
 
@@ -500,7 +503,8 @@ export class AssetCollaborationManager {
       senderId: updatedBy,
       senderName: '', // Would be fetched from user service
       assetId,
-      assetName: assetId
+      assetName: assetId,
+      actionRequired: false
     });
   }
 
@@ -536,7 +540,8 @@ export class AssetCollaborationManager {
         senderName: user.name,
         assetId,
         assetName: assetId,
-        actionUrl: `/assets/${assetId}#comment-${assetComment.id}`
+        actionUrl: `/assets/${assetId}#comment-${assetComment.id}`,
+        actionRequired: true
       });
     }
     
@@ -569,7 +574,8 @@ export class AssetCollaborationManager {
       senderId: resolver.id,
       senderName: resolver.name,
       assetId,
-      assetName: assetId
+      assetName: assetId,
+      actionRequired: false
     });
   }
 

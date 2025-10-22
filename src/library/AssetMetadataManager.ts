@@ -338,7 +338,7 @@ export class AssetMetadataManager {
       case 'structures':
         suggestions.push('industrial', 'manufacturing', 'construction');
         break;
-      case 'machines':
+      case 'machinery':
         suggestions.push('automation', 'robotics', 'machining');
         break;
       case 'tools':
@@ -348,13 +348,10 @@ export class AssetMetadataManager {
     
     // Based on domain
     switch (asset.domain) {
-      case 'robotics':
-        suggestions.push('robot', 'automation', 'industrial');
-        break;
       case 'manufacturing':
-        suggestions.push('production', 'assembly', 'quality');
+        suggestions.push('robot', 'automation', 'industrial', 'production', 'assembly', 'quality');
         break;
-      case 'automotive':
+      case 'logistics':
         suggestions.push('vehicle', 'transportation', 'mobility');
         break;
     }
@@ -418,20 +415,20 @@ export class AssetMetadataManager {
     // Enhanced classification based on file type
     switch (extension) {
       case 'urdf':
-        domain = 'robotics';
-        assetClass = 'machines';
+        domain = 'manufacturing';
+        assetClass = 'machinery';
         assetType = 'robot';
         category = 'industrial';
         break;
       case 'glb':
       case 'gltf':
         if (asset.name.toLowerCase().includes('robot')) {
-          domain = 'robotics';
-          assetClass = 'machines';
+          domain = 'manufacturing';
+          assetClass = 'machinery';
           assetType = 'robot';
         } else if (asset.name.toLowerCase().includes('conveyor')) {
           domain = 'manufacturing';
-          assetClass = 'machines';
+          assetClass = 'machinery';
           assetType = 'conveyor';
         }
         break;
@@ -451,13 +448,13 @@ export class AssetMetadataManager {
     };
   }
 
-  private async extractTechnicalMetadata(asset: LibraryAsset, file: File): Promise<AssetMetadata['technical']> {
+  private async extractTechnicalMetadata(asset: LibraryAsset, _file: File): Promise<AssetMetadata['technical']> {
     // Placeholder for technical metadata extraction
     // In a real implementation, this would parse the file and extract technical details
     
     return {
       loaderType: asset.loaderType,
-      capabilities: asset.capabilities || [],
+      capabilities: asset.capabilities ? Object.keys(asset.capabilities) : [],
       complexity: 'medium',
       physicsEnabled: false,
       collisionGeometry: false,
@@ -468,7 +465,7 @@ export class AssetMetadataManager {
     };
   }
 
-  private async generateSearchableContent(asset: LibraryAsset, file: File): Promise<AssetMetadata['searchable']> {
+  private async generateSearchableContent(asset: LibraryAsset, _file: File): Promise<AssetMetadata['searchable']> {
     const keywords: string[] = [];
     const tags: string[] = [];
     const manufacturers: string[] = [];
@@ -554,7 +551,7 @@ export class AssetMetadataManager {
     };
   }
 
-  private async generateAIMetadata(asset: LibraryAsset, file: File): Promise<AssetMetadata['aiGenerated']> {
+  private async generateAIMetadata(asset: LibraryAsset, _file: File): Promise<AssetMetadata['aiGenerated']> {
     // Placeholder for AI-generated metadata
     // In a real implementation, this would use ML models to analyze the asset
     

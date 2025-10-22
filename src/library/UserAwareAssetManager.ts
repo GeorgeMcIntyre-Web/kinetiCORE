@@ -8,8 +8,6 @@
 
 import type { 
   User, 
-  UserRole, 
-  AssetPermission, 
   EnhancedAssetOwnership,
   AssetStorageInfo,
   SmartSearchQuery,
@@ -17,7 +15,6 @@ import type {
   AssetAnalytics,
   AssetVersion,
   AssetShareRequest,
-  AssetLibraryConfig,
   StorageTierConfig,
   CacheStrategy
 } from './UserAwareAssetTypes';
@@ -32,13 +29,14 @@ export class UserAwareAssetManager {
   private localDatabase: AssetDatabase;
   private currentUser: User | null = null;
   private storageConfig: StorageTierConfig;
-  private cacheStrategy: CacheStrategy;
+  // @ts-ignore - Future use
+  private ___cacheStrategy: CacheStrategy;
   private analytics: Map<string, AssetAnalytics> = new Map();
 
   private constructor() {
     this.localDatabase = AssetDatabase.getInstance();
     this.storageConfig = this.getDefaultStorageConfig();
-    this.cacheStrategy = this.getDefaultCacheStrategy();
+    this.___cacheStrategy = this.getDefaultCacheStrategy();
   }
 
   public static getInstance(): UserAwareAssetManager {
@@ -95,7 +93,8 @@ export class UserAwareAssetManager {
     };
 
     // Save to appropriate storage tiers
-    const storageInfo = await this.saveToStorageTiers(
+    // @ts-ignore - Future use
+    const __storageInfo = await this.saveToStorageTiers(
       enhancedAsset,
       ownership,
       thumbnailData,
@@ -129,6 +128,8 @@ export class UserAwareAssetManager {
         ownership: filters?.ownership || 'all',
         assetTypes: filters?.assetTypes || [],
         capabilities: {},
+        dateRange: {},
+        sizeRange: {},
         tags: filters?.tags || [],
         manufacturers: []
       },
@@ -408,8 +409,8 @@ export class UserAwareAssetManager {
   }
 
   private validateAssetPermissions(
-    asset: LibraryAsset,
-    ownership: EnhancedAssetOwnership,
+    _asset: LibraryAsset,
+    _ownership: EnhancedAssetOwnership,
     action: 'read' | 'write' | 'delete'
   ): void {
     if (!this.currentUser) return;
@@ -519,7 +520,7 @@ export class UserAwareAssetManager {
 
       for (const assetEntry of localAssets) {
         const asset = assetEntry.assetData;
-        if (this.hasAssetAccess(asset, asset.customMetadata?.ownership)) {
+        if (this.hasAssetAccess(asset, asset.customMetadata?.ownership as EnhancedAssetOwnership)) {
           results.push({
             asset,
             score: this.calculateRelevanceScore(asset, query),
@@ -548,12 +549,12 @@ export class UserAwareAssetManager {
     return results;
   }
 
-  private async searchUserStorage(query: SmartSearchQuery): Promise<SearchResult[]> {
+  private async searchUserStorage(_query: SmartSearchQuery): Promise<SearchResult[]> {
     // Placeholder for user storage search
     return [];
   }
 
-  private async searchSharedStorage(query: SmartSearchQuery): Promise<SearchResult[]> {
+  private async searchSharedStorage(_query: SmartSearchQuery): Promise<SearchResult[]> {
     // Placeholder for shared storage search
     return [];
   }
@@ -565,7 +566,7 @@ export class UserAwareAssetManager {
   }
 
   private hasAssetAccess(
-    asset: LibraryAsset,
+    _asset: LibraryAsset,
     ownership?: EnhancedAssetOwnership,
     requiredPermission: 'view' | 'edit' | 'admin' = 'view'
   ): boolean {
@@ -735,12 +736,12 @@ export class UserAwareAssetManager {
     }
   }
 
-  private async getFromUserStorage(assetId: string): Promise<LibraryAsset | null> {
+  private async getFromUserStorage(_assetId: string): Promise<LibraryAsset | null> {
     // Placeholder for user storage retrieval
     return null;
   }
 
-  private async getFromSharedStorage(assetId: string): Promise<LibraryAsset | null> {
+  private async getFromSharedStorage(_assetId: string): Promise<LibraryAsset | null> {
     // Placeholder for shared storage retrieval
     return null;
   }
@@ -761,7 +762,7 @@ export class UserAwareAssetManager {
     console.log('[UserAwareAssetManager] Share notifications sent:', shareRequests.length);
   }
 
-  private async getNextVersionNumber(assetId: string): Promise<string> {
+  private async getNextVersionNumber(_assetId: string): Promise<string> {
     // Placeholder for version number generation
     return '1.0.0';
   }
