@@ -704,4 +704,64 @@ export class ForwardKinematicsSolver {
 
     return this.solve(chainName, jointAngles);
   }
+
+  /**
+   * Load a saved pose/keyframe and apply joint positions
+   * @param keyframeId - ID of the keyframe to load
+   * @param syncPhysics - Whether to sync to physics engine (default: true)
+   * @returns true if pose was loaded successfully
+   */
+  loadPose(keyframeId: string, syncPhysics: boolean = true): boolean {
+    const keyframe = this.kinematicsManager.getKeyframe(keyframeId);
+
+    if (!keyframe) {
+      console.error(`[FK Solver] Keyframe not found: ${keyframeId}`);
+      return false;
+    }
+
+    console.log(`[FK Solver] Loading pose: ${keyframe.name} (${Object.keys(keyframe.jointPositions).length} joints)`);
+
+    let successCount = 0;
+    let totalCount = 0;
+
+    // Apply each joint position from the keyframe
+    for (const [jointId, position] of Object.entries(keyframe.jointPositions)) {
+      totalCount++;
+      const success = this.updateJointPosition(jointId, position, syncPhysics);
+      if (success) {
+        successCount++;
+      } else {
+        console.warn(`[FK Solver] Failed to update joint: ${jointId}`);
+      }
+    }
+
+    console.log(`[FK Solver] ✅ Loaded pose: ${keyframe.name} (${successCount}/${totalCount} joints updated)`);
+
+    return successCount === totalCount;
+  }
+
+  /**
+   * Load pose by name (searches for keyframe with matching name)
+   * @param poseName - Name of the pose to load
+   * @param chainId - Optional chain ID to filter keyframes
+   * @param syncPhysics - Whether to sync to physics engine (default: true)
+   * @returns true if pose was loaded successfully
+   */
+  loadPoseByName(poseName: string, chainId?: string, syncPhysics: boolean = true): boolean {
+    const allKeyframes = this.kinematicsManager.getAllKeyframes();
+
+    let keyframe;
+    if (chainId) {
+      keyframe = allKeyframes.find(kf => kf.name === poseName && kf.chainId === chainId);
+    } else {
+      keyframe = allKeyframes.find(kf => kf.name === poseName);
+    }
+
+    if (!keyframe) {
+      console.error(`[FK Solver] Pose not found: ${poseName}`);
+      return false;
+    }
+
+    return this.loadPose(keyframe.id, syncPhysics);
+  }
 }

@@ -22,6 +22,7 @@ export type PanelSize = 'small' | 'medium' | 'large' | 'custom';
 
 interface FloatingPanelProps {
   title: string;
+  subtitle?: React.ReactNode;
   icon?: React.ReactNode;
   children: React.ReactNode;
   onClose?: () => void;
@@ -58,6 +59,7 @@ interface FloatingPanelProps {
 
 export function FloatingPanel({
   title,
+  subtitle,
   icon,
   children,
   onClose,
@@ -240,7 +242,10 @@ export function FloatingPanel({
       <div className="floating-panel-header">
         <div className="floating-panel-title-section">
           {icon && <div className="floating-panel-icon">{icon}</div>}
-          <h3 className="floating-panel-title">{title}</h3>
+          <div className="floating-panel-title-group">
+            <h3 className="floating-panel-title">{title}</h3>
+            {subtitle && <div className="floating-panel-subtitle">{subtitle}</div>}
+          </div>
           {isPinned && (
             <span className="floating-panel-pin-indicator">
               <Pin size={12} />
@@ -256,7 +261,7 @@ export function FloatingPanel({
               title={isPinned ? "Unpin" : "Pin"}
               aria-label={isPinned ? "Unpin panel" : "Pin panel"}
             >
-              {isPinned ? <Pin size={16} /> : <PinOff size={16} />}
+              {isPinned ? <Pin size={12} /> : <PinOff size={12} />}
             </button>
           )}
 
@@ -267,7 +272,7 @@ export function FloatingPanel({
               title="Minimize"
               aria-label="Minimize panel"
             >
-              <Minimize2 size={16} />
+              <Minimize2 size={12} />
             </button>
           )}
 
@@ -278,7 +283,7 @@ export function FloatingPanel({
               title={dockPosition === 'floating' ? 'Dock Right' : 'Float'}
               aria-label={dockPosition === 'floating' ? 'Dock panel to right' : 'Undock panel'}
             >
-              <Maximize2 size={16} />
+              <Maximize2 size={12} />
             </button>
           )}
 
@@ -289,7 +294,7 @@ export function FloatingPanel({
               title="Close"
               aria-label="Close panel"
             >
-              <X size={16} />
+              <X size={12} />
             </button>
           )}
         </div>

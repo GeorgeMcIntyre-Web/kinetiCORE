@@ -10,6 +10,7 @@ import { Gamepad2, Play, Square, AlertTriangle, Thermometer, Zap, Grip } from 'l
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { AssetLibraryDarkPanel } from './FloatingPanel/AssetLibraryDarkPanel';
 import { ButtonTemplate } from './buttons/ButtonTemplate';
+import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import './FloatingActuatorPanel.css';
 
 export interface ActuatorState {
@@ -37,45 +38,7 @@ export interface JointState {
   isMoving: boolean;
 }
 
-// Mock data - in real implementation, this would come from ActuatorSystem
-const MOCK_ACTUATOR_STATES: ActuatorState[] = [
-  {
-    deviceId: 'schunk-pgn-plus-125',
-    deviceName: 'Schunk PGN-Plus 125',
-    deviceType: 'gripper',
-    state: 'idle',
-    position: 45,
-    force: 12.3,
-    temperature: 32,
-    voltage: 24.1,
-    isEnabled: true
-  },
-  {
-    deviceId: 'festo-pneumatic-valve',
-    deviceName: 'Festo Pneumatic Valve',
-    deviceType: 'pneumatic',
-    state: 'closed',
-    position: 0,
-    force: 0,
-    temperature: 25,
-    voltage: 0,
-    pressure: 6.0,
-    flow: 0,
-    isEnabled: true
-  },
-  {
-    deviceId: 'linear-actuator-1',
-    deviceName: 'Linear Actuator 1',
-    deviceType: 'linear',
-    state: 'retracted',
-    position: 0,
-    force: 0,
-    temperature: 28,
-    voltage: 12.0,
-    isEnabled: true
-  }
-];
-
+// Mock data for joint states (kept for demonstration purposes)
 const MOCK_JOINT_STATES: JointState[] = [
   {
     jointId: 'finger_1_joint',
@@ -106,12 +69,61 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
   isVisible = true,
   zIndex = 1002,
 }) => {
-  const [availableActuators] = useState<ActuatorState[]>(MOCK_ACTUATOR_STATES);
+  const [availableActuators, setAvailableActuators] = useState<ActuatorState[]>([]);
   const [selectedActuatorId, setSelectedActuatorId] = useState<string>('');
   const [jointStates] = useState<JointState[]>(MOCK_JOINT_STATES);
   const [manualPosition, setManualPosition] = useState(0);
   const [manualForce, setManualForce] = useState(50);
   const [manualSpeed, setManualSpeed] = useState(50);
+
+  // Fetch real actuators from ActuatorSystem
+  useEffect(() => {
+    const kinematicsManager = KinematicsManager.getInstance();
+    const actuatorSystem = kinematicsManager.getActuatorSystem();
+
+    const updateActuators = () => {
+      const hardwareActuators = actuatorSystem.getAllActuators();
+
+      // Convert HardwareActuator to ActuatorState
+      const actuatorStates: ActuatorState[] = hardwareActuators.map(hw => ({
+        deviceId: hw.id,
+        deviceName: hw.name,
+        deviceType: mapHardwareTypeToDeviceType(hw.type),
+        state: hw.state.fault ? 'error' : hw.state.enabled ? 'idle' : 'idle',
+        position: hw.state.value ?? 0,
+        force: hw.state.force ?? 0,
+        temperature: 25, // Default temperature (not in HardwareActuator yet)
+        voltage: 24, // Default voltage
+        pressure: hw.type === 'pneumatic_cylinder' ? hw.specs.pressure : undefined,
+        isEnabled: hw.state.enabled,
+        faultCode: hw.state.faultCode ? parseInt(hw.state.faultCode) : undefined,
+        faultMessage: hw.state.faultCode,
+      }));
+
+      setAvailableActuators(actuatorStates);
+
+      // Auto-select first actuator if none selected
+      if (!selectedActuatorId && actuatorStates.length > 0) {
+        setSelectedActuatorId(actuatorStates[0].deviceId);
+      }
+    };
+
+    updateActuators();
+    const interval = setInterval(updateActuators, 500);
+    return () => clearInterval(interval);
+  }, [selectedActuatorId]);
+
+  // Helper: Map hardware actuator type to device type
+  const mapHardwareTypeToDeviceType = (hwType: string): ActuatorState['deviceType'] => {
+    switch (hwType) {
+      case 'servo_motor': return 'rotary';
+      case 'linear_actuator': return 'linear';
+      case 'pneumatic_cylinder': return 'pneumatic';
+      case 'hydraulic_cylinder': return 'hydraulic';
+      case 'gripper': return 'gripper';
+      default: return 'electric';
+    }
+  };
 
   const selectedActuator = availableActuators.find(a => a.deviceId === selectedActuatorId);
 
@@ -123,19 +135,75 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
   }, [selectedActuator?.position]);
 
   const handleQuickAction = (action: string) => {
-    console.log(`Actuator action: ${action}`);
-    // In real implementation, this would call ActuatorSystem methods
+    if (!selectedActuatorId) return;
+
+    const kinematicsManager = KinematicsManager.getInstance();
+    const actuatorSystem = kinematicsManager.getActuatorSystem();
+
+    console.log(`Actuator action: ${action} on ${selectedActuatorId}`);
+
+    switch (action) {
+      case 'open':
+      case 'extend':
+      case 'activate':
+        actuatorSystem.sendCommand({
+          actuatorId: selectedActuatorId,
+          command: 'set_value',
+          value: 1.0, // Fully open/extended
+        });
+        break;
+
+      case 'close':
+      case 'retract':
+      case 'deactivate':
+        actuatorSystem.sendCommand({
+          actuatorId: selectedActuatorId,
+          command: 'set_value',
+          value: 0.0, // Fully closed/retracted
+        });
+        break;
+
+      case 'emergency_stop':
+        actuatorSystem.sendCommand({
+          actuatorId: selectedActuatorId,
+          command: 'disable',
+        });
+        break;
+
+      default:
+        console.warn(`Unknown action: ${action}`);
+    }
   };
 
   const handleManualControl = (type: string, value: number) => {
-    console.log(`Manual control: ${type} = ${value}`);
-    // In real implementation, this would update actuator state
+    if (!selectedActuatorId) return;
+
+    const kinematicsManager = KinematicsManager.getInstance();
+    const actuatorSystem = kinematicsManager.getActuatorSystem();
+
+    console.log(`Manual control: ${type} = ${value} on ${selectedActuatorId}`);
+
     if (type === 'position') {
       setManualPosition(value);
+      actuatorSystem.sendCommand({
+        actuatorId: selectedActuatorId,
+        command: 'set_value',
+        value: value / 100, // Convert percentage to 0-1 range
+      });
     } else if (type === 'force') {
       setManualForce(value);
+      actuatorSystem.sendCommand({
+        actuatorId: selectedActuatorId,
+        command: 'set_force',
+        value: value / 100,
+      });
     } else if (type === 'speed') {
       setManualSpeed(value);
+      actuatorSystem.sendCommand({
+        actuatorId: selectedActuatorId,
+        command: 'set_velocity',
+        value: value / 100,
+      });
     }
   };
 
@@ -218,23 +286,7 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
     <div className="floating-actuator-content">
       {/* Device Selection */}
       <div className="actuator-device-selection">
-        <div className="device-selection-header">
-          <label>Select Actuator:</label>
-          <select
-            value={selectedActuatorId}
-            onChange={(e) => setSelectedActuatorId(e.target.value)}
-            className="device-selector"
-          >
-            <option value="">No actuator selected</option>
-            {availableActuators.map(actuator => (
-              <option key={actuator.deviceId} value={actuator.deviceId}>
-                {actuator.deviceName} ({actuator.deviceType})
-              </option>
-            ))}
-          </select>
-        </div>
-        
-        {selectedActuator && (
+        {selectedActuator ? (
           <div className="actuator-device-header">
             <div className="device-info">
               <div className="device-name">
@@ -248,6 +300,10 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
               {getStateIcon(selectedActuator.state)}
               <span>{selectedActuator.state}</span>
             </div>
+          </div>
+        ) : (
+          <div style={{ padding: '12px', fontSize: '13px', color: 'rgba(255, 255, 255, 0.6)', textAlign: 'center' }}>
+            Select an actuator from the scene tree
           </div>
         )}
       </div>

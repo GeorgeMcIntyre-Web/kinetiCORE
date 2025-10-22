@@ -6,15 +6,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Pin, Settings, Calculator, RotateCcw, Map, Shield } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
-import { AssetLibraryDarkPanel, AssetLibraryDarkSection, AssetLibraryDarkButton, AssetLibraryDarkSelect, AssetLibraryDarkDisabled } from './FloatingPanel/AssetLibraryDarkPanel';
+import { AssetLibraryDarkPanel, AssetLibraryDarkSection, AssetLibraryDarkDisabled } from './FloatingPanel/AssetLibraryDarkPanel';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { useEditorStore } from '../store/editorStore';
 import { RobotJoggingPanel } from './RobotJoggingPanel';
-import { KeyframePlaybackPanel } from './KeyframePlaybackPanel';
 import './FloatingKinematicsPanel.css';
 
 interface FloatingKinematicsPanelProps {
@@ -40,7 +39,7 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
 
   const [robots, setRobots] = useState<RobotInfo[]>([]);
   const [activeRobotId, setActiveRobotId] = useState<string | null>(null);
-  const [isPinned, setIsPinned] = useState(false);
+  const [isPinned] = useState(false);
   const [joints, setJoints] = useState<any[]>([]);
 
   // Discover all robots in the scene
@@ -168,6 +167,11 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       // Joint IDs now include robot collection ID prefix: "collection_xxx_joint_yyy"
       const deviceJoints = allJoints.filter(joint => joint.id.startsWith(activeRobotId));
 
+      console.log(`[FloatingKinematicsPanel] Active robot: ${activeRobotId}`);
+      console.log(`[FloatingKinematicsPanel] Total joints: ${allJoints.length}`);
+      console.log(`[FloatingKinematicsPanel] Device joints: ${deviceJoints.length}`);
+      console.log(`[FloatingKinematicsPanel] Joint IDs:`, deviceJoints.map(j => j.id));
+
       setJoints(deviceJoints);
     };
 
@@ -180,92 +184,34 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
 
   const panelContent = (
     <div className="floating-kinematics-content">
-      {/* Device Selection Section */}
-      <AssetLibraryDarkSection title="Device Selection">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-          <label style={{ fontSize: '12px', fontWeight: '600', color: 'rgba(255, 255, 255, 0.8)' }}>Select Device:</label>
-          <AssetLibraryDarkSelect
-            value={activeRobotId || ''}
-            onChange={(e) => {
-              const robotId = e.target.value || null;
-              setActiveRobotId(robotId);
-              if (robotId) setIsPinned(true);
-            }}
-          >
-            <option value="">No device selected</option>
-            {robots.map(device => (
-              <option key={device.nodeId} value={device.nodeId}>
-                {device.name} ({device.jointCount} joints)
-              </option>
-            ))}
-          </AssetLibraryDarkSelect>
-        </div>
-        {activeDevice && (
-          <div style={{ padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', fontSize: '13px' }}>
-            Active Device: {activeDevice.name} ({activeDevice.jointCount} joints)
-            {isPinned && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', fontSize: '11px', color: 'rgba(255, 255, 255, 0.6)' }}>
-                <Pin size={12} />
-                PINNED
-              </div>
-            )}
-          </div>
-        )}
-      </AssetLibraryDarkSection>
-
-      {/* Animation Control Section */}
-      <AssetLibraryDarkSection title="Animation Control" hint={!activeRobotId ? "Select a device to enable" : undefined}>
-        {activeRobotId && activeDevice ? (
-          <KeyframePlaybackPanel
-            robotId={activeRobotId}
-            robotName={activeDevice.name}
-            joints={joints}
-          />
-        ) : (
-          <AssetLibraryDarkDisabled icon={<Settings size={24} />} message="No device selected" />
-        )}
-      </AssetLibraryDarkSection>
-
-      {/* Robot Jogging Section */}
+      {/* Joint Control Section - Now at the top */}
       <AssetLibraryDarkSection title="Joint Control" hint={!activeRobotId ? "Select a device to enable" : undefined}>
         {activeRobotId ? (
-          <RobotJoggingPanel joints={joints} fkSolver={fkSolver} robotId={activeRobotId} />
+          joints.length > 0 ? (
+            <RobotJoggingPanel joints={joints} fkSolver={fkSolver} robotId={activeRobotId} />
+          ) : (
+            <div style={{ padding: '12px', fontSize: '13px', color: 'rgba(255, 255, 255, 0.6)', textAlign: 'center' }}>
+              No joints found for this device. Check console for debugging info.
+            </div>
+          )
         ) : (
           <AssetLibraryDarkDisabled icon={<Settings size={24} />} message="No device selected" />
         )}
-      </AssetLibraryDarkSection>
-
-      {/* General Kinematics Tools */}
-      <AssetLibraryDarkSection title="General Tools">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <AssetLibraryDarkButton icon={<Calculator size={16} />} disabled={!activeRobotId}>
-            Forward Kinematics
-          </AssetLibraryDarkButton>
-          <AssetLibraryDarkButton icon={<RotateCcw size={16} />} disabled={!activeRobotId}>
-            Inverse Kinematics
-          </AssetLibraryDarkButton>
-          <AssetLibraryDarkButton icon={<Map size={16} />} disabled={!activeRobotId}>
-            Workspace Analysis
-          </AssetLibraryDarkButton>
-          <AssetLibraryDarkButton icon={<Shield size={16} />} disabled={!activeRobotId}>
-            Collision Detection
-          </AssetLibraryDarkButton>
-        </div>
       </AssetLibraryDarkSection>
     </div>
   );
 
   return (
-    <FloatingPanel
-      title="Kinematics Control"
-      icon={<Settings size={20} />}
-      onClose={onClose}
+      <FloatingPanel
+        title="Motion"
+        subtitle={activeDevice ? `${activeDevice.name} (${activeDevice.jointCount} joints)` : "Select device from scene tree"}
+        onClose={onClose}
       isVisible={isVisible}
       zIndex={zIndex}
-      defaultSize={{ width: 400, height: 500 }}
-      minWidth={350}
+      defaultSize={{ width: 250, height: 500 }}
+      minWidth={220}
       minHeight={400}
-      maxWidth={700}
+      maxWidth={350}
       maxHeight={700}
       draggable={true}
       resizable={true}

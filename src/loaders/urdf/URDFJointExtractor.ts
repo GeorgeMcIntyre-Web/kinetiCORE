@@ -292,7 +292,36 @@ export async function createKinematicsFromURDF(
       const robotName = robotNode?.name || 'Robot';
       // Make chain name unique by including robot collection ID
       const uniqueChainName = `${robotName}_${robotRootNodeId}`;
-      kinematicsManager.createChain(uniqueChainName, baseLinkNodeId, 'serial');
+      const chain = kinematicsManager.createChain(uniqueChainName, baseLinkNodeId, 'serial');
+      
+      // Set base frame for the kinematic chain
+      const baseNode = sceneTreeManager.getNode(baseLinkNodeId);
+      if (baseNode) {
+        kinematicsManager.setBaseFrame(chain.id, {
+          linkId: baseLinkNodeId,
+          position: { x: baseNode.position.x, y: baseNode.position.y, z: baseNode.position.z },
+          rotation: { x: baseNode.rotation.x, y: baseNode.rotation.y, z: baseNode.rotation.z, w: 1.0 }
+        });
+      }
+      
+      // Detect and add TCP frames (look for tool0, flange, or end-effector links)
+      const tcpLinkNames = ['tool0', 'flange', 'end_effector', 'ee_link'];
+      for (const tcpName of tcpLinkNames) {
+        const tcpNodeId = linkNameToNodeId.get(tcpName);
+        if (tcpNodeId) {
+          const tcpNode = sceneTreeManager.getNode(tcpNodeId);
+          if (tcpNode) {
+            kinematicsManager.addTCPFrame(chain.id, {
+              id: `tcp_${tcpName}`,
+              name: tcpName,
+              linkId: tcpNodeId,
+              offset: { x: 0, y: 0, z: 0 }, // Default offset, can be updated later
+              rotation: { x: 0, y: 0, z: 0, w: 1.0 } // Default rotation
+            });
+            console.log(`✅ Detected TCP frame: ${tcpName}`);
+          }
+        }
+      }
     }
   }
 

@@ -1015,7 +1015,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Extract kinematics from URDF
       try {
         const urdfContent = await urdfFile.text();
-        await createKinematicsFromURDF(urdfContent, deviceEntity.getId());
+        await createKinematicsFromURDF(urdfContent, modelCollection.id);
         console.log('✅ Kinematics extracted from URDF');
       } catch (kinematicsError) {
         console.warn('⚠️ Could not extract kinematics:', kinematicsError);

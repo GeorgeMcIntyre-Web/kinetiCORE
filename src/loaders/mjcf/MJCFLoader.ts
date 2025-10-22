@@ -1257,10 +1257,11 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
         joints: Object.keys(jointMap),
         actuators: actuators,
         sensors: sensors,
+        keyframes: keyframes, // Add keyframes to return value
         errors: [],
         warnings: [],
         bounds: bounds
-      };
+      } as any;
     }
 
     // Handle single MJCF file

@@ -6,14 +6,15 @@
 // - TCP Mode: Jog tool center point in Cartesian space
 
 import { useState, useEffect } from 'react';
-import { Move, RotateCw, Minus, Plus } from 'lucide-react';
-import { KinematicsManager } from '../../kinematics/KinematicsManager';
+import { Move, RotateCw, Minus, Plus, Play, Save, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { KinematicsManager, RobotKeyframe } from '../../kinematics/KinematicsManager';
 import type { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
 import { InverseKinematicsSolver } from '../../kinematics/InverseKinematicsSolver';
 import { babylonToUser, userToBabylon } from '../../core/CoordinateSystem';
+import { detectJointGroups, shouldUseJointGroups, JointGroup } from '../../kinematics/JointGroupDetector';
 import './RobotJoggingPanel.css';
 
-type JogMode = 'joint' | 'tcp';
+type JogMode = 'joint' | 'tcp' | 'poses';
 type JogAxis = 'X' | 'Y' | 'Z' | 'Rx' | 'Ry' | 'Rz';
 
 interface RobotJoggingPanelProps {
@@ -25,10 +26,16 @@ interface RobotJoggingPanelProps {
 export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: propsJoints, fkSolver, robotId }) => {
   const [jogMode, setJogMode] = useState<JogMode>('joint');
   const [jogStepJoint, setJogStepJoint] = useState(5); // degrees
-  const [jogStepTcp, setJogStepTcp] = useState(10); // mm for linear, 5 deg for rotary
+  const [jogStepTcpLinear, setJogStepTcpLinear] = useState(10); // mm for linear
+  const [jogStepTcpRotary, setJogStepTcpRotary] = useState(5); // degrees for rotary
   const [joints, setJoints] = useState<any[]>([]);
   const [tcpPosition, setTcpPosition] = useState<string>('—');
   const [ikSolver] = useState(() => InverseKinematicsSolver.getInstance());
+  const [keyframes, setKeyframes] = useState<RobotKeyframe[]>([]);
+  const [newPoseName, setNewPoseName] = useState<string>('');
+  const [jointGroups, setJointGroups] = useState<JointGroup[]>([]);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [useGroups, setUseGroups] = useState<boolean>(false);
 
   // Use filtered joints from props
   useEffect(() => {
@@ -37,6 +44,16 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
       j.type === 'revolute' || j.type === 'prismatic' || j.type === 'continuous'
     );
     setJoints(movableJoints);
+
+    // Detect joint groups for complex robots
+    const shouldGroup = shouldUseJointGroups(movableJoints.length);
+    setUseGroups(shouldGroup);
+
+    if (shouldGroup) {
+      const groups = detectJointGroups(movableJoints);
+      setJointGroups(groups);
+      console.log(`[RobotJoggingPanel] Detected ${groups.length} joint groups for ${movableJoints.length} joints`);
+    }
   }, [propsJoints]);
 
   // Update TCP position display
@@ -66,6 +83,26 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
     const interval = setInterval(updateTcpPosition, 500);
     return () => clearInterval(interval);
   }, [fkSolver, robotId]);
+
+  // Load keyframes for this robot
+  useEffect(() => {
+    const kinematicsManager = KinematicsManager.getInstance();
+    const updateKeyframes = () => {
+      const chains = kinematicsManager.getAllChains();
+      const robotChain = chains.find(chain => {
+        return chain.joints.some((joint: any) => joint.id.startsWith(robotId));
+      });
+
+      if (robotChain) {
+        const chainKeyframes = kinematicsManager.getKeyframesForChain(robotChain.id);
+        setKeyframes(chainKeyframes);
+      }
+    };
+
+    updateKeyframes();
+    const interval = setInterval(updateKeyframes, 1000);
+    return () => clearInterval(interval);
+  }, [robotId]);
 
   // Filter to only show revolute joints (exclude fixed joints)
   const revoluteJoints = joints.filter(j => j.type === 'revolute');
@@ -108,11 +145,11 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
 
     // Linear motion in USER space
     if (axis === 'X') {
-      userDelta.x = jogStepTcp * direction; // mm
+      userDelta.x = jogStepTcpLinear * direction; // mm
     } else if (axis === 'Y') {
-      userDelta.y = jogStepTcp * direction; // mm
+      userDelta.y = jogStepTcpLinear * direction; // mm
     } else if (axis === 'Z') {
-      userDelta.z = jogStepTcp * direction; // mm
+      userDelta.z = jogStepTcpLinear * direction; // mm
     }
 
     // Convert USER delta (Z-up, mm) to BABYLON delta (Y-up, meters)
@@ -121,7 +158,7 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
     // Rotary motion (TODO: requires orientation IK)
     if (axis.startsWith('R')) {
       console.log(
-        `Rotary TCP jogging (${axis}) not yet implemented - requires orientation IK`
+        `Rotary TCP jogging (${axis}) not yet implemented - requires orientation IK. Step: ${jogStepTcpRotary}°`
       );
       return;
     }
@@ -146,6 +183,57 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
     });
   };
 
+  const handleLoadPose = (keyframeId: string) => {
+    console.log(`Loading pose: ${keyframeId}`);
+    const success = fkSolver.loadPose(keyframeId);
+    if (success) {
+      console.log('✅ Pose loaded successfully');
+    } else {
+      console.error('❌ Failed to load pose');
+    }
+  };
+
+  const handleSavePose = () => {
+    if (!newPoseName.trim()) {
+      console.warn('Pose name cannot be empty');
+      return;
+    }
+
+    const kinematicsManager = KinematicsManager.getInstance();
+    const chains = kinematicsManager.getAllChains();
+    const robotChain = chains.find(chain => {
+      return chain.joints.some((joint: any) => joint.id.startsWith(robotId));
+    });
+
+    if (robotChain) {
+      const keyframe = kinematicsManager.captureCurrentPose(robotChain.id, newPoseName.trim());
+      console.log(`✅ Saved pose: ${keyframe.name}`);
+      setNewPoseName('');
+    } else {
+      console.error('❌ No kinematic chain found for robot');
+    }
+  };
+
+  const handleDeletePose = (keyframeId: string) => {
+    const kinematicsManager = KinematicsManager.getInstance();
+    const success = kinematicsManager.deleteKeyframe(keyframeId);
+    if (success) {
+      console.log('✅ Pose deleted');
+    }
+  };
+
+  const toggleGroupCollapse = (groupName: string) => {
+    setCollapsedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupName)) {
+        newSet.delete(groupName);
+      } else {
+        newSet.add(groupName);
+      }
+      return newSet;
+    });
+  };
+
   return (
     <div className="robot-jogging-panel">
       {/* Mode Selector */}
@@ -154,15 +242,22 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
           className={`mode-button ${jogMode === 'joint' ? 'active' : ''}`}
           onClick={() => setJogMode('joint')}
         >
-          <RotateCw size={18} />
+          <Move size={14} />
           <span>Joint</span>
         </button>
         <button
           className={`mode-button ${jogMode === 'tcp' ? 'active' : ''}`}
           onClick={() => setJogMode('tcp')}
         >
-          <Move size={18} />
+          <RotateCw size={14} />
           <span>TCP</span>
+        </button>
+        <button
+          className={`mode-button ${jogMode === 'poses' ? 'active' : ''}`}
+          onClick={() => setJogMode('poses')}
+        >
+          <Play size={14} />
+          <span>Poses</span>
         </button>
       </div>
 
@@ -170,7 +265,7 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
       {jogMode === 'joint' && (
         <div className="joint-jog-mode">
           <div className="jog-step-control">
-            <label>Jog Step</label>
+            <label>Step</label>
             <div className="step-selector">
               <button onClick={() => setJogStepJoint(Math.max(1, jogStepJoint - 1))}>-</button>
               <input
@@ -179,38 +274,92 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
                 onChange={(e) => setJogStepJoint(Math.max(1, parseInt(e.target.value) || 1))}
                 min="1"
                 max="90"
+                placeholder="5"
+                defaultValue="5"
               />
               <span className="unit">°</span>
               <button onClick={() => setJogStepJoint(Math.min(90, jogStepJoint + 1))}>+</button>
             </div>
           </div>
 
-          <div className="joints-grid">
-            {revoluteJoints.map((joint, index) => (
-              <div key={joint.id} className="joint-jog-item">
-                <span className="joint-label">J{index + 1}</span>
-                <span className="joint-value">
-                  {(joint.position * 180 / Math.PI).toFixed(1)}°
-                </span>
-                <div className="jog-buttons">
-                  <button
-                    className="jog-btn jog-minus"
-                    onMouseDown={() => handleJogJoint(joint.id, -1)}
-                    title={`Jog ${joint.name} negative`}
-                  >
-                    <Minus size={16} />
-                  </button>
-                  <button
-                    className="jog-btn jog-plus"
-                    onMouseDown={() => handleJogJoint(joint.id, 1)}
-                    title={`Jog ${joint.name} positive`}
-                  >
-                    <Plus size={16} />
-                  </button>
+          {/* Joint groups for complex robots */}
+          {useGroups && jointGroups.length > 0 ? (
+            <div className="joint-groups">
+              {jointGroups.map((group) => {
+                const isCollapsed = collapsedGroups.has(group.name);
+                return (
+                  <div key={group.name} className="joint-group">
+                    <div
+                      className="joint-group-header"
+                      onClick={() => toggleGroupCollapse(group.name)}
+                    >
+                      <div className="joint-group-info">
+                        {group.icon && <span className="group-icon">{group.icon}</span>}
+                        <span className="group-name">{group.displayName}</span>
+                        <span className="group-count">({group.joints.length})</span>
+                      </div>
+                      {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                    </div>
+                    {!isCollapsed && (
+                      <div className="joint-group-content">
+                        {group.joints.map((joint) => (
+                          <div key={joint.id} className="joint-jog-item">
+                            <span className="joint-label">{joint.name}</span>
+                            <span className="joint-value">
+                              {(joint.position * 180 / Math.PI).toFixed(1)}°
+                            </span>
+                            <div className="jog-buttons">
+                              <button
+                                className="jog-btn jog-minus"
+                                onMouseDown={() => handleJogJoint(joint.id, -1)}
+                                title={`Jog ${joint.name} negative`}
+                              >
+                                -
+                              </button>
+                              <button
+                                className="jog-btn jog-plus"
+                                onMouseDown={() => handleJogJoint(joint.id, 1)}
+                                title={`Jog ${joint.name} positive`}
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="joints-grid">
+              {revoluteJoints.map((joint, index) => (
+                <div key={joint.id} className="joint-jog-item">
+                  <span className="joint-label">J{index + 1}</span>
+                  <span className="joint-value">
+                    {(joint.position * 180 / Math.PI).toFixed(1)}°
+                  </span>
+                  <div className="jog-buttons">
+                    <button
+                      className="jog-btn jog-minus"
+                      onMouseDown={() => handleJogJoint(joint.id, -1)}
+                      title={`Jog ${joint.name} negative`}
+                    >
+                      -
+                    </button>
+                    <button
+                      className="jog-btn jog-plus"
+                      onMouseDown={() => handleJogJoint(joint.id, 1)}
+                      title={`Jog ${joint.name} positive`}
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -218,18 +367,38 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
       {jogMode === 'tcp' && (
         <div className="tcp-jog-mode">
           <div className="jog-step-control">
-            <label>Jog Step</label>
+            <label>Step</label>
             <div className="step-selector">
-              <button onClick={() => setJogStepTcp(Math.max(1, jogStepTcp - 1))}>-</button>
+              <button onClick={() => setJogStepTcpLinear(Math.max(1, jogStepTcpLinear - 1))}>-</button>
               <input
                 type="number"
-                value={jogStepTcp}
-                onChange={(e) => setJogStepTcp(Math.max(1, parseInt(e.target.value) || 1))}
+                value={jogStepTcpLinear}
+                onChange={(e) => setJogStepTcpLinear(Math.max(1, parseInt(e.target.value) || 1))}
                 min="1"
                 max="100"
+                placeholder="10"
+                defaultValue="10"
               />
               <span className="unit">mm</span>
-              <button onClick={() => setJogStepTcp(Math.min(100, jogStepTcp + 1))}>+</button>
+              <button onClick={() => setJogStepTcpLinear(Math.min(100, jogStepTcpLinear + 1))}>+</button>
+            </div>
+          </div>
+
+          <div className="jog-step-control">
+            <label>Step</label>
+            <div className="step-selector">
+              <button onClick={() => setJogStepTcpRotary(Math.max(1, jogStepTcpRotary - 1))}>-</button>
+              <input
+                type="number"
+                value={jogStepTcpRotary}
+                onChange={(e) => setJogStepTcpRotary(Math.max(1, parseInt(e.target.value) || 1))}
+                min="1"
+                max="90"
+                placeholder="5"
+                defaultValue="5"
+              />
+              <span className="unit">°</span>
+              <button onClick={() => setJogStepTcpRotary(Math.min(90, jogStepTcpRotary + 1))}>+</button>
             </div>
           </div>
 
@@ -291,6 +460,81 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
               <p className="info-subtext">
                 {tcpPosition}
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Poses Mode */}
+      {jogMode === 'poses' && (
+        <div className="poses-mode">
+          <div className="poses-content">
+            <div className="poses-header">
+              <h4>Pose Library</h4>
+              <span className="poses-count">{keyframes.length} poses</span>
+            </div>
+
+            {/* Add new pose */}
+            <div className="pose-add-section">
+              <input
+                type="text"
+                className="pose-name-input"
+                placeholder="New pose name..."
+                value={newPoseName}
+                onChange={(e) => setNewPoseName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSavePose()}
+              />
+              <button
+                className="pose-save-btn"
+                onClick={handleSavePose}
+                disabled={!newPoseName.trim()}
+                title="Save current joint positions"
+              >
+                <Save size={14} />
+                Save Current
+              </button>
+            </div>
+
+            {/* Poses list */}
+            <div className="poses-list">
+              {keyframes.length > 0 ? (
+                keyframes.map((keyframe) => (
+                  <div key={keyframe.id} className="pose-item">
+                    <div className="pose-info">
+                      <span className="pose-name">{keyframe.name}</span>
+                      <span className="pose-joints">
+                        {Object.keys(keyframe.jointPositions).length} joints
+                      </span>
+                    </div>
+                    <div className="pose-actions">
+                      <button
+                        className="pose-load-btn"
+                        onClick={() => handleLoadPose(keyframe.id)}
+                        title="Load this pose"
+                      >
+                        <Play size={12} />
+                        Load
+                      </button>
+                      <button
+                        className="pose-delete-btn"
+                        onClick={() => handleDeletePose(keyframe.id)}
+                        title="Delete this pose"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="poses-empty">
+                  <p>No poses saved</p>
+                  <p className="poses-hint">
+                    {joints.length > 0
+                      ? 'Set joint positions and save a pose'
+                      : 'Load a robot with joints to save poses'}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

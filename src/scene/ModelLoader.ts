@@ -174,7 +174,69 @@ export async function loadModelFromFile(
             // This will be handled by the scene manager
             (result as any).cameraBounds = result.bounds;
           }
-          
+
+          // Integrate MJCF actuators with ActuatorSystem (Phase 1)
+          if (result.actuators && result.actuators.length > 0 && result.rootNodes.length > 0) {
+            console.log(`[ModelLoader] Integrating ${result.actuators.length} MJCF actuators`);
+
+            try {
+              const { registerMJCFActuators } = await import('../loaders/mjcf/MJCFActuatorIntegration');
+              const { KinematicsManager } = await import('../kinematics/KinematicsManager');
+
+              const kinematicsManager = KinematicsManager.getInstance();
+              const actuatorSystem = kinematicsManager.getActuatorSystem();
+              const robotRootNodeId = result.rootNodes[0].id || result.rootNodes[0].uniqueId.toString();
+
+              const createdActuators = registerMJCFActuators(
+                result.actuators,
+                robotRootNodeId,
+                actuatorSystem,
+                kinematicsManager
+              );
+
+              console.log(`[ModelLoader] ✅ Integrated ${createdActuators.length} MJCF actuators`);
+            } catch (error) {
+              console.error('[ModelLoader] Failed to integrate MJCF actuators:', error);
+            }
+          }
+
+          // Integrate MJCF keyframes with KinematicsManager (Phase 2)
+          // Note: keyframes is an object with keyframe names as keys
+          if ((result as any).keyframes && result.rootNodes.length > 0) {
+            const keyframes = (result as any).keyframes;
+            const keyframeCount = Object.keys(keyframes).length;
+
+            if (keyframeCount > 0) {
+              console.log(`[ModelLoader] Integrating ${keyframeCount} MJCF keyframes`);
+
+              try {
+                const { registerMJCFKeyframes } = await import('../loaders/mjcf/MJCFKeyframeIntegration');
+                const { KinematicsManager } = await import('../kinematics/KinematicsManager');
+
+                const kinematicsManager = KinematicsManager.getInstance();
+                const robotRootNodeId = result.rootNodes[0].id || result.rootNodes[0].uniqueId.toString();
+
+                // Find the kinematic chain for this robot
+                const chains = kinematicsManager.getAllChains();
+                const robotChain = chains.find(c => c.id.includes(robotRootNodeId) || c.rootNodeId === robotRootNodeId);
+
+                if (robotChain) {
+                  const createdKeyframes = registerMJCFKeyframes(
+                    keyframes,
+                    robotChain.id,
+                    kinematicsManager
+                  );
+
+                  console.log(`[ModelLoader] ✅ Integrated ${createdKeyframes.length} MJCF keyframes`);
+                } else {
+                  console.warn('[ModelLoader] No kinematic chain found for MJCF keyframes');
+                }
+              } catch (error) {
+                console.error('[ModelLoader] Failed to integrate MJCF keyframes:', error);
+              }
+            }
+          }
+
           return {
             meshes: result.meshes,
             rootNodes: result.rootNodes || []

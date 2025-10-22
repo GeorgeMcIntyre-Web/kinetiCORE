@@ -68,6 +68,38 @@ export interface GroundingConfig {
 }
 
 /**
+ * TCP (Tool Center Point) frame configuration
+ */
+export interface TCPFrame {
+  id: string;
+  name: string;
+  linkId: string;  // Which link this TCP is attached to
+  offset: { x: number; y: number; z: number };
+  rotation: { x: number; y: number; z: number; w: number };
+}
+
+/**
+ * Base frame configuration for robot reference
+ */
+export interface BaseFrame {
+  linkId: string;  // Usually the grounded base link
+  position: { x: number; y: number; z: number };
+  rotation: { x: number; y: number; z: number; w: number };
+}
+
+/**
+ * Keyframe/Pose definition - stores named robot configurations
+ */
+export interface RobotKeyframe {
+  id: string;
+  name: string;
+  chainId: string; // Which kinematic chain this pose belongs to
+  jointPositions: Record<string, number>; // jointId → position (radians or meters)
+  timestamp?: number; // When this keyframe was created
+  description?: string;
+}
+
+/**
  * Kinematic chain - collection of joints forming a mechanism
  */
 export interface KinematicChain {
@@ -77,6 +109,8 @@ export interface KinematicChain {
   rootNodeId: string; // Base link (usually grounded)
   joints: JointConfig[];
   dof: number; // Degrees of freedom
+  tcpFrames: TCPFrame[];  // Tool center points
+  baseFrame?: BaseFrame;   // Robot base reference frame
 }
 
 /**
@@ -88,6 +122,7 @@ export class KinematicsManager {
   private groundedNodes = new Set<string>();
   private joints = new Map<string, JointConfig>();
   private actuatorSystem: ActuatorSystem | null = null;
+  private keyframes = new Map<string, RobotKeyframe>();
 
   // Visual helpers
   private jointAxisVisualizers = new Map<string, BABYLON.Mesh[]>();
@@ -336,6 +371,8 @@ export class KinematicsManager {
       rootNodeId,
       joints: chainJoints,
       dof: chainJoints.filter(j => j.type !== 'fixed').length,
+      tcpFrames: [],  // Initialize empty TCP frames
+      baseFrame: undefined,  // Will be set when base link is grounded
     };
 
     this.chains.set(chain.id, chain);
@@ -592,12 +629,121 @@ export class KinematicsManager {
   }
 
   /**
+   * Add TCP frame to a kinematic chain
+   */
+  addTCPFrame(chainId: string, tcpFrame: TCPFrame): boolean {
+    const chain = this.chains.get(chainId);
+    if (!chain) return false;
+
+    chain.tcpFrames.push(tcpFrame);
+    console.log(`Added TCP frame: ${tcpFrame.name} to chain: ${chain.name}`);
+    return true;
+  }
+
+  /**
+   * Set base frame for a kinematic chain
+   */
+  setBaseFrame(chainId: string, baseFrame: BaseFrame): boolean {
+    const chain = this.chains.get(chainId);
+    if (!chain) return false;
+
+    chain.baseFrame = baseFrame;
+    console.log(`Set base frame for chain: ${chain.name}`);
+    return true;
+  }
+
+  /**
+   * Get TCP frames for a kinematic chain
+   */
+  getTCPFrames(chainId: string): TCPFrame[] {
+    const chain = this.chains.get(chainId);
+    return chain?.tcpFrames || [];
+  }
+
+  /**
+   * Get base frame for a kinematic chain
+   */
+  getBaseFrame(chainId: string): BaseFrame | undefined {
+    const chain = this.chains.get(chainId);
+    return chain?.baseFrame;
+  }
+
+  /**
+   * Add a keyframe/pose
+   */
+  addKeyframe(keyframe: RobotKeyframe): void {
+    this.keyframes.set(keyframe.id, keyframe);
+    console.log(`[KinematicsManager] Added keyframe: ${keyframe.name} for chain: ${keyframe.chainId}`);
+  }
+
+  /**
+   * Get keyframe by ID
+   */
+  getKeyframe(keyframeId: string): RobotKeyframe | undefined {
+    return this.keyframes.get(keyframeId);
+  }
+
+  /**
+   * Get all keyframes for a specific chain
+   */
+  getKeyframesForChain(chainId: string): RobotKeyframe[] {
+    return Array.from(this.keyframes.values()).filter(kf => kf.chainId === chainId);
+  }
+
+  /**
+   * Get all keyframes
+   */
+  getAllKeyframes(): RobotKeyframe[] {
+    return Array.from(this.keyframes.values());
+  }
+
+  /**
+   * Delete a keyframe
+   */
+  deleteKeyframe(keyframeId: string): boolean {
+    const deleted = this.keyframes.delete(keyframeId);
+    if (deleted) {
+      console.log(`[KinematicsManager] Deleted keyframe: ${keyframeId}`);
+    }
+    return deleted;
+  }
+
+  /**
+   * Create keyframe from current robot state
+   */
+  captureCurrentPose(chainId: string, name: string, description?: string): RobotKeyframe {
+    const chain = this.chains.get(chainId);
+    if (!chain) {
+      throw new Error(`Chain not found: ${chainId}`);
+    }
+
+    const jointPositions: Record<string, number> = {};
+
+    for (const joint of chain.joints) {
+      jointPositions[joint.id] = joint.position;
+    }
+
+    const keyframe: RobotKeyframe = {
+      id: `keyframe_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name,
+      chainId,
+      jointPositions,
+      timestamp: Date.now(),
+      description,
+    };
+
+    this.addKeyframe(keyframe);
+    return keyframe;
+  }
+
+  /**
    * Clear all kinematics data
    */
   reset(): void {
     this.chains.clear();
     this.groundedNodes.clear();
     this.joints.clear();
+    this.keyframes.clear();
     this.jointAxisVisualizers.forEach(visuals =>
       visuals.forEach(v => v.dispose())
     );

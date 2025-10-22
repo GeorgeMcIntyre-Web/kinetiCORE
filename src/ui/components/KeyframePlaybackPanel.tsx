@@ -167,14 +167,10 @@ export const KeyframePlaybackPanel: React.FC<KeyframePlaybackPanelProps> = ({
 
   if (keyframes.length === 0) {
     return (
-      <div className="keyframe-playback-panel">
-        <div className="keyframe-header">
-          <h3>Keyframe Poses</h3>
-          <span className="keyframe-count">No keyframes available</span>
-        </div>
-        <div className="keyframe-empty-state">
-          <p className="empty-message">This robot has no saved keyframe poses.</p>
-          <p className="empty-hint">Import an MJCF model with keyframe data to see poses here.</p>
+      <div className="keyframe-playback-panel compact-empty">
+        <div className="keyframe-empty-state-compact">
+          <p className="empty-message-compact">No saved poses</p>
+          <p className="empty-hint-compact">Import MJCF with keyframes</p>
         </div>
       </div>
     );

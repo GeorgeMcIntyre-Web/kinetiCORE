@@ -16,7 +16,7 @@
 
 .floating-panel {
   position: absolute;
-  min-width: 300px;
+  min-width: 150px;
   min-height: 200px;
   max-width: 1200px;
   max-height: 90vh;
@@ -47,7 +47,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 10px 14px;
   background: rgba(18, 18, 21, 0.95);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px 12px 0 0;
@@ -61,15 +61,32 @@
   min-width: 0;
 }
 
+.floating-panel-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
 .floating-panel-title {
   margin: 0;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.95);
   letter-spacing: -0.02em;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.floating-panel-subtitle {
+  font-size: 10px;
+  color: rgba(160, 174, 192, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
 }
 
 .floating-panel-icon {
@@ -88,19 +105,19 @@
 .floating-panel-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 3px;
 }
 
 .floating-panel-control-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 20px;
+  height: 20px;
   padding: 0;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
+  border-radius: 3px;
   color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   transition: all 0.2s;

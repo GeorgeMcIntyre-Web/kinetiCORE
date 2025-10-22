@@ -16,11 +16,11 @@ import {
   FolderUp,
   Save,
   FolderOpen,
-  Wrench,
+  Move,
+  Calculator,
   Gamepad2,
   Zap,
   Cylinder as CylinderIcon,
-  Move,
   RotateCw,
   Maximize2,
   Library,
@@ -71,6 +71,7 @@ import './RibbonToolbar.css';
 
 export interface RibbonToolbarProps {
   onKinematicsClick?: () => void;
+  onKinematicsAnalysisClick?: () => void;
   onActuatorsClick?: () => void;
   onPhysicsClick?: () => void;
   onCollisionsClick?: () => void;
@@ -89,6 +90,7 @@ export interface RibbonToolbarProps {
 
 export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onKinematicsClick,
+  onKinematicsAnalysisClick,
   onActuatorsClick,
   onPhysicsClick,
   onCollisionsClick,
@@ -337,8 +339,14 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
       <div className="ribbon-category-excel">
         <div className="ribbon-category-label">Kinematics</div>
         <div className="ribbon-buttons-row">
-          <button className="ribbon-btn" onClick={onKinematicsClick} title="Kinematics Panel">
-            <Wrench size={32} />
+          <button className="ribbon-btn" onClick={onKinematicsClick} title="Motion Panel">
+            <div style={{ position: 'relative', width: '32px', height: '32px' }}>
+              <Move size={20} style={{ position: 'absolute', left: '2px', top: '2px' }} />
+              <RotateCw size={20} style={{ position: 'absolute', right: '2px', bottom: '2px' }} />
+            </div>
+          </button>
+          <button className="ribbon-btn" onClick={onKinematicsAnalysisClick} title="Kinematics Analysis">
+            <Calculator size={32} />
           </button>
           <button className="ribbon-btn" onClick={onActuatorsClick} title="Actuator Control">
             <Gamepad2 size={32} />

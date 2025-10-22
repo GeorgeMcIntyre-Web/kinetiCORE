@@ -53,6 +53,38 @@
   color: var(--text-secondary, #888);
 }
 
+/* Compact Empty State */
+.keyframe-playback-panel.compact-empty {
+  padding: 0;
+  gap: 0;
+}
+
+.keyframe-empty-state-compact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  min-height: 40px;
+}
+
+.empty-message-compact {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.empty-hint-compact {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 2px 0 0 0;
+  line-height: 1.2;
+}
+
 /* Keyframe List */
 .keyframe-list {
   display: flex;

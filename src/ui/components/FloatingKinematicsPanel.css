@@ -8,9 +8,83 @@
 .floating-kinematics-content {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  overflow: hidden;
+  min-height: 100%;
+  overflow: visible;
   padding: 0; /* Remove padding, AssetLibraryDarkPanel handles it */
+  gap: 4px; /* Reduce spacing between sections */
+}
+
+/* Override AssetLibraryDarkPanel content padding */
+.asset-library-dark-content {
+  padding: 8px !important;
+}
+
+/* Add minimal padding to sections */
+.asset-library-dark-section {
+  margin: 4px 0;
+}
+
+/* Pose Library Footer */
+.pose-library-footer {
+  margin-top: auto;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0 0 8px 8px;
+}
+
+.pose-library-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1px;
+}
+
+.pose-library-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pose-library-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.pose-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pose-action-btn:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: rgba(59, 130, 246, 0.8);
+}
+
+.pose-library-info {
+  text-align: center;
+}
+
+.pose-count {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.pose-count-disabled {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.3);
 }
 
 /* Device Selection */
@@ -132,7 +206,7 @@
 /* Controls Section */
 .kinematics-controls {
   flex: 1;
-  overflow-y: auto;
+  overflow: visible;
   display: flex;
   flex-direction: column;
 }

@@ -3,8 +3,8 @@
 .robot-jogging-panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 8px;
+  gap: 6px;
+  padding: 4px;
   background: #1a202c;
   color: #e2e8f0;
   height: 100%;
@@ -14,10 +14,10 @@
 /* Mode Selector */
 .jog-mode-selector {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   background: #2d3748;
-  padding: 4px;
-  border-radius: 8px;
+  padding: 2px;
+  border-radius: 6px;
 }
 
 .mode-button {
@@ -25,17 +25,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
+  gap: 2px;
+  padding: 4px 4px;
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   color: #a0aec0;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
 }
+
 
 .mode-button:hover {
   background: #4a5568;
@@ -52,17 +53,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 4px;
   background: #2d3748;
-  padding: 8px;
-  border-radius: 6px;
+  padding: 3px;
+  border-radius: 4px;
+  width: 100%;
 }
 
 .jog-step-control label {
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   color: #a0aec0;
   white-space: nowrap;
 }
@@ -70,20 +72,20 @@
 .step-selector {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 2px;
 }
 
 .step-selector button {
-  width: 32px;
-  height: 32px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #4a5568;
   border: none;
-  border-radius: 4px;
+  border-radius: 3px;
   color: #e2e8f0;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
@@ -99,19 +101,34 @@
 
 .step-selector input {
   background: #1a202c;
-  border: 2px solid #4a5568;
-  border-radius: 4px;
-  color: #e2e8f0;
-  font-size: 16px;
+  border: 1px solid #4a5568;
+  border-radius: 3px;
+  color: rgba(255, 255, 255, 0.95); /* ensure visible text */
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.95); /* chrome/safari */
+  font-size: 10px;
   font-weight: 700;
   text-align: center;
-  padding: 4px 8px;
-  width: 50px;
+  padding: 0 3px;
+  width: 28px;
+  height: 18px;
+  line-height: 16px;
+  appearance: textfield;
+}
+
+/* Hide native number spinners to avoid overlaying text */
+.step-selector input::-webkit-outer-spin-button,
+.step-selector input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.step-selector input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 .step-selector .unit {
   color: #e2e8f0;
-  font-size: 14px;
+  font-size: 10px;
   font-weight: 600;
 }
 
@@ -119,28 +136,29 @@
 .joint-jog-mode {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
 }
 
 .joints-grid {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .joint-jog-item {
   background: #2d3748;
-  border-radius: 4px;
-  padding: 6px 8px;
+  border-radius: 3px;
+  padding: 3px 6px;
   display: grid;
-  grid-template-columns: 40px 1fr auto;
-  gap: 8px;
+  grid-template-columns: 25px 1fr 1fr;
+  gap: 4px;
   align-items: center;
   border: 1px solid #4a5568;
+  width: 100%;
 }
 
 .joint-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: #63b3ed;
   letter-spacing: 0.3px;
@@ -148,7 +166,7 @@
 }
 
 .joint-value {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
   color: #48bb78;
   font-family: 'Courier New', monospace;
@@ -158,19 +176,21 @@
 /* Jog Buttons */
 .jog-buttons {
   display: flex;
-  gap: 4px;
-  min-width: 100px;
+  gap: 2px;
+  min-width: 50px;
+  width: 100%;
+  justify-content: flex-end;
 }
 
 .jog-btn {
-  width: 50px;
-  height: 28px;
+  width: 24px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: 4px;
-  font-size: 16px;
+  border-radius: 3px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
@@ -183,7 +203,7 @@
 
 .jog-minus {
   background: #fc8181;
-  color: #742a2a;
+  color: #ffffff;
 }
 
 .jog-minus:hover {
@@ -192,7 +212,7 @@
 
 .jog-plus {
   background: #68d391;
-  color: #22543d;
+  color: #ffffff;
 }
 
 .jog-plus:hover {
@@ -230,18 +250,18 @@
 .tcp-controls {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 4px;
 }
 
 .tcp-section {
   background: #2d3748;
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 4px;
+  padding: 4px;
 }
 
 .tcp-section h4 {
-  margin: 0 0 12px 0;
-  font-size: 12px;
+  margin: 0 0 3px 0;
+  font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -251,66 +271,72 @@
 .tcp-axis-group {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 2px;
+  width: 100%;
 }
 
 .tcp-axis {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 1px;
+  width: 100%;
 }
 
 .axis-label {
-  width: 32px;
-  font-size: 14px;
+  width: 12px;
+  font-size: 8px;
   font-weight: 700;
   color: #63b3ed;
   text-align: center;
 }
 
 .tcp-axis .jog-btn {
+  width: 18px;
+  height: 14px;
+  font-size: 8px;
   flex: 1;
-  height: 38px;
+  max-width: 30px;
 }
 
 /* TCP Info */
 .tcp-info {
   background: #2d3748;
-  border-radius: 8px;
-  padding: 16px;
-  border-left: 4px solid #ed8936;
+  border-radius: 4px;
+  padding: 4px;
+  border-left: 2px solid #ed8936;
 }
 
 .info-text {
-  margin: 0 0 8px 0;
-  font-size: 14px;
+  margin: 0 0 2px 0;
+  font-size: 9px;
   font-weight: 600;
   color: #e2e8f0;
 }
 
 .info-subtext {
   margin: 0;
-  font-size: 12px;
+  font-size: 8px;
   color: #a0aec0;
-  line-height: 1.5;
+  line-height: 1.2;
 }
 
 /* Panel Actions */
 .panel-actions {
   display: flex;
-  gap: 10px;
-  padding-top: 8px;
+  gap: 6px;
+  padding-top: 4px;
   border-top: 1px solid #4a5568;
 }
 
 .reset-button {
-  flex: 1;
-  padding: 12px 20px;
+  flex: none;
+  padding: 4px 8px;
   background: #4a5568;
   border: none;
-  border-radius: 8px;
+  border-radius: 4px;
   color: #e2e8f0;
-  font-size: 14px;
+  font-size: 10px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -329,4 +355,275 @@
   .joints-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Poses Mode */
+.poses-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.poses-content {
+  background: #2d3748;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.poses-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.poses-header h4 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.poses-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.pose-action-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #4a5568;
+  border: none;
+  border-radius: 3px;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pose-action-btn:hover {
+  background: #718096;
+}
+
+.pose-action-btn:active {
+  transform: scale(0.95);
+}
+
+.poses-list {
+  min-height: 60px;
+}
+
+.poses-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  text-align: center;
+  color: #a0aec0;
+}
+
+.poses-empty p {
+  margin: 0;
+  font-size: 11px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.poses-hint {
+  font-size: 10px;
+  color: #718096;
+  margin-top: 4px;
+}
+
+/* Pose count badge */
+.poses-count {
+  font-size: 10px;
+  color: #a0aec0;
+  padding: 2px 6px;
+  background: #2d3748;
+  border-radius: 10px;
+}
+
+/* Add new pose section */
+.pose-add-section {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  background: #1a202c;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.pose-name-input {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 11px;
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 3px;
+  color: #e2e8f0;
+  outline: none;
+}
+
+.pose-name-input::placeholder {
+  color: #718096;
+}
+
+.pose-name-input:focus {
+  border-color: #63b3ed;
+}
+
+.pose-save-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  font-size: 11px;
+  background: #3182ce;
+  border: none;
+  border-radius: 3px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pose-save-btn:hover:not(:disabled) {
+  background: #2c5282;
+}
+
+.pose-save-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Pose item */
+.pose-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  background: #2d3748;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  transition: background 0.15s;
+}
+
+.pose-item:hover {
+  background: #374151;
+}
+
+.pose-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.pose-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
+.pose-joints {
+  font-size: 10px;
+  color: #a0aec0;
+}
+
+.pose-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.pose-load-btn,
+.pose-delete-btn {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
+  font-size: 10px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pose-load-btn {
+  background: #48bb78;
+  color: white;
+}
+
+.pose-load-btn:hover {
+  background: #38a169;
+}
+
+.pose-delete-btn {
+  background: #4a5568;
+  color: #e2e8f0;
+}
+
+.pose-delete-btn:hover {
+  background: #e53e3e;
+  color: white;
+}
+
+/* Joint Groups */
+.joint-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.joint-group {
+  background: #1a202c;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.joint-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  cursor: pointer;
+  background: #2d3748;
+  transition: background 0.15s;
+}
+
+.joint-group-header:hover {
+  background: #374151;
+}
+
+.joint-group-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.group-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.group-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
+.group-count {
+  font-size: 10px;
+  color: #a0aec0;
+}
+
+.joint-group-content {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }

@@ -106,9 +106,9 @@ export const SceneCanvas: React.FC = () => {
         gizmoRef.current = new TransformGizmo(scene);
 
         // Create highlight layer for visual selection feedback
-        highlightLayerRef.current = new BABYLON.HighlightLayer('highlight', scene);
-        highlightLayerRef.current.innerGlow = false;
-        highlightLayerRef.current.outerGlow = true;
+      highlightLayerRef.current = new BABYLON.HighlightLayer('highlight', scene);
+      highlightLayerRef.current.innerGlow = true;  // Enable inner glow for more detail
+      highlightLayerRef.current.outerGlow = true;  // Keep outer glow
 
         // Double-click detection
         let lastClickTime = 0;
@@ -345,6 +345,13 @@ export const SceneCanvas: React.FC = () => {
 
     // Clear all highlights
     highlightLayer.removeAllMeshes();
+    
+    // Disable edge rendering on all meshes first
+    scene.meshes.forEach(mesh => {
+      if (mesh.edgesRenderer) {
+        mesh.disableEdgesRendering();
+      }
+    });
 
     // Highlight selected meshes
     if (selectedMeshes.length > 0) {
@@ -356,8 +363,8 @@ export const SceneCanvas: React.FC = () => {
           const linkEntities = typeof entity.getChildren === 'function' ? entity.getChildren() : [];
 
           const color = index === 0
-            ? new BABYLON.Color3(0.28, 0.73, 0.47) // Green for primary selection
-            : new BABYLON.Color3(1.0, 0.6, 0.0);    // Orange for additional selections
+            ? new BABYLON.Color3(0.15, 0.4, 0.25) // Darker green for primary selection
+            : new BABYLON.Color3(0.6, 0.3, 0.0);    // Darker orange for additional selections
 
           linkEntities.forEach(linkEntity => {
             if (typeof linkEntity.getMesh === 'function') {
@@ -366,15 +373,29 @@ export const SceneCanvas: React.FC = () => {
               if (linkMesh && linkMesh.isVisible &&
                   !linkMesh.name.includes('_dummy')) {
                 highlightLayer.addMesh(linkMesh, color);
+                
+                // Add edge rendering for more polygon detail
+                if (index === 0) { // Only for primary selection
+                  linkMesh.enableEdgesRendering();
+                  linkMesh.edgesWidth = 2.0;
+                  linkMesh.edgesColor = new BABYLON.Color4(0.15, 0.4, 0.25, 1.0); // Darker green edges
+                }
               }
             }
           });
         } else if (mesh && mesh.isVisible) {
           // Regular mesh - highlight directly
           const color = index === 0
-            ? new BABYLON.Color3(0.28, 0.73, 0.47)
-            : new BABYLON.Color3(1.0, 0.6, 0.0);
+            ? new BABYLON.Color3(0.15, 0.4, 0.25)
+            : new BABYLON.Color3(0.6, 0.3, 0.0);
           highlightLayer.addMesh(mesh, color);
+          
+          // Add edge rendering for primary selection
+          if (index === 0) {
+            mesh.enableEdgesRendering();
+            mesh.edgesWidth = 2.0;
+            mesh.edgesColor = new BABYLON.Color4(0.15, 0.4, 0.25, 1.0); // Darker green edges
+          }
         }
       });
     }

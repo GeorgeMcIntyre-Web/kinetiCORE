@@ -10,6 +10,7 @@ import { useAssetLibraryStore } from '../store/assetLibraryStore';
 import { SceneTree } from '../components/SceneTree';
 import { SceneCanvas } from '../components/SceneCanvas';
 import { FloatingKinematicsPanel } from '../components/FloatingKinematicsPanel';
+import { FloatingKinematicsAnalysisPanel } from '../components/FloatingKinematicsAnalysisPanel';
 import { FloatingActuatorPanel } from '../components/FloatingActuatorPanel';
 import { FloatingPhysicsPanel } from '../components/FloatingPhysicsPanel';
 import { FloatingCollisionPanel } from '../components/FloatingCollisionPanel';
@@ -54,6 +55,7 @@ export const EssentialModeLayout: React.FC = () => {
   } | null>(null);
 
   const [showKinematicsPanel, setShowKinematicsPanel] = useState(false);
+  const [showKinematicsAnalysisPanel, setShowKinematicsAnalysisPanel] = useState(false);
   const [showActuatorPanel, setShowActuatorPanel] = useState(false);
   const [showPhysicsSettings, setShowPhysicsSettings] = useState(false);
   const [showCollisionVisualizer, setShowCollisionVisualizer] = useState(false);
@@ -514,6 +516,7 @@ export const EssentialModeLayout: React.FC = () => {
           style={{ zIndex: 100 }}
           ribbonProps={{
             onKinematicsClick: () => setShowKinematicsPanel(!showKinematicsPanel),
+            onKinematicsAnalysisClick: () => setShowKinematicsAnalysisPanel(!showKinematicsAnalysisPanel),
             onActuatorsClick: () => setShowActuatorPanel(!showActuatorPanel),
             onPhysicsClick: () => setShowPhysicsSettings(!showPhysicsSettings),
             onCollisionsClick: () => setShowCollisionVisualizer(!showCollisionVisualizer),
@@ -582,28 +585,34 @@ export const EssentialModeLayout: React.FC = () => {
         zIndex={1001}
       />
 
+      <FloatingKinematicsAnalysisPanel
+        isVisible={showKinematicsAnalysisPanel}
+        onClose={() => setShowKinematicsAnalysisPanel(false)}
+        zIndex={1002}
+      />
+
       <FloatingActuatorPanel
         isVisible={showActuatorPanel}
         onClose={() => setShowActuatorPanel(false)}
-        zIndex={1002}
+        zIndex={1003}
       />
 
       <FloatingPhysicsPanel
         isVisible={showPhysicsSettings}
         onClose={() => setShowPhysicsSettings(false)}
-        zIndex={1003}
+        zIndex={1004}
       />
 
       <FloatingCollisionPanel
         isVisible={showCollisionVisualizer}
         onClose={() => setShowCollisionVisualizer(false)}
-        zIndex={1004}
+        zIndex={1005}
       />
 
       <FloatingSettingsPanel
         isVisible={showSettingsPanel}
         onClose={() => setShowSettingsPanel(false)}
-        zIndex={1005}
+        zIndex={1006}
       />
 
       {/* Transform Display - Bottom-right corner */}
@@ -613,39 +622,43 @@ export const EssentialModeLayout: React.FC = () => {
           style={{
             background: 'transparent',
             color: '#ffffff',
-            textShadow: '0 0 4px rgba(0, 0, 0, 0.8)',
-            fontFamily: 'monospace',
+            textShadow: '0 0 2px rgba(0, 0, 0, 0.9)',
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace',
             fontSize: '13px',
-            fontWeight: '500',
+            fontWeight: '400',
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale',
             minWidth: '280px',
+            transform: 'scale(0.6)',
+            transformOrigin: 'bottom right',
           }}
         >
           <div className="flex justify-between text-sm">
             <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-              <span style={{ color: '#4A90E2', fontWeight: '600' }}>X:</span>
-              <span style={{ color: '#ffffff', fontWeight: '700', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.x.toFixed(1)}</span>
+              <span style={{ color: '#4A90E2', fontWeight: '500' }}>X:</span>
+              <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.x.toFixed(1)}</span>
             </div>
             <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-              <span style={{ color: '#7ED321', fontWeight: '600' }}>Y:</span>
-              <span style={{ color: '#ffffff', fontWeight: '700', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.y.toFixed(1)}</span>
+              <span style={{ color: '#7ED321', fontWeight: '500' }}>Y:</span>
+              <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.y.toFixed(1)}</span>
             </div>
             <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-              <span style={{ color: '#D0021B', fontWeight: '600' }}>Z:</span>
-              <span style={{ color: '#ffffff', fontWeight: '700', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.z.toFixed(1)}</span>
+              <span style={{ color: '#D0021B', fontWeight: '500' }}>Z:</span>
+              <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.z.toFixed(1)}</span>
             </div>
           </div>
           <div className="flex justify-between text-sm mt-1">
             <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-              <span style={{ color: '#4A90E2', fontWeight: '600' }}>RX:</span>
-              <span style={{ color: '#ffffff', fontWeight: '700', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rx.toFixed(1)}°</span>
+              <span style={{ color: '#4A90E2', fontWeight: '500' }}>RX:</span>
+              <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rx.toFixed(1)}°</span>
             </div>
             <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-              <span style={{ color: '#7ED321', fontWeight: '600' }}>RY:</span>
-              <span style={{ color: '#ffffff', fontWeight: '700', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.ry.toFixed(1)}°</span>
+              <span style={{ color: '#7ED321', fontWeight: '500' }}>RY:</span>
+              <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.ry.toFixed(1)}°</span>
             </div>
             <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-              <span style={{ color: '#D0021B', fontWeight: '600' }}>RZ:</span>
-              <span style={{ color: '#ffffff', fontWeight: '700', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rz.toFixed(1)}°</span>
+              <span style={{ color: '#D0021B', fontWeight: '500' }}>RZ:</span>
+              <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rz.toFixed(1)}°</span>
             </div>
           </div>
         </div>
