@@ -54,7 +54,8 @@ export const SceneCanvas: React.FC = () => {
   const gridSize = useEditorStore((state) => state.gridSize);
   const snapDistance = useEditorStore((state) => state.snapDistance);
   const gizmoRef = useRef<TransformGizmo | null>(null);
-  const highlightLayerRef = useRef<BABYLON.HighlightLayer | null>(null);
+  // const highlightLayerRef = useRef<BABYLON.HighlightLayer | null>(null); // Replaced with direct material color changes
+  const originalMaterialsRef = useRef<Map<string, BABYLON.Material | null>>(new Map());
 
 
   useEffect(() => {
@@ -105,10 +106,10 @@ export const SceneCanvas: React.FC = () => {
         // Create transform gizmo
         gizmoRef.current = new TransformGizmo(scene);
 
-        // Create highlight layer for visual selection feedback
-        highlightLayerRef.current = new BABYLON.HighlightLayer('highlight', scene);
-        highlightLayerRef.current.innerGlow = false;
-        highlightLayerRef.current.outerGlow = true;
+        // Note: HighlightLayer disabled - using direct material color changes instead
+        // highlightLayerRef.current = new BABYLON.HighlightLayer('highlight', scene);
+        // highlightLayerRef.current.innerGlow = false;
+        // highlightLayerRef.current.outerGlow = true;
 
         // Double-click detection
         let lastClickTime = 0;
@@ -333,20 +334,45 @@ export const SceneCanvas: React.FC = () => {
     snapDistance,
   ]);
 
-  // Update highlight layer for multi-selection visual feedback
+  // Update mesh colors for selection visual feedback
   useEffect(() => {
-    if (!highlightLayerRef.current) return;
-
-    const highlightLayer = highlightLayerRef.current;
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     const registry = EntityRegistry.getInstance();
     if (!scene) return;
 
-    // Clear all highlights
-    highlightLayer.removeAllMeshes();
+    const originalMaterials = originalMaterialsRef.current;
 
-    // Highlight selected meshes
+    // Helper function to restore original material
+    const restoreMaterial = (mesh: BABYLON.AbstractMesh) => {
+      const meshId = mesh.uniqueId.toString();
+      if (originalMaterials.has(meshId)) {
+        mesh.material = originalMaterials.get(meshId) || null;
+        originalMaterials.delete(meshId);
+      }
+    };
+
+    // Helper function to apply vivid highlight color
+    const applyHighlightColor = (mesh: BABYLON.AbstractMesh, color: BABYLON.Color3) => {
+      const meshId = mesh.uniqueId.toString();
+
+      // Store original material if not already stored
+      if (!originalMaterials.has(meshId)) {
+        originalMaterials.set(meshId, mesh.material);
+      }
+
+      // Create temporary highlight material
+      const highlightMaterial = new BABYLON.StandardMaterial(`highlight_${meshId}`, scene);
+      highlightMaterial.diffuseColor = color;
+      highlightMaterial.emissiveColor = color.scale(0.3); // Add some glow
+      highlightMaterial.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+      mesh.material = highlightMaterial;
+    };
+
+    // Collect all currently highlighted meshes
+    const currentlyHighlightedMeshes = new Set<string>();
+
+    // Apply highlights to selected meshes
     if (selectedMeshes.length > 0) {
       selectedMeshes.forEach((mesh, index) => {
         const entity = registry.getByMesh(mesh);
@@ -356,8 +382,8 @@ export const SceneCanvas: React.FC = () => {
           const linkEntities = typeof entity.getChildren === 'function' ? entity.getChildren() : [];
 
           const color = index === 0
-            ? new BABYLON.Color3(0.28, 0.73, 0.47) // Green for primary selection
-            : new BABYLON.Color3(1.0, 0.6, 0.0);    // Orange for additional selections
+            ? new BABYLON.Color3(0.0, 1.0, 0.8) // Bright cyan for primary selection
+            : new BABYLON.Color3(1.0, 0.0, 0.8); // Bright magenta for additional selections
 
           linkEntities.forEach(linkEntity => {
             if (typeof linkEntity.getMesh === 'function') {
@@ -365,19 +391,39 @@ export const SceneCanvas: React.FC = () => {
               // Skip invisible meshes and dummy meshes
               if (linkMesh && linkMesh.isVisible &&
                   !linkMesh.name.includes('_dummy')) {
-                highlightLayer.addMesh(linkMesh, color);
+                applyHighlightColor(linkMesh, color);
+                currentlyHighlightedMeshes.add(linkMesh.uniqueId.toString());
               }
             }
           });
         } else if (mesh && mesh.isVisible) {
           // Regular mesh - highlight directly
           const color = index === 0
-            ? new BABYLON.Color3(0.28, 0.73, 0.47)
-            : new BABYLON.Color3(1.0, 0.6, 0.0);
-          highlightLayer.addMesh(mesh, color);
+            ? new BABYLON.Color3(0.0, 1.0, 0.8) // Bright cyan for primary selection
+            : new BABYLON.Color3(1.0, 0.0, 0.8); // Bright magenta for additional selections
+          applyHighlightColor(mesh, color);
+          currentlyHighlightedMeshes.add(mesh.uniqueId.toString());
         }
       });
     }
+
+    // Restore materials for meshes that are no longer selected
+    scene.meshes.forEach(mesh => {
+      const meshId = mesh.uniqueId.toString();
+      if (originalMaterials.has(meshId) && !currentlyHighlightedMeshes.has(meshId)) {
+        restoreMaterial(mesh);
+      }
+    });
+
+    // Cleanup function to restore all materials when component unmounts
+    return () => {
+      scene.meshes.forEach(mesh => {
+        const meshId = mesh.uniqueId.toString();
+        if (originalMaterials.has(meshId)) {
+          restoreMaterial(mesh);
+        }
+      });
+    };
   }, [selectedNodeIds, selectedMeshes]);
 
   // Position canvas to overlay the active viewport div
