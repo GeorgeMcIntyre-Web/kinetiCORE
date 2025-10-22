@@ -175,6 +175,11 @@ export async function loadModelFromFile(
             (result as any).cameraBounds = result.bounds;
           }
 
+          // DEBUG: Log result structure to diagnose actuator integration
+          console.log('[ModelLoader] MJCF result keys:', Object.keys(result));
+          console.log('[ModelLoader] result.actuators:', result.actuators);
+          console.log('[ModelLoader] result.rootNodes:', result.rootNodes);
+
           // Integrate MJCF actuators with ActuatorSystem (Phase 1)
           if (result.actuators && result.actuators.length > 0 && result.rootNodes.length > 0) {
             console.log(`[ModelLoader] Integrating ${result.actuators.length} MJCF actuators`);
