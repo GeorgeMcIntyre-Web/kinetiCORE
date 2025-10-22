@@ -6,7 +6,8 @@
  */
 
 import * as BABYLON from '@babylonjs/core';
-import { WholeBodyIKSolver } from './WholeBodyIKSolver';
+// WholeBodyIKSolver reference (for future integration)
+// import { WholeBodyIKSolver } from './WholeBodyIKSolver';
 import { TrajectoryWaypoint } from './TrajectoryIKSolver';
 
 /**
@@ -57,10 +58,11 @@ export interface GaitTrajectory {
  */
 export class GaitGenerator {
   private static instance: GaitGenerator | null = null;
-  private wholeBodySolver: WholeBodyIKSolver;
+  // WholeBodyIKSolver reference (for future integration)
+  // private wholeBodySolver: WholeBodyIKSolver;
 
   private constructor() {
-    this.wholeBodySolver = WholeBodyIKSolver.getInstance();
+    // this.wholeBodySolver = WholeBodyIKSolver.getInstance();
   }
 
   static getInstance(): GaitGenerator {
@@ -81,7 +83,7 @@ export class GaitGenerator {
   generateHumanoidWalk(
     config: GaitConfig,
     numSteps: number = 4,
-    timestep: number = 0.01
+    _timestep: number = 0.01
   ): GaitTrajectory {
     const { stepLength, stepHeight, stepDuration, bodyHeight, bodyWidth = 0.2 } = config;
 
@@ -200,7 +202,7 @@ export class GaitGenerator {
   generateQuadrupedTrot(
     config: GaitConfig,
     numSteps: number = 4,
-    timestep: number = 0.01
+    _timestep: number = 0.01
   ): GaitTrajectory {
     const { stepLength, stepHeight, stepDuration, bodyHeight, bodyWidth = 0.3 } = config;
     const bodyLength = 0.5; // Typical dog-sized quadruped

@@ -8,7 +8,8 @@
 
 import * as BABYLON from '@babylonjs/core';
 import { InverseKinematicsSolver, IKTarget } from './InverseKinematicsSolver';
-import { KinematicsManager } from './KinematicsManager';
+// KinematicsManager reference (for future integration)
+// import { KinematicsManager } from './KinematicsManager';
 
 /**
  * Waypoint in trajectory with time and constraints
@@ -55,11 +56,12 @@ export interface SolvedTrajectory {
 export class TrajectoryIKSolver {
   private static instance: TrajectoryIKSolver | null = null;
   private ikSolver: InverseKinematicsSolver;
-  private kinematicsManager: KinematicsManager;
+  // KinematicsManager reference (for future integration)
+  // private kinematicsManager: KinematicsManager;
 
   private constructor() {
     this.ikSolver = InverseKinematicsSolver.getInstance();
-    this.kinematicsManager = KinematicsManager.getInstance();
+    // this.kinematicsManager = KinematicsManager.getInstance();
   }
 
   static getInstance(): TrajectoryIKSolver {
@@ -107,7 +109,7 @@ export class TrajectoryIKSolver {
 
     let previousAngles: number[] | null = null;
 
-    targets.forEach((target, i) => {
+    targets.forEach((target) => {
       const solution = this.ikSolver.solveJacobianTranspose(
         chainName,
         target,
@@ -189,7 +191,7 @@ export class TrajectoryIKSolver {
           : waypoints[waypoints.length - 1];
       return {
         position: closest.position,
-        orientation: closest.orientation,
+        rotation: closest.orientation,
       };
     }
 
@@ -216,16 +218,16 @@ export class TrajectoryIKSolver {
   ): IKTarget {
     const position = BABYLON.Vector3.Lerp(prev.position, next.position, t);
 
-    let orientation: BABYLON.Quaternion | undefined;
+    let rotation: BABYLON.Quaternion | undefined;
     if (prev.orientation && next.orientation) {
-      orientation = BABYLON.Quaternion.Slerp(
+      rotation = BABYLON.Quaternion.Slerp(
         prev.orientation,
         next.orientation,
         t
       );
     }
 
-    return { position, orientation };
+    return { position, rotation };
   }
 
   private cubicInterpolation(
@@ -251,16 +253,16 @@ export class TrajectoryIKSolver {
       .add(next.position.scale(h01))
       .add(velocity1.scale(h11));
 
-    let orientation: BABYLON.Quaternion | undefined;
+    let rotation: BABYLON.Quaternion | undefined;
     if (prev.orientation && next.orientation) {
-      orientation = BABYLON.Quaternion.Slerp(
+      rotation = BABYLON.Quaternion.Slerp(
         prev.orientation,
         next.orientation,
         t
       );
     }
 
-    return { position, orientation };
+    return { position, rotation };
   }
 
   private quinticInterpolation(
@@ -279,16 +281,16 @@ export class TrajectoryIKSolver {
 
     const position = prev.position.scale(h0).add(next.position.scale(h1));
 
-    let orientation: BABYLON.Quaternion | undefined;
+    let rotation: BABYLON.Quaternion | undefined;
     if (prev.orientation && next.orientation) {
-      orientation = BABYLON.Quaternion.Slerp(
+      rotation = BABYLON.Quaternion.Slerp(
         prev.orientation,
         next.orientation,
         t
       );
     }
 
-    return { position, orientation };
+    return { position, rotation };
   }
 
   /**

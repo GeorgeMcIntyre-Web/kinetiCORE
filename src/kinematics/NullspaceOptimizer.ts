@@ -6,8 +6,8 @@
  * when robot has more DOF than required for primary task
  */
 
-import * as BABYLON from '@babylonjs/core';
-import { InverseKinematicsSolver } from './InverseKinematicsSolver';
+// InverseKinematicsSolver reference (for future integration)
+// import { InverseKinematicsSolver } from './InverseKinematicsSolver';
 import { KinematicsManager } from './KinematicsManager';
 
 /**
@@ -40,11 +40,12 @@ export interface NullspaceConfig {
  */
 export class NullspaceOptimizer {
   private static instance: NullspaceOptimizer | null = null;
-  private ikSolver: InverseKinematicsSolver;
+  // InverseKinematicsSolver reference (for future integration)
+  // private ikSolver: InverseKinematicsSolver;
   private kinematicsManager: KinematicsManager;
 
   private constructor() {
-    this.ikSolver = InverseKinematicsSolver.getInstance();
+    // this.ikSolver = InverseKinematicsSolver.getInstance();
     this.kinematicsManager = KinematicsManager.getInstance();
   }
 
@@ -217,7 +218,7 @@ export class NullspaceOptimizer {
     const manipulability0 = this.computeManipulability(chainName, currentAngles);
 
     // Numerical gradient
-    currentAngles.forEach((angle, i) => {
+    currentAngles.forEach((_angle, i) => {
       const perturbedAngles = [...currentAngles];
       perturbedAngles[i] += epsilon;
 
@@ -258,7 +259,7 @@ export class NullspaceOptimizer {
    */
   private computeEnergyMinimizationGradient(currentAngles: number[]): number[] {
     // Gradient of ||q||^2 = 2q
-    return currentAngles.map((angle) => -2.0 * angle);
+    return currentAngles.map((_angle) => -2.0 * _angle);
   }
 
   /**
