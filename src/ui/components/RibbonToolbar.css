@@ -96,6 +96,12 @@
   stroke-width: 2;
 }
 
+/* Override for Motion Panel dual icons - keep them smaller */
+.ribbon-btn div[style*="position: relative"] svg {
+  width: 12px !important;
+  height: 12px !important;
+}
+
 /* Focus states for accessibility */
 .ribbon-btn:focus {
   outline: 2px solid rgba(59, 130, 246, 0.5);
