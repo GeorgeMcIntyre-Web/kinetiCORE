@@ -1102,12 +1102,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
               // Skip synthetic root nodes and duplicate filename nodes - process children directly
               // This ensures synthetic containers don't appear in the tree UI
-              // But don't skip MJCF root nodes as they contain the actual geometry
-              if (node.name === '__root__' ||
-                  node.name.startsWith('__root') ||
-                  node.name === 'mjcf_root' ||
-                  node.name.startsWith('mjcf_root') ||
-                  (node.name === modelName && node.metadata?.sourceFormat !== 'mjcf')) {
+              // For MJCF: Only skip the synthetic container (mjcf_root_<modelname>), not the actual body nodes
+              const isMJCFSyntheticContainer = node.name === uniqueRootName || node.name === `mjcf_root_${modelName}`;
+              const isGenericSyntheticRoot = node.name === '__root__' || node.name.startsWith('__root');
+              const isDuplicateFilename = node.name === modelName && node.metadata?.sourceFormat !== 'mjcf';
+
+              if (isMJCFSyntheticContainer || isGenericSyntheticRoot || isDuplicateFilename) {
                 for (const child of children) {
                   buildTreeForNode(child, parentNodeId, depth);
                 }
