@@ -355,7 +355,12 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
             <Gamepad2 size={32} />
           </button>
           <button className="ribbon-btn" onClick={onWholeBodyIKClick} title="Whole-Body IK">
-            <Users size={32} />
+            <div style={{ position: 'relative', width: '32px', height: '32px' }}>
+              <Move size={12} style={{ position: 'absolute', left: '2px', top: '2px' }} />
+              <Move size={12} style={{ position: 'absolute', right: '2px', top: '2px' }} />
+              <RotateCw size={12} style={{ position: 'absolute', left: '2px', bottom: '2px' }} />
+              <RotateCw size={12} style={{ position: 'absolute', right: '2px', bottom: '2px' }} />
+            </div>
           </button>
         </div>
       </div>
