@@ -7,16 +7,7 @@ import { SceneTreeManager } from '../scene/SceneTreeManager';
 import type { SceneNode } from '../scene/SceneTreeNode';
 import type { JointType } from '../scene/SceneTreeNode';
 import type { IKinematicsManager } from './IKinematicsManager';
-
-// Import ActuatorSystem lazily to break circular dependency
-let ActuatorSystemClass: typeof import('./actuation/ActuatorSystem').ActuatorSystem | null = null;
-async function getActuatorSystemClass() {
-  if (!ActuatorSystemClass) {
-    const module = await import('./actuation/ActuatorSystem');
-    ActuatorSystemClass = module.ActuatorSystem;
-  }
-  return ActuatorSystemClass;
-}
+// ActuatorSystem is imported via require() in getActuatorSystem() to break circular dependency
 
 // Re-export JointType for convenience
 export type { JointType };
@@ -152,12 +143,15 @@ export class KinematicsManager implements IKinematicsManager {
 
   /**
    * Get the actuator system for hardware control
-   * Uses lazy loading to break circular dependency
+   * Note: ActuatorSystem is lazily loaded to avoid circular dependency
    */
-  async getActuatorSystem(): Promise<typeof import('./actuation/ActuatorSystem').ActuatorSystem> {
+  getActuatorSystem(): any {
     if (!this.actuatorSystem) {
-      const ActuatorSystemClass = await getActuatorSystemClass();
-      this.actuatorSystem = new ActuatorSystemClass();
+      // Lazy load ActuatorSystem to break circular dependency
+      // This is safe because ActuatorSystem is only used in specific contexts
+      // where the module has already been loaded
+      const ActuatorSystemModule = require('./actuation/ActuatorSystem');
+      this.actuatorSystem = new ActuatorSystemModule.ActuatorSystem();
     }
     return this.actuatorSystem;
   }

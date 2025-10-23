@@ -162,10 +162,10 @@ export class BooleanOperations {
     if (!scene) {
       const nodeA = tree.getNode(nodeIdA);
       if (nodeA?.babylonMeshId) {
-        // Get scene dynamically from mesh
-        const { SceneManager } = await import('./SceneManager');
+        // Get scene dynamically from mesh using require to avoid circular dependency
+        const { SceneManager } = require('./SceneManager');
         const sceneManager = SceneManager.getInstance();
-        scene = sceneManager.getScene();
+        scene = sceneManager.getScene() || undefined;
       }
     }
 
