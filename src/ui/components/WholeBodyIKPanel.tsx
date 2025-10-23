@@ -48,6 +48,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
   // Solution State
   const [lastSolution, setLastSolution] = useState<WholeBodyIKSolution | null>(null);
   const [solverStatus, setSolverStatus] = useState<SolverStatus>(null);
+  const [showGuidance, setShowGuidance] = useState(true);
 
   const wholeBodySolver = WholeBodyIKSolver.getInstance();
   const kinematicsManager = KinematicsManager.getInstance();
@@ -214,10 +215,22 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
       ],
     });
 
+    setLastSolution(solution);
+    
     if (solution.success) {
       console.log(`✅ Humanoid walking solved in ${solution.iterations} iterations`);
+      setSolverStatus({
+        type: 'success',
+        message: 'Walking pose reached successfully',
+        details: `Solved in ${solution.iterations} iteration${solution.iterations > 1 ? 's' : ''} • Click Apply to move robot`
+      });
     } else {
       console.warn(`❌ Humanoid walking failed to converge`);
+      setSolverStatus({
+        type: 'error',
+        message: 'Walking pose not reachable',
+        details: 'This preset may not work with the current robot configuration'
+      });
     }
   };
 
@@ -233,10 +246,22 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
       supportPhase: 'all',
     });
 
+    setLastSolution(solution);
+    
     if (solution.success) {
       console.log(`✅ Quadruped stance solved in ${solution.iterations} iterations`);
+      setSolverStatus({
+        type: 'success',
+        message: 'Standing pose reached successfully',
+        details: `Solved in ${solution.iterations} iteration${solution.iterations > 1 ? 's' : ''} • Click Apply to move robot`
+      });
     } else {
       console.warn(`❌ Quadruped stance failed to converge`);
+      setSolverStatus({
+        type: 'error',
+        message: 'Standing pose not reachable',
+        details: 'This preset is designed for quadruped robots (4 legs)'
+      });
     }
   };
 
@@ -249,10 +274,22 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
       avoidSelfCollision: true,
     });
 
+    setLastSolution(solution);
+    
     if (solution.success) {
       console.log(`✅ Dual-arm manipulation solved in ${solution.iterations} iterations`);
+      setSolverStatus({
+        type: 'success',
+        message: 'Grasp pose reached successfully',
+        details: `Solved in ${solution.iterations} iteration${solution.iterations > 1 ? 's' : ''} • Click Apply to move robot`
+      });
     } else {
       console.warn(`❌ Dual-arm manipulation failed to converge`);
+      setSolverStatus({
+        type: 'error',
+        message: 'Grasp pose not reachable',
+        details: 'This preset requires a robot with two arms'
+      });
     }
   };
 
@@ -435,30 +472,47 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
         </button>
 
         {/* Empty State Guidance */}
-        {targets.length === 0 && availableChains.length > 0 && (
+        {targets.length === 0 && showGuidance && availableChains.length > 0 && (
           <div style={{
             padding: '16px',
-            marginBottom: '10px',
-            borderRadius: '4px',
+            marginBottom: '16px',
+            borderRadius: '6px',
             backgroundColor: '#1a2a3a',
-            border: '1px dashed #0d6efd',
-            fontSize: '13px',
-            color: '#aaa'
+            border: '1px solid #0d6efd',
           }}>
-            <div style={{ marginBottom: '8px', fontWeight: 'bold', color: '#fff' }}>
-              💡 Getting Started
-            </div>
-            <div style={{ marginBottom: '6px' }}>
-              1. Click <Plus size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> to add a target
-            </div>
-            <div style={{ marginBottom: '6px' }}>
-              2. Choose which part of the robot to control (chain)
-            </div>
-            <div style={{ marginBottom: '6px' }}>
-              3. Set the X, Y, Z coordinates where you want it to move
-            </div>
-            <div>
-              4. Click <Play size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> to solve, then Apply to move the robot
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <div style={{ fontSize: '24px' }}>💡</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '14px' }}>
+                  Getting Started
+                </div>
+                <div style={{ fontSize: '13px', lineHeight: '1.5', color: '#ccc' }}>
+                  Choose one of these options:
+                  <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
+                    <li style={{ marginBottom: '4px' }}>
+                      Use <strong>Quick Actions</strong> above for preset poses (Walk, Stand, Grasp)
+                    </li>
+                    <li>
+                      Click <strong>[+]</strong> below to add a custom target and set X/Y/Z coordinates
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowGuidance(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#888',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  padding: '0',
+                  lineHeight: 1
+                }}
+                title="Dismiss"
+              >
+                ×
+              </button>
             </div>
           </div>
         )}
@@ -549,7 +603,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
             </div>
 
             <div>
-              <label>
+              <label title="Higher priority targets are favored when conflicts occur (1.0 = highest)">
                 Priority:{' '}
                 <input
                   type="number"
