@@ -24,7 +24,8 @@ SUPABASE_ANON_KEY = "your-anon-key"
 # binding = "CACHE"
 # id = "your-kv-namespace-id"
 
-# R2 storage for asset caching (optional)
-# [[r2_buckets]]
-# binding = "ASSET_CACHE"
-# bucket_name = "kineticore-asset-cache"
+# R2 storage for asset library
+[[r2_buckets]]
+binding = "R2_ASSETS"
+bucket_name = "kineticore-assets"
+preview_bucket_name = "kineticore-assets-preview"
