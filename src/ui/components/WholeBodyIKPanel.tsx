@@ -194,7 +194,10 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
       onClose={onClose}
       zIndex={zIndex}
       defaultSize={{ width: 450, height: 700 }}
-      defaultPosition={{ x: window.innerWidth - 500, y: 120 }}
+      defaultPosition={{
+        x: (window.innerWidth - 450) / 2,
+        y: (window.innerHeight - 700) / 2
+      }}
     >
       {/* Quick Actions */}
       <div style={{ marginBottom: '20px' }}>
