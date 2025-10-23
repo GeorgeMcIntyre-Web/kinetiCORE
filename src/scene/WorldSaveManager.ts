@@ -13,7 +13,6 @@ import { SceneTreeManager } from './SceneTreeManager';
 import { SceneManager } from './SceneManager';
 import { EntityRegistry } from '../entities/EntityRegistry';
 import { supabase } from '../lib/supabase-client';
-import type { SceneNode } from './SceneTreeNode';
 import type { Vector3, Quaternion } from '../core/types';
 import * as BABYLON from '@babylonjs/core';
 

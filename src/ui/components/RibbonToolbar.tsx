@@ -194,19 +194,15 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           <button className="ribbon-btn" onClick={onProjectManagerClick} title="Project Manager">
             <FolderKanban size={32} />
           </button>
-          <button className="ribbon-btn" onClick={saveWorld} title="Save">
+          <button className="ribbon-btn" onClick={saveWorld} title="Save World (Database)">
             <Save size={32} />
           </button>
-          <button className="ribbon-btn" onClick={handleLoadWorld} title="Load">
+          <button className="ribbon-btn" onClick={handleLoadWorld} title="Load World">
             <FolderOpen size={32} />
           </button>
           <button className="ribbon-btn" onClick={onAssetLibraryClick} title="Asset Library">
             <TbAsset size={32} />
           </button>
-        </div>
-        {/* World Save Controls - New comprehensive save system */}
-        <div style={{ marginTop: '8px', paddingLeft: '8px' }}>
-          <WorldSaveControls />
         </div>
       </div>
 
