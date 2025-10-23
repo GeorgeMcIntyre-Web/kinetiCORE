@@ -125,7 +125,7 @@ export class KinematicsManager implements IKinematicsManager {
   private chains = new Map<string, KinematicChain>();
   private groundedNodes = new Set<string>();
   private joints = new Map<string, JointConfig>();
-  private actuatorSystem: any | null = null;
+  // private actuatorSystem: any | null = null; // TEMP DISABLED
   private keyframes = new Map<string, RobotKeyframe>();
 
   // Visual helpers

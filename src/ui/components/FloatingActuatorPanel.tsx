@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { AssetLibraryDarkPanel } from './FloatingPanel/AssetLibraryDarkPanel';
-import { KinematicsManager } from '../../kinematics/KinematicsManager';
+// import { KinematicsManager } from '../../kinematics/KinematicsManager'; // TEMP DISABLED
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { useEditorStore } from '../store/editorStore';
 import './FloatingActuatorPanel.css';
@@ -52,8 +52,9 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
   isVisible = true,
   zIndex = 1002,
 }) => {
-  const kinematicsManager = KinematicsManager.getInstance();
+  // const kinematicsManager = KinematicsManager.getInstance();
   // const actuatorSystem = kinematicsManager.getActuatorSystem(); // TODO: Fix async actuatorSystem
+  const actuatorSystem: any = null; // TEMPORARY: Disabled until circular dependency fixed
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
 
   const [devices, setDevices] = useState<{ nodeId: string; name: string; actuatorCount: number }[]>([]);
@@ -66,7 +67,7 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
   useEffect(() => {
     const discoverDevices = () => {
       const tree = SceneTreeManager.getInstance();
-      const allActuators = actuatorSystem.getAllActuators();
+      const allActuators = actuatorSystem?.getAllActuators() || [];
 
       if (allActuators.length === 0) {
         setDevices([]);
@@ -168,7 +169,7 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
         return;
       }
 
-      const allActuators = actuatorSystem.getAllActuators();
+      const allActuators = actuatorSystem?.getAllActuators() || [];
       const deviceActuators = allActuators.filter((a: any) =>
         a.id.startsWith(activeDeviceId)
       );
@@ -212,7 +213,7 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
   // Control handlers
   const handleSetValue = (value: number) => {
     if (!selectedActuatorId) return;
-    actuatorSystem.sendCommand({
+    actuatorSystem?.sendCommand({
       actuatorId: selectedActuatorId,
       command: 'set_value',
       value: value / 100, // Convert percentage to 0-1
@@ -224,21 +225,21 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
 
     switch (action) {
       case 'open':
-        actuatorSystem.sendCommand({
+        actuatorSystem?.sendCommand({
           actuatorId: selectedActuatorId,
           command: 'set_value',
           value: 1.0,
         });
         break;
       case 'close':
-        actuatorSystem.sendCommand({
+        actuatorSystem?.sendCommand({
           actuatorId: selectedActuatorId,
           command: 'set_value',
           value: 0.0,
         });
         break;
       case 'stop':
-        actuatorSystem.sendCommand({
+        actuatorSystem?.sendCommand({
           actuatorId: selectedActuatorId,
           command: 'disable',
         });
@@ -249,7 +250,7 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
   const handleEnableDisable = () => {
     if (!selectedActuatorId) return;
     const isEnabled = selectedActuator?.state.enabled;
-    actuatorSystem.sendCommand({
+    actuatorSystem?.sendCommand({
       actuatorId: selectedActuatorId,
       command: isEnabled ? 'disable' : 'enable',
     });
