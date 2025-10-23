@@ -114,7 +114,7 @@ export const ViewDropdown: React.FC<ViewDropdownProps> = ({
   return (
     <div className="view-dropdown" ref={dropdownRef}>
       <div className="view-dropdown-button-group">
-        {/* Main button - shows current view and executes its action */}
+        {/* Combined button - view icon + chevron */}
         <button
           ref={buttonRef}
           className="view-dropdown-main-btn"
@@ -122,15 +122,16 @@ export const ViewDropdown: React.FC<ViewDropdownProps> = ({
           title={`${currentOption.description} (Click to activate)`}
         >
           {currentOption.icon}
+          <ChevronDown size={10} className={`dropdown-chevron ${isOpen ? 'open' : ''}`} style={{ marginLeft: '2px' }} />
         </button>
-        
-        {/* Dropdown arrow button */}
+
+        {/* Hidden clickable area for dropdown */}
         <button
           className="view-dropdown-arrow-btn"
           onClick={handleDropdownClick}
           title="View Options"
+          style={{ position: 'absolute', right: 0, top: 0, width: '16px', height: '100%', opacity: 0 }}
         >
-          <ChevronDown size={16} className={`dropdown-chevron ${isOpen ? 'open' : ''}`} />
         </button>
       </div>
 
