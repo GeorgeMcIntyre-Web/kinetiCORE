@@ -53,7 +53,7 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
   zIndex = 1002,
 }) => {
   const kinematicsManager = KinematicsManager.getInstance();
-  const actuatorSystem = kinematicsManager.getActuatorSystem();
+  // const actuatorSystem = kinematicsManager.getActuatorSystem(); // TODO: Fix async actuatorSystem
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
 
   const [devices, setDevices] = useState<{ nodeId: string; name: string; actuatorCount: number }[]>([]);
