@@ -1,0 +1,135 @@
+/**
+ * SelectionIndicator Styles
+ * Owner: Agent 6 (Edwin)
+ * 
+ * Styles for the always-visible selection indicator in the top-left corner
+ */
+
+.selection-indicator {
+  position: fixed;
+  top: 90px; /* Below the header (80px) + small gap */
+  left: 10px;
+  
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 8px 14px;
+  border-radius: 6px;
+  
+  font-size: 13px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 500;
+  
+  max-width: 280px;
+  white-space: nowrap;
+  overflow: hidden;
+  
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  
+  /* Ensure it's above most content but below modals */
+  z-index: 900;
+  
+  /* Smooth transitions */
+  transition: all 0.2s ease;
+  
+  /* Subtle shadow for depth */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  
+  /* Prevent text selection */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+}
+
+.selection-indicator-icon {
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.selection-indicator-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0; /* Allows text to shrink */
+}
+
+/* Badge for multi-selection count */
+.selection-indicator-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 10px;
+  
+  flex-shrink: 0;
+}
+
+/* No selection state - lower opacity, italic text */
+.selection-indicator.no-selection {
+  opacity: 0.8;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.selection-indicator.no-selection .selection-indicator-badge {
+  display: none;
+}
+
+/* Hover effect - show full name if truncated */
+.selection-indicator:hover {
+  background: rgba(0, 0, 0, 0.85);
+  max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  cursor: default;
+}
+
+/* When selection is active, slightly brighter */
+.selection-indicator:not(.no-selection) {
+  background: rgba(20, 100, 200, 0.75);
+  border-color: rgba(100, 180, 255, 0.3);
+}
+
+.selection-indicator:not(.no-selection):hover {
+  background: rgba(20, 100, 200, 0.85);
+  border-color: rgba(100, 180, 255, 0.5);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .selection-indicator {
+    top: 70px; /* Closer to header on mobile */
+    left: 8px;
+    font-size: 12px;
+    padding: 6px 10px;
+    max-width: 200px;
+  }
+  
+  .selection-indicator-icon {
+    font-size: 14px;
+  }
+  
+  .selection-indicator:hover {
+    max-width: 280px;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .selection-indicator {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
