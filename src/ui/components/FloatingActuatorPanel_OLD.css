@@ -1,0 +1,459 @@
+/**
+ * FloatingActuatorPanel - Actuator Control Styling
+ * Consistent with the floating panel design system
+ */
+
+.floating-actuator-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0; /* Critical for flex children */
+  gap: 12px;
+  padding: 0;
+}
+
+/* Device Selection */
+.actuator-device-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0; /* Don't shrink header */
+}
+
+.device-selection-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.device-selection-header label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  min-width: 100px;
+}
+
+.device-selector {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.device-selector:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.device-selector:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.device-selector option {
+  background: rgba(30, 30, 30, 0.95);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Device Header */
+.actuator-device-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.device-info {
+  flex: 1;
+}
+
+.device-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 4px;
+}
+
+.device-type {
+  font-size: 11px;
+  color: rgba(59, 130, 246, 0.8);
+  background: rgba(59, 130, 246, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  font-weight: 600;
+}
+
+.device-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.device-status.state-idle {
+  background: rgba(156, 163, 175, 0.15);
+  color: rgba(156, 163, 175, 0.9);
+}
+
+.device-status.state-moving {
+  background: rgba(59, 130, 246, 0.15);
+  color: rgba(59, 130, 246, 0.9);
+}
+
+.device-status.state-grasping {
+  background: rgba(34, 197, 94, 0.15);
+  color: rgba(34, 197, 94, 0.9);
+}
+
+.device-status.state-clamped {
+  background: rgba(34, 197, 94, 0.15);
+  color: rgba(34, 197, 94, 0.9);
+}
+
+.device-status.state-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: rgba(239, 68, 68, 0.9);
+}
+
+/* Section Headers */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.section-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+}
+
+.disabled-hint {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+}
+
+.disabled-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+
+.disabled-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 12px;
+}
+
+/* Status Metrics */
+.actuator-metrics {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 16px;
+  flex-shrink: 0; /* Don't shrink metrics */
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 12px;
+}
+
+.metric-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+}
+
+.metric-icon {
+  color: rgba(59, 130, 246, 0.7);
+  flex-shrink: 0;
+}
+
+.metric-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.metric-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 2px;
+}
+
+.metric-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Section Titles */
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Quick Actions */
+.actuator-quick-actions {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 16px;
+  flex-shrink: 0; /* Don't shrink actions */
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Manual Control */
+.actuator-manual-control {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 16px;
+  flex-shrink: 0; /* Don't shrink manual control */
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.control-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.control-value {
+  font-weight: 600;
+  color: rgba(59, 130, 246, 0.9);
+  font-family: 'Courier New', monospace;
+}
+
+.control-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.control-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.8);
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.control-slider::-webkit-slider-thumb:hover {
+  background: rgba(59, 130, 246, 1);
+  transform: scale(1.1);
+}
+
+.control-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.8);
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.2s;
+}
+
+.control-slider::-moz-range-thumb:hover {
+  background: rgba(59, 130, 246, 1);
+  transform: scale(1.1);
+}
+
+.control-slider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.control-slider:disabled::-webkit-slider-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  cursor: not-allowed;
+}
+
+/* Joint States */
+.actuator-joints {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 16px;
+  flex: 1; /* Allow to grow and fill remaining space */
+  min-height: 0; /* Critical for flex children */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Hide overflow without scrollbar */
+}
+
+.actuator-joints .joints-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto; /* Only this section scrolls if needed */
+}
+
+/* Hide scrollbar for joints list but keep functionality */
+.actuator-joints .joints-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.actuator-joints .joints-list {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.joints-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.joint-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.joint-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.joint-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.joint-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 2px;
+}
+
+.joint-position {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: 'Courier New', monospace;
+}
+
+.joint-status {
+  display: flex;
+  align-items: center;
+}
+
+.joint-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.joint-indicator.idle {
+  background: rgba(156, 163, 175, 0.6);
+}
+
+.joint-indicator.moving {
+  background: rgba(59, 130, 246, 0.8);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* No scrollbar for main content - sections manage their own overflow */
+.floating-actuator-content::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.floating-actuator-content {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  overflow: hidden; /* No scrolling on main container */
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .floating-actuator-content {
+    padding: 16px;
+    gap: 16px;
+  }
+  
+  .actuator-metrics {
+    grid-template-columns: 1fr;
+  }
+  
+  .device-name {
+    font-size: 13px;
+  }
+  
+  .metric-item {
+    padding: 10px;
+  }
+}

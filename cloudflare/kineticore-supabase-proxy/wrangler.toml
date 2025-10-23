@@ -1,0 +1,30 @@
+# Cloudflare Supabase Integration Setup
+# File: wrangler.toml
+# Owner: George
+
+name = "kineticore-supabase-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-01-15"
+
+# Environment variables for Supabase
+[vars]
+SUPABASE_URL = "https://your-project.supabase.co"
+SUPABASE_ANON_KEY = "your-anon-key"
+
+# Secrets (use wrangler secret put to set these)
+# SUPABASE_SERVICE_ROLE_KEY = "your-service-role-key"
+
+# Routes for your domain (update with your actual domain)
+# routes = [
+#   { pattern = "api.supabase.*", zone_name = "your-domain.com" }
+# ]
+
+# KV storage for caching (optional)
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = "your-kv-namespace-id"
+
+# R2 storage for asset caching (optional)
+# [[r2_buckets]]
+# binding = "ASSET_CACHE"
+# bucket_name = "kineticore-asset-cache"

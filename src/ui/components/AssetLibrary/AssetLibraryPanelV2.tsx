@@ -3,11 +3,12 @@
 // Modern asset browser with Filter | Browser | Details layout
 
 import { useState } from 'react';
-import { X, Minimize2, Maximize2, Pin, PinOff, LayoutGrid, List } from 'lucide-react';
+import { X, Minimize2, Maximize2, Pin, PinOff, LayoutGrid, List, Crown, Star } from 'lucide-react';
 import { useAssetLibraryStore } from '../../store/assetLibraryStore';
 import { FilterPane } from './FilterPane';
 import { BrowserPane } from './BrowserPane';
 import { DetailsPane } from './DetailsPane';
+import { AssetLibraryAuth } from '../AssetLibraryAuth';
 import './AssetLibraryPanelV2.css';
 
 export function AssetLibraryPanelV2() {
@@ -15,6 +16,7 @@ export function AssetLibraryPanelV2() {
   const [isPinned, setIsPinned] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
+  const [authenticatedUser, setAuthenticatedUser] = useState<any>(null);
 
   if (!isVisible) {
     return null;
@@ -31,6 +33,14 @@ export function AssetLibraryPanelV2() {
           <h2 className="asset-library-title-v2">Asset Library</h2>
 
           <div className="asset-library-header-actions">
+            {/* Login/Auth */}
+            <div className="asset-library-action-group">
+              <AssetLibraryAuth 
+                onAuthChange={setAuthenticatedUser}
+                className="asset-library-auth-component"
+              />
+            </div>
+
             {/* View Buttons */}
             <div className="asset-library-action-group">
               <button
@@ -54,6 +64,19 @@ export function AssetLibraryPanelV2() {
 
             {/* Window Control Buttons */}
             <div className="asset-library-header-controls">
+              {/* Pro Icon */}
+              <button
+                className="asset-library-control-btn pro-btn"
+                onClick={() => {
+                  // TODO: Implement pro features or upgrade flow
+                  console.log('Pro features clicked');
+                }}
+                title="Pro Features - Premium Asset Library Access"
+                aria-label="Pro features"
+              >
+                <Crown size={16} />
+              </button>
+
               <button
                 className={`asset-library-control-btn pin-btn ${isPinned ? 'pinned' : ''}`}
                 onClick={() => setIsPinned(!isPinned)}

@@ -30,6 +30,7 @@ import type {
   AssetAnalytics
 } from '../../library/UserAwareAssetTypes';
 import type { LibraryAsset } from '../../library/types';
+import { AssetLibraryAuth } from './AssetLibraryAuth';
 
 interface AssetLibraryProps {
   user: User;
@@ -76,6 +77,7 @@ export const UserAwareAssetLibrary: React.FC<AssetLibraryProps> = ({
     tags: [] as string[]
   });
   const [showUploadZone, setShowUploadZone] = useState(false);
+  const [authenticatedUser, setAuthenticatedUser] = useState<any>(null);
 
   useEffect(() => {
     initializeAssetManager();
@@ -193,13 +195,25 @@ export const UserAwareAssetLibrary: React.FC<AssetLibraryProps> = ({
       <div className="bg-white border-b border-gray-200 p-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900">Asset Library</h2>
-          <button
-            onClick={() => setShowUploadZone(true)}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            Upload Assets
-          </button>
+          <div className="flex items-center space-x-3">
+            <AssetLibraryAuth 
+              onAuthChange={setAuthenticatedUser}
+              className="mr-2"
+            />
+            <button
+              onClick={() => setShowUploadZone(true)}
+              disabled={!authenticatedUser}
+              className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
+                authenticatedUser 
+                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+              title={authenticatedUser ? 'Upload Assets' : 'Please login to upload assets'}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Upload Assets
+            </button>
+          </div>
         </div>
 
         {/* Search and Filters */}
@@ -208,17 +222,23 @@ export const UserAwareAssetLibrary: React.FC<AssetLibraryProps> = ({
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="Search assets..."
+              placeholder={authenticatedUser ? "Search assets..." : "Login to search assets"}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={!authenticatedUser}
+              className={`w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                !authenticatedUser ? 'bg-gray-100 cursor-not-allowed' : ''
+              }`}
             />
           </div>
           
           <select
             value={filters.ownership}
             onChange={(e) => setFilters(prev => ({ ...prev, ownership: e.target.value as any }))}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            disabled={!authenticatedUser}
+            className={`px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              !authenticatedUser ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
           >
             <option value="all">All Assets</option>
             <option value="own">My Assets</option>
@@ -230,7 +250,21 @@ export const UserAwareAssetLibrary: React.FC<AssetLibraryProps> = ({
 
       {/* Asset Grid */}
       <div className="flex-1 p-4 overflow-auto">
-        {assets.length === 0 ? (
+        {!authenticatedUser ? (
+          <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+            <Lock className="w-12 h-12 mb-4 text-gray-300" />
+            <h3 className="text-lg font-medium mb-2">Login Required</h3>
+            <p className="text-sm text-center mb-4">
+              Please login to access your personal assets and upload new files
+            </p>
+            <div className="text-xs text-gray-400 text-center">
+              <p>• Access your personal asset library</p>
+              <p>• Upload and manage files</p>
+              <p>• Share assets with team members</p>
+              <p>• Sync across devices</p>
+            </div>
+          </div>
+        ) : assets.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-gray-500">
             <HardDrive className="w-12 h-12 mb-4 text-gray-300" />
             <h3 className="text-lg font-medium mb-2">No assets found</h3>

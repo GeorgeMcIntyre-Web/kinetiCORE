@@ -1,5 +1,78 @@
 /* AssetLibraryPanel V2 - Three-pane layout */
 
+/* Auth Component Styling */
+.asset-library-auth-component {
+  display: flex;
+  align-items: center;
+}
+
+.asset-library-auth-component button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.asset-library-auth-component button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.asset-library-auth-component button svg {
+  color: inherit;
+}
+
+.asset-library-auth-component .user-info {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  margin-right: 8px;
+}
+
+/* Pro Icon Styling */
+.asset-library-control-btn.pro-btn {
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  border: 1px solid #ffd700;
+  color: #1a1a1a;
+  position: relative;
+  overflow: hidden;
+}
+
+.asset-library-control-btn.pro-btn:hover {
+  background: linear-gradient(135deg, #ffed4e, #ffd700);
+  border-color: #ffed4e;
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+}
+
+.asset-library-control-btn.pro-btn::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #ffd700, #ffed4e, #ffd700);
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.asset-library-control-btn.pro-btn:hover::before {
+  opacity: 1;
+}
+
+.asset-library-control-btn.pro-btn svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
 .asset-library-overlay {
   position: fixed;
   top: 0;

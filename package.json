@@ -47,6 +47,7 @@
     "@mlightcad/data-model": "^1.2.20",
     "@mlightcad/libredwg-converter": "^3.0.20",
     "@mlightcad/libredwg-web": "^0.3.0",
+    "@supabase/supabase-js": "^2.76.1",
     "@types/three": "^0.180.0",
     "axios": "^1.12.2",
     "dockview-react": "^4.9.0",

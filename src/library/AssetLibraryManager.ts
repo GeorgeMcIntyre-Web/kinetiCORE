@@ -77,6 +77,14 @@ export class AssetLibraryManager {
       // Ask backend for enumerated GLB assets under ASSET_ROOTS
       const api = await fetch('/api/assets/list', { cache: 'no-store' });
       if (!api.ok) return;
+      
+      // Check if response is JSON, not HTML
+      const contentType = api.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn('API returned non-JSON response, skipping asset loading');
+        return;
+      }
+      
       const data = await api.json();
       if (!data || !Array.isArray(data.roots)) return;
 

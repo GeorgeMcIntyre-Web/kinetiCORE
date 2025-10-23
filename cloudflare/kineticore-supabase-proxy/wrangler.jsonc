@@ -1,0 +1,21 @@
+/**
+ * Cloudflare Workers Configuration for Supabase Proxy
+ * File: wrangler.jsonc
+ * Owner: George
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "kineticore-supabase-proxy",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-10-23",
+	"compatibility_flags": [
+		"global_fetch_strictly_public"
+	],
+	"observability": {
+		"enabled": true
+	},
+	"vars": {
+		"SUPABASE_URL": "https://nhkusjsounzwkmevjsgl.supabase.co",
+		"SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oa3VzanNvdW56d2ttZXZqc2dsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExODE5ODQsImV4cCI6MjA3Njc1Nzk4NH0.NCmILj-aOpHTPtygngkiXgPNekEb0hyJ6bA7132Ywrg"
+	}
+}
