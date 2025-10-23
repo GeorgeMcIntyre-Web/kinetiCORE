@@ -8,7 +8,8 @@
  */
 
 import React, { useEffect, useState, useRef } from 'react';
-import { performanceMetrics, FrameMetrics, MemorySnapshot } from '../../../core/PerformanceMetrics';
+import { performanceMetrics } from '../../../core/PerformanceMetrics';
+// import { FrameMetrics, MemorySnapshot } from '../../../core/PerformanceMetrics';
 
 export interface PerformanceMonitorProps {
   /** Enable/disable the monitor */

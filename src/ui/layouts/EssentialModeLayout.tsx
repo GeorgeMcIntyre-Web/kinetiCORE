@@ -9,7 +9,7 @@ import { useEditorStore } from '../store/editorStore';
 import { useAssetLibraryStore } from '../store/assetLibraryStore';
 import { SceneTree } from '../components/SceneTree';
 import { SceneCanvas } from '../components/SceneCanvas';
-import { SelectionIndicator } from '../components/SelectionIndicator';
+// import { SelectionIndicator } from '../components/SelectionIndicator';
 import { FloatingKinematicsPanel } from '../components/FloatingKinematicsPanel';
 import { FloatingKinematicsAnalysisPanel } from '../components/FloatingKinematicsAnalysisPanel';
 import { FloatingActuatorPanel } from '../components/FloatingActuatorPanel';
@@ -717,10 +717,6 @@ export const EssentialModeLayout: React.FC = () => {
 
       {/* Project Manager Panel */}
       <ProjectManagerPanelV2 />
-    </div>
-  );
-};
-ProjectManagerPanelV2 />
     </div>
   );
 };

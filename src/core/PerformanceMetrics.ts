@@ -60,7 +60,7 @@ export class PerformanceMetrics {
   private operationHistory: OperationTiming[] = [];
   private maxHistorySize = 300; // ~5 seconds at 60 FPS
   
-  private currentFrame: Partial<FrameMetrics> = {};
+  // private currentFrame: Partial<FrameMetrics> = {};
   private activeOperations = new Map<string, number>();
   
   private enabled = true;
@@ -140,7 +140,7 @@ export class PerformanceMetrics {
   /**
    * Start timing an operation
    */
-  startOperation(name: string, metadata?: Record<string, unknown>): void {
+  startOperation(name: string, _metadata?: Record<string, unknown>): void {
     if (!this.enabled) return;
     
     const operationId = `${name}-${Date.now()}-${Math.random()}`;
@@ -303,7 +303,7 @@ export class PerformanceMetrics {
    * Export statistics summary
    */
   exportStatsSummary(): {
-    frames: ReturnType<typeof this.getFrameStats>;
+    frames: any;
     operations: { [name: string]: PerformanceStats };
     memory: {
       current: MemorySnapshot | null;

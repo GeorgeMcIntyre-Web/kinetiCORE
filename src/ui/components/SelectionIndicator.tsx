@@ -34,7 +34,7 @@ export const SelectionIndicator: React.FC<SelectionIndicatorProps> = ({
   selectedNodeIds,
   className = '',
 }) => {
-  const [showDetails, setShowDetails] = useState(false);
+  const [_showDetails, setShowDetails] = useState(false);
 
   const displayInfo = useMemo((): DisplayInfo => {
     if (selectedNodeIds.length === 0) {
