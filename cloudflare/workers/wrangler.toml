@@ -1,0 +1,71 @@
+# Cloudflare Workers Configuration for kinetiCORE Assets API
+# Owner: George
+
+name = "kineticore-assets-api"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# Account ID (replace with your Cloudflare account ID)
+account_id = "YOUR_ACCOUNT_ID_HERE"
+
+# Workers configuration
+workers_dev = true
+route = "api.kineticore.io/v1/*"
+
+# R2 Bucket binding
+[[r2_buckets]]
+binding = "ASSETS_BUCKET"
+bucket_name = "kineticore-assets"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "ASSETS_DB"
+database_name = "kineticore-assets-db"
+database_id = "YOUR_D1_DATABASE_ID_HERE"
+
+# KV Namespace binding (for manifest caching)
+[[kv_namespaces]]
+binding = "MANIFESTS_KV"
+id = "YOUR_KV_NAMESPACE_ID_HERE"
+
+# Environment variables (secrets via wrangler secret put)
+[vars]
+ENVIRONMENT = "development"
+
+# Production environment
+[env.production]
+name = "kineticore-assets-api-production"
+route = "api.kineticore.io/v1/*"
+vars = { ENVIRONMENT = "production" }
+
+[[env.production.r2_buckets]]
+binding = "ASSETS_BUCKET"
+bucket_name = "kineticore-assets"
+
+[[env.production.d1_databases]]
+binding = "ASSETS_DB"
+database_name = "kineticore-assets-db"
+database_id = "YOUR_PRODUCTION_D1_DATABASE_ID_HERE"
+
+[[env.production.kv_namespaces]]
+binding = "MANIFESTS_KV"
+id = "YOUR_PRODUCTION_KV_NAMESPACE_ID_HERE"
+
+# Staging environment
+[env.staging]
+name = "kineticore-assets-api-staging"
+route = "api-staging.kineticore.io/v1/*"
+vars = { ENVIRONMENT = "staging" }
+
+[[env.staging.r2_buckets]]
+binding = "ASSETS_BUCKET"
+bucket_name = "kineticore-assets-staging"
+
+[[env.staging.d1_databases]]
+binding = "ASSETS_DB"
+database_name = "kineticore-assets-db-staging"
+database_id = "YOUR_STAGING_D1_DATABASE_ID_HERE"
+
+[[env.staging.kv_namespaces]]
+binding = "MANIFESTS_KV"
+id = "YOUR_STAGING_KV_NAMESPACE_ID_HERE"
