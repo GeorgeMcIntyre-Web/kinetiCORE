@@ -13,6 +13,7 @@ import { FloatingKinematicsPanel } from '../components/FloatingKinematicsPanel';
 import { FloatingKinematicsAnalysisPanel } from '../components/FloatingKinematicsAnalysisPanel';
 import { FloatingActuatorPanel } from '../components/FloatingActuatorPanel';
 import { FloatingComplexIKPanel } from '../components/FloatingComplexIKPanel';
+import { WholeBodyIKPanel } from '../components/WholeBodyIKPanel';
 import { FloatingPhysicsPanel } from '../components/FloatingPhysicsPanel';
 import { FloatingCollisionPanel } from '../components/FloatingCollisionPanel';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
@@ -59,6 +60,7 @@ export const EssentialModeLayout: React.FC = () => {
   const [showKinematicsAnalysisPanel, setShowKinematicsAnalysisPanel] = useState(false);
   const [showActuatorPanel, setShowActuatorPanel] = useState(false);
   const [showComplexIKPanel, setShowComplexIKPanel] = useState(false);
+  const [showWholeBodyIKPanel, setShowWholeBodyIKPanel] = useState(false);
   const [showPhysicsSettings, setShowPhysicsSettings] = useState(false);
   const [showCollisionVisualizer, setShowCollisionVisualizer] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
@@ -521,6 +523,7 @@ export const EssentialModeLayout: React.FC = () => {
             onKinematicsAnalysisClick: () => setShowKinematicsAnalysisPanel(!showKinematicsAnalysisPanel),
             onActuatorsClick: () => setShowActuatorPanel(!showActuatorPanel),
             onComplexIKClick: () => setShowComplexIKPanel(!showComplexIKPanel),
+            onWholeBodyIKClick: () => setShowWholeBodyIKPanel(!showWholeBodyIKPanel),
             onPhysicsClick: () => setShowPhysicsSettings(!showPhysicsSettings),
             onCollisionsClick: () => setShowCollisionVisualizer(!showCollisionVisualizer),
             onProjectionClick: handleCreateProjectionView,
@@ -606,22 +609,28 @@ export const EssentialModeLayout: React.FC = () => {
         zIndex={1004}
       />
 
+      <WholeBodyIKPanel
+        isVisible={showWholeBodyIKPanel}
+        onClose={() => setShowWholeBodyIKPanel(false)}
+        zIndex={1005}
+      />
+
       <FloatingPhysicsPanel
         isVisible={showPhysicsSettings}
         onClose={() => setShowPhysicsSettings(false)}
-        zIndex={1005}
+        zIndex={1006}
       />
 
       <FloatingCollisionPanel
         isVisible={showCollisionVisualizer}
         onClose={() => setShowCollisionVisualizer(false)}
-        zIndex={1006}
+        zIndex={1007}
       />
 
       <FloatingSettingsPanel
         isVisible={showSettingsPanel}
         onClose={() => setShowSettingsPanel(false)}
-        zIndex={1007}
+        zIndex={1008}
       />
 
       {/* Transform Display - Bottom-right corner */}
