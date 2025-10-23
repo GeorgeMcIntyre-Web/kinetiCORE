@@ -5,11 +5,13 @@
  */
 
 import React, { useState } from 'react';
+import { Move, RotateCw } from 'lucide-react';
 import * as BABYLON from '@babylonjs/core';
 import { WholeBodyIKSolver } from '../../kinematics/WholeBodyIKSolver';
 import type { WholeBodyIKConfig } from '../../kinematics/WholeBodyIKSolver';
 import type { IKTarget } from '../../kinematics/InverseKinematicsSolver';
 import { BalanceConstraint, CollisionAvoidanceConstraint } from '../../kinematics/constraints/IKConstraint';
+import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 
 interface TargetConfig {
   chainName: string;
@@ -18,7 +20,13 @@ interface TargetConfig {
   enabled: boolean;
 }
 
-export const WholeBodyIKPanel: React.FC = () => {
+interface WholeBodyIKPanelProps {
+  isVisible: boolean;
+  onClose: () => void;
+  zIndex?: number;
+}
+
+export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, onClose, zIndex = 1004 }) => {
   const [targets, setTargets] = useState<TargetConfig[]>([]);
   const [enableBalance, setEnableBalance] = useState(false);
   const [enableCollisionAvoidance, setEnableCollisionAvoidance] = useState(true);
@@ -167,13 +175,30 @@ export const WholeBodyIKPanel: React.FC = () => {
     }
   };
 
-  return (
-    <div style={{ padding: '10px', maxHeight: '600px', overflowY: 'auto' }}>
-      <h3 style={{ marginTop: 0 }}>Whole-Body IK Control</h3>
+  // Icon: 2x2 grid of Move + RotateCw icons representing multi-body control
+  const icon = (
+    <div style={{ position: 'relative', width: '24px', height: '24px' }}>
+      <Move size={10} style={{ position: 'absolute', left: '0px', top: '0px' }} />
+      <Move size={10} style={{ position: 'absolute', right: '0px', top: '0px' }} />
+      <RotateCw size={10} style={{ position: 'absolute', left: '0px', bottom: '0px' }} />
+      <RotateCw size={10} style={{ position: 'absolute', right: '0px', bottom: '0px' }} />
+    </div>
+  );
 
+  return (
+    <FloatingPanel
+      title="Whole-Body IK"
+      subtitle="Multi-target inverse kinematics"
+      icon={icon}
+      isVisible={isVisible}
+      onClose={onClose}
+      zIndex={zIndex}
+      defaultSize={{ width: 450, height: 700 }}
+      defaultPosition={{ x: window.innerWidth - 500, y: 120 }}
+    >
       {/* Quick Actions */}
       <div style={{ marginBottom: '20px' }}>
-        <h4>Quick Actions</h4>
+        <h4 style={{ marginTop: 0, marginBottom: '10px' }}>Quick Actions</h4>
         <button onClick={solveHumanoidWalking} style={{ marginRight: '5px', marginBottom: '5px' }}>
           Humanoid Walk Pose
         </button>
@@ -196,10 +221,11 @@ export const WholeBodyIKPanel: React.FC = () => {
           <div
             key={index}
             style={{
-              border: '1px solid #ccc',
+              border: '1px solid #444',
               padding: '10px',
               marginBottom: '10px',
               borderRadius: '4px',
+              backgroundColor: '#1a1a1a',
             }}
           >
             <div style={{ marginBottom: '5px' }}>
@@ -343,13 +369,13 @@ export const WholeBodyIKPanel: React.FC = () => {
         </label>
       </div>
 
-      <div style={{ marginTop: '20px', fontSize: '12px', color: '#666' }}>
-        <p>
+      <div style={{ marginTop: '20px', fontSize: '12px', color: '#999', borderTop: '1px solid #444', paddingTop: '10px' }}>
+        <p style={{ margin: '5px 0' }}>
           <strong>Note:</strong> Whole-body IK solves multiple kinematic chains simultaneously with
           priority weighting and constraint satisfaction.
         </p>
-        <p>Chain names must match existing kinematic chains in the scene.</p>
+        <p style={{ margin: '5px 0' }}>Chain names must match existing kinematic chains in the scene.</p>
       </div>
-    </div>
+    </FloatingPanel>
   );
 };
