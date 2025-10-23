@@ -15,10 +15,8 @@
         height: 100%;
         background: linear-gradient(135deg,
           #0f2027 0%,
-          #203a43 25%,
-          #2c5364 50%,
-          #203a43 75%,
-          #0f2027 100%
+          #203a43 50%,
+          #2c5364 100%
         );
         overflow: hidden;
       }
@@ -40,7 +38,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #0f2027 0%, #203a43 25%, #2c5364 50%, #203a43 75%, #0f2027 100%);
+        background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
         z-index: 10000;
         font-family: system-ui, -apple-system, sans-serif;
       ">
@@ -115,15 +113,22 @@
     </div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Remove initial splash when React renders
-      window.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-          const splash = document.getElementById('initial-splash');
-          if (splash && document.querySelector('[class*="splash-screen"]')) {
-            splash.remove();
-          }
-        }, 100);
-      });
+      // Remove initial splash immediately when React mounts
+      const checkAndRemove = () => {
+        const splash = document.getElementById('initial-splash');
+        const reactRoot = document.getElementById('root');
+        // Remove static splash as soon as React renders anything
+        if (splash && reactRoot && reactRoot.children.length > 1) {
+          splash.style.transition = 'opacity 0.2s ease-out';
+          splash.style.opacity = '0';
+          setTimeout(() => splash.remove(), 200);
+        } else {
+          // Keep checking until React renders
+          requestAnimationFrame(checkAndRemove);
+        }
+      };
+      // Start checking immediately
+      requestAnimationFrame(checkAndRemove);
     </script>
     <style>
       @keyframes slide {

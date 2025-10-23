@@ -17,16 +17,12 @@
   align-items: center;
   justify-content: center;
 
-  /* Smooth gradient background */
+  /* Static gradient background - no animation */
   background: linear-gradient(135deg,
     #0f2027 0%,
-    #203a43 25%,
-    #2c5364 50%,
-    #203a43 75%,
-    #0f2027 100%
+    #203a43 50%,
+    #2c5364 100%
   );
-  background-size: 400% 400%;
-  animation: splash-gradient-shift 25s ease infinite;
 
   z-index: 10000; /* Above everything else */
 
@@ -49,26 +45,8 @@
     linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
   background-size: 50px 50px;
-  animation: splash-grid-scroll 20s linear infinite;
   pointer-events: none;
-}
-
-@keyframes splash-gradient-shift {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-@keyframes splash-grid-scroll {
-  0% {
-    transform: translate(0, 0);
-  }
-  100% {
-    transform: translate(50px, 50px);
-  }
+  /* Grid animation removed - static only */
 }
 
 .splash-screen.fade-out {
