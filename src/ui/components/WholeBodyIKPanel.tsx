@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Move, RotateCw, Footprints, PawPrint, Grip, CheckCircle, XCircle, Loader, Plus, AlertCircle, Trash2, Play, RotateCcw, Eye, EyeOff } from 'lucide-react';
+import { Move, RotateCw, Footprints, PawPrint, Grip, CheckCircle, XCircle, Loader, Plus, AlertCircle, Trash2, Play, RotateCcw, Eye, EyeOff, Crosshair } from 'lucide-react';
 import * as BABYLON from '@babylonjs/core';
 import { WholeBodyIKSolver, WholeBodyIKSolution } from '../../kinematics/WholeBodyIKSolver';
 import type { WholeBodyIKConfig } from '../../kinematics/WholeBodyIKSolver';
@@ -23,6 +23,7 @@ interface TargetConfig {
   priority: number;
   enabled: boolean;
   showInViewport: boolean; // Toggle 3D gizmo visibility
+  isPickingMode: boolean; // True when waiting for user to click in viewport
 }
 
 interface WholeBodyIKPanelProps {
@@ -52,6 +53,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
   const [lastSolution, setLastSolution] = useState<WholeBodyIKSolution | null>(null);
   const [solverStatus, setSolverStatus] = useState<SolverStatus>(null);
   const [showGuidance, setShowGuidance] = useState(true);
+  const [activePickingIndex, setActivePickingIndex] = useState<number | null>(null);
 
   const wholeBodySolver = WholeBodyIKSolver.getInstance();
   const kinematicsManager = KinematicsManager.getInstance();
@@ -129,6 +131,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
         priority: 1.0,
         enabled: true,
         showInViewport: false, // Off by default, user can toggle
+        isPickingMode: false,
       },
     ]);
   };
@@ -156,6 +159,86 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
     // Remove from state
     setTargets(targets.filter((_, i) => i !== index));
   };
+
+  /**
+   * Enable picking mode for a target
+   */
+  const startPickingMode = (index: number) => {
+    setActivePickingIndex(index);
+    updateTarget(index, 'isPickingMode', true);
+  };
+
+  /**
+   * Cancel picking mode
+   */
+  const cancelPickingMode = () => {
+    if (activePickingIndex !== null) {
+      updateTarget(activePickingIndex, 'isPickingMode', false);
+    }
+    setActivePickingIndex(null);
+  };
+
+  /**
+   * Handle viewport click for position picking
+   */
+  const handleViewportPick = (position: BABYLON.Vector3) => {
+    if (activePickingIndex !== null) {
+      updateTarget(activePickingIndex, 'position', {
+        x: position.x,
+        y: position.y,
+        z: position.z,
+      });
+      cancelPickingMode();
+    }
+  };
+
+  // Set up raycast picking when in picking mode
+  useEffect(() => {
+    if (activePickingIndex === null || !isVisible) return;
+
+    const scene = sceneManager.getScene();
+    if (!scene) return;
+
+    const handlePointerDown = (evt: PointerEvent) => {
+      // Only handle left click
+      if (evt.button !== 0) return;
+
+      const pickResult = scene.pick(scene.pointerX, scene.pointerY);
+      
+      if (pickResult?.hit && pickResult.pickedPoint) {
+        handleViewportPick(pickResult.pickedPoint);
+        evt.stopPropagation();
+        evt.preventDefault();
+      }
+    };
+
+    const handleKeyDown = (evt: KeyboardEvent) => {
+      // ESC to cancel picking
+      if (evt.key === 'Escape') {
+        cancelPickingMode();
+        evt.stopPropagation();
+        evt.preventDefault();
+      }
+    };
+
+    // Get canvas and attach listeners
+    const canvas = scene.getEngine().getRenderingCanvas();
+    if (canvas) {
+      canvas.addEventListener('pointerdown', handlePointerDown);
+      window.addEventListener('keydown', handleKeyDown);
+      
+      // Change cursor to crosshair
+      canvas.style.cursor = 'crosshair';
+
+      console.log('[FullBody IK] Picking mode active - Click in viewport to set target position (ESC to cancel)');
+
+      return () => {
+        canvas.removeEventListener('pointerdown', handlePointerDown);
+        window.removeEventListener('keydown', handleKeyDown);
+        canvas.style.cursor = 'default';
+      };
+    }
+  }, [activePickingIndex, isVisible]);
 
   const solveWholeBodyIK = () => {
     // Build targets map
@@ -392,6 +475,44 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
       dockable={false}
       minimizable={false}
     >
+      {/* Picking Mode Banner */}
+      {activePickingIndex !== null && (
+        <div style={{
+          padding: '12px',
+          marginBottom: '16px',
+          borderRadius: '4px',
+          backgroundColor: '#4d4d1a',
+          borderLeft: '4px solid #ffc107',
+          animation: 'pulse 2s infinite'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Crosshair size={20} color="#ffc107" />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '4px', color: '#ffc107' }}>
+                Pick Target Position
+              </div>
+              <div style={{ fontSize: '12px', opacity: 0.9 }}>
+                Click anywhere in the 3D viewport to set the target position • Press ESC to cancel
+              </div>
+            </div>
+            <button
+              onClick={cancelPickingMode}
+              style={{
+                padding: '4px 12px',
+                fontSize: '11px',
+                backgroundColor: '#666',
+                border: 'none',
+                borderRadius: '3px',
+                cursor: 'pointer',
+                color: '#fff'
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Status Banner */}
       {solverStatus && (
         <div style={{
@@ -647,52 +768,75 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
               </button>
             </div>
 
-            <div style={{ marginBottom: '5px' }}>
-              <label>
-                X:{' '}
-                <input
-                  type="number"
-                  step="0.1"
-                  value={target.position.x}
-                  onChange={(e) =>
-                    updateTarget(index, 'position', {
-                      ...target.position,
-                      x: parseFloat(e.target.value),
-                    })
-                  }
-                  style={{ width: '60px' }}
-                />
-              </label>
-              <label style={{ marginLeft: '10px' }}>
-                Y:{' '}
-                <input
-                  type="number"
-                  step="0.1"
-                  value={target.position.y}
-                  onChange={(e) =>
-                    updateTarget(index, 'position', {
-                      ...target.position,
-                      y: parseFloat(e.target.value),
-                    })
-                  }
-                  style={{ width: '60px' }}
-                />
-              </label>
-              <label style={{ marginLeft: '10px' }}>
-                Z:{' '}
-                <input
-                  type="number"
-                  step="0.1"
-                  value={target.position.z}
-                  onChange={(e) =>
-                    updateTarget(index, 'position', {
-                      ...target.position,
-                      z: parseFloat(e.target.value),
-                    })
-                  }
-                  style={{ width: '60px' }}
-                />
-              </label>
+            <div style={{ marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', gap: '10px', flex: 1 }}>
+                <label>
+                  X:{' '}
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={target.position.x}
+                    onChange={(e) =>
+                      updateTarget(index, 'position', {
+                        ...target.position,
+                        x: parseFloat(e.target.value),
+                      })
+                    }
+                    style={{ width: '60px' }}
+                  />
+                </label>
+                <label>
+                  Y:{' '}
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={target.position.y}
+                    onChange={(e) =>
+                      updateTarget(index, 'position', {
+                        ...target.position,
+                        y: parseFloat(e.target.value),
+                      })
+                    }
+                    style={{ width: '60px' }}
+                  />
+                </label>
+                <label>
+                  Z:{' '}
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={target.position.z}
+                    onChange={(e) =>
+                      updateTarget(index, 'position', {
+                        ...target.position,
+                        z: parseFloat(e.target.value),
+                      })
+                    }
+                    style={{ width: '60px' }}
+                  />
+                </label>
+              </div>
+              <button
+                onClick={() => target.isPickingMode ? cancelPickingMode() : startPickingMode(index)}
+                title={target.isPickingMode ? "Cancel picking (ESC)" : "Pick position from viewport"}
+                style={{
+                  padding: '6px 10px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '11px',
+                  fontWeight: '500',
+                  backgroundColor: target.isPickingMode ? '#ffc107' : '#28a745',
+                  border: 'none',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  color: '#000',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <Crosshair size={12} />
+                <span>{target.isPickingMode ? 'Click scene...' : 'Pick'}</span>
+              </button>
             </div>
 
             <div>
