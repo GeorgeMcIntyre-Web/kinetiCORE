@@ -1418,8 +1418,12 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
       // Extract kinematic joints and create kinematic chain (AFTER all body nodes are created)
       try {
         const { createKinematicsFromMJCF } = await import('./MJCFKinematicExtractor');
-        await createKinematicsFromMJCF(mjcfContent, rootSceneNode.id);
-        console.log(`[MJCF Import] ✅ Created kinematic joints and chain for ${rootSceneNode.id}`);
+
+        // Extract friendly robot name from filename (e.g., "h1" from "h1.xml")
+        const robotName = primaryMjcfFile.replace(/\.(xml|mjcf)$/i, '').toUpperCase();
+
+        await createKinematicsFromMJCF(mjcfContent, rootSceneNode.id, robotName);
+        console.log(`[MJCF Import] ✅ Created kinematic joints and chain for ${robotName}`);
       } catch (error) {
         console.error(`[MJCF Import] Failed to create kinematic joints:`, error);
       }

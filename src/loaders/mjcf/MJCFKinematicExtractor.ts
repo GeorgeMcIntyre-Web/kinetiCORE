@@ -221,7 +221,8 @@ function mapMJCFJointType(mjcfType: string): JointType {
  */
 export async function createKinematicsFromMJCF(
   xmlString: string,
-  robotRootNodeId: string
+  robotRootNodeId: string,
+  robotName?: string
 ): Promise<void> {
   mjcfLogger.group('MJCF Kinematic', '🔧 Creating Kinematics from MJCF');
 
@@ -230,6 +231,7 @@ export async function createKinematicsFromMJCF(
   const sceneTreeManager = SceneTreeManager.getInstance();
 
   mjcfLogger.info('MJCF Kinematic', `Robot Root Node ID: ${robotRootNodeId}`);
+  mjcfLogger.info('MJCF Kinematic', `Robot Name: ${robotName || 'Unknown'}`);
   mjcfLogger.info('MJCF Kinematic', `Total Joints to Process: ${joints.length}`);
 
   // Map body names to scene tree node IDs (same approach as URDF)
@@ -366,7 +368,8 @@ export async function createKinematicsFromMJCF(
     mjcfLogger.group('MJCF Kinematic', '🔗 Creating Kinematic Chain');
 
     try {
-      const chainName = `${robotRootNodeId} Kinematic Chain`;
+      // Use robot name if provided, otherwise fall back to root node ID
+      const chainName = robotName ? robotName : robotRootNodeId;
       mjcfLogger.info('MJCF Kinematic', `Chain Name: ${chainName}`);
       mjcfLogger.info('MJCF Kinematic', `Root Node: ${robotRootNodeId}`);
 
