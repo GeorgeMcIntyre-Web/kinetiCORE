@@ -274,6 +274,8 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
         x: (window.innerWidth - 450) / 2,
         y: (window.innerHeight - 700) / 2
       }}
+      dockable={false}
+      minimizable={false}
     >
       {/* Status Banner */}
       {solverStatus && (
