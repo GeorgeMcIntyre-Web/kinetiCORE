@@ -29,6 +29,15 @@ export interface SplashScreenProps {
   fadeOutDuration?: number;
 }
 
+const INSPIRING_MESSAGES = [
+  'Powering the future of industrial automation...',
+  'Bringing your robotic visions to life...',
+  'Engineering precision, simulating perfection...',
+  'Where innovation meets simulation...',
+  'Accelerating the next generation of robotics...',
+  'Transforming industrial workflows...',
+];
+
 export const SplashScreen: React.FC<SplashScreenProps> = ({
   message = 'Initializing kinetiCORE...',
   progress,
@@ -39,6 +48,20 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 }) => {
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [isHidden, setIsHidden] = useState(!isVisible);
+  const [inspiringMessage, setInspiringMessage] = useState(INSPIRING_MESSAGES[0]);
+
+  // Cycle through inspiring messages
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setInspiringMessage(prev => {
+        const currentIndex = INSPIRING_MESSAGES.indexOf(prev);
+        const nextIndex = (currentIndex + 1) % INSPIRING_MESSAGES.length;
+        return INSPIRING_MESSAGES[nextIndex];
+      });
+    }, 3000); // Change message every 3 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!isVisible && !isFadingOut) {
@@ -71,11 +94,14 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         <div className="splash-logo-container">
           <div className="splash-logo">
             <div className="splash-logo-gradient">
-              <Zap className="splash-logo-icon" size={48} strokeWidth={2.5} />
+              <Zap className="splash-logo-icon" size={56} strokeWidth={2.5} />
             </div>
           </div>
           <h1 className="splash-title">kinetiCORE</h1>
           <p className="splash-subtitle">Industrial Simulation Platform</p>
+          <p className="splash-tagline" key={inspiringMessage}>
+            {inspiringMessage}
+          </p>
         </div>
 
         {/* Loading State */}
