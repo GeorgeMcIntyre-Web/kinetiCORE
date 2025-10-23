@@ -1,0 +1,68 @@
+Branch Merge Test Results - Thu Oct 23 03:37:12 PM UTC 2025
+================================================
+
+❌ MERGE CONFLICT: feature/cloud-asset-library
+   Conflicts:
+UU .claude/settings.local.json
+
+✅ MERGE SUCCESS: feature/transform-controls-snap-system
+   Commits: 0
+   Changes: 
+
+❌ MERGE CONFLICT: GUI_ENHANCEMENT
+   Conflicts:
+UU src/ui/store/editorStore.ts
+
+✅ MERGE SUCCESS: NODE-SELECTION
+   Commits: 0
+   Changes: 
+
+✅ MERGE SUCCESS: feature/jt-import
+   Commits: 0
+   Changes: 
+
+❌ MERGE CONFLICT: feature/basepanel-system
+   Conflicts:
+UU src/App.tsx
+UU src/ui/components/SceneTree.css
+UU src/ui/components/SceneTree.tsx
+
+✅ MERGE SUCCESS: feature/ros2-integration
+   Commits: 4
+   Changes:  29 files changed, 5308 insertions(+)
+
+❌ MERGE CONFLICT: Object-Tree-Error-Fix
+   Conflicts:
+UU src/ui/components/RibbonToolbar.tsx
+
+✅ MERGE SUCCESS: audit-fixes
+   Commits: 0
+   Changes: 
+
+❌ MERGE CONFLICT: mesh_overlay
+   Conflicts:
+UU src/ui/components/SceneCanvas.tsx
+
+❌ MERGE CONFLICT: perspective-camera-test
+   Conflicts:
+UU src/ui/components/RibbonToolbar.tsx
+
+❌ MERGE CONFLICT: node-selection
+   Conflicts:
+UU src/ui/store/editorStore.ts
+
+✅ MERGE SUCCESS: cursor/asset-data-management-and-saving-system-72e2
+   Commits: 0
+   Changes: 
+
+✅ MERGE SUCCESS: cursor/complete-full-body-ik-development-4d71
+   Commits: 0
+   Changes: 
+
+❌ MERGE CONFLICT: cursor/bc-6f3da702-440c-449c-960b-3be9b630aa89-73cd
+   Conflicts:
+UU src/App.tsx
+UU src/physics/IPhysicsEngine.ts
+UU src/physics/RapierPhysicsEngine.ts
+UU src/ui/components/SceneCanvas.tsx
+
