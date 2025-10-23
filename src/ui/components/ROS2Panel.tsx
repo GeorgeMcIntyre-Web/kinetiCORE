@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Wifi, WifiOff, Send, Download, RefreshCw, Settings } from 'lucide-react';
+import { Wifi, WifiOff, Send, Download, RefreshCw } from 'lucide-react';
 import { ROSManager } from '../../ros2/bridge';
 import { JointState, TFMessage } from '../../ros2/messages';
 import './ROS2Panel.css';

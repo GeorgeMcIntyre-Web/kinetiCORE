@@ -257,9 +257,9 @@ export class CloudAssetAPI {
    * Generic fetch wrapper with auth and error handling
    */
   private async fetch<T>(url: string, options: RequestInit = {}): Promise<T> {
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...(options.headers as Record<string, string> || {}),
     };
 
     // Add API key if configured

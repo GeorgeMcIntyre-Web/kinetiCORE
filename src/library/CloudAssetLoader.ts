@@ -114,7 +114,7 @@ export class CloudAssetLoader {
 
     // Download all files in parallel
     const filePromises = downloadInfo.files.map((fileInfo) =>
-      this.downloadFile(fileInfo.url, fileInfo.path, fileInfo.size, assetId, version)
+        this.downloadFile(fileInfo.url, fileInfo.path)
     );
 
     const fileResults = await Promise.all(filePromises);
@@ -207,9 +207,9 @@ export class CloudAssetLoader {
   private async downloadFile(
     url: string,
     path: string,
-    size: number,
-    assetId: string,
-    version: string
+//     size: number,
+//     assetId: string,
+//     version: string
   ): Promise<{ path: string; data: ArrayBuffer }> {
     const response = await fetch(url);
 

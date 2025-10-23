@@ -34,7 +34,7 @@ export class ROSManager {
   private jointStateCallback: ((state: JointState) => void) | null = null;
   private tfCallback: ((tf: TFMessage) => void) | null = null;
 
-  constructor(options: ROSManagerOptions = {}) {
+  constructor(_options: ROSManagerOptions = {}) {
     this.bridge = new ROSBridgeClient({
       autoReconnect: true,
       reconnectDelay: 3000,

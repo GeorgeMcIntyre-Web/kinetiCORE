@@ -3,7 +3,7 @@
  * Generates Python launch files for ROS 2
  */
 
-import { KinematicDevice } from '../../kinematics/device/UnifiedDeviceDefinition';
+// import { KinematicDevice } from '../../kinematics/device/UnifiedDeviceDefinition';
 
 export interface LaunchFileOptions {
   /** Package name (default: 'kineticore_export') */
@@ -33,7 +33,7 @@ export class LaunchFileExporter {
    * @param options - Launch file options
    */
   generateLaunchFile(
-    urdfContent: string,
+    _urdfContent: string,
     robotName: string,
     options: LaunchFileOptions = {}
   ): string {
@@ -140,7 +140,7 @@ export class LaunchFileExporter {
    * Generate Gazebo launch file
    */
   generateGazeboLaunchFile(
-    urdfContent: string,
+    _urdfContent: string,
     robotName: string,
     options: LaunchFileOptions = {}
   ): string {
@@ -272,7 +272,7 @@ export class LaunchFileExporter {
     // Note: Actual file download would require a zip library
     // For now, this logs the files that would be created
     console.log('[LaunchFileExporter] Package files generated:');
-    files.forEach((content, path) => {
+    files.forEach((_content, path) => {
       console.log(`  - ${path}`);
     });
 

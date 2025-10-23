@@ -5,7 +5,7 @@
 
 import * as BABYLON from '@babylonjs/core';
 import { TransformStamped, TFMessage } from '../messages';
-import { fromROSTime } from '../utils';
+// import { fromROSTime } from '../utils';
 
 export interface TFFrameNode {
   name: string;
@@ -42,7 +42,7 @@ export class TFVisualizer {
   private scene: BABYLON.Scene;
   private frames: Map<string, TFFrameNode> = new Map();
   private frameAxes: Map<string, BABYLON.TransformNode> = new Map();
-  private frameLabels: Map<string, unknown> = new Map(); // GUI textures (requires @babylonjs/gui)
+    // const _frameLabels = new Map<string, GUI.TextBlock>();
   private connections: Map<string, BABYLON.LinesMesh> = new Map();
   private options: Required<TFVisualizerOptions>;
   private rootTransform: BABYLON.TransformNode;
@@ -246,7 +246,7 @@ export class TFVisualizer {
   /**
    * Update label for a frame
    */
-  private updateLabel(frameNode: TFFrameNode, axesNode: BABYLON.TransformNode): void {
+  private updateLabel(_frameNode: TFFrameNode, _axesNode: BABYLON.TransformNode): void {
     // Note: Labels would typically use BABYLON.GUI.AdvancedDynamicTexture
     // For now, this is a placeholder for the label system
     // Full implementation would require GUI setup
