@@ -100,8 +100,8 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
     if (targetsMap.size === 0) {
       setSolverStatus({
         type: 'error',
-        message: 'No valid targets configured',
-        details: 'Add at least one enabled target with a chain name'
+        message: 'No targets to solve',
+        details: 'Add at least one target and select a chain name'
       });
       return;
     }
@@ -125,8 +125,8 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
     // Set solving status
     setSolverStatus({
       type: 'solving',
-      message: 'Solving IK...',
-      details: `${targetsMap.size} target(s), max ${maxIterations} iterations`
+      message: 'Calculating robot pose...',
+      details: `Solving for ${targetsMap.size} target position${targetsMap.size > 1 ? 's' : ''}`
     });
 
     // Solve (using setTimeout to allow UI to update)
@@ -145,14 +145,19 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
       if (solution.success) {
         setSolverStatus({
           type: 'success',
-          message: `Solution found in ${solution.iterations} iterations`,
-          details: `Total error: ${solution.totalError.toFixed(4)}m | Click Apply to move robot`
+          message: 'Target positions reached successfully',
+          details: `Solved in ${solution.iterations} iteration${solution.iterations > 1 ? 's' : ''} • Position error: ${(solution.totalError * 1000).toFixed(1)}mm • Click Apply to move robot`
         });
       } else {
+        // Provide helpful feedback based on iterations
+        const progressHint = solution.iterations >= maxIterations 
+          ? 'Try increasing Max Iterations or adjusting target positions'
+          : 'Target positions may be unreachable';
+        
         setSolverStatus({
           type: 'error',
-          message: 'Failed to converge',
-          details: `Final error: ${solution.totalError.toFixed(4)}m (tolerance: ${tolerance}m)`
+          message: 'Could not reach target positions',
+          details: `Position error: ${(solution.totalError * 1000).toFixed(1)}mm (tolerance: ${(tolerance * 1000).toFixed(1)}mm) • ${progressHint}`
         });
       }
     }, 50);
@@ -429,6 +434,35 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
           <Plus size={20} />
         </button>
 
+        {/* Empty State Guidance */}
+        {targets.length === 0 && availableChains.length > 0 && (
+          <div style={{
+            padding: '16px',
+            marginBottom: '10px',
+            borderRadius: '4px',
+            backgroundColor: '#1a2a3a',
+            border: '1px dashed #0d6efd',
+            fontSize: '13px',
+            color: '#aaa'
+          }}>
+            <div style={{ marginBottom: '8px', fontWeight: 'bold', color: '#fff' }}>
+              💡 Getting Started
+            </div>
+            <div style={{ marginBottom: '6px' }}>
+              1. Click <Plus size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> to add a target
+            </div>
+            <div style={{ marginBottom: '6px' }}>
+              2. Choose which part of the robot to control (chain)
+            </div>
+            <div style={{ marginBottom: '6px' }}>
+              3. Set the X, Y, Z coordinates where you want it to move
+            </div>
+            <div>
+              4. Click <Play size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> to solve, then Apply to move the robot
+            </div>
+          </div>
+        )}
+
         {targets.map((target, index) => (
           <div
             key={index}
@@ -578,28 +612,30 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
       {/* Constraints */}
       <div style={{ marginBottom: '20px' }}>
         <h4>Constraints</h4>
-        <label style={{ display: 'block', marginBottom: '5px' }}>
+        <label style={{ display: 'block', marginBottom: '8px' }} title="Prevent robot parts from intersecting each other">
           <input
             type="checkbox"
             checked={enableCollisionAvoidance}
             onChange={(e) => setEnableCollisionAvoidance(e.target.checked)}
           />
           Collision Avoidance
+          <span style={{ fontSize: '11px', color: '#888', marginLeft: '8px' }}>(Recommended)</span>
         </label>
-        <label style={{ display: 'block', marginBottom: '5px' }}>
+        <label style={{ display: 'block', marginBottom: '5px' }} title="Keep robot balanced (useful for walking/standing poses)">
           <input
             type="checkbox"
             checked={enableBalance}
             onChange={(e) => setEnableBalance(e.target.checked)}
           />
           Balance Constraint
+          <span style={{ fontSize: '11px', color: '#888', marginLeft: '8px' }}>(For humanoids/quadrupeds)</span>
         </label>
       </div>
 
       {/* Solver Settings */}
       <div>
         <h4>Solver Settings</h4>
-        <label style={{ display: 'block', marginBottom: '5px' }}>
+        <label style={{ display: 'block', marginBottom: '10px' }} title="How many attempts the solver makes to reach targets">
           Max Iterations:{' '}
           <input
             type="number"
@@ -607,8 +643,11 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
             onChange={(e) => setMaxIterations(parseInt(e.target.value))}
             style={{ width: '80px' }}
           />
+          <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+            Higher = more accurate but slower (default: 100)
+          </div>
         </label>
-        <label style={{ display: 'block' }}>
+        <label style={{ display: 'block' }} title="How close the robot needs to get to targets">
           Tolerance (m):{' '}
           <input
             type="number"
@@ -617,6 +656,9 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
             onChange={(e) => setTolerance(parseFloat(e.target.value))}
             style={{ width: '80px' }}
           />
+          <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+            Position accuracy in meters (default: 0.001 = 1mm)
+          </div>
         </label>
       </div>
 
@@ -672,7 +714,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
 
       <div style={{ marginTop: '20px', fontSize: '12px', color: '#999', borderTop: '1px solid #444', paddingTop: '10px' }}>
         <p style={{ margin: '5px 0' }}>
-          <strong>Workflow:</strong> 1) Add targets 2) Solve IK 3) Review status 4) Apply solution
+          <strong>💡 Quick Tip:</strong> Try a Quick Action preset above, or create Custom Targets to control specific robot parts
         </p>
       </div>
     </FloatingPanel>
