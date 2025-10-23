@@ -13,6 +13,7 @@ export interface Env {
   SUPABASE_URL: string
   SUPABASE_ANON_KEY: string
   SUPABASE_SERVICE_ROLE_KEY?: string
+  R2_ASSETS: R2Bucket  // Asset storage bucket
 }
 
 export default {
@@ -36,8 +37,11 @@ export default {
       const path = url.pathname
       const method = request.method
 
-      // Route requests to appropriate Supabase endpoints
-      if (path.startsWith('/auth/')) {
+      // Route requests to appropriate endpoints
+      if (path.startsWith('/assets/')) {
+        // R2 asset storage (files, meshes, textures)
+        return await handleR2Assets(request, env, ctx)
+      } else if (path.startsWith('/auth/')) {
         return await handleAuth(request, supabase, env)
       } else if (path.startsWith('/rest/')) {
         return await handleRest(request, supabase, env)
@@ -300,4 +304,231 @@ function getCORSHeaders(): Record<string, string> {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-supabase-api-version, x-client-info, x-supabase-client',
     'Access-Control-Max-Age': '86400'
   }
+}
+
+/**
+ * Handle R2 asset storage (files, meshes, textures)
+ */
+async function handleR2Assets(
+  request: Request, 
+  env: Env, 
+  ctx: ExecutionContext
+): Promise<Response> {
+  const url = new URL(request.url)
+  const path = url.pathname.replace('/assets/', '')
+  
+  // Upload file to R2
+  if (request.method === 'POST' || request.method === 'PUT') {
+    try {
+      const contentType = request.headers.get('content-type') || 'application/octet-stream'
+      
+      // Handle multipart form data
+      if (contentType.includes('multipart/form-data')) {
+        const formData = await request.formData()
+        const file = formData.get('file') as File
+        
+        if (!file) {
+          return new Response(JSON.stringify({ 
+            error: 'No file provided' 
+          }), {
+            status: 400,
+            headers: {
+              ...getCORSHeaders(),
+              'Content-Type': 'application/json'
+            }
+          })
+        }
+        
+        // Upload to R2
+        await env.R2_ASSETS.put(path, file.stream(), {
+          httpMetadata: {
+            contentType: file.type,
+          },
+          customMetadata: {
+            uploadedAt: new Date().toISOString(),
+            originalName: file.name,
+          }
+        })
+        
+        // Return URL
+        const assetUrl = `${url.origin}/assets/${path}`
+        
+        return new Response(JSON.stringify({
+          success: true,
+          url: assetUrl,
+          path: path,
+          size: file.size,
+          contentType: file.type
+        }), {
+          status: 200,
+          headers: {
+            ...getCORSHeaders(),
+            'Content-Type': 'application/json'
+          }
+        })
+      } 
+      // Handle direct binary upload
+      else {
+        await env.R2_ASSETS.put(path, request.body, {
+          httpMetadata: {
+            contentType: contentType,
+          },
+          customMetadata: {
+            uploadedAt: new Date().toISOString(),
+          }
+        })
+        
+        const assetUrl = `${url.origin}/assets/${path}`
+        
+        return new Response(JSON.stringify({
+          success: true,
+          url: assetUrl,
+          path: path
+        }), {
+          status: 200,
+          headers: {
+            ...getCORSHeaders(),
+            'Content-Type': 'application/json'
+          }
+        })
+      }
+    } catch (error) {
+      console.error('R2 upload error:', error)
+      return new Response(JSON.stringify({ 
+        error: 'Upload failed',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      }), {
+        status: 500,
+        headers: {
+          ...getCORSHeaders(),
+          'Content-Type': 'application/json'
+        }
+      })
+    }
+  }
+  
+  // Download file from R2
+  if (request.method === 'GET') {
+    try {
+      const object = await env.R2_ASSETS.get(path)
+      
+      if (!object) {
+        return new Response(JSON.stringify({ 
+          error: 'Asset not found',
+          path: path
+        }), { 
+          status: 404,
+          headers: {
+            ...getCORSHeaders(),
+            'Content-Type': 'application/json'
+          }
+        })
+      }
+      
+      // Get ETag for caching
+      const etag = object.etag
+      const ifNoneMatch = request.headers.get('if-none-match')
+      
+      // Return 304 if not modified
+      if (ifNoneMatch === etag) {
+        return new Response(null, {
+          status: 304,
+          headers: getCORSHeaders()
+        })
+      }
+      
+      // Return file with caching headers
+      return new Response(object.body, {
+        headers: {
+          ...getCORSHeaders(),
+          'Content-Type': object.httpMetadata?.contentType || 'application/octet-stream',
+          'Cache-Control': 'public, max-age=31536000, immutable', // 1 year cache
+          'ETag': etag,
+          'Content-Length': object.size.toString(),
+        }
+      })
+    } catch (error) {
+      console.error('R2 download error:', error)
+      return new Response(JSON.stringify({ 
+        error: 'Download failed',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      }), {
+        status: 500,
+        headers: {
+          ...getCORSHeaders(),
+          'Content-Type': 'application/json'
+        }
+      })
+    }
+  }
+  
+  // Delete file from R2
+  if (request.method === 'DELETE') {
+    try {
+      await env.R2_ASSETS.delete(path)
+      
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Asset deleted',
+        path: path
+      }), {
+        status: 200,
+        headers: {
+          ...getCORSHeaders(),
+          'Content-Type': 'application/json'
+        }
+      })
+    } catch (error) {
+      console.error('R2 delete error:', error)
+      return new Response(JSON.stringify({ 
+        error: 'Delete failed',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      }), {
+        status: 500,
+        headers: {
+          ...getCORSHeaders(),
+          'Content-Type': 'application/json'
+        }
+      })
+    }
+  }
+  
+  // List files (optional - for debugging)
+  if (request.method === 'HEAD') {
+    try {
+      const object = await env.R2_ASSETS.head(path)
+      
+      if (!object) {
+        return new Response(null, { 
+          status: 404,
+          headers: getCORSHeaders()
+        })
+      }
+      
+      return new Response(null, {
+        status: 200,
+        headers: {
+          ...getCORSHeaders(),
+          'Content-Type': object.httpMetadata?.contentType || 'application/octet-stream',
+          'Content-Length': object.size.toString(),
+          'ETag': object.etag,
+        }
+      })
+    } catch (error) {
+      return new Response(null, {
+        status: 500,
+        headers: getCORSHeaders()
+      })
+    }
+  }
+  
+  return new Response(JSON.stringify({ 
+    error: 'Method not allowed' 
+  }), { 
+    status: 405,
+    headers: {
+      ...getCORSHeaders(),
+      'Content-Type': 'application/json'
+    }
+  })
 }

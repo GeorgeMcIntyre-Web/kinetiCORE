@@ -69,6 +69,7 @@ const QuickMoveIcon = ({ size = 32 }: { size?: number }) => (
 import { useEditorStore } from '../store/editorStore';
 import { ViewDropdown } from './ViewDropdown';
 import './RibbonToolbar.css';
+import { WorldSaveControls } from './WorldSaveControls';
 
 export interface RibbonToolbarProps {
   onKinematicsClick?: () => void;
@@ -202,6 +203,10 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           <button className="ribbon-btn" onClick={onAssetLibraryClick} title="Asset Library">
             <TbAsset size={32} />
           </button>
+        </div>
+        {/* World Save Controls - New comprehensive save system */}
+        <div style={{ marginTop: '8px', paddingLeft: '8px' }}>
+          <WorldSaveControls />
         </div>
       </div>
 
