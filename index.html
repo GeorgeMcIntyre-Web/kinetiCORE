@@ -112,24 +112,7 @@
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      // Remove initial splash immediately when React mounts
-      const checkAndRemove = () => {
-        const splash = document.getElementById('initial-splash');
-        const reactRoot = document.getElementById('root');
-        // Remove static splash as soon as React renders anything
-        if (splash && reactRoot && reactRoot.children.length > 1) {
-          splash.style.transition = 'opacity 0.2s ease-out';
-          splash.style.opacity = '0';
-          setTimeout(() => splash.remove(), 200);
-        } else {
-          // Keep checking until React renders
-          requestAnimationFrame(checkAndRemove);
-        }
-      };
-      // Start checking immediately
-      requestAnimationFrame(checkAndRemove);
-    </script>
+    <!-- Splash screen removal is now controlled by App.tsx after initialization -->
     <style>
       @keyframes slide {
         0%, 100% { transform: translateX(-100%); }

@@ -29,13 +29,21 @@ const AppContent: React.FC = () => {
       try {
         // Initialize services first to resolve circular dependencies
         initializeServices();
-        
+
         const projectManager = ProjectManager.getInstance();
         await projectManager.initialize();
-        
+
         // Small delay to show splash screen (minimum 800ms for better UX)
         await new Promise(resolve => setTimeout(resolve, 800));
-        
+
+        // Remove static HTML splash screen
+        const staticSplash = document.getElementById('initial-splash');
+        if (staticSplash) {
+          staticSplash.style.transition = 'opacity 0.5s ease-out';
+          staticSplash.style.opacity = '0';
+          setTimeout(() => staticSplash.remove(), 500);
+        }
+
         setProjectManagerInitialized(true);
         console.log('[App] Project Manager initialized successfully');
       } catch (error) {
@@ -69,16 +77,21 @@ const AppContent: React.FC = () => {
     }
   };
 
-  // Show splash screen while Project Manager initializes
+  // Don't render anything while initializing - static HTML splash shows instead
   if (!projectManagerInitialized) {
-    return (
-      <SplashScreen
-        isVisible={true}
-        message="Setting up project management system..."
-        error={initializationError}
-        onRetry={handleRetry}
-      />
-    );
+    // Show error overlay if initialization failed
+    if (initializationError) {
+      return (
+        <SplashScreen
+          isVisible={true}
+          message="Setting up project management system..."
+          error={initializationError}
+          onRetry={handleRetry}
+        />
+      );
+    }
+    // Otherwise, let static HTML splash screen stay visible
+    return null;
   }
 
   return (
