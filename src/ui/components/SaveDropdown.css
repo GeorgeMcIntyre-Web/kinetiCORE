@@ -8,10 +8,7 @@
 .save-dropdown-button-group {
   display: flex;
   align-items: center;
-  border-radius: 4px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
 }
 
 .save-dropdown-main-btn {
@@ -20,45 +17,51 @@
   justify-content: center;
   width: 35px;
   height: 35px;
-  background: rgba(255, 255, 255, 0.05);
-  border: none;
-  color: rgba(255, 255, 255, 0.9);
-  cursor: pointer;
-  transition: all 0.2s ease;
   padding: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
 .save-dropdown-main-btn:hover {
-  background: #2d7d46;
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .save-dropdown-main-btn:active {
-  background: #1e1e1e;
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
 .save-dropdown-arrow-btn {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 35px;
-  background: rgba(255, 255, 255, 0.03);
+  width: 12px;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.4);
   border: none;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.7);
+  border-radius: 2px;
+  color: rgba(255, 255, 255, 0.6);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   padding: 0;
+  z-index: 1;
 }
 
 .save-dropdown-arrow-btn:hover {
-  background: #3e3e42;
-  color: #ffffff;
-}
-
-.save-dropdown-arrow-btn:active {
-  background: #1e1e1e;
+  background: rgba(0, 0, 0, 0.6);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .dropdown-chevron {

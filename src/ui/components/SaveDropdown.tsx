@@ -196,7 +196,7 @@ export const SaveDropdown: React.FC<SaveDropdownProps> = ({
           onClick={handleDropdownClick}
           title="Save Options"
         >
-          <ChevronDown size={12} className={`dropdown-chevron ${isOpen ? 'open' : ''}`} />
+          <ChevronDown size={8} className={`dropdown-chevron ${isOpen ? 'open' : ''}`} />
         </button>
       </div>
 
