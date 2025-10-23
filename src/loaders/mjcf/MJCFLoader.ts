@@ -2,7 +2,7 @@ import "@babylonjs/loaders";
 import { OBJFileLoader } from "@babylonjs/loaders/OBJ";
 import {
   Scene, SceneLoader, TransformNode, Texture, PBRMaterial,
-  Color3, Vector3, Quaternion, AbstractMesh,
+  Color3, Vector3, Quaternion, AbstractMesh, Mesh, MeshBuilder,
   DirectionalLight, HemisphericLight
 } from "@babylonjs/core";
 import JSZip from "jszip";
@@ -592,10 +592,17 @@ const buildBodies = async (
   console.log(`[MJCF Debug] jointMap contains ${Object.keys(jointMap).length} joints`);
 
   const visit = async (bodyEl: Element, parent: TransformNode) => {
-    const name = bodyEl.getAttribute("name") || "body";
-    const bodyNode = new TransformNode(name, scene);
-    bodyNode.parent = parent;
-    bodyNode.scaling.set(1, 1, 1);
+        const name = bodyEl.getAttribute("name") || "body";
+        const bodyNode = new TransformNode(name, scene);
+        bodyNode.parent = parent;
+        bodyNode.scaling.set(1, 1, 1);
+        
+        // Mark as MJCF body for device entity creation
+        bodyNode.metadata = {
+          ...bodyNode.metadata,
+          isMJCFBody: true,
+          bodyName: name
+        };
 
     const bodyPos = toFloatArr(bodyEl.getAttribute("pos"));
     if (bodyPos !== null && bodyPos.length >= 3) {
@@ -971,6 +978,26 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
       // No global rotation - coordinate conversion handled by position mapping
       console.log(`[MJCF Debug] Using position mapping for Z-up→Y-up conversion for ${primaryMjcfFile}`);
 
+      // Create scene tree node for the root
+      const { SceneTreeManager } = await import('../../scene/SceneTreeManager');
+      const sceneTreeManager = SceneTreeManager.getInstance();
+      const rootSceneNode = sceneTreeManager.createNode(
+        'collection',
+        'mjcf_root',
+        null, // No parent - this is the root
+        { x: root.position.x, y: root.position.y, z: root.position.z }
+      );
+      rootSceneNode.babylonTransformNodeId = root.uniqueId.toString();
+      
+      // Store the scene tree node ID in the TransformNode's metadata for actuator integration
+      root.metadata = root.metadata || {};
+      root.metadata.sceneTreeNodeId = rootSceneNode.id;
+      
+      // Hide the root node from scene tree display (similar to URDF device_root)
+      rootSceneNode.visible = false;
+      
+      console.log(`[MJCF Loader] Created root scene tree node: ${rootSceneNode.id} (hidden from display)`);
+
       // warn if compiler scale is not 1
       if (compilerScale !== 1) console.warn(`compiler scale = ${compilerScale}`);
       console.log(`[MJCF Debug] Compiler scale: ${compilerScale}`);
@@ -997,6 +1024,13 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
         const bodyNode = new TransformNode(name, scene);
         bodyNode.parent = parent;
         bodyNode.scaling.set(1, 1, 1);
+        
+        // Mark as MJCF body for device entity creation
+        bodyNode.metadata = {
+          ...bodyNode.metadata,
+          isMJCFBody: true,
+          bodyName: name
+        };
         
         // Track all body nodes for kinematic chain
         allBodyNodes.push(bodyNode);
@@ -1101,6 +1135,14 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
             // will be applied at the root level to preserve kinematic relationships
             
             m.parent = geomNode;
+            
+            // Mark mesh with body name for entity association
+            m.metadata = {
+              ...m.metadata,
+              bodyName: name,
+              isMJCFMesh: true,
+              geomName: meshRef
+            };
           });
           
           meshes.forEach(m => allMeshes.push(m));
@@ -1248,6 +1290,137 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
             size: max.subtract(min)
           };
         }
+      }
+
+      // Create MJCF device entity for selection highlighting (similar to URDF)
+      try {
+        const { EntityRegistry } = await import('../../entities/EntityRegistry');
+        const registry = EntityRegistry.getInstance();
+        
+        // Create a dummy mesh for the device entity (invisible root)
+        const deviceMesh = MeshBuilder.CreateBox(
+          `${root.name}_device_root`,
+          { size: 0.01 },
+          scene
+        );
+        deviceMesh.isVisible = false;
+        deviceMesh.parent = root;
+        deviceMesh.position = Vector3.Zero();
+
+        // Create the device entity
+        const deviceEntity = registry.create({
+          mesh: deviceMesh,
+          isDevice: true,
+          rootTransformNode: root,
+          joints: Object.keys(jointMap), // Pass joint names
+          metadata: {
+            name: root.name,
+            type: 'device',
+            deviceType: 'assembly', // Use 'assembly' as closest match to MJCF
+            customProperties: {
+              mjcfPath: file.name,
+              jointCount: Object.keys(jointMap).length,
+              actuatorCount: actuators.length,
+              sensorCount: sensors.length,
+            },
+          },
+        });
+
+        // Create body entities as children of the device (similar to URDF links)
+        const bodyEntities: any[] = [];
+        const bodyNodes = new Map<string, TransformNode>();
+
+        // Build map of body nodes and register them with SceneTreeManager
+        const { SceneTreeManager } = await import('../../scene/SceneTreeManager');
+        const sceneTreeManager = SceneTreeManager.getInstance();
+        
+        // Map to store body name -> scene tree node ID
+        const bodyNameToSceneNodeId = new Map<string, string>();
+        
+        function collectBodyNodes(node: TransformNode): void {
+          if (node.metadata?.isMJCFBody) {
+            bodyNodes.set(node.name, node);
+            
+            // Create a scene tree node for this body
+            let parentId: string | null = null;
+            if (node.parent?.name === 'mjcf_root') {
+              parentId = rootSceneNode.id;
+            } else if (node.parent?.metadata?.isMJCFBody) {
+              // Find the scene tree node ID of the parent body
+              parentId = bodyNameToSceneNodeId.get(node.parent.name) || null;
+            }
+            
+            const sceneNode = sceneTreeManager.createNode(
+              'collection',
+              node.name,
+              parentId,
+              { x: node.position.x, y: node.position.y, z: node.position.z }
+            );
+            
+            // Set additional properties on the returned node
+            sceneNode.babylonTransformNodeId = node.uniqueId.toString();
+            
+            // Store the mapping for child nodes to reference
+            bodyNameToSceneNodeId.set(node.name, sceneNode.id);
+            
+            console.log(`[MJCF Loader] Registered body node with SceneTreeManager: ${node.name} -> ${sceneNode.id} (parent: ${parentId})`);
+          }
+          const children = node.getChildTransformNodes(false);
+          for (const child of children) {
+            collectBodyNodes(child);
+          }
+        }
+        collectBodyNodes(root);
+
+        // Create entities for each body
+        for (const [bodyName] of bodyNodes.entries()) {
+          // Find the visual mesh for this body from the loaded meshes array
+          let bodyMesh: Mesh | null = null;
+
+          for (const mesh of flattened) {
+            // Check if mesh metadata indicates it belongs to this body
+            if (mesh.metadata?.bodyName === bodyName && mesh instanceof Mesh) {
+              bodyMesh = mesh as Mesh;
+              break;
+            }
+          }
+
+          // If no specific mesh found, use the first mesh as a fallback
+          if (!bodyMesh && flattened.length > 0) {
+            bodyMesh = flattened[0] as Mesh;
+          }
+
+          if (bodyMesh) {
+            // Create body entity
+            const bodyEntity = registry.create({
+              mesh: bodyMesh,
+              isDevice: false,
+              metadata: {
+                name: bodyName,
+                type: 'body',
+                deviceType: 'assembly', // Use 'assembly' as closest match to MJCF
+                parentDeviceId: deviceEntity.getId(),
+              },
+            });
+
+            // Set parent-child relationship (use addChild instead of setParent)
+            deviceEntity.addChild(bodyEntity);
+            bodyEntities.push(bodyEntity);
+          }
+        }
+
+        console.log(`[MJCF Import] ✅ Created device entity with ${bodyEntities.length} body entities`);
+      } catch (error) {
+        console.error(`[MJCF Import] Failed to create device entity:`, error);
+      }
+
+      // Extract kinematic joints and create kinematic chain (AFTER all body nodes are created)
+      try {
+        const { createKinematicsFromMJCF } = await import('./MJCFKinematicExtractor');
+        await createKinematicsFromMJCF(mjcfContent, rootSceneNode.id);
+        console.log(`[MJCF Import] ✅ Created kinematic joints and chain for ${rootSceneNode.id}`);
+      } catch (error) {
+        console.error(`[MJCF Import] Failed to create kinematic joints:`, error);
       }
 
       return {

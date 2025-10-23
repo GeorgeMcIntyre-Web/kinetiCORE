@@ -1108,9 +1108,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
                 const actuatorSystem = kinematicsManager.getActuatorSystem();
                 const robotRootNodeId = mjcfResult.rootNodes[0].id || mjcfResult.rootNodes[0].uniqueId.toString();
 
+                // For MJCF, we need to use the scene tree node ID, not the TransformNode ID
+                // The scene tree node ID is stored in the TransformNode's metadata
+                const sceneTreeNodeId = mjcfResult.rootNodes[0].metadata?.sceneTreeNodeId || robotRootNodeId;
+
                 const createdActuators = registerMJCFActuators(
                   (mjcfResult as any).actuators,
-                  robotRootNodeId,
+                  sceneTreeNodeId,
                   actuatorSystem,
                   kinematicsManager
                 );
@@ -1136,11 +1140,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
                   const kinematicsManager = KinematicsManager.getInstance();
                   const robotRootNodeId = mjcfResult.rootNodes[0].id || mjcfResult.rootNodes[0].uniqueId.toString();
 
+                  // For MJCF, we need to use the scene tree node ID, not the TransformNode ID
+                  const sceneTreeNodeId = mjcfResult.rootNodes[0].metadata?.sceneTreeNodeId || robotRootNodeId;
+
                   // Find the kinematic chain for this robot
                   const chains = kinematicsManager.getAllChains();
-                  let chainId = robotRootNodeId;
+                  let chainId = `${sceneTreeNodeId}_chain`;
                   for (const chain of chains) {
-                    if (chain.rootNodeId === robotRootNodeId) {
+                    if (chain.rootNodeId === sceneTreeNodeId) {
                       chainId = chain.id;
                       break;
                     }
