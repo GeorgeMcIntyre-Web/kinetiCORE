@@ -1407,6 +1407,30 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
             // Set parent-child relationship (use addChild instead of setParent)
             deviceEntity.addChild(bodyEntity);
             bodyEntities.push(bodyEntity);
+
+            // CRITICAL FIX: Link the mesh to the entity for highlighting
+            if (bodyMesh && bodyMesh.metadata) {
+              bodyMesh.metadata = {
+                ...bodyMesh.metadata,
+                entityId: bodyEntity.getId()
+              };
+            }
+
+            // CRITICAL FIX: Also link any meshes that belong to this body
+            // Find meshes that match this body name pattern
+            const bodyMeshes = scene.meshes.filter(mesh => 
+              mesh.name.includes(bodyName) && 
+              !mesh.metadata?.entityId && // Only link if not already linked
+              mesh !== bodyMesh // Don't link the body mesh itself again
+            );
+            
+            bodyMeshes.forEach(mesh => {
+              console.log(`Linking mesh ${mesh.name} to body entity ${bodyEntity.getId()}`);
+              mesh.metadata = {
+                ...mesh.metadata,
+                entityId: bodyEntity.getId()
+              };
+            });
           }
         }
 

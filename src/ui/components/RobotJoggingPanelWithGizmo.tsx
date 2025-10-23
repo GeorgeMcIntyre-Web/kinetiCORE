@@ -1,14 +1,17 @@
-// TCP Gizmo Integration for Motion Panel
-// This adds visual TCP gizmo to RobotJoggingPanel to fix jumping behavior
+// Robot Jogging Panel with TCP Gizmo Integration
+// Owner: George
+//
+// Provides two jogging modes:
+// - Joint Mode: Jog individual joints
+// - TCP Mode: Jog tool center point in Cartesian space with visual gizmo
 
-import React, { useState, useEffect } from 'react';
-import { Move, RotateCw, Minus, Plus, Play, Save, Trash2, ChevronDown, ChevronRight, Target, Eye, EyeOff } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Move, RotateCw, Minus, Plus, Play, Save, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import * as BABYLON from '@babylonjs/core';
 import { KinematicsManager, RobotKeyframe } from '../../kinematics/KinematicsManager';
 import type { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
 import { InverseKinematicsSolver } from '../../kinematics/InverseKinematicsSolver';
-import { IKTargetGizmoManager } from '../../kinematics/IKTargetGizmoManager';
-import { SceneManager } from '../../scene/SceneManager';
+import { UnifiedGizmoManager } from '../../kinematics/UnifiedGizmoManager';
 import { babylonToUser, userToBabylon } from '../../core/CoordinateSystem';
 import { detectJointGroups, shouldUseJointGroups, JointGroup } from '../../kinematics/JointGroupDetector';
 import './RobotJoggingPanel.css';
@@ -22,7 +25,7 @@ interface RobotJoggingPanelProps {
   robotId: string; // Robot collection ID for filtering
 }
 
-export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: propsJoints, fkSolver, robotId }) => {
+export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ joints: propsJoints, fkSolver, robotId }) => {
   const [jogMode, setJogMode] = useState<JogMode>('joint');
   const [jogStepJoint, setJogStepJoint] = useState(5); // degrees
   const [jogStepTcpLinear, setJogStepTcpLinear] = useState(10); // mm for linear
@@ -36,11 +39,11 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [useGroups, setUseGroups] = useState<boolean>(false);
   
-  // TCP Gizmo State
-  const [showTcpGizmo, setShowTcpGizmo] = useState<boolean>(false);
-  const [tcpGizmoPosition, setTcpGizmoPosition] = useState<BABYLON.Vector3 | null>(null);
-  const [gizmoManager] = useState(() => IKTargetGizmoManager.getInstance());
-  const [sceneManager] = useState(() => SceneManager.getInstance());
+  // Gizmo management
+  const [unifiedGizmo] = useState(() => UnifiedGizmoManager.getInstance());
+  const [currentTcpPosition, setCurrentTcpPosition] = useState<BABYLON.Vector3 | null>(null);
+  const [currentChainName, setCurrentChainName] = useState<string | null>(null);
+  const gizmoInitialized = useRef(false);
 
   // Use filtered joints from props
   useEffect(() => {
@@ -61,15 +64,21 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
     }
   }, [propsJoints]);
 
-  // Initialize gizmo manager when TCP mode is active
+  // Initialize gizmo system
   useEffect(() => {
-    if (jogMode === 'tcp' && showTcpGizmo) {
-      const scene = sceneManager.getScene();
-      if (scene && !gizmoManager.isInitialized()) {
-        gizmoManager.initialize(scene);
+    if (!gizmoInitialized.current) {
+      // Get scene from window (assuming it's available globally)
+      const sceneManager = (window as any).sceneManager;
+      if (sceneManager && sceneManager.getScene) {
+        const scene = sceneManager.getScene();
+        if (scene) {
+          unifiedGizmo.initialize(scene);
+          gizmoInitialized.current = true;
+          console.log('[RobotJoggingPanel] Gizmo system initialized');
+        }
       }
     }
-  }, [jogMode, showTcpGizmo]);
+  }, [unifiedGizmo]);
 
   // Update TCP position display and gizmo
   useEffect(() => {
@@ -91,10 +100,39 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
             `X:${userPos.x.toFixed(1)} Y:${userPos.y.toFixed(1)} Z:${userPos.z.toFixed(1)} mm`
           );
           
-          // Update gizmo position if it's visible
-          if (showTcpGizmo && jogMode === 'tcp') {
-            setTcpGizmoPosition(endEffectorPose.position.clone());
-            updateTcpGizmo(robotChain.name, endEffectorPose.position);
+          // Update gizmo position if in TCP mode
+          if (jogMode === 'tcp' && endEffectorPose.position) {
+            setCurrentTcpPosition(endEffectorPose.position.clone());
+            setCurrentChainName(robotChain.name);
+            
+            // Update or create TCP gizmo
+            unifiedGizmo.createTcpControl(
+              robotId,
+              robotChain.name,
+              endEffectorPose.position,
+              (newPosition) => {
+                console.log('[RobotJoggingPanel] TCP gizmo moved to:', newPosition);
+                // Convert from Babylon space to User space for IK
+                const userPos = babylonToUser(newPosition);
+                const currentUserPos = babylonToUser(endEffectorPose.position);
+                
+                // Calculate delta in User space
+                const delta = {
+                  x: userPos.x - currentUserPos.x,
+                  y: userPos.y - currentUserPos.y,
+                  z: userPos.z - currentUserPos.z
+                };
+                
+                // Convert delta to Babylon space for IK solver
+                const babylonDelta = userToBabylon(delta);
+                
+                // Apply IK to move robot to new TCP position
+                const success = ikSolver.moveEndEffector(robotChain.name, babylonDelta, 'ccd');
+                if (!success) {
+                  console.warn('[RobotJoggingPanel] IK failed for TCP gizmo movement');
+                }
+              }
+            );
           }
         }
       }
@@ -103,58 +141,21 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
     updateTcpPosition();
     const interval = setInterval(updateTcpPosition, 500);
     return () => clearInterval(interval);
-  }, [fkSolver, robotId, showTcpGizmo, jogMode]);
+  }, [fkSolver, robotId, jogMode, ikSolver, unifiedGizmo]);
 
-  // Update TCP gizmo in 3D scene
-  const updateTcpGizmo = (chainName: string, position: BABYLON.Vector3) => {
-    if (!showTcpGizmo || jogMode !== 'tcp') return;
-
-    const targetId = `tcp_${robotId}`;
-    
-    // Ensure gizmo is positioned at the actual TCP (end-effector) location
-    console.log(`[TCP Gizmo] Positioning at TCP: (${position.x.toFixed(3)}, ${position.y.toFixed(3)}, ${position.z.toFixed(3)})`);
-    
-    gizmoManager.createTarget({
-      targetId,
-      chainName,
-      position: position.clone(), // This should be the end-effector position, not robot base
-      enabled: true,
-      onPositionChange: (id, newPos) => {
-        // When gizmo is dragged, move robot to new position
-        console.log(`[TCP Gizmo] Moving robot TCP to: (${newPos.x.toFixed(3)}, ${newPos.y.toFixed(3)}, ${newPos.z.toFixed(3)})`);
-        
-        // Solve IK to reach new TCP position
-        const success = ikSolver.solveAndApply(chainName, {
-          position: newPos,
-          rotation: fkSolver.getEndEffectorPose(chainName)?.rotation // Maintain current orientation
-        }, 'ccd');
-        
-        if (!success) {
-          console.warn('[TCP Gizmo] IK failed - TCP position may be unreachable');
-          // Revert gizmo to last valid TCP position
-          const currentPose = fkSolver.getEndEffectorPose(chainName);
-          if (currentPose) {
-            console.log(`[TCP Gizmo] Reverting to valid TCP position: (${currentPose.position.x.toFixed(3)}, ${currentPose.position.y.toFixed(3)}, ${currentPose.position.z.toFixed(3)})`);
-            gizmoManager.updateTargetPosition(targetId, currentPose.position);
-          }
-        } else {
-          console.log(`[TCP Gizmo] ✅ Robot TCP moved successfully to: (${newPos.x.toFixed(3)}, ${newPos.y.toFixed(3)}, ${newPos.z.toFixed(3)})`);
-        }
-      },
-    });
-  };
-
-  // Toggle TCP gizmo visibility
-  const toggleTcpGizmo = () => {
-    const newShowGizmo = !showTcpGizmo;
-    setShowTcpGizmo(newShowGizmo);
-    
-    if (!newShowGizmo) {
-      // Remove gizmo when hiding
-      const targetId = `tcp_${robotId}`;
-      gizmoManager.removeTarget(targetId);
+  // Handle mode changes
+  useEffect(() => {
+    if (jogMode === 'tcp') {
+      // Switch to motion panel context
+      unifiedGizmo.setActivePanel('motion');
+      console.log('[RobotJoggingPanel] Switched to TCP mode - gizmo should appear');
+    } else {
+      // Clear TCP gizmo when not in TCP mode
+      unifiedGizmo.removeTarget(`tcp_${robotId}`);
+      unifiedGizmo.setActivePanel('none');
+      console.log('[RobotJoggingPanel] Switched away from TCP mode - gizmo cleared');
     }
-  };
+  }, [jogMode, robotId, unifiedGizmo]);
 
   // Load keyframes for this robot
   useEffect(() => {
@@ -373,7 +374,6 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
                 min="1"
                 max="90"
                 placeholder="5"
-                defaultValue="5"
               />
               <span className="unit">°</span>
               <button onClick={() => setJogStepJoint(Math.min(90, jogStepJoint + 1))}>+</button>
@@ -461,25 +461,13 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
         </div>
       )}
 
-      {/* TCP Mode */}
+      {/* TCP Mode with Gizmo */}
       {jogMode === 'tcp' && (
         <div className="tcp-jog-mode">
-          {/* TCP Gizmo Controls */}
-          <div className="tcp-gizmo-controls">
-            <button
-              className={`gizmo-toggle-btn ${showTcpGizmo ? 'active' : ''}`}
-              onClick={toggleTcpGizmo}
-              title={showTcpGizmo ? 'Hide TCP gizmo' : 'Show TCP gizmo'}
-            >
-              {showTcpGizmo ? <EyeOff size={14} /> : <Eye size={14} />}
-              <span>{showTcpGizmo ? 'Hide Gizmo' : 'Show Gizmo'}</span>
-            </button>
-            {showTcpGizmo && (
-              <div className="gizmo-info">
-                <Target size={12} />
-                <span>Drag gizmo to move TCP</span>
-              </div>
-            )}
+          <div className="tcp-gizmo-info">
+            <p className="gizmo-hint">
+              🎯 <strong>TCP Gizmo Active</strong> - Drag the gizmo to move the robot's end-effector
+            </p>
           </div>
 
           <div className="jog-step-control">
@@ -493,7 +481,6 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
                 min="1"
                 max="100"
                 placeholder="10"
-                defaultValue="10"
               />
               <span className="unit">mm</span>
               <button onClick={() => setJogStepTcpLinear(Math.min(100, jogStepTcpLinear + 1))}>+</button>
@@ -511,7 +498,6 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
                 min="1"
                 max="90"
                 placeholder="5"
-                defaultValue="5"
               />
               <span className="unit">°</span>
               <button onClick={() => setJogStepTcpRotary(Math.min(90, jogStepTcpRotary + 1))}>+</button>

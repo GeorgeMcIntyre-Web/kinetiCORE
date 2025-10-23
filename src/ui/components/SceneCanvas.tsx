@@ -178,8 +178,11 @@ export const SceneCanvas: React.FC = () => {
 
               // Check if mesh is selectable (using centralized filtering from SceneUtils.ts)
               if (mesh instanceof BABYLON.Mesh && isSelectableObject(mesh)) {
-                // Check if this mesh belongs to a device entity
-                const deviceEntity = registry.getDeviceByMesh(mesh);
+                // Get the entity for this mesh
+                const entity = registry.getByMesh(mesh);
+                
+                // Check if this mesh belongs to a device entity (either directly or as a child)
+                const deviceEntity = entity ? entity.getRootDevice() : null;
 
                 // Alt+Click to select individual link instead of device
                 const selectIndividualLink = evt.altKey;
@@ -196,7 +199,13 @@ export const SceneCanvas: React.FC = () => {
                   // If part of a device and not Alt+Click, select the device root mesh
                   if (deviceEntity && !selectIndividualLink) {
                     const deviceMesh = deviceEntity.getMesh();
-                    selectMesh(deviceMesh);
+                    // If device mesh is invisible, select the clicked mesh instead
+                    if (deviceMesh && deviceMesh.isVisible) {
+                      selectMesh(deviceMesh);
+                    } else {
+                      // Device mesh is invisible, select the clicked mesh
+                      selectMesh(mesh);
+                    }
                   } else {
                     // Select the individual mesh
                     selectMesh(mesh);
@@ -383,18 +392,48 @@ export const SceneCanvas: React.FC = () => {
               }
             }
           });
-        } else if (mesh && mesh.isVisible) {
-          // Regular mesh - highlight directly
-          const color = index === 0
-            ? new BABYLON.Color3(0.15, 0.4, 0.25)
-            : new BABYLON.Color3(0.6, 0.3, 0.0);
-          highlightLayer.addMesh(mesh, color);
+        } else {
+          // Check if this mesh belongs to a device (for individual mesh selection)
+          const deviceEntity = entity ? entity.getRootDevice() : null;
           
-          // Add edge rendering for primary selection
-          if (index === 0) {
-            mesh.enableEdgesRendering();
-            mesh.edgesWidth = 2.0;
-            mesh.edgesColor = new BABYLON.Color4(0.15, 0.4, 0.25, 1.0); // Darker green edges
+          if (deviceEntity) {
+            // This mesh belongs to a device - highlight all visible parts of the device
+            const linkEntities = typeof deviceEntity.getChildren === 'function' ? deviceEntity.getChildren() : [];
+            
+            const color = index === 0
+              ? new BABYLON.Color3(0.15, 0.4, 0.25) // Darker green for primary selection
+              : new BABYLON.Color3(0.6, 0.3, 0.0);    // Darker orange for additional selections
+
+            linkEntities.forEach(linkEntity => {
+              if (typeof linkEntity.getMesh === 'function') {
+                const linkMesh = linkEntity.getMesh();
+                // Skip invisible meshes and dummy meshes
+                if (linkMesh && linkMesh.isVisible &&
+                    !linkMesh.name.includes('_dummy')) {
+                  highlightLayer.addMesh(linkMesh, color);
+                  
+                  // Add edge rendering for more polygon detail
+                  if (index === 0) { // Only for primary selection
+                    linkMesh.enableEdgesRendering();
+                    linkMesh.edgesWidth = 2.0;
+                    linkMesh.edgesColor = new BABYLON.Color4(0.15, 0.4, 0.25, 1.0); // Darker green edges
+                  }
+                }
+              }
+            });
+          } else if (mesh && mesh.isVisible) {
+            // Regular mesh - highlight directly
+            const color = index === 0
+              ? new BABYLON.Color3(0.15, 0.4, 0.25)
+              : new BABYLON.Color3(0.6, 0.3, 0.0);
+            highlightLayer.addMesh(mesh, color);
+            
+            // Add edge rendering for primary selection
+            if (index === 0) {
+              mesh.enableEdgesRendering();
+              mesh.edgesWidth = 2.0;
+              mesh.edgesColor = new BABYLON.Color4(0.15, 0.4, 0.25, 1.0); // Darker green edges
+            }
           }
         }
       });

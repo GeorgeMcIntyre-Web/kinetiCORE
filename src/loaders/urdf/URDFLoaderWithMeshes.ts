@@ -118,9 +118,14 @@ async function createBasicURDFStructure(
     },
   });
   
-  // Create link entities
+  // Create link entities (exclude the device mesh itself)
   const linkEntities: any[] = [];
   for (const mesh of meshes) {
+    // Skip the device mesh itself
+    if (mesh.name.includes('_device_root')) {
+      continue;
+    }
+    
     const linkEntity = registry.create({
       mesh: mesh,
       metadata: {
@@ -482,6 +487,30 @@ export async function loadURDFAsDeviceEntity(
     // Add as child of device entity
     deviceEntity.addChild(linkEntity);
     linkEntities.push(linkEntity);
+
+    // CRITICAL FIX: Link the STL mesh to the entity for highlighting
+    if (linkMesh && linkMesh.metadata) {
+      linkMesh.metadata = {
+        ...linkMesh.metadata,
+        entityId: linkEntity.getId()
+      };
+    }
+
+    // CRITICAL FIX: Also link any STL meshes that belong to this link
+    // Find STL meshes that match this link name pattern
+    const stlMeshes = scene.meshes.filter(mesh => 
+      mesh.name.includes('.stl') && 
+      mesh.name.startsWith(linkName + '_') &&
+      !mesh.metadata?.entityId // Only link if not already linked
+    );
+    
+    stlMeshes.forEach(stlMesh => {
+      console.log(`Linking STL mesh ${stlMesh.name} to entity ${linkEntity.getId()}`);
+      stlMesh.metadata = {
+        ...stlMesh.metadata,
+        entityId: linkEntity.getId()
+      };
+    });
   }
 
     console.log(`✓ Created device entity for ${urdf.robotName} with ${linkEntities.length} link entities`);
