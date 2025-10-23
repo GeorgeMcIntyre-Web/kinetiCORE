@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from 'react';
-import { Move, RotateCw } from 'lucide-react';
+import { Move, RotateCw, User, Dog, Hand } from 'lucide-react';
 import * as BABYLON from '@babylonjs/core';
 import { WholeBodyIKSolver } from '../../kinematics/WholeBodyIKSolver';
 import type { WholeBodyIKConfig } from '../../kinematics/WholeBodyIKSolver';
@@ -199,15 +199,50 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
       {/* Quick Actions */}
       <div style={{ marginBottom: '20px' }}>
         <h4 style={{ marginTop: 0, marginBottom: '10px' }}>Quick Actions</h4>
-        <button onClick={solveHumanoidWalking} style={{ marginRight: '5px', marginBottom: '5px' }}>
-          Humanoid Walk Pose
-        </button>
-        <button onClick={solveQuadrupedStance} style={{ marginRight: '5px', marginBottom: '5px' }}>
-          Quadruped Stance
-        </button>
-        <button onClick={solveDualArm} style={{ marginBottom: '5px' }}>
-          Dual-Arm Grasp
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={solveHumanoidWalking}
+            title="Humanoid Walk Pose"
+            style={{
+              width: '40px',
+              height: '40px',
+              padding: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <User size={20} />
+          </button>
+          <button
+            onClick={solveQuadrupedStance}
+            title="Quadruped Stance"
+            style={{
+              width: '40px',
+              height: '40px',
+              padding: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Dog size={20} />
+          </button>
+          <button
+            onClick={solveDualArm}
+            title="Dual-Arm Grasp"
+            style={{
+              width: '40px',
+              height: '40px',
+              padding: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Hand size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Custom Targets */}
