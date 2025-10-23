@@ -27,6 +27,7 @@ import {
   FolderKanban,
   RotateCcw,
   Target,
+  Network,
 } from 'lucide-react';
 
 // Custom Quick Move Icon combining speed lines with move arrows
@@ -354,18 +355,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
             <Gamepad2 size={32} />
           </button>
           <button className="ribbon-btn" onClick={onWholeBodyIKClick} title="Whole-Body IK">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Joint 1 (base) */}
-              <circle cx="8" cy="24" r="3" fill="currentColor" opacity="0.8"/>
-              {/* Link 1 */}
-              <line x1="8" y1="24" x2="16" y2="16" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-              {/* Joint 2 (elbow) */}
-              <circle cx="16" cy="16" r="3.5" fill="currentColor"/>
-              {/* Link 2 */}
-              <line x1="16" y1="16" x2="24" y2="8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-              {/* Joint 3 (end-effector) */}
-              <circle cx="24" cy="8" r="3" fill="currentColor" opacity="0.8"/>
-            </svg>
+            <Network size={32} />
           </button>
         </div>
       </div>
