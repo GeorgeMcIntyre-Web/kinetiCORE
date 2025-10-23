@@ -531,15 +531,17 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
       {/* Children */}
       {hasChildren && node.expanded && (
         <div className="tree-node-children">
-          {children.map((child) => (
-            <TreeNode
-              key={child.id}
-              node={child}
-              level={level + 1}
-              searchTerm={searchTerm}
-              maxDepth={maxDepth}
-            />
-          ))}
+          {children
+            .filter(child => child.showInTree !== false) // Hide technical nodes (default: show)
+            .map((child) => (
+              <TreeNode
+                key={child.id}
+                node={child}
+                level={level + 1}
+                searchTerm={searchTerm}
+                maxDepth={maxDepth}
+              />
+            ))}
         </div>
       )}
 

@@ -992,11 +992,12 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
       // Store the scene tree node ID in the TransformNode's metadata for actuator integration
       root.metadata = root.metadata || {};
       root.metadata.sceneTreeNodeId = rootSceneNode.id;
-      
+
       // Hide the root node from scene tree display (similar to URDF device_root)
       rootSceneNode.visible = false;
-      
-      console.log(`[MJCF Loader] Created root scene tree node: ${rootSceneNode.id} (hidden from display)`);
+      rootSceneNode.showInTree = false; // Hide technical root from UI
+
+      console.log(`[MJCF Loader] Created root scene tree node: ${rootSceneNode.id} (hidden from tree UI)`);
 
       // warn if compiler scale is not 1
       if (compilerScale !== 1) console.warn(`compiler scale = ${compilerScale}`);

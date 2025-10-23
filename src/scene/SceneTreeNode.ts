@@ -111,6 +111,7 @@ export interface SceneNode {
   expanded: boolean; // Is tree node expanded to show children
   visible: boolean; // Is object visible in 3D view
   locked: boolean; // Is object locked from editing
+  showInTree?: boolean; // Optional: hide technical nodes from scene tree UI (default: true)
 
   // === 3D Object References ===
   babylonMeshId?: string; // Reference to Babylon.Mesh.uniqueId
