@@ -130,6 +130,22 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
             {/* Loading Message */}
             <p className="splash-message">{message}</p>
+
+            {/* Feature Highlights */}
+            <div className="splash-features">
+              <div className="splash-feature">
+                <span className="splash-feature-icon">🤖</span>
+                <span className="splash-feature-text">URDF & MJCF Support</span>
+              </div>
+              <div className="splash-feature">
+                <span className="splash-feature-icon">⚡</span>
+                <span className="splash-feature-text">Real-time Physics</span>
+              </div>
+              <div className="splash-feature">
+                <span className="splash-feature-icon">🎯</span>
+                <span className="splash-feature-text">Inverse Kinematics</span>
+              </div>
+            </div>
           </div>
         )}
 
