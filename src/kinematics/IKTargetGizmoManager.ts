@@ -100,7 +100,7 @@ export class IKTargetGizmoManager {
     // Create visual marker (sphere)
     const marker = BABYLON.MeshBuilder.CreateSphere(
       `ikTargetMarker_${config.targetId}`,
-      { diameter: 0.1 },
+      { diameter: 0.12 }, // Slightly larger for better visibility
       this.scene
     );
     marker.parent = transformNode;
@@ -112,9 +112,20 @@ export class IKTargetGizmoManager {
     // Create material for marker
     const material = new BABYLON.StandardMaterial(`ikTargetMat_${config.targetId}`, this.scene);
     material.diffuseColor = chainColor;
-    material.emissiveColor = chainColor.scale(0.5);
-    material.alpha = config.enabled ? 0.8 : 0.3;
+    material.emissiveColor = chainColor.scale(0.6); // Stronger glow
+    material.alpha = config.enabled ? 0.85 : 0.3;
+    material.specularColor = chainColor.scale(0.3);
     marker.material = material;
+
+    // Add wireframe overlay for better depth perception
+    const wireframe = marker.clone(`ikTargetWireframe_${config.targetId}`);
+    wireframe.parent = marker;
+    wireframe.scaling = new BABYLON.Vector3(1.05, 1.05, 1.05); // Slightly larger
+    const wireframeMat = new BABYLON.StandardMaterial(`ikTargetWireframeMat_${config.targetId}`, this.scene);
+    wireframeMat.wireframe = true;
+    wireframeMat.emissiveColor = chainColor.scale(0.8);
+    wireframeMat.alpha = config.enabled ? 0.6 : 0.2;
+    wireframe.material = wireframeMat;
 
     // Create position gizmo
     const gizmo = new BABYLON.PositionGizmo(new BABYLON.UtilityLayerRenderer(this.scene));
@@ -143,9 +154,25 @@ export class IKTargetGizmoManager {
       console.log(`[IKTarget] Drag end: ${config.targetId} → (${newPos.x.toFixed(2)}, ${newPos.y.toFixed(2)}, ${newPos.z.toFixed(2)})`);
     });
 
-    // Create 2D label (optional, can be added in visual polish phase)
+    // Create 2D label showing chain name
     let label: BABYLON.GUI.TextBlock | null = null;
-    // TODO: Add 3D label in Phase 4
+    if (this.advancedTexture && config.chainName) {
+      label = new BABYLON.GUI.TextBlock();
+      label.text = config.chainName;
+      label.color = 'white';
+      label.fontSize = 14;
+      label.fontWeight = 'bold';
+      label.outlineWidth = 2;
+      label.outlineColor = 'black';
+      label.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+      label.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+      
+      // Link to 3D position (appears above marker)
+      label.linkWithMesh(marker);
+      label.linkOffsetY = -30; // Pixels above the marker
+      
+      this.advancedTexture.addControl(label);
+    }
 
     // Store target data
     this.targets.set(config.targetId, {
@@ -180,10 +207,18 @@ export class IKTargetGizmoManager {
     // Update marker opacity
     if (target.marker.material instanceof BABYLON.StandardMaterial) {
       target.marker.material.alpha = enabled ? 0.8 : 0.3;
+      target.marker.material.emissiveColor = enabled 
+        ? target.marker.material.diffuseColor.scale(0.5)
+        : BABYLON.Color3.Black();
     }
 
     // Show/hide gizmo
     target.gizmo.attachedNode = enabled ? target.transformNode : null;
+    
+    // Show/hide label
+    if (target.label) {
+      target.label.alpha = enabled ? 1.0 : 0.3;
+    }
     
     console.log(`[IKTargetGizmoManager] ${enabled ? 'Enabled' : 'Disabled'} target: ${targetId}`);
   }
@@ -198,7 +233,12 @@ export class IKTargetGizmoManager {
     // Dispose gizmo
     target.gizmo.dispose();
 
-    // Dispose marker
+    // Dispose marker and its children (including wireframe)
+    target.marker.getChildren().forEach(child => {
+      if (child instanceof BABYLON.Mesh) {
+        child.dispose();
+      }
+    });
     target.marker.dispose();
 
     // Dispose transform node
