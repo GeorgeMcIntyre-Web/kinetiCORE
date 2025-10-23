@@ -6,10 +6,23 @@ import * as BABYLON from '@babylonjs/core';
 import { SceneTreeManager } from '../scene/SceneTreeManager';
 import type { SceneNode } from '../scene/SceneTreeNode';
 import type { JointType } from '../scene/SceneTreeNode';
-import { ActuatorSystem } from './actuation/ActuatorSystem';
+import type { IKinematicsManager } from './IKinematicsManager';
+
+// Import ActuatorSystem lazily to break circular dependency
+let ActuatorSystemClass: typeof import('./actuation/ActuatorSystem').ActuatorSystem | null = null;
+async function getActuatorSystemClass() {
+  if (!ActuatorSystemClass) {
+    const module = await import('./actuation/ActuatorSystem');
+    ActuatorSystemClass = module.ActuatorSystem;
+  }
+  return ActuatorSystemClass;
+}
 
 // Re-export JointType for convenience
 export type { JointType };
+
+// Export interface for breaking circular dependencies
+export type { IKinematicsManager };
 
 /**
  * Kinematic chain types
@@ -116,12 +129,12 @@ export interface KinematicChain {
 /**
  * KinematicsManager - Central system for kinematic chains
  */
-export class KinematicsManager {
+export class KinematicsManager implements IKinematicsManager {
   private static instance: KinematicsManager | null = null;
   private chains = new Map<string, KinematicChain>();
   private groundedNodes = new Set<string>();
   private joints = new Map<string, JointConfig>();
-  private actuatorSystem: ActuatorSystem | null = null;
+  private actuatorSystem: any | null = null;
   private keyframes = new Map<string, RobotKeyframe>();
 
   // Visual helpers
@@ -139,10 +152,12 @@ export class KinematicsManager {
 
   /**
    * Get the actuator system for hardware control
+   * Uses lazy loading to break circular dependency
    */
-  getActuatorSystem(): ActuatorSystem {
+  async getActuatorSystem(): Promise<typeof import('./actuation/ActuatorSystem').ActuatorSystem> {
     if (!this.actuatorSystem) {
-      this.actuatorSystem = new ActuatorSystem();
+      const ActuatorSystemClass = await getActuatorSystemClass();
+      this.actuatorSystem = new ActuatorSystemClass();
     }
     return this.actuatorSystem;
   }
