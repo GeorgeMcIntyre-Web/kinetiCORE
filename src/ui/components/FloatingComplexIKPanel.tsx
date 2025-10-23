@@ -6,12 +6,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { GitBranch, Settings, Target, Move, RotateCw, Eye, AlertTriangle } from 'lucide-react';
+import { GitBranch, Target, Move, RotateCw } from 'lucide-react';
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { AssetLibraryDarkPanel, AssetLibraryDarkSection, AssetLibraryDarkDisabled } from './FloatingPanel/AssetLibraryDarkPanel';
-import { KinematicsManager } from '../../kinematics/KinematicsManager';
-import { SceneTreeManager } from '../../scene/SceneTreeManager';
-import { useEditorStore } from '../store/editorStore';
 import './FloatingComplexIKPanel.css';
 
 interface FloatingComplexIKPanelProps {
@@ -46,7 +43,6 @@ export const FloatingComplexIKPanel: React.FC<FloatingComplexIKPanelProps> = ({
   isVisible = true,
   zIndex = 1003,
 }) => {
-  const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const [activeChain, setActiveChain] = useState<IKChain | null>(null);
   const [ikChains, setIkChains] = useState<IKChain[]>([]);
   const [ikTargets, setIkTargets] = useState<IKTarget[]>([]);
@@ -168,10 +164,7 @@ export const FloatingComplexIKPanel: React.FC<FloatingComplexIKPanelProps> = ({
             ))}
           </div>
         ) : (
-          <AssetLibraryDarkDisabled>
-            <GitBranch size={24} />
-            <span>No IK chains available</span>
-          </AssetLibraryDarkDisabled>
+          <AssetLibraryDarkDisabled message="No IK chains available" />
         )}
       </AssetLibraryDarkSection>
 
@@ -209,10 +202,7 @@ export const FloatingComplexIKPanel: React.FC<FloatingComplexIKPanelProps> = ({
             ))}
           </div>
         ) : (
-          <AssetLibraryDarkDisabled>
-            <Target size={24} />
-            <span>No IK targets defined</span>
-          </AssetLibraryDarkDisabled>
+          <AssetLibraryDarkDisabled message="No IK targets defined" />
         )}
       </AssetLibraryDarkSection>
 

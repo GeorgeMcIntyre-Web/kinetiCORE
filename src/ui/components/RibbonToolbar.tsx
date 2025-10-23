@@ -18,7 +18,6 @@ import {
   FolderOpen,
   Move,
   Calculator,
-  Gamepad2,
   Zap,
   Cylinder as CylinderIcon,
   RotateCw,

@@ -43,17 +43,29 @@ export function registerMJCFKeyframes(
       continue;
     }
 
+    // IMPORTANT: MJCF qpos arrays start with 7 base pose values (position + quaternion)
+    // qpos[0..2] = base position (x, y, z)
+    // qpos[3..6] = base orientation (w, x, y, z)
+    // qpos[7..n] = joint positions
+    const BASE_POSE_VALUES = 7;
+    const jointQposValues = qposArray.slice(BASE_POSE_VALUES);
+
+    console.log(
+      `[MJCF Keyframe Integration] Keyframe '${keyframeName}': ${qposArray.length} total values ` +
+      `(${BASE_POSE_VALUES} base pose + ${jointQposValues.length} joint values)`
+    );
+
     // Map qpos array indices to joint IDs
     const jointPositions: Record<string, number> = {};
 
-    for (let i = 0; i < Math.min(qposArray.length, movableJoints.length); i++) {
+    for (let i = 0; i < Math.min(jointQposValues.length, movableJoints.length); i++) {
       const joint = movableJoints[i];
-      jointPositions[joint.id] = qposArray[i];
+      jointPositions[joint.id] = jointQposValues[i];
     }
 
-    if (qposArray.length > movableJoints.length) {
+    if (jointQposValues.length !== movableJoints.length) {
       console.warn(
-        `[MJCF Keyframe Integration] Keyframe ${keyframeName} has ${qposArray.length} values but only ${movableJoints.length} movable joints`
+        `[MJCF Keyframe Integration] Keyframe ${keyframeName} has ${jointQposValues.length} joint values but ${movableJoints.length} movable joints`
       );
     }
 
