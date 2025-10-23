@@ -7,12 +7,15 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Cloudflare Worker URL - acts as proxy to Supabase
-const CLOUDFLARE_WORKER_URL = 'https://kineticore-supabase-proxy.fractalnexustech.workers.dev';
+// Environment variable configuration
+// In production (Cloudflare Pages), use worker proxy for better performance
+// In development, can use direct Supabase URL
+const supabaseUrl = import.meta.env.VITE_CLOUDFLARE_WORKER_URL ||
+                    import.meta.env.VITE_SUPABASE_URL ||
+                    'https://kineticore-supabase-proxy.fractalnexustech.workers.dev';
 
-// Supabase configuration
-const supabaseUrl = CLOUDFLARE_WORKER_URL;
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oa3VzanNvdW56d2ttZXZqc2dsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExODE5ODQsImV4cCI6MjA3Njc1Nzk4NH0.NCmILj-aOpHTPtygngkiXgPNekEb0hyJ6bA7132Ywrg';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY ||
+                        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oa3VzanNvdW56d2ttZXZqc2dsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExODE5ODQsImV4cCI6MjA3Njc1Nzk4NH0.NCmILj-aOpHTPtygngkiXgPNekEb0hyJ6bA7132Ywrg';
 
 // Singleton Supabase client to prevent multiple instances
 let supabaseInstance: any = null;

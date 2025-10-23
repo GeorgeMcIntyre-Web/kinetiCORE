@@ -105,7 +105,8 @@
       "Bash(del \"c:\\Users\\George\\source\\repos\\kinetiCORE\\src\\kinematics\\__tests__\\MassProperties.simple.test.ts\")",
       "Bash(git check-ignore:*)",
       "Bash(npx wrangler:*)",
-      "Bash(timeout 30 npm run build:*)"
+      "Bash(timeout 30 npm run build:*)",
+      "Bash(nslookup:*)"
     ],
     "deny": [],
     "ask": []
