@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Move, RotateCw, Footprints, PawPrint, Grip, CheckCircle, XCircle, Loader } from 'lucide-react';
+import { Move, RotateCw, Footprints, PawPrint, Grip, CheckCircle, XCircle, Loader, Plus, AlertCircle, Trash2, Play, RotateCcw } from 'lucide-react';
 import * as BABYLON from '@babylonjs/core';
 import { WholeBodyIKSolver, WholeBodyIKSolution } from '../../kinematics/WholeBodyIKSolver';
 import type { WholeBodyIKConfig } from '../../kinematics/WholeBodyIKSolver';
@@ -304,8 +304,8 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
         </div>
       )}
 
-      {/* Available Chains Info */}
-      {availableChains.length > 0 && (
+      {/* Available Chains Info or Warning */}
+      {availableChains.length > 0 ? (
         <div style={{
           padding: '10px',
           marginBottom: '20px',
@@ -319,6 +319,24 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
           </div>
           <div style={{ color: '#aaa' }}>
             {availableChains.map(c => c.name).join(', ')}
+          </div>
+        </div>
+      ) : (
+        <div style={{
+          padding: '12px',
+          marginBottom: '20px',
+          borderRadius: '4px',
+          backgroundColor: '#4d3a1a',
+          borderLeft: '4px solid #ffc107',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+            <AlertCircle size={20} color="#ffc107" style={{ marginTop: '2px', flexShrink: 0 }} />
+            <div>
+              <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>No Kinematic Chains Found</div>
+              <div style={{ fontSize: '12px', opacity: 0.9 }}>
+                Load a robot (URDF/MJCF) from the Asset Library to use Whole-Body IK
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -375,8 +393,20 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
       {/* Custom Targets */}
       <div style={{ marginBottom: '20px' }}>
         <h4>Custom Targets</h4>
-        <button onClick={addTarget} style={{ marginBottom: '10px' }}>
-          + Add Target
+        <button
+          onClick={addTarget}
+          title="Add Target"
+          style={{
+            marginBottom: '10px',
+            width: '40px',
+            height: '40px',
+            padding: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Plus size={20} />
         </button>
 
         {targets.map((target, index) => (
@@ -477,16 +507,50 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
                   style={{ width: '60px' }}
                 />
               </label>
-              <button onClick={() => removeTarget(index)} style={{ marginLeft: '10px' }}>
-                Remove
+              <button
+                onClick={() => removeTarget(index)}
+                title="Remove Target"
+                style={{
+                  marginLeft: '10px',
+                  width: '32px',
+                  height: '32px',
+                  padding: '6px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#dc3545',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                }}
+              >
+                <Trash2 size={16} />
               </button>
             </div>
           </div>
         ))}
 
         {targets.length > 0 && (
-          <button onClick={solveWholeBodyIK} style={{ marginTop: '10px', fontWeight: 'bold' }}>
-            Solve Whole-Body IK
+          <button
+            onClick={solveWholeBodyIK}
+            title="Solve Whole-Body IK"
+            style={{
+              marginTop: '10px',
+              width: '100%',
+              padding: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              fontWeight: 'bold',
+              fontSize: '15px',
+              backgroundColor: '#0d6efd',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            <Play size={18} />
           </button>
         )}
       </div>
@@ -561,7 +625,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
             transition: 'all 0.2s'
           }}
         >
-          ✅ Apply Solution
+          <CheckCircle size={18} />
         </button>
 
         <button
@@ -576,16 +640,19 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
             cursor: lastSolution ? 'pointer' : 'not-allowed',
             border: 'none',
             borderRadius: '4px',
-            transition: 'all 0.2s'
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          ↶ Reset
+          <RotateCcw size={18} />
         </button>
       </div>
 
       <div style={{ marginTop: '20px', fontSize: '12px', color: '#999', borderTop: '1px solid #444', paddingTop: '10px' }}>
         <p style={{ margin: '5px 0' }}>
-          <strong>Workflow:</strong> 1) Add targets 2) Click "Solve Whole-Body IK" 3) Review status 4) Click "Apply Solution"
+          <strong>Workflow:</strong> 1) Add targets 2) Solve IK 3) Review status 4) Apply solution
         </p>
       </div>
     </FloatingPanel>
