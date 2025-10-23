@@ -6,6 +6,7 @@ import { QuickAddMenu } from './ui/components/QuickAddMenu';
 import { ToastNotifications } from './ui/components/ToastNotifications';
 import { MJCFLoadingStatusPopup } from './ui/components/MJCFLoadingStatus';
 import { LoadingIndicator } from './ui/components/LoadingIndicator';
+import { SplashScreen } from './ui/components/SplashScreen';
 import { ErrorBoundary } from './ui/components/ErrorBoundary';
 import { UserLevelProvider, useUserLevel } from './ui/core/UserLevelContext';
 import { EssentialModeLayout } from './ui/layouts/EssentialModeLayout';
@@ -20,6 +21,7 @@ const AppContent: React.FC = () => {
   const { userLevel } = useUserLevel();
   const [showKinematicsPanel, setShowKinematicsPanel] = useState(false);
   const [projectManagerInitialized, setProjectManagerInitialized] = useState(false);
+  const [initializationError, setInitializationError] = useState<string | undefined>(undefined);
 
   // Initialize Project Manager on app startup
   React.useEffect(() => {
@@ -30,17 +32,28 @@ const AppContent: React.FC = () => {
         
         const projectManager = ProjectManager.getInstance();
         await projectManager.initialize();
+        
+        // Small delay to show splash screen (minimum 800ms for better UX)
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
         setProjectManagerInitialized(true);
         console.log('[App] Project Manager initialized successfully');
       } catch (error) {
         console.error('[App] Failed to initialize Project Manager:', error);
-        // Continue without project manager
-        setProjectManagerInitialized(true);
+        setInitializationError(error instanceof Error ? error.message : 'Unknown initialization error');
+        // Continue without project manager after 2 seconds
+        setTimeout(() => setProjectManagerInitialized(true), 2000);
       }
     };
 
     initializeProjectManager();
   }, []);
+
+  const handleRetry = () => {
+    setInitializationError(undefined);
+    setProjectManagerInitialized(false);
+    window.location.reload();
+  };
 
   // Render the appropriate layout based on user level
   const renderLayout = () => {
@@ -56,16 +69,15 @@ const AppContent: React.FC = () => {
     }
   };
 
-  // Show loading screen while Project Manager initializes
+  // Show splash screen while Project Manager initializes
   if (!projectManagerInitialized) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">Initializing kinetiCORE</h2>
-          <p className="text-gray-600">Setting up project management system...</p>
-        </div>
-      </div>
+      <SplashScreen
+        isVisible={true}
+        message="Setting up project management system..."
+        error={initializationError}
+        onRetry={handleRetry}
+      />
     );
   }
 
