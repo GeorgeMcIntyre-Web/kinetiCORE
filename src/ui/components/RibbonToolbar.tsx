@@ -14,7 +14,6 @@ import {
   Package,
   FileUp,
   FolderUp,
-  Save,
   FolderOpen,
   Move,
   Calculator,
@@ -123,7 +122,6 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   const createCollection = useEditorStore((state) => state.createCollection);
   const importModel = useEditorStore((state) => state.importModel);
   const importURDFFolder = useEditorStore((state) => state.importURDFFolder);
-  const saveWorld = useEditorStore((state) => state.saveWorld);
   const loadWorld = useEditorStore((state) => state.loadWorld);
   const currentView = useEditorStore((state) => state.currentView);
   const setCurrentView = useEditorStore((state) => state.setCurrentView);

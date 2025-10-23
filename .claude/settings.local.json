@@ -103,7 +103,8 @@
       "Bash($env:CLOUDFLARE_ACCOUNT_ID=\"99a4abb2620e21383c0710dacf97180e\")",
       "Bash(timeout 30 npm test:*)",
       "Bash(del \"c:\\Users\\George\\source\\repos\\kinetiCORE\\src\\kinematics\\__tests__\\MassProperties.simple.test.ts\")",
-      "Bash(git check-ignore:*)"
+      "Bash(git check-ignore:*)",
+      "Bash(npx wrangler:*)"
     ],
     "deny": [],
     "ask": []

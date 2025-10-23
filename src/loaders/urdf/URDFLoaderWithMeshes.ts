@@ -93,15 +93,44 @@ async function createBasicURDFStructure(
   
   console.log(`Created basic structure with ${meshes.length} links for ${urdf.robotName}`);
   
-  // Create device entity
-  const deviceEntity = registry.createEntity('device', urdf.robotName);
-  deviceEntity.setMesh(robotRoot);
+  // Create device entity with a proper mesh (invisible root mesh)
+  const deviceMesh = BABYLON.MeshBuilder.CreateBox(
+    `${urdf.robotName}_device_root`,
+    { size: 0.01 },
+    scene
+  );
+  deviceMesh.isVisible = false;
+  deviceMesh.parent = robotRoot;
+  deviceMesh.position = BABYLON.Vector3.Zero();
+  
+  // Add device mesh to meshes array
+  meshes.push(deviceMesh);
+  
+  const deviceEntity = registry.create({
+    mesh: deviceMesh,
+    isDevice: true,
+    rootTransformNode: robotRoot,
+    metadata: {
+      name: urdf.robotName,
+      type: 'device',
+      deviceType: 'urdf',
+      urdfPath: urdfFile.name,
+    },
+  });
   
   // Create link entities
   const linkEntities: any[] = [];
   for (const mesh of meshes) {
-    const linkEntity = registry.createEntity('link', mesh.name);
-    linkEntity.setMesh(mesh);
+    const linkEntity = registry.create({
+      mesh: mesh,
+      metadata: {
+        name: mesh.name,
+        type: 'link',
+      },
+    });
+    
+    // Add as child of device entity
+    deviceEntity.addChild(linkEntity);
     linkEntities.push(linkEntity);
   }
   
