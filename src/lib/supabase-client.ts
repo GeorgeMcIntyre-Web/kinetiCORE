@@ -14,122 +14,12 @@ const CLOUDFLARE_WORKER_URL = 'https://kineticore-supabase-proxy.fractalnexustec
 const supabaseUrl = CLOUDFLARE_WORKER_URL;
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oa3VzanNvdW56d2ttZXZqc2dsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExODE5ODQsImV4cCI6MjA3Njc1Nzk4NH0.NCmILj-aOpHTPtygngkiXgPNekEb0hyJ6bA7132Ywrg';
 
-// Database types for type safety
-export interface Database {
-  public: {
-    Tables: {
-      user_profiles: {
-        Row: {
-          id: string;
-          email: string;
-          full_name: string | null;
-          avatar_url: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          email: string;
-          full_name?: string | null;
-          avatar_url?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          email?: string;
-          full_name?: string | null;
-          avatar_url?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      assets: {
-        Row: {
-          id: string;
-          user_id: string;
-          name: string;
-          description: string | null;
-          file_path: string;
-          file_size: number;
-          mime_type: string;
-          storage_tier: 'local' | 'user' | 'shared';
-          is_public: boolean;
-          tags: string[];
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          name: string;
-          description?: string | null;
-          file_path: string;
-          file_size: number;
-          mime_type: string;
-          storage_tier?: 'local' | 'user' | 'shared';
-          is_public?: boolean;
-          tags?: string[];
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          name?: string;
-          description?: string | null;
-          file_path?: string;
-          file_size?: number;
-          mime_type?: string;
-          storage_tier?: 'local' | 'user' | 'shared';
-          is_public?: boolean;
-          tags?: string[];
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      asset_metadata: {
-        Row: {
-          id: string;
-          asset_id: string;
-          metadata: Record<string, any>;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          asset_id: string;
-          metadata: Record<string, any>;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          asset_id?: string;
-          metadata?: Record<string, any>;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-    };
-    Views: {
-      [_ in never]: never;
-    };
-    Functions: {
-      [_ in never]: never;
-    };
-    Enums: {
-      [_ in never]: never;
-    };
-  };
-}
-
 // Singleton Supabase client to prevent multiple instances
-let supabaseInstance: ReturnType<typeof createClient<Database>> | null = null;
+let supabaseInstance: any = null;
 
 function getSupabaseClient() {
   if (!supabaseInstance) {
-    supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         // Use Cloudflare Worker for auth operations
         autoRefreshToken: true,
@@ -186,12 +76,15 @@ export const supabaseHelpers = {
     const { data: assetData, error: dbError } = await supabase
       .from('assets')
       .insert({
-        user_id: (await this.getCurrentUser())?.id || '',
+        owner_id: (await this.getCurrentUser())?.id || '',
         name: file.name,
         file_path: filePath,
         file_size: file.size,
         mime_type: file.type,
-        storage_tier: 'user' as const,
+        checksum: '', // TODO: Calculate actual checksum
+        loader_type: 'generic',
+        visibility: 'private' as const,
+        status: 'draft' as const,
         tags: metadata.tags || []
       })
       .select()

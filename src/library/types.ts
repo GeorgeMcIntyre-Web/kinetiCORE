@@ -158,7 +158,11 @@ export interface LibraryAsset {
   // === Technical ===
   loaderType: LoaderType;
   filePath: string; // Relative path from library root
+  fileUrl?: string; // Full URL to file
   fileSize?: number; // MB
+  checksum?: string; // SHA-256 hash
+  metadata?: Record<string, unknown>; // Additional metadata
+  meshFiles?: string[]; // Array of mesh file URLs
 
   // === Capabilities ===
   capabilities?: AssetCapabilities;

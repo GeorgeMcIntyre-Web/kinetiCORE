@@ -13,7 +13,6 @@ import { SceneTreeManager } from './SceneTreeManager';
 import { SceneManager } from './SceneManager';
 import { EntityRegistry } from '../entities/EntityRegistry';
 import { supabase } from '../lib/supabase-client';
-import type { Vector3, Quaternion } from '../core/types';
 import * as BABYLON from '@babylonjs/core';
 
 // ============================================================================
@@ -194,7 +193,7 @@ export class WorldSaveManager {
     
     for (const node of allNodes) {
       // Skip non-mesh nodes
-      if (node.type !== 'mesh' && node.type !== 'robot' && node.type !== 'device') {
+      if (node.type !== 'mesh' && node.type !== 'robot') {
         continue;
       }
       
@@ -532,7 +531,7 @@ export class WorldSaveManager {
    * Decompress world data
    */
   private async decompress(compressed: Uint8Array): Promise<WorldSaveData> {
-    const stream = new Response(compressed)
+    const stream = new Response(compressed.buffer as ArrayBuffer)
       .body!
       .pipeThrough(new DecompressionStream('gzip'));
     
@@ -544,7 +543,7 @@ export class WorldSaveManager {
    * Calculate SHA-256 checksum
    */
   private async calculateChecksum(data: Uint8Array): Promise<string> {
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data.buffer as ArrayBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     return hashHex;
