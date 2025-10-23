@@ -68,6 +68,11 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
       const tree = SceneTreeManager.getInstance();
       const allActuators = actuatorSystem.getAllActuators();
 
+      console.log('[Actuator Panel] Discovery:', allActuators.length, 'actuators found');
+      if (allActuators.length > 0) {
+        console.log('[Actuator Panel] Sample actuator:', allActuators[0]);
+      }
+
       if (allActuators.length === 0) {
         setDevices([]);
         return;
@@ -77,11 +82,26 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
       const deviceMap: { [key: string]: { name: string; actuators: any[] } } = {};
 
       allActuators.forEach((actuator: any) => {
-        // Extract robot/device ID from actuator ID (format: robotId_joint_jointName)
-        const parts = actuator.id.split('_joint_');
-        if (parts.length < 2) return;
+        // Extract robot/device ID from actuator ID
+        // Format can be: robotId_joint_jointName OR robotId_actuator_actuatorName
+        let robotId = '';
 
-        const robotId = parts[0];
+        if (actuator.id.includes('_joint_')) {
+          robotId = actuator.id.split('_joint_')[0];
+        } else if (actuator.id.includes('_actuator_')) {
+          robotId = actuator.id.split('_actuator_')[0];
+        } else {
+          // Fallback: try to extract robotId from controlledJoints
+          if (actuator.controlledJoints && actuator.controlledJoints.length > 0) {
+            const jointId = actuator.controlledJoints[0];
+            if (jointId.includes('_joint_')) {
+              robotId = jointId.split('_joint_')[0];
+            }
+          }
+        }
+
+        if (!robotId) return;
+
         const node = tree.getNode(robotId);
 
         if (node) {
@@ -99,6 +119,7 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
         actuatorCount: data.actuators.length,
       }));
 
+      console.log('[Actuator Panel] Discovered devices:', discoveredDevices);
       setDevices(discoveredDevices);
     };
 
