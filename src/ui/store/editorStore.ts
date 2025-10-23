@@ -384,6 +384,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       }
     }
 
+    // Auto-expand tree to show selected node
+    tree.expandToNode(nodeId);
+    window.dispatchEvent(new Event('scenetree-update'));
+
     // If it's a collection/TransformNode, show coordinate frame at its origin
     if (node && node.type === 'collection' && scene) {
       let transformNode: BABYLON.TransformNode | undefined;

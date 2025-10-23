@@ -13,7 +13,7 @@ import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { useEditorStore } from '../store/editorStore';
-import { RobotJoggingPanel } from './RobotJoggingPanel';
+import { RobotJoggingPanelWithGizmo } from './RobotJoggingPanelWithGizmo';
 import './FloatingKinematicsPanel.css';
 
 interface FloatingKinematicsPanelProps {
@@ -167,11 +167,6 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       // Joint IDs now include robot collection ID prefix: "collection_xxx_joint_yyy"
       const deviceJoints = allJoints.filter(joint => joint.id.startsWith(activeRobotId));
 
-      console.log(`[FloatingKinematicsPanel] Active robot: ${activeRobotId}`);
-      console.log(`[FloatingKinematicsPanel] Total joints: ${allJoints.length}`);
-      console.log(`[FloatingKinematicsPanel] Device joints: ${deviceJoints.length}`);
-      console.log(`[FloatingKinematicsPanel] Joint IDs:`, deviceJoints.map(j => j.id));
-
       setJoints(deviceJoints);
     };
 
@@ -188,7 +183,7 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       <AssetLibraryDarkSection title="Joint Control" hint={!activeRobotId ? "Select a device to enable" : undefined}>
         {activeRobotId ? (
           joints.length > 0 ? (
-            <RobotJoggingPanel joints={joints} fkSolver={fkSolver} robotId={activeRobotId} />
+            <RobotJoggingPanelWithGizmo joints={joints} fkSolver={fkSolver} robotId={activeRobotId} />
           ) : (
             <div style={{ padding: '12px', fontSize: '13px', color: 'rgba(255, 255, 255, 0.6)', textAlign: 'center' }}>
               No joints found for this device. Check console for debugging info.
