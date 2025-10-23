@@ -29,7 +29,107 @@
     </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Static splash screen - shown immediately while React loads -->
+      <div id="initial-splash" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #0f2027 0%, #203a43 25%, #2c5364 50%, #203a43 75%, #0f2027 100%);
+        z-index: 10000;
+        font-family: system-ui, -apple-system, sans-serif;
+      ">
+        <div style="text-align: center;">
+          <!-- Logo -->
+          <div style="
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.15) 0%, rgba(0, 180, 255, 0.1) 100%);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            border: 2px solid rgba(0, 240, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 60px rgba(0, 240, 255, 0.2);
+          ">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+          </div>
+
+          <!-- Title -->
+          <h1 style="
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff 0%, #00f0ff 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0 0 0.75rem 0;
+            letter-spacing: -1px;
+          ">kinetiCORE</h1>
+
+          <!-- Subtitle -->
+          <p style="
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: rgba(0, 240, 255, 0.9);
+            margin: 0 0 1rem 0;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+          ">INDUSTRIAL SIMULATION PLATFORM</p>
+
+          <!-- Loading bar -->
+          <div style="
+            width: 120px;
+            height: 8px;
+            margin: 3rem auto 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            overflow: hidden;
+          ">
+            <div style="
+              width: 40%;
+              height: 100%;
+              background: linear-gradient(90deg, #00b4d8 0%, #00f0ff 100%);
+              border-radius: 8px;
+              animation: slide 2s ease-in-out infinite;
+            "></div>
+          </div>
+
+          <p style="
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.85);
+            margin: 0;
+          ">Initializing...</p>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Remove initial splash when React renders
+      window.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+          const splash = document.getElementById('initial-splash');
+          if (splash && document.querySelector('[class*="splash-screen"]')) {
+            splash.remove();
+          }
+        }, 100);
+      });
+    </script>
+    <style>
+      @keyframes slide {
+        0%, 100% { transform: translateX(-100%); }
+        50% { transform: translateX(250%); }
+      }
+    </style>
   </body>
 </html>
