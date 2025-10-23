@@ -1,0 +1,139 @@
+/* Save Dropdown Styles */
+
+.save-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.save-dropdown-button-group {
+  display: flex;
+  align-items: center;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #21262d;
+  border: 1px solid #3e3e42;
+}
+
+.save-dropdown-main-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 36px;
+  background: #21262d;
+  border: none;
+  color: #79818a;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.save-dropdown-main-btn:hover {
+  background: #2d7d46;
+  color: #ffffff;
+}
+
+.save-dropdown-main-btn:active {
+  background: #1e1e1e;
+}
+
+.save-dropdown-arrow-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 25px;
+  background: #2d2d30;
+  border: none;
+  border-left: 1px solid #3e3e42;
+  color: #858585;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.save-dropdown-arrow-btn:hover {
+  background: #3e3e42;
+  color: #ffffff;
+}
+
+.save-dropdown-arrow-btn:active {
+  background: #1e1e1e;
+}
+
+.dropdown-chevron {
+  transition: transform 0.2s ease;
+}
+
+.dropdown-chevron.open {
+  transform: rotate(180deg);
+}
+
+.save-dropdown-menu {
+  position: fixed;
+  background: #252526;
+  border: 1px solid #3e3e42;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  min-width: 180px;
+  overflow: hidden;
+}
+
+.save-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  color: #cccccc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.save-dropdown-item:hover {
+  background: #2a2d2e;
+  color: #ffffff;
+}
+
+.save-dropdown-item.active {
+  background: #1a5c38;
+  color: #ffffff;
+}
+
+.save-dropdown-item.active:hover {
+  background: #1f6b43;
+}
+
+.item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.item-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Animation for dropdown menu */
+.save-dropdown-menu {
+  animation: dropdownSlideDown 0.15s ease-out;
+}
+
+@keyframes dropdownSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

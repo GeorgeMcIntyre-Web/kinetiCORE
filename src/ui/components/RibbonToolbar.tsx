@@ -68,8 +68,8 @@ const QuickMoveIcon = ({ size = 32 }: { size?: number }) => (
 );
 import { useEditorStore } from '../store/editorStore';
 import { ViewDropdown } from './ViewDropdown';
+import { SaveDropdown } from './SaveDropdown';
 import './RibbonToolbar.css';
-import { WorldSaveControls } from './WorldSaveControls';
 
 export interface RibbonToolbarProps {
   onKinematicsClick?: () => void;
@@ -194,9 +194,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           <button className="ribbon-btn" onClick={onProjectManagerClick} title="Project Manager">
             <FolderKanban size={32} />
           </button>
-          <button className="ribbon-btn" onClick={saveWorld} title="Save World (Database)">
-            <Save size={32} />
-          </button>
+          <SaveDropdown />
           <button className="ribbon-btn" onClick={handleLoadWorld} title="Load World">
             <FolderOpen size={32} />
           </button>
