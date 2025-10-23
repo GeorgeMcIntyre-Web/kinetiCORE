@@ -264,7 +264,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
   return (
     <FloatingPanel
       title="Whole-Body IK"
-      subtitle="Multi-target inverse kinematics"
+      subtitle="Full-body pose control"
       icon={icon}
       isVisible={isVisible}
       onClose={onClose}
@@ -346,48 +346,66 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
       {/* Quick Actions */}
       <div style={{ marginBottom: '20px' }}>
         <h4 style={{ marginTop: 0, marginBottom: '10px' }}>Quick Actions</h4>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '12px' }}>
           <button
             onClick={solveHumanoidWalking}
             title="Humanoid Walk Pose"
             style={{
-              width: '40px',
-              height: '40px',
-              padding: '8px',
+              flex: 1,
+              padding: '12px 8px',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
+              gap: '6px',
+              backgroundColor: '#2a2a2a',
+              border: '1px solid #444',
+              borderRadius: '4px',
+              cursor: 'pointer',
             }}
           >
             <Footprints size={20} />
+            <span style={{ fontSize: '11px', fontWeight: '500' }}>Walk</span>
           </button>
           <button
             onClick={solveQuadrupedStance}
             title="Quadruped Stance"
             style={{
-              width: '40px',
-              height: '40px',
-              padding: '8px',
+              flex: 1,
+              padding: '12px 8px',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
+              gap: '6px',
+              backgroundColor: '#2a2a2a',
+              border: '1px solid #444',
+              borderRadius: '4px',
+              cursor: 'pointer',
             }}
           >
             <PawPrint size={20} />
+            <span style={{ fontSize: '11px', fontWeight: '500' }}>Stand</span>
           </button>
           <button
             onClick={solveDualArm}
             title="Dual-Arm Grasp"
             style={{
-              width: '40px',
-              height: '40px',
-              padding: '8px',
+              flex: 1,
+              padding: '12px 8px',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
+              gap: '6px',
+              backgroundColor: '#2a2a2a',
+              border: '1px solid #444',
+              borderRadius: '4px',
+              cursor: 'pointer',
             }}
           >
             <Grip size={20} />
+            <span style={{ fontSize: '11px', fontWeight: '500' }}>Grasp</span>
           </button>
         </div>
       </div>
