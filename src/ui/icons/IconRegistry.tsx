@@ -167,7 +167,8 @@ export const IconRegistry = {
     clamp: Grip,            // Clamping device
     pump: Zap,              // Fluid pump
     gear: Cog,              // Gear mechanism
-    bearing: Circle         // Bearing/support
+    bearing: Circle,        // Bearing/support
+    complexIK: GitBranch    // Complex IK systems - using GitBranch for multi-joint chains
   },
   
   // Boolean Operations
@@ -548,6 +549,7 @@ export const IconPaths = {
   PUMP: 'kinematics.pump',
   GEAR: 'kinematics.gear',
   BEARING: 'kinematics.bearing',
+  COMPLEX_IK: 'kinematics.complexIK',
   
   // Boolean
   UNION: 'boolean.union',

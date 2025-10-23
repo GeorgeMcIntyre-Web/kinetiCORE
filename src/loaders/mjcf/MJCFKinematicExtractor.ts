@@ -7,9 +7,7 @@
  */
 
 import { KinematicsManager, type JointType } from '../../kinematics/KinematicsManager';
-import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
-import { TransformNode } from '@babylonjs/core';
 
 export interface MJCFJoint {
   name: string;
@@ -298,7 +296,6 @@ export async function createKinematicsFromMJCF(
   // Create kinematic chain
   if (createdCount > 0) {
     try {
-      const chainId = `${robotRootNodeId}_chain`;
       const chain = kinematicsManager.createChain(
         `${robotRootNodeId} Kinematic Chain`,
         robotRootNodeId,

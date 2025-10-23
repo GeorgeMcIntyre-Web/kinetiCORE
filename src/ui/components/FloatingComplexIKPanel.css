@@ -1,0 +1,310 @@
+/**
+ * FloatingComplexIKPanel.css
+ * Styles for the Complex IK Systems floating panel
+ */
+
+.floating-complex-ik-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* IK Chains */
+.ik-chains-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ik-chain-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ik-chain-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.ik-chain-item.active {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.chain-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chain-name {
+  font-weight: 600;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.chain-details {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.chain-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6b7280;
+}
+
+.status-indicator.idle {
+  background: #10b981;
+}
+
+.status-indicator.computing {
+  background: #f59e0b;
+  animation: pulse 1s infinite;
+}
+
+.status-indicator.error {
+  background: #ef4444;
+}
+
+.status-text {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: capitalize;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* IK Targets */
+.ik-targets-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.add-target-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-radius: 6px;
+  color: #60a5fa;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-target-btn:hover {
+  background: rgba(59, 130, 246, 0.3);
+  border-color: rgba(59, 130, 246, 0.6);
+}
+
+.ik-targets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ik-target-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ik-target-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.ik-target-item.selected {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.target-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.target-name {
+  font-weight: 500;
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.target-position {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: 'Courier New', monospace;
+}
+
+.target-status {
+  display: flex;
+  align-items: center;
+}
+
+.reachability-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.reachability-indicator.reachable {
+  background: #10b981;
+}
+
+.reachability-indicator.unreachable {
+  background: #ef4444;
+}
+
+/* IK Settings */
+.ik-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.setting-item label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.setting-item input[type="number"] {
+  width: 80px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 12px;
+  text-align: right;
+}
+
+.setting-item input[type="number"]:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.6);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.setting-item.checkbox {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.setting-item.checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+.setting-item.checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #3b82f6;
+}
+
+/* IK Actions */
+.ik-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.solve-ik-btn,
+.reset-ik-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.solve-ik-btn {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #10b981;
+}
+
+.solve-ik-btn:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.3);
+  border-color: rgba(16, 185, 129, 0.6);
+}
+
+.solve-ik-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reset-ik-btn {
+  background: rgba(107, 114, 128, 0.2);
+  border: 1px solid rgba(107, 114, 128, 0.4);
+  color: #9ca3af;
+}
+
+.reset-ik-btn:hover {
+  background: rgba(107, 114, 128, 0.3);
+  border-color: rgba(107, 114, 128, 0.6);
+}
+
+/* Scrollbar styling */
+.floating-complex-ik-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.floating-complex-ik-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.floating-complex-ik-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.floating-complex-ik-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
