@@ -652,8 +652,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
 
     // Execute delete command (supports undo)
+    // Pass callbacks to break circular dependency
     const { commandManager } = get();
-    const command = new DeleteObjectCommand(nodeId);
+    const command = new DeleteObjectCommand(nodeId, {
+      createObject: get().createObject,
+      updateNodePosition: get().updateNodePosition,
+      updateNodeRotation: get().updateNodeRotation,
+      updateNodeScale: get().updateNodeScale,
+    });
     commandManager.execute(command);
 
     toast.success(`Deleted "${nodeName}"`);

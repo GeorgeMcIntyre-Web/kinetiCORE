@@ -6,10 +6,14 @@ import * as BABYLON from '@babylonjs/core';
 import { SceneTreeManager } from '../scene/SceneTreeManager';
 import type { SceneNode } from '../scene/SceneTreeNode';
 import type { JointType } from '../scene/SceneTreeNode';
-import { ActuatorSystem } from './actuation/ActuatorSystem';
+import type { IKinematicsManager } from './IKinematicsManager';
+// ActuatorSystem is imported via require() in getActuatorSystem() to break circular dependency
 
 // Re-export JointType for convenience
 export type { JointType };
+
+// Export interface for breaking circular dependencies
+export type { IKinematicsManager };
 
 /**
  * Kinematic chain types
@@ -116,12 +120,12 @@ export interface KinematicChain {
 /**
  * KinematicsManager - Central system for kinematic chains
  */
-export class KinematicsManager {
+export class KinematicsManager implements IKinematicsManager {
   private static instance: KinematicsManager | null = null;
   private chains = new Map<string, KinematicChain>();
   private groundedNodes = new Set<string>();
   private joints = new Map<string, JointConfig>();
-  private actuatorSystem: ActuatorSystem | null = null;
+  private actuatorSystem: any | null = null;
   private keyframes = new Map<string, RobotKeyframe>();
 
   // Visual helpers
@@ -139,10 +143,15 @@ export class KinematicsManager {
 
   /**
    * Get the actuator system for hardware control
+   * Note: ActuatorSystem is lazily loaded to avoid circular dependency
    */
-  getActuatorSystem(): ActuatorSystem {
+  getActuatorSystem(): any {
     if (!this.actuatorSystem) {
-      this.actuatorSystem = new ActuatorSystem();
+      // Lazy load ActuatorSystem to break circular dependency
+      // This is safe because ActuatorSystem is only used in specific contexts
+      // where the module has already been loaded
+      const ActuatorSystemModule = require('./actuation/ActuatorSystem');
+      this.actuatorSystem = new ActuatorSystemModule.ActuatorSystem();
     }
     return this.actuatorSystem;
   }

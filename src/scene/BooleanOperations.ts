@@ -3,7 +3,7 @@
 
 import * as BABYLON from '@babylonjs/core';
 import { CSG2, InitializeCSG2Async } from '@babylonjs/core/Meshes/csg2';
-import { SceneManager } from './SceneManager';
+// Removed SceneManager import to break circular dependency - scene is now passed as parameter
 import { EntityRegistry } from '../entities/EntityRegistry';
 import { SceneTreeManager } from './SceneTreeManager';
 import { babylonToUser } from '../core/CoordinateSystem';
@@ -59,7 +59,8 @@ export class BooleanOperations {
   static async performOperation(
     meshA: BABYLON.Mesh,
     meshB: BABYLON.Mesh,
-    operation: BooleanOperationType
+    operation: BooleanOperationType,
+    scene?: BABYLON.Scene
   ): Promise<BooleanOperationResult> {
     try {
       // Ensure CSG2 is initialized
@@ -81,8 +82,11 @@ export class BooleanOperations {
         };
       }
 
-      const sceneManager = SceneManager.getInstance();
-      const scene = sceneManager.getScene();
+      // Use provided scene or get from meshA
+      if (!scene) {
+        scene = meshA.getScene();
+      }
+      
       if (!scene) {
         return {
           success: false,
@@ -148,12 +152,22 @@ export class BooleanOperations {
   static async performOperationOnNodes(
     nodeIdA: string,
     nodeIdB: string,
-    operation: BooleanOperationType
+    operation: BooleanOperationType,
+    scene?: BABYLON.Scene
   ): Promise<BooleanOperationResult> {
     const tree = SceneTreeManager.getInstance();
     const registry = EntityRegistry.getInstance();
-    const sceneManager = SceneManager.getInstance();
-    const scene = sceneManager.getScene();
+    
+    // Get scene from first node's mesh if not provided
+    if (!scene) {
+      const nodeA = tree.getNode(nodeIdA);
+      if (nodeA?.babylonMeshId) {
+        // Get scene dynamically from mesh using require to avoid circular dependency
+        const { SceneManager } = require('./SceneManager');
+        const sceneManager = SceneManager.getInstance();
+        scene = sceneManager.getScene() || undefined;
+      }
+    }
 
     if (!scene) {
       return {
@@ -191,8 +205,8 @@ export class BooleanOperations {
       };
     }
 
-    // Perform operation
-    const result = await this.performOperation(meshA, meshB, operation);
+    // Perform operation (pass scene to avoid needing SceneManager)
+    const result = await this.performOperation(meshA, meshB, operation, scene);
 
     if (!result.success || !result.resultMesh) {
       return result;

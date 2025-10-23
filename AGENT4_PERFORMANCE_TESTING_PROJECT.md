@@ -1,427 +1,427 @@
 # Agent 4: Performance Optimization & Testing Infrastructure
 
-**Agent:** Agent 4  
-**Role:** Performance Optimization & Testing Infrastructure  
-**Priority:** MEDIUM - Foundation for Production Readiness  
-**Status:** Ready to Start  
-**Created:** 2025-01-23  
-
-## ⚡ Mission Statement
-
-Optimize the kinetiCORE system for production performance and establish comprehensive testing infrastructure. Focus on real-time IK performance, memory optimization, and robust testing frameworks that ensure system reliability.
-
-**Current State:** System works but needs optimization for production use  
-**Target State:** High-performance, well-tested system ready for production deployment
-
-## 🎯 Project Scope
-
-### 1. Performance Optimization 🚀
-**Priority:** HIGH  
-**Focus Areas:**
-- Real-time IK solving performance
-- Memory usage optimization
-- Rendering performance
-- Bundle size optimization
-- Caching strategies
-
-### 2. Testing Infrastructure 🧪
-**Priority:** HIGH  
-**Focus Areas:**
-- Unit test coverage expansion
-- Integration test framework
-- Performance benchmarking
-- End-to-end testing
-- Automated testing pipeline
-
-### 3. Monitoring & Profiling 📊
-**Priority:** MEDIUM  
-**Focus Areas:**
-- Performance monitoring
-- Error tracking
-- Usage analytics
-- Performance regression detection
-- Real-time metrics
-
-### 4. Production Readiness 🏭
-**Priority:** MEDIUM  
-**Focus Areas:**
-- Production deployment optimization
-- Error handling and recovery
-- Logging and debugging
-- Security hardening
-- Scalability preparation
-
-## 🏗️ Implementation Plan
-
-### Phase 1: Performance Analysis & Optimization (5-6 days)
-**Timeline:** Week 1-2  
-**Files to Focus On:**
-- `src/kinematics/InverseKinematicsSolver.ts`
-- `src/kinematics/WholeBodyIKSolver.ts`
-- `src/ui/components/` (all panels)
-- `vite.config.ts` (build optimization)
-
-**Implementation Steps:**
-1. **Performance Profiling Setup**
-   ```typescript
-   // Add performance monitoring
-   class PerformanceMonitor {
-     static startTimer(label: string): void;
-     static endTimer(label: string): number;
-     static measureIKPerformance(chainName: string, iterations: number): PerformanceMetrics;
-     static measureMemoryUsage(): MemoryMetrics;
-   }
-   ```
-
-2. **IK Algorithm Optimization**
-   ```typescript
-   // Optimize IK solving performance
-   class OptimizedIKSolver extends InverseKinematicsSolver {
-     // Vectorized operations
-     // Parallel processing
-     // Caching strategies
-     // Early termination
-   }
-   ```
-
-3. **Memory Optimization**
-   - Object pooling for frequent allocations
-   - Garbage collection optimization
-   - Memory leak detection and prevention
-   - Efficient data structures
-
-4. **Rendering Performance**
-   - React component optimization
-   - Virtual scrolling for large lists
-   - Debounced updates
-   - Efficient re-rendering strategies
-
-### Phase 2: Testing Infrastructure (4-5 days)
-**Timeline:** Week 2-3  
-**Files to Create/Modify:**
-- `tests/unit/` (expand existing)
-- `tests/integration/` (new)
-- `tests/performance/` (new)
-- `tests/e2e/` (new)
-- `vitest.config.ts` (enhance)
-
-**Implementation Steps:**
-1. **Unit Test Expansion**
-   ```typescript
-   // Comprehensive unit tests
-   describe('InverseKinematicsSolver', () => {
-     test('converges within tolerance', () => {
-       // Test IK convergence
-     });
-     
-     test('handles singularities', () => {
-       // Test singularity handling
-     });
-     
-     test('respects joint limits', () => {
-       // Test joint limit enforcement
-     });
-   });
-   ```
-
-2. **Integration Test Framework**
-   ```typescript
-   // Integration tests
-   describe('IK System Integration', () => {
-     test('full workflow: select robot → solve IK → apply', () => {
-       // Test complete workflow
-     });
-     
-     test('multi-chain coordination', () => {
-       // Test multi-chain scenarios
-     });
-   });
-   ```
-
-3. **Performance Benchmarking**
-   ```typescript
-   // Performance tests
-   describe('Performance Benchmarks', () => {
-     test('IK solving speed', () => {
-       // Benchmark IK performance
-     });
-     
-     test('memory usage', () => {
-       // Benchmark memory consumption
-     });
-   });
-   ```
-
-4. **End-to-End Testing**
-   ```typescript
-   // E2E tests with Playwright
-   test('user can control robot with IK', async ({ page }) => {
-     // Test complete user workflow
-   });
-   ```
-
-### Phase 3: Monitoring & Analytics (3-4 days)
-**Timeline:** Week 3-4  
-**Files to Create:**
-- `src/monitoring/PerformanceMonitor.ts` (new)
-- `src/monitoring/ErrorTracker.ts` (new)
-- `src/monitoring/UsageAnalytics.ts` (new)
-
-**Implementation Steps:**
-1. **Performance Monitoring**
-   ```typescript
-   class PerformanceMonitor {
-     static trackIKPerformance(metrics: IKPerformanceMetrics): void;
-     static trackMemoryUsage(): void;
-     static trackRenderingPerformance(): void;
-     static generatePerformanceReport(): PerformanceReport;
-   }
-   ```
-
-2. **Error Tracking**
-   ```typescript
-   class ErrorTracker {
-     static trackError(error: Error, context: ErrorContext): void;
-     static trackIKFailure(chainName: string, error: IKSolutionError): void;
-     static generateErrorReport(): ErrorReport;
-   }
-   ```
-
-3. **Usage Analytics**
-   ```typescript
-   class UsageAnalytics {
-     static trackFeatureUsage(feature: string): void;
-     static trackUserWorkflow(workflow: UserWorkflow): void;
-     static generateUsageReport(): UsageReport;
-   }
-   ```
-
-### Phase 4: Production Optimization (2-3 days)
-**Timeline:** Week 4  
-**Files to Modify:**
-- `vite.config.ts`
-- `package.json`
-- `src/main.ts`
-- Build and deployment scripts
-
-**Implementation Steps:**
-1. **Build Optimization**
-   - Code splitting
-   - Tree shaking
-   - Bundle optimization
-   - Asset optimization
-
-2. **Production Configuration**
-   - Environment-specific configs
-   - Production error handling
-   - Logging configuration
-   - Security headers
-
-3. **Deployment Optimization**
-   - CDN configuration
-   - Caching strategies
-   - Compression
-   - Performance budgets
-
-## 📁 Key Files to Work With
-
-### Performance Optimization Files
-- `src/kinematics/InverseKinematicsSolver.ts` - IK algorithm optimization
-- `src/kinematics/WholeBodyIKSolver.ts` - Multi-chain optimization
-- `src/ui/components/` - UI performance optimization
-- `vite.config.ts` - Build optimization
-
-### Testing Infrastructure Files
-- `tests/` - Expand existing test directory
-- `vitest.config.ts` - Test configuration
-- `package.json` - Test scripts and dependencies
-
-### Monitoring Files (Create New)
-- `src/monitoring/PerformanceMonitor.ts`
-- `src/monitoring/ErrorTracker.ts`
-- `src/monitoring/UsageAnalytics.ts`
-
-### Production Files
-- `vite.config.ts` - Production build config
-- `src/main.ts` - Production initialization
-- Build and deployment scripts
-
-## 🎨 Performance Optimization Strategies
-
-### IK Algorithm Optimization
-```typescript
-// Vectorized operations
-class VectorizedIKSolver {
-  // Use SIMD operations where possible
-  // Batch matrix operations
-  // Optimize memory access patterns
-  // Use efficient data structures
-}
-
-// Caching strategies
-class CachedIKSolver {
-  private jacobianCache: Map<string, Matrix>;
-  private solutionCache: Map<string, IKSolution>;
-  
-  // Cache frequently computed values
-  // Invalidate cache when needed
-  // Use LRU cache for memory management
-}
-```
-
-### Memory Optimization
-```typescript
-// Object pooling
-class ObjectPool<T> {
-  private pool: T[];
-  private createFn: () => T;
-  
-  get(): T;
-  release(obj: T): void;
-}
-
-// Efficient data structures
-class EfficientIKData {
-  // Use typed arrays for numerical data
-  // Minimize object allocations
-  // Reuse temporary objects
-}
-```
-
-### UI Performance Optimization
-```typescript
-// React optimization
-const OptimizedIKPanel = React.memo(({ chains, targets }) => {
-  // Memoize expensive calculations
-  // Use useCallback for event handlers
-  // Optimize re-rendering
-});
-
-// Virtual scrolling
-const VirtualizedChainList = ({ chains }) => {
-  // Only render visible items
-  // Efficient scrolling
-  // Dynamic height calculation
-};
-```
-
-## 🧪 Testing Strategy
-
-### Unit Testing
-```typescript
-// Comprehensive unit tests
-describe('IK Performance', () => {
-  test('solves IK within performance budget', () => {
-    const startTime = performance.now();
-    const solution = ikSolver.solve(target);
-    const endTime = performance.now();
-    
-    expect(endTime - startTime).toBeLessThan(16); // 60 FPS
-  });
-});
-```
-
-### Integration Testing
-```typescript
-// Integration tests
-describe('IK System Integration', () => {
-  test('handles complex multi-chain scenarios', async () => {
-    // Test real-world scenarios
-    // Verify system stability
-    // Check performance under load
-  });
-});
-```
-
-### Performance Testing
-```typescript
-// Performance benchmarks
-describe('Performance Benchmarks', () => {
-  test('IK solving performance', () => {
-    // Benchmark different scenarios
-    // Compare with performance budgets
-    // Track performance regression
-  });
-});
-```
-
-### End-to-End Testing
-```typescript
-// E2E tests
-test('complete IK workflow', async ({ page }) => {
-  // Test user interactions
-  // Verify system behavior
-  // Check performance in real browser
-});
-```
-
-## 📊 Success Metrics
-
-### Performance Metrics
-- [ ] IK solving time < 16ms (60 FPS)
-- [ ] Memory usage < 100MB for typical scenarios
-- [ ] Bundle size < 2MB gzipped
-- [ ] Initial load time < 3 seconds
-
-### Testing Metrics
-- [ ] Unit test coverage > 90%
-- [ ] Integration test coverage > 80%
-- [ ] Performance test coverage > 70%
-- [ ] E2E test coverage > 60%
-
-### Quality Metrics
-- [ ] Zero critical performance regressions
-- [ ] Error rate < 0.1%
-- [ ] System uptime > 99.9%
-- [ ] User satisfaction > 4.5/5
-
-## 🚀 Getting Started
-
-1. **Environment Setup**
-   - Set up performance profiling tools
-   - Configure testing environment
-   - Install monitoring tools
-   - Set up CI/CD pipeline
-
-2. **Performance Analysis**
-   - Profile current performance
-   - Identify bottlenecks
-   - Set performance budgets
-   - Create baseline metrics
-
-3. **Testing Infrastructure**
-   - Expand unit test coverage
-   - Set up integration tests
-   - Create performance benchmarks
-   - Implement E2E testing
-
-4. **Monitoring Setup**
-   - Implement performance monitoring
-   - Set up error tracking
-   - Create usage analytics
-   - Configure alerts
-
-## 📞 Support & Resources
-
-### Code References
-- **Performance**: `src/kinematics/` directory
-- **Testing**: `tests/` directory
-- **Build**: `vite.config.ts` and build scripts
-
-### Team Coordination
-- **Agent 1**: Optimize IK target placement performance
-- **Agent 2**: Optimize full-body IK performance
-- **Agent 3**: Get code review feedback on optimizations
-- **PM**: Report performance improvements and metrics
-
-### Questions to Ask
-- What are the performance requirements for real-time IK?
-- What's the target test coverage percentage?
-- Are there specific performance budgets?
-- What monitoring tools should be integrated?
+**Agent:** Agent 4 (Claude Code)  
+**Priority:** MEDIUM - Production readiness  
+**Timeline:** 12-16 days (4 phases)  
+**Status:** 🚀 Ready to Start
 
 ---
 
-**Remember:** Your work ensures the system is production-ready. Focus on measurable performance improvements and comprehensive testing. The system must be fast, reliable, and maintainable.
+## 🎯 Mission
 
-**Good luck, Agent 4! ⚡**
+Build comprehensive performance testing infrastructure, optimize real-time rendering and physics, and establish production-ready performance benchmarks.
+
+---
+
+## 📊 Current State Analysis
+
+### What Exists ✅
+- React + TypeScript + Babylon.js + Rapier physics stack
+- Basic CI/CD pipeline (linting, type-checking)
+- Some manual testing (no automated performance tests)
+
+### What's Missing ❌
+- **No performance benchmarks** - No baseline metrics
+- **No automated performance tests** - Manual testing only
+- **No profiling infrastructure** - No continuous monitoring
+- **No optimization strategy** - Ad-hoc improvements only
+- **No regression detection** - Performance can degrade unnoticed
+
+### The Problem 🔥
+Performance requirements:
+- **60 FPS** with 50+ objects in scene
+- **<50ms input latency** for interactive controls
+- **<100ms IK solve time** for real-time manipulation
+- **<2 MB bundle size** for fast loading
+
+**Currently:** No way to verify these targets or catch regressions.
+
+---
+
+## 📋 Implementation Plan
+
+### Phase 1: Performance Analysis & Baseline (Days 1-4)
+**Goal:** Establish performance baselines and identify bottlenecks
+
+**Tasks:**
+1. Profile React component rendering (identify slow components)
+2. Profile Babylon.js scene rendering (FPS, draw calls, GPU usage)
+3. Profile physics simulation (Rapier overhead)
+4. Measure IK solver performance (Agent 1 & 2 code)
+5. Create performance baseline report
+
+**Tools to Use:**
+- Chrome DevTools Performance tab
+- React DevTools Profiler
+- Babylon.js Inspector
+- Custom performance markers (`performance.mark()`)
+
+**Deliverables:**
+- `PERFORMANCE_BASELINE.md` (current metrics)
+- `BOTTLENECK_ANALYSIS.md` (slow code paths)
+- `OPTIMIZATION_PRIORITIES.md` (what to fix first)
+
+---
+
+### Phase 2: Automated Performance Testing (Days 5-9)
+**Goal:** Build automated performance test suite
+
+**Tasks:**
+1. Create performance test framework (Jest + custom metrics)
+2. Add render performance tests (FPS measurement)
+3. Add physics performance tests (simulation step time)
+4. Add IK solver performance tests (solve time)
+5. Add bundle size tests (fail if >2 MB)
+
+**Files to Create:**
+- `tests/performance/renderPerformance.test.ts`
+- `tests/performance/physicsPerformance.test.ts`
+- `tests/performance/ikPerformance.test.ts`
+- `tests/performance/bundleSize.test.ts`
+- `tests/performance/helpers/performanceTestRunner.ts`
+
+**Success Criteria:**
+- Tests run in CI/CD pipeline
+- Tests fail if performance regresses >10%
+- Performance report generated after each run
+
+---
+
+### Phase 3: Optimization Implementation (Days 10-14)
+**Goal:** Optimize identified bottlenecks
+
+**Tasks:**
+1. Optimize React re-renders (useMemo, useCallback, React.memo)
+2. Optimize Babylon.js scene (LOD, instancing, culling)
+3. Optimize physics (sleeping bodies, broad-phase tuning)
+4. Optimize IK solver (caching, early exit)
+5. Reduce bundle size (code splitting, tree shaking)
+
+**Focus Areas:**
+- React component re-renders (especially UI panels)
+- Babylon.js draw calls (reduce with instancing)
+- Physics collision checks (spatial partitioning)
+- IK solver iterations (adaptive iteration count)
+
+**Success Criteria:**
+- React re-renders reduced by 50%
+- Babylon.js FPS stable at 60 FPS (50+ objects)
+- Physics step time <5ms
+- IK solve time <50ms
+- Bundle size <2 MB
+
+---
+
+### Phase 4: Continuous Performance Monitoring (Days 15-16)
+**Goal:** Set up continuous performance monitoring
+
+**Tasks:**
+1. Add performance metrics to CI/CD (run on every commit)
+2. Create performance dashboard (visualize trends)
+3. Add performance regression alerts (Slack notifications)
+4. Document performance best practices
+
+**Deliverables:**
+- CI/CD integration for performance tests
+- Performance dashboard (simple HTML + charts)
+- `PERFORMANCE_BEST_PRACTICES.md` (guide for all agents)
+- `PERFORMANCE_MONITORING_SETUP.md` (how to use the system)
+
+---
+
+## 🗂️ Key Files to Profile & Optimize
+
+### React Components (Re-render Optimization)
+```
+src/ui/components/
+├── MotionPanel.tsx             (Agent 1 & 2 work - check re-renders)
+├── MultiChainPanel.tsx         (Agent 2 work - optimize list rendering)
+├── RibbonToolbar.tsx           (Large component - memoize sections)
+├── SceneCanvas.tsx             (Critical - avoid re-renders)
+└── PropertiesPanel.tsx         (Dynamic content - optimize selectors)
+```
+
+### Babylon.js Scene (Render Optimization)
+```
+src/scene/
+├── SceneManager.ts             (Scene setup - check draw calls)
+├── EntityRenderer.ts           (Entity rendering - use instancing?)
+└── LightingManager.ts          (Lighting - reduce shadow maps?)
+
+src/manipulation/
+├── TransformGizmo.ts           (Gizmo rendering - optimize lines)
+└── IKTargetGizmo.ts            (Agent 1 work - check overhead)
+```
+
+### Physics (Simulation Optimization)
+```
+src/physics/
+├── RapierPhysicsEngine.ts      (Physics step - profile collision checks)
+└── CollisionHandler.ts         (Collision detection - optimize broad-phase)
+```
+
+### Kinematics (IK Solver Optimization)
+```
+src/kinematics/
+├── IKSolver.ts                 (Agent 1 work - profile iterations)
+├── MultiChainIKSolver.ts       (Agent 2 work - profile multi-chain)
+└── Constraints.ts              (Agent 2 work - check constraint overhead)
+```
+
+---
+
+## 🛠️ Performance Testing Framework
+
+### Test Structure
+```typescript
+// tests/performance/performanceTestRunner.ts
+export class PerformanceTestRunner {
+  private metrics: Map<string, number[]> = new Map();
+  
+  measure(name: string, fn: () => void): number {
+    const start = performance.now();
+    fn();
+    const duration = performance.now() - start;
+    
+    if (!this.metrics.has(name)) {
+      this.metrics.set(name, []);
+    }
+    this.metrics.get(name)!.push(duration);
+    
+    return duration;
+  }
+  
+  getAverage(name: string): number {
+    const values = this.metrics.get(name) || [];
+    return values.reduce((a, b) => a + b, 0) / values.length;
+  }
+  
+  getP95(name: string): number {
+    const values = this.metrics.get(name) || [];
+    const sorted = values.sort((a, b) => a - b);
+    const index = Math.floor(sorted.length * 0.95);
+    return sorted[index];
+  }
+}
+```
+
+### Example: Render Performance Test
+```typescript
+// tests/performance/renderPerformance.test.ts
+import { PerformanceTestRunner } from './helpers/performanceTestRunner';
+import { SceneManager } from '../../src/scene/SceneManager';
+
+describe('Render Performance', () => {
+  const runner = new PerformanceTestRunner();
+  let scene: SceneManager;
+  
+  beforeEach(() => {
+    scene = new SceneManager();
+  });
+  
+  test('should render 50 objects at 60 FPS', () => {
+    // Add 50 objects to scene
+    for (let i = 0; i < 50; i++) {
+      scene.addEntity({ type: 'box' });
+    }
+    
+    // Measure frame time over 100 frames
+    const frameTimes: number[] = [];
+    for (let i = 0; i < 100; i++) {
+      const frameTime = runner.measure('frame', () => {
+        scene.render();
+      });
+      frameTimes.push(frameTime);
+    }
+    
+    // Check average FPS
+    const avgFrameTime = frameTimes.reduce((a, b) => a + b) / frameTimes.length;
+    const fps = 1000 / avgFrameTime;
+    
+    expect(fps).toBeGreaterThanOrEqual(60);
+  });
+});
+```
+
+### Example: IK Solver Performance Test
+```typescript
+// tests/performance/ikPerformance.test.ts
+import { PerformanceTestRunner } from './helpers/performanceTestRunner';
+import { IKSolver } from '../../src/kinematics/IKSolver';
+
+describe('IK Solver Performance', () => {
+  const runner = new PerformanceTestRunner();
+  
+  test('should solve IK in <50ms', () => {
+    const solver = new IKSolver();
+    const chain = createTestChain(); // 6-DOF arm
+    const target = { position: [0.5, 0.5, 0.5], rotation: [0, 0, 0, 1] };
+    
+    // Measure solve time over 100 iterations
+    for (let i = 0; i < 100; i++) {
+      runner.measure('ik-solve', () => {
+        solver.solve(chain, target);
+      });
+    }
+    
+    const avgTime = runner.getAverage('ik-solve');
+    const p95Time = runner.getP95('ik-solve');
+    
+    expect(avgTime).toBeLessThan(50);
+    expect(p95Time).toBeLessThan(100);
+  });
+});
+```
+
+---
+
+## 📏 Success Metrics
+
+### Phase 1 Success (Baseline)
+- [ ] Performance baseline report complete
+- [ ] Bottlenecks identified and prioritized
+- [ ] Current metrics documented
+  - React re-render count
+  - Babylon.js FPS (with 50 objects)
+  - Physics step time
+  - IK solve time
+  - Bundle size
+
+### Phase 2 Success (Testing Infrastructure)
+- [ ] Automated performance tests written
+- [ ] Tests run in CI/CD pipeline
+- [ ] Tests fail on regression (>10% slower)
+- [ ] Performance report generated
+
+### Phase 3 Success (Optimization)
+- [ ] React re-renders reduced by 50%
+- [ ] Babylon.js FPS stable at 60 (50+ objects)
+- [ ] Physics step time <5ms
+- [ ] IK solve time <50ms
+- [ ] Bundle size <2 MB
+
+### Phase 4 Success (Monitoring)
+- [ ] CI/CD integration complete
+- [ ] Performance dashboard live
+- [ ] Regression alerts configured
+- [ ] Best practices documented
+
+### Overall Success
+- [ ] All performance targets met
+- [ ] No regressions detected in CI/CD
+- [ ] Optimization guide complete
+- [ ] Monitoring system operational
+
+---
+
+## 🚀 Getting Started
+
+### Step 1: Install Performance Tools
+```bash
+# Install testing dependencies
+npm install -D @testing-library/react @testing-library/jest-dom
+npm install -D jest-performance-testing
+
+# Install profiling tools
+npm install -D webpack-bundle-analyzer source-map-explorer
+```
+
+### Step 2: Profile Current Performance
+```bash
+# Build and analyze bundle
+npm run build
+npx webpack-bundle-analyzer dist/stats.json
+
+# Run app and profile in Chrome DevTools
+npm run dev
+# Open http://localhost:5173
+# Open Chrome DevTools > Performance > Record
+```
+
+### Step 3: Create Baseline Report
+```bash
+# Create reports directory
+mkdir -p reports
+
+# Start baseline report
+touch reports/PERFORMANCE_BASELINE.md
+```
+
+---
+
+## 📋 Performance Targets
+
+### Rendering
+| Metric | Target | Current | Status |
+|--------|--------|---------|--------|
+| FPS (50 objects) | 60 FPS | ??? | ⚠️ Measure |
+| Draw calls | <100 | ??? | ⚠️ Measure |
+| Frame time | <16ms | ??? | ⚠️ Measure |
+
+### Physics
+| Metric | Target | Current | Status |
+|--------|--------|---------|--------|
+| Step time | <5ms | ??? | ⚠️ Measure |
+| Collision checks | <1000/frame | ??? | ⚠️ Measure |
+
+### IK Solver
+| Metric | Target | Current | Status |
+|--------|--------|---------|--------|
+| Single-chain solve | <50ms | ??? | ⚠️ Measure |
+| Multi-chain solve | <100ms | ??? | ⚠️ Measure |
+
+### Bundle Size
+| Metric | Target | Current | Status |
+|--------|--------|---------|--------|
+| Total bundle | <2 MB | ??? | ⚠️ Measure |
+| Vendor bundle | <1 MB | ??? | ⚠️ Measure |
+
+---
+
+## 🤝 Coordination with Other Agents
+
+### Agent 1 & Agent 2 Code
+- Profile Agent 1's IK solver performance
+- Profile Agent 2's multi-chain IK performance
+- Optimize their code if needed (coordinate first!)
+
+### Agent 3 Code Review
+- Use Agent 3's performance audit as input
+- Coordinate on optimization priorities
+- Share performance test results
+
+### Agent 5 Documentation
+- Document performance testing process
+- Share best practices for all agents
+- Create performance optimization guides
+
+---
+
+## 📚 Resources
+
+### Performance Profiling
+- Chrome DevTools: https://developer.chrome.com/docs/devtools/performance/
+- React Profiler: https://react.dev/reference/react/Profiler
+- Babylon.js Inspector: https://doc.babylonjs.com/toolsAndResources/inspector
+
+### Optimization Guides
+- React Performance: https://react.dev/learn/render-and-commit
+- Babylon.js Optimization: https://doc.babylonjs.com/features/featuresDeepDive/scene/optimize_your_scene
+- Bundle Size: https://webpack.js.org/guides/code-splitting/
+
+---
+
+## ❓ Questions or Blockers?
+
+Post in `#dev-blockers` Slack channel if stuck >1 hour.
+
+**Common Issues:**
+- **Profiler shows nothing?** → Ensure production build (`npm run build`)
+- **Tests flaky?** → Run multiple iterations, use P95 metrics
+- **Bundle too large?** → Use `source-map-explorer` to find culprits
+
+---
+
+**Status: READY TO START! 🚀**
+
+Start with Phase 1: Profile current performance and create baseline report.
