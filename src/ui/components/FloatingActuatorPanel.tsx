@@ -130,7 +130,11 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
 
   // Auto-select device based on scene tree selection
   useEffect(() => {
+    console.log('[Actuator Panel] Auto-selection triggered. selectedNodeId:', selectedNodeId);
+    console.log('[Actuator Panel] Available devices:', devices.map(d => d.nodeId));
+
     if (!selectedNodeId) {
+      console.log('[Actuator Panel] No node selected, clearing active device');
       setActiveDeviceId(null);
       return;
     }
@@ -138,28 +142,43 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(selectedNodeId);
     if (!node) {
+      console.log('[Actuator Panel] Node not found in tree:', selectedNodeId);
       setActiveDeviceId(null);
       return;
     }
+
+    console.log('[Actuator Panel] Selected node:', node.name, 'id:', node.id);
 
     // Walk up to find if selected node is under any device
     let checkNode = node;
     let foundDeviceId: string | null = null;
 
     while (checkNode && !foundDeviceId) {
+      console.log('[Actuator Panel] Checking node:', checkNode.name, 'id:', checkNode.id);
+
       if (devices.some(d => d.nodeId === checkNode.id)) {
         foundDeviceId = checkNode.id;
+        console.log('[Actuator Panel] ✓ Found device:', checkNode.name);
         break;
       }
 
-      if (!checkNode.parentId) break;
+      if (!checkNode.parentId) {
+        console.log('[Actuator Panel] Reached root, no parent');
+        break;
+      }
       const parent = tree.getNode(checkNode.parentId);
-      if (!parent || parent.name === 'Assets') break;
+      if (!parent || parent.name === 'Assets') {
+        console.log('[Actuator Panel] Reached Assets boundary');
+        break;
+      }
       checkNode = parent;
     }
 
     if (foundDeviceId !== activeDeviceId) {
+      console.log('[Actuator Panel] Setting active device:', foundDeviceId);
       setActiveDeviceId(foundDeviceId);
+    } else {
+      console.log('[Actuator Panel] Device unchanged:', activeDeviceId);
     }
   }, [selectedNodeId, devices, activeDeviceId]);
 
