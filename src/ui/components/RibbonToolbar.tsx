@@ -362,7 +362,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           <button className="ribbon-btn" onClick={onComplexIKClick} title="Complex IK Systems">
             <GitBranch size={32} />
           </button>
-          <button className="ribbon-btn" onClick={onWholeBodyIKClick} title="Full-Body IK">
+          <button className="ribbon-btn" onClick={onWholeBodyIKClick} title="FullBody IK">
             <Network size={32} />
           </button>
         </div>

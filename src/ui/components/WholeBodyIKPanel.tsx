@@ -1,5 +1,5 @@
 /**
- * Full-Body IK Control Panel
+ * FullBody IK Control Panel
  * Owner: George (Agent 1)
  * UI for multi-target IK and constraint configuration
  */
@@ -57,7 +57,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
     if (isVisible) {
       const chains = kinematicsManager.getAllChains();
       setAvailableChains(chains);
-      console.log(`[Full-Body IK] Found ${chains.length} kinematic chains:`, chains.map(c => c.name));
+      console.log(`[FullBody IK] Found ${chains.length} kinematic chains:`, chains.map(c => c.name));
     }
   }, [isVisible]);
 
@@ -165,7 +165,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
     lastSolution.jointAngles.forEach((angles, chainName) => {
       const chain = kinematicsManager.getChain(chainName);
       if (!chain) {
-        console.warn(`[Full-Body IK] Chain not found: ${chainName}`);
+        console.warn(`[FullBody IK] Chain not found: ${chainName}`);
         return;
       }
 
@@ -195,7 +195,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
   };
 
   const solveHumanoidWalking = () => {
-    console.log('[Full-Body IK] Solving humanoid walking pose');
+    console.log('[FullBody IK] Solving humanoid walking pose');
 
     const solution = wholeBodySolver.solveHumanoidWalking({
       leftFootTarget: new BABYLON.Vector3(0.1, 0, 0),
@@ -217,7 +217,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
   };
 
   const solveQuadrupedStance = () => {
-    console.log('[Full-Body IK] Solving quadruped stance');
+    console.log('[FullBody IK] Solving quadruped stance');
 
     const solution = wholeBodySolver.solveQuadrupedGait({
       frontLeftTarget: new BABYLON.Vector3(0.3, 0, 0.3),
@@ -236,7 +236,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
   };
 
   const solveDualArm = () => {
-    console.log('[Full-Body IK] Solving dual-arm manipulation');
+    console.log('[FullBody IK] Solving dual-arm manipulation');
 
     const solution = wholeBodySolver.solveDualArmManipulation({
       leftHandTarget: new BABYLON.Vector3(0.3, 0.5, 0.3),
@@ -263,7 +263,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
 
   return (
     <FloatingPanel
-      title="Full-Body IK"
+      title="FullBody IK"
       subtitle="Full-body pose control"
       icon={icon}
       isVisible={isVisible}
@@ -336,7 +336,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
             <div>
               <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>No Kinematic Chains Found</div>
               <div style={{ fontSize: '12px', opacity: 0.9 }}>
-                Load a robot (URDF/MJCF) from the Asset Library to use Full-Body IK
+                Load a robot (URDF/MJCF) from the Asset Library to use FullBody IK
               </div>
             </div>
           </div>
@@ -553,7 +553,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
         {targets.length > 0 && (
           <button
             onClick={solveWholeBodyIK}
-            title="Solve Full-Body IK"
+            title="Solve FullBody IK"
             style={{
               marginTop: '10px',
               width: '100%',
