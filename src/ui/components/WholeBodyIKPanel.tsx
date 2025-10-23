@@ -10,7 +10,7 @@ import * as BABYLON from '@babylonjs/core';
 import { WholeBodyIKSolver, WholeBodyIKSolution } from '../../kinematics/WholeBodyIKSolver';
 import type { WholeBodyIKConfig } from '../../kinematics/WholeBodyIKSolver';
 import type { IKTarget } from '../../kinematics/InverseKinematicsSolver';
-import { BalanceConstraint, CollisionAvoidanceConstraint } from '../../kinematics/constraints/IKConstraint';
+import { BalanceConstraint, CollisionAvoidanceConstraint, IKConstraint } from '../../kinematics/constraints/IKConstraint';
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import type { KinematicChain } from '../../kinematics/KinematicsManager';
@@ -37,7 +37,6 @@ type SolverStatus = {
 export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, onClose, zIndex = 1004 }) => {
   // Robot & Chain Management
   const [availableChains, setAvailableChains] = useState<KinematicChain[]>([]);
-  const [selectedChainNames, setSelectedChainNames] = useState<string[]>([]);
 
   // IK Configuration
   const [targets, setTargets] = useState<TargetConfig[]>([]);
@@ -108,7 +107,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
     }
 
     // Build constraints
-    const constraints = [];
+    const constraints: IKConstraint[] = [];
 
     if (enableCollisionAvoidance) {
       constraints.push(new CollisionAvoidanceConstraint(0.01, true, false));
@@ -173,16 +172,10 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
       // Apply angles to each joint in the chain
       chain.joints.forEach((joint, i) => {
         if (angles[i] !== undefined) {
-          // Update joint angle
-          joint.currentAngle = angles[i];
+          // Update joint position (current angle/position)
+          joint.position = angles[i];
 
-          // If joint has a mesh, rotate it
-          if (joint.mesh) {
-            const axis = joint.axis || 'z';
-            if (axis === 'x') joint.mesh.rotation.x = angles[i];
-            else if (axis === 'y') joint.mesh.rotation.y = angles[i];
-            else if (axis === 'z') joint.mesh.rotation.z = angles[i];
-          }
+          console.log(`✅ Updated ${joint.name}: ${angles[i].toFixed(3)} rad`);
         }
       });
 
