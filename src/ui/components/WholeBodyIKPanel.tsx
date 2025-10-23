@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Move, RotateCw, Footprints, PawPrint, Grip, CheckCircle, XCircle, Loader, Plus, AlertCircle, Trash2, Play, RotateCcw } from 'lucide-react';
+import { Move, RotateCw, Footprints, PawPrint, Grip, CheckCircle, XCircle, Loader, Plus, AlertCircle, Trash2, Play, RotateCcw, Eye, EyeOff } from 'lucide-react';
 import * as BABYLON from '@babylonjs/core';
 import { WholeBodyIKSolver, WholeBodyIKSolution } from '../../kinematics/WholeBodyIKSolver';
 import type { WholeBodyIKConfig } from '../../kinematics/WholeBodyIKSolver';
@@ -14,12 +14,15 @@ import { BalanceConstraint, CollisionAvoidanceConstraint, IKConstraint } from '.
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import type { KinematicChain } from '../../kinematics/KinematicsManager';
+import { IKTargetGizmoManager } from '../../kinematics/IKTargetGizmoManager';
+import { SceneManager } from '../../scene/SceneManager';
 
 interface TargetConfig {
   chainName: string;
   position: { x: number; y: number; z: number };
   priority: number;
   enabled: boolean;
+  showInViewport: boolean; // Toggle 3D gizmo visibility
 }
 
 interface WholeBodyIKPanelProps {
@@ -52,6 +55,8 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
 
   const wholeBodySolver = WholeBodyIKSolver.getInstance();
   const kinematicsManager = KinematicsManager.getInstance();
+  const gizmoManager = IKTargetGizmoManager.getInstance();
+  const sceneManager = SceneManager.getInstance();
 
   // Discover available kinematic chains on mount
   useEffect(() => {
@@ -59,6 +64,59 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
       const chains = kinematicsManager.getAllChains();
       setAvailableChains(chains);
       console.log(`[FullBody IK] Found ${chains.length} kinematic chains:`, chains.map(c => c.name));
+    }
+  }, [isVisible]);
+
+  // Initialize gizmo manager when panel opens
+  useEffect(() => {
+    if (isVisible) {
+      const scene = sceneManager.getScene();
+      if (scene && !gizmoManager.isInitialized()) {
+        gizmoManager.initialize(scene);
+      }
+    }
+  }, [isVisible]);
+
+  // Sync targets with 3D gizmos
+  useEffect(() => {
+    if (!isVisible) return;
+
+    targets.forEach((target, index) => {
+      const targetId = `target_${index}`;
+      
+      if (target.showInViewport && target.chainName) {
+        // Create/update gizmo
+        gizmoManager.createTarget({
+          targetId,
+          chainName: target.chainName,
+          position: new BABYLON.Vector3(target.position.x, target.position.y, target.position.z),
+          enabled: target.enabled,
+          onPositionChange: (id, newPos) => {
+            // Update panel state when gizmo is dragged
+            const targetIndex = parseInt(id.split('_')[1]);
+            updateTarget(targetIndex, 'position', {
+              x: newPos.x,
+              y: newPos.y,
+              z: newPos.z,
+            });
+          },
+        });
+      } else {
+        // Remove gizmo if showInViewport is false
+        gizmoManager.removeTarget(targetId);
+      }
+    });
+
+    // Cleanup: remove gizmos for deleted targets
+    return () => {
+      // Don't clear all on unmount, just when targets change
+    };
+  }, [targets, isVisible]);
+
+  // Clear all gizmos when panel closes
+  useEffect(() => {
+    if (!isVisible) {
+      gizmoManager.clearAll();
     }
   }, [isVisible]);
 
@@ -70,6 +128,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
         position: { x: 0, y: 0, z: 0 },
         priority: 1.0,
         enabled: true,
+        showInViewport: false, // Off by default, user can toggle
       },
     ]);
   };
@@ -78,9 +137,23 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
     const newTargets = [...targets];
     newTargets[index] = { ...newTargets[index], [field]: value };
     setTargets(newTargets);
+    
+    // If position was updated manually, sync the gizmo
+    if (field === 'position' && newTargets[index].showInViewport) {
+      const targetId = `target_${index}`;
+      gizmoManager.updateTargetPosition(
+        targetId,
+        new BABYLON.Vector3(value.x, value.y, value.z)
+      );
+    }
   };
 
   const removeTarget = (index: number) => {
+    // Remove gizmo first
+    const targetId = `target_${index}`;
+    gizmoManager.removeTarget(targetId);
+    
+    // Remove from state
     setTargets(targets.filter((_, i) => i !== index));
   };
 
@@ -552,6 +625,26 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
                 />
                 Enabled
               </label>
+              <button
+                onClick={() => updateTarget(index, 'showInViewport', !target.showInViewport)}
+                title={target.showInViewport ? "Hide 3D gizmo" : "Show 3D gizmo"}
+                style={{
+                  marginLeft: '10px',
+                  padding: '4px 8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '11px',
+                  backgroundColor: target.showInViewport ? '#0d6efd' : '#333',
+                  border: '1px solid #555',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  color: target.showInViewport ? '#fff' : '#aaa',
+                }}
+              >
+                {target.showInViewport ? <Eye size={12} /> : <EyeOff size={12} />}
+                <span>3D</span>
+              </button>
             </div>
 
             <div style={{ marginBottom: '5px' }}>
