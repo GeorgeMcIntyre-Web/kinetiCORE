@@ -22,13 +22,13 @@ import {
   Cylinder as CylinderIcon,
   RotateCw,
   Maximize2,
-  Library,
   FolderKanban,
   RotateCcw,
   Target,
   GitBranch,
   Network,
 } from 'lucide-react';
+import { TbAsset } from 'react-icons/tb';
 
 // Custom Quick Move Icon combining speed lines with move arrows
 const QuickMoveIcon = ({ size = 32 }: { size?: number }) => (
@@ -200,7 +200,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
             <FolderOpen size={32} />
           </button>
           <button className="ribbon-btn" onClick={onAssetLibraryClick} title="Asset Library">
-            <Library size={32} />
+            <TbAsset size={32} />
           </button>
         </div>
       </div>
@@ -362,7 +362,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           <button className="ribbon-btn" onClick={onComplexIKClick} title="Complex IK Systems">
             <GitBranch size={32} />
           </button>
-          <button className="ribbon-btn" onClick={onWholeBodyIKClick} title="Whole-Body IK">
+          <button className="ribbon-btn" onClick={onWholeBodyIKClick} title="Full-Body IK">
             <Network size={32} />
           </button>
         </div>
