@@ -1096,6 +1096,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             // Get the model name from the file
             const modelName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
 
+            // DEBUG: Check what's in mjcfResult
+            console.log('[EditorStore] MJCF Result keys:', Object.keys(mjcfResult));
+            console.log('[EditorStore] MJCF Result.actuators:', (mjcfResult as any).actuators);
+            console.log('[EditorStore] MJCF Result.actuators type:', typeof (mjcfResult as any).actuators);
+            console.log('[EditorStore] MJCF Result.actuators length:', (mjcfResult as any).actuators?.length);
+
             // Integrate MJCF actuators with ActuatorSystem (Phase 1)
             if ((mjcfResult as any).actuators && (mjcfResult as any).actuators.length > 0 && mjcfResult.rootNodes.length > 0) {
               console.log(`[EditorStore] Integrating ${(mjcfResult as any).actuators.length} MJCF actuators`);
