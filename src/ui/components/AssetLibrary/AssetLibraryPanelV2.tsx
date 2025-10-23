@@ -3,7 +3,7 @@
 // Modern asset browser with Filter | Browser | Details layout
 
 import { useState } from 'react';
-import { X, Minimize2, Maximize2, Pin, PinOff, LayoutGrid, List, Crown, Star } from 'lucide-react';
+import { X, Minimize2, Maximize2, Pin, PinOff, LayoutGrid, List, Crown } from 'lucide-react';
 import { useAssetLibraryStore } from '../../store/assetLibraryStore';
 import { FilterPane } from './FilterPane';
 import { BrowserPane } from './BrowserPane';

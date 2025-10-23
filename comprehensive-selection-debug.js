@@ -5,9 +5,23 @@
   const sceneManager = window.sceneManager;
   const scene = sceneManager.getScene();
   
-  // Import required modules
-  const { EntityRegistry } = await import('./src/entities/EntityRegistry.ts');
-  const { SceneUtils } = await import('./src/scene/SceneUtils.ts');
+  // Import required modules with error handling
+  let EntityRegistry, SceneUtils;
+  try {
+    const entityModule = await import('./src/entities/EntityRegistry.ts');
+    EntityRegistry = entityModule.EntityRegistry;
+  } catch (e) {
+    console.error('❌ Failed to import EntityRegistry:', e.message);
+    return;
+  }
+  
+  try {
+    const sceneModule = await import('./src/scene/SceneUtils.ts');
+    SceneUtils = sceneModule;
+  } catch (e) {
+    console.error('❌ Failed to import SceneUtils:', e.message);
+    return;
+  }
   
   const registry = EntityRegistry.getInstance();
   
@@ -32,13 +46,20 @@
   console.log('\n3. MESH ANALYSIS');
   console.log('================');
   
-  // Find all STL meshes
-  const stlMeshes = scene.meshes.filter(mesh => mesh.name.includes('.stl'));
-  console.log(`STL meshes: ${stlMeshes.length}`);
+  // Find all robot meshes (STL, OBJ, or other mesh files)
+  const robotMeshes = scene.meshes.filter(mesh => 
+    (mesh.name.includes('.stl') || mesh.name.includes('.obj') || mesh.name.includes('.dae')) &&
+    !mesh.name.includes('ground') && 
+    !mesh.name.includes('grid') && 
+    !mesh.name.includes('axis') &&
+    !mesh.name.includes('__') &&
+    mesh.isVisible
+  );
+  console.log(`Robot meshes: ${robotMeshes.length}`);
   
   // Check entity linking
   let linkedMeshes = 0;
-  stlMeshes.forEach(mesh => {
+  robotMeshes.forEach(mesh => {
     const entity = registry.getByMesh(mesh);
     if (entity) {
       linkedMeshes++;
@@ -48,7 +69,7 @@
     }
   });
   
-  console.log(`Linked meshes: ${linkedMeshes}/${stlMeshes.length}`);
+  console.log(`Linked meshes: ${linkedMeshes}/${robotMeshes.length}`);
   
   console.log('\n4. EDITOR STORE STATUS');
   console.log('======================');
@@ -75,13 +96,17 @@
   const highlightingLayer = scene.getHighlightLayerByName('highlight');
   if (highlightingLayer) {
     console.log('✅ Highlighting layer found');
-    console.log(`Highlighted meshes: ${highlightingLayer.meshes.length}`);
-    
-    if (highlightingLayer.meshes.length > 0) {
-      console.log('Currently highlighted meshes:');
-      highlightingLayer.meshes.forEach((mesh, index) => {
-        console.log(`  ${index + 1}. ${mesh.name}`);
-      });
+    try {
+      console.log(`Highlighted meshes: ${highlightingLayer.meshes ? highlightingLayer.meshes.length : 'undefined'}`);
+      
+      if (highlightingLayer.meshes && highlightingLayer.meshes.length > 0) {
+        console.log('Currently highlighted meshes:');
+        highlightingLayer.meshes.forEach((mesh, index) => {
+          console.log(`  ${index + 1}. ${mesh.name}`);
+        });
+      }
+    } catch (e) {
+      console.log(`Highlighted meshes: Error accessing meshes - ${e.message}`);
     }
   } else {
     console.log('❌ No highlighting layer found');
@@ -90,8 +115,8 @@
   console.log('\n6. MANUAL SELECTION TEST');
   console.log('=========================');
   
-  if (stlMeshes.length > 0 && window.useEditorStore) {
-    const testMesh = stlMeshes[0];
+  if (robotMeshes.length > 0 && window.useEditorStore) {
+    const testMesh = robotMeshes[0];
     console.log(`Testing selection with: ${testMesh.name}`);
     
     const store = window.useEditorStore.getState();
@@ -111,11 +136,15 @@
       // Check if highlighting layer updated
       const updatedHighlightingLayer = scene.getHighlightLayerByName('highlight');
       if (updatedHighlightingLayer) {
-        console.log(`Highlighting layer meshes: ${updatedHighlightingLayer.meshes.length}`);
-        if (updatedHighlightingLayer.meshes.length > 0) {
-          console.log('✅ Highlighting layer updated!');
-        } else {
-          console.log('❌ Highlighting layer not updated');
+        try {
+          console.log(`Highlighting layer meshes: ${updatedHighlightingLayer.meshes ? updatedHighlightingLayer.meshes.length : 'undefined'}`);
+          if (updatedHighlightingLayer.meshes && updatedHighlightingLayer.meshes.length > 0) {
+            console.log('✅ Highlighting layer updated!');
+          } else {
+            console.log('❌ Highlighting layer not updated');
+          }
+        } catch (e) {
+          console.log(`Highlighting layer error: ${e.message}`);
         }
       }
     } else {
@@ -138,7 +167,7 @@
   console.log('\n🎯 DIAGNOSIS');
   console.log('=============');
   
-  if (linkedMeshes === stlMeshes.length) {
+  if (linkedMeshes === robotMeshes.length) {
     console.log('✅ Entity linking is working correctly');
   } else {
     console.log('❌ Entity linking has issues');

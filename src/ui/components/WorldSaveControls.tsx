@@ -5,7 +5,7 @@
  * UI controls for saving/loading/exporting world state
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Save, Download, Upload, Settings, Clock } from 'lucide-react';
 import { WorldSaveManager } from '../../scene/WorldSaveManager';
 import { toast } from './ToastNotifications';

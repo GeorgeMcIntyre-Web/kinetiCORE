@@ -1183,6 +1183,33 @@ export const useEditorStore = create<EditorState>((set, get) => ({
               assetsNode?.id || null
             );
 
+            // Link MJCF device entity to tree node (similar to URDF)
+            // The MJCF loader creates device entities, but we need to link them to the tree
+            if (mjcfResult.rootNodes.length > 0) {
+              const rootNode = mjcfResult.rootNodes[0];
+              
+              // Find the device entity created by the MJCF loader
+              // Look for a device entity with a mesh that has the device root pattern
+              const deviceEntities = registry.getAll().filter(entity => entity.getIsDevice());
+              const mjcfDeviceEntity = deviceEntities.find(entity => {
+                const mesh = entity.getMesh();
+                return mesh && mesh.name.includes('_device_root') && mesh.parent === rootNode;
+              });
+              
+              if (mjcfDeviceEntity) {
+                console.log(`[EditorStore] Linking MJCF device entity ${mjcfDeviceEntity.getId()} to tree node ${modelCollection.id}`);
+                modelCollection.entityId = mjcfDeviceEntity.getId();
+                
+                // Also link the device root mesh to the tree node
+                const deviceMesh = mjcfDeviceEntity.getMesh();
+                if (deviceMesh) {
+                  modelCollection.babylonMeshId = deviceMesh.uniqueId.toString();
+                }
+              } else {
+                console.warn('[EditorStore] No MJCF device entity found - selection highlighting may not work');
+              }
+            }
+
             // Build tree structure for all nodes using the same logic as URDF
             const buildTreeForNode = (node: BABYLON.TransformNode, parentNodeId: string | null, depth: number = 0): void => {
               const isMesh = node instanceof BABYLON.Mesh;

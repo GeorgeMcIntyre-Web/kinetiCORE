@@ -3,7 +3,6 @@
 // Owner: George (Agent 1)
 
 import * as BABYLON from '@babylonjs/core';
-import * as GUI from '@babylonjs/gui';
 import { IKTargetGizmoManager } from './IKTargetGizmoManager';
 
 export type GizmoTargetType = 
@@ -93,7 +92,7 @@ export class UnifiedGizmoManager {
       chainName,
       position: tcpPosition.clone(),
       enabled: true,
-      onPositionChange: (id, newPos) => {
+      onPositionChange: (_id, newPos) => {
         console.log(`[UnifiedGizmo] TCP moved to: (${newPos.x.toFixed(3)}, ${newPos.y.toFixed(3)}, ${newPos.z.toFixed(3)})`);
         onMove(newPos);
       },
@@ -116,7 +115,7 @@ export class UnifiedGizmoManager {
       deviceId,
       position: devicePosition.clone(),
       enabled: true,
-      onPositionChange: (id, newPos) => {
+      onPositionChange: (_id, newPos) => {
         console.log(`[UnifiedGizmo] Device ${deviceId} moved to: (${newPos.x.toFixed(3)}, ${newPos.y.toFixed(3)}, ${newPos.z.toFixed(3)})`);
         onMove(deviceId, newPos);
       },
@@ -137,7 +136,7 @@ export class UnifiedGizmoManager {
       chainName,
       position: targetPosition.clone(),
       enabled: true,
-      onPositionChange: (id, newPos) => {
+      onPositionChange: (_id, newPos) => {
         console.log(`[UnifiedGizmo] IK target ${targetId} moved to: (${newPos.x.toFixed(3)}, ${newPos.y.toFixed(3)}, ${newPos.z.toFixed(3)})`);
         onMove(newPos);
       },
