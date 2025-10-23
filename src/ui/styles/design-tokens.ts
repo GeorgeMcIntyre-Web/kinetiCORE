@@ -16,18 +16,18 @@ export const spacing = {
 } as const;
 
 export const colors = {
-  // Primary brand colors
+  // Primary brand colors - Cyan theme (matches splash screen)
   primary: {
-    50: '#eff6ff',
-    100: '#dbeafe',
-    200: '#bfdbfe',
-    300: '#93c5fd',
-    400: '#60a5fa',
-    500: '#3b82f6',
-    600: '#2563eb',
-    700: '#1d4ed8',
-    800: '#1e40af',
-    900: '#1e3a8a',
+    50: '#e0f7ff',
+    100: '#b3ecff',
+    200: '#80e0ff',
+    300: '#4dd4ff',
+    400: '#26c9ff',
+    500: '#00f0ff',  // Main cyan from splash screen
+    600: '#00d4e6',
+    700: '#00b8cc',
+    800: '#009cb3',
+    900: '#007a8c',
   },
   
   // Neutral grays
