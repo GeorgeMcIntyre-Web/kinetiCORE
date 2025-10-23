@@ -180,23 +180,24 @@ export const SaveDropdown: React.FC<SaveDropdownProps> = ({
   return (
     <div className="save-dropdown" ref={dropdownRef}>
       <div className="save-dropdown-button-group">
-        {/* Main button - quick save */}
+        {/* Combined button - save icon + chevron */}
         <button
           ref={buttonRef}
           className="save-dropdown-main-btn"
           onClick={handleMainButtonClick}
           title="Save project to database (Click to save)"
         >
-          <Save size={32} />
+          <Save size={24} />
+          <ChevronDown size={10} className={`dropdown-chevron ${isOpen ? 'open' : ''}`} style={{ marginLeft: '2px' }} />
         </button>
 
-        {/* Dropdown arrow button */}
+        {/* Hidden clickable area for dropdown */}
         <button
           className="save-dropdown-arrow-btn"
           onClick={handleDropdownClick}
           title="Save Options"
+          style={{ position: 'absolute', right: 0, top: 0, width: '16px', height: '100%', opacity: 0 }}
         >
-          <ChevronDown size={8} className={`dropdown-chevron ${isOpen ? 'open' : ''}`} />
         </button>
       </div>
 
