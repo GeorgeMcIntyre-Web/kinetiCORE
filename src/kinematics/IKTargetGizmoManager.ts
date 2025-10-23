@@ -5,6 +5,7 @@
  */
 
 import * as BABYLON from '@babylonjs/core';
+import * as GUI from '@babylonjs/gui';
 
 export interface IKTargetGizmoConfig {
   targetId: string; // Unique ID for this target
@@ -17,7 +18,7 @@ export interface IKTargetGizmoConfig {
 interface TargetGizmoData {
   gizmo: BABYLON.PositionGizmo;
   marker: BABYLON.Mesh; // Visual sphere at target position
-  label: BABYLON.GUI.TextBlock | null; // 3D label showing chain name
+  label: GUI.TextBlock | null; // 3D label showing chain name
   transformNode: BABYLON.TransformNode; // Parent node for gizmo
   config: IKTargetGizmoConfig;
 }
@@ -54,7 +55,7 @@ export class IKTargetGizmoManager {
   private scene: BABYLON.Scene | null = null;
   private targets: Map<string, TargetGizmoData> = new Map();
   private gizmoManager: BABYLON.GizmoManager | null = null;
-  private advancedTexture: BABYLON.GUI.AdvancedDynamicTexture | null = null;
+  private advancedTexture: GUI.AdvancedDynamicTexture | null = null;
 
   private constructor() {}
 
@@ -76,7 +77,7 @@ export class IKTargetGizmoManager {
     this.gizmoManager.usePointerToAttachGizmos = false;
     
     // Create 2D GUI texture for labels
-    this.advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI('IKTargetUI', true, scene);
+    this.advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI('IKTargetUI', true, scene);
     
     console.log('[IKTargetGizmoManager] Initialized');
   }
@@ -130,7 +131,7 @@ export class IKTargetGizmoManager {
     // Create position gizmo
     const gizmo = new BABYLON.PositionGizmo(new BABYLON.UtilityLayerRenderer(this.scene));
     gizmo.attachedNode = transformNode;
-    gizmo.updateGizmoRotationToMatchAttachedNode = false;
+    gizmo.updateGizmoRotationToMatchAttachedMesh = false;
     gizmo.scaleRatio = 1.2;
     
     // Color-code gizmo axes
@@ -155,17 +156,17 @@ export class IKTargetGizmoManager {
     });
 
     // Create 2D label showing chain name
-    let label: BABYLON.GUI.TextBlock | null = null;
+    let label: GUI.TextBlock | null = null;
     if (this.advancedTexture && config.chainName) {
-      label = new BABYLON.GUI.TextBlock();
+      label = new GUI.TextBlock();
       label.text = config.chainName;
       label.color = 'white';
       label.fontSize = 14;
       label.fontWeight = 'bold';
       label.outlineWidth = 2;
       label.outlineColor = 'black';
-      label.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-      label.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+      label.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+      label.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
       
       // Link to 3D position (appears above marker)
       label.linkWithMesh(marker);
