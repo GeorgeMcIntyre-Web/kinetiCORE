@@ -4,14 +4,16 @@
  * UI for multi-target IK and constraint configuration
  */
 
-import React, { useState } from 'react';
-import { Move, RotateCw, User, Dog, Hand } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Move, RotateCw, Footprints, PawPrint, Grip, CheckCircle, XCircle, Loader } from 'lucide-react';
 import * as BABYLON from '@babylonjs/core';
-import { WholeBodyIKSolver } from '../../kinematics/WholeBodyIKSolver';
+import { WholeBodyIKSolver, WholeBodyIKSolution } from '../../kinematics/WholeBodyIKSolver';
 import type { WholeBodyIKConfig } from '../../kinematics/WholeBodyIKSolver';
 import type { IKTarget } from '../../kinematics/InverseKinematicsSolver';
 import { BalanceConstraint, CollisionAvoidanceConstraint } from '../../kinematics/constraints/IKConstraint';
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
+import { KinematicsManager } from '../../kinematics/KinematicsManager';
+import type { KinematicChain } from '../../kinematics/KinematicsManager';
 
 interface TargetConfig {
   chainName: string;
@@ -26,14 +28,39 @@ interface WholeBodyIKPanelProps {
   zIndex?: number;
 }
 
+type SolverStatus = {
+  type: 'idle' | 'solving' | 'success' | 'error';
+  message: string;
+  details?: string;
+} | null;
+
 export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, onClose, zIndex = 1004 }) => {
+  // Robot & Chain Management
+  const [availableChains, setAvailableChains] = useState<KinematicChain[]>([]);
+  const [selectedChainNames, setSelectedChainNames] = useState<string[]>([]);
+
+  // IK Configuration
   const [targets, setTargets] = useState<TargetConfig[]>([]);
   const [enableBalance, setEnableBalance] = useState(false);
   const [enableCollisionAvoidance, setEnableCollisionAvoidance] = useState(true);
   const [maxIterations, setMaxIterations] = useState(100);
   const [tolerance, setTolerance] = useState(0.001);
 
+  // Solution State
+  const [lastSolution, setLastSolution] = useState<WholeBodyIKSolution | null>(null);
+  const [solverStatus, setSolverStatus] = useState<SolverStatus>(null);
+
   const wholeBodySolver = WholeBodyIKSolver.getInstance();
+  const kinematicsManager = KinematicsManager.getInstance();
+
+  // Discover available kinematic chains on mount
+  useEffect(() => {
+    if (isVisible) {
+      const chains = kinematicsManager.getAllChains();
+      setAvailableChains(chains);
+      console.log(`[Whole-Body IK] Found ${chains.length} kinematic chains:`, chains.map(c => c.name));
+    }
+  }, [isVisible]);
 
   const addTarget = () => {
     setTargets([
@@ -72,7 +99,11 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
     });
 
     if (targetsMap.size === 0) {
-      console.warn('No valid targets configured');
+      setSolverStatus({
+        type: 'error',
+        message: 'No valid targets configured',
+        details: 'Add at least one enabled target with a chain name'
+      });
       return;
     }
 
@@ -84,8 +115,6 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
     }
 
     if (enableBalance) {
-      // Would need actual support polygon data
-      // For now, create empty balance constraint
       const balanceConstraint = new BalanceConstraint(
         BABYLON.Vector3.Zero(),
         [],
@@ -94,28 +123,82 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
       constraints.push(balanceConstraint);
     }
 
-    // Solve
-    const config: WholeBodyIKConfig = {
-      targets: targetsMap,
-      priorities: prioritiesMap,
-      constraints,
-      maxIterations,
-      tolerance,
-    };
+    // Set solving status
+    setSolverStatus({
+      type: 'solving',
+      message: 'Solving IK...',
+      details: `${targetsMap.size} target(s), max ${maxIterations} iterations`
+    });
 
-    console.log('[Whole-Body IK] Solving with config:', config);
-    const solution = wholeBodySolver.solve(config);
+    // Solve (using setTimeout to allow UI to update)
+    setTimeout(() => {
+      const config: WholeBodyIKConfig = {
+        targets: targetsMap,
+        priorities: prioritiesMap,
+        constraints,
+        maxIterations,
+        tolerance,
+      };
 
-    if (solution.success) {
-      console.log(`✅ Whole-Body IK solved in ${solution.iterations} iterations`);
-      console.log(`Total error: ${solution.totalError.toFixed(4)}`);
-      solution.errors.forEach((error, chainName) => {
-        console.log(`  ${chainName}: ${error.toFixed(4)}m`);
+      const solution = wholeBodySolver.solve(config);
+      setLastSolution(solution);
+
+      if (solution.success) {
+        setSolverStatus({
+          type: 'success',
+          message: `Solution found in ${solution.iterations} iterations`,
+          details: `Total error: ${solution.totalError.toFixed(4)}m | Click Apply to move robot`
+        });
+      } else {
+        setSolverStatus({
+          type: 'error',
+          message: 'Failed to converge',
+          details: `Final error: ${solution.totalError.toFixed(4)}m (tolerance: ${tolerance}m)`
+        });
+      }
+    }, 50);
+  };
+
+  const applySolution = () => {
+    if (!lastSolution || !lastSolution.success) return;
+
+    // Apply joint angles to robot
+    lastSolution.jointAngles.forEach((angles, chainName) => {
+      const chain = kinematicsManager.getChain(chainName);
+      if (!chain) {
+        console.warn(`[Whole-Body IK] Chain not found: ${chainName}`);
+        return;
+      }
+
+      // Apply angles to each joint in the chain
+      chain.joints.forEach((joint, i) => {
+        if (angles[i] !== undefined) {
+          // Update joint angle
+          joint.currentAngle = angles[i];
+
+          // If joint has a mesh, rotate it
+          if (joint.mesh) {
+            const axis = joint.axis || 'z';
+            if (axis === 'x') joint.mesh.rotation.x = angles[i];
+            else if (axis === 'y') joint.mesh.rotation.y = angles[i];
+            else if (axis === 'z') joint.mesh.rotation.z = angles[i];
+          }
+        }
       });
-    } else {
-      console.warn(`❌ Whole-Body IK failed to converge`);
-      console.warn(`Final error: ${solution.totalError.toFixed(4)}`);
-    }
+
+      console.log(`✅ Applied solution to chain: ${chainName}`);
+    });
+
+    setSolverStatus({
+      type: 'success',
+      message: '✅ Solution applied to robot',
+      details: `${lastSolution.jointAngles.size} chain(s) updated`
+    });
+  };
+
+  const resetToCurrentPose = () => {
+    setLastSolution(null);
+    setSolverStatus(null);
   };
 
   const solveHumanoidWalking = () => {
@@ -199,6 +282,54 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
         y: (window.innerHeight - 700) / 2
       }}
     >
+      {/* Status Banner */}
+      {solverStatus && (
+        <div style={{
+          padding: '12px',
+          marginBottom: '20px',
+          borderRadius: '4px',
+          backgroundColor: solverStatus.type === 'success' ? '#1a4d2e' :
+                           solverStatus.type === 'error' ? '#4d1a1a' :
+                           solverStatus.type === 'solving' ? '#4d4d1a' : '#2a2a2a',
+          borderLeft: `4px solid ${solverStatus.type === 'success' ? '#28a745' :
+                                    solverStatus.type === 'error' ? '#dc3545' :
+                                    solverStatus.type === 'solving' ? '#ffc107' : '#666'}`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+            <div style={{ marginTop: '2px' }}>
+              {solverStatus.type === 'solving' && <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />}
+              {solverStatus.type === 'success' && <CheckCircle size={16} color="#28a745" />}
+              {solverStatus.type === 'error' && <XCircle size={16} color="#dc3545" />}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{solverStatus.message}</div>
+              {solverStatus.details && (
+                <div style={{ fontSize: '12px', opacity: 0.9 }}>{solverStatus.details}</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Available Chains Info */}
+      {availableChains.length > 0 && (
+        <div style={{
+          padding: '10px',
+          marginBottom: '20px',
+          borderRadius: '4px',
+          backgroundColor: '#1a2a3a',
+          borderLeft: '4px solid #0d6efd',
+          fontSize: '12px'
+        }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>
+            Available Chains ({availableChains.length})
+          </div>
+          <div style={{ color: '#aaa' }}>
+            {availableChains.map(c => c.name).join(', ')}
+          </div>
+        </div>
+      )}
+
       {/* Quick Actions */}
       <div style={{ marginBottom: '20px' }}>
         <h4 style={{ marginTop: 0, marginBottom: '10px' }}>Quick Actions</h4>
@@ -215,7 +346,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
               justifyContent: 'center',
             }}
           >
-            <User size={20} />
+            <Footprints size={20} />
           </button>
           <button
             onClick={solveQuadrupedStance}
@@ -229,7 +360,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
               justifyContent: 'center',
             }}
           >
-            <Dog size={20} />
+            <PawPrint size={20} />
           </button>
           <button
             onClick={solveDualArm}
@@ -243,7 +374,7 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
               justifyContent: 'center',
             }}
           >
-            <Hand size={20} />
+            <Grip size={20} />
           </button>
         </div>
       </div>
@@ -268,14 +399,19 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
           >
             <div style={{ marginBottom: '5px' }}>
               <label>
-                Chain Name:{' '}
-                <input
-                  type="text"
+                Chain:{' '}
+                <select
                   value={target.chainName}
                   onChange={(e) => updateTarget(index, 'chainName', e.target.value)}
-                  placeholder="e.g., left_arm"
                   style={{ width: '150px' }}
-                />
+                >
+                  <option value="">-- Select Chain --</option>
+                  {availableChains.map((chain) => (
+                    <option key={chain.id} value={chain.name}>
+                      {chain.name}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label style={{ marginLeft: '10px' }}>
                 <input
@@ -407,12 +543,57 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
         </label>
       </div>
 
+      {/* Apply/Reset Actions */}
+      <div style={{
+        display: 'flex',
+        gap: '10px',
+        marginTop: '24px',
+        paddingTop: '20px',
+        borderTop: '2px solid #555'
+      }}>
+        <button
+          onClick={applySolution}
+          disabled={!lastSolution || !lastSolution.success}
+          title={!lastSolution?.success ? 'Solve IK first to get a valid solution' : 'Apply solution to robot'}
+          style={{
+            flex: 1,
+            padding: '14px',
+            fontSize: '15px',
+            fontWeight: 'bold',
+            backgroundColor: lastSolution?.success ? '#28a745' : '#333',
+            color: lastSolution?.success ? '#fff' : '#666',
+            cursor: lastSolution?.success ? 'pointer' : 'not-allowed',
+            border: 'none',
+            borderRadius: '4px',
+            transition: 'all 0.2s'
+          }}
+        >
+          ✅ Apply Solution
+        </button>
+
+        <button
+          onClick={resetToCurrentPose}
+          disabled={!lastSolution}
+          title="Clear solution and reset status"
+          style={{
+            padding: '14px 20px',
+            fontSize: '15px',
+            backgroundColor: '#444',
+            color: lastSolution ? '#fff' : '#666',
+            cursor: lastSolution ? 'pointer' : 'not-allowed',
+            border: 'none',
+            borderRadius: '4px',
+            transition: 'all 0.2s'
+          }}
+        >
+          ↶ Reset
+        </button>
+      </div>
+
       <div style={{ marginTop: '20px', fontSize: '12px', color: '#999', borderTop: '1px solid #444', paddingTop: '10px' }}>
         <p style={{ margin: '5px 0' }}>
-          <strong>Note:</strong> Whole-body IK solves multiple kinematic chains simultaneously with
-          priority weighting and constraint satisfaction.
+          <strong>Workflow:</strong> 1) Add targets 2) Click "Solve Whole-Body IK" 3) Review status 4) Click "Apply Solution"
         </p>
-        <p style={{ margin: '5px 0' }}>Chain names must match existing kinematic chains in the scene.</p>
       </div>
     </FloatingPanel>
   );
