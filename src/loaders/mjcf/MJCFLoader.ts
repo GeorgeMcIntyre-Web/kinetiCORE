@@ -1295,8 +1295,13 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
 
       // Create MJCF device entity for selection highlighting (similar to URDF)
       try {
+        console.log(`[MJCF Import] Starting device entity creation for ${root.name}...`);
+        
         const { EntityRegistry } = await import('../../entities/EntityRegistry');
+        console.log(`[MJCF Import] EntityRegistry imported successfully`);
+        
         const registry = EntityRegistry.getInstance();
+        console.log(`[MJCF Import] EntityRegistry instance obtained`);
         
         // Create a dummy mesh for the device entity (invisible root)
         const deviceMesh = MeshBuilder.CreateBox(
@@ -1307,6 +1312,7 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
         deviceMesh.isVisible = false;
         deviceMesh.parent = root;
         deviceMesh.position = Vector3.Zero();
+        console.log(`[MJCF Import] Device mesh created: ${deviceMesh.name}`);
 
         // Create the device entity
         const deviceEntity = registry.create({
@@ -1326,6 +1332,7 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
             },
           },
         });
+        console.log(`[MJCF Import] Device entity created: ${deviceEntity.getId()}`);
 
         // Create body entities as children of the device (similar to URDF links)
         const bodyEntities: any[] = [];
@@ -1436,7 +1443,14 @@ export const loadMJCFFromFile = async (file: File, scene: Scene): Promise<{ succ
 
         console.log(`[MJCF Import] ✅ Created device entity with ${bodyEntities.length} body entities`);
       } catch (error) {
-        console.error(`[MJCF Import] Failed to create device entity:`, error);
+        console.error(`[MJCF Import] Failed to create device entity for ${root.name}:`, error);
+        console.error(`[MJCF Import] Error details:`, {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          rootName: root.name,
+          jointCount: Object.keys(jointMap).length,
+          actuatorCount: actuators.length
+        });
       }
 
       // Extract kinematic joints and create kinematic chain (AFTER all body nodes are created)
