@@ -108,6 +108,9 @@
     if (rootNode) {
       console.log(`Found root node: ${rootNode.name}`);
       
+      // Get BABYLON from the scene manager instead of global
+      const BABYLON = sceneManager.getEngine().getEngine();
+      
       // Create a device entity
       const deviceMesh = BABYLON.MeshBuilder.CreateBox(
         `${rootNode.name}_device_root`,
@@ -156,6 +159,9 @@
       if (highlightingLayer) {
         highlightingLayer.removeAllMeshes();
         
+        // Get BABYLON for highlighting
+        const BABYLON = sceneManager.getEngine().getEngine();
+        
         robotMeshes.forEach(mesh => {
           if (mesh.isVisible && !mesh.name.includes('_dummy')) {
             highlightingLayer.addMesh(mesh, new BABYLON.Color3(0.2, 0.8, 0.3));
@@ -177,6 +183,9 @@
     
     if (highlightingLayer) {
       highlightingLayer.removeAllMeshes();
+      
+      // Get BABYLON for highlighting
+      const BABYLON = sceneManager.getEngine().getEngine();
       
       children.forEach(child => {
         const childMesh = child.getMesh();
