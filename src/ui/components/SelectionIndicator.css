@@ -97,10 +97,8 @@
   flex-shrink: 0;
 }
 
-/* No selection state - dimmed appearance */
+/* No selection state - ONLY change color, NO opacity or layout changes */
 .selection-indicator.no-selection {
-  opacity: 0.7;
-  font-style: normal;
   color: rgba(255, 255, 255, 0.9);
 }
 
@@ -108,38 +106,21 @@
   display: none;
 }
 
-/* Hover effect - no background change for transparent style */
+/* Hover effect - no changes */
 .selection-indicator:hover {
-  opacity: 1;
   cursor: default;
 }
 
-/* When selection is active - bright cyan color */
+/* When selection is active - bright cyan color, NO opacity changes */
 .selection-indicator:not(.no-selection) {
   color: #00d4ff; /* Bright cyan for active selection */
-  opacity: 1;
 }
 
 .selection-indicator:not(.no-selection):hover {
   color: #33ddff; /* Slightly brighter cyan on hover */
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .selection-indicator {
-    top: 8px;
-    left: 8px;
-    font-size: 12px;
-    padding: 5px 10px;
-    min-width: 120px;
-  }
-
-  .selection-indicator-icon {
-    font-size: 14px;
-    width: 14px;
-    height: 14px;
-  }
-}
+/* Responsive adjustments - REMOVED to prevent any layout shifts */
 
 /* High DPI displays */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
