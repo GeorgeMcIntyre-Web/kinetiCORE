@@ -546,7 +546,7 @@ export const EssentialModeLayout: React.FC = () => {
         />
 
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden" style={{ paddingTop: '80px' }}>
+      <div className="flex flex-1 overflow-hidden" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
         {/* Left Sidebar - Resizable */}
         <aside
           className="border-r border-gray-200 bg-white flex-shrink-0 flex flex-col min-h-0 relative"
@@ -565,7 +565,7 @@ export const EssentialModeLayout: React.FC = () => {
         </aside>
 
         {/* Main Viewport */}
-        <main className="flex-1 relative bg-gray-100">
+        <main className="flex-1 relative bg-gray-100" style={{ paddingTop: '80px' }}>
           <div id="viewport-essential" className="w-full h-full relative">
             <SceneCanvas />
             {/* Selection Indicator - Positioned inside viewport */}

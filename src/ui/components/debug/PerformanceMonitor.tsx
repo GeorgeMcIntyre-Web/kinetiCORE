@@ -91,10 +91,10 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   
   // Position styles
   const positionStyles: Record<string, React.CSSProperties> = {
-    'top-left': { top: 8, left: 8 },
-    'top-right': { top: 8, right: 8 },
-    'bottom-left': { bottom: 8, left: 8 },
-    'bottom-right': { bottom: 8, right: 8 },
+    'top-left': { top: -2, left: 0 },
+    'top-right': { top: -2, right: 0 },
+    'bottom-left': { bottom: 0, left: 0 },
+    'bottom-right': { bottom: 0, right: 0 },
   };
   
   // FPS color coding
@@ -116,13 +116,14 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
     ...positionStyles[position],
     backgroundColor: 'transparent',
     color: '#ffffff',
-    padding: '0',
+    padding: '2px',
     borderRadius: '0',
     fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
     fontSize: '13px',
     fontWeight: '600',
     zIndex: 10000,
-    textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.7)',
+    textShadow: '1px 1px 2px rgba(0, 0, 0, 0.9), -1px -1px 2px rgba(0, 0, 0, 0.9), 1px -1px 2px rgba(0, 0, 0, 0.9), -1px 1px 2px rgba(0, 0, 0, 0.9)',
+    border: 'none',
     WebkitFontSmoothing: 'antialiased',
     MozOsxFontSmoothing: 'grayscale',
     userSelect: 'none',
@@ -256,10 +257,11 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
                 background: 'transparent',
                 border: 'none',
                 color: '#ef4444',
-                fontSize: '11px',
+                fontSize: '13px',
+                fontWeight: '600',
                 cursor: 'pointer',
                 padding: '0',
-                textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0, 0, 0, 0.9)',
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
               }}
             >
               Clear
@@ -271,10 +273,11 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
                 background: 'transparent',
                 border: 'none',
                 color: '#22c55e',
-                fontSize: '11px',
+                fontSize: '13px',
+                fontWeight: '600',
                 cursor: 'pointer',
                 padding: '0',
-                textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0, 0, 0, 0.9)',
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
               }}
             >
               Export

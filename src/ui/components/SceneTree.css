@@ -11,9 +11,7 @@
 }
 
 .scene-tree-header {
-  padding: 12px 16px;
-  background: #252526;
-  border-bottom: 1px solid #333;
+  display: none;
 }
 
 .scene-tree-header h2 {
@@ -28,6 +26,7 @@
 /* Search Bar */
 
 .scene-tree-search {
+  margin-top: 80px;
   display: flex;
   align-items: center;
   gap: 8px;
