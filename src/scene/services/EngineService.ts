@@ -40,6 +40,7 @@ export class EngineService {
         this.engine = new BABYLON.Engine(canvas, true, {
           preserveDrawingBuffer: true,
           stencil: true,
+          alpha: true,
         });
         this.isUsingWebGPU = false;
         console.log('Using WebGL2 engine (fallback)');
@@ -48,6 +49,7 @@ export class EngineService {
       this.engine = new BABYLON.Engine(canvas, true, {
         preserveDrawingBuffer: true,
         stencil: true,
+        alpha: true,
       });
       this.isUsingWebGPU = false;
       if (!useWebGPU) {
