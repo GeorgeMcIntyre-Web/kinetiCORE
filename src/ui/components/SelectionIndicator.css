@@ -8,8 +8,8 @@
 
 .selection-indicator {
   position: absolute !important;
-  bottom: 8px !important;
-  right: 8px !important;
+  top: 8px !important;
+  left: 8px !important;
 
   display: flex !important;
   flex-direction: row !important;
