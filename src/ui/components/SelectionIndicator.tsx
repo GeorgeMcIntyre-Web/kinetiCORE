@@ -1,10 +1,10 @@
 /**
  * SelectionIndicator - Always-visible indicator showing current selection
  * Owner: Agent 6 (Edwin)
- * 
+ *
  * A small, unobtrusive UI element that displays the name of the currently
- * selected object(s) in the 3D world. Positioned in the top-left corner.
- * 
+ * selected object(s) in the 3D world. Positioned in the bottom-left corner.
+ *
  * Features:
  * - Always visible, never hidden
  * - Shows object name and type icon
@@ -30,8 +30,9 @@ interface DisplayInfo {
   fullDetails?: string;
 }
 
-// Build detailed info for a node (defined outside to avoid hoisting issues)
-const buildNodeDetails = (node: SceneNode): string => {
+// Helper functions defined at module level before component
+
+function buildNodeDetails(node: SceneNode): string {
   const parts: string[] = [];
   parts.push(`Name: ${node.name}`);
   parts.push(`Type: ${node.type}`);
@@ -46,10 +47,9 @@ const buildNodeDetails = (node: SceneNode): string => {
     parts.push(`Locked: Yes`);
   }
   return parts.join(' | ');
-};
+}
 
-// Get icon for object type (defined outside to avoid hoisting issues)
-const getTypeIcon = (type: string | null): string => {
+function getTypeIcon(type: string | null): string {
   if (!type) return '📍';
 
   switch (type) {
@@ -72,7 +72,7 @@ const getTypeIcon = (type: string | null): string => {
     default:
       return '📍';
   }
-};
+}
 
 export const SelectionIndicator: React.FC<SelectionIndicatorProps> = ({
   selectedNodeIds,
@@ -91,7 +91,7 @@ export const SelectionIndicator: React.FC<SelectionIndicatorProps> = ({
     }
 
     const tree = SceneTreeManager.getInstance();
-    
+
     if (selectedNodeIds.length === 1) {
       // Single selection - show object name and type
       const node = tree.getNode(selectedNodeIds[0]);
@@ -116,12 +116,12 @@ export const SelectionIndicator: React.FC<SelectionIndicatorProps> = ({
     const nodes = selectedNodeIds
       .map(id => tree.getNode(id))
       .filter((node): node is SceneNode => node !== undefined);
-    
+
     const typeCount = nodes.reduce((acc, node) => {
       acc[node.type] = (acc[node.type] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
+
     const typeSummary = Object.entries(typeCount)
       .map(([type, count]) => `${count} ${type}${count > 1 ? 's' : ''}`)
       .join(', ');
@@ -135,7 +135,7 @@ export const SelectionIndicator: React.FC<SelectionIndicatorProps> = ({
   }, [selectedNodeIds]);
 
   return (
-    <div 
+    <div
       className={`selection-indicator ${displayInfo.isEmpty ? 'no-selection' : ''} ${className}`}
       title={displayInfo.fullDetails || displayInfo.text}
       onMouseEnter={() => setShowDetails(true)}
