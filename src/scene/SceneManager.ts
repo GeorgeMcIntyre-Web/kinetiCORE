@@ -82,9 +82,11 @@ export class SceneManager {
     this.ground.material = floorMaterial;
     this.ground.receiveShadows = true;
 
-    // Create grid overlay for spatial reference (initially hidden for transparent background)
-    this.gridOverlay = this.floorMaterialManager.createGridOverlay(this.ground, false);
-    console.log('🔲 Grid overlay created and disabled:', this.gridOverlay?.isEnabled());
+    // Create grid overlay for spatial reference
+    // Enable grid by default for grid-only floor type, disable for others
+    const gridInitiallyVisible = this.currentFloorType === 'grid-only';
+    this.gridOverlay = this.floorMaterialManager.createGridOverlay(this.ground, gridInitiallyVisible);
+    console.log('🔲 Grid overlay created with enabled:', this.gridOverlay?.isEnabled());
 
     // Freeze ground world matrix for performance
     this.ground.freezeWorldMatrix();
