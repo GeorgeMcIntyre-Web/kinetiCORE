@@ -240,6 +240,13 @@ export class HavokPhysicsEngine implements IPhysicsEngine {
     return this.scene?.physicsEnabled ? this.scene : null;
   }
 
+  /**
+   * Get the number of rigid bodies in the simulation
+   */
+  getBodyCount(): number {
+    return this.bodyHandles.size;
+  }
+
   // === Joint Constraints ===
 
   /**

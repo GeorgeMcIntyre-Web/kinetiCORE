@@ -91,10 +91,10 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   
   // Position styles
   const positionStyles: Record<string, React.CSSProperties> = {
-    'top-left': { top: 10, left: 10 },
-    'top-right': { top: 10, right: 10 },
-    'bottom-left': { bottom: 10, left: 10 },
-    'bottom-right': { bottom: 10, right: 10 },
+    'top-left': { top: 8, left: 8 },
+    'top-right': { top: 8, right: 8 },
+    'bottom-left': { bottom: 8, left: 8 },
+    'bottom-right': { bottom: 8, right: 8 },
   };
   
   // FPS color coding
@@ -112,51 +112,63 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   };
   
   const containerStyle: React.CSSProperties = {
-    position: 'fixed',
+    position: 'absolute',
     ...positionStyles[position],
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: 'transparent',
     color: '#ffffff',
-    padding: '12px',
-    borderRadius: '8px',
-    fontFamily: 'monospace',
-    fontSize: '12px',
+    padding: '0',
+    borderRadius: '0',
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+    fontSize: '13px',
+    fontWeight: '600',
     zIndex: 10000,
-    minWidth: '200px',
-    backdropFilter: 'blur(10px)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+    textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.7)',
+    WebkitFontSmoothing: 'antialiased',
+    MozOsxFontSmoothing: 'grayscale',
     userSelect: 'none',
+    pointerEvents: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
   };
   
   const headerStyle: React.CSSProperties = {
     display: 'flex',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: isExpanded ? '8px' : '0',
-    paddingBottom: isExpanded ? '8px' : '0',
-    borderBottom: isExpanded ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
+    gap: '4px',
+    marginBottom: isExpanded ? '0px' : '0',
     cursor: 'pointer',
   };
-  
+
   const titleStyle: React.CSSProperties = {
-    fontWeight: 'bold',
+    fontWeight: '600',
     fontSize: '13px',
     color: '#60a5fa',
   };
-  
-  const rowStyle: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    padding: '3px 0',
-  };
-  
-  const labelStyle: React.CSSProperties = {
+
+  const toggleStyle: React.CSSProperties = {
+    fontSize: '10px',
     color: '#9ca3af',
   };
-  
+
+  const rowStyle: React.CSSProperties = {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '8px',
+    lineHeight: '1.4',
+    whiteSpace: 'nowrap',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    color: '#9ca3af',
+    fontWeight: '500',
+  };
+
   const valueStyle: React.CSSProperties = {
-    fontWeight: 'bold',
-    marginLeft: '12px',
+    fontWeight: '600',
+    textAlign: 'right',
+    minWidth: '60px',
+    display: 'inline-block',
   };
   
   const handleExport = () => {
@@ -174,14 +186,12 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   return (
     <div style={containerStyle}>
       <div style={headerStyle} onClick={() => setIsExpanded(!isExpanded)}>
+        <span style={toggleStyle}>{isExpanded ? '▼' : '▶'}</span>
         <span style={titleStyle}>⚡ Performance</span>
-        <span style={{ fontSize: '10px', color: '#9ca3af' }}>
-          {isExpanded ? '▼' : '▶'}
-        </span>
       </div>
       
       {isExpanded && (
-        <>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <div style={rowStyle}>
             <span style={labelStyle}>FPS:</span>
             <span style={{ ...valueStyle, color: getFpsColor(metrics.fps) }}>
@@ -233,46 +243,44 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
           
           <div
             style={{
-              marginTop: '8px',
-              paddingTop: '8px',
-              borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+              marginTop: '4px',
               display: 'flex',
-              gap: '8px',
+              gap: '12px',
+              fontSize: '11px',
+              justifyContent: 'flex-end',
             }}
           >
             <button
               onClick={() => performanceMetrics.clear()}
               style={{
-                flex: 1,
-                padding: '4px 8px',
-                backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                border: '1px solid rgba(239, 68, 68, 0.5)',
-                borderRadius: '4px',
-                color: '#fff',
-                fontSize: '10px',
+                background: 'transparent',
+                border: 'none',
+                color: '#ef4444',
+                fontSize: '11px',
                 cursor: 'pointer',
+                padding: '0',
+                textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0, 0, 0, 0.9)',
               }}
             >
               Clear
             </button>
-            
+
             <button
               onClick={handleExport}
               style={{
-                flex: 1,
-                padding: '4px 8px',
-                backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                border: '1px solid rgba(34, 197, 94, 0.5)',
-                borderRadius: '4px',
-                color: '#fff',
-                fontSize: '10px',
+                background: 'transparent',
+                border: 'none',
+                color: '#22c55e',
+                fontSize: '11px',
                 cursor: 'pointer',
+                padding: '0',
+                textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0, 0, 0, 0.9)',
               }}
             >
               Export
             </button>
           </div>
-        </>
+        </div>
       )}
       
       {!isExpanded && (

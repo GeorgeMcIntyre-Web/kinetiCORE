@@ -29,6 +29,7 @@ import { babylonToUser } from '../../core/CoordinateSystem';
 import { CreateProjectionViewCommand } from '../../history/commands/CreateProjectionViewCommand';
 import { toast } from '../components/ToastNotifications';
 import { useTreeAutoResize } from '../hooks/useTreeAutoResize';
+import { PerformanceMonitor, usePerformanceMonitor } from '../components/debug/PerformanceMonitor';
 import './EssentialModeLayout.css';
 
 export const EssentialModeLayout: React.FC = () => {
@@ -43,6 +44,9 @@ export const EssentialModeLayout: React.FC = () => {
   const commandManager = useEditorStore((state) => state.commandManager);
   const toggleLibrary = useAssetLibraryStore((state) => state.toggleVisibility);
   const showProjectManager = useProjectManagerStore((state) => state.show);
+
+  // Performance monitoring
+  const performanceEnabled = usePerformanceMonitor();
 
   // Project Management
   const saveProject = useEditorStore((state) => state.saveProject);
@@ -566,6 +570,13 @@ export const EssentialModeLayout: React.FC = () => {
             <SceneCanvas />
             {/* Selection Indicator - Positioned inside viewport */}
             <SelectionIndicator selectedNodeIds={selectedNodeIds} />
+
+            {/* Performance Monitor - Top-right of viewport */}
+            <PerformanceMonitor
+              enabled={performanceEnabled}
+              position="top-right"
+              detailed={true}
+            />
           </div>
         </main>
       </div>

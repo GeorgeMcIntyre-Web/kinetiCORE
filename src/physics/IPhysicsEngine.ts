@@ -67,6 +67,12 @@ export interface IPhysicsEngine {
    */
   getWorld(): unknown;
 
+  /**
+   * Get the number of rigid bodies in the simulation
+   * @returns Number of active rigid bodies
+   */
+  getBodyCount(): number;
+
   // === Joint Constraints ===
 
   /**

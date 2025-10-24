@@ -12,6 +12,7 @@ import { useEditorStore } from '../store/editorStore';
 import { useUserLevel } from '../core/UserLevelContext';
 import { CoordinateFrame } from './CoordinateFrame';
 import { isZoomableObject, isSelectableObject } from '../../scene/SceneUtils';
+import { performanceMetrics } from '../../core/PerformanceMetrics';
 
 export const SceneCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -232,6 +233,8 @@ export const SceneCanvas: React.FC = () => {
         // Physics update loop
         const engine = sceneManager.getEngine();
         engine?.runRenderLoop(() => {
+          const frameStartTime = performance.now();
+
           // Step physics (fixed 60 FPS timestep)
           physicsEngine.step(1 / 60);
 
@@ -240,6 +243,24 @@ export const SceneCanvas: React.FC = () => {
 
           // Render scene
           scene.render();
+
+          // Record performance metrics
+          const frameTime = performance.now() - frameStartTime;
+          const fps = engine?.getFps() || 0;
+
+          performanceMetrics.recordFrame({
+            fps,
+            frameTime,
+            drawCalls: scene.getActiveMeshes().length,
+            triangles: scene.getTotalVertices(),
+            entities: registry.getAll().length,
+            physicsBodies: physicsEngine.getBodyCount(),
+          });
+
+          // Record memory every 60 frames (~1 second at 60 FPS)
+          if (scene.getFrameId() % 60 === 0) {
+            performanceMetrics.recordMemory();
+          }
         });
       }
     });

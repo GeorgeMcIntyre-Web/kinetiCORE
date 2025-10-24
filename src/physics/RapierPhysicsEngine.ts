@@ -267,6 +267,10 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
     return this.world;
   }
 
+  getBodyCount(): number {
+    return this.bodies.size;
+  }
+
   // === Joint Constraint Implementation ===
 
   createRevoluteJoint(
