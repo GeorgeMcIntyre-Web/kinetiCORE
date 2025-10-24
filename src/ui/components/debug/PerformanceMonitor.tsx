@@ -91,10 +91,10 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   
   // Position styles
   const positionStyles: Record<string, React.CSSProperties> = {
-    'top-left': { top: 82, left: 0 },
-    'top-right': { top: 82, right: 0 },
-    'bottom-left': { bottom: 0, left: 0 },
-    'bottom-right': { bottom: 0, right: 0 },
+    'top-left': { top: '82px', left: '8px' },
+    'top-right': { top: '82px', right: '8px' },
+    'bottom-left': { bottom: '8px', left: '8px' },
+    'bottom-right': { bottom: '8px', right: '8px' },
   };
   
   // FPS color coding
