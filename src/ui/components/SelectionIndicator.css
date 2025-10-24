@@ -11,34 +11,41 @@
   top: 10px !important; /* Top of viewport */
   left: 10px !important; /* Left edge of viewport */
 
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
 
   background: transparent; /* Transparent background */
-  color: white;
-  padding: 8px 14px;
-  border-radius: 6px;
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 4px;
 
-  font-size: 13px;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-weight: 500;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 700; /* Bold for better readability */
+  letter-spacing: 0.5px;
 
-  max-width: 280px;
+  min-width: 140px; /* Fixed minimum width to prevent layout shift */
   white-space: nowrap;
   overflow: hidden;
 
-  border: none; /* Remove border for transparent look */
-  backdrop-filter: none; /* Remove blur for transparent look */
+  border: none;
+  backdrop-filter: none;
+
+  /* Strong text shadow for readability on any background */
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000,
+    0 0 4px rgba(0, 0, 0, 0.9),
+    0 0 8px rgba(0, 0, 0, 0.7);
 
   /* Ensure it's above most content but below modals */
   z-index: 900;
 
-  /* Smooth transitions */
-  transition: all 0.2s ease;
-
-  /* Text shadow for readability on transparent background */
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), 0 0 10px rgba(0, 0, 0, 0.5);
+  /* Smooth transitions for hover only */
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 
   /* Prevent text selection */
   user-select: none;
@@ -50,6 +57,11 @@
   font-size: 16px;
   line-height: 1;
   flex-shrink: 0;
+  width: 16px; /* Fixed width to prevent layout shift */
+  height: 16px; /* Fixed height */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .selection-indicator-text {
@@ -78,50 +90,47 @@
   flex-shrink: 0;
 }
 
-/* No selection state - lower opacity, italic text */
+/* No selection state - dimmed appearance */
 .selection-indicator.no-selection {
-  opacity: 0.6;
-  font-style: italic;
-  color: rgba(255, 255, 255, 0.6);
+  opacity: 0.7;
+  font-style: normal;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .selection-indicator.no-selection .selection-indicator-badge {
   display: none;
 }
 
-/* Hover effect - show full name if truncated */
+/* Hover effect - no background change for transparent style */
 .selection-indicator:hover {
-  background: rgba(0, 0, 0, 0.3); /* Subtle semi-transparent background on hover */
-  max-width: 400px;
+  opacity: 1;
   cursor: default;
 }
 
-/* When selection is active, keep transparent but brighter text */
+/* When selection is active - bright cyan color */
 .selection-indicator:not(.no-selection) {
-  background: transparent;
-  color: rgba(100, 200, 255, 1); /* Cyan color for active selection */
+  color: #00d4ff; /* Bright cyan for active selection */
+  opacity: 1;
 }
 
 .selection-indicator:not(.no-selection):hover {
-  background: rgba(20, 100, 200, 0.2); /* Very subtle cyan tint on hover */
+  color: #33ddff; /* Slightly brighter cyan on hover */
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .selection-indicator {
-    bottom: 70px; /* Adjust for smaller screens */
+    top: 8px;
     left: 8px;
     font-size: 12px;
-    padding: 6px 10px;
-    max-width: 200px;
+    padding: 5px 10px;
+    min-width: 120px;
   }
 
   .selection-indicator-icon {
     font-size: 14px;
-  }
-
-  .selection-indicator:hover {
-    max-width: 280px;
+    width: 14px;
+    height: 14px;
   }
 }
 
