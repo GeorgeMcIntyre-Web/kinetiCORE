@@ -205,7 +205,7 @@ export function controlGripperExample() {
   const actuatorSystem = kinematicsManager.getActuatorSystem();
 
   // Get the gripper actuator
-  const actuator = actuatorSystem.getAllActuators().find(a => a.type === 'electric_gripper');
+  const actuator = actuatorSystem.getAllActuators().find((a: any) => a.type === 'electric_gripper');
   if (!actuator) {
     console.error('No gripper actuator found');
     return;

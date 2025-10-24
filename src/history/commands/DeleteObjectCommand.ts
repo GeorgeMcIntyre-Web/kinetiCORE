@@ -7,7 +7,7 @@ import { EntityRegistry } from '../../entities/EntityRegistry';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { SceneManager } from '../../scene/SceneManager';
 import { babylonToUser } from '../../core/CoordinateSystem';
-import { useEditorStore } from '../../ui/store/editorStore';
+// Removed editorStore import to break circular dependency - callbacks used instead
 
 interface ObjectSnapshot {
   meshData: {
@@ -29,12 +29,36 @@ interface ObjectSnapshot {
 export class DeleteObjectCommand extends Command {
   description: string;
   private snapshot: ObjectSnapshot | null = null;
+  private createObjectCallback?: (type: any) => void;
+  private updateCallbacks?: {
+    updateNodePosition: (nodeId: string, position: any) => void;
+    updateNodeRotation: (nodeId: string, rotation: any) => void;
+    updateNodeScale: (nodeId: string, scale: any) => void;
+  };
 
-  constructor(private readonly nodeId: string) {
+  constructor(
+    private readonly nodeId: string,
+    callbacks?: {
+      createObject?: (type: any) => void;
+      updateNodePosition?: (nodeId: string, position: any) => void;
+      updateNodeRotation?: (nodeId: string, rotation: any) => void;
+      updateNodeScale?: (nodeId: string, scale: any) => void;
+    }
+  ) {
     super();
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(nodeId);
     this.description = `Delete ${node?.name || 'object'}`;
+    
+    // Store callbacks for undo
+    this.createObjectCallback = callbacks?.createObject;
+    if (callbacks?.updateNodePosition && callbacks?.updateNodeRotation && callbacks?.updateNodeScale) {
+      this.updateCallbacks = {
+        updateNodePosition: callbacks.updateNodePosition,
+        updateNodeRotation: callbacks.updateNodeRotation,
+        updateNodeScale: callbacks.updateNodeScale,
+      };
+    }
   }
 
   execute(): void {
@@ -95,11 +119,14 @@ export class DeleteObjectCommand extends Command {
       return;
     }
 
-    // Recreate the object using editorStore
-    const createObject = useEditorStore.getState().createObject;
+    // Recreate the object using callback (breaks circular dependency)
+    if (!this.createObjectCallback) {
+      console.warn('Cannot undo delete: no createObject callback provided');
+      return;
+    }
 
     // This will create a new object - we'll need to update its properties
-    createObject(this.snapshot.meshData.type as any);
+    this.createObjectCallback(this.snapshot.meshData.type as any);
 
     // Wait for next tick to ensure object is created
     setTimeout(() => {
@@ -107,7 +134,7 @@ export class DeleteObjectCommand extends Command {
       const sceneManager = SceneManager.getInstance();
       const scene = sceneManager.getScene();
 
-      if (!scene || !this.snapshot) return;
+      if (!scene || !this.snapshot || !this.updateCallbacks) return;
 
       // Find the newly created mesh by name pattern
       const newMesh = scene.meshes.find(
@@ -115,14 +142,13 @@ export class DeleteObjectCommand extends Command {
       );
 
       if (newMesh && newMesh instanceof BABYLON.Mesh) {
-        // Restore properties
-        const { updateNodePosition, updateNodeRotation, updateNodeScale } = useEditorStore.getState();
+        // Restore properties using callbacks
         const node = tree.getNodeByBabylonMeshId(newMesh.uniqueId.toString());
 
         if (node) {
-          updateNodePosition(node.id, this.snapshot.meshData.position);
-          updateNodeRotation(node.id, this.snapshot.meshData.rotation);
-          updateNodeScale(node.id, this.snapshot.meshData.scaling);
+          this.updateCallbacks.updateNodePosition(node.id, this.snapshot.meshData.position);
+          this.updateCallbacks.updateNodeRotation(node.id, this.snapshot.meshData.rotation);
+          this.updateCallbacks.updateNodeScale(node.id, this.snapshot.meshData.scaling);
 
           // Restore material color
           if (this.snapshot.meshData.materialColor && newMesh.material instanceof BABYLON.StandardMaterial) {

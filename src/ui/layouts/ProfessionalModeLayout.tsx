@@ -26,6 +26,7 @@ import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { DockableLayoutWrapper } from './DockableLayoutWrapper';
 import { MoveObjectDialog } from '../components/MoveObjectDialog';
+import { SelectionIndicator } from '../components/SelectionIndicator';
 import './ProfessionalModeLayout.css';
 
 export const ProfessionalModeLayout: React.FC = () => {
@@ -125,6 +126,9 @@ export const ProfessionalModeLayout: React.FC = () => {
 
   return (
     <div className="professional-layout">
+      {/* Selection Indicator - Always visible */}
+      <SelectionIndicator selectedNodeIds={selectedNodeIds} />
+
       {/* Header */}
       <header className="professional-header">
         <div className="header-left">

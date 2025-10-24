@@ -62,7 +62,7 @@ export const AssetLibraryAuth: React.FC<AssetLibraryAuthProps> = ({
     
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (_event: any, session: any) => {
         setAuthState(prev => ({
           ...prev,
           user: session?.user || null,
@@ -99,7 +99,7 @@ export const AssetLibraryAuth: React.FC<AssetLibraryAuthProps> = ({
     setAuthState(prev => ({ ...prev, error: null }));
 
     try {
-      const { data, error } = await supabaseHelpers.signIn(formData.email, formData.password);
+      const { error } = await supabaseHelpers.signIn(formData.email, formData.password);
       
       if (error) {
         setAuthState(prev => ({ ...prev, error: error.message }));
@@ -120,7 +120,7 @@ export const AssetLibraryAuth: React.FC<AssetLibraryAuthProps> = ({
     setAuthState(prev => ({ ...prev, error: null }));
 
     try {
-      const { data, error } = await supabaseHelpers.signUp(formData.email, formData.password);
+      const { error } = await supabaseHelpers.signUp(formData.email, formData.password);
       
       if (error) {
         setAuthState(prev => ({ ...prev, error: error.message }));
@@ -345,16 +345,18 @@ export const AssetLibraryAuth: React.FC<AssetLibraryAuthProps> = ({
                     fontWeight: '600'
                   }}
                   onMouseEnter={(e) => {
-                    if (!e.target.disabled) {
-                      e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = '0 6px 20px rgba(255, 215, 0, 0.4)';
-                      e.target.style.background = 'linear-gradient(135deg, #ffed4e, #ffd700)';
+                    const target = e.target as HTMLButtonElement;
+                    if (!target.disabled) {
+                      target.style.transform = 'translateY(-2px)';
+                      target.style.boxShadow = '0 6px 20px rgba(255, 215, 0, 0.4)';
+                      target.style.background = 'linear-gradient(135deg, #ffed4e, #ffd700)';
                     }
                   }}
                   onMouseLeave={(e) => {
-                    e.target.style.transform = 'translateY(0)';
-                    e.target.style.boxShadow = '0 4px 15px rgba(255, 215, 0, 0.3)';
-                    e.target.style.background = 'linear-gradient(135deg, #ffd700, #ffed4e)';
+                    const target = e.target as HTMLButtonElement;
+                    target.style.transform = 'translateY(0)';
+                    target.style.boxShadow = '0 4px 15px rgba(255, 215, 0, 0.3)';
+                    target.style.background = 'linear-gradient(135deg, #ffd700, #ffed4e)';
                   }}
                 >
                   {isSubmitting ? (
@@ -377,12 +379,14 @@ export const AssetLibraryAuth: React.FC<AssetLibraryAuthProps> = ({
                     textAlign: 'center'
                   }}
                   onMouseEnter={(e) => {
-                    e.target.style.background = 'rgba(255, 215, 0, 0.1)';
-                    e.target.style.borderColor = '#ffd700';
+                    const target = e.target as HTMLButtonElement;
+                    target.style.background = 'rgba(255, 215, 0, 0.1)';
+                    target.style.borderColor = '#ffd700';
                   }}
                   onMouseLeave={(e) => {
-                    e.target.style.background = 'rgba(255, 255, 255, 0.1)';
-                    e.target.style.borderColor = 'rgba(255, 215, 0, 0.3)';
+                    const target = e.target as HTMLButtonElement;
+                    target.style.background = 'rgba(255, 255, 255, 0.1)';
+                    target.style.borderColor = 'rgba(255, 215, 0, 0.3)';
                   }}
                 >
                   Sign Up
@@ -524,16 +528,18 @@ export const AssetLibraryAuth: React.FC<AssetLibraryAuthProps> = ({
                     textAlign: 'center'
                   }}
                   onMouseEnter={(e) => {
-                    if (!e.target.disabled) {
-                      e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = '0 6px 20px rgba(255, 215, 0, 0.4)';
-                      e.target.style.background = 'linear-gradient(135deg, #ffed4e, #ffd700)';
+                    const target = e.target as HTMLButtonElement;
+                    if (!target.disabled) {
+                      target.style.transform = 'translateY(-2px)';
+                      target.style.boxShadow = '0 6px 20px rgba(255, 215, 0, 0.4)';
+                      target.style.background = 'linear-gradient(135deg, #ffed4e, #ffd700)';
                     }
                   }}
                   onMouseLeave={(e) => {
-                    e.target.style.transform = 'translateY(0)';
-                    e.target.style.boxShadow = '0 4px 15px rgba(255, 215, 0, 0.3)';
-                    e.target.style.background = 'linear-gradient(135deg, #ffd700, #ffed4e)';
+                    const target = e.target as HTMLButtonElement;
+                    target.style.transform = 'translateY(0)';
+                    target.style.boxShadow = '0 4px 15px rgba(255, 215, 0, 0.3)';
+                    target.style.background = 'linear-gradient(135deg, #ffd700, #ffed4e)';
                   }}
                 >
                   {isSubmitting ? (
@@ -556,12 +562,14 @@ export const AssetLibraryAuth: React.FC<AssetLibraryAuthProps> = ({
                     textAlign: 'center'
                   }}
                   onMouseEnter={(e) => {
-                    e.target.style.background = 'rgba(255, 215, 0, 0.1)';
-                    e.target.style.borderColor = '#ffd700';
+                    const target = e.target as HTMLButtonElement;
+                    target.style.background = 'rgba(255, 215, 0, 0.1)';
+                    target.style.borderColor = '#ffd700';
                   }}
                   onMouseLeave={(e) => {
-                    e.target.style.background = 'rgba(255, 255, 255, 0.1)';
-                    e.target.style.borderColor = 'rgba(255, 215, 0, 0.3)';
+                    const target = e.target as HTMLButtonElement;
+                    target.style.background = 'rgba(255, 255, 255, 0.1)';
+                    target.style.borderColor = 'rgba(255, 215, 0, 0.3)';
                   }}
                 >
                   Login

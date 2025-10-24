@@ -6,10 +6,14 @@ import * as BABYLON from '@babylonjs/core';
 import { SceneTreeManager } from '../scene/SceneTreeManager';
 import type { SceneNode } from '../scene/SceneTreeNode';
 import type { JointType } from '../scene/SceneTreeNode';
-import { ActuatorSystem } from './actuation/ActuatorSystem';
+import type { IKinematicsManager } from './IKinematicsManager';
+// ActuatorSystem is imported via dynamic import() in getActuatorSystem() to break circular dependency
 
 // Re-export JointType for convenience
 export type { JointType };
+
+// Export interface for breaking circular dependencies
+export type { IKinematicsManager };
 
 /**
  * Kinematic chain types
@@ -116,12 +120,12 @@ export interface KinematicChain {
 /**
  * KinematicsManager - Central system for kinematic chains
  */
-export class KinematicsManager {
+export class KinematicsManager implements IKinematicsManager {
   private static instance: KinematicsManager | null = null;
   private chains = new Map<string, KinematicChain>();
   private groundedNodes = new Set<string>();
   private joints = new Map<string, JointConfig>();
-  private actuatorSystem: ActuatorSystem | null = null;
+  // private actuatorSystem: any | null = null; // TEMP DISABLED
   private keyframes = new Map<string, RobotKeyframe>();
 
   // Visual helpers
@@ -139,12 +143,12 @@ export class KinematicsManager {
 
   /**
    * Get the actuator system for hardware control
+   * Note: ActuatorSystem is lazily loaded to avoid circular dependency
    */
-  getActuatorSystem(): ActuatorSystem {
-    if (!this.actuatorSystem) {
-      this.actuatorSystem = new ActuatorSystem();
-    }
-    return this.actuatorSystem;
+  getActuatorSystem(): any {
+    // TEMPORARILY DISABLED - require() not supported in browser
+    // TODO: Fix circular dependency properly without require()
+    return null;
   }
 
   /**

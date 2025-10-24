@@ -9,6 +9,7 @@ import { useEditorStore } from '../store/editorStore';
 import { useAssetLibraryStore } from '../store/assetLibraryStore';
 import { SceneTree } from '../components/SceneTree';
 import { SceneCanvas } from '../components/SceneCanvas';
+// import { SelectionIndicator } from '../components/SelectionIndicator';
 import { FloatingKinematicsPanel } from '../components/FloatingKinematicsPanel';
 import { FloatingKinematicsAnalysisPanel } from '../components/FloatingKinematicsAnalysisPanel';
 import { FloatingActuatorPanel } from '../components/FloatingActuatorPanel';

@@ -110,20 +110,22 @@ const selected = useEditorStore.getState().selectedMeshes;
 - ✅ Cole: Babylon scene setup & camera
 - ✅ Edwin: React UI shell & Zustand store
 
-**Current Focus: Frontend Testing & Deployment**
-- Agent 1 (Claude Code): TypeScript fixes, integration work, CI/CD
+**Current Focus: Production Deployment** ✅ COMPLETE
+- Agent 1 (Claude Code): Full-stack deployment pipeline
   - ✅ TypeScript compilation errors resolved
   - ✅ Custom reference frame integration complete
-  - ✅ CI/CD pipeline enhanced (4 parallel jobs)
-  - ✅ Comprehensive CI/CD documentation
-- Agent 3 (Cursor): Frontend testing readiness, Cloudflare deployment
+  - ✅ CI/CD pipeline (4 parallel jobs: lint, typecheck, test, build)
+  - ✅ Automated deployment workflow (GitHub Actions → Cloudflare Pages)
+  - ✅ Production site live at https://kinetic-core.com
+  - ✅ Build optimization (74% compression: 19MB → 4.5MB gzipped)
+  - ✅ Comprehensive deployment documentation
+- Agent 3 (Cursor): Frontend testing & UI refinements
   - ✅ FloatingPanel reusable component
   - ✅ Header component with mode switching
-  - ✅ Design tokens system
+  - ✅ Design tokens system (cyan theme)
   - ✅ EssentialModeLayout Tailwind refactor
   - ✅ USD server error handling
   - ✅ Testing documentation
-  - 🔄 Cloudflare Pages deployment workflow
 
 ## Development Workflow
 
@@ -150,39 +152,54 @@ npm run build             # Production build
 npm run lint && npm run type-check && npm test && npm run build
 ```
 
-### Deployment Workflow (Agent 3 - Cursor):
+### Deployment Workflow:
 
-**Local Testing:**
+**Automated Deployment (Recommended):**
+Every push to `main` automatically deploys to production via GitHub Actions.
+
 ```bash
-# 1. Fix TypeScript build errors
-npm run type-check
+# 1. Make your changes on a feature branch
+git checkout -b feature/my-feature
+# ... your work here ...
 
-# 2. Start local development server
-npm run dev
-# Open http://localhost:5173 to test locally
+# 2. Run all checks locally BEFORE pushing
+npm run lint && npm run type-check && npm test && npm run build
 
-# 3. Test application works as expected
+# 3. Commit and push
+git add .
+git commit -m "feat: your feature description"
+git push origin feature/my-feature
+
+# 4. Create PR, get approval, merge to main
+# GitHub Actions automatically:
+# - Runs CI checks (lint, typecheck, test, build)
+# - Deploys to Cloudflare Pages
+# - Updates https://kinetic-core.com
+# Timeline: ~2-3 minutes from merge to live
 ```
 
-**Cloudflare Pages Deployment:**
+**Manual Deployment (If Needed):**
 ```bash
-# 1. Fix remaining TypeScript build issues
-npm run build
+# Preview deployment (test branch)
+npm run deploy:preview
 
-# 2. Create production build
-npm run build
-
-# 3. Deploy to Cloudflare Pages
-# Agent 3 handles the deployment flow using Cloudflare dashboard or Wrangler CLI
+# Production deployment (requires approval)
+npm run deploy:production
 ```
 
 **Deployment Checklist:**
-- ✅ TypeScript errors preventing build resolved
-- ✅ Local development server running successfully
-- ✅ Test application locally
-- ✅ Fix remaining build issues
-- ✅ Create production build
-- ✅ Deploy to Cloudflare Pages
+- ✅ All CI checks pass locally
+- ✅ PR reviewed and approved
+- ✅ Merge to main triggers auto-deployment
+- ✅ Monitor GitHub Actions for deployment status
+- ✅ Verify live at https://kinetic-core.com
+
+**Key Resources:**
+- **Production URL:** https://kinetic-core.com
+- **Deployment Pipeline Guide:** [docs/DEPLOYMENT_PIPELINE.md](docs/DEPLOYMENT_PIPELINE.md)
+- **CI/CD Guide:** [docs/CI_CD.md](docs/CI_CD.md)
+- **GitHub Actions:** https://github.com/GeorgeMcIntyre-Web/kinetiCORE/actions
+- **Cloudflare Dashboard:** https://dash.cloudflare.com → Pages → kineticore
 
 ### Communication:
 - Announce in Slack before editing shared files
@@ -199,15 +216,17 @@ npm run build
 - TypeScript error fixes
 - Documentation generation
 - Backend architecture
+- **CI/CD pipeline setup**
+- **Production deployment automation**
 
-### Cursor (Agent 3 - Cole & Edwin):
+### Cursor (Agent 2 & 3 - Cole & Edwin):
 - Fast feature iteration
 - Component development
 - Inline debugging
 - Visual UI work
 - Real-time suggestions
 - Frontend testing
-- **Cloudflare deployment workflow**
+- Feature branch development
 
 ## Resources
 

@@ -61,11 +61,11 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center justify-between px-4 py-2 gap-4">
         {/* Logo and App Name */}
         <div className="flex items-center space-x-2 flex-shrink-0">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/50">
             <span className="text-white font-bold text-sm">K</span>
           </div>
           <div className="hidden sm:block">
-            <h1 className="text-xl font-bold text-white">kinetiCORE</h1>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">kinetiCORE</h1>
             <p className="text-xs text-gray-400">Industrial Simulation</p>
           </div>
         </div>

@@ -41,8 +41,8 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
   
   // Gizmo management
   const [unifiedGizmo] = useState(() => UnifiedGizmoManager.getInstance());
-  const [currentTcpPosition, setCurrentTcpPosition] = useState<BABYLON.Vector3 | null>(null);
-  const [currentChainName, setCurrentChainName] = useState<string | null>(null);
+  const [_currentTcpPosition, setCurrentTcpPosition] = useState<BABYLON.Vector3 | null>(null);
+  const [_currentChainName, setCurrentChainName] = useState<string | null>(null);
   const gizmoInitialized = useRef(false);
 
   // Use filtered joints from props

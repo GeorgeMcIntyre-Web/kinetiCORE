@@ -85,7 +85,7 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
       const hardwareActuators = actuatorSystem.getAllActuators();
 
       // Convert HardwareActuator to ActuatorState
-      const actuatorStates: ActuatorState[] = hardwareActuators.map(hw => ({
+      const actuatorStates: ActuatorState[] = hardwareActuators.map((hw: any) => ({
         deviceId: hw.id,
         deviceName: hw.name,
         deviceType: mapHardwareTypeToDeviceType(hw.type),

@@ -1,16 +1,62 @@
+/**
+ * THEME SYSTEM
+ *
+ * To change the app theme, simply uncomment one of the theme blocks below
+ * and comment out the current theme. All UI elements will automatically
+ * update to use the new color scheme.
+ *
+ * Themes available: Cyan (default), Purple, Green, Orange
+ * Custom themes: Add your own color palette following the same pattern
+ */
+
+/* Theme System - CSS Variables */
+:root {
+  /* 🎨 Cyan Theme (Default - matches splash screen) */
+  --color-primary: #00f0ff;
+  --color-primary-dark: #00b4d8;
+  --color-primary-light: #48f6ff;
+  --color-primary-glow: rgba(0, 240, 255, 0.3);
+
+  /* Alternative Themes (commented out - can be activated) */
+  /* Purple Theme */
+  /* --color-primary: #646cff; */
+  /* --color-primary-dark: #4c50cc; */
+  /* --color-primary-light: #7c80ff; */
+  /* --color-primary-glow: rgba(100, 108, 255, 0.3); */
+
+  /* Green Theme */
+  /* --color-primary: #00ff88; */
+  /* --color-primary-dark: #00cc6a; */
+  /* --color-primary-light: #33ffa3; */
+  /* --color-primary-glow: rgba(0, 255, 136, 0.3); */
+
+  /* Orange Theme */
+  /* --color-primary: #ff8800; */
+  /* --color-primary-dark: #cc6d00; */
+  /* --color-primary-light: #ffa333; */
+  /* --color-primary-glow: rgba(255, 136, 0, 0.3); */
+
+  /* Base Colors */
+  --color-bg-dark: #0a0a0a;
+  --color-bg-medium: #1a1a1a;
+  --color-bg-light: #2a2a2a;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #888888;
+}
+
 .app {
   display: flex;
   flex-direction: column;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background-color: #0a0a0a;
+  background-color: var(--color-bg-dark);
 }
 
 .header {
-  background-color: #1a1a1a;
+  background-color: var(--color-bg-medium);
   padding: 0.5rem 1.5rem;
-  border-bottom: 2px solid #646cff;
+  border-bottom: 2px solid var(--color-primary);
   display: flex;
   align-items: center;
   gap: 1.5rem;
@@ -19,13 +65,14 @@
 .header h1 {
   margin: 0;
   font-size: 1.25rem;
-  color: #646cff;
+  color: var(--color-primary);
   font-weight: 700;
+  text-shadow: 0 0 10px var(--color-primary-glow);
 }
 
 .header p {
   margin: 0;
-  color: #888;
+  color: var(--color-text-secondary);
   font-size: 0.75rem;
 }
 
@@ -38,14 +85,14 @@
 /* Resizable Panel Styles */
 .panel-left,
 .panel-right {
-  background-color: #1a1a1a;
+  background-color: var(--color-bg-medium);
   overflow: hidden;
 }
 
 /* Resize Handle Styles */
 .resize-handle {
   position: relative;
-  background-color: #0a0a0a;
+  background-color: var(--color-bg-dark);
   transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -65,7 +112,7 @@
   background: linear-gradient(
     180deg,
     transparent 0%,
-    #646cff 50%,
+    var(--color-primary) 50%,
     transparent 100%
   );
   opacity: 0;
@@ -75,7 +122,7 @@
 }
 
 .resize-handle:hover {
-  background-color: #646cff;
+  background-color: var(--color-primary);
 }
 
 .resize-handle-vertical:hover::after {
@@ -83,7 +130,7 @@
 }
 
 .resize-handle[data-resize-handle-active] {
-  background-color: #646cff;
+  background-color: var(--color-primary);
 }
 
 .resize-handle-vertical[data-resize-handle-active]::after {
@@ -98,10 +145,10 @@
   transform: translate(-50%, -50%);
   width: 24px;
   height: 48px;
-  background: #2a2a2a;
+  background: var(--color-bg-light);
   border: 1px solid #444;
   border-radius: 4px;
-  color: #888;
+  color: var(--color-text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -116,10 +163,11 @@
 }
 
 .panel-collapse-btn:hover {
-  background: #646cff;
+  background: var(--color-primary);
   color: #fff;
-  border-color: #646cff;
+  border-color: var(--color-primary);
   transform: translate(-50%, -50%) scale(1.1);
+  box-shadow: 0 0 15px var(--color-primary-glow);
 }
 
 .panel-collapse-btn:active {

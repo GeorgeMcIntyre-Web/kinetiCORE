@@ -29,6 +29,8 @@ import { AssetInstanceManager } from './AssetInstanceManager';
 import { CollaborationManager } from './CollaborationManager';
 import { IProjectWorldLoader } from './IProjectWorldLoader';
 import { DIContainer } from '../core/DIContainer';
+import { WorldSaveManager } from '../scene/WorldSaveManager';
+// import { AutoSaveConfig } from '../scene/WorldSaveManager';
 
 /**
  * Main Project Manager implementation
@@ -39,14 +41,29 @@ export class ProjectManager implements IProjectManager {
   private assetInstanceManager: AssetInstanceManager;
   private collaborationManager: CollaborationManager;
   private diContainer: DIContainer;
+  private worldSaveManager: WorldSaveManager;
   private currentProject: Project | null = null;
   private currentUserId: string = 'current_user'; // TODO: Get from auth system
+  
+  // Autosave configuration
+  private autoSaveEnabled: boolean = true;
+  private autoSaveInterval: number = 120; // 2 minutes (in seconds)
+  private autoSaveTimer: number | null = null;
+  
+  // Crash recovery
+  private crashRecoveryEnabled: boolean = true;
+  private lastSuccessfulSave: Date | null = null;
+  private isShuttingDown: boolean = false;
 
   private constructor() {
     this.projectDatabase = ProjectDatabase.getInstance();
     this.assetInstanceManager = AssetInstanceManager.getInstance();
     this.collaborationManager = CollaborationManager.getInstance();
     this.diContainer = DIContainer.getInstance();
+    this.worldSaveManager = WorldSaveManager.getInstance();
+    
+    // Set up crash recovery listeners
+    this.setupCrashRecovery();
   }
 
   /**
@@ -73,6 +90,10 @@ export class ProjectManager implements IProjectManager {
     await this.projectDatabase.initialize();
     await this.assetInstanceManager.initialize();
     await this.collaborationManager.initialize();
+    
+    // Check for crash recovery
+    await this.checkForCrashRecovery();
+    
     console.log('[ProjectManager] Initialized successfully');
   }
 
@@ -266,10 +287,19 @@ export class ProjectManager implements IProjectManager {
       throw new Error('Project not found');
     }
     
+    // Stop autosave for previous project
+    this.stopAutoSave();
+    
     this.currentProject = project;
+    this.worldSaveManager.setCurrentProjectId(projectId);
     
     // Join collaboration session
     await this.collaborationManager.joinSession(projectId, this.currentUserId);
+    
+    // Start autosave for new project
+    if (this.autoSaveEnabled) {
+      this.startAutoSave();
+    }
     
     console.log(`[ProjectManager] Set current project: ${project.name}`);
   }
@@ -586,13 +616,287 @@ export class ProjectManager implements IProjectManager {
    * Cleanup resources
    */
   public async cleanup(): Promise<void> {
+    this.isShuttingDown = true;
+    
+    // Stop autosave
+    this.stopAutoSave();
+    
+    // Save current project one last time
     if (this.currentProject) {
+      try {
+        await this.saveCurrentProject('Autosave before close');
+      } catch (error) {
+        console.error('[ProjectManager] Failed to save before cleanup:', error);
+      }
+      
       await this.leaveProject(this.currentProject.id, this.currentUserId);
     }
+    
+    // Clear recovery state
+    this.clearRecoveryState();
     
     await this.collaborationManager.cleanup();
     this.projectDatabase.close();
     
     console.log('[ProjectManager] Cleaned up resources');
+  }
+  
+  // ============================================================================
+  // Autosave Implementation
+  // ============================================================================
+  
+  /**
+   * Start autosave for current project
+   */
+  public startAutoSave(): void {
+    if (!this.currentProject) {
+      console.warn('[ProjectManager] Cannot start autosave: No current project');
+      return;
+    }
+    
+    // Stop existing timer if any
+    this.stopAutoSave();
+
+    // const _config: AutoSaveConfig = {
+    //   enabled: true,
+    //   frequency: this.autoSaveInterval,
+    //   pauseDuringPlayback: true,
+    //   saveOnlyIfChanged: true,
+    // };
+    
+    // Set up periodic autosave
+    this.autoSaveTimer = window.setInterval(async () => {
+      if (this.currentProject && !this.isShuttingDown) {
+        try {
+          await this.saveCurrentProject('Autosave');
+          this.lastSuccessfulSave = new Date();
+          this.updateRecoveryState();
+        } catch (error) {
+          console.error('[ProjectManager] Autosave failed:', error);
+        }
+      }
+    }, this.autoSaveInterval * 1000);
+    
+    console.log(`[ProjectManager] Autosave started: every ${this.autoSaveInterval} seconds`);
+  }
+  
+  /**
+   * Stop autosave
+   */
+  public stopAutoSave(): void {
+    if (this.autoSaveTimer) {
+      clearInterval(this.autoSaveTimer);
+      this.autoSaveTimer = null;
+      console.log('[ProjectManager] Autosave stopped');
+    }
+  }
+  
+  /**
+   * Save current project (internal helper)
+   */
+  private async saveCurrentProject(saveName: string): Promise<void> {
+    if (!this.currentProject) {
+      throw new Error('No current project to save');
+    }
+    
+    const config: SaveProjectConfig = {
+      name: saveName,
+      description: `${saveName} at ${new Date().toISOString()}`,
+      isAutoSave: saveName === 'Autosave',
+      includeComments: false,
+      includeAnnotations: false,
+    };
+    
+    await this.saveProject(this.currentProject.id, config);
+  }
+  
+  /**
+   * Configure autosave settings
+   */
+  public configureAutoSave(enabled: boolean, intervalSeconds?: number): void {
+    this.autoSaveEnabled = enabled;
+    
+    if (intervalSeconds) {
+      this.autoSaveInterval = Math.max(60, intervalSeconds); // Minimum 1 minute
+    }
+    
+    if (enabled && this.currentProject) {
+      this.startAutoSave();
+    } else {
+      this.stopAutoSave();
+    }
+    
+    console.log(`[ProjectManager] Autosave configured: ${enabled ? 'enabled' : 'disabled'}, interval: ${this.autoSaveInterval}s`);
+  }
+  
+  /**
+   * Get autosave status
+   */
+  public getAutoSaveStatus(): { enabled: boolean; interval: number; lastSave: Date | null } {
+    return {
+      enabled: this.autoSaveEnabled && this.autoSaveTimer !== null,
+      interval: this.autoSaveInterval,
+      lastSave: this.lastSuccessfulSave,
+    };
+  }
+  
+  // ============================================================================
+  // Crash Recovery Implementation
+  // ============================================================================
+  
+  /**
+   * Set up crash recovery listeners
+   */
+  private setupCrashRecovery(): void {
+    if (!this.crashRecoveryEnabled) {
+      return;
+    }
+    
+    // Listen for page unload (normal close)
+    window.addEventListener('beforeunload', (e) => {
+      if (this.currentProject && !this.isShuttingDown) {
+        // Save recovery state
+        this.updateRecoveryState();
+        
+        // Optionally warn user about unsaved changes
+        const timeSinceLastSave = this.lastSuccessfulSave 
+          ? Date.now() - this.lastSuccessfulSave.getTime()
+          : Infinity;
+        
+        // If more than 5 minutes since last save, warn user
+        if (timeSinceLastSave > 5 * 60 * 1000) {
+          e.preventDefault();
+          e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+          return e.returnValue;
+        }
+      }
+    });
+    
+    // Listen for visibility change (tab switching)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && this.currentProject) {
+        // Save recovery state when tab is hidden
+        this.updateRecoveryState();
+      }
+    });
+    
+    console.log('[ProjectManager] Crash recovery listeners set up');
+  }
+  
+  /**
+   * Update recovery state in localStorage
+   */
+  private updateRecoveryState(): void {
+    if (!this.currentProject || !this.crashRecoveryEnabled) {
+      return;
+    }
+    
+    try {
+      const recoveryState = {
+        projectId: this.currentProject.id,
+        projectName: this.currentProject.name,
+        lastSave: this.lastSuccessfulSave?.toISOString() || null,
+        timestamp: new Date().toISOString(),
+        userId: this.currentUserId,
+      };
+      
+      localStorage.setItem('kineticore_recovery_state', JSON.stringify(recoveryState));
+    } catch (error) {
+      console.error('[ProjectManager] Failed to update recovery state:', error);
+    }
+  }
+  
+  /**
+   * Check for crash recovery on initialization
+   */
+  private async checkForCrashRecovery(): Promise<void> {
+    if (!this.crashRecoveryEnabled) {
+      return;
+    }
+    
+    try {
+      const recoveryStateStr = localStorage.getItem('kineticore_recovery_state');
+      
+      if (!recoveryStateStr) {
+        return; // No recovery state found
+      }
+      
+      const recoveryState = JSON.parse(recoveryStateStr);
+      const recoveryTimestamp = new Date(recoveryState.timestamp);
+      const timeSinceRecovery = Date.now() - recoveryTimestamp.getTime();
+      
+      // If recovery state is less than 1 hour old, offer recovery
+      if (timeSinceRecovery < 60 * 60 * 1000) {
+        console.log('[ProjectManager] Crash recovery available:', recoveryState);
+        
+        // Emit event for UI to handle recovery prompt
+        window.dispatchEvent(new CustomEvent('kineticore:crash-recovery-available', {
+          detail: recoveryState,
+        }));
+      } else {
+        // Recovery state too old, clear it
+        this.clearRecoveryState();
+      }
+    } catch (error) {
+      console.error('[ProjectManager] Failed to check crash recovery:', error);
+      this.clearRecoveryState();
+    }
+  }
+  
+  /**
+   * Recover from crash (called by UI after user confirms)
+   */
+  public async recoverFromCrash(projectId: string): Promise<void> {
+    try {
+      console.log(`[ProjectManager] Recovering project: ${projectId}`);
+      
+      // Load the project
+      await this.setCurrentProject(projectId);
+      
+      // Get latest save
+      const saves = await this.listProjectSaves(projectId);
+      if (saves.length > 0) {
+        const latestSave = saves[0]; // Already sorted by version (newest first)
+        console.log(`[ProjectManager] Restoring from latest save: ${latestSave.name}`);
+        
+        // Load the latest save
+        await this.loadProjectSave(projectId, latestSave.id);
+      }
+      
+      // Clear recovery state after successful recovery
+      this.clearRecoveryState();
+      
+      console.log('[ProjectManager] Project recovered successfully');
+    } catch (error) {
+      console.error('[ProjectManager] Failed to recover project:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Dismiss crash recovery
+   */
+  public dismissCrashRecovery(): void {
+    this.clearRecoveryState();
+    console.log('[ProjectManager] Crash recovery dismissed');
+  }
+  
+  /**
+   * Clear recovery state from localStorage
+   */
+  private clearRecoveryState(): void {
+    try {
+      localStorage.removeItem('kineticore_recovery_state');
+    } catch (error) {
+      console.error('[ProjectManager] Failed to clear recovery state:', error);
+    }
+  }
+  
+  /**
+   * Configure crash recovery
+   */
+  public configureCrashRecovery(enabled: boolean): void {
+    this.crashRecoveryEnabled = enabled;
+    console.log(`[ProjectManager] Crash recovery ${enabled ? 'enabled' : 'disabled'}`);
   }
 }

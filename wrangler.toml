@@ -1,4 +1,16 @@
 # Cloudflare Pages configuration for kinetiCORE
+# Full-stack deployment with Supabase auth, asset optimization, and custom domain
 name = "kineticore"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "dist"
+
+# Note: account_id and build config are managed via Cloudflare dashboard or CLI
+# Environment variables are set in Cloudflare Pages dashboard:
+# - VITE_SUPABASE_URL
+# - VITE_SUPABASE_ANON_KEY
+# - VITE_CLOUDFLARE_WORKER_URL
+# - NODE_ENV=production
+
+# Custom domain configuration (configured in Cloudflare Pages dashboard)
+# Primary domain: kinetic-core.com
+# Alternative: www.kinetic-core.com (redirects to kinetic-core.com)

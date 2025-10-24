@@ -54,7 +54,8 @@ export const SceneCanvas: React.FC = () => {
   const gridSize = useEditorStore((state) => state.gridSize);
   const snapDistance = useEditorStore((state) => state.snapDistance);
   const gizmoRef = useRef<TransformGizmo | null>(null);
-  const highlightLayerRef = useRef<BABYLON.HighlightLayer | null>(null);
+  // const highlightLayerRef = useRef<BABYLON.HighlightLayer | null>(null); // Replaced with direct material color changes
+  const originalMaterialsRef = useRef<Map<string, BABYLON.Material | null>>(new Map());
 
 
   useEffect(() => {
@@ -70,9 +71,8 @@ export const SceneCanvas: React.FC = () => {
       const camera = sceneManager.getCamera();
       const scene = sceneManager.getScene();
 
-      // Expose SceneManager and editor store to window for debugging and console access
+      // Expose SceneManager to window for easy floor changes via console
       (window as any).sceneManager = sceneManager;
-      (window as any).useEditorStore = useEditorStore;
       console.log('💡 Tip: Change floor via console with: sceneManager.setFloorType("epoxy-gray")');
 
       if (camera) {
@@ -106,13 +106,13 @@ export const SceneCanvas: React.FC = () => {
         // Create transform gizmo
         gizmoRef.current = new TransformGizmo(scene);
 
-        // Create highlight layer for visual selection feedback
-      highlightLayerRef.current = new BABYLON.HighlightLayer('highlight', scene);
-      highlightLayerRef.current.innerGlow = true;  // Enable inner glow for more detail
-      highlightLayerRef.current.outerGlow = true;  // Keep outer glow
+        // Note: HighlightLayer disabled - using direct material color changes instead
+        // highlightLayerRef.current = new BABYLON.HighlightLayer('highlight', scene);
+        // highlightLayerRef.current.innerGlow = false;
+        // highlightLayerRef.current.outerGlow = true;
 
         // Double-click detection
-        let lastClickTime = Date.now() - 1000; // Initialize to 1 second ago to prevent false double-clicks
+        let lastClickTime = 0;
         const DOUBLE_CLICK_THRESHOLD = 300; // ms
 
         // Mouse wheel zoom is handled by Babylon.js native controls
@@ -179,11 +179,8 @@ export const SceneCanvas: React.FC = () => {
 
               // Check if mesh is selectable (using centralized filtering from SceneUtils.ts)
               if (mesh instanceof BABYLON.Mesh && isSelectableObject(mesh)) {
-                // Get the entity for this mesh
-                const entity = registry.getByMesh(mesh);
-                
-                // Check if this mesh belongs to a device entity (either directly or as a child)
-                const deviceEntity = entity ? entity.getRootDevice() : null;
+                // Check if this mesh belongs to a device entity
+                const deviceEntity = registry.getDeviceByMesh(mesh);
 
                 // Alt+Click to select individual link instead of device
                 const selectIndividualLink = evt.altKey;
@@ -197,25 +194,10 @@ export const SceneCanvas: React.FC = () => {
                   // Regular click - replace selection
                   clearSelection();
 
-                  // If part of a device and not Alt+Click, select the device root node in tree
+                  // If part of a device and not Alt+Click, select the device root mesh
                   if (deviceEntity && !selectIndividualLink) {
-                    // Find the device root mesh and select its tree node
-                    const deviceRootMesh = deviceEntity.getMesh();
-                    if (deviceRootMesh) {
-                      const tree = SceneTreeManager.getInstance();
-                      const deviceNode = tree.getNodeByBabylonMeshId(deviceRootMesh.uniqueId.toString());
-                      if (deviceNode) {
-                        // Select the device root node in the tree
-                        const { selectNode } = useEditorStore.getState();
-                        selectNode(deviceNode.id);
-                      } else {
-                        // Fallback: select the clicked mesh
-                        selectMesh(mesh);
-                      }
-                    } else {
-                      // Fallback: select the clicked mesh
-                      selectMesh(mesh);
-                    }
+                    const deviceMesh = deviceEntity.getMesh();
+                    selectMesh(deviceMesh);
                   } else {
                     // Select the individual mesh
                     selectMesh(mesh);
@@ -277,27 +259,15 @@ export const SceneCanvas: React.FC = () => {
       const selectedMesh = selectedMeshes[0];
       const entity = registry.getByMesh(selectedMesh);
 
-      // Check if this mesh belongs to a device entity
-      const deviceEntity = entity ? entity.getRootDevice() : null;
-
-      console.log('[SceneCanvas] Selection update:', {
-        meshName: selectedMesh.name,
-        hasEntity: !!entity,
-        entityId: entity?.getId(),
-        isDevice: entity?.getIsDevice(),
-        hasDeviceEntity: !!deviceEntity,
-        deviceEntityId: deviceEntity?.getId()
-      });
-
-      // If this is part of a device entity (robot), don't show transform gizmo
-      // The TCP gizmo in the FloatingKinematicsPanel will handle robot movement
-      if (deviceEntity) {
-        console.log('[SceneCanvas] Hiding gizmo - device entity detected');
-        // Hide transform gizmo for robots/devices
-        gizmoRef.current.attachToMesh(null);
+      // If this is a device entity, attach gizmo to the root transform node
+      if (entity && entity.getIsDevice()) {
+        const rootNode = entity.getRootTransformNode();
+        if (rootNode) {
+          gizmoRef.current.attachToNode(rootNode);
+          gizmoRef.current.setMode('combined');
+        }
       } else {
-        console.log('[SceneCanvas] Showing gizmo - regular mesh');
-        // Regular mesh - attach gizmo directly
+        // Regular mesh - attach directly
         gizmoRef.current.attachToMesh(selectedMesh);
         gizmoRef.current.setMode('combined');
       }
@@ -364,155 +334,56 @@ export const SceneCanvas: React.FC = () => {
     snapDistance,
   ]);
 
-  // Update highlight layer for multi-selection visual feedback
+  // Update mesh colors for selection visual feedback
   useEffect(() => {
-    if (!highlightLayerRef.current) return;
-
-    const highlightLayer = highlightLayerRef.current;
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     const registry = EntityRegistry.getInstance();
     if (!scene) return;
 
-    // Clear all highlights
-    highlightLayer.removeAllMeshes();
-    
-    // Disable edge rendering on all meshes first
-    scene.meshes.forEach(mesh => {
-      if (mesh.edgesRenderer) {
-        mesh.disableEdgesRendering();
+    const originalMaterials = originalMaterialsRef.current;
+
+    // Helper function to restore original material
+    const restoreMaterial = (mesh: BABYLON.AbstractMesh) => {
+      const meshId = mesh.uniqueId.toString();
+      if (originalMaterials.has(meshId)) {
+        mesh.material = originalMaterials.get(meshId) || null;
+        originalMaterials.delete(meshId);
       }
-    });
+    };
 
-    // Collect meshes to highlight (from selectedMeshes OR selectedNodeIds)
-    const meshesToHighlight: BABYLON.Mesh[] = [];
+    // Helper function to apply vivid highlight color
+    const applyHighlightColor = (mesh: BABYLON.AbstractMesh, color: BABYLON.Color3) => {
+      const meshId = mesh.uniqueId.toString();
 
-    // Add meshes from selectedMeshes
-    selectedMeshes.forEach(mesh => meshesToHighlight.push(mesh));
+      // Store original material if not already stored
+      if (!originalMaterials.has(meshId)) {
+        originalMaterials.set(meshId, mesh.material);
+      }
 
-    // Add meshes from selectedNodeIds (for node-based selection like device roots)
-    if (selectedNodeIds.length > 0) {
-      const tree = SceneTreeManager.getInstance();
-      selectedNodeIds.forEach(nodeId => {
-        const node = tree.getNode(nodeId);
+      // Create temporary highlight material
+      const highlightMaterial = new BABYLON.StandardMaterial(`highlight_${meshId}`, scene);
+      highlightMaterial.diffuseColor = color;
+      highlightMaterial.emissiveColor = color.scale(0.3); // Add some glow
+      highlightMaterial.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+      mesh.material = highlightMaterial;
+    };
 
-        // Handle collection nodes (device roots are redirected to parent collections)
-        if (node && node.type === 'collection') {
-          // Find the device root mesh child
-          const children = tree.getChildren(nodeId);
-          const deviceRootChild = children?.find(child =>
-            child.type === 'mesh' && child.name.endsWith('_device_root')
-          );
+    // Collect all currently highlighted meshes
+    const currentlyHighlightedMeshes = new Set<string>();
 
-          if (deviceRootChild && deviceRootChild.babylonMeshId) {
-            const deviceMesh = scene.getMeshByUniqueId(parseInt(deviceRootChild.babylonMeshId));
-            if (deviceMesh instanceof BABYLON.Mesh) {
-              const entity = registry.getByMesh(deviceMesh);
-              if (entity && entity.getIsDevice()) {
-                const linkEntities = entity.getChildren();
-                linkEntities.forEach(linkEntity => {
-                  const linkMesh = linkEntity.getMesh();
+    // Apply highlights to selected meshes
+    if (selectedMeshes.length > 0) {
+      selectedMeshes.forEach((mesh, index) => {
+        const entity = registry.getByMesh(mesh);
 
-                  // Helper to collect visible meshes up to 2 levels deep (for MJCF geom nesting)
-                  const collectMeshes = (node: BABYLON.Node | null, depth: number = 0): void => {
-                    if (!node || depth > 2) return; // Max 2 levels to avoid cycles
-
-                    if (node instanceof BABYLON.Mesh && node.isVisible &&
-                        !node.name.includes('_dummy') &&
-                        !meshesToHighlight.includes(node)) {
-                      meshesToHighlight.push(node);
-                    }
-
-                    // Recurse into children (for MJCF: body → geom → mesh)
-                    if (node.getChildren) {
-                      node.getChildren().forEach(child => collectMeshes(child, depth + 1));
-                    }
-                  };
-
-                  // Collect linkMesh and all nested children (handles both URDF and MJCF)
-                  collectMeshes(linkMesh, 0);
-                });
-              }
-            }
-          }
-        }
-        // Handle mesh nodes
-        else if (node && node.babylonMeshId) {
-          const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
-          if (mesh instanceof BABYLON.Mesh) {
-            const entity = registry.getByMesh(mesh);
-            if (entity && entity.getIsDevice()) {
-              const linkEntities = entity.getChildren();
-              linkEntities.forEach(linkEntity => {
-                const linkMesh = linkEntity.getMesh();
-
-                // Helper to collect visible meshes up to 2 levels deep (for MJCF geom nesting)
-                const collectMeshes = (node: BABYLON.Node | null, depth: number = 0): void => {
-                  if (!node || depth > 2) return; // Max 2 levels to avoid cycles
-
-                  if (node instanceof BABYLON.Mesh && node.isVisible &&
-                      !node.name.includes('_dummy') &&
-                      !meshesToHighlight.includes(node)) {
-                    meshesToHighlight.push(node);
-                  }
-
-                  // Recurse into children (for MJCF: body → geom → mesh)
-                  if (node.getChildren) {
-                    node.getChildren().forEach(child => collectMeshes(child, depth + 1));
-                  }
-                };
-
-                // Collect linkMesh and all nested children (handles both URDF and MJCF)
-                collectMeshes(linkMesh, 0);
-              });
-            } else if (!meshesToHighlight.includes(mesh)) {
-              meshesToHighlight.push(mesh);
-            }
-          }
-        }
-      });
-    }
-
-    // Highlight collected meshes
-    // Note: meshesToHighlight already contains ALL meshes that should be highlighted
-    // (including all children for device entities), so we just highlight them directly
-    if (meshesToHighlight.length > 0) {
-      // Brighter, more vibrant green that works well with both light and dark materials
-      // Previous: (0.15, 0.4, 0.25) was too dark for grey MJCF materials
-      const color = new BABYLON.Color3(0.2, 0.8, 0.3); // Bright green
-
-      // Performance: Skip edge rendering for large selections (>15 meshes)
-      // Edge rendering is expensive and causes 2+ second lag on MJCF models
-      const enableEdges = meshesToHighlight.length <= 15;
-
-      meshesToHighlight.forEach((mesh) => {
-        if (mesh.isVisible && !mesh.name.includes('_dummy')) {
-          highlightLayer.addMesh(mesh, color);
-
-          // Add edge rendering for visual detail (only for smaller selections)
-          if (enableEdges) {
-            mesh.enableEdgesRendering();
-            mesh.edgesWidth = 2.0;
-            mesh.edgesColor = new BABYLON.Color4(0.2, 0.8, 0.3, 1.0); // Bright green edges
-          }
-        }
-      });
-    }
-
-    // LEGACY CODE: Handle selectedMeshes that weren't already in meshesToHighlight
-    // This handles old selection paths that bypass the new node-based selection
-    selectedMeshes.forEach((mesh, index) => {
-      if (meshesToHighlight.includes(mesh)) return; // Skip if already highlighted above
-
-      const entity = registry.getByMesh(mesh);
-
-      // If this is a device entity, highlight all child link entity meshes
-      if (entity && typeof entity.getIsDevice === 'function' && entity.getIsDevice()) {
+        // If this is a device entity, highlight all child link entity meshes
+        if (entity && typeof entity.getIsDevice === 'function' && entity.getIsDevice()) {
           const linkEntities = typeof entity.getChildren === 'function' ? entity.getChildren() : [];
 
           const color = index === 0
-            ? new BABYLON.Color3(0.2, 0.8, 0.3) // Bright green for primary selection
-            : new BABYLON.Color3(0.8, 0.5, 0.0);    // Bright orange for additional selections
+            ? new BABYLON.Color3(0.0, 1.0, 0.8) // Bright cyan for primary selection
+            : new BABYLON.Color3(1.0, 0.0, 0.8); // Bright magenta for additional selections
 
           linkEntities.forEach(linkEntity => {
             if (typeof linkEntity.getMesh === 'function') {
@@ -520,62 +391,39 @@ export const SceneCanvas: React.FC = () => {
               // Skip invisible meshes and dummy meshes
               if (linkMesh && linkMesh.isVisible &&
                   !linkMesh.name.includes('_dummy')) {
-                highlightLayer.addMesh(linkMesh, color);
-
-                // Add edge rendering for more polygon detail
-                if (index === 0) { // Only for primary selection
-                  linkMesh.enableEdgesRendering();
-                  linkMesh.edgesWidth = 2.0;
-                  linkMesh.edgesColor = new BABYLON.Color4(0.2, 0.8, 0.3, 1.0); // Bright green edges
-                }
+                applyHighlightColor(linkMesh, color);
+                currentlyHighlightedMeshes.add(linkMesh.uniqueId.toString());
               }
             }
           });
-        } else {
-          // Check if this mesh belongs to a device (for individual mesh selection)
-          const deviceEntity = entity ? entity.getRootDevice() : null;
-
-          if (deviceEntity) {
-            // This mesh belongs to a device - highlight all visible parts of the device
-            const linkEntities = typeof deviceEntity.getChildren === 'function' ? deviceEntity.getChildren() : [];
-
-            const color = index === 0
-              ? new BABYLON.Color3(0.2, 0.8, 0.3) // Bright green for primary selection
-              : new BABYLON.Color3(0.8, 0.5, 0.0);    // Bright orange for additional selections
-
-            linkEntities.forEach(linkEntity => {
-              if (typeof linkEntity.getMesh === 'function') {
-                const linkMesh = linkEntity.getMesh();
-                // Skip invisible meshes and dummy meshes
-                if (linkMesh && linkMesh.isVisible &&
-                    !linkMesh.name.includes('_dummy')) {
-                  highlightLayer.addMesh(linkMesh, color);
-
-                  // Add edge rendering for more polygon detail
-                  if (index === 0) { // Only for primary selection
-                    linkMesh.enableEdgesRendering();
-                    linkMesh.edgesWidth = 2.0;
-                    linkMesh.edgesColor = new BABYLON.Color4(0.2, 0.8, 0.3, 1.0); // Bright green edges
-                  }
-                }
-              }
-            });
-          } else if (mesh && mesh.isVisible) {
-            // Regular mesh - highlight directly
-            const color = index === 0
-              ? new BABYLON.Color3(0.2, 0.8, 0.3)
-              : new BABYLON.Color3(0.8, 0.5, 0.0);
-            highlightLayer.addMesh(mesh, color);
-
-            // Add edge rendering for primary selection
-            if (index === 0) {
-              mesh.enableEdgesRendering();
-              mesh.edgesWidth = 2.0;
-              mesh.edgesColor = new BABYLON.Color4(0.2, 0.8, 0.3, 1.0); // Bright green edges
-            }
-          }
+        } else if (mesh && mesh.isVisible) {
+          // Regular mesh - highlight directly
+          const color = index === 0
+            ? new BABYLON.Color3(0.0, 1.0, 0.8) // Bright cyan for primary selection
+            : new BABYLON.Color3(1.0, 0.0, 0.8); // Bright magenta for additional selections
+          applyHighlightColor(mesh, color);
+          currentlyHighlightedMeshes.add(mesh.uniqueId.toString());
         }
       });
+    }
+
+    // Restore materials for meshes that are no longer selected
+    scene.meshes.forEach(mesh => {
+      const meshId = mesh.uniqueId.toString();
+      if (originalMaterials.has(meshId) && !currentlyHighlightedMeshes.has(meshId)) {
+        restoreMaterial(mesh);
+      }
+    });
+
+    // Cleanup function to restore all materials when component unmounts
+    return () => {
+      scene.meshes.forEach(mesh => {
+        const meshId = mesh.uniqueId.toString();
+        if (originalMaterials.has(meshId)) {
+          restoreMaterial(mesh);
+        }
+      });
+    };
   }, [selectedNodeIds, selectedMeshes]);
 
   // Position canvas to overlay the active viewport div

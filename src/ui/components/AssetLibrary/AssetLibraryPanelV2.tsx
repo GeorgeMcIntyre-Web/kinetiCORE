@@ -16,7 +16,7 @@ export function AssetLibraryPanelV2() {
   const [isPinned, setIsPinned] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
-  const [authenticatedUser, setAuthenticatedUser] = useState<any>(null);
+  const [_authenticatedUser, setAuthenticatedUser] = useState<any>(null);
 
   if (!isVisible) {
     return null;

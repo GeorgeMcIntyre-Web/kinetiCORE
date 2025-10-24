@@ -1,10 +1,15 @@
 /*
+  # Security headers
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
   Cross-Origin-Embedder-Policy: require-corp
   Cross-Origin-Opener-Policy: same-origin
+
+  # Content Security Policy for enhanced security
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.babylonjs.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://*.workers.dev wss://*.supabase.co; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'
 
 # Allow WASM files
 /*.wasm
@@ -38,3 +43,62 @@
 # Allow MJCF files
 /*.mjcf
   Cross-Origin-Resource-Policy: cross-origin
+
+# ============================================================================
+# CACHING STRATEGY FOR PERFORMANCE
+# ============================================================================
+
+# Root HTML - Cache with revalidation
+/
+  Cache-Control: public, max-age=0, must-revalidate, stale-while-revalidate=86400
+
+# JavaScript bundles - Long-term cache (filenames include hash)
+/assets/js/*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+# CSS files - Long-term cache (filenames include hash)
+/assets/*.css
+  Cache-Control: public, max-age=31536000, immutable
+
+# Images - Long-term cache
+/assets/images/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Fonts - Long-term cache with CORS
+/assets/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+# WASM files - Long-term cache
+/assets/wasm/*.wasm
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: application/wasm
+
+# All other assets - Long-term cache
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# 3D Model files - Medium-term cache (can be large)
+/*.glb
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+
+/*.gltf
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+
+/*.jt
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+
+/*.usd
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+
+/*.urdf
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+
+# Favicon - Medium-term cache
+/favicon.ico
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+# Manifest - Medium-term cache
+/manifest.json
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+  Content-Type: application/manifest+json

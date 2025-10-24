@@ -34,7 +34,7 @@ export class UnifiedGizmoManager {
   private ikGizmoManager: IKTargetGizmoManager;
   private activeTargets: Map<string, UnifiedGizmoConfig> = new Map();
   private activePanel: ActivePanel = 'none';
-  private scene: BABYLON.Scene | null = null;
+  // private scene: BABYLON.Scene | null = null; // Removed unused variable
 
   private constructor() {
     this.ikGizmoManager = IKTargetGizmoManager.getInstance();
@@ -51,7 +51,6 @@ export class UnifiedGizmoManager {
    * Initialize with scene
    */
   initialize(scene: BABYLON.Scene): void {
-    this.scene = scene;
     this.ikGizmoManager.initialize(scene);
     console.log('[UnifiedGizmo] Initialized with scene');
   }

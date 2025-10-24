@@ -1,0 +1,60 @@
+{
+  "ci": {
+    "collect": {
+      "url": ["http://localhost:4173"],
+      "numberOfRuns": 3,
+      "settings": {
+        "preset": "desktop",
+        "throttling": {
+          "rttMs": 40,
+          "throughputKbps": 10240,
+          "cpuSlowdownMultiplier": 1
+        },
+        "screenEmulation": {
+          "mobile": false,
+          "width": 1920,
+          "height": 1080,
+          "deviceScaleFactor": 1
+        }
+      }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["error", {"minScore": 0.9}],
+        "categories:accessibility": ["warn", {"minScore": 0.9}],
+        "categories:best-practices": ["warn", {"minScore": 0.9}],
+        "categories:seo": ["warn", {"minScore": 0.8}],
+        
+        "first-contentful-paint": ["error", {"maxNumericValue": 2000}],
+        "largest-contentful-paint": ["error", {"maxNumericValue": 3000}],
+        "cumulative-layout-shift": ["error", {"maxNumericValue": 0.1}],
+        "total-blocking-time": ["error", {"maxNumericValue": 300}],
+        "speed-index": ["warn", {"maxNumericValue": 4000}],
+        
+        "interactive": ["error", {"maxNumericValue": 3000}],
+        "max-potential-fid": ["warn", {"maxNumericValue": 130}],
+        
+        "mainthread-work-breakdown": ["warn", {"maxNumericValue": 4000}],
+        "bootup-time": ["warn", {"maxNumericValue": 3000}],
+        "network-requests": ["warn", {"maxNumericValue": 50}],
+        "total-byte-weight": ["warn", {"maxNumericValue": 2000000}],
+        
+        "uses-long-cache-ttl": "warn",
+        "uses-optimized-images": "warn",
+        "uses-text-compression": "warn",
+        "uses-responsive-images": "warn",
+        "efficient-animated-content": "warn",
+        
+        "unused-javascript": ["warn", {"maxNumericValue": 200000}],
+        "unused-css-rules": ["warn", {"maxNumericValue": 50000}],
+        
+        "dom-size": ["warn", {"maxNumericValue": 1500}],
+        "uses-passive-event-listeners": "warn",
+        "no-document-write": "error"
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  }
+}

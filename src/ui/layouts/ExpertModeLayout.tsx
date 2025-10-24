@@ -22,6 +22,7 @@ import {
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { DockableLayoutWrapper } from './DockableLayoutWrapper';
+import { SelectionIndicator } from '../components/SelectionIndicator';
 import './ExpertModeLayout.css';
 
 export const ExpertModeLayout: React.FC = () => {
@@ -29,6 +30,7 @@ export const ExpertModeLayout: React.FC = () => {
   const createObject = useEditorStore((state) => state.createObject);
   const importModel = useEditorStore((state) => state.importModel);
   const saveWorld = useEditorStore((state) => state.saveWorld);
+  const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
   const savePanelLayout = useEditorStore((state) => state.savePanelLayout);
   const loadPanelLayout = useEditorStore((state) => state.loadPanelLayout);
 
@@ -78,6 +80,9 @@ export const ExpertModeLayout: React.FC = () => {
 
   return (
     <div className="expert-layout">
+      {/* Selection Indicator - Always visible */}
+      <SelectionIndicator selectedNodeIds={selectedNodeIds} />
+
       {/* Header */}
       <header className="expert-header">
         <div className="header-left">

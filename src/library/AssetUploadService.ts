@@ -27,7 +27,7 @@ export interface UploadResult {
 export class AssetUploadService {
   private static instance: AssetUploadService;
   private workerUrl: string;
-  private supabase: ReturnType<typeof createClient>;
+  private supabase: any;
 
   private constructor() {
     // Use your Cloudflare Worker URL
@@ -97,11 +97,11 @@ export class AssetUploadService {
       // 6. Save metadata to Supabase
       const asset = await this.saveMetadata({
         ...metadata,
-        file_path: filePath,
-        file_url: fileUrl,
-        thumbnail_url: thumbnailUrl,
-        mesh_files: meshUrls,
-        file_size: file.size,
+        filePath: filePath,
+        fileUrl: fileUrl,
+        thumbnailUrl: thumbnailUrl,
+        meshFiles: meshUrls,
+        fileSize: file.size,
         checksum,
       });
 
@@ -271,7 +271,7 @@ export class AssetUploadService {
    */
   private async extractAndUploadMeshes(
     file: File,
-    basePath: string
+    _basePath: string
   ): Promise<string[]> {
     // Read URDF/MJCF file
     const text = await file.text();
@@ -338,20 +338,20 @@ export class AssetUploadService {
    */
   private async saveMetadata(data: Partial<LibraryAsset>): Promise<LibraryAsset> {
     const { data: asset, error } = await this.supabase
-      .from('library_assets')
+      .from('assets')
       .insert({
         name: data.name,
         manufacturer: data.manufacturer,
-        model_number: data.model_number,
+        modelNumber: data.modelNumber,
         version: data.version,
         domain: data.domain,
-        asset_class: data.assetClass,
-        asset_type: data.assetType,
-        loader_type: data.loaderType,
-        file_path: data.file_path,
-        file_url: data.file_url,
-        thumbnail_url: data.thumbnail_url,
-        file_size: data.file_size,
+        assetClass: data.assetClass,
+        assetType: data.assetType,
+        loaderType: data.loaderType,
+        filePath: data.filePath,
+        fileUrl: data.fileUrl,
+        thumbnailUrl: data.thumbnailUrl,
+        fileSize: data.fileSize,
         checksum: data.checksum,
         metadata: data.metadata || {},
         tags: data.tags || [],
@@ -376,7 +376,7 @@ export class AssetUploadService {
     updates: Partial<LibraryAsset>
   ): Promise<LibraryAsset> {
     const { data: asset, error } = await this.supabase
-      .from('library_assets')
+      .from('assets')
       .update({
         ...updates,
         updated_at: new Date().toISOString(),
@@ -397,7 +397,7 @@ export class AssetUploadService {
    */
   async getAsset(assetId: string): Promise<LibraryAsset | null> {
     const { data: asset, error } = await this.supabase
-      .from('library_assets')
+      .from('assets')
       .select('*')
       .eq('id', assetId)
       .single();
@@ -418,7 +418,7 @@ export class AssetUploadService {
     assetClass?: string;
     search?: string;
   }): Promise<LibraryAsset[]> {
-    let query = this.supabase.from('library_assets').select('*');
+    let query = this.supabase.from('assets').select('*');
 
     if (filters?.domain) {
       query = query.eq('domain', filters.domain);
