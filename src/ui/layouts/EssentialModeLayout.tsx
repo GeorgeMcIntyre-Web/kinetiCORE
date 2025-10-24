@@ -650,8 +650,11 @@ export const EssentialModeLayout: React.FC = () => {
       {/* Transform Display - Bottom-right corner */}
       {transform && (
         <div
-          className="fixed bottom-1 right-1 z-40"
+          className="fixed"
           style={{
+            bottom: '12px',
+            right: '12px',
+            zIndex: 900,
             background: 'transparent',
             color: '#ffffff',
             textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.7)',

@@ -1,7 +1,7 @@
 .coordinate-frame {
   position: absolute !important;
-  bottom: 0px !important;
-  left: 0px !important;
+  bottom: 12px !important;
+  left: 12px !important;
   pointer-events: none;
   z-index: 1000;
   padding: 0px !important;
