@@ -11,8 +11,9 @@
   top: 10px !important; /* Top of viewport */
   left: 10px !important; /* Left edge of viewport */
 
-  display: flex;
-  align-items: center;
+  display: flex !important;
+  flex-direction: row !important; /* Ensure horizontal layout */
+  align-items: center !important;
   gap: 8px;
 
   background: transparent; /* Transparent background */
