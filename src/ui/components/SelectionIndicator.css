@@ -9,7 +9,7 @@
 .selection-indicator {
   position: absolute !important;
   bottom: 10px !important; /* Below the world frame axis compass */
-  left: 10px !important; /* Left edge of viewport */
+  left: 50px !important; /* Next to world frame compass */
 
   display: flex;
   align-items: center;
