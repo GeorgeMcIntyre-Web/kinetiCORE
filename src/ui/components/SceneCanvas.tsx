@@ -74,6 +74,9 @@ export const SceneCanvas: React.FC = () => {
       // Expose SceneManager to window for easy floor changes via console
       (window as any).sceneManager = sceneManager;
       console.log('💡 Tip: Change floor via console with: sceneManager.setFloorType("epoxy-gray")');
+      console.log('💡 Tip: Toggle background transparency with: sceneManager.setBackgroundTransparent(true/false)');
+      console.log('💡 Tip: Check transparency state with: sceneManager.isBackgroundTransparent()');
+      console.log('💡 Tip: Force transparent background with: sceneManager.forceTransparentBackground()');
 
       if (camera) {
         setCamera(camera);

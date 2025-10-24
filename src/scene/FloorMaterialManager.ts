@@ -84,10 +84,6 @@ export class FloorMaterialManager {
       this.gridOverlay = null;
     }
 
-    if (!visible) {
-      return ground; // Return ground without overlay
-    }
-
     // Get ground dimensions from the actual ground mesh
     const groundBounds = ground.getBoundingInfo();
     const groundSize = groundBounds.boundingBox.extendSize;
@@ -111,6 +107,9 @@ export class FloorMaterialManager {
     gridOverlay.position.y = 0.001; // Slightly above ground to avoid z-fighting
     gridOverlay.material = gridMaterial;
     gridOverlay.renderingGroupId = 1;
+    
+    // Set visibility based on parameter
+    gridOverlay.setEnabled(visible);
 
     this.gridOverlay = gridOverlay;
     return gridOverlay;

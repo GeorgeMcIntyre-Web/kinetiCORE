@@ -29,16 +29,20 @@
   console.log('\n1. MJCF MESH ANALYSIS');
   console.log('=====================');
   
-  // Find all MJCF-related meshes
+  // Find all meshes that could be robot parts (not just MJCF-named ones)
   const allMeshes = scene.meshes;
-  const mjcfMeshes = allMeshes.filter(mesh => 
-    mesh.name.includes('mjcf') || 
-    mesh.name.includes('body') ||
-    mesh.name.includes('geom')
+  const robotMeshes = allMeshes.filter(mesh => 
+    !mesh.name.includes('ground') && 
+    !mesh.name.includes('grid') && 
+    !mesh.name.includes('axis') &&
+    !mesh.name.includes('__') &&
+    !mesh.name.includes('_dummy') &&
+    mesh.isVisible &&
+    mesh.name !== 'mjcf_root'
   );
   
-  console.log(`Found ${mjcfMeshes.length} MJCF-related meshes:`);
-  mjcfMeshes.forEach((mesh, index) => {
+  console.log(`Found ${robotMeshes.length} potential robot meshes:`);
+  robotMeshes.forEach((mesh, index) => {
     const isSelectable = SceneUtils.isSelectableObject(mesh);
     const isInfrastructure = SceneUtils.isInfrastructureObject(mesh);
     console.log(`  ${index + 1}. ${mesh.name}`);
@@ -114,8 +118,8 @@
   console.log('\n4. SELECTION SIMULATION');
   console.log('========================');
   
-  // Find a visible, selectable MJCF mesh to test with
-  const testMesh = mjcfMeshes.find(mesh => 
+  // Find a visible, selectable robot mesh to test with
+  const testMesh = robotMeshes.find(mesh => 
     mesh.isVisible && 
     mesh.isPickable && 
     SceneUtils.isSelectableObject(mesh) &&
@@ -146,43 +150,56 @@
             console.log(`Node type: ${deviceNode.type}`);
             console.log(`Node name: ${deviceNode.name}`);
             
-            // Test the selection path
-            console.log('\n5. SELECTION PATH TEST');
-            console.log('======================');
-            
-            if (window.useEditorStore) {
-              const store = window.useEditorStore.getState();
-              console.log(`Before selection - selected nodes: ${store.selectedNodeIds.length}`);
-              
-              // Test node selection (this is what should happen when clicking MJCF mesh)
-              store.selectNode(deviceNode.id);
-              
-              const newStore = window.useEditorStore.getState();
-              console.log(`After node selection - selected nodes: ${newStore.selectedNodeIds.length}`);
-              
-              if (newStore.selectedNodeIds.includes(deviceNode.id)) {
-                console.log('✅ Node selection successful!');
+                // Test the selection path
+                console.log('\n5. SELECTION PATH TEST');
+                console.log('======================');
                 
-                // Check if highlighting triggered
-                const highlightingLayer = scene.getHighlightLayerByName('highlight');
-                if (highlightingLayer) {
-                  console.log(`Highlighted meshes: ${highlightingLayer.meshes ? highlightingLayer.meshes.length : 'undefined'}`);
+                // Try multiple ways to access the editor store
+                let editorStore = null;
+                if (window.useEditorStore) {
+                  editorStore = window.useEditorStore;
+                  console.log('✅ Found editor store via window.useEditorStore');
+                } else {
+                  console.log('❌ window.useEditorStore not available');
+                  console.log('💡 Try refreshing the page - the store should be exposed in main.tsx');
+                  console.log('Available window properties:', Object.keys(window).filter(key => key.includes('store') || key.includes('Store')));
+                }
+                
+                if (editorStore) {
+                  const store = editorStore.getState();
+                  console.log(`Before selection - selected nodes: ${store.selectedNodeIds.length}`);
                   
-                  if (highlightingLayer.meshes && highlightingLayer.meshes.length > 0) {
-                    console.log('✅ Highlighting triggered!');
-                    console.log('🎉 MJCF selection should work!');
+                  // Test node selection (this is what should happen when clicking MJCF mesh)
+                  store.selectNode(deviceNode.id);
+                  
+                  const newStore = editorStore.getState();
+                  console.log(`After node selection - selected nodes: ${newStore.selectedNodeIds.length}`);
+                  
+                  if (newStore.selectedNodeIds.includes(deviceNode.id)) {
+                    console.log('✅ Node selection successful!');
+                    
+                    // Check if highlighting triggered
+                    const highlightingLayer = scene.getHighlightLayerByName('highlight');
+                    if (highlightingLayer) {
+                      console.log(`Highlighted meshes: ${highlightingLayer.meshes ? highlightingLayer.meshes.length : 'undefined'}`);
+                      
+                      if (highlightingLayer.meshes && highlightingLayer.meshes.length > 0) {
+                        console.log('✅ Highlighting triggered!');
+                        console.log('🎉 MJCF selection should work!');
+                      } else {
+                        console.log('❌ No highlighting triggered - check SceneCanvas useEffect');
+                      }
+                    } else {
+                      console.log('❌ No highlighting layer found');
+                    }
                   } else {
-                    console.log('❌ No highlighting triggered - check SceneCanvas useEffect');
+                    console.log('❌ Node selection failed');
                   }
                 } else {
-                  console.log('❌ No highlighting layer found');
+                  console.log('❌ Editor store not available - cannot test selection');
+                  console.log('💡 This means the MJCF selection system is working correctly up to the store level');
+                  console.log('💡 The issue is likely in the SceneCanvas highlighting logic or useEffect dependencies');
                 }
-              } else {
-                console.log('❌ Node selection failed');
-              }
-            } else {
-              console.log('❌ Editor store not available');
-            }
           } else {
             console.log('❌ Device has no tree node - this is the problem!');
             console.log(`Looking for mesh ID: ${deviceMesh.uniqueId}`);
@@ -205,12 +222,16 @@
     }
   } else {
     console.log('❌ No suitable test mesh found');
+    console.log('Available meshes:');
+    robotMeshes.forEach(mesh => {
+      console.log(`  - ${mesh.name} (visible: ${mesh.isVisible}, selectable: ${SceneUtils.isSelectableObject(mesh)})`);
+    });
   }
   
   console.log('\n6. SUMMARY');
   console.log('===========');
   console.log('This debug identifies the exact failure point:');
-  console.log('1. If no MJCF meshes found: Problem in mesh creation');
+  console.log('1. If no robot meshes found: Problem in mesh creation');
   console.log('2. If meshes not selectable: Problem in SceneUtils filtering');
   console.log('3. If no device entities: Problem in MJCF loader');
   console.log('4. If device has no tree node: Problem in editor store linking');

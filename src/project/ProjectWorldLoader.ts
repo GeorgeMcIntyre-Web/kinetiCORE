@@ -132,7 +132,7 @@ export class ProjectWorldLoader implements IProjectWorldLoader {
         actuators: [],
       },
       environment: {
-        backgroundColor: { x: 0.2, y: 0.2, z: 0.2 },
+        backgroundColor: { x: 0, y: 0, z: 0 }, // Transparent background
         fogEnabled: false,
         fogColor: { x: 0.5, y: 0.5, z: 0.5 },
         fogDensity: 0.1,

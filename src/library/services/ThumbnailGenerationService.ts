@@ -412,7 +412,7 @@ export class ThumbnailGenerationService {
     if (config.backgroundColor) {
       scene.clearColor = BABYLON.Color4.FromHexString(config.backgroundColor);
     } else {
-      scene.clearColor = new BABYLON.Color4(0.95, 0.95, 0.95, 1); // Light gray
+      scene.clearColor = new BABYLON.Color4(0, 0, 0, 0); // Transparent background
     }
 
     // Add subtle ground plane for context

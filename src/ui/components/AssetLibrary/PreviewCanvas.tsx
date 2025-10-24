@@ -42,7 +42,7 @@ export function PreviewCanvas({ asset }: PreviewCanvasProps) {
       engineRef.current = engine;
 
       const scene = new Scene(engine);
-      scene.clearColor = new Color4(0.12, 0.12, 0.15, 1);
+      scene.clearColor = new Color4(0, 0, 0, 0); // Transparent background
       sceneRef.current = scene;
 
       // Setup camera

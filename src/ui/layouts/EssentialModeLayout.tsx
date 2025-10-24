@@ -650,8 +650,6 @@ export const EssentialModeLayout: React.FC = () => {
             WebkitFontSmoothing: 'antialiased',
             MozOsxFontSmoothing: 'grayscale',
             minWidth: '280px',
-            transform: 'scale(0.6)',
-            transformOrigin: 'bottom right',
           }}
         >
           <div className="flex justify-between text-sm">

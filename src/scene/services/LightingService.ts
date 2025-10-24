@@ -28,7 +28,8 @@ export class LightingService {
       scene
     );
     scene.environmentTexture = hdrTexture;
-    scene.createDefaultSkybox(hdrTexture, true, 1000, 0.3);
+    // Disable skybox for transparent background
+    // scene.createDefaultSkybox(hdrTexture, true, 1000, 0.3);
 
     // Setup realistic lighting (Y-up: light points down from above)
     this.hemisphericLight = new BABYLON.HemisphericLight(

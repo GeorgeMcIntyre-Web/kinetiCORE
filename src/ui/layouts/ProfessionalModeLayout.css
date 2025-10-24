@@ -430,10 +430,20 @@
 .professional-viewport {
   flex: 1;
   position: relative;
-  background: #0f1419;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Ensure viewport IDs are also transparent */
+#viewport-professional {
+  background: transparent !important;
+}
+
+/* Ensure canvas elements are transparent */
+#viewport-professional canvas {
+  background: transparent !important;
 }
 
 .viewport-placeholder {

@@ -770,12 +770,32 @@ export class WorldSaveManager {
     if (sceneState.environment) {
       const env = sceneState.environment;
       
+      // Preserve current transparency setting when restoring background
+      const sceneManager = SceneManager.getInstance();
+      const currentAlpha = sceneManager.isBackgroundTransparent() ? 0 : 1;
+      
       scene.clearColor = new BABYLON.Color4(
         env.backgroundColor[0],
         env.backgroundColor[1],
         env.backgroundColor[2],
-        1
+        currentAlpha  // Use current transparency setting instead of always 1
       );
+      
+      console.log('🎨 WorldSaveManager restored background with alpha:', currentAlpha);
+      
+      // Also ensure grid overlay respects transparency setting
+      if (currentAlpha === 0) {
+        const gridOverlay = scene.getMeshByName('gridOverlay');
+        if (gridOverlay) {
+          gridOverlay.setEnabled(false);
+          console.log('🔲 WorldSaveManager disabled grid overlay for transparency');
+        }
+        
+        // Force transparent background to ensure it sticks
+        setTimeout(() => {
+          sceneManager.forceTransparentBackground();
+        }, 100);
+      }
       
       scene.ambientColor = new BABYLON.Color3(
         env.ambientColor[0],

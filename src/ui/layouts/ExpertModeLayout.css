@@ -336,7 +336,17 @@
 /* Quad Viewport */
 .expert-center {
   flex: 1;
-  background: #0d1117;
+  background: transparent;
+}
+
+/* Ensure viewport IDs are also transparent */
+#viewport-expert {
+  background: transparent !important;
+}
+
+/* Ensure canvas elements are transparent */
+#viewport-expert canvas {
+  background: transparent !important;
 }
 
 .quad-viewport {
