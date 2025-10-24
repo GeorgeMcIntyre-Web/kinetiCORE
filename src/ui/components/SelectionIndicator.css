@@ -9,7 +9,7 @@
 .selection-indicator {
   position: fixed !important;
   bottom: 80px !important; /* Above the world frame axis (positioned at ~60px from bottom) */
-  left: 10px !important;
+  left: 220px !important; /* Position in viewport, accounting for sidebar (~200px + margin) */
 
   display: flex;
   align-items: center;
