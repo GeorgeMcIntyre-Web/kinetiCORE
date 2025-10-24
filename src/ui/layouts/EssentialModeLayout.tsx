@@ -9,7 +9,7 @@ import { useEditorStore } from '../store/editorStore';
 import { useAssetLibraryStore } from '../store/assetLibraryStore';
 import { SceneTree } from '../components/SceneTree';
 import { SceneCanvas } from '../components/SceneCanvas';
-// import { SelectionIndicator } from '../components/SelectionIndicator';
+import { SelectionIndicator } from '../components/SelectionIndicator';
 import { FloatingKinematicsPanel } from '../components/FloatingKinematicsPanel';
 import { FloatingKinematicsAnalysisPanel } from '../components/FloatingKinematicsAnalysisPanel';
 import { FloatingActuatorPanel } from '../components/FloatingActuatorPanel';
@@ -710,10 +710,13 @@ export const EssentialModeLayout: React.FC = () => {
       )}
 
       {/* Move Object Dialog */}
-      <MoveObjectDialog 
-        isOpen={showMoveDialog} 
-        onClose={() => setShowMoveDialog(false)} 
+      <MoveObjectDialog
+        isOpen={showMoveDialog}
+        onClose={() => setShowMoveDialog(false)}
       />
+
+      {/* Selection Indicator - Always visible */}
+      <SelectionIndicator selectedNodeIds={selectedNodeIds} />
 
       {/* Project Manager Panel */}
       <ProjectManagerPanelV2 />
