@@ -106,7 +106,11 @@
       "Bash(git check-ignore:*)",
       "Bash(npx wrangler:*)",
       "Bash(timeout 30 npm run build:*)",
-      "Bash(nslookup:*)"
+      "Bash(nslookup:*)",
+      "Bash(timeout 30 sleep:*)",
+      "Bash(gh pr view:*)",
+      "Bash(git fetch:*)",
+      "Bash(timeout 30 npm run lint:*)"
     ],
     "deny": [],
     "ask": []

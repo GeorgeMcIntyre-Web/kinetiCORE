@@ -92,12 +92,12 @@ export class FloorMaterialManager {
 
     const gridMaterial = new GridMaterial('gridOverlay', this.scene);
     gridMaterial.majorUnitFrequency = 10;
-    gridMaterial.minorUnitVisibility = 0.15;
+    gridMaterial.minorUnitVisibility = 0.45;
     gridMaterial.gridRatio = 1; // 1m grid
     gridMaterial.backFaceCulling = false;
-    gridMaterial.mainColor = new BABYLON.Color3(0.2, 0.2, 0.22); // Darker main color
-    gridMaterial.lineColor = new BABYLON.Color3(0.1, 0.1, 0.12); // Darker line color
-    gridMaterial.opacity = 0.6; // Increased opacity for more visible lines
+    gridMaterial.mainColor = new BABYLON.Color3(0.25, 0.25, 0.28); // Lighter main color for dark background
+    gridMaterial.lineColor = new BABYLON.Color3(0.4, 0.4, 0.45); // Much lighter grid lines
+    gridMaterial.opacity = 0.8; // Higher opacity for better visibility
 
     const gridOverlay = BABYLON.MeshBuilder.CreateGround(
       'gridOverlay',

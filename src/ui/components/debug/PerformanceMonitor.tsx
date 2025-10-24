@@ -89,12 +89,12 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   
   if (!enabled) return null;
   
-  // Position styles
+  // Position styles - adjust top position to be below header (header ~72-80px + gap)
   const positionStyles: Record<string, React.CSSProperties> = {
-    'top-left': { top: '82px', left: '8px' },
-    'top-right': { top: '82px', right: '8px' },
-    'bottom-left': { bottom: '8px', left: '8px' },
-    'bottom-right': { bottom: '8px', right: '8px' },
+    'top-left': { top: '90px', left: '12px' },
+    'top-right': { top: '90px', right: '12px' },
+    'bottom-left': { bottom: '12px', left: '12px' },
+    'bottom-right': { bottom: '12px', right: '12px' },
   };
   
   // FPS color coding

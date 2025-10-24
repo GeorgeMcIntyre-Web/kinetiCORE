@@ -58,9 +58,9 @@ export class SceneManager {
     // Configure for right-handed coordinate system (matches CAD standards)
     this.scene.useRightHandedSystem = true;
 
-    // Set transparent background
-    this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
-    console.log('🎨 Scene initialized with transparent background:', this.scene.clearColor);
+    // Set dark background for better contrast with floor and grid
+    this.scene.clearColor = new BABYLON.Color4(0.12, 0.12, 0.14, 1);
+    console.log('🎨 Scene initialized with dark background:', this.scene.clearColor);
 
     // Initialize lighting service
     this.lightingService.initialize(this.scene);
