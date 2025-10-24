@@ -25,9 +25,9 @@
   font-weight: 700; /* Bold for better readability */
   letter-spacing: 0.5px;
 
-  min-width: 140px; /* Fixed minimum width to prevent layout shift */
+  width: 200px; /* FIXED width to prevent any layout shift */
   white-space: nowrap;
-  overflow: hidden;
+  overflow: visible; /* Allow content to be visible */
 
   border: none;
   backdrop-filter: none;
@@ -57,13 +57,12 @@
   font-size: 16px;
   line-height: 1;
   flex-shrink: 0;
-  width: 20px; /* Fixed width to prevent layout shift */
-  height: 20px; /* Fixed height */
+  width: 24px; /* Fixed width for emoji */
+  height: 24px; /* Fixed height */
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  overflow: hidden; /* Prevent emoji overflow */
 }
 
 .selection-indicator-text {

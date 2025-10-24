@@ -50,28 +50,27 @@ function buildNodeDetails(node: SceneNode): string {
 }
 
 function getTypeIcon(type: string | null): string {
-  // Use simple geometric shapes for consistent width
-  if (!type) return '●'; // Circle for no selection
+  if (!type) return '📍';
 
   switch (type) {
     case 'mesh':
-      return '◆'; // Diamond for mesh
+      return '🔷';
     case 'robot':
-      return '◉'; // Double circle for robot
+      return '🤖';
     case 'joint':
-      return '◎'; // Circle with dot for joint
+      return '⚙️';
     case 'collection':
-      return '◆'; // Diamond for collection
+      return '📁';
     case 'multiple':
-      return '◇'; // Hollow diamond for multiple
+      return '📦';
     case 'world':
-      return '●'; // Filled circle for world
+      return '🌍';
     case 'scene':
-      return '○'; // Hollow circle for scene
+      return '🎬';
     case 'system':
-      return '◐'; // Half circle for system
+      return '⚡';
     default:
-      return '●'; // Default circle
+      return '📍';
   }
 }
 
