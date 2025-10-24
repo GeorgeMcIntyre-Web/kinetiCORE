@@ -565,7 +565,7 @@ export const EssentialModeLayout: React.FC = () => {
         </aside>
 
         {/* Main Viewport */}
-        <main className="flex-1 relative bg-gray-100" style={{ paddingTop: '80px' }}>
+        <main className="flex-1 relative bg-gray-100">
           <div id="viewport-essential" className="w-full h-full relative">
             <SceneCanvas />
             {/* Selection Indicator - Positioned inside viewport */}
