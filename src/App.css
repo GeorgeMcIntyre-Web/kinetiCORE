@@ -9,39 +9,63 @@
  * Custom themes: Add your own color palette following the same pattern
  */
 
-/* Theme System - CSS Variables */
+/* Theme System - CSS Variables with [data-theme] support */
 :root {
-  /* 🎨 Cyan Theme (Default - matches splash screen) */
-  --color-primary: #00f0ff;
-  --color-primary-dark: #00b4d8;
-  --color-primary-light: #48f6ff;
-  --color-primary-glow: rgba(0, 240, 255, 0.3);
-
-  /* Alternative Themes (commented out - can be activated) */
-  /* Purple Theme */
-  /* --color-primary: #646cff; */
-  /* --color-primary-dark: #4c50cc; */
-  /* --color-primary-light: #7c80ff; */
-  /* --color-primary-glow: rgba(100, 108, 255, 0.3); */
-
-  /* Green Theme */
-  /* --color-primary: #00ff88; */
-  /* --color-primary-dark: #00cc6a; */
-  /* --color-primary-light: #33ffa3; */
-  /* --color-primary-glow: rgba(0, 255, 136, 0.3); */
-
-  /* Orange Theme */
-  /* --color-primary: #ff8800; */
-  /* --color-primary-dark: #cc6d00; */
-  /* --color-primary-light: #ffa333; */
-  /* --color-primary-glow: rgba(255, 136, 0, 0.3); */
-
-  /* Base Colors */
+  /* Base neutrals */
   --color-bg-dark: #0a0a0a;
   --color-bg-medium: #1a1a1a;
   --color-bg-light: #2a2a2a;
   --color-text-primary: #ffffff;
   --color-text-secondary: #888888;
+
+  /* Defaults map to cyan theme */
+  --color-primary: #00f0ff;
+  --color-primary-dark: #00b4d8;
+  --color-primary-light: #48f6ff;
+  --color-primary-glow: rgba(0, 240, 255, 0.3);
+
+  /* Generic tokens used across components */
+  --kc-accent: var(--color-primary);
+  --kc-accent-dark: var(--color-primary-dark);
+  --kc-accent-light: var(--color-primary-light);
+  --kc-accent-glow: var(--color-primary-glow);
+  --kc-accent-rgb: 0, 240, 255; /* keep in sync with --color-primary */
+  --kc-surface-0: rgba(255, 255, 255, 0.05);
+  --kc-surface-1: rgba(18, 18, 21, 0.95);
+  --kc-surface-2: rgba(12, 12, 15, 0.98);
+  --kc-border: rgba(255, 255, 255, 0.1);
+  --kc-border-strong: rgba(255, 255, 255, 0.2);
+  --kc-text-primary: rgba(255, 255, 255, 0.95);
+  --kc-text-secondary: rgba(160, 174, 192, 0.8);
+  --kc-selected-bg: rgba(0, 240, 255, 0.15);
+}
+
+/* Cyan theme explicit */
+[data-theme='cyan'] {
+  --color-primary: #00f0ff;
+  --color-primary-dark: #00b4d8;
+  --color-primary-light: #48f6ff;
+  --color-primary-glow: rgba(0, 240, 255, 0.3);
+  --kc-accent: var(--color-primary);
+  --kc-accent-dark: var(--color-primary-dark);
+  --kc-accent-light: var(--color-primary-light);
+  --kc-accent-glow: var(--color-primary-glow);
+  --kc-accent-rgb: 0, 240, 255;
+  --kc-selected-bg: rgba(0, 240, 255, 0.15);
+}
+
+/* Classic theme (violet/blue accent) */
+[data-theme='classic'] {
+  --color-primary: #646cff;
+  --color-primary-dark: #4c50cc;
+  --color-primary-light: #7c80ff;
+  --color-primary-glow: rgba(100, 108, 255, 0.3);
+  --kc-accent: var(--color-primary);
+  --kc-accent-dark: var(--color-primary-dark);
+  --kc-accent-light: var(--color-primary-light);
+  --kc-accent-glow: var(--color-primary-glow);
+  --kc-accent-rgb: 100, 108, 255;
+  --kc-selected-bg: rgba(100, 108, 255, 0.15);
 }
 
 .app {

@@ -9,6 +9,7 @@ import { LoadingIndicator } from './ui/components/LoadingIndicator';
 import { SplashScreen } from './ui/components/SplashScreen';
 import { ErrorBoundary } from './ui/components/ErrorBoundary';
 import { UserLevelProvider, useUserLevel } from './ui/core/UserLevelContext';
+import { ThemeProvider } from './ui/core/ThemeContext';
 import { EssentialModeLayout } from './ui/layouts/EssentialModeLayout';
 import { ProfessionalModeLayout } from './ui/layouts/ProfessionalModeLayout';
 import { ExpertModeLayout } from './ui/layouts/ExpertModeLayout';
@@ -131,9 +132,11 @@ const AppContent: React.FC = () => {
 
 function App() {
   return (
-    <UserLevelProvider defaultLevel="essential">
-      <AppContent />
-    </UserLevelProvider>
+    <ThemeProvider defaultTheme="cyan">
+      <UserLevelProvider defaultLevel="essential">
+        <AppContent />
+      </UserLevelProvider>
+    </ThemeProvider>
   );
 }
 

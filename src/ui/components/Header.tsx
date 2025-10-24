@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Menu, X, Settings, HelpCircle, Zap, ZapOff, ZapIcon } from 'lucide-react';
 import { zIndex, colors } from '../styles/design-tokens';
 import { RibbonToolbar, RibbonToolbarProps } from './RibbonToolbar';
+import { useTheme } from '../core/ThemeContext';
 
 export interface HeaderProps {
   currentMode: 'essential' | 'professional' | 'expert';
@@ -45,6 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   const currentModeConfig = modeConfig[currentMode];
   const CurrentModeIcon = currentModeConfig.icon;
@@ -77,8 +79,19 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
 
-        {/* Right side: Mode Switcher + Actions */}
+        {/* Right side: Theme + Mode Switcher + Actions */}
         <div className="flex items-center space-x-2 flex-shrink-0">
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            className="hidden md:inline-flex items-center gap-2 px-2 py-1.5 rounded-md border bg-white border-gray-200 hover:bg-gray-50 transition-colors"
+            title={`Theme: ${theme}`}
+          >
+            <span
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: 'var(--kc-accent)' }}
+            />
+          </button>
           {/* Mode Switcher - Desktop */}
           <div className="hidden md:block">
         <div className="relative">
