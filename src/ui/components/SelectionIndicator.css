@@ -97,9 +97,9 @@
   flex-shrink: 0;
 }
 
-/* No selection state - ONLY change color, NO opacity or layout changes */
+/* No selection state - keep same white color */
 .selection-indicator.no-selection {
-  color: rgba(255, 255, 255, 0.9);
+  color: #ffffff;
 }
 
 .selection-indicator.no-selection .selection-indicator-badge {
@@ -111,13 +111,13 @@
   cursor: default;
 }
 
-/* When selection is active - bright cyan color, NO opacity changes */
+/* When selection is active - SAME white color as no-selection */
 .selection-indicator:not(.no-selection) {
-  color: #00d4ff; /* Bright cyan for active selection */
+  color: #ffffff; /* Same white for consistency */
 }
 
 .selection-indicator:not(.no-selection):hover {
-  color: #33ddff; /* Slightly brighter cyan on hover */
+  color: #ffffff; /* Same white on hover */
 }
 
 /* Responsive adjustments - REMOVED to prevent any layout shifts */
