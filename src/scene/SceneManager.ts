@@ -155,7 +155,16 @@ export class SceneManager {
     const material = this.floorMaterialManager.createFloorMaterial(floorType);
     this.ground.material = material;
 
-    console.log(`Floor changed to: ${floorType}`);
+    // Manage grid overlay visibility based on floor type
+    if (this.gridOverlay) {
+      // Enable grid for all floor types (including grid-only)
+      this.gridOverlay.setEnabled(true);
+      console.log(`Floor changed to: ${floorType} (grid overlay enabled)`);
+    } else {
+      // Create grid overlay if it doesn't exist
+      this.gridOverlay = this.floorMaterialManager.createGridOverlay(this.ground, true);
+      console.log(`Floor changed to: ${floorType} (grid overlay created and enabled)`);
+    }
   }
 
   /**
