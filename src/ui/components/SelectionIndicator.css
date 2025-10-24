@@ -2,14 +2,14 @@
  * SelectionIndicator Styles
  * Owner: Agent 6 (Edwin)
  *
- * Styles for the always-visible selection indicator in the BOTTOM-LEFT corner
- * Positioned above the world frame axis inside the 3D viewport
+ * Styles for the always-visible selection indicator in the TOP-LEFT corner
+ * Positioned in the 3D viewport, moves with sidebar resizing
  */
 
 .selection-indicator {
   position: absolute !important;
-  bottom: 5px !important; /* Just below the world frame axis compass */
-  left: 50px !important; /* Next to world frame compass */
+  top: 10px !important; /* Top of viewport */
+  left: 10px !important; /* Left edge of viewport */
 
   display: flex;
   align-items: center;
