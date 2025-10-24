@@ -57,11 +57,13 @@
   font-size: 16px;
   line-height: 1;
   flex-shrink: 0;
-  width: 16px; /* Fixed width to prevent layout shift */
-  height: 16px; /* Fixed height */
+  width: 20px; /* Fixed width to prevent layout shift */
+  height: 20px; /* Fixed height */
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  overflow: hidden; /* Prevent emoji overflow */
 }
 
 .selection-indicator-text {
