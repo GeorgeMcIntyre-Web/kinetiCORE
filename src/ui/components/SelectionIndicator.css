@@ -1,14 +1,15 @@
 /**
  * SelectionIndicator Styles
  * Owner: Agent 6 (Edwin)
- * 
- * Styles for the always-visible selection indicator in the top-left corner
+ *
+ * Styles for the always-visible selection indicator in the BOTTOM-LEFT corner
+ * Positioned above the world frame axis
  */
 
 .selection-indicator {
-  position: fixed;
-  bottom: 80px; /* Above the world frame axis (positioned at ~60px from bottom) */
-  left: 10px;
+  position: fixed !important;
+  bottom: 80px !important; /* Above the world frame axis (positioned at ~60px from bottom) */
+  left: 10px !important;
 
   display: flex;
   align-items: center;
