@@ -91,8 +91,8 @@ export const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   
   // Position styles
   const positionStyles: Record<string, React.CSSProperties> = {
-    'top-left': { top: -2, left: 0 },
-    'top-right': { top: -2, right: 0 },
+    'top-left': { top: 82, left: 0 },
+    'top-right': { top: 82, right: 0 },
     'bottom-left': { bottom: 0, left: 0 },
     'bottom-right': { bottom: 0, right: 0 },
   };
