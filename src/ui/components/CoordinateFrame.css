@@ -1,12 +1,22 @@
 .coordinate-frame {
-  position: absolute;
-  bottom: 20px;
-  left: 20px;
+  position: absolute !important;
+  bottom: 0px !important;
+  left: 0px !important;
   pointer-events: none;
   z-index: 1000;
+  padding: 0px !important;
+  margin: 0px !important;
+  width: 90px !important;
+  height: 90px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .coordinate-frame canvas {
-  display: block;
-  background: transparent;
+  display: block !important;
+  background: transparent !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }

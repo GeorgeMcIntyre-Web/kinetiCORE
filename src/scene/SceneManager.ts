@@ -15,7 +15,7 @@ export class SceneManager {
   private ground: BABYLON.Mesh | null = null;
   private floorMaterialManager: FloorMaterialManager | null = null;
   private gridOverlay: BABYLON.Mesh | null = null;
-  private currentFloorType: FloorType = 'epoxy-gray';
+  private currentFloorType: FloorType = 'grid-only';
   private isInitialized: boolean = false;
 
   // Service dependencies
@@ -58,6 +58,10 @@ export class SceneManager {
     // Configure for right-handed coordinate system (matches CAD standards)
     this.scene.useRightHandedSystem = true;
 
+    // Set transparent background
+    this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
+    console.log('🎨 Scene initialized with transparent background:', this.scene.clearColor);
+
     // Initialize lighting service
     this.lightingService.initialize(this.scene);
 
@@ -78,8 +82,9 @@ export class SceneManager {
     this.ground.material = floorMaterial;
     this.ground.receiveShadows = true;
 
-    // Create grid overlay for spatial reference
-    this.gridOverlay = this.floorMaterialManager.createGridOverlay(this.ground, true);
+    // Create grid overlay for spatial reference (initially hidden for transparent background)
+    this.gridOverlay = this.floorMaterialManager.createGridOverlay(this.ground, false);
+    console.log('🔲 Grid overlay created and disabled:', this.gridOverlay?.isEnabled());
 
     // Freeze ground world matrix for performance
     this.ground.freezeWorldMatrix();
@@ -161,6 +166,76 @@ export class SceneManager {
   }
 
   /**
+   * Set background transparency
+   * @param transparent If true, makes background transparent. If false, uses default background.
+   */
+  setBackgroundTransparent(transparent: boolean): void {
+    if (!this.scene) {
+      console.warn('Scene not initialized');
+      return;
+    }
+
+    console.log('🎨 Setting background transparent:', transparent);
+    console.log('🎨 Current scene clearColor before:', this.scene.clearColor);
+    console.log('🔲 Current grid overlay enabled before:', this.gridOverlay?.isEnabled());
+
+    if (transparent) {
+      this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
+      // Hide grid overlay when background is transparent
+      if (this.gridOverlay) {
+        this.gridOverlay.setEnabled(false);
+      }
+      console.log('✅ Background set to transparent (grid overlay hidden)');
+    } else {
+      // Use a default dark background
+      this.scene.clearColor = new BABYLON.Color4(0.2, 0.2, 0.25, 1);
+      // Show grid overlay when background is solid
+      if (this.gridOverlay) {
+        this.gridOverlay.setEnabled(true);
+      }
+      console.log('✅ Background set to solid (grid overlay visible)');
+    }
+
+    console.log('🎨 New scene clearColor after:', this.scene.clearColor);
+    console.log('🔲 New grid overlay enabled after:', this.gridOverlay?.isEnabled());
+  }
+
+  /**
+   * Force transparent background and disable grid overlay
+   * This should be called after any world loading/restoration
+   */
+  forceTransparentBackground(): void {
+    if (!this.scene) {
+      console.warn('Scene not initialized');
+      return;
+    }
+
+    console.log('🔧 Force setting transparent background...');
+    this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
+    
+    // Disable grid overlay
+    if (this.gridOverlay) {
+      this.gridOverlay.setEnabled(false);
+    }
+    
+    // Also disable any existing grid overlay by name
+    const existingGridOverlay = this.scene.getMeshByName('gridOverlay');
+    if (existingGridOverlay) {
+      existingGridOverlay.setEnabled(false);
+    }
+    
+    console.log('✅ Forced transparent background and disabled grid overlay');
+  }
+
+  /**
+   * Check if background is currently transparent
+   */
+  isBackgroundTransparent(): boolean {
+    if (!this.scene) return false;
+    return this.scene.clearColor.a === 0;
+  }
+
+  /**
    * Resize the floor to accommodate large layouts (e.g., DWG imports)
    * @param width Floor width (X-axis)
    * @param depth Floor depth (Y-axis), optional - defaults to width for square floor
@@ -193,11 +268,13 @@ export class SceneManager {
     newGround.material = material;
     newGround.receiveShadows = true;
 
-    // Recreate grid overlay with new size
+    // Recreate grid overlay with new size (maintain current visibility state)
     if (this.gridOverlay) {
       this.gridOverlay.dispose();
     }
-    this.gridOverlay = this.floorMaterialManager!.createGridOverlay(newGround, true);
+    // Check if grid should be visible based on current background state
+    const isGridVisible = this.scene.clearColor.a > 0; // If alpha > 0, background is solid
+    this.gridOverlay = this.floorMaterialManager!.createGridOverlay(newGround, isGridVisible);
 
     // Freeze for performance
     newGround.freezeWorldMatrix();

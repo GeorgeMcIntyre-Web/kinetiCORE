@@ -643,10 +643,10 @@ export const EssentialModeLayout: React.FC = () => {
           style={{
             background: 'transparent',
             color: '#ffffff',
-            textShadow: '0 0 2px rgba(0, 0, 0, 0.9)',
+            textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.7)',
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace',
             fontSize: '13px',
-            fontWeight: '400',
+            fontWeight: '600',
             WebkitFontSmoothing: 'antialiased',
             MozOsxFontSmoothing: 'grayscale',
             minWidth: '280px',

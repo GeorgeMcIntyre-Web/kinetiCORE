@@ -20,9 +20,9 @@ export const CoordinateFrame: React.FC<CoordinateFrameProps> = ({ camera }) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const size = 120; // Canvas size (increased for labels)
+    const size = 90; // Canvas size - balanced for labels
     const center = size / 2;
-    const axisLength = 30; // Shorter to leave room for labels
+    const axisLength = 25; // Axis length - shorter to fit labels
 
     const drawFrame = () => {
       // Clear canvas
@@ -95,9 +95,11 @@ export const CoordinateFrame: React.FC<CoordinateFrameProps> = ({ camera }) => {
       color: string,
       label: string
     ) => {
-      // Draw line
+      // Draw line with defined stroke
       ctx.strokeStyle = color;
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       ctx.beginPath();
       ctx.moveTo(startX, startY);
       ctx.lineTo(endX, endY);
@@ -107,6 +109,8 @@ export const CoordinateFrame: React.FC<CoordinateFrameProps> = ({ camera }) => {
       const angle = Math.atan2(endY - startY, endX - startX);
       const arrowSize = 8;
       ctx.fillStyle = color;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(endX, endY);
       ctx.lineTo(
@@ -119,6 +123,7 @@ export const CoordinateFrame: React.FC<CoordinateFrameProps> = ({ camera }) => {
       );
       ctx.closePath();
       ctx.fill();
+      ctx.stroke();
 
       // Draw label at end of arrow
       ctx.fillStyle = color;
@@ -130,7 +135,7 @@ export const CoordinateFrame: React.FC<CoordinateFrameProps> = ({ camera }) => {
       const dx = endX - startX;
       const dy = endY - startY;
       const length = Math.sqrt(dx * dx + dy * dy);
-      const labelOffset = 15;
+      const labelOffset = 10;
 
       const labelX = endX + (dx / length) * labelOffset;
       const labelY = endY + (dy / length) * labelOffset;
@@ -158,7 +163,7 @@ export const CoordinateFrame: React.FC<CoordinateFrameProps> = ({ camera }) => {
 
   return (
     <div className="coordinate-frame">
-      <canvas ref={canvasRef} width={120} height={120} />
+      <canvas ref={canvasRef} width={90} height={90} />
     </div>
   );
 };
