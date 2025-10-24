@@ -15,7 +15,7 @@ export class SceneManager {
   private ground: BABYLON.Mesh | null = null;
   private floorMaterialManager: FloorMaterialManager | null = null;
   private gridOverlay: BABYLON.Mesh | null = null;
-  private currentFloorType: FloorType = 'grid-only';
+  private currentFloorType: FloorType = 'epoxy-gray';
   private isInitialized: boolean = false;
 
   // Service dependencies

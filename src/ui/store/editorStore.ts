@@ -334,30 +334,49 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!selectedMeshes.includes(mesh)) {
       set({ selectedMeshes: [...selectedMeshes, mesh] });
 
+      const tree = SceneTreeManager.getInstance();
+
       // Check if this is a device root mesh (ending in _device_root)
       if (mesh.name.endsWith('_device_root')) {
-        // For device root meshes, find and select the parent collection node instead
-        const tree = SceneTreeManager.getInstance();
-        const meshNode = tree.getNodeByBabylonMeshId(mesh.uniqueId.toString());
-        
-        if (meshNode && meshNode.parentId) {
-          const parentNode = tree.getNode(meshNode.parentId);
-          if (parentNode && parentNode.type === 'collection') {
-            // Select the parent collection node instead of the device root mesh
-            set({ selectedNodeId: parentNode.id });
-            return; // Exit early, don't select the mesh node
+        console.log(`[EditorStore] Device root mesh selected: ${mesh.name}`);
+
+        // Device root meshes are skipped in tree building, so they don't have tree nodes
+        // Strategy: Find the model collection by looking up the device entity
+        const registry = EntityRegistry.getInstance();
+        const entity = registry.getByMesh(mesh);
+
+        if (entity && entity.getIsDevice()) {
+          // This is a device entity - find its model collection in the tree
+          // The entity ID should be linked to the model collection node
+          const allNodes = tree.getAllNodes();
+          const modelCollectionNode = allNodes.find(node =>
+            node.entityId === entity.getId() && node.type === 'collection'
+          );
+
+          if (modelCollectionNode) {
+            console.log(`[EditorStore] Found model collection via entity: ${modelCollectionNode.name}`);
+            set({ selectedNodeId: modelCollectionNode.id });
+            tree.expandToNode(modelCollectionNode.id);
+            window.dispatchEvent(new Event('scenetree-update'));
+            return;
+          } else {
+            console.warn(`[EditorStore] No model collection found for device entity: ${entity.getId()}`);
           }
+        } else {
+          console.warn(`[EditorStore] Device root mesh has no entity or not a device: ${mesh.name}`);
         }
       }
 
       // For all other meshes, select corresponding node in tree
-      const tree = SceneTreeManager.getInstance();
       const node = tree.getNodeByBabylonMeshId(mesh.uniqueId.toString());
       if (node) {
+        console.log(`[EditorStore] Selecting mesh node: ${node.name}`);
         set({ selectedNodeId: node.id });
         // Expand tree to reveal the selected node
         tree.expandToNode(node.id);
         window.dispatchEvent(new Event('scenetree-update'));
+      } else {
+        console.warn(`[EditorStore] No tree node found for mesh: ${mesh.name}`);
       }
     }
   },
@@ -967,7 +986,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const buildTreeForNode = (node: BABYLON.TransformNode, parentNodeId: string | null, depth: number = 0): void => {
         const isMesh = node instanceof BABYLON.Mesh;
         const children = getAllChildren(node);
-        
+
         // Skip synthetic root nodes and duplicate filename nodes
         // This ensures synthetic containers don't appear in the tree UI
         if (node.name === '__root__' ||
@@ -980,7 +999,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           }
           return;
         }
-        
+
+        // Skip device_root meshes - these are internal infrastructure
+        // They're used for entity system but shouldn't appear in the tree
+        if (isMesh && node.name.endsWith('_device_root')) {
+          console.log(`[URDF Loader] Skipping device_root mesh (internal infrastructure): ${node.name}`);
+          return;
+        }
+
         // Create tree node
         const isURDF = node.metadata?.isURDFMesh ||
                        node.metadata?.coordinateSystem === 'urdf-converted' ||
@@ -1235,6 +1261,31 @@ export const useEditorStore = create<EditorState>((set, get) => ({
                 return;
               }
 
+              // Skip MJCF body nodes - they're already created by the MJCF loader with proper tree structure
+              // This prevents duplicate tree nodes and ensures correct parent-child relationships
+              // BUT we still need to process mesh children of body nodes
+              if (node.metadata?.isMJCFBody) {
+                console.log(`[EditorStore] Skipping MJCF body node (already created by loader): ${node.name}`);
+
+                // Find the existing tree node for this body
+                const existingBodyTreeNode = tree.getNodeByBabylonTransformNodeId(node.uniqueId.toString());
+                if (existingBodyTreeNode) {
+                  console.log(`[EditorStore] Found existing tree node for body: ${existingBodyTreeNode.id}`);
+                  // Process mesh children and link them to this body's tree node
+                  for (const child of children) {
+                    buildTreeForNode(child, existingBodyTreeNode.id, depth + 1);
+                  }
+                }
+                return;
+              }
+
+              // Skip device_root meshes - these are internal infrastructure
+              // They're used for entity system but shouldn't appear in the tree
+              if (isMesh && node.name.endsWith('_device_root')) {
+                console.log(`[EditorStore] Skipping device_root mesh (internal infrastructure): ${node.name}`);
+                return;
+              }
+
               // Create tree node
               const worldPosition = node.getAbsolutePosition();
               const position = babylonToUser(worldPosition);  // Full conversion with axis swap
@@ -1285,7 +1336,33 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             modelCollection.babylonTransformNodeId = mjcfRootNode.uniqueId.toString();
             console.log('[EditorStore] Linked MJCF model collection to unique root TransformNode:', mjcfRootNode.uniqueId);
 
-            // Build tree starting from root nodes
+            // Re-parent existing MJCF body nodes to the model collection
+            // The MJCF loader already created tree nodes for bodies, but they're parented to the hidden rootSceneNode
+            // We need to re-parent them to the modelCollection for proper tree display
+            const allTreeNodes = tree.getAllNodes();
+            const mjcfBodyNodes = allTreeNodes.filter(node => {
+              // Find nodes that are MJCF bodies by checking if their Babylon node has isMJCFBody metadata
+              if (node.babylonTransformNodeId) {
+                const babylonNode = scene.transformNodes.find(tn => tn.uniqueId.toString() === node.babylonTransformNodeId);
+                return babylonNode?.metadata?.isMJCFBody === true;
+              }
+              return false;
+            });
+
+            console.log(`[EditorStore] Found ${mjcfBodyNodes.length} MJCF body nodes to re-parent`);
+
+            // Re-parent top-level body nodes (those with hidden parent) to modelCollection
+            for (const bodyNode of mjcfBodyNodes) {
+              const parentNode = bodyNode.parentId ? tree.getNode(bodyNode.parentId) : null;
+
+              // If parent is the hidden rootSceneNode, re-parent to modelCollection
+              if (parentNode && parentNode.showInTree === false) {
+                console.log(`[EditorStore] Re-parenting MJCF body node ${bodyNode.name} from hidden root to modelCollection`);
+                tree.moveNode(bodyNode.id, modelCollection.id);
+              }
+            }
+
+            // Build tree for meshes only (body structure already exists)
             for (const rootNode of mjcfResult.rootNodes) {
               buildTreeForNode(rootNode, modelCollection.id);
             }
@@ -1505,6 +1582,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           return;
         }
 
+        // Skip device_root meshes - these are internal infrastructure
+        // They're used for entity system but shouldn't appear in the tree
+        if (isMesh && node.name.endsWith('_device_root')) {
+          console.log(`[EditorStore] Skipping device_root mesh (internal infrastructure): ${node.name}`);
+          return;
+        }
+
         // Create tree node
         // Check if this is a URDF object (already converted to Babylon Y-up)
         const isURDF = node.metadata?.isURDFMesh ||
@@ -1716,6 +1800,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           for (const child of children) {
             buildTreeForNode(child, parentNodeId, depth);
           }
+          return;
+        }
+
+        // Skip device_root meshes - these are internal infrastructure
+        // They're used for entity system but shouldn't appear in the tree
+        if (isMesh && node.name.endsWith('_device_root')) {
+          console.log(`[EditorStore] Skipping device_root mesh (internal infrastructure): ${node.name}`);
           return;
         }
 
