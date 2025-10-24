@@ -89,8 +89,33 @@ export class ForwardKinematicsSolver {
     parentBabylonNode.computeWorldMatrix(true);
 
     // Apply transform to child
+    // IMPORTANT: Check for circular parent reference before setting parent
+    // This prevents "Maximum call stack size exceeded" errors in Babylon's _syncParentEnabledState
     if (childBabylonNode.parent !== parentBabylonNode) {
-      childBabylonNode.parent = parentBabylonNode;
+      // Verify this won't create a circular reference (child becoming ancestor of itself)
+      let ancestor = parentBabylonNode.parent;
+      let maxDepth = 100; // Safety limit
+      let isCircular = false;
+
+      while (ancestor && maxDepth-- > 0) {
+        if (ancestor === childBabylonNode) {
+          console.error(
+            `[FK Solver] Circular parent reference detected: ` +
+            `Cannot set ${childBabylonNode.name} as child of ${parentBabylonNode.name} ` +
+            `because it would create a cycle`
+          );
+          isCircular = true;
+          break;
+        }
+        ancestor = ancestor.parent;
+      }
+
+      if (!isCircular) {
+        childBabylonNode.parent = parentBabylonNode;
+      } else {
+        console.warn(`[FK Solver] Skipping joint ${joint.name} due to circular reference`);
+        return false;
+      }
     }
 
     // Set local transform relative to parent

@@ -195,7 +195,17 @@ export async function createKinematicsFromURDF(
   const linkNameToNodeId = new Map<string, string>();
 
   // Build link name → node ID mapping by traversing the robot hierarchy
+  // Track visited nodes to prevent infinite recursion from circular references
+  const visited = new Set<string>();
+
   const buildLinkMapping = (nodeId: string) => {
+    // Prevent infinite recursion from circular references
+    if (visited.has(nodeId)) {
+      console.warn(`[URDFJointExtractor] Circular reference detected at node: ${nodeId}`);
+      return;
+    }
+    visited.add(nodeId);
+
     const node = sceneTreeManager.getNode(nodeId);
     if (!node) return;
 
