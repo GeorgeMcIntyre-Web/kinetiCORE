@@ -438,12 +438,12 @@
 
 /* Ensure viewport IDs are also transparent */
 #viewport-professional {
-  background: #1e1e24 !important;
+  background: transparent !important;
 }
 
-/* Match canvas background to scene background */
+/* Ensure canvas elements are transparent */
 #viewport-professional canvas {
-  background: #1e1e24 !important;
+  background: transparent !important;
 }
 
 .viewport-placeholder {
