@@ -30,6 +30,50 @@ interface DisplayInfo {
   fullDetails?: string;
 }
 
+// Build detailed info for a node (defined outside to avoid hoisting issues)
+const buildNodeDetails = (node: SceneNode): string => {
+  const parts: string[] = [];
+  parts.push(`Name: ${node.name}`);
+  parts.push(`Type: ${node.type}`);
+  if (node.parentId) {
+    const parent = SceneTreeManager.getInstance().getNode(node.parentId);
+    if (parent) {
+      parts.push(`Parent: ${parent.name}`);
+    }
+  }
+  parts.push(`Visible: ${node.visible ? 'Yes' : 'No'}`);
+  if (node.locked) {
+    parts.push(`Locked: Yes`);
+  }
+  return parts.join(' | ');
+};
+
+// Get icon for object type (defined outside to avoid hoisting issues)
+const getTypeIcon = (type: string | null): string => {
+  if (!type) return '📍';
+
+  switch (type) {
+    case 'mesh':
+      return '🔷';
+    case 'robot':
+      return '🤖';
+    case 'joint':
+      return '⚙️';
+    case 'collection':
+      return '📁';
+    case 'multiple':
+      return '📦';
+    case 'world':
+      return '🌍';
+    case 'scene':
+      return '🎬';
+    case 'system':
+      return '⚡';
+    default:
+      return '📍';
+  }
+};
+
 export const SelectionIndicator: React.FC<SelectionIndicatorProps> = ({
   selectedNodeIds,
   className = '',
@@ -89,50 +133,6 @@ export const SelectionIndicator: React.FC<SelectionIndicatorProps> = ({
       fullDetails: `Selection: ${typeSummary}`,
     };
   }, [selectedNodeIds]);
-
-  // Build detailed info for a node
-  const buildNodeDetails = (node: SceneNode): string => {
-    const parts: string[] = [];
-    parts.push(`Name: ${node.name}`);
-    parts.push(`Type: ${node.type}`);
-    if (node.parentId) {
-      const parent = SceneTreeManager.getInstance().getNode(node.parentId);
-      if (parent) {
-        parts.push(`Parent: ${parent.name}`);
-      }
-    }
-    parts.push(`Visible: ${node.visible ? 'Yes' : 'No'}`);
-    if (node.locked) {
-      parts.push(`Locked: Yes`);
-    }
-    return parts.join(' | ');
-  };
-
-  // Get icon for object type
-  const getTypeIcon = (type: string | null): string => {
-    if (!type) return '📍';
-    
-    switch (type) {
-      case 'mesh':
-        return '🔷';
-      case 'robot':
-        return '🤖';
-      case 'joint':
-        return '⚙️';
-      case 'collection':
-        return '📁';
-      case 'multiple':
-        return '📦';
-      case 'world':
-        return '🌍';
-      case 'scene':
-        return '🎬';
-      case 'system':
-        return '⚡';
-      default:
-        return '📍';
-    }
-  };
 
   return (
     <div 
