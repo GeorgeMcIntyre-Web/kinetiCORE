@@ -562,8 +562,10 @@ export const EssentialModeLayout: React.FC = () => {
 
         {/* Main Viewport */}
         <main className="flex-1 relative bg-gray-100">
-          <div id="viewport-essential" className="w-full h-full">
+          <div id="viewport-essential" className="w-full h-full relative">
             <SceneCanvas />
+            {/* Selection Indicator - Positioned inside viewport */}
+            <SelectionIndicator selectedNodeIds={selectedNodeIds} />
           </div>
         </main>
       </div>
@@ -714,9 +716,6 @@ export const EssentialModeLayout: React.FC = () => {
         isOpen={showMoveDialog}
         onClose={() => setShowMoveDialog(false)}
       />
-
-      {/* Selection Indicator - Always visible */}
-      <SelectionIndicator selectedNodeIds={selectedNodeIds} />
 
       {/* Project Manager Panel */}
       <ProjectManagerPanelV2 />
