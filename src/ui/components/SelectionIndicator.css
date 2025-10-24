@@ -8,27 +8,32 @@
 
 .selection-indicator {
   position: absolute !important;
-  top: 5px !important; /* Small padding from top */
-  left: 5px !important; /* Small padding from left */
+  top: 8px !important;
+  left: 8px !important;
 
   display: flex !important;
-  flex-direction: row !important; /* Ensure horizontal layout */
+  flex-direction: row !important;
   align-items: center !important;
-  gap: 8px;
+  justify-content: flex-start !important;
+  gap: 6px !important;
 
-  background: transparent; /* Transparent background */
-  color: #ffffff;
-  padding: 0; /* No padding to prevent shifts */
-  border-radius: 0;
+  background: transparent !important;
+  color: #ffffff !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
 
-  font-size: 14px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-  font-weight: 700; /* Bold for better readability */
-  letter-spacing: 0.5px;
+  font-size: 13px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+  line-height: 1.2 !important;
 
-  width: auto; /* Auto width, children are fixed */
-  white-space: nowrap;
-  overflow: visible;
+  width: auto !important;
+  height: auto !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
 
   border: none;
   backdrop-filter: none;
@@ -55,28 +60,31 @@
 }
 
 .selection-indicator-icon {
-  font-size: 16px;
-  line-height: 1;
-  flex-shrink: 0;
-  width: 24px !important; /* FORCE fixed width */
-  min-width: 24px !important;
-  max-width: 24px !important;
-  height: 24px;
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  overflow: hidden;
-  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  width: 18px !important;
+  min-width: 18px !important;
+  max-width: 18px !important;
+  height: 18px !important;
+  display: inline-block !important;
+  text-align: center !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .selection-indicator-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  width: 160px; /* Fixed width for text to prevent shift */
-  flex-shrink: 0; /* Don't allow shrinking */
-  text-align: left;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  text-align: left !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-block !important;
 }
 
 /* Badge for multi-selection count */
