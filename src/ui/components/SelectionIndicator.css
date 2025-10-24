@@ -11,23 +11,23 @@
   top: 10px !important; /* Top of viewport */
   left: 10px !important; /* Left edge of viewport */
 
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 8px;
 
   background: transparent; /* Transparent background */
   color: #ffffff;
-  padding: 6px 12px;
-  border-radius: 4px;
+  padding: 0; /* No padding to prevent shifts */
+  border-radius: 0;
 
   font-size: 14px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
   font-weight: 700; /* Bold for better readability */
   letter-spacing: 0.5px;
 
-  width: 200px; /* FIXED width to prevent any layout shift */
+  width: auto; /* Auto width, children are fixed */
   white-space: nowrap;
-  overflow: visible; /* Allow content to be visible */
+  overflow: visible;
 
   border: none;
   backdrop-filter: none;
@@ -69,8 +69,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex: 1;
-  min-width: 0; /* Allows text to shrink */
+  width: 160px; /* Fixed width for text to prevent shift */
+  flex-shrink: 0; /* Don't allow shrinking */
+  text-align: left;
 }
 
 /* Badge for multi-selection count */
