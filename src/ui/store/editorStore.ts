@@ -355,7 +355,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
           if (modelCollectionNode) {
             console.log(`[EditorStore] Found model collection via entity: ${modelCollectionNode.name}`);
-            set({ selectedNodeId: modelCollectionNode.id });
+            set({ selectedNodeId: modelCollectionNode.id, selectedNodeIds: [modelCollectionNode.id] });
             tree.expandToNode(modelCollectionNode.id);
             window.dispatchEvent(new Event('scenetree-update'));
             return;
@@ -371,7 +371,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const node = tree.getNodeByBabylonMeshId(mesh.uniqueId.toString());
       if (node) {
         console.log(`[EditorStore] Selecting mesh node: ${node.name}`);
-        set({ selectedNodeId: node.id });
+        set({ selectedNodeId: node.id, selectedNodeIds: [node.id] });
         // Expand tree to reveal the selected node
         tree.expandToNode(node.id);
         window.dispatchEvent(new Event('scenetree-update'));
