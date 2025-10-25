@@ -68,7 +68,6 @@ export async function loadOBJFile(
     console.log(`[OBJ Loader] Loading file: ${file.name}`);
 
     let objFile: File = file;
-    let mtlFile: File | undefined;
     let modelName: string;
 
     // Check if it's a ZIP file
@@ -76,7 +75,7 @@ export async function loadOBJFile(
       console.log('[OBJ Loader] ZIP file detected, extracting...');
       const extracted = await extractOBJFromZip(file);
       objFile = extracted.objFile;
-      mtlFile = extracted.mtlFile;
+      // Note: mtlFile is intentionally not used - we strip MTL references to avoid blob URL issues
       modelName = extracted.modelName;
     } else {
       modelName = file.name.replace(/\.(obj|OBJ)$/, '');
