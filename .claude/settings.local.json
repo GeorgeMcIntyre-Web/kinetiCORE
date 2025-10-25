@@ -110,7 +110,14 @@
       "Bash(timeout 30 sleep:*)",
       "Bash(gh pr view:*)",
       "Bash(git fetch:*)",
-      "Bash(timeout 30 npm run lint:*)"
+      "Bash(timeout 30 npm run lint:*)",
+      "Bash(where:*)",
+      "Bash(dotnet --version:*)",
+      "Read(//c/Program Files/**)",
+      "Bash(gh pr list:*)",
+      "Bash(gh run list:*)",
+      "Read(//c/Program Files (x86)/**)",
+      "Bash(gh run view:*)"
     ],
     "deny": [],
     "ask": []
