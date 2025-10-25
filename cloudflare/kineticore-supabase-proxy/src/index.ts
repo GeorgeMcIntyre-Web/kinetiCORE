@@ -82,11 +82,11 @@ async function handleAuth(request: Request, supabase: any, env: Env): Promise<Re
   try {
     const url = new URL(request.url)
     // Remove '/auth' from the path, keeping 'v1/signup' etc.
-    const path = url.pathname.replace('/auth', '')
+    const pathAndQuery = `${url.pathname}${url.search}`
     
     // Forward auth requests to Supabase
-    const supabaseUrl = `${env.SUPABASE_URL}/auth${path}`
-    console.log('Auth request:', { originalPath: url.pathname, newPath: path, supabaseUrl })
+    const supabaseUrl = `${env.SUPABASE_URL}${pathAndQuery}`
+    console.log('Auth request:', { path: pathAndQuery, supabaseUrl })
     
     const modifiedRequest = new Request(supabaseUrl, {
       method: request.method,
@@ -165,7 +165,7 @@ async function handleAuth(request: Request, supabase: any, env: Env): Promise<Re
  */
 async function handleRest(request: Request, supabase: any, env: Env): Promise<Response> {
   const url = new URL(request.url)
-  const path = url.pathname.replace('/rest/', '')
+  const pathAndQuery = `${url.pathname}${url.search}`
   
   // Extract JWT token from Authorization header
   const authHeader = request.headers.get('Authorization')
@@ -205,7 +205,7 @@ async function handleRest(request: Request, supabase: any, env: Env): Promise<Re
  */
 async function handleStorage(request: Request, supabase: any, env: Env): Promise<Response> {
   const url = new URL(request.url)
-  const path = url.pathname.replace('/storage/', '')
+  const pathAndQuery = `${url.pathname}${url.search}`
   
   // Forward storage requests to Supabase
   const supabaseUrl = `${env.SUPABASE_URL}/storage/v1/${path}`
@@ -258,7 +258,7 @@ async function handleRealtime(request: Request, supabase: any, env: Env): Promis
  */
 async function handleFunctions(request: Request, supabase: any, env: Env): Promise<Response> {
   const url = new URL(request.url)
-  const path = url.pathname.replace('/functions/', '')
+  const pathAndQuery = `${url.pathname}${url.search}`
   
   // Forward function requests to Supabase
   const supabaseUrl = `${env.SUPABASE_URL}/functions/v1/${path}`
@@ -315,7 +315,7 @@ async function handleR2Assets(
   ctx: ExecutionContext
 ): Promise<Response> {
   const url = new URL(request.url)
-  const path = url.pathname.replace('/assets/', '')
+  const pathAndQuery = `${url.pathname}${url.search}`
   
   // Upload file to R2
   if (request.method === 'POST' || request.method === 'PUT') {

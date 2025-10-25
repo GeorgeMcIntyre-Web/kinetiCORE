@@ -26,7 +26,12 @@ import {
   Target,
   GitBranch,
   Network,
+  Bot,
 } from 'lucide-react';
+import { loadOBJFile } from '../../loaders/obj/OBJLoader';
+import { SceneManager } from '../../scene/SceneManager';
+import { toast } from '../components/ToastNotifications';
+import { loading } from '../components/LoadingIndicator';
 
 // Custom Quick Move Icon combining speed lines with move arrows
 const QuickMoveIcon = ({ size = 32 }: { size?: number }) => (
@@ -129,11 +134,13 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const worldLoadInputRef = useRef<HTMLInputElement>(null);
+  const objInputRef = useRef<HTMLInputElement>(null);
 
   // Handlers
   const handleImportFile = () => fileInputRef.current?.click();
   const handleImportFolder = () => folderInputRef.current?.click();
   const handleLoadWorld = () => worldLoadInputRef.current?.click();
+  const handleImportOBJ = () => objInputRef.current?.click();
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -143,6 +150,39 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
       }
     }
     event.target.value = '';
+  };
+
+  const handleOBJFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    if (!scene) {
+      toast.error('Scene not initialized');
+      return;
+    }
+
+    loading.start(`Loading ${file.name}...`, 'uploading');
+
+    try {
+      const result = await loadOBJFile(file, scene);
+
+      if (result.success) {
+        toast.success(`Loaded ${result.meshes.length} meshes from ${file.name}`);
+        console.log(`[Ribbon] Successfully imported OBJ: ${file.name}`);
+      } else {
+        toast.error(`Failed to load OBJ: ${result.errorMessage || 'Unknown error'}`);
+        console.error(`[Ribbon] OBJ import failed:`, result.errorMessage);
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to load OBJ: ${errorMsg}`);
+      console.error('[Ribbon] OBJ import error:', error);
+    } finally {
+      loading.end();
+      event.target.value = '';
+    }
   };
 
   const handleFolderChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -210,6 +250,9 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           </button>
           <button className="ribbon-btn" onClick={handleImportFolder} title="Load Folder">
             <FolderUp size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={handleImportOBJ} title="Import Robot (OBJ)">
+            <Bot size={32} />
           </button>
         </div>
       </div>
@@ -401,6 +444,13 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
         type="file"
         accept=".json"
         onChange={handleWorldFileChange}
+        style={{ display: 'none' }}
+      />
+      <input
+        ref={objInputRef}
+        type="file"
+        accept=".obj,.zip"
+        onChange={handleOBJFileChange}
         style={{ display: 'none' }}
       />
     </div>

@@ -1392,7 +1392,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           // Continue to throw the generic error below
         }
 
-        throw new Error('No valid URDF or MJCF found in ZIP archive');
+        // No URDF or MJCF found, try OBJ
+        console.log(`[File Import] No URDF or MJCF found in ZIP, trying OBJ...`);
+        try {
+          const { loadOBJFile } = await import('../../loaders/obj/OBJLoader');
+          const objResult = await loadOBJFile(file, scene);
+          if (objResult.success) {
+            console.log(`[File Import] Successfully loaded OBJ from ZIP: ${objResult.meshes.length} meshes`);
+            loading.end();
+            toast.success(`Loaded ${objResult.meshes.length} meshes from OBJ`);
+            return;
+          }
+        } catch (objError) {
+          console.log(`[File Import] OBJ loading failed:`, objError);
+        }
+
+        throw new Error('No valid URDF, MJCF, or OBJ found in ZIP archive');
 
       } catch (error) {
         console.error('[File Import] Error loading zip file:', error);
