@@ -140,7 +140,9 @@ vite.config.ts.timestamp-*
 
 # C# / .NET build artifacts
 bin/
-obj/
+**/bin/
+**/obj/
+!src/loaders/obj/
 *.dll
 *.exe
 *.pdb
