@@ -642,26 +642,6 @@ export const SceneTree: React.FC = () => {
         <h2>Scene</h2>
       </div>
 
-      {/* Search bar */}
-      <div className="scene-tree-search">
-        <Search size={16} className="search-icon" />
-        <input
-          type="text"
-          placeholder="Search scene (Ctrl+F)"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        {searchTerm && (
-          <button
-            className="clear-search"
-            onClick={handleClearSearch}
-            title="Clear search"
-          >
-            <X size={16} />
-          </button>
-        )}
-      </div>
-
       {/* Bulk operations panel */}
       {selectedNodes.length > 1 && (
         <div className="bulk-operations">
@@ -685,6 +665,26 @@ export const SceneTree: React.FC = () => {
 
       <div className="scene-tree-content">
         <TreeNode node={rootNode} level={0} searchTerm={searchTerm} />
+      </div>
+
+      {/* Search bar */}
+      <div className="scene-tree-search">
+        <Search size={16} className="search-icon" />
+        <input
+          type="text"
+          placeholder="Search scene (Ctrl+F)"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        {searchTerm && (
+          <button
+            className="clear-search"
+            onClick={handleClearSearch}
+            title="Clear search"
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
     </div>
   );

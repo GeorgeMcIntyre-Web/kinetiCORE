@@ -5,7 +5,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #1e1e1e;
+  background: #111827;
   color: #cccccc;
   border-right: 1px solid #333;
 }
@@ -26,13 +26,12 @@
 /* Search Bar */
 
 .scene-tree-search {
-  margin-top: 80px;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 4px;
   background: #252526;
-  border-bottom: 1px solid #333;
+  border-top: 1px solid #333;
   position: relative;
   flex-shrink: 0;
 }
@@ -146,6 +145,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0;
+  padding-top: 80px;
 }
 
 /* Tree Node */
