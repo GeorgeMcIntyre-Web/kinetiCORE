@@ -26,7 +26,6 @@ import {
   Target,
   GitBranch,
   Network,
-  Bot,
 } from 'lucide-react';
 import { loadOBJFile } from '../../loaders/obj/OBJLoader';
 import { SceneManager } from '../../scene/SceneManager';
@@ -249,14 +248,14 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
       <div className="ribbon-category-excel">
         <div className="ribbon-category-label">Import</div>
         <div className="ribbon-buttons-row">
-          <button className="ribbon-btn" onClick={handleImportFile} title="Load File">
+          <button className="ribbon-btn" onClick={handleImportFile} title="Import Model (URDF, GLTF, USD, etc.)">
             <FileUp size={32} />
           </button>
-          <button className="ribbon-btn" onClick={handleImportFolder} title="Load Folder">
+          <button className="ribbon-btn" onClick={handleImportFolder} title="Import Folder">
             <FolderUp size={32} />
           </button>
-          <button className="ribbon-btn" onClick={handleImportOBJ} title="Import Robot (OBJ)">
-            <Bot size={32} />
+          <button className="ribbon-btn" onClick={handleImportOBJ} title="Import OBJ Mesh">
+            <Package size={32} />
           </button>
         </div>
       </div>
