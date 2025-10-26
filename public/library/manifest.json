@@ -1,12 +1,12 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2025-10-23T15:38:25.265Z",
-  "totalAssets": 65,
+  "lastUpdated": "2025-10-26T18:55:00.000Z",
+  "totalAssets": 66,
   "domains": [
     {
       "id": "manufacturing",
       "name": "Manufacturing & Robotics",
-      "assetCount": 41,
+      "assetCount": 42,
       "manifestPath": "manufacturing/manifest.json"
     },
     {

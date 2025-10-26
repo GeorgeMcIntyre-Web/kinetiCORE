@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2025-10-23T15:38:25.259Z",
-  "totalAssets": 41,
+  "lastUpdated": "2025-10-26T18:55:00.000Z",
+  "totalAssets": 42,
   "assets": [
     {
       "id": "fanuc-m20ia",
@@ -146,6 +146,48 @@
         "payload": 8,
         "reach": 729
       }
+    },
+    {
+      "id": "motoman-mh5",
+      "name": "Yaskawa Motoman MH5",
+      "manufacturer": "Yaskawa",
+      "modelNumber": "MH5",
+      "domain": "manufacturing",
+      "assetClass": "robot",
+      "assetType": "industrial-robot",
+      "loaderType": "urdf",
+      "filePath": "/models/motoman/mh5/robot.urdf",
+      "source": "manufacturer",
+      "tags": [
+        "robot",
+        "industrial",
+        "6-axis",
+        "handling",
+        "compact"
+      ],
+      "searchKeywords": [
+        "yaskawa",
+        "motoman",
+        "mh5",
+        "handling"
+      ],
+      "description": "Compact 6-axis handling robot, 5kg payload, 710mm reach, high-speed operation",
+      "capabilities": {
+        "hasKinematics": true,
+        "dof": 6,
+        "payload": 5,
+        "reach": 710,
+        "repeatability": 0.08,
+        "dimensions": {
+          "length": 350,
+          "width": 350,
+          "height": 640
+        },
+        "mass": 45
+      },
+      "categories": [
+        "6-axis-arms"
+      ]
     },
     {
       "id": "cnc-mill-haas-vf2",
