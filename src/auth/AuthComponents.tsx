@@ -365,7 +365,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description }) =
  */
 export const UserProfile: React.FC = () => {
   const { user, updateProfile, logout } = useAuth();
-  const { hasPermission: _hasPermission } = useUserPermissions();
+  useUserPermissions(); // Hook must be called even if not using hasPermission
   const [editing, setEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -543,7 +543,7 @@ export const UserProfile: React.FC = () => {
  * Team Management Component
  */
 export const TeamManagement: React.FC = () => {
-  const { userTeams: _userTeams, joinTeam: _joinTeam, leaveTeam: _leaveTeam, createTeam: _createTeam, canCreateTeam } = useTeamManagement();
+  const { canCreateTeam } = useTeamManagement();
   const [teams, setTeams] = useState<Team[]>([]);
   const [showCreateTeam, setShowCreateTeam] = useState(false);
 

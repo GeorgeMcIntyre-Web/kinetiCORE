@@ -12,7 +12,8 @@
       "Bash(npm run type-check:*)",
       "Bash(git commit:*)",
       "Bash(npm test:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
