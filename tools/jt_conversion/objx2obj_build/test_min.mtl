@@ -1,0 +1,5 @@
+# Materials from OBJX
+newmtl mat_0
+Kd 0.64 0.64 0.64
+newmtl mat_1
+Kd 0.843122 0.5411612 0.3176318

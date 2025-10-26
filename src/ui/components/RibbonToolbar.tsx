@@ -143,6 +143,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   const handleImportOBJ = () => objInputRef.current?.click();
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('[RibbonToolbar] ❌ GENERIC FILE LOADER - WRONG BUTTON! Use the Robot icon for OBJ files');
     const files = event.target.files;
     if (files && files.length > 0) {
       for (let i = 0; i < files.length; i++) {
@@ -155,6 +156,9 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   const handleOBJFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    console.log('[RibbonToolbar] ✅ OBJ LOADER HANDLER CALLED - This is the correct button!');
+    console.log('[RibbonToolbar] File:', file.name);
 
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();

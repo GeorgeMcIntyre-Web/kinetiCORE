@@ -171,13 +171,17 @@ export async function loadOBJFile(
 
             // Ensure diffuse color exists
             if (!mat.diffuseColor || mat.diffuseColor.r === 0 && mat.diffuseColor.g === 0 && mat.diffuseColor.b === 0) {
-              mat.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.7);
+              mat.diffuseColor = new BABYLON.Color3(0.95, 0.95, 0.95); // Bright gray for visibility
             }
+
+            // Add slight emissive for better visibility in dark scenes
+            mat.emissiveColor = new BABYLON.Color3(0.05, 0.05, 0.05);
           }
         } else {
           // No material - create a default one
           const defaultMat = new BABYLON.StandardMaterial(`${mesh.name}_mat`, scene);
-          defaultMat.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.7);
+          defaultMat.diffuseColor = new BABYLON.Color3(0.95, 0.95, 0.95); // Bright gray
+          defaultMat.emissiveColor = new BABYLON.Color3(0.05, 0.05, 0.05); // Slight self-illumination
           defaultMat.backFaceCulling = false;
           defaultMat.twoSidedLighting = true;
           babylonMesh.material = defaultMat;
