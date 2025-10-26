@@ -151,56 +151,89 @@ src/lib/
 
 ---
 
-### 4. Device Motion (TCP Move) ❌ NOT WORKING
+### 4. Device Motion (TCP Move) ⚠️ DEBUG LOGGING ADDED
 
-**Status:** Joint mode works, TCP mode has issues
+**Status:** Joint mode works, TCP mode debugging in progress
 
 **What Works:**
 - ✅ Joint jogging mode (individual joint control)
 - ✅ FK solver updates ([ForwardKinematicsSolver.ts](src/kinematics/ForwardKinematicsSolver.ts))
 - ✅ Joint position display and limits
 - ✅ Robot jogging panel UI ([RobotJoggingPanel.tsx](src/ui/components/RobotJoggingPanel.tsx))
+- ✅ **NEW:** Comprehensive debug logging added to IK solver and jogging panel
 
 **Known Issues:**
-- ❌ **ISSUE #4:** TCP (Cartesian) jogging does not function
+- ⚠️ **ISSUE #4:** TCP (Cartesian) jogging does not function (DEBUG LOGGING ADDED)
   - Joint mode: ✅ Works perfectly
-  - TCP mode: ❌ Does not move robot end effector
-  - IK solver may not be correctly integrated
-  - Coordinate space conversion may have issues
+  - TCP mode: ⏳ Debugging in progress
+  - Debug logs will reveal root cause:
+    - Chain not found?
+    - FK solver returns null?
+    - IK solver fails to converge?
+    - Coordinate conversion issue?
 
-**Code Location:**
+**Debug Logging Added (2025-10-26):**
 ```typescript
-// src/ui/components/RobotJoggingPanel.tsx:122
-const handleJogTcp = (axis: JogAxis, direction: number) => {
-  // ... TCP jogging logic
-  // IK solver integration appears to be the issue
+// src/kinematics/InverseKinematicsSolver.ts:413-474
+moveEndEffector() {
+  console.log(`[IK moveEndEffector] Chain: ${chainName}, Method: ${method}`);
+  console.log(`[IK moveEndEffector] Delta:`, positionDelta);
+  console.log(`[IK moveEndEffector] Current position:`, currentPose.position);
+  console.log(`[IK moveEndEffector] Target position:`, targetPosition);
+  // ... IK solving with detailed error reporting
+}
+
+// src/ui/components/RobotJoggingPanel.tsx:123-150
+handleJogTcp() {
+  console.log(`[RobotJoggingPanel] TCP Jog: ${axis} ${direction > 0 ? '+' : '-'}`);
+  console.log(`[RobotJoggingPanel] Robot ID: ${robotId}`);
+  console.log(`[RobotJoggingPanel] Available chains:`, chains);
+  console.log(`[RobotJoggingPanel] Using chain: ${chainName}`);
+  // ... detailed jogging workflow logging
 }
 ```
 
-**Debugging Needed:**
-1. Verify IK solver is correctly initialized
-2. Check coordinate space conversions (User Z-up → Babylon Y-up)
-3. Verify TCP position calculation from FK solver
-4. Test IK solver with known target positions
-5. Add debug logging to trace IK solver failures
+**Documentation:**
+- Created: [docs/DEBUG_TCP_MOVE.md](docs/DEBUG_TCP_MOVE.md)
+- Complete debugging guide with:
+  - Testing instructions
+  - Console output examples
+  - Root cause analysis
+  - Fix recommendations
 
-**Files:**
+**Testing Instructions:**
+1. Run `npm run dev`
+2. Load a robot (URDF or JT-converted)
+3. Open Kinematics Panel → TCP mode
+4. Open browser console (F12)
+5. Click +X button
+6. Analyze console output (see DEBUG_TCP_MOVE.md)
+
+**Potential Root Causes:**
+1. **Chain Not Found:** Robot ID mismatch
+2. **FK Solver Null:** Chain not properly initialized
+3. **IK Fails to Converge:** Target unreachable or singularity
+4. **Coordinate Mismatch:** USER (Z-up, mm) ↔ BABYLON (Y-up, m)
+
+**Files Modified:**
 ```
 src/kinematics/
-├── ForwardKinematicsSolver.ts    # FK (works)
-├── InverseKinematicsSolver.ts    # IK (needs debug)
-└── KinematicsManager.ts           # Integration layer
+├── InverseKinematicsSolver.ts    # Added debug logging (moveEndEffector)
+└── ForwardKinematicsSolver.ts    # FK solver (working)
 
 src/ui/components/
-└── RobotJoggingPanel.tsx          # UI (TCP mode broken)
+└── RobotJoggingPanel.tsx          # Added debug logging (handleJogTcp)
+
+docs/
+└── DEBUG_TCP_MOVE.md              # Complete debugging guide (NEW)
 ```
 
 **Next Steps:**
-1. Add IK solver debug logging
-2. Create unit tests for IK solver
-3. Verify coordinate system conversions
-4. Test with simple 6-DOF robot (KUKA KR270)
-5. Document working TCP jogging workflow
+1. ⏳ **User Testing:** Run locally with debug logs enabled
+2. ⏳ **Analyze Output:** Identify specific failure mode
+3. ⏳ **Implement Fix:** Based on console output analysis
+4. ⏳ **Verify:** Test TCP jogging in all axes (X, Y, Z, RX, RY, RZ)
+5. ⏳ **Cleanup:** Remove/conditionalize debug logs
 
 ---
 

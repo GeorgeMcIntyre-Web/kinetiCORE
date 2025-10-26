@@ -121,13 +121,18 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
   };
 
   const handleJogTcp = (axis: JogAxis, direction: number) => {
+    console.log(`[RobotJoggingPanel] TCP Jog: ${axis} ${direction > 0 ? '+' : '-'}`);
+    console.log(`[RobotJoggingPanel] Robot ID: ${robotId}`);
+
     const kinematicsManager = KinematicsManager.getInstance();
     const chains = kinematicsManager.getAllChains();
 
     if (chains.length === 0) {
-      console.warn('No kinematic chains available');
+      console.warn('[RobotJoggingPanel] No kinematic chains available');
       return;
     }
+
+    console.log(`[RobotJoggingPanel] Available chains:`, chains.map(c => ({ name: c.name, id: c.id, joints: c.joints.length })));
 
     // Find the chain for this specific robot
     const robotChain = chains.find(chain =>
@@ -135,11 +140,14 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
     );
 
     if (!robotChain) {
-      console.warn('No kinematic chain found for this robot');
+      console.warn('[RobotJoggingPanel] No kinematic chain found for this robot');
+      console.warn('[RobotJoggingPanel] Looking for robotId:', robotId);
+      console.warn('[RobotJoggingPanel] Available joint IDs:', chains.map(c => c.joints.map((j: any) => j.id)));
       return;
     }
 
     const chainName = robotChain.name;
+    console.log(`[RobotJoggingPanel] Using chain: ${chainName} (${robotChain.joints.length} joints)`);
 
     // Create delta in USER space (Z-up, mm)
     const userDelta = { x: 0, y: 0, z: 0 };
@@ -190,17 +198,22 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
     }
 
     // Linear motion (position IK)
+    console.log(`[RobotJoggingPanel] Position delta (Babylon space):`, positionDelta);
+    console.log(`[RobotJoggingPanel] Attempting CCD IK...`);
+
     // Try CCD first (more robust), fallback to Jacobian
     success = ikSolver.moveEndEffector(chainName, positionDelta, 'ccd');
 
     if (!success) {
-      console.log('CCD failed, trying Jacobian method...');
+      console.log('[RobotJoggingPanel] CCD failed, trying Jacobian method...');
       success = ikSolver.moveEndEffector(chainName, positionDelta, 'jacobian');
     }
 
     if (!success) {
-      console.warn(`IK failed for TCP jog: ${axis} ${direction > 0 ? '+' : '-'}`);
-      console.warn('Target may be out of reach or robot in singular configuration');
+      console.error(`[RobotJoggingPanel] ❌ IK failed for TCP jog: ${axis} ${direction > 0 ? '+' : '-'}`);
+      console.error('[RobotJoggingPanel] Target may be out of reach or robot in singular configuration');
+    } else {
+      console.log(`[RobotJoggingPanel] ✅ TCP jog successful: ${axis} ${direction > 0 ? '+' : '-'}`);
     }
   };
 

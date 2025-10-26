@@ -9,7 +9,8 @@
       "Bash(findstr:*)",
       "Bash(git add:*)",
       "Bash(git push:*)",
-      "Bash(npm run type-check:*)"
+      "Bash(npm run type-check:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

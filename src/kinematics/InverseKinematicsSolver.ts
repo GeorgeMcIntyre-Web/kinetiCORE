@@ -415,31 +415,47 @@ export class InverseKinematicsSolver {
     positionDelta: BABYLON.Vector3,
     method: 'jacobian' | 'ccd' | 'fabrik' = 'jacobian'
   ): boolean {
+    console.log(`[IK moveEndEffector] Chain: ${chainName}, Method: ${method}`);
+    console.log(`[IK moveEndEffector] Delta:`, positionDelta);
+
     // Get current end-effector pose
     const currentPose = this.fkSolver.getEndEffectorPose(chainName);
     if (!currentPose) {
-      console.error('[IK] Failed to get current end-effector pose');
+      console.error('[IK moveEndEffector] Failed to get current end-effector pose');
+      console.error('[IK moveEndEffector] Available chains:', this.kinematicsManager.getAllChains().map(c => c.name));
       return false;
     }
 
+    console.log(`[IK moveEndEffector] Current position:`, currentPose.position);
+
     // Compute new target position
     const targetPosition = currentPose.position.add(positionDelta);
+    console.log(`[IK moveEndEffector] Target position:`, targetPosition);
 
     // Solve IK for new position
     if (method === 'fabrik') {
+      console.log('[IK moveEndEffector] Using FABRIK method');
       const solution = this.solveFABRIK(chainName, { position: targetPosition });
-      if (!solution.success) return false;
+      if (!solution.success) {
+        console.error('[IK moveEndEffector] FABRIK failed:', solution);
+        return false;
+      }
 
       const chain = this.kinematicsManager.getChain(chainName);
-      if (!chain) return false;
+      if (!chain) {
+        console.error('[IK moveEndEffector] Chain not found:', chainName);
+        return false;
+      }
       const joints = this.kinematicsManager.getChainJoints(chain.id);
       for (let i = 0; i < joints.length; i++) {
         this.fkSolver.updateJointPosition(joints[i].id, solution.jointAngles[i]);
       }
+      console.log('[IK moveEndEffector] ✅ FABRIK succeeded');
       return true;
     }
 
-    return this.solveAndApply(
+    console.log(`[IK moveEndEffector] Using ${method} method via solveAndApply`);
+    const result = this.solveAndApply(
       chainName,
       {
         position: targetPosition,
@@ -447,6 +463,14 @@ export class InverseKinematicsSolver {
       },
       method
     );
+
+    if (result) {
+      console.log('[IK moveEndEffector] ✅ Success');
+    } else {
+      console.error('[IK moveEndEffector] ❌ Failed');
+    }
+
+    return result;
   }
 
   /**
