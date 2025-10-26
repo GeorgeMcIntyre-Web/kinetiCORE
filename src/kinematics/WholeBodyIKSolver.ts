@@ -409,7 +409,7 @@ export class WholeBodyIKSolver {
    * Simplified calculation assuming equal mass distribution
    */
   private computeCenterOfMass(targets: Map<string, IKTarget>): BABYLON.Vector3 {
-    let sum = BABYLON.Vector3.Zero();
+    const sum = BABYLON.Vector3.Zero();
     let count = 0;
 
     targets.forEach((target) => {

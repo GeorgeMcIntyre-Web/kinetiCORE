@@ -52,7 +52,7 @@ async function readDwgFile(filePath: string) {
     // List layers
     if (db.layers) {
       console.log('\n=== Layers ===');
-      for (const [name, layer] of Object.entries(db.layers)) {
+      for (const [name] of Object.entries(db.layers)) {
         console.log(`  - ${name}`);
       }
     }

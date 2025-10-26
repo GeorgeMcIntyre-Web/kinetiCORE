@@ -174,9 +174,8 @@ router.get('/v1/assets/:assetId/download', async (request, env: Env) => {
 
 // === Asset Upload (Authenticated) ===
 
-router.post('/v1/upload/initiate', requireAuth, async (request, env: Env) => {
+router.post('/v1/upload/initiate', requireAuth, async (_request, _env: Env) => {
   try {
-    const body = await request.json();
     // TODO: Implement upload initiation
     return jsonResponse({
       uploadId: 'upload_' + Date.now(),
@@ -363,7 +362,7 @@ async function searchAssets(
 /**
  * Get asset by ID
  */
-async function getAsset(env: Env, assetId: string, version: string): Promise<any> {
+async function getAsset(env: Env, assetId: string, _version: string): Promise<any> {
   const result = await env.ASSETS_DB.prepare(`SELECT * FROM assets WHERE id = ?`)
     .bind(assetId)
     .first();

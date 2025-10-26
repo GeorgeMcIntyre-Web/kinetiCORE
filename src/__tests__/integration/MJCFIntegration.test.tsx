@@ -12,13 +12,15 @@ import { ActuatorControlPanel } from '../../ui/components/ActuatorControlPanel';
 import { PhysicsSettings } from '../../ui/components/PhysicsSettings';
 import { CollisionVisualizer } from '../../ui/components/CollisionVisualizer';
 
+import { vi } from 'vitest';
+
 // Mock the editor store
-jest.mock('../../ui/store/editorStore');
+vi.mock('../../ui/store/editorStore');
 
 describe('MJCF Integration Tests', () => {
   beforeEach(() => {
     // Reset any mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('MJCFIntegration', () => {

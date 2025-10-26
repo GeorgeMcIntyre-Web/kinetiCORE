@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { UnifiedGizmoManager, GizmoTargetType, ActivePanel } from '../UnifiedGizmoManager';
+import { UnifiedGizmoManager, ActivePanel } from '../UnifiedGizmoManager';
 import * as BABYLON from '@babylonjs/core';
 
 // Mock IKTargetGizmoManager

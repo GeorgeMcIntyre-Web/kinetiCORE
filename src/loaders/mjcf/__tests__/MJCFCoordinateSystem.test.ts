@@ -56,8 +56,10 @@ describe("MJCF Coordinate System Conversion", () => {
 
     test("converts 90 degree rotation around Z axis", () => {
       const mujocoQuat: [number, number, number, number] = [0.7071, 0, 0, 0.7071];
-      const expected = new Quaternion(0, 0, 0.7071, 0.7071);
-      
+      // MuJoCo [w, x, y, z] -> Babylon (x, z, y, w)
+      // [0.7071, 0, 0, 0.7071] -> (0, 0.7071, 0, 0.7071)
+      const expected = new Quaternion(0, 0.7071, 0, 0.7071);
+
       const result = convertQuaternion(mujocoQuat);
       expect(result.x).toBeCloseTo(expected.x, 4);
       expect(result.y).toBeCloseTo(expected.y, 4);
@@ -67,8 +69,10 @@ describe("MJCF Coordinate System Conversion", () => {
 
     test("converts arbitrary quaternion", () => {
       const mujocoQuat: [number, number, number, number] = [0.8, 0.1, 0.2, 0.3];
-      const expected = new Quaternion(0.1, 0.2, 0.3, 0.8);
-      
+      // MuJoCo [w, x, y, z] -> Babylon (x, z, y, w)
+      // [0.8, 0.1, 0.2, 0.3] -> (0.1, 0.3, 0.2, 0.8) - swaps y and z
+      const expected = new Quaternion(0.1, 0.3, 0.2, 0.8);
+
       expect(convertQuaternion(mujocoQuat)).toEqual(expected);
     });
 

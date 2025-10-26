@@ -35,7 +35,6 @@ export default {
       // Parse the request
       const url = new URL(request.url)
       const path = url.pathname
-      const method = request.method
 
       // Route requests to appropriate endpoints
       if (path.startsWith('/assets/')) {
@@ -165,8 +164,8 @@ async function handleAuth(request: Request, supabase: any, env: Env): Promise<Re
  */
 async function handleRest(request: Request, supabase: any, env: Env): Promise<Response> {
   const url = new URL(request.url)
-  const pathAndQuery = `${url.pathname}${url.search}`
-  
+  // Path and query extracted from URL
+
   // Extract JWT token from Authorization header
   const authHeader = request.headers.get('Authorization')
   const token = authHeader?.replace('Bearer ', '')
@@ -205,8 +204,8 @@ async function handleRest(request: Request, supabase: any, env: Env): Promise<Re
  */
 async function handleStorage(request: Request, supabase: any, env: Env): Promise<Response> {
   const url = new URL(request.url)
-  const pathAndQuery = `${url.pathname}${url.search}`
-  
+  // Path and query extracted from URL
+
   // Forward storage requests to Supabase
   const supabaseUrl = `${env.SUPABASE_URL}/storage/v1/${path}`
   const modifiedRequest = new Request(supabaseUrl, {
@@ -239,7 +238,7 @@ async function handleStorage(request: Request, supabase: any, env: Env): Promise
 /**
  * Handle realtime requests
  */
-async function handleRealtime(request: Request, supabase: any, env: Env): Promise<Response> {
+async function handleRealtime(_request: Request, _supabase: any, _env: Env): Promise<Response> {
   // For realtime, we'll need to implement WebSocket proxying
   // This is more complex and might require a different approach
   return new Response(JSON.stringify({ 
@@ -258,8 +257,8 @@ async function handleRealtime(request: Request, supabase: any, env: Env): Promis
  */
 async function handleFunctions(request: Request, supabase: any, env: Env): Promise<Response> {
   const url = new URL(request.url)
-  const pathAndQuery = `${url.pathname}${url.search}`
-  
+  // Path and query extracted from URL
+
   // Forward function requests to Supabase
   const supabaseUrl = `${env.SUPABASE_URL}/functions/v1/${path}`
   const modifiedRequest = new Request(supabaseUrl, {
@@ -310,12 +309,12 @@ function getCORSHeaders(): Record<string, string> {
  * Handle R2 asset storage (files, meshes, textures)
  */
 async function handleR2Assets(
-  request: Request, 
-  env: Env, 
-  ctx: ExecutionContext
+  request: Request,
+  env: Env,
+  _ctx: ExecutionContext
 ): Promise<Response> {
   const url = new URL(request.url)
-  const pathAndQuery = `${url.pathname}${url.search}`
+  // Path and query extracted from URL
   
   // Upload file to R2
   if (request.method === 'POST' || request.method === 'PUT') {

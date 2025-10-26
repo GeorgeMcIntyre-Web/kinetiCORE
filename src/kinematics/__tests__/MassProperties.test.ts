@@ -71,7 +71,7 @@ describe('MassPropertiesComputer - Unit Tests', () => {
     });
 
     it('should handle single mass', () => {
-      const mass = 5;
+      const _mass = 5;
       const position = new BABYLON.Vector3(2, 3, 4);
 
       // CoM of single mass is just its position

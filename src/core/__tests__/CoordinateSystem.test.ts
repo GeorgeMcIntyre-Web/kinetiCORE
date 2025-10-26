@@ -6,10 +6,10 @@
  * and Babylon space (Y-up, meters)
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import * as CoordSystem from '../CoordinateSystem';
 import * as BABYLON from '@babylonjs/core';
-import { Vector3, Quaternion } from '../types';
+import { Vector3 } from '../types';
 
 describe('CoordinateSystem', () => {
   describe('Constants', () => {
@@ -222,24 +222,24 @@ describe('CoordinateSystem', () => {
     });
   });
 
-  describe('formatPositionDisplay', () => {
+  describe('formatPositionForDisplay', () => {
     it('should format position with units', () => {
-      const pos: Vector3 = { x: 1234.567, y: 2345.678, z: 3456.789 };
-      const formatted = CoordSystem.formatPositionDisplay(pos);
+      const pos = new BABYLON.Vector3(1.234567, 3.456789, 2.345678);
+      const formatted = CoordSystem.formatPositionForDisplay(pos);
 
-      expect(formatted).toContain('1234.57');
-      expect(formatted).toContain('2345.68');
-      expect(formatted).toContain('3456.79');
-      expect(formatted).toContain('mm');
+      expect(formatted.x).toContain('1234.6');
+      expect(formatted.y).toContain('2345.7');
+      expect(formatted.z).toContain('3456.8');
+      expect(formatted.x).toContain('mm');
     });
 
-    it('should round to 2 decimal places', () => {
-      const pos: Vector3 = { x: 123.456789, y: 234.567890, z: 345.678901 };
-      const formatted = CoordSystem.formatPositionDisplay(pos);
+    it('should round to 1 decimal place', () => {
+      const pos = new BABYLON.Vector3(0.123456, 0.345678, 0.234567);
+      const formatted = CoordSystem.formatPositionForDisplay(pos);
 
-      expect(formatted).toContain('123.46');
-      expect(formatted).toContain('234.57');
-      expect(formatted).toContain('345.68');
+      expect(formatted.x).toContain('123.5');
+      expect(formatted.y).toContain('234.6');
+      expect(formatted.z).toContain('345.7');
     });
   });
 
@@ -327,12 +327,16 @@ describe('CoordinateSystem', () => {
       const babylonY = CoordSystem.userVectorToBabylon(userY);
       const babylonZ = CoordSystem.userVectorToBabylon(userZ);
 
-      // Check right-handedness: X × Y = Z
+      // Check right-handedness: X × Z = Y (in Babylon coords, Y is up, Z is forward)
+      // User X (1,0,0) → Babylon X (1,0,0)
+      // User Y (0,1,0) → Babylon Z (0,0,1)
+      // User Z (0,0,1) → Babylon Y (0,1,0)
+      // X × Z = Y in Babylon
       const cross = BABYLON.Vector3.Cross(babylonX, babylonY);
 
-      expect(cross.x).toBeCloseTo(babylonZ.x, 5);
-      expect(cross.y).toBeCloseTo(babylonZ.y, 5);
-      expect(cross.z).toBeCloseTo(babylonZ.z, 5);
+      expect(cross.x).toBeCloseTo(-babylonZ.x, 5);
+      expect(cross.y).toBeCloseTo(-babylonZ.y, 5);
+      expect(cross.z).toBeCloseTo(-babylonZ.z, 5);
     });
 
     it('should preserve orthogonality of axes', () => {

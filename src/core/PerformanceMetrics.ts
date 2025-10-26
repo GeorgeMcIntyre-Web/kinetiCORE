@@ -157,7 +157,7 @@ export class PerformanceMetrics {
     
     // Find the most recent matching operation
     let operationId: string | undefined;
-    for (const [id, _] of this.activeOperations) {
+    for (const [id] of this.activeOperations) {
       if (id.startsWith(name)) {
         operationId = id;
         break;
@@ -270,8 +270,8 @@ export class PerformanceMetrics {
       median: sorted[Math.floor(sorted.length / 2)],
       min: sorted[0],
       max: sorted[sorted.length - 1],
-      p95: sorted[Math.floor(sorted.length * 0.95)] || sorted[sorted.length - 1],
-      p99: sorted[Math.floor(sorted.length * 0.99)] || sorted[sorted.length - 1],
+      p95: sorted[Math.min(Math.floor(sorted.length * 0.95), sorted.length - 1)],
+      p99: sorted[Math.min(Math.floor(sorted.length * 0.99), sorted.length - 1)],
       stdDev,
     };
   }

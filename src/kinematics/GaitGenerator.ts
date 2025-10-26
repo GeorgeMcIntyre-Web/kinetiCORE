@@ -378,7 +378,7 @@ export class GaitGenerator {
           rightFoot: phase >= 0.5 ? (phase - 0.5) * 2 : 0,
         };
 
-      case 'trot':
+      case 'trot': {
         // Quadruped trot: diagonal pairs
         const diagonalPhase = phase < 0.5 ? phase * 2 : 0;
         const oppositeDiagonalPhase = phase >= 0.5 ? (phase - 0.5) * 2 : 0;
@@ -389,6 +389,7 @@ export class GaitGenerator {
           leftFrontFoot: diagonalPhase,     // Same as left
           rightFrontFoot: oppositeDiagonalPhase, // Same as right
         };
+      }
 
       default:
         return {

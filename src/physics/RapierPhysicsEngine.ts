@@ -17,6 +17,11 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
   private colliderToHandle = new Map<RAPIER.Collider, string>();
 
   async initialize(gravity: Vector3 = DEFAULT_GRAVITY): Promise<void> {
+    // Skip re-initialization if already initialized
+    if (this.world && this.RAPIER) {
+      return;
+    }
+
     // Initialize Rapier WASM
     await RAPIER.init();
     this.RAPIER = RAPIER;
@@ -430,30 +435,30 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
 
   getActiveCollisions(): Array<{bodyA: string, bodyB: string}> {
     const collisions: Array<{bodyA: string, bodyB: string}> = [];
-    
+
     if (!this.world) return collisions;
 
-    // Get all contact pairs from the world
-    // Note: Rapier doesn't have contactPairs() method, using alternative approach
-    const contactPairs: any[] = [];
-    for (let i = 0; i < contactPairs.length; i++) {
-      const pair = contactPairs[i];
-      const bodyA = pair.collider1().parent();
-      const bodyB = pair.collider2().parent();
-      
+    // Get all contact pairs from the world using narrow phase
+    this.world.narrowPhase.contactPairs((collider1, collider2) => {
+      const bodyA = collider1.parent();
+      const bodyB = collider2.parent();
+
+      if (!bodyA || !bodyB) return;
+
       // Find handles for these bodies
+      let handleA: string | undefined;
+      let handleB: string | undefined;
+
       for (const [handle, body] of this.bodies) {
-        if (body === bodyA) {
-          for (const [handleB, bodyBRef] of this.bodies) {
-            if (bodyBRef === bodyB) {
-              collisions.push({ bodyA: handle, bodyB: handleB });
-              break;
-            }
-          }
-          break;
-        }
+        if (body === bodyA) handleA = handle;
+        if (body === bodyB) handleB = handle;
+        if (handleA && handleB) break;
       }
-    }
+
+      if (handleA && handleB) {
+        collisions.push({ bodyA: handleA, bodyB: handleB });
+      }
+    });
 
     return collisions;
   }
@@ -461,20 +466,22 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
   checkBodyCollision(bodyA: string, bodyB: string): boolean {
     const bodyARef = this.bodies.get(bodyA);
     const bodyBRef = this.bodies.get(bodyB);
-    
-    if (!bodyARef || !bodyBRef) return false;
 
-    // Check if bodies are in contact
-    // Note: Rapier doesn't have contactPairs() method, using alternative approach
-    const contactPairs: any[] = [];
-    for (let i = 0; i < contactPairs.length; i++) {
-      const pair = contactPairs[i];
-      if ((pair.collider1().parent() === bodyARef && pair.collider2().parent() === bodyBRef) ||
-          (pair.collider1().parent() === bodyBRef && pair.collider2().parent() === bodyARef)) {
-        return true;
+    if (!bodyARef || !bodyBRef || !this.world) return false;
+
+    // Check if bodies are in contact using narrow phase
+    let isColliding = false;
+
+    this.world.narrowPhase.contactPairs((collider1, collider2) => {
+      const b1 = collider1.parent();
+      const b2 = collider2.parent();
+
+      if ((b1 === bodyARef && b2 === bodyBRef) ||
+          (b1 === bodyBRef && b2 === bodyARef)) {
+        isColliding = true;
       }
-    }
+    });
 
-    return false;
+    return isColliding;
   }
 }

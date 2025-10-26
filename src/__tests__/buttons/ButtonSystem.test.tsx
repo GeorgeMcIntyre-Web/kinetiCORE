@@ -5,7 +5,7 @@
  * Comprehensive tests for the systematic button implementation
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { ButtonTemplate } from '../../ui/components/buttons/ButtonTemplate';
 import { SnapTypeButton } from '../../ui/components/buttons/SnapTypeButton';
 import { useEditorStore } from '../../ui/store/editorStore';

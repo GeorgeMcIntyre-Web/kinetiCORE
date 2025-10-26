@@ -52,7 +52,7 @@ export class MockVector3 {
     return a.x * b.x + a.y * b.y + a.z * b.z;
   }
 
-  static TransformCoordinates(vector: MockVector3, transformation: MockMatrix): MockVector3 {
+  static TransformCoordinates(vector: MockVector3, _transformation: MockMatrix): MockVector3 {
     // Simplified transform - just return the vector for now
     return vector.clone();
   }
@@ -105,11 +105,11 @@ export class MockMesh {
 
   constructor(public name: string) {}
 
-  getVerticesData(kind: string): number[] | null {
+  getVerticesData(_kind: string): number[] | null {
     return this.vertices.length > 0 ? this.vertices : null;
   }
 
-  setVerticesData(kind: string, data: number[]): void {
+  setVerticesData(_kind: string, data: number[]): void {
     this.vertices = data;
   }
 
@@ -121,7 +121,7 @@ export class MockMesh {
     this.indices = indices;
   }
 
-  computeWorldMatrix(force: boolean = false): MockMatrix {
+  computeWorldMatrix(_force: boolean = false): MockMatrix {
     return this.worldMatrix;
   }
 
@@ -159,7 +159,7 @@ export class MockScene {
     remove: vi.fn(),
   };
 
-  pickWithRay(ray: any, predicate?: (mesh: MockMesh) => boolean): any {
+  pickWithRay(_ray: any, _predicate?: (mesh: MockMesh) => boolean): any {
     return {
       hit: false,
       pickedPoint: null,
