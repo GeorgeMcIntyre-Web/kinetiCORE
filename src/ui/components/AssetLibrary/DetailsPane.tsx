@@ -2,34 +2,60 @@
 // Owner: Edwin
 // Full asset details, interactive preview, and action buttons
 
-import { Plus, FileText, Star } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, FileText, Star, Loader2 } from 'lucide-react';
 import { useAssetLibraryStore } from '../../store/assetLibraryStore';
 import { PreviewCanvas } from './PreviewCanvas';
 import { AssetLibraryManager } from '../../../library/AssetLibraryManager';
+import { SceneManager } from '../../../scene/SceneManager';
 import './DetailsPane.css';
 
 export function DetailsPane() {
   const { selectedAsset, setSelectedAsset } = useAssetLibraryStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadSuccess, setLoadSuccess] = useState(false);
 
   const handleAddToScene = async () => {
     if (!selectedAsset) return;
 
+    setIsLoading(true);
+    setLoadError(null);
+    setLoadSuccess(false);
+
     try {
+      const sceneManager = SceneManager.getInstance();
       const libraryManager = AssetLibraryManager.getInstance();
 
-      // TODO: Implement asset loading into main scene
-      // This will require SceneManager.loadAssetFromLibrary method
-      console.log('Asset selected for scene:', selectedAsset.name);
+      console.log('Loading asset to scene:', selectedAsset.name);
       console.log('File path:', selectedAsset.filePath);
+      console.log('Loader type:', selectedAsset.loaderType);
 
-      // Record usage
-      libraryManager.recordUsage(selectedAsset.id);
+      // Load asset into scene
+      const result = await sceneManager.loadAssetFromLibrary(selectedAsset);
 
-      // TODO: Show success notification
-      alert(`Asset "${selectedAsset.name}" ready to add to scene (integration pending)`);
+      if (result.success) {
+        // Record usage
+        libraryManager.recordUsage(selectedAsset.id);
+
+        // Show success
+        setLoadSuccess(true);
+        console.log('✅ Asset loaded successfully:', selectedAsset.name);
+
+        // Clear success message after 3 seconds
+        setTimeout(() => setLoadSuccess(false), 3000);
+      } else {
+        throw new Error(result.error || 'Failed to load asset');
+      }
     } catch (error) {
       console.error('Failed to add asset to scene:', error);
-      // TODO: Show error notification
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setLoadError(errorMessage);
+
+      // Clear error after 5 seconds
+      setTimeout(() => setLoadError(null), 5000);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -187,9 +213,22 @@ export function DetailsPane() {
 
       {/* Action Buttons */}
       <div className="details-actions">
-        <button className="details-btn-primary" onClick={handleAddToScene}>
-          <Plus size={18} />
-          Add to Scene
+        <button
+          className="details-btn-primary"
+          onClick={handleAddToScene}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 size={18} className="animate-spin" />
+              Loading...
+            </>
+          ) : (
+            <>
+              <Plus size={18} />
+              Add to Scene
+            </>
+          )}
         </button>
         {selectedAsset.documentationUrl && (
           <button
@@ -201,6 +240,18 @@ export function DetailsPane() {
           </button>
         )}
       </div>
+
+      {/* Success/Error Messages */}
+      {loadSuccess && (
+        <div className="details-notification success">
+          ✅ Asset loaded successfully!
+        </div>
+      )}
+      {loadError && (
+        <div className="details-notification error">
+          ❌ {loadError}
+        </div>
+      )}
     </div>
   );
 }

@@ -128,6 +128,47 @@ export class SceneManager {
     return null;
   }
 
+  /**
+   * Load asset from library using AssetLoader
+   * This is the main entry point for loading assets from the Asset Library UI
+   */
+  async loadAssetFromLibrary(
+    asset: any,
+    config?: any
+  ): Promise<{ success: boolean; error?: string; rootNode?: any }> {
+    if (!this.scene) {
+      return {
+        success: false,
+        error: 'Scene not initialized',
+      };
+    }
+
+    try {
+      // Import AssetLoader dynamically to avoid circular dependencies
+      const { AssetLoader } = await import('../library/AssetLoader');
+      const loader = new AssetLoader(this.scene);
+
+      // Load the asset
+      const result = await loader.loadAsset(asset, config);
+
+      // If successful and has meshes/nodes, zoom camera to frame the asset
+      if (result.success && result.meshes && result.meshes.length > 0) {
+        const firstMesh = result.meshes[0];
+        if (firstMesh) {
+          this.cameraService.zoomToNode(firstMesh as any);
+        }
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Failed to load asset from library:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
   getScene(): BABYLON.Scene | null {
     return this.scene;
   }
