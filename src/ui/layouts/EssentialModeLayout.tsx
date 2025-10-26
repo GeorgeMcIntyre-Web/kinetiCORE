@@ -30,6 +30,7 @@ import { CreateProjectionViewCommand } from '../../history/commands/CreateProjec
 import { toast } from '../components/ToastNotifications';
 import { useTreeAutoResize } from '../hooks/useTreeAutoResize';
 import { PerformanceMonitor, usePerformanceMonitor } from '../components/debug/PerformanceMonitor';
+import { VersionDisplay } from '../components/VersionDisplay';
 import './EssentialModeLayout.css';
 
 export const EssentialModeLayout: React.FC = () => {
@@ -731,6 +732,9 @@ export const EssentialModeLayout: React.FC = () => {
 
       {/* Project Manager Panel */}
       <ProjectManagerPanelV2 />
+
+      {/* Version Display - Bottom-right corner */}
+      <VersionDisplay mode="footer" showBuildInfo={false} />
     </div>
   );
 };

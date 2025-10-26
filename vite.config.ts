@@ -1,10 +1,32 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { execSync } from 'child_process';
+import fs from 'fs';
+
+// Get version from package.json
+const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
+const version = packageJson.version;
+
+// Get git commit hash (if available)
+let gitCommit = 'unknown';
+try {
+  gitCommit = execSync('git rev-parse --short HEAD').toString().trim();
+} catch (e) {
+  console.warn('Could not get git commit hash');
+}
+
+// Get build timestamp
+const buildTime = new Date().toISOString();
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(version),
+    'import.meta.env.VITE_GIT_COMMIT': JSON.stringify(gitCommit),
+    'import.meta.env.VITE_BUILD_TIME': JSON.stringify(buildTime),
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
