@@ -215,6 +215,175 @@ function parseVector(str: string): number[] {
 }
 
 /**
+ * URDFLoader class for loading URDF robots into the scene
+ */
+export class URDFLoader {
+  constructor(private scene: BABYLON.Scene) {}
+
+  /**
+   * Load URDF from string content
+   */
+  async loadFromString(
+    urdfContent: string,
+    _asset: any
+  ): Promise<{ success: boolean; error?: string; rootNode?: BABYLON.TransformNode }> {
+    try {
+      const urdf = parseURDF(urdfContent);
+      console.log('Parsed URDF:', urdf);
+
+      // Collect all mesh file paths for user info
+      const meshPaths: string[] = [];
+      for (const link of urdf.links) {
+        if (link.visual?.geometry?.mesh?.filename) {
+          meshPaths.push(link.visual.geometry.mesh.filename);
+        }
+      }
+
+      if (meshPaths.length > 0) {
+        console.warn('⚠️ URDF References External Mesh Files:');
+        console.warn('The following mesh files need to be in the correct paths:');
+        meshPaths.forEach((path) => console.warn(`  - ${path}`));
+        console.warn('\n💡 Tip: Place STL/DAE files relative to the URDF file location');
+        console.warn('For now, placeholders (small boxes) will be created.');
+      }
+
+      // Create root node for the robot
+      const robotRoot = new BABYLON.TransformNode(urdf.robotName, this.scene);
+      robotRoot.metadata = {
+        isURDFRobot: true,
+        urdfJoints: urdf.joints,
+        urdfLinks: urdf.links,
+        requiredMeshFiles: meshPaths,
+      };
+
+      // Create transform nodes for each link
+      const linkNodes = new Map<string, BABYLON.TransformNode>();
+
+      for (const link of urdf.links) {
+        const linkNode = new BABYLON.TransformNode(link.name, this.scene);
+        linkNodes.set(link.name, linkNode);
+
+        // Create placeholder mesh if visual geometry is primitive
+        if (link.visual?.geometry) {
+          let mesh: BABYLON.AbstractMesh | null = null;
+
+          if (link.visual.geometry.box) {
+            const size = link.visual.geometry.box.size;
+            mesh = BABYLON.MeshBuilder.CreateBox(
+              `${link.name}_visual`,
+              { width: size[0], height: size[1], depth: size[2] },
+              this.scene
+            );
+          } else if (link.visual.geometry.cylinder) {
+            mesh = BABYLON.MeshBuilder.CreateCylinder(
+              `${link.name}_visual`,
+              {
+                diameter: link.visual.geometry.cylinder.radius * 2,
+                height: link.visual.geometry.cylinder.length,
+              },
+              this.scene
+            );
+          } else if (link.visual.geometry.sphere) {
+            mesh = BABYLON.MeshBuilder.CreateSphere(
+              `${link.name}_visual`,
+              { diameter: link.visual.geometry.sphere.radius * 2 },
+              this.scene
+            );
+          } else if (link.visual.geometry.mesh) {
+            // Create placeholder for mesh (user needs to load STL separately)
+            mesh = BABYLON.MeshBuilder.CreateBox(
+              `${link.name}_placeholder`,
+              { size: 0.15 },
+              this.scene
+            );
+
+            // Make placeholder semi-transparent and colored
+            const mat = new BABYLON.StandardMaterial(
+              `${link.name}_placeholder_mat`,
+              this.scene
+            );
+            mat.diffuseColor = new BABYLON.Color3(1, 0.5, 0); // Orange
+            mat.alpha = 0.5;
+            mat.wireframe = true;
+            mesh.material = mat;
+
+            mesh.metadata = {
+              urdfMeshPath: link.visual.geometry.mesh.filename,
+              urdfMeshScale: link.visual.geometry.mesh.scale,
+              isURDFPlaceholder: true,
+            };
+          }
+
+          if (mesh) {
+            mesh.parent = linkNode;
+
+            // Apply visual origin transform
+            const origin = link.visual.origin;
+            mesh.position = new BABYLON.Vector3(origin.xyz[0], origin.xyz[1], origin.xyz[2]);
+            mesh.rotation = new BABYLON.Vector3(origin.rpy[0], origin.rpy[1], origin.rpy[2]);
+          }
+        }
+      }
+
+      // Build hierarchy based on joints
+      for (const joint of urdf.joints) {
+        const parentNode = linkNodes.get(joint.parent);
+        const childNode = linkNodes.get(joint.child);
+
+        if (parentNode && childNode) {
+          childNode.parent = parentNode;
+
+          // Apply joint origin transform
+          childNode.position = new BABYLON.Vector3(
+            joint.origin.xyz[0],
+            joint.origin.xyz[1],
+            joint.origin.xyz[2]
+          );
+          childNode.rotation = new BABYLON.Vector3(
+            joint.origin.rpy[0],
+            joint.origin.rpy[1],
+            joint.origin.rpy[2]
+          );
+
+          // Store joint metadata
+          childNode.metadata = {
+            jointType: joint.type,
+            jointName: joint.name,
+            jointAxis: joint.axis,
+            jointLimit: joint.limit,
+          };
+        }
+      }
+
+      // Find root links (links with no parent joint)
+      const childLinks = new Set(urdf.joints.map((j) => j.child));
+      const rootLinkNames = urdf.links
+        .map((l) => l.name)
+        .filter((name) => !childLinks.has(name));
+
+      // Parent root links to robot root
+      for (const rootLinkName of rootLinkNames) {
+        const rootLink = linkNodes.get(rootLinkName);
+        if (rootLink) {
+          rootLink.parent = robotRoot;
+        }
+      }
+
+      return {
+        success: true,
+        rootNode: robotRoot,
+      };
+    } catch (error) {
+      console.error('Failed to parse URDF:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+}
+
+/**
  * Load URDF file and create Babylon.js scene hierarchy
  * Note: This creates a basic hierarchy. Mesh files must be loaded separately.
  */

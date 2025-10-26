@@ -2,8 +2,8 @@
 // Owner: Edwin
 // Full asset details, interactive preview, and action buttons
 
-import { useState } from 'react';
-import { Plus, FileText, Star, Loader2 } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, FileText, Star, Loader2, Upload } from 'lucide-react';
 import { useAssetLibraryStore } from '../../store/assetLibraryStore';
 import { PreviewCanvas } from './PreviewCanvas';
 import { AssetLibraryManager } from '../../../library/AssetLibraryManager';
@@ -15,6 +15,7 @@ export function DetailsPane() {
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadSuccess, setLoadSuccess] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAddToScene = async () => {
     if (!selectedAsset) return;
@@ -65,6 +66,49 @@ export function DetailsPane() {
     libraryManager.toggleFavorite(selectedAsset.id);
     // Force re-render by updating the selected asset
     setSelectedAsset({ ...selectedAsset, isFavorite: !selectedAsset.isFavorite });
+  };
+
+  const handleLoadURDFFile = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !selectedAsset) return;
+
+    setIsLoading(true);
+    setLoadError(null);
+    setLoadSuccess(false);
+
+    try {
+      const sceneManager = SceneManager.getInstance();
+      const libraryManager = AssetLibraryManager.getInstance();
+
+      console.log('Loading URDF file:', file.name);
+
+      // Load URDF from uploaded file
+      const result = await sceneManager.loadURDFFromFile(file, selectedAsset);
+
+      if (result.success) {
+        libraryManager.recordUsage(selectedAsset.id);
+        setLoadSuccess(true);
+        console.log('✅ URDF loaded successfully:', file.name);
+        setTimeout(() => setLoadSuccess(false), 3000);
+      } else {
+        throw new Error(result.error || 'Failed to load URDF file');
+      }
+    } catch (error) {
+      console.error('Failed to load URDF file:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setLoadError(errorMessage);
+      setTimeout(() => setLoadError(null), 5000);
+    } finally {
+      setIsLoading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   if (!selectedAsset) {
@@ -213,23 +257,52 @@ export function DetailsPane() {
 
       {/* Action Buttons */}
       <div className="details-actions">
-        <button
-          className="details-btn-primary"
-          onClick={handleAddToScene}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 size={18} className="animate-spin" />
-              Loading...
-            </>
-          ) : (
-            <>
-              <Plus size={18} />
-              Add to Scene
-            </>
-          )}
-        </button>
+        {selectedAsset.loaderType === 'urdf' ? (
+          <>
+            <button
+              className="details-btn-primary"
+              onClick={handleLoadURDFFile}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <Upload size={18} />
+                  Load URDF File
+                </>
+              )}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".urdf,.xml"
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+            />
+          </>
+        ) : (
+          <button
+            className="details-btn-primary"
+            onClick={handleAddToScene}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <Plus size={18} />
+                Add to Scene
+              </>
+            )}
+          </button>
+        )}
         {selectedAsset.documentationUrl && (
           <button
             className="details-btn-secondary"

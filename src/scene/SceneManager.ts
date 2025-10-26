@@ -169,6 +169,46 @@ export class SceneManager {
     }
   }
 
+  /**
+   * Load a URDF file from user upload
+   */
+  async loadURDFFromFile(
+    file: File,
+    asset: any
+  ): Promise<{ success: boolean; error?: string; rootNode?: any }> {
+    if (!this.scene) {
+      return {
+        success: false,
+        error: 'Scene not initialized',
+      };
+    }
+
+    try {
+      // Import URDFLoader dynamically
+      const { URDFLoader } = await import('../loaders/urdf/URDFLoader');
+      const loader = new URDFLoader(this.scene);
+
+      // Read file as text
+      const urdfContent = await file.text();
+
+      // Load URDF with the content
+      const result = await loader.loadFromString(urdfContent, asset);
+
+      // If successful and has meshes/nodes, zoom camera to frame the asset
+      if (result.success && result.rootNode) {
+        this.cameraService.zoomToNode(result.rootNode as any);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Failed to load URDF file:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
   getScene(): BABYLON.Scene | null {
     return this.scene;
   }
