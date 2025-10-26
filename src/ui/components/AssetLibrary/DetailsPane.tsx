@@ -73,8 +73,8 @@ export function DetailsPane() {
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !selectedAsset) return;
+    const files = event.target.files;
+    if (!files || files.length === 0 || !selectedAsset) return;
 
     setIsLoading(true);
     setLoadError(null);
@@ -84,15 +84,30 @@ export function DetailsPane() {
       const sceneManager = SceneManager.getInstance();
       const libraryManager = AssetLibraryManager.getInstance();
 
-      console.log('Loading URDF file:', file.name);
+      // Find URDF file
+      const urdfFile = Array.from(files).find(
+        (f) => f.name.endsWith('.urdf') || f.name.endsWith('.xml')
+      );
 
-      // Load URDF from uploaded file
-      const result = await sceneManager.loadURDFFromFile(file, selectedAsset);
+      if (!urdfFile) {
+        throw new Error('No URDF file found. Please select a .urdf or .xml file.');
+      }
+
+      // Collect mesh files
+      const meshFiles = Array.from(files).filter(
+        (f) => f.name.endsWith('.stl') || f.name.endsWith('.dae')
+      );
+
+      console.log('Loading URDF file:', urdfFile.name);
+      console.log('Found mesh files:', meshFiles.length);
+
+      // Load URDF with mesh files
+      const result = await sceneManager.loadURDFWithMeshes(urdfFile, meshFiles, selectedAsset);
 
       if (result.success) {
         libraryManager.recordUsage(selectedAsset.id);
         setLoadSuccess(true);
-        console.log('✅ URDF loaded successfully:', file.name);
+        console.log('✅ URDF loaded successfully with', meshFiles.length, 'meshes');
         setTimeout(() => setLoadSuccess(false), 3000);
       } else {
         throw new Error(result.error || 'Failed to load URDF file');
@@ -279,7 +294,8 @@ export function DetailsPane() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".urdf,.xml"
+              accept=".urdf,.xml,.stl,.dae"
+              multiple
               onChange={handleFileChange}
               style={{ display: 'none' }}
             />

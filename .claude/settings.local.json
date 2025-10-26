@@ -13,7 +13,10 @@
       "Bash(git commit:*)",
       "Bash(npm test:*)",
       "Bash(npm run lint:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Read(//c/Users/George/source/repos/kinetiCORE_DATA/robots/**)",
+      "Bash(unzip:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

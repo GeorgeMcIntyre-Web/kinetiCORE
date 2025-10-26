@@ -381,6 +381,232 @@ export class URDFLoader {
       };
     }
   }
+
+  /**
+   * Load URDF from string content with mesh files
+   */
+  async loadFromStringWithMeshes(
+    urdfContent: string,
+    meshFiles: Map<string, File>,
+    _asset: any
+  ): Promise<{ success: boolean; error?: string; rootNode?: BABYLON.TransformNode }> {
+    try {
+      const urdf = parseURDF(urdfContent);
+      console.log('Parsed URDF:', urdf);
+      console.log('Available mesh files:', Array.from(meshFiles.keys()));
+
+      // Create root node for the robot
+      const robotRoot = new BABYLON.TransformNode(urdf.robotName, this.scene);
+      robotRoot.metadata = {
+        isURDFRobot: true,
+        urdfJoints: urdf.joints,
+        urdfLinks: urdf.links,
+      };
+
+      // Create transform nodes for each link
+      const linkNodes = new Map<string, BABYLON.TransformNode>();
+
+      for (const link of urdf.links) {
+        const linkNode = new BABYLON.TransformNode(link.name, this.scene);
+        linkNodes.set(link.name, linkNode);
+
+        // Create mesh if visual geometry is defined
+        if (link.visual?.geometry) {
+          let mesh: BABYLON.AbstractMesh | null = null;
+
+          if (link.visual.geometry.box) {
+            const size = link.visual.geometry.box.size;
+            mesh = BABYLON.MeshBuilder.CreateBox(
+              `${link.name}_visual`,
+              { width: size[0], height: size[1], depth: size[2] },
+              this.scene
+            );
+          } else if (link.visual.geometry.cylinder) {
+            mesh = BABYLON.MeshBuilder.CreateCylinder(
+              `${link.name}_visual`,
+              {
+                diameter: link.visual.geometry.cylinder.radius * 2,
+                height: link.visual.geometry.cylinder.length,
+              },
+              this.scene
+            );
+          } else if (link.visual.geometry.sphere) {
+            mesh = BABYLON.MeshBuilder.CreateSphere(
+              `${link.name}_visual`,
+              { diameter: link.visual.geometry.sphere.radius * 2 },
+              this.scene
+            );
+          } else if (link.visual.geometry.mesh) {
+            // Try to load actual STL file
+            const meshPath = link.visual.geometry.mesh.filename;
+            const meshFileName = meshPath.split('/').pop() || '';
+            const meshFile = meshFiles.get(meshFileName);
+
+            if (meshFile) {
+              console.log(`Loading STL mesh: ${meshFileName}`);
+              mesh = await this.loadSTLMesh(meshFile, `${link.name}_visual`);
+            } else {
+              console.warn(`Mesh file not found: ${meshFileName}`);
+              // Create placeholder
+              mesh = BABYLON.MeshBuilder.CreateBox(
+                `${link.name}_placeholder`,
+                { size: 0.15 },
+                this.scene
+              );
+
+              const mat = new BABYLON.StandardMaterial(
+                `${link.name}_placeholder_mat`,
+                this.scene
+              );
+              mat.diffuseColor = new BABYLON.Color3(1, 0.5, 0);
+              mat.alpha = 0.5;
+              mat.wireframe = true;
+              mesh.material = mat;
+
+              mesh.metadata = {
+                urdfMeshPath: meshPath,
+                isURDFPlaceholder: true,
+              };
+            }
+          }
+
+          if (mesh) {
+            mesh.parent = linkNode;
+
+            // Apply visual origin transform
+            const origin = link.visual.origin;
+            mesh.position = new BABYLON.Vector3(origin.xyz[0], origin.xyz[1], origin.xyz[2]);
+            mesh.rotation = new BABYLON.Vector3(origin.rpy[0], origin.rpy[1], origin.rpy[2]);
+
+            // Apply scale if specified
+            if (link.visual.geometry.mesh?.scale) {
+              const scale = link.visual.geometry.mesh.scale;
+              mesh.scaling = new BABYLON.Vector3(scale[0], scale[1], scale[2]);
+            }
+          }
+        }
+      }
+
+      // Build hierarchy based on joints
+      for (const joint of urdf.joints) {
+        const parentNode = linkNodes.get(joint.parent);
+        const childNode = linkNodes.get(joint.child);
+
+        if (parentNode && childNode) {
+          childNode.parent = parentNode;
+
+          // Apply joint origin transform
+          childNode.position = new BABYLON.Vector3(
+            joint.origin.xyz[0],
+            joint.origin.xyz[1],
+            joint.origin.xyz[2]
+          );
+          childNode.rotation = new BABYLON.Vector3(
+            joint.origin.rpy[0],
+            joint.origin.rpy[1],
+            joint.origin.rpy[2]
+          );
+
+          // Store joint metadata
+          childNode.metadata = {
+            jointType: joint.type,
+            jointName: joint.name,
+            jointAxis: joint.axis,
+            jointLimit: joint.limit,
+          };
+        }
+      }
+
+      // Find root links (links with no parent joint)
+      const childLinks = new Set(urdf.joints.map((j) => j.child));
+      const rootLinkNames = urdf.links
+        .map((l) => l.name)
+        .filter((name) => !childLinks.has(name));
+
+      // Parent root links to robot root
+      for (const rootLinkName of rootLinkNames) {
+        const rootLink = linkNodes.get(rootLinkName);
+        if (rootLink) {
+          rootLink.parent = robotRoot;
+        }
+      }
+
+      return {
+        success: true,
+        rootNode: robotRoot,
+      };
+    } catch (error) {
+      console.error('Failed to parse URDF with meshes:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Load STL mesh from file
+   */
+  private async loadSTLMesh(file: File, name: string): Promise<BABYLON.Mesh> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = async (event) => {
+        const arrayBuffer = event.target?.result as ArrayBuffer;
+        if (!arrayBuffer) {
+          reject(new Error('Failed to read STL file'));
+          return;
+        }
+
+        try {
+          // Use Babylon's STL loader
+          const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
+          const url = URL.createObjectURL(blob);
+
+          BABYLON.SceneLoader.ImportMesh(
+            '',
+            '',
+            url,
+            this.scene,
+            (meshes) => {
+              URL.revokeObjectURL(url);
+
+              if (meshes.length > 0 && meshes[0] instanceof BABYLON.Mesh) {
+                const mesh = meshes[0] as BABYLON.Mesh;
+                mesh.name = name;
+
+                // Apply default material
+                if (!mesh.material) {
+                  const mat = new BABYLON.StandardMaterial(`${name}_mat`, this.scene);
+                  mat.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.7);
+                  mat.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+                  mesh.material = mat;
+                }
+
+                resolve(mesh);
+              } else {
+                reject(new Error('No mesh loaded from STL'));
+              }
+            },
+            undefined,
+            (_scene, message) => {
+              URL.revokeObjectURL(url);
+              reject(new Error(`STL loading error: ${message}`));
+            },
+            '.stl'
+          );
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      reader.onerror = () => {
+        reject(new Error('Failed to read STL file'));
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
+  }
 }
 
 /**

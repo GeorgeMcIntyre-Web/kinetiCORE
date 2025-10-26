@@ -209,6 +209,53 @@ export class SceneManager {
     }
   }
 
+  /**
+   * Load a URDF file with mesh files from user upload
+   */
+  async loadURDFWithMeshes(
+    urdfFile: File,
+    meshFiles: File[],
+    asset: any
+  ): Promise<{ success: boolean; error?: string; rootNode?: any }> {
+    if (!this.scene) {
+      return {
+        success: false,
+        error: 'Scene not initialized',
+      };
+    }
+
+    try {
+      // Import URDFLoader dynamically
+      const { URDFLoader } = await import('../loaders/urdf/URDFLoader');
+      const loader = new URDFLoader(this.scene);
+
+      // Read URDF file as text
+      const urdfContent = await urdfFile.text();
+
+      // Create a map of mesh files by filename
+      const meshFileMap = new Map<string, File>();
+      for (const meshFile of meshFiles) {
+        meshFileMap.set(meshFile.name, meshFile);
+      }
+
+      // Load URDF with mesh files
+      const result = await loader.loadFromStringWithMeshes(urdfContent, meshFileMap, asset);
+
+      // If successful and has meshes/nodes, zoom camera to frame the asset
+      if (result.success && result.rootNode) {
+        this.cameraService.zoomToNode(result.rootNode as any);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Failed to load URDF with meshes:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
   getScene(): BABYLON.Scene | null {
     return this.scene;
   }
