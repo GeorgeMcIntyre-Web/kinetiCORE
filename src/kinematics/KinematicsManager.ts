@@ -626,10 +626,6 @@ export class KinematicsManager implements IKinematicsManager {
     const childNode = tree.getNode(joint.childNodeId);
     if (!childNode) return;
 
-    const sceneManager = SceneManager.getInstance();
-    const scene_ref = sceneManager.getScene();
-    if (!scene_ref) return;
-
     // Get child mesh
     let childMesh: BABYLON.Mesh | null = null;
     if (childNode.babylonMeshId) {
