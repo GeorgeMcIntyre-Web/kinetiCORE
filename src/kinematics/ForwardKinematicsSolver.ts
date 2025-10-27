@@ -731,15 +731,28 @@ export class ForwardKinematicsSolver {
     const chain = this.kinematicsManager.getChain(chainName);
     if (!chain) return null;
 
-    // Get the last joint (connects to tool0)
+    // Get the TCP frame's link node (tool0)
     const joints = this.kinematicsManager.getChainJoints(chain.id);
     if (joints.length === 0) return null;
 
-    const lastJoint = joints[joints.length - 1];
-    const tool0NodeId = lastJoint.childNodeId;
+    // Find the TCP joint that connects to tool0
+    let tool0NodeId: string | null = null;
+    for (let i = joints.length - 1; i >= 0; i--) {
+      const joint = joints[i];
+      if (joint.name === 'link_6-tool0') {
+        tool0NodeId = joint.childNodeId;
+        console.log(`[FK getNullTCPPose] Found link_6-tool0 joint, child node: ${tool0NodeId}`);
+        break;
+      }
+    }
+
+    if (!tool0NodeId) {
+      console.error(`[FK getNullTCPPose] link_6-tool0 joint not found in ${joints.length} joints`);
+      joints.forEach(j => console.log(`  Joint: ${j.name} (${j.childNodeId})`));
+      return null;
+    }
 
     console.log(`[FK getNullTCPPose] Looking for tool0 node: ${tool0NodeId}`);
-    console.log(`[FK getNullTCPPose] Last joint: ${lastJoint.name}, child: ${tool0NodeId}, parent: ${lastJoint.parentNodeId}`);
     console.log(`[FK getNullTCPPose] Total joints: ${joints.length}`);
 
     // Get the actual scene node
