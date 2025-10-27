@@ -468,14 +468,19 @@ CREATE INDEX idx_asset_analytics_user_id ON public.asset_analytics(user_id);
 CREATE INDEX idx_asset_analytics_event_type ON public.asset_analytics(event_type);
 CREATE INDEX idx_asset_analytics_created_at ON public.asset_analytics(created_at);
 
--- Create full-text search indexes
-CREATE INDEX idx_assets_fulltext ON public.assets USING gin(
-  to_tsvector('english', name || ' ' || COALESCE(description, '') || ' ' || array_to_string(tags, ' '))
-);
+-- Full-text search indexes (commented out - can be added later with generated columns)
+-- Note: Direct to_tsvector() in indexes requires IMMUTABLE functions, which conflicts with
+-- Supabase's security model. Alternative: use generated columns or trigram indexes.
+-- For now, we'll use the existing gin indexes on tags/keywords arrays which are sufficient.
 
-CREATE INDEX idx_asset_metadata_fulltext ON public.asset_metadata USING gin(
-  to_tsvector('english', array_to_string(keywords, ' ') || ' ' || array_to_string(manufacturers, ' '))
-);
+-- Uncomment these if you need full-text search optimization:
+-- ALTER TABLE public.assets ADD COLUMN search_vector tsvector
+--   GENERATED ALWAYS AS (to_tsvector('english', name || ' ' || COALESCE(description, ''))) STORED;
+-- CREATE INDEX idx_assets_fulltext ON public.assets USING gin(search_vector);
+--
+-- ALTER TABLE public.asset_metadata ADD COLUMN search_vector tsvector
+--   GENERATED ALWAYS AS (to_tsvector('english', array_to_string(keywords, ' '))) STORED;
+-- CREATE INDEX idx_asset_metadata_fulltext ON public.asset_metadata USING gin(search_vector);
 
 -- Create functions for common operations
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
@@ -511,14 +516,14 @@ CREATE OR REPLACE FUNCTION public.calculate_popularity_score(
   rating_count INTEGER
 ) RETURNS DECIMAL AS $$
 BEGIN
-  RETURN LEAST(100, GREATEST(0, 
-    (view_count * 1.0 + 
-     download_count * 3.0 + 
-     usage_count * 5.0 + 
+  RETURN LEAST(100, GREATEST(0,
+    (view_count * 1.0 +
+     download_count * 3.0 +
+     usage_count * 5.0 +
      rating * rating_count * 2.0) / 10.0
   ));
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 -- Function to update asset analytics
 CREATE OR REPLACE FUNCTION public.update_asset_analytics(

@@ -5,7 +5,7 @@
 import { useEffect, useState, useRef } from 'react';
 import {
   Copy, Trash2, Eye, EyeOff, Lock, Unlock, Edit3, ZoomIn,
-  Box, Circle, Cylinder as CylinderIcon, Folder, Play
+  Box, Circle, Cylinder as CylinderIcon, Folder, Play, Save
 } from 'lucide-react';
 
 export interface ContextMenuItem {
@@ -163,6 +163,7 @@ export const useNodeContextMenu = () => {
       onToggleVisibility: () => void;
       onToggleLock: () => void;
       onZoom: () => void;
+      onSaveToLibrary: () => void;
     }
   ): ContextMenuItem[] => {
     return [
@@ -178,6 +179,13 @@ export const useNodeContextMenu = () => {
         action: actions.onDuplicate,
         disabled: !canDelete,
         shortcut: 'Ctrl+D',
+      },
+      { divider: true } as ContextMenuItem,
+      {
+        label: 'Save to Library',
+        icon: <Save size={16} />,
+        action: actions.onSaveToLibrary,
+        disabled: _nodeType === 'world',
       },
       { divider: true } as ContextMenuItem,
       {

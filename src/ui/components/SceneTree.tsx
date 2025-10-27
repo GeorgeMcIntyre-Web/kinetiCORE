@@ -45,6 +45,8 @@ import {
 } from 'lucide-react';
 import { ContextMenu, useNodeContextMenu } from './ContextMenu';
 import { EntityRegistry } from '../../entities/EntityRegistry';
+import { SaveToLibraryService } from '../../library/SaveToLibraryService';
+import { SaveToLibraryDialog, type SaveToLibraryFormData } from './SaveToLibraryDialog';
 import './SceneTree.css';
 
 /**
@@ -252,6 +254,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
   const [renameName, setRenameName] = useState(node.name);
   const [isDragOver, setIsDragOver] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
   const { getNodeMenuItems } = useNodeContextMenu();
 
   const children = tree.getChildren(node.id);
@@ -381,6 +384,59 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
     }
   };
 
+  const handleSaveToLibrary = () => {
+    // Get the mesh from the entity registry
+    const registry = EntityRegistry.getInstance();
+    const entity = node.entityId ? registry.get(node.entityId) : null;
+
+    if (!entity || !entity.getMesh()) {
+      console.warn('No mesh to save for node:', node.name);
+      alert('Cannot save to library: No mesh found');
+      return;
+    }
+
+    // Show dialog
+    setShowSaveDialog(true);
+  };
+
+  const handleSaveDialogSubmit = async (formData: SaveToLibraryFormData) => {
+    const registry = EntityRegistry.getInstance();
+    const entity = node.entityId ? registry.get(node.entityId) : null;
+
+    if (!entity || !entity.getMesh()) {
+      alert('Cannot save to library: No mesh found');
+      return;
+    }
+
+    const mesh = entity.getMesh();
+    const saveService = SaveToLibraryService.getInstance();
+
+    try {
+      const result = await saveService.saveMeshToLibrary(mesh, {
+        name: formData.name,
+        description: formData.description,
+        tags: formData.tags,
+        domain: formData.domain as any,
+        assetClass: formData.assetClass as any,
+        assetType: 'imported',
+        loaderType: 'glb',
+        visibility: 'private' as any,
+        saveToLocal: true,
+        saveToCloud: false,
+      });
+
+      if (result.success) {
+        alert(`✅ Asset saved to library: ${result.assetId}`);
+        setShowSaveDialog(false);
+      } else {
+        alert(`❌ Failed to save: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error saving to library:', error);
+      alert(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -401,6 +457,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
       onToggleVisibility: () => handleToggleVisibility({} as React.MouseEvent),
       onToggleLock: () => handleToggleLock({} as React.MouseEvent),
       onZoom: () => zoomToNode(node.id),
+      onSaveToLibrary: handleSaveToLibrary,
     }
   ) : [];
 
@@ -554,6 +611,14 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
           onClose={() => setContextMenu(null)}
         />
       )}
+
+      {/* Save to Library Dialog */}
+      <SaveToLibraryDialog
+        isOpen={showSaveDialog}
+        defaultName={node.name}
+        onSave={handleSaveDialogSubmit}
+        onCancel={() => setShowSaveDialog(false)}
+      />
     </div>
   );
 };
