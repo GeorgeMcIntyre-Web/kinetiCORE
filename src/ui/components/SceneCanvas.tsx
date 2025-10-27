@@ -107,6 +107,12 @@ export const SceneCanvas: React.FC = () => {
         // Initialize coordinate frame widget for TransformNode visualization
         initializeCoordinateFrameWidget();
 
+        // Initialize UnifiedGizmoManager for TCP control and IK targets
+        import('../../kinematics/UnifiedGizmoManager').then(({ UnifiedGizmoManager }) => {
+          const unifiedGizmoManager = UnifiedGizmoManager.getInstance();
+          unifiedGizmoManager.initialize(scene);
+        });
+
         // Create transform gizmo
         gizmoRef.current = new TransformGizmo(scene);
 
