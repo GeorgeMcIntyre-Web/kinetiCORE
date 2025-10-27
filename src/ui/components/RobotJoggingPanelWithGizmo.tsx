@@ -733,10 +733,29 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
         </div>
       )}
 
-      {/* Reset Button */}
+      {/* Reset and Debug Buttons */}
       <div className="panel-actions">
         <button className="reset-button" onClick={handleResetAll}>
           Reset All to Home
+        </button>
+        <button className="reset-button" onClick={() => {
+          const kinematicsManager = KinematicsManager.getInstance();
+          const sceneManager = (window as any).sceneManager;
+          if (sceneManager && sceneManager.getScene) {
+            const scene = sceneManager.getScene();
+            if (scene) {
+              const chains = kinematicsManager.getAllChains();
+              const robotChain = chains.find(chain => 
+                chain.joints.some((joint: any) => joint.id.startsWith(robotId))
+              );
+              if (robotChain) {
+                kinematicsManager.showAllJointDebugFrames(robotChain.id, scene);
+                console.log('Debug frames shown! Check console for XYZ/RPY values.');
+              }
+            }
+          }
+        }}>
+          Show Joint Debug Frames
         </button>
       </div>
     </div>
