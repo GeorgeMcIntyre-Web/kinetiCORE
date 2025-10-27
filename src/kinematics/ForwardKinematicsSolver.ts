@@ -721,10 +721,8 @@ export class ForwardKinematicsSolver {
   }
 
   /**
-   * Get null TCP pose for a kinematic chain (in robot-local coordinates)
-   * Null TCP = pose of the last link with no offset/rotation (tool0 at identity)
-   * Uses current joint positions from KinematicsManager
-   * Returns the pose of tool0 (the last link in the chain)
+   * Get null TCP pose by querying the actual mesh world position
+   * This is the RELIABLE method: directly get the world position of tool0/last link mesh
    */
   getNullTCPPose(chainName: string): {
     position: BABYLON.Vector3;
@@ -733,18 +731,44 @@ export class ForwardKinematicsSolver {
     const chain = this.kinematicsManager.getChain(chainName);
     if (!chain) return null;
 
+    // Get the last joint (connects to tool0)
     const joints = this.kinematicsManager.getChainJoints(chain.id);
-    const jointAngles = joints.map((j: JointConfig) => j.position);
+    if (joints.length === 0) return null;
 
-    console.log(`[FK getNullTCPPose] Chain: ${chainName}, joints: ${joints.length}, angles: [${jointAngles.map(a => a.toFixed(3)).join(', ')}]`);
-    
-    const result = this.solve(chainName, jointAngles);
-    
-    if (result) {
-      console.log(`[FK getNullTCPPose] Result (null TCP): pos=(${result.position.x.toFixed(3)}, ${result.position.y.toFixed(3)}, ${result.position.z.toFixed(3)})`);
+    const lastJoint = joints[joints.length - 1];
+    const tool0NodeId = lastJoint.childNodeId;
+
+    // Get the actual scene node
+    const tool0Node = this.sceneTreeManager.getNode(tool0NodeId);
+    if (!tool0Node) {
+      console.error(`[FK getNullTCPPose] Tool0 node not found: ${tool0NodeId}`);
+      return null;
     }
+
+    // Get scene
+    const scene = this.sceneManager.getScene();
+    if (!scene) return null;
+
+    // Get the actual Babylon node (could be mesh or transform node)
+    const babylonNode = this.getBabylonNode(tool0NodeId, scene);
+    if (!babylonNode) {
+      console.error(`[FK getNullTCPPose] Tool0 Babylon node not found for ${tool0NodeId}`);
+      return null;
+    }
+
+    // Get ACTUAL world position and rotation from the mesh
+    babylonNode.computeWorldMatrix(true);
+    const worldMatrix = babylonNode.getWorldMatrix();
+    const worldPosition = new BABYLON.Vector3();
+    babylonNode.getWorldMatrix().getTranslationToRef(worldPosition);
+    const worldRotation = BABYLON.Quaternion.FromRotationMatrix(worldMatrix);
+
+    console.log(`[FK getNullTCPPose] Tool0 ACTUAL world pos: (${worldPosition.x.toFixed(3)}, ${worldPosition.y.toFixed(3)}, ${worldPosition.z.toFixed(3)})`);
     
-    return result;
+    return {
+      position: worldPosition,
+      rotation: worldRotation
+    };
   }
 
   /**
@@ -810,14 +834,15 @@ export class ForwardKinematicsSolver {
     // Since solve() processes ALL joints including fixed ones, the null TCP pose (tool0) already includes
     // the position and orientation of the last link. Now we apply the TCP frame transform and convert to world space.
     
-    // Get null TCP pose in robot-local coordinates
+    // Get null TCP pose - now returns ACTUAL world position from mesh
     const nullTCPPose = this.getNullTCPPose(chainName);
     if (!nullTCPPose) {
       console.error(`[FK getTCPPose] Could not get null TCP pose`);
       return null;
     }
 
-    // Apply TCP frame offset and rotation to null TCP in robot-local space
+    // nullTCPPose is already in WORLD SPACE (from actual mesh)
+    // Now apply TCP frame offset and rotation in world space
     const tcpFrameOffset = new BABYLON.Vector3(
       tcpFrame.offset.x,
       tcpFrame.offset.y,
@@ -831,26 +856,28 @@ export class ForwardKinematicsSolver {
       tcpFrame.rotation.w
     );
 
-    // Transform TCP frame offset from local to world direction first
-    // TCP frame offset is in the null TCP frame's coordinate system
+    // Transform TCP frame offset in the tool0's local frame to world space
+    // TCP frame offset is specified in the tool0 frame's coordinate system
     const rotatedOffset = BABYLON.Vector3.TransformCoordinates(
       tcpFrameOffset,
       BABYLON.Matrix.FromQuaternionToRef(nullTCPPose.rotation, new BABYLON.Matrix())
     );
 
-    // Apply TCP frame offset to null TCP position
-    const tcpPositionLocal = nullTCPPose.position.add(rotatedOffset);
+    // Apply TCP frame offset to null TCP position (already in world space)
+    const tcpPositionWorld = nullTCPPose.position.add(rotatedOffset);
 
     // Combine rotations: null TCP rotation * TCP frame rotation
-    const tcpRotationLocal = nullTCPPose.rotation.multiply(tcpFrameRotation);
+    const tcpRotationWorld = nullTCPPose.rotation.multiply(tcpFrameRotation);
 
-    console.log(`[FK getTCPPose] Applying TCP frame ${tcpFrame.name}:`);
-    console.log(`  Null TCP pos: (${nullTCPPose.position.x.toFixed(3)}, ${nullTCPPose.position.y.toFixed(3)}, ${nullTCPPose.position.z.toFixed(3)})`);
-    console.log(`  TCP offset: (${tcpFrameOffset.x.toFixed(3)}, ${tcpFrameOffset.y.toFixed(3)}, ${tcpFrameOffset.z.toFixed(3)})`);
-    console.log(`  TCP pos (local): (${tcpPositionLocal.x.toFixed(3)}, ${tcpPositionLocal.y.toFixed(3)}, ${tcpPositionLocal.z.toFixed(3)})`);
+    console.log(`[FK getTCPPose] Applying TCP frame ${tcpFrame.name} in world space:`);
+    console.log(`  Tool0 world pos: (${nullTCPPose.position.x.toFixed(3)}, ${nullTCPPose.position.y.toFixed(3)}, ${nullTCPPose.position.z.toFixed(3)})`);
+    console.log(`  TCP offset (tool0 frame): (${tcpFrameOffset.x.toFixed(3)}, ${tcpFrameOffset.y.toFixed(3)}, ${tcpFrameOffset.z.toFixed(3)})`);
+    console.log(`  TCP world pos: (${tcpPositionWorld.x.toFixed(3)}, ${tcpPositionWorld.y.toFixed(3)}, ${tcpPositionWorld.z.toFixed(3)})`);
 
-    // Now transform to world space
-    return this.transformToWorldSpace(chainName, tcpPositionLocal, tcpRotationLocal);
+    return {
+      position: tcpPositionWorld,
+      rotation: tcpRotationWorld
+    };
   }
 
   /**
@@ -927,30 +954,15 @@ export class ForwardKinematicsSolver {
   }
 
   /**
-   * Get null TCP pose in world space (transforms from robot-local to world coordinates)
-   * This is the critical fix: transform the local FK result to world space using the robot base's world transform
-   * Returns the pose of the last link (null TCP/tool0) in world coordinates
+   * Get null TCP pose in world space
+   * Simply returns null TCP since getNullTCPPose() now returns actual world position
    */
   private getTCPPoseWorld(chainName: string): {
     position: BABYLON.Vector3;
     rotation: BABYLON.Quaternion;
   } | null {
-    // Get chain
-    const chain = this.kinematicsManager.getChain(chainName);
-    if (!chain) {
-      console.warn(`[FK getTCPPose] Chain not found: ${chainName}`);
-      return null;
-    }
-
-    // Get null TCP pose (last link pose in robot-local coordinates)
-    const nullTCPPose = this.getNullTCPPose(chainName);
-    if (!nullTCPPose) {
-      console.warn(`[FK getTCPPose] Could not get null TCP pose (last link)`);
-      return null;
-    }
-
-    // Use the reusable transform method
-    return this.transformToWorldSpace(chainName, nullTCPPose.position, nullTCPPose.rotation);
+    // getNullTCPPose() now returns actual world position from mesh
+    return this.getNullTCPPose(chainName);
   }
 
   /**
