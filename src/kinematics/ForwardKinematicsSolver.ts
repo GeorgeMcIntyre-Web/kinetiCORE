@@ -735,43 +735,58 @@ export class ForwardKinematicsSolver {
     const joints = this.kinematicsManager.getChainJoints(chain.id);
     if (joints.length === 0) return null;
 
-    // Find the TCP joint that connects to tool0
-    let tool0NodeId: string | null = null;
+    // Find the link_6 node (NOT tool0 - link_6 is the last moving link, tool0 is a fixed frame)
+    // We want link_6 because it's the last actuated link before the fixed TCP frame
+    let link6NodeId: string | null = null;
     for (let i = joints.length - 1; i >= 0; i--) {
       const joint = joints[i];
-      if (joint.name === 'link_6-tool0') {
-        tool0NodeId = joint.childNodeId;
-        console.log(`[FK getNullTCPPose] Found link_6-tool0 joint, child node: ${tool0NodeId}`);
-        break;
+      // Find the joint that connects to link_6 (parent is link_5, child is link_6)
+      if (joint.parentNodeId && joint.childNodeId) {
+        const parentNode = this.sceneTreeManager.getNode(joint.parentNodeId);
+        const childNode = this.sceneTreeManager.getNode(joint.childNodeId);
+        console.log(`[FK getNullTCPPose] Checking joint ${joint.name}: parent=${parentNode?.name} child=${childNode?.name}`);
+        
+        // Look for link_6 in the names
+        if (childNode?.name && childNode.name.includes('link_6') && !childNode.name.includes('tool0') && !childNode.name.includes('flange')) {
+          link6NodeId = joint.childNodeId;
+          console.log(`[FK getNullTCPPose] Found link_6 node: ${childNode.name} (ID: ${link6NodeId})`);
+          break;
+        }
       }
     }
 
-    if (!tool0NodeId) {
-      console.error(`[FK getNullTCPPose] link_6-tool0 joint not found in ${joints.length} joints`);
-      joints.forEach(j => console.log(`  Joint: ${j.name} (${j.childNodeId})`));
+    if (!link6NodeId) {
+      console.error(`[FK getNullTCPPose] link_6 node not found in ${joints.length} joints`);
+      console.log(`[FK getNullTCPPose] Checking all nodes for link_6:`);
+      const allNodes = this.sceneTreeManager.getAllNodes();
+      allNodes.forEach(node => {
+        if (node.name?.includes('link_6') || node.name?.includes('tool')) {
+          console.log(`  Node: ${node.name} (type: ${node.type}, ID: ${node.id})`);
+        }
+      });
       return null;
     }
 
-    console.log(`[FK getNullTCPPose] Looking for tool0 node: ${tool0NodeId}`);
+    console.log(`[FK getNullTCPPose] Looking for link_6 node: ${link6NodeId}`);
     console.log(`[FK getNullTCPPose] Total joints: ${joints.length}`);
 
     // Get the actual scene node
-    const tool0Node = this.sceneTreeManager.getNode(tool0NodeId);
-    if (!tool0Node) {
-      console.error(`[FK getNullTCPPose] Tool0 node not found: ${tool0NodeId}`);
+    const link6Node = this.sceneTreeManager.getNode(link6NodeId);
+    if (!link6Node) {
+      console.error(`[FK getNullTCPPose] Link_6 node not found: ${link6NodeId}`);
       return null;
     }
 
-    console.log(`[FK getNullTCPPose] Tool0 node found: ${tool0Node.name}, type: ${tool0Node.type}, hasMesh: ${!!tool0Node.babylonMeshId}`);
+    console.log(`[FK getNullTCPPose] Link_6 node found: ${link6Node.name}, type: ${link6Node.type}, hasMesh: ${!!link6Node.babylonMeshId}`);
 
     // Get scene
     const scene = this.sceneManager.getScene();
     if (!scene) return null;
 
     // Get the actual Babylon node (could be mesh or transform node)
-    const babylonNode = this.getBabylonNode(tool0NodeId, scene);
+    const babylonNode = this.getBabylonNode(link6NodeId, scene);
     if (!babylonNode) {
-      console.error(`[FK getNullTCPPose] Tool0 Babylon node not found for ${tool0NodeId}`);
+      console.error(`[FK getNullTCPPose] Link_6 Babylon node not found for ${link6NodeId}`);
       return null;
     }
 

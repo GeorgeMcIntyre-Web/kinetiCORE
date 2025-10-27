@@ -615,6 +615,109 @@ export class KinematicsManager implements IKinematicsManager {
   }
 
   /**
+   * Show comprehensive joint debug frames (XYZ position + RPY rotation)
+   * Creates coordinate frames at each joint with position and rotation display
+   */
+  showJointDebugFrame(jointId: string, scene: BABYLON.Scene): void {
+    const joint = this.joints.get(jointId);
+    if (!joint) return;
+
+    const tree = SceneTreeManager.getInstance();
+    const childNode = tree.getNode(joint.childNodeId);
+    if (!childNode) return;
+
+    const sceneManager = SceneManager.getInstance();
+    const scene_ref = sceneManager.getScene();
+    if (!scene_ref) return;
+
+    // Get child mesh
+    let childMesh: BABYLON.Mesh | null = null;
+    if (childNode.babylonMeshId) {
+      childMesh = scene.getMeshByUniqueId(parseInt(childNode.babylonMeshId)) as BABYLON.Mesh;
+    }
+
+    if (!childMesh) return;
+
+    // Get world transform
+    childMesh.computeWorldMatrix(true);
+    const worldMatrix = childMesh.getWorldMatrix();
+    
+    const worldPosition = new BABYLON.Vector3();
+    worldMatrix.getTranslationToRef(worldPosition);
+    
+    const worldRotation = BABYLON.Quaternion.FromRotationMatrix(worldMatrix);
+    const euler = worldRotation.toEulerAngles();
+
+    // Create coordinate frame
+    const frameSize = 0.05; // 50mm
+    
+    // X-axis (red)
+    const xAxis = BABYLON.MeshBuilder.CreateCylinder(
+      `debug_x_${jointId}`,
+      { height: frameSize, diameter: 0.003 },
+      scene
+    );
+    xAxis.position.copyFrom(worldPosition).add(new BABYLON.Vector3(frameSize/2, 0, 0));
+    xAxis.rotation.z = Math.PI / 2;
+    xAxis.isPickable = false;
+    const xMat = new BABYLON.StandardMaterial(`debug_x_mat_${jointId}`, scene);
+    xMat.diffuseColor = new BABYLON.Color3(1, 0, 0);
+    xAxis.material = xMat;
+
+    // Y-axis (green)
+    const yAxis = BABYLON.MeshBuilder.CreateCylinder(
+      `debug_y_${jointId}`,
+      { height: frameSize, diameter: 0.003 },
+      scene
+    );
+    yAxis.position.copyFrom(worldPosition).add(new BABYLON.Vector3(0, frameSize/2, 0));
+    yAxis.isPickable = false;
+    const yMat = new BABYLON.StandardMaterial(`debug_y_mat_${jointId}`, scene);
+    yMat.diffuseColor = new BABYLON.Color3(0, 1, 0);
+    yAxis.material = yMat;
+
+    // Z-axis (blue)
+    const zAxis = BABYLON.MeshBuilder.CreateCylinder(
+      `debug_z_${jointId}`,
+      { height: frameSize, diameter: 0.003 },
+      scene
+    );
+    zAxis.position.copyFrom(worldPosition).add(new BABYLON.Vector3(0, 0, frameSize/2));
+    zAxis.rotation.x = Math.PI / 2;
+    zAxis.isPickable = false;
+    const zMat = new BABYLON.StandardMaterial(`debug_z_mat_${jointId}`, scene);
+    zMat.diffuseColor = new BABYLON.Color3(0, 0, 1);
+    zAxis.material = zMat;
+
+    // Store debug info
+    const existing = this.jointAxisVisualizers.get(jointId) || [];
+    existing.push(xAxis, yAxis, zAxis);
+    this.jointAxisVisualizers.set(jointId, existing);
+
+    // Log debug info
+    console.log(`[DEBUG] Joint ${joint.name}:`);
+    console.log(`  World Position: X=${(worldPosition.x*1000).toFixed(1)}mm Y=${(worldPosition.y*1000).toFixed(1)}mm Z=${(worldPosition.z*1000).toFixed(1)}mm`);
+    console.log(`  World Rotation: Rx=${(euler.x*180/Math.PI).toFixed(1)}° Ry=${(euler.y*180/Math.PI).toFixed(1)}° Rz=${(euler.z*180/Math.PI).toFixed(1)}°`);
+  }
+
+  /**
+   * Show all joint frames for debugging
+   */
+  showAllJointDebugFrames(chainId: string, scene: BABYLON.Scene): void {
+    const chain = this.chains.get(chainId);
+    if (!chain) return;
+
+    const joints = this.getChainJoints(chain.id);
+    joints.forEach(joint => {
+      if (joint.type === 'revolute' || joint.type === 'prismatic') {
+        this.showJointDebugFrame(joint.id, scene);
+      }
+    });
+
+    console.log(`[DEBUG] Showing ${joints.length} joint debug frames for chain ${chainId}`);
+  }
+
+  /**
    * Hide joint visuals
    */
   hideJointVisuals(jointId: string): void {
