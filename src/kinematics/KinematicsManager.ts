@@ -615,224 +615,226 @@ export class KinematicsManager implements IKinematicsManager {
   }
 
   /**
-   * Show comprehensive joint debug frames (XYZ position + RPY rotation)
-   * Creates coordinate frames at each joint with position and rotation display
+   * Show joint axis visualization with 3D half-circle torus and arrow meshes
+   * Uses proper 3D geometry with renderingGroupId=2 to render on top of robot
+   * - Cyan torus: Shows rotation range from joint limits
+   * - Yellow arrow: Points at current joint angle (radial from arc)
+   * - Red arrow: Shows rotation axis (normal to arc plane)
    */
   showJointDebugFrame(jointId: string, scene: BABYLON.Scene): void {
     const joint = this.joints.get(jointId);
     if (!joint) return;
 
+    // Only visualize revolute joints
+    if (joint.type !== 'revolute') return;
+
     const tree = SceneTreeManager.getInstance();
-    const childNode = tree.getNode(joint.childNodeId);
-    if (!childNode) return;
 
-    // Get actual mesh from the child node using same approach as FK solver
-    let actualNode: BABYLON.TransformNode | null = null;
-    
-    // Try as direct mesh first
-    if (childNode.babylonMeshId) {
-      actualNode = scene.getMeshByUniqueId(parseInt(childNode.babylonMeshId)) as BABYLON.TransformNode;
-    }
-    
-    // Try as TransformNode (collection) using uniqueId
-    if (!actualNode && childNode.babylonTransformNodeId) {
-      actualNode = scene.transformNodes.find(tn => tn.uniqueId === parseInt(childNode.babylonTransformNodeId!)) || null;
-    }
-
-    // Fallback: Try as TransformNode (collection) by name
-    if (!actualNode && childNode.type === 'collection') {
-      actualNode = scene.transformNodes.find(tn => tn.name === childNode.name) || null;
-    }
-
-    if (!actualNode) {
-      console.error(`[DEBUG] Joint ${joint.name} (${joint.id}): No Babylon node found for child node ${childNode.name}`);
+    // Get PARENT node (joint is defined in parent's local space)
+    const parentNode = tree.getNode(joint.parentNodeId);
+    if (!parentNode) {
+      console.error(`[JointGizmo] Parent node not found for joint ${joint.name}`);
       return;
     }
 
-    // Get the first mesh child for position
-    let actualMesh: BABYLON.Mesh | null = null;
-    if (actualNode instanceof BABYLON.Mesh) {
-      actualMesh = actualNode;
-    } else {
-      const childMeshes = actualNode.getChildMeshes(false, (node): node is BABYLON.Mesh => node instanceof BABYLON.Mesh);
-      if (childMeshes.length > 0) {
-        actualMesh = childMeshes[0];
-        console.log(`[DEBUG] Joint ${joint.name}: Got mesh from TransformNode: ${actualMesh.name}`);
-      }
+    // Get parent's Babylon node
+    let parentBabylonNode: BABYLON.TransformNode | null = null;
+    if (parentNode.babylonMeshId) {
+      parentBabylonNode = scene.getMeshByUniqueId(parseInt(parentNode.babylonMeshId)) as BABYLON.TransformNode;
+    }
+    if (!parentBabylonNode && parentNode.babylonTransformNodeId) {
+      parentBabylonNode = scene.transformNodes.find(tn =>
+        tn.uniqueId === parseInt(parentNode.babylonTransformNodeId!)
+      ) || null;
+    }
+    if (!parentBabylonNode && parentNode.type === 'collection') {
+      parentBabylonNode = scene.transformNodes.find(tn => tn.name === parentNode.name) || null;
     }
 
-    if (!actualMesh) {
-      console.error(`[DEBUG] Joint ${joint.name}: No mesh found in Babylon node ${actualNode.name}`);
+    if (!parentBabylonNode) {
+      console.error(`[JointGizmo] Parent Babylon node not found for joint ${joint.name}`);
       return;
     }
 
-    // Get world transform
-    actualMesh.computeWorldMatrix(true);
-    const worldMatrix = actualMesh.getWorldMatrix();
-    
-    const worldPosition = new BABYLON.Vector3();
-    worldMatrix.getTranslationToRef(worldPosition);
-    
-    const worldRotation = BABYLON.Quaternion.FromRotationMatrix(worldMatrix);
-    const euler = worldRotation.toEulerAngles();
-
-    // Create coordinate frame at the actual mesh's world position
-    const frameSize = 0.1; // 100mm
-    
-    // X-axis (red) - pointing along X
-    const xAxis = BABYLON.MeshBuilder.CreateCylinder(
-      `debug_x_${jointId}`,
-      { height: frameSize, diameter: 0.005 },
-      scene
+    // Joint origin and axis in parent's LOCAL space (per URDF spec)
+    const jointOriginLocal = new BABYLON.Vector3(
+      joint.origin.x,
+      joint.origin.y,
+      joint.origin.z
     );
-    const xPos = worldPosition.clone().add(new BABYLON.Vector3(frameSize/2, 0, 0));
-    xAxis.position.copyFrom(xPos);
-    xAxis.rotation.z = Math.PI / 2;
-    xAxis.isPickable = false;
-    xAxis.setParent(null); // Don't parent to actualMesh
-    const xMat = new BABYLON.StandardMaterial(`debug_x_mat_${jointId}`, scene);
-    xMat.diffuseColor = new BABYLON.Color3(1, 0, 0);
-    xMat.emissiveColor = new BABYLON.Color3(0.5, 0, 0);
-    xAxis.material = xMat;
 
-    // Y-axis (green) - pointing along Y
-    const yAxis = BABYLON.MeshBuilder.CreateCylinder(
-      `debug_y_${jointId}`,
-      { height: frameSize, diameter: 0.005 },
-      scene
+    // Joint axis in parent's local space
+    const localAxis = new BABYLON.Vector3(joint.axis.x, joint.axis.y, joint.axis.z).normalize();
+
+    // Get parent's world matrix for transformations
+    parentBabylonNode.computeWorldMatrix(true);
+    const parentWorldMatrix = parentBabylonNode.getWorldMatrix();
+
+    // Transform joint origin to world space
+    const jointOriginWorld = BABYLON.Vector3.TransformCoordinates(
+      jointOriginLocal,
+      parentWorldMatrix
     );
-    const yPos = worldPosition.clone().add(new BABYLON.Vector3(0, frameSize/2, 0));
-    yAxis.position.copyFrom(yPos);
-    yAxis.isPickable = false;
-    yAxis.setParent(null);
-    const yMat = new BABYLON.StandardMaterial(`debug_y_mat_${jointId}`, scene);
-    yMat.diffuseColor = new BABYLON.Color3(0, 1, 0);
-    yMat.emissiveColor = new BABYLON.Color3(0, 0.5, 0);
-    yAxis.material = yMat;
 
-    // Z-axis (blue) - pointing along Z
-    const zAxis = BABYLON.MeshBuilder.CreateCylinder(
-      `debug_z_${jointId}`,
-      { height: frameSize, diameter: 0.005 },
-      scene
-    );
-    const zPos = worldPosition.clone().add(new BABYLON.Vector3(0, 0, frameSize/2));
-    zAxis.position.copyFrom(zPos);
-    zAxis.rotation.x = Math.PI / 2;
-    zAxis.isPickable = false;
-    zAxis.setParent(null);
-    const zMat = new BABYLON.StandardMaterial(`debug_z_mat_${jointId}`, scene);
-    zMat.diffuseColor = new BABYLON.Color3(0, 0, 1);
-    zMat.emissiveColor = new BABYLON.Color3(0, 0, 0.5);
-    zAxis.material = zMat;
+    // Transform joint axis to world space
+    const worldAxis = BABYLON.Vector3.TransformNormal(localAxis, parentWorldMatrix);
 
-    // Store debug info
+    // Create visualization meshes
     const existing = this.jointAxisVisualizers.get(jointId) || [];
-    existing.push(xAxis, yAxis, zAxis);
-    
-    // Create rotation arc + arrow for revolute joints
-    if (joint.type === 'revolute') {
-      const arrowRadius = 0.05; // 50mm radius
-      const arrowThickness = 0.003; // 3mm
-      
-      // Get joint rotation axis in world space using the mesh's rotation
-      const localAxis = new BABYLON.Vector3(joint.axis.x, joint.axis.y, joint.axis.z).normalize();
-      
-      // Transform axis to world space using the mesh's rotation
-      const worldRotationQuat = BABYLON.Quaternion.FromRotationMatrix(worldMatrix);
-      const worldAxis = BABYLON.Vector3.TransformNormal(localAxis, BABYLON.Matrix.FromQuaternionToRef(worldRotationQuat, new BABYLON.Matrix()));
-      
-      // Create a plane perpendicular to the rotation axis for the arc
-      // Find a perpendicular vector in world space
-      let perpVector = new BABYLON.Vector3(1, 0, 0);
-      if (Math.abs(BABYLON.Vector3.Dot(perpVector, worldAxis)) > 0.9) {
-        perpVector = new BABYLON.Vector3(0, 1, 0);
-      }
-      const arcDirection = BABYLON.Vector3.Cross(worldAxis, perpVector).normalize();
-      const arcNormal = BABYLON.Vector3.Cross(arcDirection, worldAxis).normalize();
-      
-      // Create half-circle arc points (180 degrees) in world space
-      const arcPoints = [];
-      const numSegments = 20;
-      for (let i = 0; i <= numSegments; i++) {
-        const angle = (i / numSegments) * Math.PI; // 0 to PI (half circle)
-        const localPoint = arcDirection.scale(Math.cos(angle) * arrowRadius)
-          .add(arcNormal.scale(Math.sin(angle) * arrowRadius));
-        arcPoints.push(localPoint);
-      }
-      
-      // Create the arc using a tube
-      const arc = BABYLON.MeshBuilder.CreateTube(
-        `debug_rot_arc_${jointId}`,
-        {
-          path: arcPoints,
-          radius: arrowThickness,
-          cap: BABYLON.Mesh.CAP_NONE,
-          updatable: false,
-        },
-        scene
-      );
-      arc.position.copyFrom(worldPosition);
-      arc.isPickable = false;
-      arc.setParent(null);
-      
-      const arcMat = new BABYLON.StandardMaterial(`debug_rot_arc_mat_${jointId}`, scene);
-      arcMat.diffuseColor = new BABYLON.Color3(1, 1, 0); // Yellow
-      arcMat.emissiveColor = new BABYLON.Color3(0.5, 0.5, 0);
-      arc.material = arcMat;
-      existing.push(arc);
-      
-      // Create arrow head at the end of the arc
-      const arrowHead = BABYLON.MeshBuilder.CreateSphere(
-        `debug_rot_arrowhead_${jointId}`,
-        { diameter: 0.01 },
-        scene
-      );
-      
-      // Position arrow head at the end of the arc (at angle PI)
-      const arrowEndPoint = arcDirection.scale(-arrowRadius); // End of half circle
-      arrowHead.position.copyFrom(worldPosition).addInPlace(arrowEndPoint);
-      arrowHead.isPickable = false;
-      arrowHead.setParent(null);
-      arrowHead.material = arcMat;
-      existing.push(arrowHead);
-      
-      // Create normal vector arrow (along the rotation axis in world space)
-      const normalLength = 0.08; // 80mm
-      const normalArrow = BABYLON.MeshBuilder.CreateCylinder(
-        `debug_rot_normal_${jointId}`,
-        { height: normalLength, diameter: 0.004 },
-        scene
-      );
-      
-      // Position at joint origin, extend along world rotation axis
-      const normalPos = worldPosition.clone().add(worldAxis.scale(normalLength / 2));
-      normalArrow.position.copyFrom(normalPos);
-      
-      // Orient along the axis
-      const upVec = new BABYLON.Vector3(0, 1, 0);
-      const angleToUp = Math.acos(BABYLON.Vector3.Dot(worldAxis, upVec));
-      const crossProduct = BABYLON.Vector3.Cross(upVec, worldAxis).normalize();
-      if (crossProduct.length() > 0.01) {
-        normalArrow.rotationQuaternion = BABYLON.Quaternion.RotationAxis(crossProduct, angleToUp);
-      }
-      
-      normalArrow.isPickable = false;
-      normalArrow.setParent(null);
-      
-      const normalMat = new BABYLON.StandardMaterial(`debug_rot_normal_mat_${jointId}`, scene);
-      normalMat.diffuseColor = new BABYLON.Color3(1, 0.5, 0); // Orange
-      normalMat.emissiveColor = new BABYLON.Color3(0.5, 0.25, 0);
-      normalArrow.material = normalMat;
-      existing.push(normalArrow);
+
+    const arcRadius = 0.05; // 50mm radius for the arc
+
+    // Get joint limits and current position
+    const lowerLimit = joint.limits?.lower || -Math.PI;
+    const upperLimit = joint.limits?.upper || Math.PI;
+    const currentAngle = joint.position || 0;
+
+    // Clamp arc range to reasonable values
+    let arcStart = Math.max(lowerLimit, -2 * Math.PI);
+    let arcEnd = Math.min(upperLimit, 2 * Math.PI);
+
+    // If range is too large, show half circle centered on current angle
+    if (arcEnd - arcStart > Math.PI) {
+      arcStart = currentAngle - Math.PI / 2;
+      arcEnd = currentAngle + Math.PI / 2;
     }
-    
+
+    // Find perpendicular vectors for the arc plane in WORLD space
+    let perpVector = new BABYLON.Vector3(1, 0, 0);
+    if (Math.abs(BABYLON.Vector3.Dot(perpVector, worldAxis)) > 0.9) {
+      perpVector = new BABYLON.Vector3(0, 1, 0);
+    }
+    let arcU = BABYLON.Vector3.Cross(worldAxis, perpVector).normalize();
+    let arcV = BABYLON.Vector3.Cross(arcU, worldAxis).normalize();
+
+    // Rotate arc plane by 90 degrees around joint axis to fix scaling issue
+    const rotationAngle = Math.PI / 2; // 90 degrees
+    const cosAngle = Math.cos(rotationAngle);
+    const sinAngle = Math.sin(rotationAngle);
+    const arcURotated = arcU.scale(cosAngle).add(arcV.scale(sinAngle));
+    const arcVRotated = arcV.scale(cosAngle).subtract(arcU.scale(sinAngle));
+    arcU = arcURotated;
+    arcV = arcVRotated;
+
+    // Create 3D arc with FIXED length (half-circle, doesn't scale) in WORLD space
+    const tubeRadius = 0.002; // 2mm tube thickness
+    const arrowThickness = 0.003; // 3mm arrow shaft
+
+    const arcPoints: BABYLON.Vector3[] = [];
+    const numSegments = 40;
+    // Fixed half-circle arc (180 degrees)
+    const fixedArcLength = Math.PI; // Half circle
+    for (let i = 0; i <= numSegments; i++) {
+      const angle = (i / numSegments) * fixedArcLength - (fixedArcLength / 2); // -90° to +90°
+      const x = Math.cos(angle) * arcRadius;
+      const y = Math.sin(angle) * arcRadius;
+      const point = jointOriginWorld.clone()
+        .add(arcU.scale(x))
+        .add(arcV.scale(y));
+      arcPoints.push(point);
+    }
+
+    const arcTube = BABYLON.MeshBuilder.CreateTube(
+      `joint_arc_${jointId}`,
+      {
+        path: arcPoints,
+        radius: tubeRadius,
+        cap: BABYLON.Mesh.CAP_ALL,
+        updatable: false
+      },
+      scene
+    );
+
+    const arcMat = new BABYLON.StandardMaterial(`joint_arc_mat_${jointId}`, scene);
+    arcMat.diffuseColor = new BABYLON.Color3(1, 0, 0); // Red
+    arcMat.emissiveColor = new BABYLON.Color3(0.5, 0, 0); // Self-illuminated
+    arcMat.disableLighting = true; // Always bright
+    arcTube.material = arcMat;
+    arcTube.isPickable = false;
+    arcTube.renderingGroupId = 2; // Render on top of robot
+    existing.push(arcTube);
+
+    // Create arrow at the OTHER end of the arc line (at -90°)
+    const arcEndAngle = -fixedArcLength / 2; // Other end of arc at -90°
+    const arcEndX = Math.cos(arcEndAngle) * arcRadius;
+    const arcEndY = Math.sin(arcEndAngle) * arcRadius;
+    const arcEndPos = jointOriginWorld.clone()
+      .add(arcU.scale(arcEndX))
+      .add(arcV.scale(arcEndY));
+
+    // Tangent direction at end of arc (pointing in + rotation direction)
+    // Negate the direction to flip the arrow
+    const tangentDir = arcU.scale(Math.sin(arcEndAngle)).add(arcV.scale(-Math.cos(arcEndAngle))).normalize();
+
+    // Arrow head only (0 length shaft, just the cone)
+    const arrowHead = BABYLON.MeshBuilder.CreateCylinder(
+      `joint_arc_arrow_head_${jointId}`,
+      { diameterTop: 0, diameterBottom: 0.01, height: 0.02 },
+      scene
+    );
+    arrowHead.position = arcEndPos;
+
+    // Orient arrow along tangent
+    const arrowUpVec = new BABYLON.Vector3(0, 1, 0);
+    const angleToUp = Math.acos(BABYLON.Vector3.Dot(tangentDir, arrowUpVec));
+    const crossProduct = BABYLON.Vector3.Cross(arrowUpVec, tangentDir).normalize();
+    if (crossProduct.length() > 0.01) {
+      arrowHead.rotationQuaternion = BABYLON.Quaternion.RotationAxis(crossProduct, angleToUp);
+    }
+    arrowHead.material = arcMat;
+    arrowHead.isPickable = false;
+    arrowHead.renderingGroupId = 2;
+    existing.push(arrowHead);
+
+    // Create normal vector arrow (axis arrow - 3D cylinder along rotation axis)
+    const normalLength = 0.07; // 70mm
+    const normalShaftLength = normalLength * 0.8;
+    const normalEnd = jointOriginWorld.clone().add(worldAxis.scale(normalShaftLength));
+
+    // Normal shaft (3D cylinder)
+    const normalShaft = BABYLON.MeshBuilder.CreateCylinder(
+      `joint_normal_shaft_${jointId}`,
+      { height: normalShaftLength, diameter: arrowThickness * 1.2 },
+      scene
+    );
+    normalShaft.position = jointOriginWorld.clone().add(worldAxis.scale(normalShaftLength / 2));
+
+    // Orient normal shaft along worldAxis
+    const normalUpVec = new BABYLON.Vector3(0, 1, 0);
+    const normalAngleToUp = Math.acos(BABYLON.Vector3.Dot(worldAxis, normalUpVec));
+    const normalCross = BABYLON.Vector3.Cross(normalUpVec, worldAxis).normalize();
+    if (normalCross.length() > 0.01) {
+      normalShaft.rotationQuaternion = BABYLON.Quaternion.RotationAxis(normalCross, normalAngleToUp);
+    }
+
+    const normalMat = new BABYLON.StandardMaterial(`joint_normal_mat_${jointId}`, scene);
+    normalMat.diffuseColor = new BABYLON.Color3(1, 0, 0); // Red
+    normalMat.emissiveColor = new BABYLON.Color3(0.5, 0, 0); // Self-illuminated
+    normalMat.disableLighting = true; // Always bright
+    normalShaft.material = normalMat;
+    normalShaft.isPickable = false;
+    normalShaft.renderingGroupId = 2; // Render on top of robot
+    existing.push(normalShaft);
+
+    // Normal arrow head (cone)
+    const normalHead = BABYLON.MeshBuilder.CreateCylinder(
+      `joint_normal_head_${jointId}`,
+      { diameterTop: 0, diameterBottom: 0.012, height: 0.025 },
+      scene
+    );
+    normalHead.position = normalEnd;
+    if (normalCross.length() > 0.01) {
+      normalHead.rotationQuaternion = BABYLON.Quaternion.RotationAxis(normalCross, normalAngleToUp);
+    }
+    normalHead.material = normalMat;
+    normalHead.isPickable = false;
+    normalHead.renderingGroupId = 2; // Render on top of robot
+    existing.push(normalHead);
+
+    // Store for later updates
     this.jointAxisVisualizers.set(jointId, existing);
 
-    // Log debug info
-    console.log(`[DEBUG] Joint ${joint.name}:`);
-    console.log(`  World Position: X=${(worldPosition.x*1000).toFixed(1)}mm Y=${(worldPosition.y*1000).toFixed(1)}mm Z=${(worldPosition.z*1000).toFixed(1)}mm`);
-    console.log(`  World Rotation: Rx=${(euler.x*180/Math.PI).toFixed(1)}° Ry=${(euler.y*180/Math.PI).toFixed(1)}° Rz=${(euler.z*180/Math.PI).toFixed(1)}°`);
+    console.log(`[JointGizmo] Created gizmo for ${joint.name} at angle ${(currentAngle * 180 / Math.PI).toFixed(1)}°`);
   }
 
   /**
@@ -861,6 +863,23 @@ export class KinematicsManager implements IKinematicsManager {
       visuals.forEach(v => v.dispose());
       this.jointAxisVisualizers.delete(jointId);
     }
+  }
+
+  /**
+   * Update joint gizmo to reflect current joint angle
+   * Called when joint position changes
+   */
+  updateJointGizmo(jointId: string, scene: BABYLON.Scene): void {
+    const joint = this.joints.get(jointId);
+    if (!joint || joint.type !== 'revolute') return;
+
+    // Check if gizmo exists
+    const visuals = this.jointAxisVisualizers.get(jointId);
+    if (!visuals || visuals.length === 0) return;
+
+    // Hide old gizmo and recreate with new angle
+    this.hideJointVisuals(jointId);
+    this.showJointDebugFrame(jointId, scene);
   }
 
   /**

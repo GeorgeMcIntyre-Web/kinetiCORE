@@ -58,7 +58,16 @@ export class ForwardKinematicsSolver {
     }
 
     // Calculate and apply transform
-    return this.applyJointTransform(joint, syncPhysics);
+    const result = this.applyJointTransform(joint, syncPhysics);
+
+    // Update joint gizmos for this joint and all child joints
+    const scene = this.sceneManager.getScene();
+    if (scene) {
+      this.kinematicsManager.updateJointGizmo(jointId, scene);
+      this.updateChildJointGizmos(joint.childNodeId, scene);
+    }
+
+    return result;
   }
 
   /**
@@ -247,6 +256,21 @@ export class ForwardKinematicsSolver {
     for (const childJoint of childJoints) {
       if (childJoint.parentNodeId === nodeId) {
         this.applyJointTransform(childJoint, syncPhysics);
+      }
+    }
+  }
+
+  /**
+   * Recursively update all child joint gizmos after a parent joint moves
+   */
+  private updateChildJointGizmos(nodeId: string, scene: BABYLON.Scene): void {
+    const childJoints = this.kinematicsManager.getNodeJoints(nodeId);
+
+    for (const childJoint of childJoints) {
+      if (childJoint.parentNodeId === nodeId) {
+        this.kinematicsManager.updateJointGizmo(childJoint.id, scene);
+        // Recursively update this joint's children
+        this.updateChildJointGizmos(childJoint.childNodeId, scene);
       }
     }
   }
@@ -946,9 +970,11 @@ export class ForwardKinematicsSolver {
    * Transform a robot-local pose to world space
    * Helper method used by both null TCP and TCP frame transformations
    */
-  private transformToWorldSpace(
-    chainName: string, 
-    localPosition: BABYLON.Vector3, 
+  // @ts-ignore - Reserved for future use
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private _transformToWorldSpace(
+    chainName: string,
+    localPosition: BABYLON.Vector3,
     localRotation: BABYLON.Quaternion
   ): {
     position: BABYLON.Vector3;
