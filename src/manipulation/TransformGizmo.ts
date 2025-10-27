@@ -27,14 +27,14 @@ export class TransformGizmo {
     this.gizmoManager.usePointerToAttachGizmos = false;
 
     // Set gizmo scale to half size
-    if (this.gizmoManager.positionGizmo) {
-      this.gizmoManager.positionGizmo.scaleRatio = 0.5;
+    if (this.gizmoManager.gizmos.positionGizmo) {
+      this.gizmoManager.gizmos.positionGizmo.scaleRatio = 0.5;
     }
-    if (this.gizmoManager.rotationGizmo) {
-      this.gizmoManager.rotationGizmo.scaleRatio = 0.5;
+    if (this.gizmoManager.gizmos.rotationGizmo) {
+      this.gizmoManager.gizmos.rotationGizmo.scaleRatio = 0.5;
     }
-    if (this.gizmoManager.scaleGizmo) {
-      this.gizmoManager.scaleGizmo.scaleRatio = 0.5;
+    if (this.gizmoManager.gizmos.scaleGizmo) {
+      this.gizmoManager.gizmos.scaleGizmo.scaleRatio = 0.5;
     }
 
     // Initialize snapping wrapper for real-time snapping
@@ -64,31 +64,31 @@ export class TransformGizmo {
     switch (mode) {
       case 'translate':
         this.gizmoManager.positionGizmoEnabled = true;
-        if (this.gizmoManager.positionGizmo) {
-          this.gizmoManager.positionGizmo.scaleRatio = 0.5;
+        if (this.gizmoManager.gizmos.positionGizmo) {
+          this.gizmoManager.gizmos.positionGizmo.scaleRatio = 0.5;
         }
         break;
       case 'rotate':
         this.gizmoManager.rotationGizmoEnabled = true;
-        if (this.gizmoManager.rotationGizmo) {
-          this.gizmoManager.rotationGizmo.scaleRatio = 0.5;
+        if (this.gizmoManager.gizmos.rotationGizmo) {
+          this.gizmoManager.gizmos.rotationGizmo.scaleRatio = 0.5;
         }
         break;
       case 'scale':
         this.gizmoManager.scaleGizmoEnabled = true;
-        if (this.gizmoManager.scaleGizmo) {
-          this.gizmoManager.scaleGizmo.scaleRatio = 0.5;
+        if (this.gizmoManager.gizmos.scaleGizmo) {
+          this.gizmoManager.gizmos.scaleGizmo.scaleRatio = 0.5;
         }
         break;
       case 'combined':
         // Show both translation and rotation gizmos
         this.gizmoManager.positionGizmoEnabled = true;
         this.gizmoManager.rotationGizmoEnabled = true;
-        if (this.gizmoManager.positionGizmo) {
-          this.gizmoManager.positionGizmo.scaleRatio = 0.5;
+        if (this.gizmoManager.gizmos.positionGizmo) {
+          this.gizmoManager.gizmos.positionGizmo.scaleRatio = 0.5;
         }
-        if (this.gizmoManager.rotationGizmo) {
-          this.gizmoManager.rotationGizmo.scaleRatio = 0.5;
+        if (this.gizmoManager.gizmos.rotationGizmo) {
+          this.gizmoManager.gizmos.rotationGizmo.scaleRatio = 0.5;
         }
         break;
     }

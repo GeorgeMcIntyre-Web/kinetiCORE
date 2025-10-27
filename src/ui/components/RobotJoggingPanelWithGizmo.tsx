@@ -81,6 +81,27 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     }
   }, [unifiedGizmo]);
 
+  // Automatically show joint debug frames when panel opens
+  useEffect(() => {
+    const kinematicsManager = KinematicsManager.getInstance();
+    const sceneManager = (window as any).sceneManager as SceneManager;
+
+    if (sceneManager && kinematicsManager && robotId) {
+      const scene = sceneManager.getScene();
+      if (scene) {
+        const chains = kinematicsManager.getAllChains();
+        const robotChain = chains.find(chain =>
+          chain.joints.some((joint: any) => joint.id.startsWith(robotId))
+        );
+
+        if (robotChain) {
+          console.log(`[RobotJoggingPanel] Auto-showing joint gizmos for chain: ${robotChain.id}`);
+          kinematicsManager.showAllJointDebugFrames(robotChain.id, scene);
+        }
+      }
+    }
+  }, [robotId]); // Run when robotId changes or component mounts
+
   // Update TCP position display and gizmo
   useEffect(() => {
     const kinematicsManager = KinematicsManager.getInstance();

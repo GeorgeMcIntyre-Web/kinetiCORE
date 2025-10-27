@@ -51,8 +51,8 @@ export class CameraService {
     this.camera.inertia = CAMERA_INERTIA;
 
     // Panning settings for large worlds
-    this.camera.panningSensibility = 50; // Lower = faster panning
-    this.camera.panningInertia = 0.9; // Smooth panning
+    this.camera.panningSensibility = 200; // Higher = slower/less sensitive panning (was 50)
+    this.camera.panningInertia = 0.85; // Reduced inertia for less sliding
     this.camera.panningDistanceLimit = null; // No distance limit for panning
 
     // Allow full rotation range (no limits)

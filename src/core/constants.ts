@@ -26,8 +26,8 @@ export const AXIS_LENGTH = 2; // 2 meters = 2,000mm
 // Camera constants (internal units: meters, Y-up)
 export const CAMERA_MIN_RADIUS = 0.01; // 1cm - reasonable minimum for close inspection
 export const CAMERA_MAX_RADIUS = 10000; // 10,000m - support very large layouts (10km)
-export const CAMERA_WHEEL_PRECISION = 15; // Reduced from 20 for more responsive zoom
-export const CAMERA_INERTIA = 0.9;
+export const CAMERA_WHEEL_PRECISION = 50; // Higher = less sensitive mouse wheel zoom (was 15)
+export const CAMERA_INERTIA = 0.85; // Slightly reduced inertia for less "sliding"
 export const CAMERA_DEFAULT_ALPHA = -Math.PI / 2; // Look from side
 export const CAMERA_DEFAULT_BETA = Math.PI / 4; // 45° angle from Y-axis
 export const CAMERA_DEFAULT_RADIUS = 15; // 15m distance

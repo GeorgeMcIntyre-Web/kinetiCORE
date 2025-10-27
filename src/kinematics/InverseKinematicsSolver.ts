@@ -86,7 +86,7 @@ export class InverseKinematicsSolver {
 
     for (iteration = 0; iteration < maxIterations; iteration++) {
       // Compute current end-effector pose in world space (includes TCP frame)
-      const currentPose = this.fkSolver.solveWithTCP(chainName, jointAngles);
+      const currentPose = this.fkSolver.getEndEffectorPose(chainName);
       if (!currentPose) {
         console.error('[IK Jacobian] FK solve failed at iteration', iteration);
         break;
@@ -239,7 +239,7 @@ export class InverseKinematicsSolver {
 
     for (iteration = 0; iteration < maxIterations; iteration++) {
       // Check current error in world space (includes TCP frame)
-      const currentPose = this.fkSolver.solveWithTCP(chainName, jointAngles);
+      const currentPose = this.fkSolver.getEndEffectorPose(chainName);
       if (!currentPose) break;
 
       const positionError = target.position.subtract(currentPose.position);
@@ -264,7 +264,7 @@ export class InverseKinematicsSolver {
         }
 
         // Get current end-effector position in world space (includes TCP)
-        const endEffectorPose = this.fkSolver.solveWithTCP(chainName, jointAngles);
+        const endEffectorPose = this.fkSolver.getEndEffectorPose(chainName);
         if (!endEffectorPose) continue;
 
         // Find the joint's index in the full joint array

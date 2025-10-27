@@ -237,10 +237,10 @@ export class SaveToLibraryService {
     const scene = mesh.getScene();
 
     // Use Babylon.js GLTF exporter
-    const { GLTF2Export } = await import('@babylonjs/serializers');
+    const { GLTF2Export } = await import('@babylonjs/serializers/glTF/2.0/glTFSerializer');
 
     const glb = await GLTF2Export.GLBAsync(scene, mesh.name, {
-      shouldExportNode: (node) => node === mesh || node.isDescendantOf(mesh),
+      shouldExportNode: (node: BABYLON.Node) => node === mesh || node.isDescendantOf(mesh),
     });
 
     return glb.glTFFiles[mesh.name + '.glb'] as Blob;
@@ -253,10 +253,10 @@ export class SaveToLibraryService {
     meshes: BABYLON.Mesh[],
     scene: BABYLON.Scene
   ): Promise<Blob> {
-    const { GLTF2Export } = await import('@babylonjs/serializers');
+    const { GLTF2Export } = await import('@babylonjs/serializers/glTF/2.0/glTFSerializer');
 
     const glb = await GLTF2Export.GLBAsync(scene, 'collection', {
-      shouldExportNode: (node) => {
+      shouldExportNode: (node: BABYLON.Node) => {
         return meshes.some(mesh => node === mesh || node.isDescendantOf(mesh));
       },
     });
