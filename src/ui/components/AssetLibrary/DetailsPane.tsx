@@ -99,7 +99,7 @@ export function DetailsPane() {
       );
 
       console.log('Loading URDF file:', urdfFile.name);
-      console.log('Found mesh files:', meshFiles.length);
+      console.log('Found mesh files:', meshFiles.length, meshFiles.map(f => f.name));
 
       // Load URDF with mesh files
       const result = await sceneManager.loadURDFWithMeshes(urdfFile, meshFiles, selectedAsset);
@@ -299,6 +299,16 @@ export function DetailsPane() {
               onChange={handleFileChange}
               style={{ display: 'none' }}
             />
+            <div style={{
+              fontSize: '0.75rem',
+              color: '#888',
+              marginTop: '0.5rem',
+              textAlign: 'center',
+              lineHeight: '1.3'
+            }}>
+              Select URDF file + STL meshes together<br/>
+              (Ctrl+Click or Shift+Click to select multiple files)
+            </div>
           </>
         ) : (
           <button
