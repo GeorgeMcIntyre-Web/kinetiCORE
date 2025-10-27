@@ -711,6 +711,10 @@ export class KinematicsManager implements IKinematicsManager {
     zMat.emissiveColor = new BABYLON.Color3(0, 0, 0.5);
     zAxis.material = zMat;
 
+    // Store debug info
+    const existing = this.jointAxisVisualizers.get(jointId) || [];
+    existing.push(xAxis, yAxis, zAxis);
+    
     // Create rotation arrow if joint is revolute
     if (joint.type === 'revolute') {
       const arrow = BABYLON.MeshBuilder.CreateSphere(
@@ -727,10 +731,7 @@ export class KinematicsManager implements IKinematicsManager {
       arrow.material = rotMat;
       existing.push(arrow);
     }
-
-    // Store debug info
-    const existing = this.jointAxisVisualizers.get(jointId) || [];
-    existing.push(xAxis, yAxis, zAxis);
+    
     this.jointAxisVisualizers.set(jointId, existing);
 
     // Log debug info
