@@ -626,17 +626,34 @@ export class KinematicsManager implements IKinematicsManager {
     const childNode = tree.getNode(joint.childNodeId);
     if (!childNode) return;
 
-    // Get child mesh
-    let childMesh: BABYLON.Mesh | null = null;
+    // Get actual mesh from the child node
+    let actualMesh: BABYLON.Mesh | null = null;
+    
+    // Try as direct mesh first
     if (childNode.babylonMeshId) {
-      childMesh = scene.getMeshByUniqueId(parseInt(childNode.babylonMeshId)) as BABYLON.Mesh;
+      actualMesh = scene.getMeshByUniqueId(parseInt(childNode.babylonMeshId)) as BABYLON.Mesh;
+    }
+    
+    // If not found, try as TransformNode and get its child meshes
+    if (!actualMesh && childNode.babylonTransformNodeId) {
+      const transformNode = scene.transformNodes.find(tn => tn.uniqueId === parseInt(childNode.babylonTransformNodeId!));
+      if (transformNode) {
+        const childMeshes = transformNode.getChildMeshes(false, (node): node is BABYLON.Mesh => node instanceof BABYLON.Mesh);
+        if (childMeshes.length > 0) {
+          actualMesh = childMeshes[0];
+          console.log(`[DEBUG] Got mesh from TransformNode: ${actualMesh.name}`);
+        }
+      }
     }
 
-    if (!childMesh) return;
+    if (!actualMesh) {
+      console.error(`[DEBUG] Joint ${joint.name} (${joint.id}): No mesh found for child node ${childNode.name}`);
+      return;
+    }
 
     // Get world transform
-    childMesh.computeWorldMatrix(true);
-    const worldMatrix = childMesh.getWorldMatrix();
+    actualMesh.computeWorldMatrix(true);
+    const worldMatrix = actualMesh.getWorldMatrix();
     
     const worldPosition = new BABYLON.Vector3();
     worldMatrix.getTranslationToRef(worldPosition);
@@ -644,46 +661,72 @@ export class KinematicsManager implements IKinematicsManager {
     const worldRotation = BABYLON.Quaternion.FromRotationMatrix(worldMatrix);
     const euler = worldRotation.toEulerAngles();
 
-    // Create coordinate frame
-    const frameSize = 0.05; // 50mm
+    // Create coordinate frame at the actual mesh's world position
+    const frameSize = 0.1; // 100mm
     
-    // X-axis (red)
+    // X-axis (red) - pointing along X
     const xAxis = BABYLON.MeshBuilder.CreateCylinder(
       `debug_x_${jointId}`,
-      { height: frameSize, diameter: 0.003 },
+      { height: frameSize, diameter: 0.005 },
       scene
     );
-    xAxis.position.copyFrom(worldPosition).add(new BABYLON.Vector3(frameSize/2, 0, 0));
+    const xPos = worldPosition.clone().add(new BABYLON.Vector3(frameSize/2, 0, 0));
+    xAxis.position.copyFrom(xPos);
     xAxis.rotation.z = Math.PI / 2;
     xAxis.isPickable = false;
+    xAxis.setParent(null); // Don't parent to actualMesh
     const xMat = new BABYLON.StandardMaterial(`debug_x_mat_${jointId}`, scene);
     xMat.diffuseColor = new BABYLON.Color3(1, 0, 0);
+    xMat.emissiveColor = new BABYLON.Color3(0.5, 0, 0);
     xAxis.material = xMat;
 
-    // Y-axis (green)
+    // Y-axis (green) - pointing along Y
     const yAxis = BABYLON.MeshBuilder.CreateCylinder(
       `debug_y_${jointId}`,
-      { height: frameSize, diameter: 0.003 },
+      { height: frameSize, diameter: 0.005 },
       scene
     );
-    yAxis.position.copyFrom(worldPosition).add(new BABYLON.Vector3(0, frameSize/2, 0));
+    const yPos = worldPosition.clone().add(new BABYLON.Vector3(0, frameSize/2, 0));
+    yAxis.position.copyFrom(yPos);
     yAxis.isPickable = false;
+    yAxis.setParent(null);
     const yMat = new BABYLON.StandardMaterial(`debug_y_mat_${jointId}`, scene);
     yMat.diffuseColor = new BABYLON.Color3(0, 1, 0);
+    yMat.emissiveColor = new BABYLON.Color3(0, 0.5, 0);
     yAxis.material = yMat;
 
-    // Z-axis (blue)
+    // Z-axis (blue) - pointing along Z
     const zAxis = BABYLON.MeshBuilder.CreateCylinder(
       `debug_z_${jointId}`,
-      { height: frameSize, diameter: 0.003 },
+      { height: frameSize, diameter: 0.005 },
       scene
     );
-    zAxis.position.copyFrom(worldPosition).add(new BABYLON.Vector3(0, 0, frameSize/2));
+    const zPos = worldPosition.clone().add(new BABYLON.Vector3(0, 0, frameSize/2));
+    zAxis.position.copyFrom(zPos);
     zAxis.rotation.x = Math.PI / 2;
     zAxis.isPickable = false;
+    zAxis.setParent(null);
     const zMat = new BABYLON.StandardMaterial(`debug_z_mat_${jointId}`, scene);
     zMat.diffuseColor = new BABYLON.Color3(0, 0, 1);
+    zMat.emissiveColor = new BABYLON.Color3(0, 0, 0.5);
     zAxis.material = zMat;
+
+    // Create rotation arrow if joint is revolute
+    if (joint.type === 'revolute') {
+      const arrow = BABYLON.MeshBuilder.CreateSphere(
+        `debug_rot_${jointId}`,
+        { diameter: 0.02 },
+        scene
+      );
+      arrow.position.copyFrom(worldPosition);
+      arrow.isPickable = false;
+      arrow.setParent(null);
+      const rotMat = new BABYLON.StandardMaterial(`debug_rot_mat_${jointId}`, scene);
+      rotMat.diffuseColor = new BABYLON.Color3(1, 1, 0);
+      rotMat.emissiveColor = new BABYLON.Color3(0.5, 0.5, 0);
+      arrow.material = rotMat;
+      existing.push(arrow);
+    }
 
     // Store debug info
     const existing = this.jointAxisVisualizers.get(jointId) || [];
