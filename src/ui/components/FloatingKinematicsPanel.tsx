@@ -175,6 +175,14 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     return () => clearInterval(interval);
   }, [activeRobotId]);
 
+  // Cleanup: Hide all joint gizmos when panel closes
+  useEffect(() => {
+    if (!isVisible) {
+      console.log('[FloatingKinematicsPanel] Panel closed - hiding all joint gizmos');
+      kinematicsManager.hideAllJointVisuals();
+    }
+  }, [isVisible]);
+
   const activeDevice = robots.find(r => r.nodeId === activeRobotId);
 
   const panelContent = (

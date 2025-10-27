@@ -866,6 +866,16 @@ export class KinematicsManager implements IKinematicsManager {
   }
 
   /**
+   * Hide all joint visuals/gizmos
+   */
+  hideAllJointVisuals(): void {
+    this.jointAxisVisualizers.forEach((visuals, jointId) => {
+      visuals.forEach(v => v.dispose());
+    });
+    this.jointAxisVisualizers.clear();
+  }
+
+  /**
    * Update joint gizmo to reflect current joint angle
    * Called when joint position changes
    */
