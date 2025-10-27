@@ -759,62 +759,39 @@ export class ForwardKinematicsSolver {
     const joints = this.kinematicsManager.getChainJoints(chain.id);
     if (joints.length === 0) return null;
 
-    // Find the link_6 node (NOT tool0 - link_6 is the last moving link, tool0 is a fixed frame)
-    // We want link_6 because it's the last actuated link before the fixed TCP frame
-    let link6NodeId: string | null = null;
-    for (let i = joints.length - 1; i >= 0; i--) {
-      const joint = joints[i];
-      // Find the joint that connects to link_6 (parent is link_5, child is link_6)
-      if (joint.parentNodeId && joint.childNodeId) {
-        const parentNode = this.sceneTreeManager.getNode(joint.parentNodeId);
-        const childNode = this.sceneTreeManager.getNode(joint.childNodeId);
-        console.log(`[FK getNullTCPPose] Checking joint ${joint.name}: parent=${parentNode?.name} child=${childNode?.name}`);
-        
-        // Look for link_6 in the names
-        if (childNode?.name && childNode.name.includes('link_6') && !childNode.name.includes('tool0') && !childNode.name.includes('flange')) {
-          link6NodeId = joint.childNodeId;
-          console.log(`[FK getNullTCPPose] Found link_6 node: ${childNode.name} (ID: ${link6NodeId})`);
-          break;
-        }
-      }
+    // Find the last child node in the joint chain (the end effector/last link)
+    // This is the last joint's child node, which is the actual end of the kinematic chain
+    let lastLinkNodeId: string | null = null;
+    const lastJoint = joints[joints.length - 1];
+    
+    if (lastJoint && lastJoint.childNodeId) {
+      lastLinkNodeId = lastJoint.childNodeId;
     }
 
-    if (!link6NodeId) {
-      console.error(`[FK getNullTCPPose] link_6 node not found in ${joints.length} joints`);
-      console.log(`[FK getNullTCPPose] Checking all nodes for link_6:`);
-      const allNodes = this.sceneTreeManager.getAllNodes();
-      allNodes.forEach(node => {
-        if (node.name?.includes('link_6') || node.name?.includes('tool')) {
-          console.log(`  Node: ${node.name} (type: ${node.type}, ID: ${node.id})`);
-        }
-      });
+    if (!lastLinkNodeId) {
+      console.error(`[FK getNullTCPPose] Last child node not found in ${joints.length} joints`);
       return null;
     }
-
-    console.log(`[FK getNullTCPPose] Looking for link_6 node: ${link6NodeId}`);
-    console.log(`[FK getNullTCPPose] Total joints: ${joints.length}`);
 
     // Get the actual scene node
-    const link6Node = this.sceneTreeManager.getNode(link6NodeId);
-    if (!link6Node) {
-      console.error(`[FK getNullTCPPose] Link_6 node not found: ${link6NodeId}`);
+    const lastLinkNode = this.sceneTreeManager.getNode(lastLinkNodeId);
+    if (!lastLinkNode) {
+      console.error(`[FK getNullTCPPose] Last link node not found: ${lastLinkNodeId}`);
       return null;
     }
-
-    console.log(`[FK getNullTCPPose] Link_6 node found: ${link6Node.name}, type: ${link6Node.type}, hasMesh: ${!!link6Node.babylonMeshId}`);
 
     // Get scene
     const scene = this.sceneManager.getScene();
     if (!scene) return null;
 
     // Get the actual Babylon node (could be mesh or transform node)
-    const babylonNode = this.getBabylonNode(link6NodeId, scene);
+    const babylonNode = this.getBabylonNode(lastLinkNodeId, scene);
     if (!babylonNode) {
-      console.error(`[FK getNullTCPPose] Link_6 Babylon node not found for ${link6NodeId}`);
+      console.error(`[FK getNullTCPPose] Last link Babylon node not found for ${lastLinkNodeId}`);
       return null;
     }
 
-    // Get ACTUAL world position from the mesh inside tool0
+    // Get ACTUAL world position from the mesh in the last link
     // If it's a TransformNode, get its child meshes
     let actualMesh: BABYLON.Mesh | BABYLON.TransformNode | null = null;
     
@@ -823,22 +800,19 @@ export class ForwardKinematicsSolver {
     } else if (babylonNode instanceof BABYLON.TransformNode) {
       // Get all child meshes and use the first one
       const childMeshes = babylonNode.getChildMeshes(false, (node): node is BABYLON.Mesh => node instanceof BABYLON.Mesh);
-      console.log(`[FK getNullTCPPose] TransformNode has ${childMeshes.length} child meshes`);
       
       if (childMeshes.length > 0) {
         actualMesh = childMeshes[0];
-        console.log(`[FK getNullTCPPose] Using child mesh: ${actualMesh.name}`);
       } else {
         // No child meshes, use the transform node itself
         actualMesh = babylonNode;
-        console.log(`[FK getNullTCPPose] No child meshes, using transform node itself`);
       }
     } else {
       actualMesh = babylonNode;
     }
 
     if (!actualMesh) {
-      console.error(`[FK getNullTCPPose] Could not get actual mesh from tool0 node`);
+      console.error(`[FK getNullTCPPose] Could not get actual mesh from last link node`);
       return null;
     }
 
@@ -848,8 +822,6 @@ export class ForwardKinematicsSolver {
     const worldPosition = new BABYLON.Vector3();
     worldMatrix.getTranslationToRef(worldPosition);
     const worldRotation = BABYLON.Quaternion.FromRotationMatrix(worldMatrix);
-
-    console.log(`[FK getNullTCPPose] Tool0 ACTUAL world pos: (${worldPosition.x.toFixed(3)}, ${worldPosition.y.toFixed(3)}, ${worldPosition.z.toFixed(3)})`);
     
     return {
       position: worldPosition,
