@@ -19,8 +19,10 @@ export interface UnifiedGizmoConfig {
   chainName?: string;           // For TCP and IK targets
   deviceId?: string;           // For device base targets
   position: BABYLON.Vector3;
+  rotation?: BABYLON.Quaternion; // Optional rotation
   enabled: boolean;
   onPositionChange: (targetId: string, position: BABYLON.Vector3) => void;
+  onRotationChange?: (targetId: string, rotation: BABYLON.Quaternion) => void; // Optional rotation callback
   onDeviceMove?: (deviceId: string, position: BABYLON.Vector3) => void; // For device positioning
   metadata?: {
     robotId?: string;          // Robot identifier
@@ -82,7 +84,14 @@ export class UnifiedGizmoManager {
   /**
    * Create TCP control gizmo for Motion Panel
    */
-  createTcpControl(robotId: string, chainName: string, tcpPosition: BABYLON.Vector3, onMove: (pos: BABYLON.Vector3) => void): void {
+  createTcpControl(
+    robotId: string, 
+    chainName: string, 
+    tcpPosition: BABYLON.Vector3, 
+    onMove: (pos: BABYLON.Vector3) => void,
+    tcpRotation?: BABYLON.Quaternion,
+    onRotate?: (rot: BABYLON.Quaternion) => void
+  ): void {
     const targetId = `tcp_${robotId}`;
     
     this.createTarget({
@@ -90,11 +99,16 @@ export class UnifiedGizmoManager {
       targetType: 'tcp_control',
       chainName,
       position: tcpPosition.clone(),
+      rotation: tcpRotation?.clone(),
       enabled: true,
       onPositionChange: (_id, newPos) => {
         console.log(`[UnifiedGizmo] TCP moved to: (${newPos.x.toFixed(3)}, ${newPos.y.toFixed(3)}, ${newPos.z.toFixed(3)})`);
         onMove(newPos);
       },
+      onRotationChange: onRotate ? (_id, newRot) => {
+        console.log(`[UnifiedGizmo] TCP rotated`);
+        onRotate(newRot);
+      } : undefined,
       metadata: {
         robotId,
         description: `TCP Control for ${chainName}`
@@ -167,6 +181,19 @@ export class UnifiedGizmoManager {
   }
 
   /**
+   * Update target rotation
+   */
+  updateTargetRotation(targetId: string, rotation: BABYLON.Quaternion): void {
+    const config = this.activeTargets.get(targetId);
+    if (config) {
+      config.rotation = rotation.clone();
+      if (this.shouldShowGizmo(config)) {
+        this.ikGizmoManager.updateTargetRotation(targetId, rotation);
+      }
+    }
+  }
+
+  /**
    * Clear all gizmos
    */
   clearAll(): void {
@@ -200,6 +227,7 @@ export class UnifiedGizmoManager {
       targetId: config.targetId,
       chainName: config.chainName || 'unknown',
       position: config.position.clone(),
+      rotation: config.rotation?.clone(),
       enabled: config.enabled,
       onPositionChange: (id, newPos) => {
         // Handle different target types
@@ -215,6 +243,12 @@ export class UnifiedGizmoManager {
             break;
         }
       },
+      onRotationChange: config.onRotationChange ? (id, newRot) => {
+        // Handle rotation changes for TCP and IK targets
+        if (config.onRotationChange) {
+          config.onRotationChange(id, newRot);
+        }
+      } : undefined,
     });
   }
 

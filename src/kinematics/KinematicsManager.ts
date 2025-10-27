@@ -270,6 +270,11 @@ export class KinematicsManager implements IKinematicsManager {
       return null;
     }
 
+    // Debug: Log originRotation from config
+    if (config.name?.includes('tool0')) {
+      console.log(`[KinematicsManager] Creating joint ${config.name}, originRotation from config:`, config.originRotation);
+    }
+
     // Create joint with defaults
     // Use joint name as ID if provided (URDF joints have unique names)
     // Otherwise generate unique ID with timestamp + random component
@@ -281,6 +286,7 @@ export class KinematicsManager implements IKinematicsManager {
       childNodeId: config.childNodeId,
       axis: config.axis || { x: 0, y: 0, z: 1 }, // Default: Z-axis (up)
       origin: config.origin || { x: 0, y: 0, z: 0 },
+      originRotation: config.originRotation, // FIXED: Include originRotation from config
       limits: config.limits || {
         lower: -Math.PI,
         upper: Math.PI,
@@ -405,6 +411,20 @@ export class KinematicsManager implements IKinematicsManager {
   getChainJoints(chainId: string): JointConfig[] {
     const chain = this.chains.get(chainId);
     return chain ? chain.joints : [];
+  }
+
+  /**
+   * Get only actuated joints (excludes fixed joints)
+   */
+  getActuatedJoints(chainId: string): JointConfig[] {
+    const chain = this.chains.get(chainId);
+    if (!chain) return [];
+    
+    return chain.joints.filter(joint => 
+      joint.type === 'revolute' || 
+      joint.type === 'prismatic' || 
+      joint.type === 'spherical'
+    );
   }
 
   /**

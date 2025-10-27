@@ -66,10 +66,10 @@ export class InverseKinematicsSolver {
     const {
       maxIterations = 300,
       tolerance = 0.001, // 1mm tolerance - tighter than jog step
-      stepSize = 0.5,
+      stepSize = 0.2, // Reduced from 0.5 to 0.2 for more stable convergence
       positionWeight = 1.0,
       orientationWeight = 0.5,
-      damping = 0.01,
+      damping = 0.1, // Increased from 0.01 to 0.1 for better stability
     } = options;
 
     const chain = this.kinematicsManager.getChain(chainName);
@@ -77,7 +77,7 @@ export class InverseKinematicsSolver {
       return { jointAngles: [], success: false, error: Infinity, iterations: 0 };
     }
 
-    const joints = this.kinematicsManager.getChainJoints(chain.id);
+    const joints = this.kinematicsManager.getActuatedJoints(chain.id);
     // eslint-disable-next-line prefer-const -- array elements are mutated in loop (line 149)
     let jointAngles = initialAngles || joints.map((j: JointConfig) => j.position);
 
@@ -85,16 +85,21 @@ export class InverseKinematicsSolver {
     let error = Infinity;
 
     for (iteration = 0; iteration < maxIterations; iteration++) {
-      // Compute current end-effector pose
-      const currentPose = this.fkSolver.solve(chainName, jointAngles);
+      // Compute current end-effector pose in world space (includes TCP frame)
+      const currentPose = this.fkSolver.solveWithTCP(chainName, jointAngles);
       if (!currentPose) {
         console.error('[IK Jacobian] FK solve failed at iteration', iteration);
         break;
       }
 
-      // Compute position error
+      // Compute position error (both in world space)
       const positionError = target.position.subtract(currentPose.position);
       const positionErrorMagnitude = positionError.length();
+      
+      // Reduced logging: only log if error is large (potential divergence)
+      if (iteration % 50 === 0 && positionErrorMagnitude > 1.0) {
+        console.log(`[IK Jacobian] Iteration ${iteration}: error=${positionErrorMagnitude.toFixed(4)}`);
+      }
 
       // Compute orientation error (if target rotation specified)
       let orientationError = new BABYLON.Vector3(0, 0, 0);
@@ -174,8 +179,9 @@ export class InverseKinematicsSolver {
         deltaAngles[i] = stepSize * delta * dampingFactor;
       }
 
-      // Adaptive step size based on error magnitude
-      const adaptiveStep = Math.min(1.0, error / 0.1) * stepSize;
+      // Adaptive step size: smaller steps when error is large, larger steps when error is small
+      // This prevents overshoot when far from target
+      const adaptiveStep = Math.min(1.0, 0.1 / Math.max(error, 0.01)) * stepSize;
 
       // Update joint angles
       for (let i = 0; i < jointAngles.length; i++) {
@@ -224,7 +230,7 @@ export class InverseKinematicsSolver {
       return { jointAngles: [], success: false, error: Infinity, iterations: 0 };
     }
 
-    const joints = this.kinematicsManager.getChainJoints(chain.id);
+    const joints = this.kinematicsManager.getActuatedJoints(chain.id);
     // eslint-disable-next-line prefer-const -- array elements are mutated in loop (line 268)
     let jointAngles = initialAngles || joints.map((j: JointConfig) => j.position);
 
@@ -232,8 +238,8 @@ export class InverseKinematicsSolver {
     let error = Infinity;
 
     for (iteration = 0; iteration < maxIterations; iteration++) {
-      // Check current error
-      const currentPose = this.fkSolver.solve(chainName, jointAngles);
+      // Check current error in world space (includes TCP frame)
+      const currentPose = this.fkSolver.solveWithTCP(chainName, jointAngles);
       if (!currentPose) break;
 
       const positionError = target.position.subtract(currentPose.position);
@@ -244,6 +250,9 @@ export class InverseKinematicsSolver {
       }
 
       // Iterate through joints from end-effector to base
+      // Need to get all joints (including fixed) to get correct indices for solveUpToJoint
+      const allJoints = this.kinematicsManager.getChainJoints(chain.id);
+      
       for (let i = joints.length - 1; i >= 0; i--) {
         const joint = joints[i];
 
@@ -254,12 +263,16 @@ export class InverseKinematicsSolver {
           continue;
         }
 
-        // Get current end-effector position
-        const endEffectorPose = this.fkSolver.solve(chainName, jointAngles);
+        // Get current end-effector position in world space (includes TCP)
+        const endEffectorPose = this.fkSolver.solveWithTCP(chainName, jointAngles);
         if (!endEffectorPose) continue;
 
+        // Find the joint's index in the full joint array
+        const jointIndexInFullArray = allJoints.findIndex(j => j.id === joint.id);
+        if (jointIndexInFullArray < 0) continue;
+
         // Get joint position (solve FK up to this joint using full joint angles)
-        const jointPose = this.fkSolver.solveUpToJoint(chainName, jointAngles, i);
+        const jointPose = this.fkSolver.solveUpToJoint(chainName, jointAngles, jointIndexInFullArray);
         if (!jointPose) continue;
 
         const jointPosition = jointPose.position;
@@ -341,37 +354,38 @@ export class InverseKinematicsSolver {
       return false;
     }
 
-    // Apply joint angles to robot
+    // Apply joint angles to robot (only actuated joints)
     const chain = this.kinematicsManager.getChain(chainName);
     if (!chain) return false;
 
-    const joints = this.kinematicsManager.getChainJoints(chain.id);
+    const joints = this.kinematicsManager.getActuatedJoints(chain.id);
 
     for (let i = 0; i < joints.length; i++) {
-      this.fkSolver.updateJointPosition(joints[i].id, solution.jointAngles[i]);
+      const result = this.fkSolver.updateJointPosition(joints[i].id, solution.jointAngles[i]);
+      if (!result) {
+        console.error(`[IK solveAndApply] Failed to update joint ${joints[i].id}`);
+      }
     }
 
-    console.log(
-      `IK solved: error=${solution.error.toFixed(4)}, ` +
-      `iterations=${solution.iterations}`
-    );
+    // Log result
+    console.log(`IK solved: error=${solution.error.toFixed(4)}, iterations=${solution.iterations}`);
 
     return true;
   }
 
   /**
-   * Rotate end-effector by delta (incremental rotation)
+   * Rotate TCP by delta (incremental rotation)
    * Useful for rotary jogging in Cartesian space
    */
-  rotateEndEffector(
+  rotateTCP(
     chainName: string,
     rotationDelta: BABYLON.Quaternion,
     method: 'jacobian' | 'fabrik' = 'jacobian'
   ): boolean {
-    // Get current end-effector pose
-    const currentPose = this.fkSolver.getEndEffectorPose(chainName);
+    // Get current TCP pose (with TCP frame applied if exists)
+    const currentPose = this.fkSolver.getTCPPose?.(chainName) || this.fkSolver.getNullTCPPose(chainName);
     if (!currentPose) {
-      console.error('[IK] Failed to get current end-effector pose');
+      console.error('[IK] Failed to get current TCP pose');
       return false;
     }
 
@@ -394,10 +408,10 @@ export class InverseKinematicsSolver {
       return false;
     }
 
-    // Apply joint angles
+    // Apply joint angles (only actuated joints)
     const chain = this.kinematicsManager.getChain(chainName);
     if (!chain) return false;
-    const joints = this.kinematicsManager.getChainJoints(chain.id);
+    const joints = this.kinematicsManager.getActuatedJoints(chain.id);
 
     for (let i = 0; i < joints.length; i++) {
       this.fkSolver.updateJointPosition(joints[i].id, solution.jointAngles[i]);
@@ -407,54 +421,46 @@ export class InverseKinematicsSolver {
   }
 
   /**
-   * Move end-effector by delta (incremental motion)
+   * Move TCP by delta (incremental motion)
    * Useful for jogging in Cartesian space
    */
-  moveEndEffector(
+  moveTCP(
     chainName: string,
     positionDelta: BABYLON.Vector3,
     method: 'jacobian' | 'ccd' | 'fabrik' = 'jacobian'
   ): boolean {
-    console.log(`[IK moveEndEffector] Chain: ${chainName}, Method: ${method}`);
-    console.log(`[IK moveEndEffector] Delta:`, positionDelta);
-
-    // Get current end-effector pose
-    const currentPose = this.fkSolver.getEndEffectorPose(chainName);
+    // Get current TCP pose (with TCP frame applied if exists)
+    const currentPose = this.fkSolver.getTCPPose?.(chainName) || this.fkSolver.getNullTCPPose(chainName);
     if (!currentPose) {
-      console.error('[IK moveEndEffector] Failed to get current end-effector pose');
-      console.error('[IK moveEndEffector] Available chains:', this.kinematicsManager.getAllChains().map(c => c.name));
+      console.error('[IK moveTCP] Failed to get current TCP pose');
       return false;
     }
 
-    console.log(`[IK moveEndEffector] Current position:`, currentPose.position);
-
     // Compute new target position
     const targetPosition = currentPose.position.add(positionDelta);
-    console.log(`[IK moveEndEffector] Target position:`, targetPosition);
 
     // Solve IK for new position
     if (method === 'fabrik') {
-      console.log('[IK moveEndEffector] Using FABRIK method');
+      console.log('[IK moveTCP] Using FABRIK method');
       const solution = this.solveFABRIK(chainName, { position: targetPosition });
       if (!solution.success) {
-        console.error('[IK moveEndEffector] FABRIK failed:', solution);
+        console.error('[IK moveTCP] FABRIK failed:', solution);
         return false;
       }
 
       const chain = this.kinematicsManager.getChain(chainName);
       if (!chain) {
-        console.error('[IK moveEndEffector] Chain not found:', chainName);
+        console.error('[IK moveTCP] Chain not found:', chainName);
         return false;
       }
-      const joints = this.kinematicsManager.getChainJoints(chain.id);
+      const joints = this.kinematicsManager.getActuatedJoints(chain.id);
       for (let i = 0; i < joints.length; i++) {
         this.fkSolver.updateJointPosition(joints[i].id, solution.jointAngles[i]);
       }
-      console.log('[IK moveEndEffector] ✅ FABRIK succeeded');
+      console.log('[IK moveTCP] ✅ FABRIK succeeded');
       return true;
     }
 
-    console.log(`[IK moveEndEffector] Using ${method} method via solveAndApply`);
     const result = this.solveAndApply(
       chainName,
       {
@@ -463,12 +469,6 @@ export class InverseKinematicsSolver {
       },
       method
     );
-
-    if (result) {
-      console.log('[IK moveEndEffector] ✅ Success');
-    } else {
-      console.error('[IK moveEndEffector] ❌ Failed');
-    }
 
     return result;
   }
@@ -493,7 +493,7 @@ export class InverseKinematicsSolver {
       return { jointAngles: [], success: false, error: Infinity, iterations: 0 };
     }
 
-    const joints = this.kinematicsManager.getChainJoints(chain.id);
+    const joints = this.kinematicsManager.getActuatedJoints(chain.id);
     const initialAngles = joints.map((j: JointConfig) => j.position);
 
     // Get link lengths (distance between consecutive joints)
@@ -718,5 +718,21 @@ export class InverseKinematicsSolver {
     }
 
     return resultAngles;
+  }
+
+  /**
+   * Legacy method name - use rotateTCP() instead
+   * @deprecated Use rotateTCP() for clarity
+   */
+  rotateEndEffector(chainName: string, rotationDelta: BABYLON.Quaternion, method: 'jacobian' | 'fabrik' = 'jacobian'): boolean {
+    return this.rotateTCP(chainName, rotationDelta, method);
+  }
+
+  /**
+   * Legacy method name - use moveTCP() instead
+   * @deprecated Use moveTCP() for clarity
+   */
+  moveEndEffector(chainName: string, positionDelta: BABYLON.Vector3, method: 'jacobian' | 'ccd' | 'fabrik' = 'jacobian'): boolean {
+    return this.moveTCP(chainName, positionDelta, method);
   }
 }

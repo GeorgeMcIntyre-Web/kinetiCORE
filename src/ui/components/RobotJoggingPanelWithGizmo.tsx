@@ -92,54 +92,61 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
       });
 
       if (robotChain) {
-        const endEffectorPose = fkSolver.getEndEffectorPose(robotChain.name);
-        if (endEffectorPose) {
+        // Use getTCPPose() to get TCP frame with offset and rotation applied
+        const tcpPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
+        if (tcpPose) {
           // Convert from Babylon space (Y-up, meters) to User space (Z-up, mm)
-          const userPos = babylonToUser(endEffectorPose.position);
+          const userPos = babylonToUser(tcpPose.position);
+
+          // Convert quaternion to RPY (Roll-Pitch-Yaw) Euler angles
+          // ROS/URDF convention: Roll around X, Pitch around Y, Yaw around Z
+          const quat = tcpPose.rotation;
+          const qx = quat.x, qy = quat.y, qz = quat.z, qw = quat.w;
+          
+          // Convert quaternion to RPY (intrinsic XYZ order - Roll, Pitch, Yaw)
+          // This matches ROS/URDF conventions
+          const sinr_cosp = 2 * (qw * qx + qy * qz);
+          const cosr_cosp = 1 - 2 * (qx * qx + qy * qy);
+          const roll = Math.atan2(sinr_cosp, cosr_cosp);
+          
+          const sinp = 2 * (qw * qy - qz * qx);
+          const pitch = Math.abs(sinp) >= 1 ? Math.sign(sinp) * Math.PI / 2 : Math.asin(sinp);
+          
+          const siny_cosp = 2 * (qw * qz + qx * qy);
+          const cosy_cosp = 1 - 2 * (qy * qy + qz * qz);
+          const yaw = Math.atan2(siny_cosp, cosy_cosp);
+          
+          // Convert to degrees
+          const rxDeg = (roll * 180) / Math.PI;   // Roll around X
+          const ryDeg = (pitch * 180) / Math.PI;  // Pitch around Y  
+          const rzDeg = (yaw * 180) / Math.PI;    // Yaw around Z
+          
           setTcpPosition(
-            `X:${userPos.x.toFixed(1)} Y:${userPos.y.toFixed(1)} Z:${userPos.z.toFixed(1)} mm`
+            `X:${userPos.x.toFixed(1)} Y:${userPos.y.toFixed(1)} Z:${userPos.z.toFixed(1)} mm | Rx:${rxDeg.toFixed(1)}° Ry:${ryDeg.toFixed(1)}° Rz:${rzDeg.toFixed(1)}°`
           );
           
-          // Update gizmo position if in TCP mode
-          if (jogMode === 'tcp' && endEffectorPose.position) {
-            setCurrentTcpPosition(endEffectorPose.position.clone());
+          // Update gizmo position and rotation if in TCP mode
+          if (jogMode === 'tcp' && tcpPose.position) {
+            setCurrentTcpPosition(tcpPose.position.clone());
             setCurrentChainName(robotChain.name);
-            
-            // Update or create TCP gizmo
-            unifiedGizmo.createTcpControl(
-              robotId,
-              robotChain.name,
-              endEffectorPose.position,
-              (newPosition) => {
-                console.log('[RobotJoggingPanel] TCP gizmo moved to:', newPosition);
-                // Convert from Babylon space to User space for IK
-                const userPos = babylonToUser(newPosition);
-                const currentUserPos = babylonToUser(endEffectorPose.position);
-                
-                // Calculate delta in User space
-                const delta = {
-                  x: userPos.x - currentUserPos.x,
-                  y: userPos.y - currentUserPos.y,
-                  z: userPos.z - currentUserPos.z
-                };
-                
-                // Convert delta to Babylon space for IK solver
-                const babylonDelta = userToBabylon(delta);
-                
-                // Apply IK to move robot to new TCP position
-                const success = ikSolver.moveEndEffector(robotChain.name, babylonDelta, 'ccd');
-                if (!success) {
-                  console.warn('[RobotJoggingPanel] IK failed for TCP gizmo movement');
-                }
-              }
-            );
+
+          // Update existing gizmo position and rotation instead of recreating
+          const targetId = `tcp_${robotId}`;
+          console.log(`[RobotJoggingPanel] Updating gizmo ${targetId} to position: (${tcpPose.position.x.toFixed(3)}, ${tcpPose.position.y.toFixed(3)}, ${tcpPose.position.z.toFixed(3)})`);
+          unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
+          unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
+
+          // Debug log to verify rotation
+          const euler = tcpPose.rotation.toEulerAngles();
+          console.log(`[RobotJoggingPanel] Gizmo rotation update: Rx=${(euler.x*180/Math.PI).toFixed(1)}° Ry=${(euler.y*180/Math.PI).toFixed(1)}° Rz=${(euler.z*180/Math.PI).toFixed(1)}°`);
           }
         }
       }
     };
 
     updateTcpPosition();
-    const interval = setInterval(updateTcpPosition, 500);
+    // More frequent updates for smoother gizmo tracking
+    const interval = setInterval(updateTcpPosition, 100);
     return () => clearInterval(interval);
   }, [fkSolver, robotId, jogMode, ikSolver, unifiedGizmo]);
 
@@ -148,14 +155,86 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     if (jogMode === 'tcp') {
       // Switch to motion panel context
       unifiedGizmo.setActivePanel('motion');
-      console.log('[RobotJoggingPanel] Switched to TCP mode - gizmo should appear');
+      
+      // Get current TCP position and create gizmo
+      const kinematicsManager = KinematicsManager.getInstance();
+      const chains = kinematicsManager.getAllChains();
+      const robotChain = chains.find(chain => {
+        return chain.joints.some((joint: any) => joint.id.startsWith(robotId));
+      });
+      
+      if (robotChain) {
+        // Use getTCPPose() to get TCP frame with offset and rotation applied
+        const tcpPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
+        if (tcpPose) {
+          console.log(`[RobotJoggingPanel] Creating TCP gizmo for robot: ${robotId}, chain: ${robotChain.name}`);
+          console.log(`[RobotJoggingPanel] TCP position: (${tcpPose.position.x.toFixed(3)}, ${tcpPose.position.y.toFixed(3)}, ${tcpPose.position.z.toFixed(3)})`);
+          const euler = tcpPose.rotation.toEulerAngles();
+          console.log(`[RobotJoggingPanel] TCP rotation: Rx=${(euler.x*180/Math.PI).toFixed(1)}° Ry=${(euler.y*180/Math.PI).toFixed(1)}° Rz=${(euler.z*180/Math.PI).toFixed(1)}°`);
+          // Create TCP gizmo with move and rotate callbacks
+          unifiedGizmo.createTcpControl(
+            robotId,
+            robotChain.name,
+            tcpPose.position,
+            (newPosition) => {
+              console.log('═══════════════════════════════════════════════════════════');
+              console.log('[RobotJoggingPanel] TCP gizmo moved to:', newPosition);
+
+              // Get the ACTUAL current TCP position from FK solver
+              // (robots might have moved via previous IK solves)
+              const currentPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
+              if (!currentPose) {
+                console.error('[RobotJoggingPanel] Failed to get current TCP pose');
+                console.error('[RobotJoggingPanel] Chain name:', robotChain.name);
+                console.error('[RobotJoggingPanel] Robot ID:', robotId);
+                return;
+              }
+
+              // Both gizmo and IK solver work in Babylon space (Y-up, meters)
+              // Compute delta from current position
+              const delta = newPosition.subtract(currentPose.position);
+
+              console.log('[RobotJoggingPanel] Current TCP:', currentPose.position);
+              console.log('[RobotJoggingPanel] New position:', newPosition);
+              console.log('[RobotJoggingPanel] Delta:', delta);
+              console.log('[RobotJoggingPanel] Delta magnitude:', delta.length());
+
+              // Apply IK to move robot to new TCP position
+              console.log('[RobotJoggingPanel] Calling IK with delta:', delta);
+              const success = ikSolver.moveTCP(robotChain.name, delta, 'jacobian');
+
+              if (success) {
+                // After successful IK, get the actual achieved position
+                const finalPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
+                if (finalPose) {
+                  console.log('[RobotJoggingPanel] Final TCP after IK:', finalPose.position);
+                  // Update gizmo to match where robot actually ended up
+                  const targetId = `tcp_${robotId}`;
+                  unifiedGizmo.updateTargetPosition(targetId, finalPose.position);
+                  console.log('[RobotJoggingPanel] Gizmo synced to final TCP:', finalPose.position);
+                }
+              } else {
+                console.error('[RobotJoggingPanel] IK failed for TCP gizmo movement');
+              }
+              console.log('═══════════════════════════════════════════════════════════');
+            },
+            tcpPose.rotation,
+            (_newRotation) => {
+              console.log('[RobotJoggingPanel] TCP gizmo rotated');
+              // TODO: Apply rotation-based IK when support is added
+              // For now, just log the rotation change
+            }
+          );
+          console.log('[RobotJoggingPanel] Created TCP gizmo at:', tcpPose.position);
+        }
+      }
     } else {
       // Clear TCP gizmo when not in TCP mode
       unifiedGizmo.removeTarget(`tcp_${robotId}`);
       unifiedGizmo.setActivePanel('none');
       console.log('[RobotJoggingPanel] Switched away from TCP mode - gizmo cleared');
     }
-  }, [jogMode, robotId, unifiedGizmo]);
+  }, [jogMode, robotId, unifiedGizmo, fkSolver, ikSolver]);
 
   // Load keyframes for this robot
   useEffect(() => {
@@ -190,6 +269,24 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     const stepRadians = (jogStepJoint * Math.PI) / 180;
     const newValue = joint.position + (stepRadians * direction);
     fkSolver.updateJointPosition(jointId, newValue);
+    
+    // If in TCP mode, update gizmo position immediately after joint move
+    if (jogMode === 'tcp') {
+      const kinematicsManager = KinematicsManager.getInstance();
+      const chains = kinematicsManager.getAllChains();
+      const robotChain = chains.find(chain => 
+        chain.joints.some((joint: any) => joint.id.startsWith(robotId))
+      );
+      
+      if (robotChain) {
+        const tcpPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
+        if (tcpPose) {
+          const targetId = `tcp_${robotId}`;
+          unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
+          unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
+        }
+      }
+    }
   };
 
   const handleJogTcp = (axis: JogAxis, direction: number) => {
@@ -252,7 +349,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
       const rotationDelta = BABYLON.Quaternion.RotationAxis(babylonAxis.normalize(), angleRadians);
 
       // Apply rotation using Jacobian method (supports orientation control)
-      success = ikSolver.rotateEndEffector(chainName, rotationDelta, 'jacobian');
+      success = ikSolver.rotateTCP(chainName, rotationDelta, 'jacobian');
 
       if (!success) {
         console.warn(`Rotary IK failed for: ${axis} ${direction > 0 ? '+' : '-'}${jogStepTcpRotary}°`);
@@ -263,11 +360,11 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
 
     // Linear motion (position IK)
     // Try CCD first (more robust), fallback to Jacobian
-    success = ikSolver.moveEndEffector(chainName, positionDelta, 'ccd');
+    success = ikSolver.moveTCP(chainName, positionDelta, 'ccd');
 
     if (!success) {
       console.log('CCD failed, trying Jacobian method...');
-      success = ikSolver.moveEndEffector(chainName, positionDelta, 'jacobian');
+      success = ikSolver.moveTCP(chainName, positionDelta, 'jacobian');
     }
 
     if (!success) {
@@ -464,12 +561,6 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
       {/* TCP Mode with Gizmo */}
       {jogMode === 'tcp' && (
         <div className="tcp-jog-mode">
-          <div className="tcp-gizmo-info">
-            <p className="gizmo-hint">
-              🎯 <strong>TCP Gizmo Active</strong> - Drag the gizmo to move the robot's end-effector
-            </p>
-          </div>
-
           <div className="jog-step-control">
             <label>Step</label>
             <div className="step-selector">

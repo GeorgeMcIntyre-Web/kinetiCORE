@@ -11,13 +11,16 @@ export interface IKTargetGizmoConfig {
   targetId: string; // Unique ID for this target
   chainName: string; // Which kinematic chain this targets
   position: BABYLON.Vector3;
+  rotation?: BABYLON.Quaternion; // Optional rotation
   enabled: boolean;
   onPositionChange: (targetId: string, position: BABYLON.Vector3) => void;
+  onRotationChange?: (targetId: string, rotation: BABYLON.Quaternion) => void; // Optional rotation callback
 }
 
 interface TargetGizmoData {
-  gizmo: BABYLON.PositionGizmo;
-  marker: BABYLON.Mesh; // Visual sphere at target position
+  gizmo: BABYLON.PositionGizmo | BABYLON.Gizmo | null;
+  rotationGizmo: BABYLON.RotationGizmo | null; // Rotation gizmo for TCP control
+  marker: BABYLON.Mesh | null; // Visual marker (optional, currently not used)
   label: GUI.TextBlock | null; // 3D label showing chain name
   transformNode: BABYLON.TransformNode; // Parent node for gizmo
   config: IKTargetGizmoConfig;
@@ -97,44 +100,25 @@ export class IKTargetGizmoManager {
     // Create transform node to hold the gizmo
     const transformNode = new BABYLON.TransformNode(`ikTarget_${config.targetId}`, this.scene);
     transformNode.position = config.position.clone();
+    
+    // Initialize rotation quaternion if needed
+    if (config.rotation) {
+      transformNode.rotationQuaternion = config.rotation.clone();
+    } else {
+      transformNode.rotationQuaternion = BABYLON.Quaternion.Identity();
+    }
 
-    // Create visual marker (sphere)
-    const marker = BABYLON.MeshBuilder.CreateSphere(
-      `ikTargetMarker_${config.targetId}`,
-      { diameter: 0.12 }, // Slightly larger for better visibility
-      this.scene
-    );
-    marker.parent = transformNode;
-    marker.isPickable = false; // Don't interfere with gizmo picking
-
+    // No visual marker - just use the gizmo itself
     // Get color for this chain
     const chainColor = this.getChainColor(config.chainName);
-    
-    // Create material for marker
-    const material = new BABYLON.StandardMaterial(`ikTargetMat_${config.targetId}`, this.scene);
-    material.diffuseColor = chainColor;
-    material.emissiveColor = chainColor.scale(0.6); // Stronger glow
-    material.alpha = config.enabled ? 0.85 : 0.3;
-    material.specularColor = chainColor.scale(0.3);
-    marker.material = material;
-
-    // Add wireframe overlay for better depth perception
-    const wireframe = marker.clone(`ikTargetWireframe_${config.targetId}`);
-    wireframe.parent = marker;
-    wireframe.scaling = new BABYLON.Vector3(1.05, 1.05, 1.05); // Slightly larger
-    const wireframeMat = new BABYLON.StandardMaterial(`ikTargetWireframeMat_${config.targetId}`, this.scene);
-    wireframeMat.wireframe = true;
-    wireframeMat.emissiveColor = chainColor.scale(0.8);
-    wireframeMat.alpha = config.enabled ? 0.6 : 0.2;
-    wireframe.material = wireframeMat;
 
     // Create position gizmo
     const gizmo = new BABYLON.PositionGizmo(new BABYLON.UtilityLayerRenderer(this.scene));
     gizmo.attachedNode = transformNode;
     gizmo.updateGizmoRotationToMatchAttachedMesh = false;
-    gizmo.scaleRatio = 1.2;
+    gizmo.scaleRatio = 1.0; // Standard size
     
-    // Color-code gizmo axes
+    // Color-code gizmo axes with more vibrant colors
     this.applyGizmoColors(gizmo, chainColor);
 
     // Listen for drag events
@@ -155,30 +139,44 @@ export class IKTargetGizmoManager {
       console.log(`[IKTarget] Drag end: ${config.targetId} → (${newPos.x.toFixed(2)}, ${newPos.y.toFixed(2)}, ${newPos.z.toFixed(2)})`);
     });
 
-    // Create 2D label showing chain name
-    let label: GUI.TextBlock | null = null;
-    if (this.advancedTexture && config.chainName) {
-      label = new GUI.TextBlock();
-      label.text = config.chainName;
-      label.color = 'white';
-      label.fontSize = 14;
-      label.fontWeight = 'bold';
-      label.outlineWidth = 2;
-      label.outlineColor = 'black';
-      label.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-      label.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    // Create rotation gizmo if rotation callback is provided
+    let rotationGizmo: BABYLON.RotationGizmo | null = null;
+    if (config.onRotationChange) {
+      rotationGizmo = new BABYLON.RotationGizmo(new BABYLON.UtilityLayerRenderer(this.scene));
+      rotationGizmo.attachedNode = transformNode;
+      rotationGizmo.updateGizmoRotationToMatchAttachedMesh = true; // IMPORTANT: Must match attached node's rotation
+      rotationGizmo.scaleRatio = 1.0; // Standard size
       
-      // Link to 3D position (appears above marker)
-      label.linkWithMesh(marker);
-      label.linkOffsetY = -30; // Pixels above the marker
+      // Apply custom colors to rotation gizmo rings
+      this.applyRotationGizmoColors(rotationGizmo);
       
-      this.advancedTexture.addControl(label);
+      // Listen for rotation drag events
+      rotationGizmo.onDragObservable.add(() => {
+        // Real-time rotation sync during drag
+        const newRot = transformNode.rotationQuaternion?.clone() || BABYLON.Quaternion.Identity();
+        if (config.onRotationChange) {
+          config.onRotationChange(config.targetId, newRot);
+        }
+      });
+
+      rotationGizmo.onDragEndObservable.add(() => {
+        const newRot = transformNode.rotationQuaternion?.clone() || BABYLON.Quaternion.Identity();
+        console.log(`[IKTarget] Rotation end: ${config.targetId}`);
+        if (config.onRotationChange) {
+          config.onRotationChange(config.targetId, newRot);
+        }
+      });
     }
+
+    // Skip label creation for now to avoid linking errors
+    // The gizmo itself is visually distinct with the rotation and position controls
+    let label: GUI.TextBlock | null = null;
 
     // Store target data
     this.targets.set(config.targetId, {
       gizmo,
-      marker,
+      rotationGizmo,
+      marker: null, // No marker, just use gizmo
       label,
       transformNode,
       config,
@@ -195,7 +193,34 @@ export class IKTargetGizmoManager {
     if (!target) return;
 
     target.transformNode.position = position.clone();
+    target.transformNode.computeWorldMatrix(true);
     console.log(`[IKTargetGizmoManager] Updated position: ${targetId} → (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
+  }
+
+  /**
+   * Update target rotation programmatically
+   */
+  updateTargetRotation(targetId: string, rotation: BABYLON.Quaternion): void {
+    const target = this.targets.get(targetId);
+    if (!target) return;
+
+    // Update the transform node's rotation
+    target.transformNode.rotationQuaternion = rotation.clone();
+
+    // Force Babylon.js to mark the node as dirty and update its world matrix
+    target.transformNode.computeWorldMatrix(true);
+
+    // CRITICAL: Force the rotation gizmo to update by reattaching to the node
+    // This is necessary because Babylon.js doesn't automatically detect rotation changes
+    if (target.rotationGizmo) {
+      const tempNode = target.rotationGizmo.attachedNode;
+      target.rotationGizmo.attachedNode = null;
+      target.rotationGizmo.attachedNode = tempNode;
+    }
+
+    // Debug log to verify rotation
+    const euler = rotation.toEulerAngles();
+    console.log(`[IKTargetGizmoManager] Updated rotation: ${targetId} → Rx=${(euler.x*180/Math.PI).toFixed(1)}° Ry=${(euler.y*180/Math.PI).toFixed(1)}° Rz=${(euler.z*180/Math.PI).toFixed(1)}°`);
   }
 
   /**
@@ -205,16 +230,23 @@ export class IKTargetGizmoManager {
     const target = this.targets.get(targetId);
     if (!target) return;
 
-    // Update marker opacity
-    if (target.marker.material instanceof BABYLON.StandardMaterial) {
+    // Update marker opacity (if marker exists)
+    if (target.marker && target.marker.material instanceof BABYLON.StandardMaterial) {
       target.marker.material.alpha = enabled ? 0.8 : 0.3;
       target.marker.material.emissiveColor = enabled 
         ? target.marker.material.diffuseColor.scale(0.5)
         : BABYLON.Color3.Black();
     }
 
-    // Show/hide gizmo
-    target.gizmo.attachedNode = enabled ? target.transformNode : null;
+    // Show/hide position gizmo
+    if (target.gizmo) {
+      target.gizmo.attachedNode = enabled ? target.transformNode : null;
+    }
+    
+    // Show/hide rotation gizmo
+    if (target.rotationGizmo) {
+      target.rotationGizmo.attachedNode = enabled ? target.transformNode : null;
+    }
     
     // Show/hide label
     if (target.label) {
@@ -231,16 +263,25 @@ export class IKTargetGizmoManager {
     const target = this.targets.get(targetId);
     if (!target) return;
 
-    // Dispose gizmo
-    target.gizmo.dispose();
+    // Dispose position gizmo
+    if (target.gizmo) {
+      target.gizmo.dispose();
+    }
 
-    // Dispose marker and its children (including wireframe)
-    target.marker.getChildren().forEach(child => {
-      if (child instanceof BABYLON.Mesh) {
-        child.dispose();
-      }
-    });
-    target.marker.dispose();
+    // Dispose rotation gizmo if it exists
+    if (target.rotationGizmo) {
+      target.rotationGizmo.dispose();
+    }
+
+    // Dispose marker if it exists
+    if (target.marker) {
+      target.marker.getChildren().forEach(child => {
+        if (child instanceof BABYLON.Mesh) {
+          child.dispose();
+        }
+      });
+      target.marker.dispose();
+    }
 
     // Dispose transform node
     target.transformNode.dispose();
@@ -285,24 +326,61 @@ export class IKTargetGizmoManager {
 
   /**
    * Apply color-coding to gizmo axes
+   * Uses standard axis colors (Red=X, Green=Y, Blue=Z) for visual consistency
    */
-  private applyGizmoColors(gizmo: BABYLON.PositionGizmo, baseColor: BABYLON.Color3): void {
-    // X axis - red tint
+  private applyGizmoColors(gizmo: BABYLON.PositionGizmo, _baseColor: BABYLON.Color3): void {
+    // Apply standard axis colors - X=Red, Y=Green, Z=Blue
+    // The Babylon.js gizmo already uses these colors by default
+    // We just need to ensure they're properly configured
+    
+    // X axis - red
     if (gizmo.xGizmo.coloredMaterial) {
-      const xColor = baseColor.clone().add(new BABYLON.Color3(0.3, -0.1, -0.1));
-      gizmo.xGizmo.coloredMaterial.diffuseColor = xColor;
+      gizmo.xGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0); // Red
     }
 
-    // Y axis - green tint
+    // Y axis - green
     if (gizmo.yGizmo.coloredMaterial) {
-      const yColor = baseColor.clone().add(new BABYLON.Color3(-0.1, 0.3, -0.1));
-      gizmo.yGizmo.coloredMaterial.diffuseColor = yColor;
+      gizmo.yGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0, 1, 0); // Green
     }
 
-    // Z axis - blue tint
+    // Z axis - blue
     if (gizmo.zGizmo.coloredMaterial) {
-      const zColor = baseColor.clone().add(new BABYLON.Color3(-0.1, -0.1, 0.3));
-      gizmo.zGizmo.coloredMaterial.diffuseColor = zColor;
+      gizmo.zGizmo.coloredMaterial.diffuseColor = new BABYLON.Color3(0, 0, 1); // Blue
+    }
+  }
+
+  /**
+   * Apply color-coding to rotation gizmo rings
+   * Uses standard axis colors (Red=X, Green=Y, Blue=Z)
+   */
+  private applyRotationGizmoColors(gizmo: BABYLON.RotationGizmo): void {
+    // The rotation gizmo already uses standard colors (Red/Green/Blue for X/Y/Z rings)
+    // Babylon.js handles this automatically, so we don't need to manually set colors
+    // The distinctive visual comes from the ring shape itself
+    
+    // Optional: Access the internal meshes to adjust colors if needed
+    // This is a workaround to access the rotation gizmo's internal structure
+    try {
+      const utilityLayer = (gizmo as any).layerUtilityLayerRenderer;
+      if (utilityLayer && utilityLayer.utilityLayerScene) {
+        const meshes = utilityLayer.utilityLayerScene.meshes;
+        meshes.forEach((mesh: BABYLON.AbstractMesh) => {
+          if (mesh.material && mesh.material instanceof BABYLON.StandardMaterial) {
+            const material = mesh.material as BABYLON.StandardMaterial;
+            // Apply standard axis colors based on mesh name
+            if (mesh.name.includes('RotationGizmo') || mesh.name.includes('xCircle')) {
+              material.diffuseColor = new BABYLON.Color3(1, 0, 0); // Red for X
+            } else if (mesh.name.includes('yCircle')) {
+              material.diffuseColor = new BABYLON.Color3(0, 1, 0); // Green for Y
+            } else if (mesh.name.includes('zCircle')) {
+              material.diffuseColor = new BABYLON.Color3(0, 0, 1); // Blue for Z
+            }
+          }
+        });
+      }
+    } catch (error) {
+      // If we can't access the internal structure, use default colors
+      console.log('[IKTargetGizmoManager] Using default rotation gizmo colors');
     }
   }
 
