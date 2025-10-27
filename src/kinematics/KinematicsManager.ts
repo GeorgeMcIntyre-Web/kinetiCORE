@@ -626,28 +626,43 @@ export class KinematicsManager implements IKinematicsManager {
     const childNode = tree.getNode(joint.childNodeId);
     if (!childNode) return;
 
-    // Get actual mesh from the child node
-    let actualMesh: BABYLON.Mesh | null = null;
+    // Get actual mesh from the child node using same approach as FK solver
+    let actualNode: BABYLON.TransformNode | null = null;
     
     // Try as direct mesh first
     if (childNode.babylonMeshId) {
-      actualMesh = scene.getMeshByUniqueId(parseInt(childNode.babylonMeshId)) as BABYLON.Mesh;
+      actualNode = scene.getMeshByUniqueId(parseInt(childNode.babylonMeshId)) as BABYLON.TransformNode;
     }
     
-    // If not found, try as TransformNode and get its child meshes
-    if (!actualMesh && childNode.babylonTransformNodeId) {
-      const transformNode = scene.transformNodes.find(tn => tn.uniqueId === parseInt(childNode.babylonTransformNodeId!));
-      if (transformNode) {
-        const childMeshes = transformNode.getChildMeshes(false, (node): node is BABYLON.Mesh => node instanceof BABYLON.Mesh);
-        if (childMeshes.length > 0) {
-          actualMesh = childMeshes[0];
-          console.log(`[DEBUG] Got mesh from TransformNode: ${actualMesh.name}`);
-        }
+    // Try as TransformNode (collection) using uniqueId
+    if (!actualNode && childNode.babylonTransformNodeId) {
+      actualNode = scene.transformNodes.find(tn => tn.uniqueId === parseInt(childNode.babylonTransformNodeId!)) || null;
+    }
+
+    // Fallback: Try as TransformNode (collection) by name
+    if (!actualNode && childNode.type === 'collection') {
+      actualNode = scene.transformNodes.find(tn => tn.name === childNode.name) || null;
+    }
+
+    if (!actualNode) {
+      console.error(`[DEBUG] Joint ${joint.name} (${joint.id}): No Babylon node found for child node ${childNode.name}`);
+      return;
+    }
+
+    // Get the first mesh child for position
+    let actualMesh: BABYLON.Mesh | null = null;
+    if (actualNode instanceof BABYLON.Mesh) {
+      actualMesh = actualNode;
+    } else {
+      const childMeshes = actualNode.getChildMeshes(false, (node): node is BABYLON.Mesh => node instanceof BABYLON.Mesh);
+      if (childMeshes.length > 0) {
+        actualMesh = childMeshes[0];
+        console.log(`[DEBUG] Joint ${joint.name}: Got mesh from TransformNode: ${actualMesh.name}`);
       }
     }
 
     if (!actualMesh) {
-      console.error(`[DEBUG] Joint ${joint.name} (${joint.id}): No mesh found for child node ${childNode.name}`);
+      console.error(`[DEBUG] Joint ${joint.name}: No mesh found in Babylon node ${actualNode.name}`);
       return;
     }
 
