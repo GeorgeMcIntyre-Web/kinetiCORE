@@ -43,6 +43,7 @@
     "@babylonjs/gui": "^8.33.0",
     "@babylonjs/loaders": "^8.30.4",
     "@babylonjs/materials": "^8.30.4",
+    "@babylonjs/serializers": "^8.33.2",
     "@dimforge/rapier3d-compat": "^0.11.2",
     "@mlightcad/data-model": "^1.2.20",
     "@mlightcad/libredwg-converter": "^3.0.20",
