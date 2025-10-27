@@ -730,21 +730,101 @@ export class KinematicsManager implements IKinematicsManager {
     const existing = this.jointAxisVisualizers.get(jointId) || [];
     existing.push(xAxis, yAxis, zAxis);
     
-    // Create rotation arrow if joint is revolute
+    // Create rotation arc + arrow for revolute joints
     if (joint.type === 'revolute') {
-      const arrow = BABYLON.MeshBuilder.CreateSphere(
-        `debug_rot_${jointId}`,
-        { diameter: 0.02 },
+      const arrowRadius = 0.05; // 50mm radius
+      const arrowThickness = 0.003; // 3mm
+      
+      // Get joint rotation axis in world space using the mesh's rotation
+      const localAxis = new BABYLON.Vector3(joint.axis.x, joint.axis.y, joint.axis.z).normalize();
+      
+      // Transform axis to world space using the mesh's rotation
+      const worldRotationQuat = BABYLON.Quaternion.FromRotationMatrix(worldMatrix);
+      const worldAxis = BABYLON.Vector3.TransformNormal(localAxis, BABYLON.Matrix.FromQuaternionToRef(worldRotationQuat, new BABYLON.Matrix()));
+      
+      // Create a plane perpendicular to the rotation axis for the arc
+      // Find a perpendicular vector in world space
+      let perpVector = new BABYLON.Vector3(1, 0, 0);
+      if (Math.abs(BABYLON.Vector3.Dot(perpVector, worldAxis)) > 0.9) {
+        perpVector = new BABYLON.Vector3(0, 1, 0);
+      }
+      const arcDirection = BABYLON.Vector3.Cross(worldAxis, perpVector).normalize();
+      const arcNormal = BABYLON.Vector3.Cross(arcDirection, worldAxis).normalize();
+      
+      // Create half-circle arc points (180 degrees) in world space
+      const arcPoints = [];
+      const numSegments = 20;
+      for (let i = 0; i <= numSegments; i++) {
+        const angle = (i / numSegments) * Math.PI; // 0 to PI (half circle)
+        const localPoint = arcDirection.scale(Math.cos(angle) * arrowRadius)
+          .add(arcNormal.scale(Math.sin(angle) * arrowRadius));
+        arcPoints.push(localPoint);
+      }
+      
+      // Create the arc using a tube
+      const arc = BABYLON.MeshBuilder.CreateTube(
+        `debug_rot_arc_${jointId}`,
+        {
+          path: arcPoints,
+          radius: arrowThickness,
+          cap: BABYLON.Mesh.CAP_NONE,
+          updatable: false,
+        },
         scene
       );
-      arrow.position.copyFrom(worldPosition);
-      arrow.isPickable = false;
-      arrow.setParent(null);
-      const rotMat = new BABYLON.StandardMaterial(`debug_rot_mat_${jointId}`, scene);
-      rotMat.diffuseColor = new BABYLON.Color3(1, 1, 0);
-      rotMat.emissiveColor = new BABYLON.Color3(0.5, 0.5, 0);
-      arrow.material = rotMat;
-      existing.push(arrow);
+      arc.position.copyFrom(worldPosition);
+      arc.isPickable = false;
+      arc.setParent(null);
+      
+      const arcMat = new BABYLON.StandardMaterial(`debug_rot_arc_mat_${jointId}`, scene);
+      arcMat.diffuseColor = new BABYLON.Color3(1, 1, 0); // Yellow
+      arcMat.emissiveColor = new BABYLON.Color3(0.5, 0.5, 0);
+      arc.material = arcMat;
+      existing.push(arc);
+      
+      // Create arrow head at the end of the arc
+      const arrowHead = BABYLON.MeshBuilder.CreateSphere(
+        `debug_rot_arrowhead_${jointId}`,
+        { diameter: 0.01 },
+        scene
+      );
+      
+      // Position arrow head at the end of the arc (at angle PI)
+      const arrowEndPoint = arcDirection.scale(-arrowRadius); // End of half circle
+      arrowHead.position.copyFrom(worldPosition).addInPlace(arrowEndPoint);
+      arrowHead.isPickable = false;
+      arrowHead.setParent(null);
+      arrowHead.material = arcMat;
+      existing.push(arrowHead);
+      
+      // Create normal vector arrow (along the rotation axis in world space)
+      const normalLength = 0.08; // 80mm
+      const normalArrow = BABYLON.MeshBuilder.CreateCylinder(
+        `debug_rot_normal_${jointId}`,
+        { height: normalLength, diameter: 0.004 },
+        scene
+      );
+      
+      // Position at joint origin, extend along world rotation axis
+      const normalPos = worldPosition.clone().add(worldAxis.scale(normalLength / 2));
+      normalArrow.position.copyFrom(normalPos);
+      
+      // Orient along the axis
+      const upVec = new BABYLON.Vector3(0, 1, 0);
+      const angleToUp = Math.acos(BABYLON.Vector3.Dot(worldAxis, upVec));
+      const crossProduct = BABYLON.Vector3.Cross(upVec, worldAxis).normalize();
+      if (crossProduct.length() > 0.01) {
+        normalArrow.rotationQuaternion = BABYLON.Quaternion.RotationAxis(crossProduct, angleToUp);
+      }
+      
+      normalArrow.isPickable = false;
+      normalArrow.setParent(null);
+      
+      const normalMat = new BABYLON.StandardMaterial(`debug_rot_normal_mat_${jointId}`, scene);
+      normalMat.diffuseColor = new BABYLON.Color3(1, 0.5, 0); // Orange
+      normalMat.emissiveColor = new BABYLON.Color3(0.5, 0.25, 0);
+      normalArrow.material = normalMat;
+      existing.push(normalArrow);
     }
     
     this.jointAxisVisualizers.set(jointId, existing);
