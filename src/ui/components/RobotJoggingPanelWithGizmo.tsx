@@ -12,6 +12,7 @@ import { KinematicsManager, RobotKeyframe } from '../../kinematics/KinematicsMan
 import type { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
 import { InverseKinematicsSolver } from '../../kinematics/InverseKinematicsSolver';
 import { UnifiedGizmoManager } from '../../kinematics/UnifiedGizmoManager';
+import { SceneManager } from '../../scene/SceneManager';
 import { babylonToUser, userToBabylon } from '../../core/CoordinateSystem';
 import { detectJointGroups, shouldUseJointGroups, JointGroup } from '../../kinematics/JointGroupDetector';
 import './RobotJoggingPanel.css';
@@ -740,19 +741,25 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
         </button>
         <button className="reset-button" onClick={() => {
           const kinematicsManager = KinematicsManager.getInstance();
-          const sceneManager = (window as any).sceneManager;
-          if (sceneManager && sceneManager.getScene) {
-            const scene = sceneManager.getScene();
-            if (scene) {
-              const chains = kinematicsManager.getAllChains();
-              const robotChain = chains.find(chain => 
-                chain.joints.some((joint: any) => joint.id.startsWith(robotId))
-              );
-              if (robotChain) {
-                kinematicsManager.showAllJointDebugFrames(robotChain.id, scene);
-                console.log('Debug frames shown! Check console for XYZ/RPY values.');
-              }
+          const sceneManager = SceneManager.getInstance();
+          const scene = sceneManager.getScene();
+          
+          if (scene) {
+            const chains = kinematicsManager.getAllChains();
+            const robotChain = chains.find(chain => 
+              chain.joints.some((joint: any) => joint.id.startsWith(robotId))
+            );
+            
+            if (robotChain) {
+              console.log(`[DEBUG] Showing debug frames for chain: ${robotChain.id}, ${robotChain.name}`);
+              kinematicsManager.showAllJointDebugFrames(robotChain.id, scene);
+              console.log('[DEBUG] Debug frames added! Check console for XYZ/RPY values at each joint.');
+              console.log('[DEBUG] You should now see red/green/blue axis lines at each joint.');
+            } else {
+              console.error('[DEBUG] No robot chain found for robotId:', robotId);
             }
+          } else {
+            console.error('[DEBUG] Scene not available');
           }
         }}>
           Show Joint Debug Frames
