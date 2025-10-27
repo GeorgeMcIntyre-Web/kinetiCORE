@@ -775,11 +775,39 @@ export class ForwardKinematicsSolver {
       return null;
     }
 
-    // Get ACTUAL world position and rotation from the mesh
-    babylonNode.computeWorldMatrix(true);
-    const worldMatrix = babylonNode.getWorldMatrix();
+    // Get ACTUAL world position from the mesh inside tool0
+    // If it's a TransformNode, get its child meshes
+    let actualMesh: BABYLON.Mesh | BABYLON.TransformNode | null = null;
+    
+    if (babylonNode instanceof BABYLON.Mesh) {
+      actualMesh = babylonNode;
+    } else if (babylonNode instanceof BABYLON.TransformNode) {
+      // Get all child meshes and use the first one
+      const childMeshes = babylonNode.getChildMeshes(false, (node): node is BABYLON.Mesh => node instanceof BABYLON.Mesh);
+      console.log(`[FK getNullTCPPose] TransformNode has ${childMeshes.length} child meshes`);
+      
+      if (childMeshes.length > 0) {
+        actualMesh = childMeshes[0];
+        console.log(`[FK getNullTCPPose] Using child mesh: ${actualMesh.name}`);
+      } else {
+        // No child meshes, use the transform node itself
+        actualMesh = babylonNode;
+        console.log(`[FK getNullTCPPose] No child meshes, using transform node itself`);
+      }
+    } else {
+      actualMesh = babylonNode;
+    }
+
+    if (!actualMesh) {
+      console.error(`[FK getNullTCPPose] Could not get actual mesh from tool0 node`);
+      return null;
+    }
+
+    // Get world position from the actual mesh
+    actualMesh.computeWorldMatrix(true);
+    const worldMatrix = actualMesh.getWorldMatrix();
     const worldPosition = new BABYLON.Vector3();
-    babylonNode.getWorldMatrix().getTranslationToRef(worldPosition);
+    worldMatrix.getTranslationToRef(worldPosition);
     const worldRotation = BABYLON.Quaternion.FromRotationMatrix(worldMatrix);
 
     console.log(`[FK getNullTCPPose] Tool0 ACTUAL world pos: (${worldPosition.x.toFixed(3)}, ${worldPosition.y.toFixed(3)}, ${worldPosition.z.toFixed(3)})`);
