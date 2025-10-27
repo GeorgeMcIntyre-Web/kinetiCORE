@@ -738,12 +738,18 @@ export class ForwardKinematicsSolver {
     const lastJoint = joints[joints.length - 1];
     const tool0NodeId = lastJoint.childNodeId;
 
+    console.log(`[FK getNullTCPPose] Looking for tool0 node: ${tool0NodeId}`);
+    console.log(`[FK getNullTCPPose] Last joint: ${lastJoint.name}, child: ${tool0NodeId}, parent: ${lastJoint.parentNodeId}`);
+    console.log(`[FK getNullTCPPose] Total joints: ${joints.length}`);
+
     // Get the actual scene node
     const tool0Node = this.sceneTreeManager.getNode(tool0NodeId);
     if (!tool0Node) {
       console.error(`[FK getNullTCPPose] Tool0 node not found: ${tool0NodeId}`);
       return null;
     }
+
+    console.log(`[FK getNullTCPPose] Tool0 node found: ${tool0Node.name}, type: ${tool0Node.type}, hasMesh: ${!!tool0Node.babylonMeshId}`);
 
     // Get scene
     const scene = this.sceneManager.getScene();
