@@ -261,6 +261,13 @@ export async function createKinematicsFromURDF(
     // Convert origin rotation (RPY) from URDF Z-up to Babylon Y-up
     const originRotation = urdfRPYToBabylonQuaternion(urdfJoint.origin.rpy);
 
+    // Debug: Log tool0 joint rotation conversion
+    if (urdfJoint.name.includes('tool0')) {
+      console.log(`[URDFJointExtractor] Joint ${urdfJoint.name}:`);
+      console.log(`  URDF RPY: [${urdfJoint.origin.rpy.join(', ')}]`);
+      console.log(`  Babylon Quaternion:`, originRotation);
+    }
+
     // Convert axis direction (Z-up to Y-up)
     const axis = urdfToBabylonAxis(urdfJoint.axis.xyz);
 
@@ -321,14 +328,27 @@ export async function createKinematicsFromURDF(
         if (tcpNodeId) {
           const tcpNode = sceneTreeManager.getNode(tcpNodeId);
           if (tcpNode) {
+            // Look for the joint that connects to this TCP link to get its transform
+            const tcpJoint = joints.find(j => j.child === tcpName);
+            let offset = { x: 0, y: 0, z: 0 };
+            let rotation = { x: 0, y: 0, z: 0, w: 1.0 };
+            
+            if (tcpJoint) {
+              // Get the transform from the joint origin
+              const originBabylon = urdfToBabylonPosition(tcpJoint.origin.xyz);
+              offset = { x: originBabylon.x, y: originBabylon.y, z: originBabylon.z };
+              rotation = urdfRPYToBabylonQuaternion(tcpJoint.origin.rpy);
+              console.log(`Found TCP joint ${tcpJoint.name} with transform ${JSON.stringify(offset)}`);
+            }
+            
             kinematicsManager.addTCPFrame(chain.id, {
               id: `tcp_${tcpName}`,
               name: tcpName,
               linkId: tcpNodeId,
-              offset: { x: 0, y: 0, z: 0 }, // Default offset, can be updated later
-              rotation: { x: 0, y: 0, z: 0, w: 1.0 } // Default rotation
+              offset,
+              rotation
             });
-            console.log(`✅ Detected TCP frame: ${tcpName}`);
+            console.log(`✅ Detected TCP frame: ${tcpName} with offset (${offset.x.toFixed(3)}, ${offset.y.toFixed(3)}, ${offset.z.toFixed(3)})`);
           }
         }
       }

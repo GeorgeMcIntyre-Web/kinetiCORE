@@ -29,7 +29,8 @@ export type AssetClass =
   | 'structures'
   | 'vehicles'
   | 'tools'
-  | 'primitives';
+  | 'primitives'
+  | 'custom';
 
 /**
  * Supported file loaders
@@ -45,12 +46,13 @@ export type LoaderType =
   | 'obj'
   | 'mjcf'
   | 'usd'
-  | 'primitive';
+  | 'primitive'
+  | 'custom';
 
 /**
  * Asset source origins
  */
-export type AssetSource = 'local' | 'cloud' | 'url' | 'generated';
+export type AssetSource = 'local' | 'cloud' | 'url' | 'generated' | 'user-imported';
 
 /**
  * Asset origin types for provenance tracking

@@ -12,9 +12,9 @@
  */
 
 import * as BABYLON from '@babylonjs/core';
-import { AssetDatabase, AssetDatabaseEntry } from './AssetDatabase';
+import { AssetDatabase } from './AssetDatabase';
 import { AssetUploadService } from './AssetUploadService';
-import type { LibraryAsset } from './types';
+import type { LibraryAsset, Domain, AssetClass, LoaderType } from './types';
 
 export interface SaveToLibraryOptions {
   // Asset metadata
@@ -23,10 +23,10 @@ export interface SaveToLibraryOptions {
   tags?: string[];
 
   // Asset classification
-  domain: string; // 'manufacturing', 'logistics', 'custom', etc.
-  assetClass: string; // 'robots', 'conveyors', 'structures', etc.
+  domain: Domain; // 'manufacturing', 'logistics', 'custom', etc.
+  assetClass: AssetClass; // 'robots', 'conveyors', 'structures', etc.
   assetType: string; // 'articulated', 'scara', 'delta', etc.
-  loaderType: 'glb' | 'gltf' | 'obj' | 'urdf' | 'mjcf' | 'custom';
+  loaderType: LoaderType;
 
   // Visibility & Access Control
   visibility: 'private' | 'public' | 'shared';
@@ -118,11 +118,6 @@ export class SaveToLibraryService {
         isFavorite: false,
         usageCount: 0,
         metadata,
-
-        // Access control
-        visibility: options.visibility || 'private',
-        owner: await this.getCurrentUserId(),
-        sharedWith: options.sharedWithUsers || [],
       };
 
       // Save to local storage (IndexedDB)
@@ -204,11 +199,6 @@ export class SaveToLibraryService {
           meshCount: meshes.length,
           collectionType: 'assembly',
         },
-
-        // Access control
-        visibility: options.visibility || 'private',
-        owner: await this.getCurrentUserId(),
-        sharedWith: options.sharedWithUsers || [],
       };
 
       // Save to local storage
@@ -279,7 +269,6 @@ export class SaveToLibraryService {
    */
   private async generateThumbnail(mesh: BABYLON.Mesh): Promise<Blob> {
     const scene = mesh.getScene();
-    const engine = scene.getEngine();
 
     // Create a temporary camera for thumbnail
     const camera = new BABYLON.ArcRotateCamera(
@@ -314,6 +303,10 @@ export class SaveToLibraryService {
 
     // Read pixels
     const pixels = await renderTarget.readPixels();
+    
+    if (!pixels) {
+      throw new Error('Failed to read pixels from render target');
+    }
 
     // Convert to blob
     const canvas = document.createElement('canvas');
@@ -321,7 +314,9 @@ export class SaveToLibraryService {
     canvas.height = size;
     const ctx = canvas.getContext('2d')!;
     const imageData = ctx.createImageData(size, size);
-    imageData.data.set(pixels);
+    // Convert pixels to Uint8ClampedArray
+    const pixelArray = new Uint8ClampedArray(pixels.buffer, pixels.byteOffset, pixels.byteLength);
+    imageData.data.set(pixelArray);
     ctx.putImageData(imageData, 0, 0);
 
     const blob = await new Promise<Blob>((resolve, reject) => {
@@ -375,25 +370,8 @@ export class SaveToLibraryService {
     const glbData = await this.blobToBase64(glbBlob);
     const thumbnailData = await this.blobToBase64(thumbnailBlob);
 
-    const entry: AssetDatabaseEntry = {
-      id: asset.id,
-      name: asset.name,
-      version: 1,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      assetData: asset,
-      thumbnailData,
-      meshData: glbData,
-      fileSize: glbBlob.size,
-      checksum: await this.calculateChecksum(glbBlob),
-      tags: asset.tags,
-      usageCount: 0,
-      isFavorite: false,
-      origin: asset.origin,
-      provenanceHistory: asset.provenanceHistory,
-    };
-
-    await this.assetDatabase.saveAsset(entry);
+    // Call the correct method with LibraryAsset and separate data parameters
+    await this.assetDatabase.saveAsset(asset, thumbnailData, glbData);
   }
 
   /**
@@ -402,7 +380,7 @@ export class SaveToLibraryService {
   private async saveToCloud(
     asset: LibraryAsset,
     glbBlob: Blob,
-    thumbnailBlob: Blob
+    _thumbnailBlob: Blob
   ): Promise<void> {
     if (!this.uploadService) {
       throw new Error('Cloud storage not configured');
@@ -413,15 +391,6 @@ export class SaveToLibraryService {
     await this.uploadService.uploadAsset(glbFile, asset, (progress) => {
       console.log(`Upload progress: ${progress.percentage}%`);
     });
-  }
-
-  /**
-   * Get current user ID from auth
-   */
-  private async getCurrentUserId(): Promise<string> {
-    // TODO: Integrate with Supabase auth
-    // For now, return a placeholder
-    return 'local-user';
   }
 
   /**
@@ -446,13 +415,4 @@ export class SaveToLibraryService {
     });
   }
 
-  /**
-   * Calculate SHA-256 checksum
-   */
-  private async calculateChecksum(blob: Blob): Promise<string> {
-    const buffer = await blob.arrayBuffer();
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  }
 }
