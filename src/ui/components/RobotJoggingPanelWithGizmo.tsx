@@ -363,7 +363,8 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     }
 
     // Rotate TCP-local delta by WORLD TCP rotation to get WORLD-space delta
-    const rotationMatrix = tcpWorldRotation.toRotationMatrix();
+    const rotationMatrix = new BABYLON.Matrix();
+    tcpWorldRotation.toRotationMatrix(rotationMatrix);
     const positionDelta = BABYLON.Vector3.TransformCoordinates(
       localDeltaBabylon,
       rotationMatrix
