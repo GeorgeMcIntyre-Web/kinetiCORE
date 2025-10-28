@@ -297,7 +297,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   showOrientationLabels: false,
 
   // Feature flags
-  editableKinematicsFlag: false,
+  editableKinematicsFlag: true, // Edit Mode enabled for Editable Kinematics prototype
 
   // Edit mode state
   editModeEnabled: false,
