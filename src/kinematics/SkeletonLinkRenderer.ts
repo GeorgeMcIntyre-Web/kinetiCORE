@@ -107,15 +107,15 @@ export class SkeletonLinkRenderer {
     standardMaterial.disableLighting = true;
     standardMaterial.alpha = config.opacity ?? 0.9;
 
-    // PBR material for bone style
+    // PBR material for bone style - bright white/cream bone color
     let boneMaterial: BABYLON.PBRMaterial | undefined;
     if (config.style === 'bone') {
-      boneMaterial = new BABYLON.PBRMaterial(`bone_mat_${config.chainId}`, this.scene);
-      boneMaterial.baseColor = new BABYLON.Color3(0.85, 0.85, 0.9);
-      boneMaterial.metallic = 0.2;
-      boneMaterial.roughness = 0.3;
-      boneMaterial.emissiveColor = new BABYLON.Color3(0.3, 0.3, 0.4);
-      boneMaterial.alpha = config.opacity ?? 0.9;
+      boneMaterial = new BABYLON.StandardMaterial(`bone_mat_${config.chainId}`, this.scene);
+      // Bright white bone color with strong emission for visibility
+      boneMaterial.emissiveColor = new BABYLON.Color3(1.0, 0.95, 0.85); // Warm white
+      boneMaterial.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+      boneMaterial.disableLighting = true; // Always visible regardless of lighting
+      boneMaterial.alpha = config.opacity ?? 1.0;
     }
 
     return {
@@ -206,29 +206,39 @@ export class SkeletonLinkRenderer {
 
     let mesh: BABYLON.Mesh;
 
+    const baseRadius = Math.max(config.thicknessMm / 1000, 0.01); // At least 1cm radius
+    
     if (config.style === 'bone') {
-      // Bone: tapered cylinder (capsule-like)
-      const radius = config.thicknessMm / 1000;
+      // Bone: thicker at bottom (joint), thinner at top for visual bone effect
       mesh = BABYLON.MeshBuilder.CreateCylinder(`bone_${key}`, {
         height: 1,
-        diameterTop: radius * 1.2,
-        diameterBottom: radius * 0.7,
+        diameterTop: baseRadius * 0.7,    // Thinner at top
+        diameterBottom: baseRadius * 1.2, // Thicker at bottom (joint)
         tessellation: 16,
       }, this.scene);
       mesh.material = state.boneMaterial;
     } else if (config.style === 'tube') {
-      mesh = BABYLON.MeshBuilder.CreateTube(`tube_${key}`, {
-        path: [BABYLON.Vector3.Zero(), BABYLON.Vector3.Up()],
-        radius: config.thicknessMm / 1000,
+      mesh = BABYLON.MeshBuilder.CreateCylinder(`cylinder_${key}`, {
+        height: 1,
+        diameterTop: baseRadius * 2,
+        diameterBottom: baseRadius * 2,
         tessellation: 8,
-        cap: BABYLON.Mesh.CAP_ALL
+      }, this.scene);
+      mesh.material = state.material;
+    } else if (config.style === 'line') {
+      // Thin line
+      mesh = BABYLON.MeshBuilder.CreateCylinder(`cylinder_${key}`, {
+        height: 1,
+        diameter: baseRadius * 0.5,
+        tessellation: 8
       }, this.scene);
       mesh.material = state.material;
     } else {
-      // Cylinder or line
+      // Default cylinder
       mesh = BABYLON.MeshBuilder.CreateCylinder(`cylinder_${key}`, {
         height: 1,
-        diameter: config.thicknessMm / 1000 * 2,
+        diameterTop: baseRadius * 2,
+        diameterBottom: baseRadius * 2,
         tessellation: 8
       }, this.scene);
       mesh.material = state.material;
@@ -240,9 +250,9 @@ export class SkeletonLinkRenderer {
 
     const linkNode: LinkNode = { parent, mesh };
 
-    // Create joint spheres if enabled
+    // Create joint spheres if enabled - make them more visible
     if (config.showJointSpheres) {
-      const sphereRadius = config.thicknessMm / 1000 * 0.5;
+      const sphereRadius = baseRadius * 0.6; // Larger spheres
       const sphereA = BABYLON.MeshBuilder.CreateSphere(`sphere_a_${key}`, { diameter: sphereRadius * 2 }, this.scene);
       const sphereB = BABYLON.MeshBuilder.CreateSphere(`sphere_b_${key}`, { diameter: sphereRadius * 2 }, this.scene);
       
@@ -305,9 +315,8 @@ export class SkeletonLinkRenderer {
     linkNode.parent.rotationQuaternion = q;
 
     // Scale mesh: Y is length, X/Z are diameter
-    const baseRadius = 0.005; // 5mm default
-    const thickness = baseRadius;
-    linkNode.mesh.scaling = new BABYLON.Vector3(thickness, distance, thickness);
+    // Keep original proportions from create time
+    linkNode.mesh.scaling = new BABYLON.Vector3(1, distance, 1);
 
     // Update joint spheres (in local space of parent)
     if (linkNode.jointSphereA) {

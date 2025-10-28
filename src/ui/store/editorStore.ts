@@ -54,7 +54,7 @@ interface EditorState {
   
   // Visualization overlays (Motion Panel)
   skeletonEnabled: boolean;
-  skeletonStyle: 'cylinder' | 'tube' | 'line';
+  skeletonStyle: 'cylinder' | 'tube' | 'line' | 'bone';
   skeletonThicknessMm: number; // visual thickness in mm
   skeletonAnimationSpeed: number; // 0.1 - 3.0 UI range
   skeletonHighlightActiveJoint: boolean;
@@ -287,8 +287,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   // Visualization overlays defaults
   skeletonEnabled: true, // Default ON for testing visibility (user can toggle off)
-  skeletonStyle: 'tube',
-  skeletonThicknessMm: 6,
+  skeletonStyle: 'bone', // Use bone style by default
+  skeletonThicknessMm: 20, // Thicker bones for visibility (20mm)
   skeletonAnimationSpeed: 1.0,
   skeletonHighlightActiveJoint: true,
   showCoordinateOverlay: true, // preserve existing behavior
