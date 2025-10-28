@@ -105,14 +105,9 @@ export class InverseKinematicsSolver {
       const positionError = target.position.subtract(currentPosWorld);
       const positionErrorMagnitude = positionError.length();
 
-      // DEBUG: Log first 3 iterations to diagnose
-      if (iteration < 3) {
+      // DEBUG: Log first 3 iterations and every 100 iterations
+      if (iteration < 3 || iteration % 100 === 0) {
         console.log(`[IK Jacobian] Iter ${iteration}: error=${positionErrorMagnitude.toFixed(4)}, currentPos=${currentPosWorld.toString()}, targetPos=${target.position.toString()}`);
-      }
-
-      // Reduced logging: only log if error is large (potential divergence)
-      if (iteration % 50 === 0 && positionErrorMagnitude > 1.0) {
-        console.log(`[IK Jacobian] Iteration ${iteration}: error=${positionErrorMagnitude.toFixed(4)}`);
       }
 
       // Compute orientation error (if target rotation specified)
@@ -179,12 +174,16 @@ export class InverseKinematicsSolver {
         orientationError.z * orientationWeight,
       ];
 
-      // DEBUG: Log error vector and Jacobian on first iteration
+      // DEBUG: Log error vector and full Jacobian on first iteration
       if (iteration === 0) {
         console.log(`[IK Jacobian] Iter 0 errorVector: [${errorVector.map(v => v.toFixed(4)).join(', ')}]`);
-        console.log(`[IK Jacobian] Iter 0 Jacobian[0] (position): [${jacobian[0].map(v => v.toFixed(4)).join(', ')}]`);
-        console.log(`[IK Jacobian] Iter 0 Jacobian[1] (position): [${jacobian[1].map(v => v.toFixed(4)).join(', ')}]`);
-        console.log(`[IK Jacobian] Iter 0 Jacobian[2] (position): [${jacobian[2].map(v => v.toFixed(4)).join(', ')}]`);
+        console.log(`[IK Jacobian] Iter 0 Jacobian (6×${jointAngles.length}):`);
+        console.log(`  Row 0 (dx): [${jacobian[0].map(v => v.toFixed(4)).join(', ')}]`);
+        console.log(`  Row 1 (dy): [${jacobian[1].map(v => v.toFixed(4)).join(', ')}]`);
+        console.log(`  Row 2 (dz): [${jacobian[2].map(v => v.toFixed(4)).join(', ')}]`);
+        console.log(`  Row 3 (ωx): [${jacobian[3].map(v => v.toFixed(4)).join(', ')}]`);
+        console.log(`  Row 4 (ωy): [${jacobian[4].map(v => v.toFixed(4)).join(', ')}]`);
+        console.log(`  Row 5 (ωz): [${jacobian[5].map(v => v.toFixed(4)).join(', ')}]`);
       }
 
       // Compute joint angle deltas using damped Jacobian transpose
@@ -208,6 +207,7 @@ export class InverseKinematicsSolver {
       // DEBUG: Log first iteration details
       if (iteration === 0) {
         console.log(`[IK Jacobian] Iter 0 adaptiveStep=${adaptiveStep.toFixed(4)}, deltaAngles: [${deltaAngles.map(v => v.toFixed(4)).join(', ')}]`);
+        console.log(`[IK Jacobian] Iter 0 jointAngles BEFORE: [${jointAngles.map(v => (v * 180 / Math.PI).toFixed(1)).join(', ')}]°`);
       }
 
       // Update joint angles
@@ -217,7 +217,7 @@ export class InverseKinematicsSolver {
 
       // DEBUG: Log first iteration joint update
       if (iteration === 0) {
-        console.log(`[IK Jacobian] Iter 0 updated jointAngles[0]=${jointAngles[0].toFixed(4)}`);
+        console.log(`[IK Jacobian] Iter 0 jointAngles AFTER: [${jointAngles.map(v => (v * 180 / Math.PI).toFixed(1)).join(', ')}]°`);
       }
     }
 
