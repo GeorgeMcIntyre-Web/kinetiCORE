@@ -115,7 +115,8 @@ export class IKTargetGizmoManager {
     // Create position gizmo
     const gizmo = new BABYLON.PositionGizmo(new BABYLON.UtilityLayerRenderer(this.scene));
     gizmo.attachedNode = transformNode;
-    gizmo.updateGizmoRotationToMatchAttachedMesh = false;
+    // Position gizmo must match TCP rotation to align with coordinate axes
+    gizmo.updateGizmoRotationToMatchAttachedMesh = true;
     gizmo.scaleRatio = 1.0; // Standard size
     
     // Color-code gizmo axes with more vibrant colors
@@ -144,7 +145,8 @@ export class IKTargetGizmoManager {
     if (config.onRotationChange) {
       rotationGizmo = new BABYLON.RotationGizmo(new BABYLON.UtilityLayerRenderer(this.scene));
       rotationGizmo.attachedNode = transformNode;
-      rotationGizmo.updateGizmoRotationToMatchAttachedMesh = true; // IMPORTANT: Must match attached node's rotation
+      // Rotation gizmo MUST follow TCP rotation to show correct orientation
+      rotationGizmo.updateGizmoRotationToMatchAttachedMesh = true;
       rotationGizmo.scaleRatio = 1.0; // Standard size
       
       // Apply custom colors to rotation gizmo rings
@@ -194,7 +196,6 @@ export class IKTargetGizmoManager {
 
     target.transformNode.position = position.clone();
     target.transformNode.computeWorldMatrix(true);
-    console.log(`[IKTargetGizmoManager] Updated position: ${targetId} → (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
   }
 
   /**
@@ -210,17 +211,18 @@ export class IKTargetGizmoManager {
     // Force Babylon.js to mark the node as dirty and update its world matrix
     target.transformNode.computeWorldMatrix(true);
 
-    // CRITICAL: Force the rotation gizmo to update by reattaching to the node
-    // This is necessary because Babylon.js doesn't automatically detect rotation changes
-    if (target.rotationGizmo) {
-      const tempNode = target.rotationGizmo.attachedNode;
-      target.rotationGizmo.attachedNode = null;
-      target.rotationGizmo.attachedNode = tempNode;
+    // CRITICAL: Force both gizmos to update by reattaching to the node
+    // This ensures the rotation gizmo reflects the new orientation
+    if (target.gizmo) {
+      const tempPos = target.gizmo.attachedNode;
+      target.gizmo.attachedNode = null;
+      target.gizmo.attachedNode = tempPos;
     }
-
-    // Debug log to verify rotation
-    const euler = rotation.toEulerAngles();
-    console.log(`[IKTargetGizmoManager] Updated rotation: ${targetId} → Rx=${(euler.x*180/Math.PI).toFixed(1)}° Ry=${(euler.y*180/Math.PI).toFixed(1)}° Rz=${(euler.z*180/Math.PI).toFixed(1)}°`);
+    if (target.rotationGizmo) {
+      const tempRot = target.rotationGizmo.attachedNode;
+      target.rotationGizmo.attachedNode = null;
+      target.rotationGizmo.attachedNode = tempRot;
+    }
   }
 
   /**

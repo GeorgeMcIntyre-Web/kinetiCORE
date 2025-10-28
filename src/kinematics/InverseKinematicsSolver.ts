@@ -85,15 +85,24 @@ export class InverseKinematicsSolver {
     let error = Infinity;
 
     for (iteration = 0; iteration < maxIterations; iteration++) {
-      // Compute current end-effector pose in world space (includes TCP frame)
-      const currentPose = this.fkSolver.getEndEffectorPose(chainName);
-      if (!currentPose) {
+      // Compute current end-effector pose in robot-local space
+      const currentPoseLocal = this.fkSolver.solve(chainName, jointAngles);
+      if (!currentPoseLocal) {
         console.error('[IK Jacobian] FK solve failed at iteration', iteration);
         break;
       }
 
-      // Compute position error (both in world space)
-      const positionError = target.position.subtract(currentPose.position);
+      // Transform current pose from robot-local to world space
+      const baseWorldMatrix = this.kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
+      const currentPosWorld = BABYLON.Vector3.TransformCoordinates(
+        currentPoseLocal.position,
+        baseWorldMatrix
+      );
+      const baseRot = BABYLON.Quaternion.FromRotationMatrix(baseWorldMatrix.getRotationMatrix());
+      const currentRotWorld = baseRot.multiply(currentPoseLocal.rotation);
+
+      // Compute position error (both in WORLD space)
+      const positionError = target.position.subtract(currentPosWorld);
       const positionErrorMagnitude = positionError.length();
       
       // Reduced logging: only log if error is large (potential divergence)
@@ -106,7 +115,7 @@ export class InverseKinematicsSolver {
       if (target.rotation) {
         // Compute quaternion error: q_error = q_target * q_current^-1
         const rotationError = target.rotation.multiply(
-          BABYLON.Quaternion.Inverse(currentPose.rotation)
+          BABYLON.Quaternion.Inverse(currentRotWorld)
         );
 
         // Ensure shortest path (quaternion double-cover issue)

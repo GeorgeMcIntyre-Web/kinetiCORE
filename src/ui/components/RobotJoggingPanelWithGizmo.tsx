@@ -154,13 +154,9 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
 
           // Update existing gizmo position and rotation instead of recreating
           const targetId = `tcp_${robotId}`;
-          console.log(`[RobotJoggingPanel] Updating gizmo ${targetId} to position: (${tcpPose.position.x.toFixed(3)}, ${tcpPose.position.y.toFixed(3)}, ${tcpPose.position.z.toFixed(3)})`);
+          // Removed excessive logging - only log on significant changes
           unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
           unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
-
-          // Debug log to verify rotation
-          const euler = tcpPose.rotation.toEulerAngles();
-          console.log(`[RobotJoggingPanel] Gizmo rotation update: Rx=${(euler.x*180/Math.PI).toFixed(1)}° Ry=${(euler.y*180/Math.PI).toFixed(1)}° Rz=${(euler.z*180/Math.PI).toFixed(1)}°`);
           }
         }
       }
@@ -168,7 +164,8 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
 
     updateTcpPosition();
     // More frequent updates for smoother gizmo tracking
-    const interval = setInterval(updateTcpPosition, 100);
+    // Increased to 500ms to reduce spam and allow IK to complete
+    const interval = setInterval(updateTcpPosition, 500);
     return () => clearInterval(interval);
   }, [fkSolver, robotId, jogMode, ikSolver, unifiedGizmo]);
 
@@ -312,6 +309,8 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
   };
 
   const handleJogTcp = (axis: JogAxis, direction: number) => {
+    console.log(`[RobotJoggingPanel] TCP Jog: ${axis} ${direction > 0 ? '+' : '-'}`);
+    
     const kinematicsManager = KinematicsManager.getInstance();
     const chains = kinematicsManager.getAllChains();
 
@@ -331,6 +330,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     }
 
     const chainName = robotChain.name;
+    console.log(`[RobotJoggingPanel] Found chain: ${chainName}`);
 
     // Create delta in USER space (Z-up, mm)
     const userDelta = { x: 0, y: 0, z: 0 };
@@ -381,17 +381,21 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     }
 
     // Linear motion (position IK)
+    console.log(`[RobotJoggingPanel] Moving TCP by ${axis} delta: (${positionDelta.x.toFixed(3)}, ${positionDelta.y.toFixed(3)}, ${positionDelta.z.toFixed(3)})`);
+    
     // Try CCD first (more robust), fallback to Jacobian
     success = ikSolver.moveTCP(chainName, positionDelta, 'ccd');
 
     if (!success) {
-      console.log('CCD failed, trying Jacobian method...');
+      console.log('[RobotJoggingPanel] CCD failed, trying Jacobian method...');
       success = ikSolver.moveTCP(chainName, positionDelta, 'jacobian');
     }
 
     if (!success) {
-      console.warn(`IK failed for TCP jog: ${axis} ${direction > 0 ? '+' : '-'}`);
-      console.warn('Target may be out of reach or robot in singular configuration');
+      console.warn(`[RobotJoggingPanel] IK failed for TCP jog: ${axis} ${direction > 0 ? '+' : '-'}`);
+      console.warn('[RobotJoggingPanel] Target may be out of reach or robot in singular configuration');
+    } else {
+      console.log(`[RobotJoggingPanel] ✅ Successfully moved TCP ${axis} ${direction > 0 ? '+' : '-'}`);
     }
   };
 
