@@ -281,7 +281,7 @@ export class InverseKinematicsSolver {
         return { jointAngles, success: true, error, iterations: iteration + 1 };
       }
 
-      // Iterate through joints from end-effector to base
+      // Iterate through joints from null TCP to base
       // Need to get all joints (including fixed) to get correct indices for solveUpToJoint
       const allJoints = this.kinematicsManager.getChainJoints(chain.id);
       
@@ -295,9 +295,9 @@ export class InverseKinematicsSolver {
           continue;
         }
 
-        // Get current end-effector position in world space (includes TCP)
-        const endEffectorPose = this.fkSolver.getEndEffectorPose(chainName);
-        if (!endEffectorPose) continue;
+        // Get current null TCP position in world space (last joint transformation)
+        const nullTCPPose = this.fkSolver.getEndEffectorPose(chainName);
+        if (!nullTCPPose) continue;
 
         // Find the joint's index in the full joint array
         const jointIndexInFullArray = allJoints.findIndex(j => j.id === joint.id);
@@ -308,14 +308,14 @@ export class InverseKinematicsSolver {
         if (!jointPose) continue;
 
         const jointPosition = jointPose.position;
-        const endEffectorPosition = endEffectorPose.position;
+        const nullTCPPosition = nullTCPPose.position;
 
-        // Vectors from joint to end-effector and target
-        const toEndEffector = endEffectorPosition.subtract(jointPosition);
+        // Vectors from joint to null TCP and target
+        const toNullTCP = nullTCPPosition.subtract(jointPosition);
         const toTarget = target.position.subtract(jointPosition);
 
         // Normalize vectors
-        const toEndEffectorNorm = toEndEffector.normalize();
+        const toNullTCPNorm = toNullTCP.normalize();
         const toTargetNorm = toTarget.normalize();
 
         // Get joint axis in world frame
@@ -338,11 +338,11 @@ export class InverseKinematicsSolver {
         }
 
         // Compute rotation angle
-        const dot = BABYLON.Vector3.Dot(toEndEffectorNorm, toTargetNorm);
+        const dot = BABYLON.Vector3.Dot(toNullTCPNorm, toTargetNorm);
         const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
 
         // Determine rotation direction using cross product
-        const cross = BABYLON.Vector3.Cross(toEndEffectorNorm, toTargetNorm);
+        const cross = BABYLON.Vector3.Cross(toNullTCPNorm, toTargetNorm);
         const direction = BABYLON.Vector3.Dot(cross, worldAxis);
 
         // Update joint angle with damping to prevent oscillation
@@ -571,12 +571,12 @@ export class InverseKinematicsSolver {
       jointPositions.push(pose.position.clone());
     }
 
-    // Add end-effector position
-    const endEffectorPose = this.fkSolver.solve(chainName, initialAngles);
-    if (!endEffectorPose) {
+    // Add null TCP position (last joint transformation)
+    const nullTCPPose = this.fkSolver.solve(chainName, initialAngles);
+    if (!nullTCPPose) {
       return { jointAngles: [], success: false, error: Infinity, iterations: 0 };
     }
-    jointPositions.push(endEffectorPose.position.clone());
+    jointPositions.push(nullTCPPose.position.clone());
 
     // Calculate link lengths
     for (let i = 0; i < jointPositions.length - 1; i++) {

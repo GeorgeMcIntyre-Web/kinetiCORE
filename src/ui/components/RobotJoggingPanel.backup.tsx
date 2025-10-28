@@ -69,10 +69,10 @@ export const RobotJoggingPanel: React.FC<RobotJoggingPanelProps> = ({ joints: pr
       });
 
       if (robotChain) {
-        const endEffectorPose = fkSolver.getEndEffectorPose(robotChain.name);
-        if (endEffectorPose) {
+        const nullTCPPose = fkSolver.getEndEffectorPose(robotChain.name);
+        if (nullTCPPose) {
           // Convert from Babylon space (Y-up, meters) to User space (Z-up, mm)
-          const userPos = babylonToUser(endEffectorPose.position);
+          const userPos = babylonToUser(nullTCPPose.position);
           setTcpPosition(
             `X:${userPos.x.toFixed(1)} Y:${userPos.y.toFixed(1)} Z:${userPos.z.toFixed(1)} mm`
           );

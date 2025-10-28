@@ -698,11 +698,11 @@ export class ForwardKinematicsSolver {
     // Seed with base world matrix so Jacobian columns are in WORLD space
     const baseWorldMatrix = this.kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
 
-    // Get end-effector position (solve() returns robot-local poses, transform to world)
-    const endEffectorPoseLocal = this.solve(chainName, jointAngles);
-    if (!endEffectorPoseLocal) return null;
-    const endEffectorPos = BABYLON.Vector3.TransformCoordinates(
-      endEffectorPoseLocal.position,
+    // Get null TCP position (solve() returns robot-local poses, transform to world)
+    const nullTCPPoseLocal = this.solve(chainName, jointAngles);
+    if (!nullTCPPoseLocal) return null;
+    const nullTCPPos = BABYLON.Vector3.TransformCoordinates(
+      nullTCPPoseLocal.position,
       baseWorldMatrix
     );
 
@@ -786,9 +786,9 @@ export class ForwardKinematicsSolver {
 
       if (joint.type === 'revolute') {
         // Linear velocity: v = r × axis (NOT axis × r!)
-        // r = vector from joint to end-effector
+        // r = vector from joint to null TCP (last joint transformation)
         // Cross product is anti-commutative: a × b = -(b × a)
-        const r = endEffectorPos.subtract(jointPos);
+        const r = nullTCPPos.subtract(jointPos);
         const linearVel = BABYLON.Vector3.Cross(r, worldAxis);
 
         // DEBUG: Verify fix is loaded (only log once per IK call on first joint/first iteration)

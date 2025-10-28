@@ -41,7 +41,7 @@ export interface SolvedTrajectory {
   success: boolean;
   timesteps: number[];
   jointAngles: number[][]; // [timestep][joint]
-  endEffectorPositions: BABYLON.Vector3[];
+  nullTCPPositions: BABYLON.Vector3[];
   velocities?: number[][]; // Joint velocities
   accelerations?: number[][]; // Joint accelerations
   maxError: number;
@@ -104,7 +104,7 @@ export class TrajectoryIKSolver {
 
     // Solve IK for each timestep
     const jointAngles: number[][] = [];
-    const endEffectorPositions: BABYLON.Vector3[] = [];
+    const nullTCPPositions: BABYLON.Vector3[] = [];
     const errors: number[] = [];
 
     let previousAngles: number[] | null = null;
@@ -122,7 +122,7 @@ export class TrajectoryIKSolver {
       );
 
       jointAngles.push(solution.jointAngles);
-      endEffectorPositions.push(target.position);
+      nullTCPPositions.push(target.position);
       errors.push(solution.error);
 
       previousAngles = solution.jointAngles;
@@ -155,7 +155,7 @@ export class TrajectoryIKSolver {
       success: maxError < 0.01, // 1cm tolerance
       timesteps,
       jointAngles,
-      endEffectorPositions,
+      nullTCPPositions,
       velocities,
       accelerations,
       maxError,

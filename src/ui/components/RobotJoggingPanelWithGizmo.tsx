@@ -40,7 +40,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
   const [jointGroups, setJointGroups] = useState<JointGroup[]>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [useGroups, setUseGroups] = useState<boolean>(false);
-  const [debugMode, setDebugMode] = useState<IKDebugMode>(() => (localStorage.getItem('ikDebugMode') as IKDebugMode) || 'summary');
+  const [debugMode] = useState<IKDebugMode>(() => (localStorage.getItem('ikDebugMode') as IKDebugMode) || 'summary');
   
   // Gizmo management
   const [unifiedGizmo] = useState(() => UnifiedGizmoManager.getInstance());

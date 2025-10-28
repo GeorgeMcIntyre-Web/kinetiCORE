@@ -221,7 +221,7 @@ export class InverseKinematicsSolver {
         return { jointAngles, success: true, error, iterations: iteration + 1 };
       }
 
-      // Iterate through joints from end-effector to base
+      // Iterate through joints from null TCP to base
       for (let i = joints.length - 1; i >= 0; i--) {
         const joint = joints[i];
 
@@ -230,23 +230,23 @@ export class InverseKinematicsSolver {
           continue;
         }
 
-        // Get current end-effector position
-        const endEffectorPose = this.fkSolver.solve(chainName, jointAngles);
-        if (!endEffectorPose) continue;
+        // Get current null TCP position (last joint transformation)
+        const nullTCPPose = this.fkSolver.solve(chainName, jointAngles);
+        if (!nullTCPPose) continue;
 
         // Get joint position (solve FK up to this joint using full joint angles)
         const jointPose = this.fkSolver.solveUpToJoint(chainName, jointAngles, i);
         if (!jointPose) continue;
 
         const jointPosition = jointPose.position;
-        const endEffectorPosition = endEffectorPose.position;
+        const nullTCPPosition = nullTCPPose.position;
 
-        // Vectors from joint to end-effector and target
-        const toEndEffector = endEffectorPosition.subtract(jointPosition);
+        // Vectors from joint to null TCP and target
+        const toNullTCP = nullTCPPosition.subtract(jointPosition);
         const toTarget = target.position.subtract(jointPosition);
 
         // Normalize vectors
-        const toEndEffectorNorm = toEndEffector.normalize();
+        const toNullTCPNorm = toNullTCP.normalize();
         const toTargetNorm = toTarget.normalize();
 
         // Get joint axis in world frame
@@ -269,11 +269,11 @@ export class InverseKinematicsSolver {
         }
 
         // Compute rotation angle
-        const dot = BABYLON.Vector3.Dot(toEndEffectorNorm, toTargetNorm);
+        const dot = BABYLON.Vector3.Dot(toNullTCPNorm, toTargetNorm);
         const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
 
         // Determine rotation direction using cross product
-        const cross = BABYLON.Vector3.Cross(toEndEffectorNorm, toTargetNorm);
+        const cross = BABYLON.Vector3.Cross(toNullTCPNorm, toTargetNorm);
         const direction = BABYLON.Vector3.Dot(cross, worldAxis);
 
         // Update joint angle with damping to prevent oscillation

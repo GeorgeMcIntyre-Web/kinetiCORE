@@ -575,11 +575,11 @@ export class ForwardKinematicsSolver {
     const n = joints.length;
     const jacobian: number[][] = Array(6).fill(0).map(() => Array(n).fill(0));
 
-    // Get end-effector position
-    const endEffectorPose = this.solve(chainName, jointAngles);
-    if (!endEffectorPose) return null;
+    // Get null TCP position (last joint transformation)
+    const nullTCPPose = this.solve(chainName, jointAngles);
+    if (!nullTCPPose) return null;
 
-    const endEffectorPos = endEffectorPose.position;
+    const nullTCPPos = nullTCPPose.position;
 
     // Compute transform for each joint
     const jointTransforms: BABYLON.Matrix[] = [];
@@ -660,8 +660,8 @@ export class ForwardKinematicsSolver {
       );
 
       if (joint.type === 'revolute') {
-        // Linear velocity: v = axis × (end_effector_pos - joint_pos)
-        const r = endEffectorPos.subtract(jointPos);
+        // Linear velocity: v = axis × (nullTCPPos - joint_pos)
+        const r = nullTCPPos.subtract(jointPos);
         const linearVel = BABYLON.Vector3.Cross(worldAxis, r);
 
         jacobian[0][i] = linearVel.x;
@@ -689,7 +689,7 @@ export class ForwardKinematicsSolver {
   }
 
   /**
-   * Get end-effector pose for a kinematic chain
+   * Get null TCP pose for a kinematic chain (last joint transformation)
    * Uses current joint positions from KinematicsManager
    */
   getEndEffectorPose(chainName: string): {
