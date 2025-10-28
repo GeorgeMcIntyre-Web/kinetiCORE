@@ -270,75 +270,79 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRobotId, activeChain, skeletonStyle, skeletonThicknessMm, skeletonAnimationSpeed, skeletonHighlightActiveJoint, showLinkLengthLabels, showOrientationLabels]);
 
-  // Ready-gated skeleton creation and update
+  // Ready-gated skeleton configuration update
   const ready = isVisible && !!activeRobotId && !!activeChain;
   const wasVisibleRef = useRef(false);
 
   useEffect(() => {
+    console.log('[FloatingKinematicsPanel] Skeleton config effect:', { ready, isVisible, hasRobotId: !!activeRobotId, hasChain: !!activeChain, skeletonEnabled });
+    
     if (!ready) {
-      // Cleanup when not ready (but guard against premature cleanup on first render)
-      if (wasVisibleRef.current && activeRobotId) {
-        const mgr: any = (window as any).skeletonGizmoManager || (window as any).skeletonGizmo;
-        try {
-          if (mgr && typeof mgr.removeSkeleton === 'function') {
-            mgr.removeSkeleton(activeRobotId);
-          }
-        } catch {}
-      }
       wasVisibleRef.current = isVisible;
       return;
     }
 
     wasVisibleRef.current = isVisible;
+    
+    // Apply skeleton config (for future skeleton system integration)
+    // Note: Actual skeleton rendering is done via showJointAxesOverlay
     const mgr: any = (window as any).skeletonGizmoManager || (window as any).skeletonGizmo;
-    if (!mgr) return;
+    if (mgr) {
+      console.log('[FloatingKinematicsPanel] Skeleton gizmo manager found, applying config');
+      try {
+        const payload = {
+          robotId: activeRobotId,
+          chainId: activeChain.id,
+          enabled: skeletonEnabled,
+          style: skeletonStyle,
+          thicknessMm: skeletonThicknessMm,
+          animationSpeed: skeletonAnimationSpeed,
+          highlightActiveJoint: skeletonHighlightActiveJoint,
+          showLinkLengthLabels,
+          showOrientationLabels,
+        };
 
-    // Create or update skeleton with current config
-    const payload = {
-      robotId: activeRobotId,
-      chainId: activeChain.id,
-      enabled: skeletonEnabled,
-      style: skeletonStyle,
-      thicknessMm: skeletonThicknessMm,
-      animationSpeed: skeletonAnimationSpeed,
-      highlightActiveJoint: skeletonHighlightActiveJoint,
-      showLinkLengthLabels,
-      showOrientationLabels,
-    };
-
-    // Try to create skeleton first (idempotent - won't duplicate if already exists)
-    try {
-      if (typeof mgr.createSkeleton === 'function') {
-        mgr.createSkeleton(payload);
-      } else if (typeof mgr.ensureSkeleton === 'function') {
-        mgr.ensureSkeleton(payload);
+        if (typeof mgr.createSkeleton === 'function') {
+          console.log('[FloatingKinematicsPanel] Calling createSkeleton');
+          mgr.createSkeleton(payload);
+        } else if (typeof mgr.ensureSkeleton === 'function') {
+          console.log('[FloatingKinematicsPanel] Calling ensureSkeleton');
+          mgr.ensureSkeleton(payload);
+        } else if (typeof mgr.updateConfig === 'function') {
+          console.log('[FloatingKinematicsPanel] Calling updateConfig');
+          mgr.updateConfig(payload);
+        }
+      } catch (err) {
+        console.warn('[FloatingKinematicsPanel] Skeleton config error:', err);
       }
-    } catch {}
+    } else {
+      console.log('[FloatingKinematicsPanel] No skeleton gizmo manager found - skeleton visualization uses joint debug frames only');
+    }
+  }, [ready, activeRobotId, activeChain, skeletonEnabled, skeletonStyle, skeletonThicknessMm, skeletonAnimationSpeed, skeletonHighlightActiveJoint, showLinkLengthLabels, showOrientationLabels, isVisible]);
 
-    // Update config
-    applySkeletonConfig(skeletonEnabled);
-
-    // Cleanup on unmount or when robot/chain changes
-    return () => {
-      if (activeRobotId && typeof mgr.removeSkeleton === 'function') {
-        try {
-          mgr.removeSkeleton(activeRobotId);
-        } catch {}
-      }
-    };
-  }, [ready, activeRobotId, activeChain, skeletonEnabled, skeletonStyle, skeletonThicknessMm, skeletonAnimationSpeed, skeletonHighlightActiveJoint, showLinkLengthLabels, showOrientationLabels, isVisible, applySkeletonConfig]);
-
-  // Toggle joint axes overlay using KinematicsManager
+  // Toggle joint axes overlay using KinematicsManager (this IS the skeleton visualization)
   useEffect(() => {
+    if (!isVisible) {
+      console.log('[FloatingKinematicsPanel] Panel not visible, hiding joint visuals');
+      kinematicsManager.hideAllJointVisuals();
+      return;
+    }
+    
     const sceneManager = (window as any).sceneManager as any;
     const scene = sceneManager?.getScene?.();
-    if (!activeChain || !scene) return;
+    if (!activeChain || !scene) {
+      console.log('[FloatingKinematicsPanel] No active chain or scene');
+      return;
+    }
+    
     if (showJointAxesOverlay) {
+      console.log('[FloatingKinematicsPanel] Showing joint debug frames for chain:', activeChain.id);
       kinematicsManager.showAllJointDebugFrames(activeChain.id, scene);
     } else {
+      console.log('[FloatingKinematicsPanel] Hiding joint debug frames');
       kinematicsManager.hideAllJointVisuals();
     }
-  }, [showJointAxesOverlay, activeChain, kinematicsManager]);
+  }, [isVisible, showJointAxesOverlay, activeChain, kinematicsManager]);
 
   // Edit mode: attach rotation gizmo to selected joint and render limit arc
   useEffect(() => {

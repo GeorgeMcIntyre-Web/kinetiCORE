@@ -292,7 +292,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   skeletonAnimationSpeed: 1.0,
   skeletonHighlightActiveJoint: true,
   showCoordinateOverlay: true, // preserve existing behavior
-  showJointAxesOverlay: false,
+  showJointAxesOverlay: true, // Default ON for testing (shows skeleton via joint debug frames)
   showLinkLengthLabels: false,
   showOrientationLabels: false,
 
