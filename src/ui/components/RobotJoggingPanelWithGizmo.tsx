@@ -332,31 +332,40 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     const chainName = robotChain.name;
     console.log(`[RobotJoggingPanel] Found chain: ${chainName}`);
 
-    // Get current null TCP (end-effector) pose for orientation
-    const tcpPose = fkSolver.getTCPPose?.(chainName) || fkSolver.getNullTCPPose(chainName);
-    if (!tcpPose) {
-      console.error('[RobotJoggingPanel] Failed to get null TCP pose');
+    // Compute TCP WORLD rotation from FK with current joint angles
+    const kinematicsManager = KinematicsManager.getInstance();
+    const chain = kinematicsManager.getChain(chainName);
+    if (!chain) {
+      console.error('[RobotJoggingPanel] Chain not found for TCP jog:', chainName);
       return;
     }
+    const actuatedJoints = kinematicsManager.getActuatedJoints(chain.id);
+    const currentJointAngles = actuatedJoints.map((j: any) => j.position);
+    const currentPoseLocal = fkSolver.solve(chainName, currentJointAngles);
+    if (!currentPoseLocal) {
+      console.error('[RobotJoggingPanel] FK solve failed for TCP jog');
+      return;
+    }
+    const baseWorldMatrix = kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
+    const baseWorldRotation = BABYLON.Quaternion.FromRotationMatrix(baseWorldMatrix.getRotationMatrix());
+    const tcpWorldRotation = baseWorldRotation.multiply(currentPoseLocal.rotation);
 
-    // Create delta in TCP LOCAL frame (Z-up, mm)
-    const localDelta = { x: 0, y: 0, z: 0 };
+    // Create delta in TCP LOCAL frame (meters)
+    const stepMeters = (jogStepTcpLinear * 0.001) * direction;
+    const localDeltaBabylon = new BABYLON.Vector3(0, 0, 0);
 
     // Linear motion in TCP LOCAL frame (follows null TCP orientation)
     if (axis === 'X') {
-      localDelta.x = jogStepTcpLinear * direction; // mm along TCP's local X
+      localDeltaBabylon.x = stepMeters; // along TCP local X
     } else if (axis === 'Y') {
-      localDelta.y = jogStepTcpLinear * direction; // mm along TCP's local Y
+      localDeltaBabylon.y = stepMeters; // along TCP local Y
     } else if (axis === 'Z') {
-      localDelta.z = jogStepTcpLinear * direction; // mm along TCP's local Z
+      localDeltaBabylon.z = stepMeters; // along TCP local Z
     }
 
-    // Convert local delta from USER (Z-up, mm) to BABYLON (Y-up, meters)
-    const localDeltaBabylon = userToBabylon(localDelta);
-
-    // Rotate delta by null TCP orientation to get world-space delta
+    // Rotate TCP-local delta by WORLD TCP rotation to get WORLD-space delta
     const positionDelta = localDeltaBabylon.rotateByQuaternionToRef(
-      tcpPose.rotation,
+      tcpWorldRotation,
       new BABYLON.Vector3(0, 0, 0)
     );
 
