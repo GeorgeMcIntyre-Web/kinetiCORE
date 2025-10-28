@@ -66,16 +66,27 @@ export class ForwardKinematicsSolver {
     if (scene) {
       this.kinematicsManager.updateJointGizmo(jointId, scene);
       this.updateChildJointGizmos(joint.childNodeId, scene);
-    }
-
-    // Emit FK update event (for chain that this joint belongs to)
-    // Find the chain this joint belongs to
-    const chains = this.kinematicsManager.getAllChains();
-    for (const chain of chains) {
-      if (chain.joints.some(j => j.id === jointId)) {
-        // Use the private emitFkUpdated method via reflection
-        (this.kinematicsManager as any).emitFkUpdated?.(chain.id);
-        break;
+      
+      // Cache the world matrix for this joint
+      const childNode = this.sceneTreeManager.getNode(joint.childNodeId);
+      if (childNode) {
+        const babylonNode = this.getBabylonNode(childNode.id, scene);
+        if (babylonNode) {
+          babylonNode.computeWorldMatrix(true);
+          const worldMatrix = babylonNode.getWorldMatrix(true).clone();
+          
+          // Find the chain this joint belongs to
+          const chains = this.kinematicsManager.getAllChains();
+          for (const chain of chains) {
+            if (chain.joints.some(j => j.id === jointId)) {
+              // Cache the world matrix
+              this.kinematicsManager.setJointWorldMatrix(chain.id, jointId, worldMatrix);
+              // Emit FK update event
+              (this.kinematicsManager as any).emitFkUpdated?.(chain.id);
+              break;
+            }
+          }
+        }
       }
     }
 

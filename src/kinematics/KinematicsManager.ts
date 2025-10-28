@@ -135,6 +135,9 @@ export class KinematicsManager implements IKinematicsManager {
   // FK update event listeners
   private fkUpdateListeners = new Set<(chainId: string) => void>();
 
+  // Cache of last FK world matrices per joint (chainId -> jointId -> worldMatrix)
+  private _lastJointWorld = new Map<string, Map<string, BABYLON.Matrix>>();
+
   private constructor() {}
 
   static getInstance(): KinematicsManager {
@@ -485,21 +488,85 @@ export class KinematicsManager implements IKinematicsManager {
   }
 
   /**
-   * Get adjacent joint world poses for a chain
+   * Cache joint world matrix (called by FK solver after updating transforms)
    */
-  getAdjacentJointWorldPoses(chainId: string): Array<{ aId: string; bId: string; a: BABYLON.Vector3; b: BABYLON.Vector3 }> {
+  setJointWorldMatrix(chainId: string, jointId: string, m: BABYLON.Matrix): void {
+    let chainCache = this._lastJointWorld.get(chainId);
+    if (!chainCache) {
+      chainCache = new Map();
+      this._lastJointWorld.set(chainId, chainCache);
+    }
+    chainCache.set(jointId, m.clone());
+  }
+
+  /**
+   * Get ordered joint world positions for a chain (with cache and fallbacks)
+   */
+  getOrderedJointWorldPositions(chainId: string): Array<{ id: string; pos: BABYLON.Vector3 }> {
     const chain = this.getChainById(chainId);
     if (!chain) return [];
 
-    const pairs: Array<{ aId: string; bId: string; a: BABYLON.Vector3; b: BABYLON.Vector3 }> = [];
-    for (let i = 0; i < chain.joints.length - 1; i++) {
-      const aId = chain.joints[i].id;
-      const bId = chain.joints[i + 1].id;
-      const aPose = this.getJointWorldPose(chainId, aId);
-      const bPose = this.getJointWorldPose(chainId, bId);
-      if (aPose && bPose) {
-        pairs.push({ aId, bId, a: aPose.pos, b: bPose.pos });
+    const result: Array<{ id: string; pos: BABYLON.Vector3 }> = [];
+    const cache = this._lastJointWorld.get(chainId);
+
+    const sceneManager = (window as any).sceneManager;
+    const scene = sceneManager?.getScene?.();
+    const tree = (window as any).sceneTreeManager;
+
+    for (const joint of chain.joints) {
+      let worldPos: BABYLON.Vector3 | null = null;
+
+      // 1) Prefer the cached FK world matrix
+      const cachedMatrix = cache?.get(joint.id);
+      if (cachedMatrix) {
+        worldPos = cachedMatrix.getTranslation();
       }
+
+      // 2) Fallback: try to get world position from scene node
+      if (!worldPos && scene && tree) {
+        const childNode = tree.getNode(joint.childNodeId);
+        if (childNode) {
+          let babylonNode: BABYLON.TransformNode | null = null;
+          if (childNode.babylonMeshId) {
+            babylonNode = scene.getMeshByUniqueId(parseInt(childNode.babylonMeshId)) as BABYLON.TransformNode;
+          }
+          if (!babylonNode && childNode.babylonTransformNodeId) {
+            babylonNode = scene.transformNodes.find(tn => tn.uniqueId === parseInt(childNode.babylonTransformNodeId!)) || null;
+          }
+          if (!babylonNode && childNode.type === 'collection') {
+            babylonNode = scene.transformNodes.find(tn => tn.name === childNode.name) || null;
+          }
+          if (babylonNode) {
+            babylonNode.computeWorldMatrix(true);
+            const worldMatrix = babylonNode.getWorldMatrix();
+            worldPos = worldMatrix.getTranslation();
+          }
+        }
+      }
+
+      if (worldPos) {
+        result.push({ id: joint.id, pos: worldPos });
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Get adjacent joint world poses for a chain
+   */
+  getAdjacentJointWorldPoses(chainId: string): Array<{ aId: string; bId: string; a: BABYLON.Vector3; b: BABYLON.Vector3 }> {
+    const positions = this.getOrderedJointWorldPositions(chainId);
+    if (positions.length === 0) return [];
+
+    const pairs: Array<{ aId: string; bId: string; a: BABYLON.Vector3; b: BABYLON.Vector3 }> = [];
+    for (let i = 0; i < positions.length - 1; i++) {
+      pairs.push({
+        aId: positions[i].id,
+        bId: positions[i + 1].id,
+        a: positions[i].pos,
+        b: positions[i + 1].pos,
+      });
     }
     return pairs;
   }
