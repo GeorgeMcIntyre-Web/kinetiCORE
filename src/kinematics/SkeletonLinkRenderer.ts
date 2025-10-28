@@ -51,10 +51,23 @@ export class SkeletonLinkRenderer {
       return;
     }
 
+    console.log('[SkeletonLinkRenderer] Looking for chain:', config.chainId);
     const km = KinematicsManager.getInstance();
+    
+    // List all available chains for debugging
+    const allChains = (km as any).chains;
+    if (allChains) {
+      const chainIds = Array.from(allChains.keys());
+      console.log('[SkeletonLinkRenderer] Available chains:', chainIds);
+    }
+    
     const chain = km.getChain(config.chainId);
     if (!chain || !chain.joints || chain.joints.length === 0) {
-      console.warn('[SkeletonLinkRenderer] No chain or joints found');
+      console.warn('[SkeletonLinkRenderer] No chain or joints found', { 
+        hasChain: !!chain, 
+        jointCount: chain?.joints?.length,
+        chainId: config.chainId 
+      });
       return;
     }
 

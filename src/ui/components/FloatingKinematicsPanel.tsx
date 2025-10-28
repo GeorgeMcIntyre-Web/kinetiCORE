@@ -298,7 +298,7 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       return;
     }
 
-    console.log('[FloatingKinematicsPanel] Rendering skeleton links');
+    console.log('[FloatingKinematicsPanel] Rendering skeleton links', { robotId: activeRobotId, chainId: activeChain.id });
     renderer.renderSkeleton({
       robotId: activeRobotId,
       chainId: activeChain.id,
