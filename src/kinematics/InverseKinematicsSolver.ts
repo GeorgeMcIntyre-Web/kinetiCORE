@@ -85,24 +85,21 @@ export class InverseKinematicsSolver {
     let error = Infinity;
 
     for (iteration = 0; iteration < maxIterations; iteration++) {
-      // Compute current end-effector pose using FK (jointAngles) for Jacobian, but
-      // read world-space pose from mesh to align error with actual world transform
+      // Compute current end-effector pose in robot-local space
       const currentPoseLocal = this.fkSolver.solve(chainName, jointAngles);
       if (!currentPoseLocal) {
         console.error('[IK Jacobian] FK solve failed at iteration', iteration);
         break;
       }
 
-      // World-space pose from actual mesh (null TCP)
-      const nullTCPPose = this.fkSolver.getNullTCPPose(chainName);
+      // Transform current pose from robot-local to world space
       const baseWorldMatrix = this.kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
-      // Fallback to transformed local pose if mesh not available
-      const currentPosWorld = nullTCPPose
-        ? nullTCPPose.position
-        : BABYLON.Vector3.TransformCoordinates(currentPoseLocal.position, baseWorldMatrix);
-      const currentRotWorld = nullTCPPose
-        ? nullTCPPose.rotation
-        : BABYLON.Quaternion.FromRotationMatrix(baseWorldMatrix.getRotationMatrix()).multiply(currentPoseLocal.rotation);
+      const currentPosWorld = BABYLON.Vector3.TransformCoordinates(
+        currentPoseLocal.position,
+        baseWorldMatrix
+      );
+      const baseRot = BABYLON.Quaternion.FromRotationMatrix(baseWorldMatrix.getRotationMatrix());
+      const currentRotWorld = baseRot.multiply(currentPoseLocal.rotation);
 
       // Compute position error (both in WORLD space)
       const positionError = target.position.subtract(currentPosWorld);
