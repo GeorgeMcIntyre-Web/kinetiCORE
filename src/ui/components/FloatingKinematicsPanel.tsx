@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Settings, Edit3, Lock, Unlock } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import * as BABYLON from '@babylonjs/core';
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { AssetLibraryDarkPanel, AssetLibraryDarkSection, AssetLibraryDarkDisabled } from './FloatingPanel/AssetLibraryDarkPanel';
