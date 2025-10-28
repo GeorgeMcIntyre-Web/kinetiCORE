@@ -24,6 +24,49 @@
   margin: 4px 0;
 }
 
+/* Visualization controls */
+.viz-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.viz-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-row label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.viz-row select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.viz-row input[type="range"] {
+  width: 140px;
+}
+
+.viz-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.viz-value {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  min-width: 52px;
+  text-align: right;
+}
+
 /* Pose Library Footer */
 .pose-library-footer {
   margin-top: auto;

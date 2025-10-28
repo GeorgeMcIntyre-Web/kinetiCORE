@@ -20,6 +20,7 @@ export const SceneCanvas: React.FC = () => {
   const { userLevel } = useUserLevel();
   const setCamera = useEditorStore((state) => state.setCamera);
   const camera = useEditorStore((state) => state.camera);
+  const showCoordinateOverlay = useEditorStore((state) => state.showCoordinateOverlay);
   const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
   const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
   // const selectedCollectionNodeId = useEditorStore((state) => state.selectedCollectionNodeId);
@@ -569,7 +570,9 @@ export const SceneCanvas: React.FC = () => {
       )}
 
 
-      {camera && <CoordinateFrame camera={camera as BABYLON.ArcRotateCamera} />}
+      {camera && showCoordinateOverlay && (
+        <CoordinateFrame camera={camera as BABYLON.ArcRotateCamera} />
+      )}
     </div>
   );
 };
