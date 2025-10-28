@@ -406,24 +406,42 @@ export class InverseKinematicsSolver {
     rotationDelta: BABYLON.Quaternion,
     method: 'jacobian' | 'fabrik' = 'jacobian'
   ): boolean {
-    // Get current TCP pose (with TCP frame applied if exists)
-    const currentPose = this.fkSolver.getTCPPose?.(chainName) || this.fkSolver.getNullTCPPose(chainName);
-    if (!currentPose) {
-      console.error('[IK] Failed to get current TCP pose');
+    // Get current joint angles and compute FK to get true current TCP pose
+    const chain = this.kinematicsManager.getChain(chainName);
+    if (!chain) {
+      console.error('[IK rotateTCP] Chain not found:', chainName);
+      return false;
+    }
+    const joints = this.kinematicsManager.getActuatedJoints(chain.id);
+    const currentJointAngles = joints.map(j => j.position);
+
+    // Compute current TCP pose using FK with current joint angles (in robot-local space)
+    const currentPoseLocal = this.fkSolver.solve(chainName, currentJointAngles);
+    if (!currentPoseLocal) {
+      console.error('[IK rotateTCP] Failed to solve FK for current pose');
       return false;
     }
 
+    // Transform to world space
+    const baseWorldMatrix = this.kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
+    const currentPosWorld = BABYLON.Vector3.TransformCoordinates(
+      currentPoseLocal.position,
+      baseWorldMatrix
+    );
+    const baseRot = BABYLON.Quaternion.FromRotationMatrix(baseWorldMatrix.getRotationMatrix());
+    const currentRotWorld = baseRot.multiply(currentPoseLocal.rotation);
+
     // Compute new target rotation (apply delta rotation)
-    const targetRotation = rotationDelta.multiply(currentPose.rotation);
+    const targetRotation = rotationDelta.multiply(currentRotWorld);
 
     // Solve IK for new rotation (maintain position)
     const solution = method === 'jacobian'
       ? this.solveJacobianTranspose(chainName, {
-          position: currentPose.position,
+          position: currentPosWorld,
           rotation: targetRotation,
         })
       : this.solveFABRIK(chainName, {
-          position: currentPose.position,
+          position: currentPosWorld,
           rotation: targetRotation,
         });
 
@@ -453,15 +471,35 @@ export class InverseKinematicsSolver {
     positionDelta: BABYLON.Vector3,
     method: 'jacobian' | 'ccd' | 'fabrik' = 'jacobian'
   ): boolean {
-    // Get current TCP pose (with TCP frame applied if exists)
-    const currentPose = this.fkSolver.getTCPPose?.(chainName) || this.fkSolver.getNullTCPPose(chainName);
-    if (!currentPose) {
-      console.error('[IK moveTCP] Failed to get current TCP pose');
+    // Get current joint angles and compute FK to get true current TCP pose
+    const chain = this.kinematicsManager.getChain(chainName);
+    if (!chain) {
+      console.error('[IK moveTCP] Chain not found:', chainName);
+      return false;
+    }
+    const joints = this.kinematicsManager.getActuatedJoints(chain.id);
+    const currentJointAngles = joints.map(j => j.position);
+
+    // Compute current TCP pose using FK with current joint angles (in robot-local space)
+    const currentPoseLocal = this.fkSolver.solve(chainName, currentJointAngles);
+    if (!currentPoseLocal) {
+      console.error('[IK moveTCP] Failed to solve FK for current pose');
       return false;
     }
 
-    // Compute new target position
-    const targetPosition = currentPose.position.add(positionDelta);
+    // Transform to world space
+    const baseWorldMatrix = this.kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
+    const currentPoseWorld = BABYLON.Vector3.TransformCoordinates(
+      currentPoseLocal.position,
+      baseWorldMatrix
+    );
+    const baseRot = BABYLON.Quaternion.FromRotationMatrix(baseWorldMatrix.getRotationMatrix());
+    const currentRotWorld = baseRot.multiply(currentPoseLocal.rotation);
+
+    console.log(`[IK moveTCP] Current TCP (from FK): ${currentPoseWorld.toString()}, delta: ${positionDelta.toString()}`);
+
+    // Compute new target position in world space
+    const targetPosition = currentPoseWorld.add(positionDelta);
 
     // Solve IK for new position
     if (method === 'fabrik') {
@@ -489,7 +527,7 @@ export class InverseKinematicsSolver {
       chainName,
       {
         position: targetPosition,
-        rotation: currentPose.rotation, // Maintain current orientation
+        rotation: currentRotWorld, // Maintain current orientation (world space)
       },
       method
     );
