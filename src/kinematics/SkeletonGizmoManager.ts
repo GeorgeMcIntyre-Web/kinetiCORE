@@ -767,6 +767,276 @@ export class SkeletonGizmoManager {
   }
 
   /**
+   * Update link transform (for editable kinematics)
+   */
+  updateLinkTransform(robotId: string, linkId: string, transform: {
+    position: BABYLON.Vector3;
+    rotation: BABYLON.Quaternion;
+  }): boolean {
+    const links = this.skeletonLinks.get(robotId);
+    if (!links) return false;
+
+    const link = links.find(l => l.id === linkId);
+    if (!link || !link.mesh) return false;
+
+    // Update link data
+    link.startPosition = transform.position.clone();
+    // Convert quaternion to forward vector (assuming Z-forward convention)
+    const forward = new BABYLON.Vector3(0, 0, 1);
+    const rotationMatrix = new BABYLON.Matrix();
+    transform.rotation.toRotationMatrix(rotationMatrix);
+    const rotatedForward = BABYLON.Vector3.TransformNormal(forward, rotationMatrix);
+    link.endPosition = transform.position.clone().add(rotatedForward.scale(link.length));
+    link.direction = rotatedForward.normalize();
+
+    // Update mesh
+    const midpoint = link.startPosition.add(link.endPosition).scale(0.5);
+    link.mesh.position = midpoint;
+    this.orientMeshAlongDirection(link.mesh, link.direction);
+
+    console.log(`[SkeletonGizmoManager] Updated link transform: ${linkId}`);
+    return true;
+  }
+
+  /**
+   * Set joint limits (for editable kinematics)
+   */
+  setJointLimit(_robotId: string, jointId: string, limits: {
+    position: { lower: number; upper: number };
+    velocity: { max: number };
+    effort: { max: number };
+  }): boolean {
+    // This would integrate with the KinematicsManager
+    // For now, we'll just log the update
+    console.log(`[SkeletonGizmoManager] Updated joint limits for ${jointId}:`, limits);
+    
+    // In a full implementation, this would:
+    // 1. Update the joint limits in KinematicsManager
+    // 2. Validate the current joint position against new limits
+    // 3. Update visual indicators if needed
+    
+    return true;
+  }
+
+  /**
+   * Update joint position (for editable kinematics)
+   */
+  updateJointPosition(robotId: string, jointId: string, position: number): boolean {
+    // This would integrate with the KinematicsManager
+    console.log(`[SkeletonGizmoManager] Updated joint position for ${jointId}: ${position}`);
+    
+    // In a full implementation, this would:
+    // 1. Update the joint position in KinematicsManager
+    // 2. Rebuild skeleton links if needed
+    // 3. Update visual representation
+    
+    // For now, trigger a skeleton update
+    this.updateSkeleton(robotId);
+    return true;
+  }
+
+  /**
+   * Get editable skeleton data (for UI editing)
+   */
+  getEditableSkeletonData(robotId: string): {
+    robotId: string;
+    chainId: string;
+    joints: any[];
+    links: any[];
+    metadata: any;
+  } | null {
+    const config = this.activeSkeletons.get(robotId);
+    const links = this.skeletonLinks.get(robotId);
+    
+    if (!config || !links) return null;
+
+    // Convert to editable format
+    const editableJoints = this.getEditableJoints(robotId);
+    const editableLinks = links.map(link => ({
+      id: link.id,
+      name: link.linkInfo?.jointName || `Link ${link.id}`,
+      startJointId: link.startJointId,
+      endJointId: link.endJointId,
+      transform: {
+        position: {
+          x: link.startPosition.x,
+          y: link.startPosition.y,
+          z: link.startPosition.z
+        },
+        rotation: {
+          x: 0, y: 0, z: 0, w: 1 // Default quaternion
+        }
+      },
+      length: link.length,
+      direction: {
+        x: link.direction.x,
+        y: link.direction.y,
+        z: link.direction.z
+      },
+      thickness: 0.01, // Default thickness
+      style: 'cylinder',
+      isEditable: true,
+      constraints: {
+        minLength: 0.001,
+        maxLength: 10.0
+      }
+    }));
+
+    return {
+      robotId,
+      chainId: config.chainId,
+      joints: editableJoints,
+      links: editableLinks,
+      metadata: {
+        version: '1.0.0',
+        createdAt: new Date().toISOString(),
+        lastModified: new Date().toISOString(),
+        author: 'SkeletonGizmoManager',
+        description: `Editable skeleton data for robot ${robotId}`,
+        tags: ['skeleton', 'kinematics', 'editable']
+      }
+    };
+  }
+
+  /**
+   * Set editable skeleton data (for UI editing)
+   */
+  setEditableSkeletonData(robotId: string, data: {
+    joints: any[];
+    links: any[];
+  }): boolean {
+    try {
+      // Update joints
+      data.joints.forEach(jointData => {
+        this.updateJointPosition(robotId, jointData.id, jointData.currentState.position);
+        this.setJointLimit(robotId, jointData.id, jointData.limits);
+      });
+
+      // Update links
+      data.links.forEach(linkData => {
+        const transform = {
+          position: new BABYLON.Vector3(
+            linkData.transform.position.x,
+            linkData.transform.position.y,
+            linkData.transform.position.z
+          ),
+          rotation: new BABYLON.Quaternion(
+            linkData.transform.rotation.x,
+            linkData.transform.rotation.y,
+            linkData.transform.rotation.z,
+            linkData.transform.rotation.w
+          )
+        };
+        this.updateLinkTransform(robotId, linkData.id, transform);
+      });
+
+      console.log(`[SkeletonGizmoManager] Updated editable skeleton data for robot: ${robotId}`);
+      return true;
+    } catch (error) {
+      console.error(`[SkeletonGizmoManager] Failed to update editable skeleton data:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Get editable joints data
+   */
+  private getEditableJoints(robotId: string): any[] {
+    const chains = this.kinematicsManager.getAllChains();
+    const robotChain = chains.find(chain => 
+      chain.joints.some((joint: any) => joint.id.startsWith(robotId))
+    );
+
+    if (!robotChain) return [];
+
+    const joints = this.kinematicsManager.getChainJoints(robotChain.id);
+    return joints.map(joint => ({
+      id: joint.id,
+      name: joint.name,
+      type: joint.type,
+      dof: joint.type === 'revolute' || joint.type === 'prismatic' ? 1 : 0,
+      parentId: joint.parentNodeId,
+      childId: joint.childNodeId,
+      transform: {
+        position: {
+          x: joint.origin.x,
+          y: joint.origin.y,
+          z: joint.origin.z
+        },
+        rotation: {
+          x: joint.originRotation?.x || 0,
+          y: joint.originRotation?.y || 0,
+          z: joint.originRotation?.z || 0,
+          w: joint.originRotation?.w || 1
+        }
+      },
+      axis: {
+        x: joint.axis.x,
+        y: joint.axis.y,
+        z: joint.axis.z
+      },
+      limits: {
+        position: {
+          lower: joint.limits?.lower || -Math.PI,
+          upper: joint.limits?.upper || Math.PI
+        },
+        velocity: {
+          max: joint.limits?.velocity || 1.0
+        },
+        effort: {
+          max: joint.limits?.effort || 100.0
+        }
+      },
+      currentState: {
+        position: joint.position || 0,
+        velocity: joint.velocity || 0,
+        effort: joint.effort || 0,
+        isMoving: this.isJointActive(joint.id),
+        lastUpdate: new Date().toISOString()
+      },
+      isEditable: true,
+      isActive: this.isJointActive(joint.id)
+    }));
+  }
+
+  /**
+   * Validate joint limits
+   */
+  validateJointLimits(_robotId: string, jointId: string, position: number): {
+    isValid: boolean;
+    clampedPosition?: number;
+    message?: string;
+  } {
+    const joint = this.kinematicsManager.getJoint(jointId);
+    if (!joint) {
+      return { isValid: false, message: 'Joint not found' };
+    }
+
+    const limits = joint.limits;
+    if (!limits) {
+      return { isValid: true };
+    }
+
+    if (position < limits.lower) {
+      return {
+        isValid: false,
+        clampedPosition: limits.lower,
+        message: `Position ${position} below lower limit ${limits.lower}`
+      };
+    }
+
+    if (position > limits.upper) {
+      return {
+        isValid: false,
+        clampedPosition: limits.upper,
+        message: `Position ${position} above upper limit ${limits.upper}`
+      };
+    }
+
+    return { isValid: true };
+  }
+
+  /**
    * Check if manager is initialized
    */
   isInitialized(): boolean {

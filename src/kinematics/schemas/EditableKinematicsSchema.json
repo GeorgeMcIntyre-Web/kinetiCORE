@@ -1,0 +1,250 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Editable Kinematics Schema",
+  "description": "Schema for editable robot joints and links in skeleton visualization",
+  "type": "object",
+  "properties": {
+    "robotId": {
+      "type": "string",
+      "description": "Unique identifier for the robot"
+    },
+    "chainId": {
+      "type": "string", 
+      "description": "Kinematic chain identifier"
+    },
+    "joints": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Joint"
+      }
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Link"
+      }
+    },
+    "metadata": {
+      "$ref": "#/definitions/Metadata"
+    }
+  },
+  "required": ["robotId", "chainId", "joints", "links"],
+  "definitions": {
+    "Joint": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique joint identifier"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable joint name"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["revolute", "prismatic", "continuous", "fixed", "spherical", "planar"],
+          "description": "Joint type defining DOF"
+        },
+        "dof": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6,
+          "description": "Degrees of freedom (0=fixed, 1=revolute/prismatic, 3=spherical, etc.)"
+        },
+        "parentId": {
+          "type": "string",
+          "description": "Parent joint/link ID"
+        },
+        "childId": {
+          "type": "string",
+          "description": "Child joint/link ID"
+        },
+        "transform": {
+          "$ref": "#/definitions/Transform"
+        },
+        "axis": {
+          "$ref": "#/definitions/Vector3",
+          "description": "Joint axis direction (for revolute/prismatic)"
+        },
+        "limits": {
+          "$ref": "#/definitions/JointLimits"
+        },
+        "currentState": {
+          "$ref": "#/definitions/JointState"
+        },
+        "isEditable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether this joint can be edited"
+        },
+        "isActive": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this joint is currently moving"
+        }
+      },
+      "required": ["id", "name", "type", "dof", "transform", "limits", "currentState"]
+    },
+    "Link": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique link identifier"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable link name"
+        },
+        "startJointId": {
+          "type": "string",
+          "description": "Starting joint ID"
+        },
+        "endJointId": {
+          "type": "string",
+          "description": "Ending joint ID"
+        },
+        "transform": {
+          "$ref": "#/definitions/Transform",
+          "description": "Link transform (position/orientation)"
+        },
+        "length": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Link length in meters"
+        },
+        "direction": {
+          "$ref": "#/definitions/Vector3",
+          "description": "Link direction vector"
+        },
+        "thickness": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0.01,
+          "description": "Visual thickness in meters"
+        },
+        "style": {
+          "type": "string",
+          "enum": ["cylinder", "tube", "line"],
+          "default": "cylinder",
+          "description": "Visual representation style"
+        },
+        "isEditable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether this link can be edited"
+        },
+        "constraints": {
+          "$ref": "#/definitions/LinkConstraints"
+        }
+      },
+      "required": ["id", "name", "startJointId", "endJointId", "transform", "length", "direction"]
+    },
+    "Transform": {
+      "type": "object",
+      "properties": {
+        "position": {
+          "$ref": "#/definitions/Vector3"
+        },
+        "rotation": {
+          "$ref": "#/definitions/Quaternion"
+        },
+        "scale": {
+          "$ref": "#/definitions/Vector3",
+          "default": {"x": 1, "y": 1, "z": 1}
+        }
+      },
+      "required": ["position", "rotation"]
+    },
+    "Vector3": {
+      "type": "object",
+      "properties": {
+        "x": {"type": "number"},
+        "y": {"type": "number"},
+        "z": {"type": "number"}
+      },
+      "required": ["x", "y", "z"]
+    },
+    "Quaternion": {
+      "type": "object",
+      "properties": {
+        "x": {"type": "number"},
+        "y": {"type": "number"},
+        "z": {"type": "number"},
+        "w": {"type": "number"}
+      },
+      "required": ["x", "y", "z", "w"]
+    },
+    "JointLimits": {
+      "type": "object",
+      "properties": {
+        "position": {
+          "type": "object",
+          "properties": {
+            "lower": {"type": "number"},
+            "upper": {"type": "number"}
+          },
+          "required": ["lower", "upper"]
+        },
+        "velocity": {
+          "type": "object",
+          "properties": {
+            "max": {"type": "number", "minimum": 0}
+          },
+          "required": ["max"]
+        },
+        "effort": {
+          "type": "object",
+          "properties": {
+            "max": {"type": "number", "minimum": 0}
+          },
+          "required": ["max"]
+        }
+      },
+      "required": ["position", "velocity", "effort"]
+    },
+    "JointState": {
+      "type": "object",
+      "properties": {
+        "position": {"type": "number"},
+        "velocity": {"type": "number"},
+        "effort": {"type": "number"},
+        "isMoving": {"type": "boolean", "default": false},
+        "lastUpdate": {"type": "string", "format": "date-time"}
+      },
+      "required": ["position", "velocity", "effort"]
+    },
+    "LinkConstraints": {
+      "type": "object",
+      "properties": {
+        "minLength": {"type": "number", "minimum": 0},
+        "maxLength": {"type": "number", "minimum": 0},
+        "allowedAngles": {
+          "type": "array",
+          "items": {"type": "number"},
+          "description": "Allowed angles in radians"
+        },
+        "collisionGroups": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Collision groups this link belongs to"
+        }
+      }
+    },
+    "Metadata": {
+      "type": "object",
+      "properties": {
+        "version": {"type": "string"},
+        "createdAt": {"type": "string", "format": "date-time"},
+        "lastModified": {"type": "string", "format": "date-time"},
+        "author": {"type": "string"},
+        "description": {"type": "string"},
+        "tags": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    }
+  }
+}
