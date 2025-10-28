@@ -197,12 +197,12 @@ export class InverseKinematicsSolver {
         }
         // Apply damping to prevent overshoot
         const dampingFactor = 1.0 / (1.0 + damping * Math.abs(delta));
-        deltaAngles[i] = stepSize * delta * dampingFactor;
+        deltaAngles[i] = delta * dampingFactor;
       }
 
       // Adaptive step size: smaller steps when error is large, larger steps when error is small
       // This prevents overshoot when far from target
-      const adaptiveStep = Math.min(1.0, 0.1 / Math.max(error, 0.01)) * stepSize;
+      const adaptiveStep = Math.min(1.0, 0.1 / Math.max(positionErrorMagnitude, 0.01)) * stepSize;
 
       // DEBUG: Log first iteration details
       if (iteration === 0) {
