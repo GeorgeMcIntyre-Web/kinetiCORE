@@ -418,7 +418,7 @@ export class SkeletonLinkRenderer {
     // Parent bone mesh directly to skeleton container (same as spheres)
     mesh.parent = state.parentContainer;
     mesh.isPickable = false;
-    mesh.renderingGroupId = 2;
+    mesh.renderingGroupId = 2; // bones layer
     mesh.rotationQuaternion = BABYLON.Quaternion.Identity();
 
     const linkNode: LinkNode = { mesh, id: key };
@@ -447,8 +447,8 @@ export class SkeletonLinkRenderer {
       sphereB.parent = state.parentContainer;  // Parent to skeleton container
       sphereA.isPickable = false;
       sphereB.isPickable = false;
-      sphereA.renderingGroupId = 2;
-      sphereB.renderingGroupId = 2;
+      sphereA.renderingGroupId = 3; // render above bones
+      sphereB.renderingGroupId = 3; // render above bones
 
       linkNode.jointSphereA = sphereA;
       linkNode.jointSphereB = sphereB;
