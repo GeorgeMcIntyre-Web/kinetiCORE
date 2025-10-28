@@ -376,10 +376,17 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
 
     // DEBUG: Log TCP world rotation for debugging
     const tcpEuler = tcpWorldRotation.toEulerAngles();
+    
+    // Get TCP local X axis direction in world space
+    const tcpRotMatrix = new BABYLON.Matrix();
+    tcpWorldRotation.toRotationMatrix(tcpRotMatrix);
+    const tcpLocalXAxis = new BABYLON.Vector3(tcpRotMatrix.m[0], tcpRotMatrix.m[1], tcpRotMatrix.m[2]);
+    
     logSummary(`═══════════════════════════════════════════════════════════`);
     logSummary(`[TCP Jog] ${axis}${direction > 0 ? '+' : '-'} ${jogStepTcpLinear}mm`);
     logSummary(`[TCP Jog] Current null TCP WORLD position: (${currentPosWorld.x.toFixed(4)}, ${currentPosWorld.y.toFixed(4)}, ${currentPosWorld.z.toFixed(4)})`);
     logSummary(`[TCP Jog] Current null TCP WORLD rotation: Rx=${(tcpEuler.x*180/Math.PI).toFixed(1)}° Ry=${(tcpEuler.y*180/Math.PI).toFixed(1)}° Rz=${(tcpEuler.z*180/Math.PI).toFixed(1)}°`);
+    logSummary(`[TCP Jog] TCP local X-axis direction (world): (${tcpLocalXAxis.x.toFixed(3)}, ${tcpLocalXAxis.y.toFixed(3)}, ${tcpLocalXAxis.z.toFixed(3)})`);
     logVerbose(`[TCP Jog] TCP world rotation quaternion: (${tcpWorldRotation.x.toFixed(3)}, ${tcpWorldRotation.y.toFixed(3)}, ${tcpWorldRotation.z.toFixed(3)}, ${tcpWorldRotation.w.toFixed(3)})`);
 
     // Create delta in TCP LOCAL frame (meters)
