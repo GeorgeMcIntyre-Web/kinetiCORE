@@ -503,7 +503,7 @@ export class ForwardKinematicsSolver {
       return null;
     }
 
-    // Start with identity transform at base
+    // Start with identity - robot-local space (not world space)  
     let accumulatedTransform = BABYLON.Matrix.Identity();
 
     // Build transformation chain from base up to specified joint
@@ -601,7 +601,7 @@ export class ForwardKinematicsSolver {
       return null;
     }
 
-    // Start with identity transform at base
+    // Start with identity - robot-local space (not world space)
     let accumulatedTransform = BABYLON.Matrix.Identity();
 
     // Build transformation chain from base to TCP (tool0)
@@ -665,9 +665,9 @@ export class ForwardKinematicsSolver {
       accumulatedTransform = accumulatedTransform.multiply(linkTransform);
     }
 
-    // Extract TCP position and rotation from final transform
+    // Extract position and rotation in WORLD space from final transform
     const position = accumulatedTransform.getTranslation();
-    const rotation = BABYLON.Quaternion.FromRotationMatrix(accumulatedTransform);
+    const rotation = BABYLON.Quaternion.FromRotationMatrix(accumulatedTransform.getRotationMatrix());
 
     return { position, rotation };
   }
@@ -695,15 +695,20 @@ export class ForwardKinematicsSolver {
     const n = joints.length;
     const jacobian: number[][] = Array(6).fill(0).map(() => Array(n).fill(0));
 
-    // Get end-effector position
-    const endEffectorPose = this.solve(chainName, jointAngles);
-    if (!endEffectorPose) return null;
+    // Seed with base world matrix so Jacobian columns are in WORLD space
+    const baseWorldMatrix = this.kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
 
-    const endEffectorPos = endEffectorPose.position;
+    // Get end-effector position (solve() returns robot-local poses, transform to world)
+    const endEffectorPoseLocal = this.solve(chainName, jointAngles);
+    if (!endEffectorPoseLocal) return null;
+    const endEffectorPos = BABYLON.Vector3.TransformCoordinates(
+      endEffectorPoseLocal.position,
+      baseWorldMatrix
+    );
 
-    // Compute transform for each joint
+    // Compute transform for each joint - keep matrices in WORLD space
     const jointTransforms: BABYLON.Matrix[] = [];
-    let accumulatedTransform = BABYLON.Matrix.Identity();
+    let accumulatedTransform = baseWorldMatrix.clone();
 
     for (let i = 0; i < joints.length; i++) {
       const joint = joints[i];
@@ -780,9 +785,11 @@ export class ForwardKinematicsSolver {
       );
 
       if (joint.type === 'revolute') {
-        // Linear velocity: v = axis × (end_effector_pos - joint_pos)
+        // Linear velocity: v = r × axis (NOT axis × r!)
+        // r = vector from joint to end-effector
+        // Cross product is anti-commutative: a × b = -(b × a)
         const r = endEffectorPos.subtract(jointPos);
-        const linearVel = BABYLON.Vector3.Cross(worldAxis, r);
+        const linearVel = BABYLON.Vector3.Cross(r, worldAxis);
 
         jacobian[0][i] = linearVel.x;
         jacobian[1][i] = linearVel.y;
@@ -885,7 +892,11 @@ export class ForwardKinematicsSolver {
     const worldMatrix = actualMesh.getWorldMatrix();
     const worldPosition = new BABYLON.Vector3();
     worldMatrix.getTranslationToRef(worldPosition);
-    const worldRotation = BABYLON.Quaternion.FromRotationMatrix(worldMatrix);
+    
+    // Extract rotation from the world matrix
+    // Get the rotation matrix (extract scale and rotation, normalizing scale)
+    const rotationMatrix = worldMatrix.getRotationMatrix();
+    const worldRotation = BABYLON.Quaternion.FromRotationMatrix(rotationMatrix);
     
     return {
       position: worldPosition,
@@ -995,11 +1006,7 @@ export class ForwardKinematicsSolver {
     // Combine rotations: null TCP rotation * TCP frame rotation
     const tcpRotationWorld = nullTCPPose.rotation.multiply(tcpFrameRotation);
 
-    console.log(`[FK getTCPPose] Applying TCP frame ${tcpFrame.name} in world space:`);
-    console.log(`  Tool0 world pos: (${nullTCPPose.position.x.toFixed(3)}, ${nullTCPPose.position.y.toFixed(3)}, ${nullTCPPose.position.z.toFixed(3)})`);
-    console.log(`  TCP offset (tool0 frame): (${tcpFrameOffset.x.toFixed(3)}, ${tcpFrameOffset.y.toFixed(3)}, ${tcpFrameOffset.z.toFixed(3)})`);
-    console.log(`  TCP world pos: (${tcpPositionWorld.x.toFixed(3)}, ${tcpPositionWorld.y.toFixed(3)}, ${tcpPositionWorld.z.toFixed(3)})`);
-
+    // Reduced logging - only log detailed info on demand
     return {
       position: tcpPositionWorld,
       rotation: tcpRotationWorld
