@@ -106,15 +106,25 @@ export class ForwardKinematicsSolver {
           const rotatedMatrix = BABYLON.Matrix.Identity();
           rotationMatrix.multiplyToRef(jointWorldMatrix, rotatedMatrix);
           
-          // Find the chain this joint belongs to
+          // Defer cache + emit: we'll cache all joints in the chain once after transforms are applied
           const chains = this.kinematicsManager.getAllChains();
-          for (const chain of chains) {
-            if (chain.joints.some(j => j.id === jointId)) {
-              // Cache the joint frame world matrix
-              this.kinematicsManager.setJointWorldMatrix(chain.id, jointId, rotatedMatrix.clone());
-              // Emit FK update event
-              this.kinematicsManager.emitFkUpdated(chain.id);
-              break;
+          const owningChain = chains.find(c => c.joints.some(j => j.id === jointId));
+          if (owningChain) {
+            // After applying transforms, cache world matrices for ALL joints in the chain and emit ONCE
+            const scene = this.sceneManager.getScene();
+            if (scene) {
+              for (const j of owningChain.joints) {
+                const parentNode = this.sceneTreeManager.getNode(j.parentNodeId);
+                const childNode = this.sceneTreeManager.getNode(j.childNodeId);
+                if (!parentNode || !childNode) continue;
+
+                const childBabylonNode = this.getBabylonNode(childNode.id, scene);
+                if (!childBabylonNode) continue;
+                childBabylonNode.computeWorldMatrix(true);
+                const mw = childBabylonNode.getWorldMatrix().clone();
+                this.kinematicsManager.setJointWorldMatrix(owningChain.id, j.id, mw);
+              }
+              this.kinematicsManager.emitFkUpdated(owningChain.id);
             }
           }
         }

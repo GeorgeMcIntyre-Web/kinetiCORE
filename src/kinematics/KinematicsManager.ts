@@ -531,6 +531,104 @@ export class KinematicsManager implements IKinematicsManager {
   }
 
   /**
+   * Get cached joint world matrix for a joint
+   */
+  getJointWorldMatrix(chainId: string, jointId: string): BABYLON.Matrix | null {
+    const chainCache = this._lastJointWorld.get(chainId);
+    if (!chainCache) return null;
+    return chainCache.get(jointId) || null;
+  }
+
+  /**
+   * Get transform node for a scene tree node ID
+   * Handles collections, meshes, and various node types
+   */
+  private getTransformNodeForTreeId(treeId: string): BABYLON.TransformNode | null {
+    const tree = SceneTreeManager.getInstance();
+    const node = tree.getNode(treeId);
+    if (!node) return null;
+
+    const scene = (window as any).sceneManager?.getScene?.();
+    if (!scene) return null;
+
+    // If it has an explicit transform node ID, use that
+    if (node.babylonTransformNodeId) {
+      const tn = scene.transformNodes.find((tn: any) => tn.uniqueId === parseInt(node.babylonTransformNodeId!));
+      if (tn) return tn;
+    }
+
+    // If it's a collection, try to find its anchor/container transform
+    if (node.type === 'collection') {
+      // Collections in URDF are typically the base_link TransformNode
+      // Try to find by unique ID if we stored it
+      const allTNs = scene.transformNodes;
+      for (const tn of allTNs) {
+        if (tn.name === node.name && tn instanceof BABYLON.TransformNode) {
+          return tn;
+        }
+      }
+    }
+
+    // If it has a mesh ID, get the mesh's parent
+    if (node.babylonMeshId) {
+      const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+      if (mesh && mesh.parent) {
+        return mesh.parent;
+      }
+      return mesh;
+    }
+
+    return null;
+  }
+
+  /**
+   * Get base frame world matrix for a chain
+   * Returns the transform from the first joint's parent node (base_link)
+   */
+  getBaseWorldMatrix(chainId: string): BABYLON.Matrix | null {
+    const chain = this.getChainById(chainId);
+    if (!chain || chain.joints.length === 0) {
+      console.warn(`[KinematicsManager] getBaseWorldMatrix: chain not found or empty: ${chainId}`);
+      return null;
+    }
+
+    const firstJoint = chain.joints[0];
+    
+    // Get base_link transform node
+    const baseNodeId = firstJoint.parentNodeId;
+    const baseTransformNode = this.getTransformNodeForTreeId(baseNodeId);
+    
+    if (!baseTransformNode) {
+      console.warn(`[KinematicsManager] getBaseWorldMatrix: could not resolve base transform for nodeId: ${baseNodeId}`);
+      return null;
+    }
+
+    baseTransformNode.computeWorldMatrix(true);
+    return baseTransformNode.getWorldMatrix();
+  }
+
+  /**
+   * Get TCP world matrix if exists
+   */
+  getTcpWorldMatrix(chainId: string): BABYLON.Matrix | null {
+    const chain = this.getChainById(chainId);
+    if (!chain || chain.tcpFrames.length === 0) return null;
+
+    // TODO: Implement proper TCP world transformation
+    // For now, return null
+    return null;
+  }
+
+  /**
+   * Get ordered joint IDs for a chain
+   */
+  getOrderedJointIds(chainId: string): string[] {
+    const chain = this.getChainById(chainId);
+    if (!chain) return [];
+    return chain.joints.map(j => j.id);
+  }
+
+  /**
    * Get ordered joint world positions for a chain (with cache and fallbacks)
    */
   getOrderedJointWorldPositions(chainId: string): Array<{ id: string; pos: BABYLON.Vector3 }> {
