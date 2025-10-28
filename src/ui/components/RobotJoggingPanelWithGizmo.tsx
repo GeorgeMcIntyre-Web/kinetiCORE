@@ -396,12 +396,12 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     // Linear motion (position IK)
     console.log(`[RobotJoggingPanel] Moving TCP by ${axis} delta: (${positionDelta.x.toFixed(3)}, ${positionDelta.y.toFixed(3)}, ${positionDelta.z.toFixed(3)})`);
     
-    // Try CCD first (more robust), fallback to Jacobian
-    success = ikSolver.moveTCP(chainName, positionDelta, 'ccd');
+    // Use Jacobian first (faster, more reliable for this robot), fallback to CCD
+    success = ikSolver.moveTCP(chainName, positionDelta, 'jacobian');
 
     if (!success) {
-      console.log('[RobotJoggingPanel] CCD failed, trying Jacobian method...');
-      success = ikSolver.moveTCP(chainName, positionDelta, 'jacobian');
+      console.log('[RobotJoggingPanel] Jacobian failed, trying CCD method...');
+      success = ikSolver.moveTCP(chainName, positionDelta, 'ccd');
     }
 
     if (!success) {
