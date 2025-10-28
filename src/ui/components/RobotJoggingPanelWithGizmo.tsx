@@ -333,7 +333,6 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     console.log(`[RobotJoggingPanel] Found chain: ${chainName}`);
 
     // Compute TCP WORLD rotation from FK with current joint angles
-    const kinematicsManager = KinematicsManager.getInstance();
     const chain = kinematicsManager.getChain(chainName);
     if (!chain) {
       console.error('[RobotJoggingPanel] Chain not found for TCP jog:', chainName);
