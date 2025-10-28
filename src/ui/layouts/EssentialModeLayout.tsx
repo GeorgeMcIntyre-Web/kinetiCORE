@@ -569,15 +569,76 @@ export const EssentialModeLayout: React.FC = () => {
         <main className="flex-1 relative bg-gray-100">
           <div id="viewport-essential" className="w-full h-full relative">
             <SceneCanvas />
-            {/* Selection Indicator - Positioned inside viewport */}
-            <SelectionIndicator selectedNodeIds={selectedNodeIds} />
+            {/* Overlay root to anchor all HUD elements within viewport */}
+            <div id="overlay-root" className="absolute inset-0 pointer-events-none">
+              {/* Selection Indicator - top-left, below header spacing */}
+              <div className="absolute" style={{ top: '90px', left: '12px' }}>
+                <SelectionIndicator selectedNodeIds={selectedNodeIds} />
+              </div>
 
-            {/* Performance Monitor - Top-right of viewport */}
-            <PerformanceMonitor
-              enabled={performanceEnabled}
-              position="top-right"
-              detailed={true}
-            />
+              {/* Performance Monitor - Top-right of viewport */}
+              <PerformanceMonitor
+                enabled={performanceEnabled}
+                position="top-right"
+                detailed={true}
+              />
+
+              {/* Transform Display - Bottom-right corner (kept from local state) */}
+              {transform && (
+                <div
+                  className="absolute"
+                  style={{ bottom: '12px', right: '12px', zIndex: 900, pointerEvents: 'none' }}
+                >
+                  <div
+                    style={{
+                      background: 'transparent',
+                      color: '#ffffff',
+                      textShadow:
+                        '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.7)',
+                      fontFamily:
+                        'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      minWidth: '280px',
+                    }}
+                  >
+                    <div className="flex justify-between text-sm">
+                      <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                        <span style={{ color: '#4A90E2', fontWeight: 500 }}>X:</span>
+                        <span style={{ color: '#ffffff', fontWeight: 600, textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.x.toFixed(1)}</span>
+                      </div>
+                      <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                        <span style={{ color: '#7ED321', fontWeight: 500 }}>Y:</span>
+                        <span style={{ color: '#ffffff', fontWeight: 600, textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.y.toFixed(1)}</span>
+                      </div>
+                      <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                        <span style={{ color: '#D0021B', fontWeight: 500 }}>Z:</span>
+                        <span style={{ color: '#ffffff', fontWeight: 600, textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.z.toFixed(1)}</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between text-sm mt-1">
+                      <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                        <span style={{ color: '#4A90E2', fontWeight: 500 }}>RX:</span>
+                        <span style={{ color: '#ffffff', fontWeight: 600, textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rx.toFixed(1)}°</span>
+                      </div>
+                      <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                        <span style={{ color: '#7ED321', fontWeight: 500 }}>RY:</span>
+                        <span style={{ color: '#ffffff', fontWeight: 600, textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.ry.toFixed(1)}°</span>
+                      </div>
+                      <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                        <span style={{ color: '#D0021B', fontWeight: 500 }}>RZ:</span>
+                        <span style={{ color: '#ffffff', fontWeight: 600, textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rz.toFixed(1)}°</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Version Display - move to bottom-left to avoid transform overlap */}
+              <div className="absolute" style={{ bottom: '12px', left: '12px' }}>
+                <VersionDisplay mode="overlay" position="bottom-left" showBuildInfo={false} />
+              </div>
+            </div>
           </div>
         </main>
       </div>

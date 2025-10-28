@@ -14,6 +14,8 @@ export interface VersionDisplayProps {
   mode?: 'footer' | 'overlay' | 'inline';
   /** Show additional build info */
   showBuildInfo?: boolean;
+  /** Corner position when using overlay mode */
+  position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 }
 
 /**
@@ -28,6 +30,7 @@ export interface VersionDisplayProps {
 export const VersionDisplay: React.FC<VersionDisplayProps> = ({
   mode = 'footer',
   showBuildInfo = false,
+  position = 'bottom-right',
 }) => {
   // Version is injected at build time via Vite
   const version = import.meta.env.VITE_APP_VERSION || '0.1.0';
@@ -47,10 +50,16 @@ export const VersionDisplay: React.FC<VersionDisplayProps> = ({
     textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)',
   };
 
+  const overlayPositions: Record<string, React.CSSProperties> = {
+    'top-left': { top: '12px', left: '12px' },
+    'top-right': { top: '12px', right: '12px' },
+    'bottom-left': { bottom: '12px', left: '12px' },
+    'bottom-right': { bottom: '12px', right: '12px' },
+  };
+
   const overlayStyle: React.CSSProperties = {
     position: 'absolute',
-    top: '12px',
-    left: '12px',
+    ...overlayPositions[position],
     fontSize: '11px',
     color: '#9ca3af',
     fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',

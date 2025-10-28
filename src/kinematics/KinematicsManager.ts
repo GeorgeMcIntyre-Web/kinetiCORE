@@ -754,8 +754,8 @@ export class KinematicsManager implements IKinematicsManager {
     arcTube.renderingGroupId = 2; // Render on top of robot
     existing.push(arcTube);
 
-    // Create arrow at the OTHER end of the arc line (at -90°)
-    const arcEndAngle = -fixedArcLength / 2; // Other end of arc at -90°
+    // Create arrow at the end of the arc aligned with positive rotation direction
+    const arcEndAngle = fixedArcLength / 2; // +90° end
     const arcEndX = Math.cos(arcEndAngle) * arcRadius;
     const arcEndY = Math.sin(arcEndAngle) * arcRadius;
     const arcEndPos = jointOriginWorld.clone()
@@ -763,8 +763,8 @@ export class KinematicsManager implements IKinematicsManager {
       .add(arcV.scale(arcEndY));
 
     // Tangent direction at end of arc (pointing in + rotation direction)
-    // Negate the direction to flip the arrow
-    const tangentDir = arcU.scale(Math.sin(arcEndAngle)).add(arcV.scale(-Math.cos(arcEndAngle))).normalize();
+    // For path parameterization p(t) = arcU*cos(t) + arcV*sin(t), derivative is -arcU*sin(t) + arcV*cos(t)
+    const tangentDir = arcU.scale(-Math.sin(arcEndAngle)).add(arcV.scale(Math.cos(arcEndAngle))).normalize();
 
     // Arrow head only (0 length shaft, just the cone)
     const arrowHead = BABYLON.MeshBuilder.CreateCylinder(
@@ -776,10 +776,15 @@ export class KinematicsManager implements IKinematicsManager {
 
     // Orient arrow along tangent
     const arrowUpVec = new BABYLON.Vector3(0, 1, 0);
-    const angleToUp = Math.acos(BABYLON.Vector3.Dot(tangentDir, arrowUpVec));
+    const angleToUp = Math.acos(
+      Math.min(1, Math.max(-1, BABYLON.Vector3.Dot(tangentDir, arrowUpVec)))
+    );
     const crossProduct = BABYLON.Vector3.Cross(arrowUpVec, tangentDir).normalize();
-    if (crossProduct.length() > 0.01) {
+    if (crossProduct.length() > 0.001) {
       arrowHead.rotationQuaternion = BABYLON.Quaternion.RotationAxis(crossProduct, angleToUp);
+    } else {
+      // Fallback when vectors are parallel/anti-parallel
+      arrowHead.rotationQuaternion = BABYLON.Quaternion.Identity();
     }
     arrowHead.material = arcMat;
     arrowHead.isPickable = false;

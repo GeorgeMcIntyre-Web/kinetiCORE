@@ -309,12 +309,22 @@ export function usePerformanceMonitor(): boolean {
   const [enabled, setEnabled] = useState(false);
   
   useEffect(() => {
-    // Check for ?debug=true or ?perf=true in URL
+    // Enable when any of these are true:
+    // - Dev mode
+    // - URL params: ?debug=true|1 or ?perf=true|1
+    // - Env flag: VITE_ENABLE_PERF=true|1|yes
     const params = new URLSearchParams(window.location.search);
-    const debug = params.get('debug') === 'true';
-    const perf = params.get('perf') === 'true';
-    
-    const shouldEnable = debug || perf || import.meta.env.DEV;
+    const debugParam = params.get('debug');
+    const perfParam = params.get('perf');
+    const isTruthyParam = (v: string | null) => v === 'true' || v === '1' || v === 'yes';
+
+    const debug = isTruthyParam(debugParam);
+    const perf = isTruthyParam(perfParam);
+
+    const envRaw = (import.meta.env.VITE_ENABLE_PERF as string | undefined) || '';
+    const envFlag = ['true', '1', 'yes'].includes(envRaw.toString().toLowerCase());
+
+    const shouldEnable = debug || perf || envFlag || import.meta.env.DEV;
     setEnabled(shouldEnable);
     performanceMetrics.setEnabled(shouldEnable);
   }, []);

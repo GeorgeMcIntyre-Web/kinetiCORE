@@ -69,12 +69,17 @@ export const KeyboardShortcuts: React.FC = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts if typing in input field
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        // Allow Delete/Backspace in input fields
-        if (e.key !== 'Delete' && e.key !== 'Backspace') {
-          return;
-        }
+      // Global guard: ignore all shortcuts while typing in editable elements
+      const activeEl = (document.activeElement as HTMLElement | null);
+      if (
+        activeEl && (
+          activeEl.isContentEditable ||
+          activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.tagName === 'SELECT'
+        )
+      ) {
+        return;
       }
 
       // Find matching shortcut

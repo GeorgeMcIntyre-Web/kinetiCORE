@@ -7,6 +7,19 @@ import { useEditorStore } from '../store/editorStore';
 export const useKeyboardShortcuts = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Global guard: ignore all shortcuts while typing in editable elements
+      const activeEl = (document.activeElement as HTMLElement | null);
+      if (
+        activeEl && (
+          activeEl.isContentEditable ||
+          activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.tagName === 'SELECT'
+        )
+      ) {
+        return;
+      }
+
       const { undo, redo, duplicateNode, deleteNode, selectedNodeId } = useEditorStore.getState();
 
       // Ctrl/Cmd + Z: Undo
