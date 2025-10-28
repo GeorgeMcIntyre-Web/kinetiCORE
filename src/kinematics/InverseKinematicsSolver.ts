@@ -430,14 +430,14 @@ export class InverseKinematicsSolver {
       return false;
     }
 
-    // Transform to world space
-    const baseWorldMatrix = this.kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
-    const currentPosWorld = BABYLON.Vector3.TransformCoordinates(
-      currentPoseLocal.position,
-      baseWorldMatrix
-    );
-    const baseRot = BABYLON.Quaternion.FromRotationMatrix(baseWorldMatrix.getRotationMatrix());
-    const currentRotWorld = baseRot.multiply(currentPoseLocal.rotation);
+    // Get actual TCP world position from mesh (getNullTCPPose)
+    const nullTCPPose = this.fkSolver.getNullTCPPose(chainName);
+    if (!nullTCPPose) {
+      console.error('[IK rotateTCP] Could not get null TCP pose');
+      return false;
+    }
+    const currentPosWorld = nullTCPPose.position;
+    const currentRotWorld = nullTCPPose.rotation;
 
     // Compute new target rotation (apply delta rotation)
     const targetRotation = rotationDelta.multiply(currentRotWorld);
@@ -491,16 +491,15 @@ export class InverseKinematicsSolver {
       return false;
     }
 
-    // Transform to world space
-    const baseWorldMatrix = this.kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
-    const currentPoseWorld = BABYLON.Vector3.TransformCoordinates(
-      currentPoseLocal.position,
-      baseWorldMatrix
-    );
-    const baseRot = BABYLON.Quaternion.FromRotationMatrix(baseWorldMatrix.getRotationMatrix());
-    const currentRotWorld = baseRot.multiply(currentPoseLocal.rotation);
+    // Get actual TCP world position from mesh (getNullTCPPose)
+    const nullTCPPose = this.fkSolver.getNullTCPPose(chainName);
+    if (!nullTCPPose) {
+      console.error('[IK moveTCP] Could not get null TCP pose');
+      return false;
+    }
+    const currentPoseWorld = nullTCPPose.position;
 
-    console.log(`[IK moveTCP] Current TCP (from FK): ${currentPoseWorld.toString()}, delta: ${positionDelta.toString()}`);
+    console.log(`[IK moveTCP] Current TCP (from mesh): ${currentPoseWorld.toString()}, delta: ${positionDelta.toString()}`);
 
     // Compute new target position in world space
     const targetPosition = currentPoseWorld.add(positionDelta);
