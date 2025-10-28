@@ -179,6 +179,14 @@ export class InverseKinematicsSolver {
         orientationError.z * orientationWeight,
       ];
 
+      // DEBUG: Log error vector and Jacobian on first iteration
+      if (iteration === 0) {
+        console.log(`[IK Jacobian] Iter 0 errorVector: [${errorVector.map(v => v.toFixed(4)).join(', ')}]`);
+        console.log(`[IK Jacobian] Iter 0 Jacobian[0] (position): [${jacobian[0].map(v => v.toFixed(4)).join(', ')}]`);
+        console.log(`[IK Jacobian] Iter 0 Jacobian[1] (position): [${jacobian[1].map(v => v.toFixed(4)).join(', ')}]`);
+        console.log(`[IK Jacobian] Iter 0 Jacobian[2] (position): [${jacobian[2].map(v => v.toFixed(4)).join(', ')}]`);
+      }
+
       // Compute joint angle deltas using damped Jacobian transpose
       // Δθ = α * J^T * (J*J^T + λ²I)^-1 * e (simplified: α * J^T * e with damping)
       const deltaAngles: number[] = Array(jointAngles.length).fill(0);
@@ -199,7 +207,7 @@ export class InverseKinematicsSolver {
 
       // DEBUG: Log first iteration details
       if (iteration === 0) {
-        console.log(`[IK Jacobian] Iter 0 adaptiveStep=${adaptiveStep.toFixed(4)}, deltaAngles[0]=${deltaAngles[0].toFixed(4)}`);
+        console.log(`[IK Jacobian] Iter 0 adaptiveStep=${adaptiveStep.toFixed(4)}, deltaAngles: [${deltaAngles.map(v => v.toFixed(4)).join(', ')}]`);
       }
 
       // Update joint angles
