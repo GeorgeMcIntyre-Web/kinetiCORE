@@ -927,11 +927,21 @@ export function restoreWorldState(worldData: WorldData, isComprehensive: boolean
         null, // No parent initially
         nodeData.position
       );
-      
-      // Copy all properties except parentId (we'll fix relationships later)
-      Object.assign(restoredNode, nodeData);
+
+      // IMPORTANT: Do NOT overwrite the generated ID or child/parent linkage here.
+      // Overwriting the ID would desync the SceneTreeManager's internal nodes map keys
+      // from the node objects, causing getChildren() to drop nodes and "disappear" in the UI.
+      const { id: _savedId, parentId: _savedParentId, childIds: _savedChildIds, ...restProps } = nodeData as any;
+
+      // Copy remaining properties (visibility, expanded, metadata, refs, etc.)
+      Object.assign(restoredNode, restProps);
+
+      // Ensure a clean children list; relationships are re-established in the next pass
+      restoredNode.childIds = [];
+
+      // Keep a mapping from the SAVED id -> in-memory node object
       nodeMap.set(nodeData.id, restoredNode);
-      
+
       console.log(`🌳 Created tree node: ${restoredNode.name} (${restoredNode.type})`);
     }
     
