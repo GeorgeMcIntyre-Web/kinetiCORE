@@ -506,12 +506,7 @@ export class InverseKinematicsSolver {
         return false;
       }
 
-      const chain = this.kinematicsManager.getChain(chainName);
-      if (!chain) {
-        console.error('[IK moveTCP] Chain not found:', chainName);
-        return false;
-      }
-      const joints = this.kinematicsManager.getActuatedJoints(chain.id);
+      // chain and joints already declared above
       for (let i = 0; i < joints.length; i++) {
         this.fkSolver.updateJointPosition(joints[i].id, solution.jointAngles[i]);
       }
