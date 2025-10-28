@@ -104,7 +104,12 @@ export class InverseKinematicsSolver {
       // Compute position error (both in WORLD space)
       const positionError = target.position.subtract(currentPosWorld);
       const positionErrorMagnitude = positionError.length();
-      
+
+      // DEBUG: Log first 3 iterations to diagnose
+      if (iteration < 3) {
+        console.log(`[IK Jacobian] Iter ${iteration}: error=${positionErrorMagnitude.toFixed(4)}, currentPos=${currentPosWorld.toString()}, targetPos=${target.position.toString()}`);
+      }
+
       // Reduced logging: only log if error is large (potential divergence)
       if (iteration % 50 === 0 && positionErrorMagnitude > 1.0) {
         console.log(`[IK Jacobian] Iteration ${iteration}: error=${positionErrorMagnitude.toFixed(4)}`);
@@ -192,9 +197,19 @@ export class InverseKinematicsSolver {
       // This prevents overshoot when far from target
       const adaptiveStep = Math.min(1.0, 0.1 / Math.max(error, 0.01)) * stepSize;
 
+      // DEBUG: Log first iteration details
+      if (iteration === 0) {
+        console.log(`[IK Jacobian] Iter 0 adaptiveStep=${adaptiveStep.toFixed(4)}, deltaAngles[0]=${deltaAngles[0].toFixed(4)}`);
+      }
+
       // Update joint angles
       for (let i = 0; i < jointAngles.length; i++) {
         jointAngles[i] += adaptiveStep * deltaAngles[i];
+      }
+
+      // DEBUG: Log first iteration joint update
+      if (iteration === 0) {
+        console.log(`[IK Jacobian] Iter 0 updated jointAngles[0]=${jointAngles[0].toFixed(4)}`);
       }
     }
 
