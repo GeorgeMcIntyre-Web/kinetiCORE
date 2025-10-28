@@ -113,6 +113,8 @@ export class InverseKinematicsSolver {
 
       // === COORDINATE SPACE DEBUG (Iteration 0 only) ===
       if (iteration === 0) {
+        console.log(`[IK DEBUG] FK solve input jointAngles (radians): [${jointAngles.map(v => v.toFixed(4)).join(', ')}]`);
+        console.log(`[IK DEBUG] FK solve input jointAngles (degrees): [${jointAngles.map(v => (v * 180 / Math.PI).toFixed(1)).join(', ')}]°`);
         console.log(`[IK DEBUG] FK solve result (ROBOT-LOCAL): ${currentPoseLocal.position.toString()}`);
         console.log(`[IK DEBUG] Base world matrix translation: ${baseWorldMatrix.getTranslation().toString()}`);
         console.log(`[IK DEBUG] Base is identity: ${baseWorldMatrix.equals(BABYLON.Matrix.Identity())}`);
@@ -123,6 +125,14 @@ export class InverseKinematicsSolver {
         if (nullTCPPose) {
           const diff = currentPosWorld.subtract(nullTCPPose.position).length();
           console.log(`[IK DEBUG] ✓ FK→World vs Mesh diff: ${diff.toFixed(6)}m (should be ~0.000m)`);
+          console.log(`[IK DEBUG] Mesh position (WORLD): ${nullTCPPose.position.toString()}`);
+        }
+
+        // Check for suspicious angles that might be degrees stored as radians
+        const suspiciousAngles = jointAngles.filter(v => Math.abs(v) > Math.PI * 2);
+        if (suspiciousAngles.length > 0) {
+          console.error(`[IK DEBUG] ⚠️ UNIT MISMATCH: Joint angles > 2π radians detected! Possible degrees stored as radians!`);
+          console.error(`[IK DEBUG] Suspicious values (rad): [${suspiciousAngles.map(v => v.toFixed(4)).join(', ')}]`);
         }
       }
 
