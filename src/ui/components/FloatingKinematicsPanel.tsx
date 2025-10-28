@@ -238,37 +238,7 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     return robotChain ? { id: (robotChain as any).id, name: (robotChain as any).name } : null;
   }, [activeRobotId]);
 
-  // Bridge to Skeleton Gizmo (if available globally)
-  const applySkeletonConfig = useMemo(() => {
-    return (enabled: boolean) => {
-      if (!activeRobotId || !activeChain) return;
-      const mgr: any = (window as any).skeletonGizmoManager || (window as any).skeletonGizmo;
-      if (!mgr) return;
-
-      const payload = {
-        robotId: activeRobotId,
-        chainId: activeChain.id,
-        enabled,
-        style: skeletonStyle,
-        thicknessMm: skeletonThicknessMm,
-        animationSpeed: skeletonAnimationSpeed,
-        highlightActiveJoint: skeletonHighlightActiveJoint,
-        showLinkLengthLabels,
-        showOrientationLabels,
-      };
-
-      // Try common method names defensively
-      try { if (typeof mgr.updateConfig === 'function') mgr.updateConfig(payload); } catch {}
-      try { if (typeof mgr.setEnabled === 'function') mgr.setEnabled(activeRobotId, activeChain.id, enabled); } catch {}
-      try { if (typeof mgr.setStyle === 'function') mgr.setStyle(activeRobotId, activeChain.id, skeletonStyle); } catch {}
-      try { if (typeof mgr.setThicknessMm === 'function') mgr.setThicknessMm(activeRobotId, activeChain.id, skeletonThicknessMm); } catch {}
-      try { if (typeof mgr.setAnimationSpeed === 'function') mgr.setAnimationSpeed(activeRobotId, activeChain.id, skeletonAnimationSpeed); } catch {}
-      try { if (typeof mgr.setHighlightActiveJoint === 'function') mgr.setHighlightActiveJoint(activeRobotId, activeChain.id, skeletonHighlightActiveJoint); } catch {}
-      try { if (typeof mgr.setLabelsVisibility === 'function') mgr.setLabelsVisibility(activeRobotId, activeChain.id, { linkLength: showLinkLengthLabels, orientation: showOrientationLabels }); } catch {}
-      try { if (typeof mgr.refresh === 'function') mgr.refresh(activeRobotId, activeChain.id); } catch {}
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeRobotId, activeChain, skeletonStyle, skeletonThicknessMm, skeletonAnimationSpeed, skeletonHighlightActiveJoint, showLinkLengthLabels, showOrientationLabels]);
+  // Note: skeleton config is now handled via the skeleton link renderer
 
   // Ready-gated skeleton link rendering
   const ready = isVisible && !!activeRobotId && !!activeChain;

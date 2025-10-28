@@ -77,7 +77,7 @@ export class ForwardKinematicsSolver {
         if (parentBabylonNode && childBabylonNode) {
           // The joint frame is at parent's world transform + joint origin
           parentBabylonNode.computeWorldMatrix(true);
-          const parentWorldMatrix = parentBabylonNode.getWorldMatrix(true);
+          const parentWorldMatrix = parentBabylonNode.getWorldMatrix();
           
           // Joint origin in parent's local space
           const originLocal = new BABYLON.Vector3(
@@ -98,7 +98,10 @@ export class ForwardKinematicsSolver {
           
           // Apply joint rotation to the matrix
           const transform = this.calculateJointTransform(joint);
-          const rotationMatrix = BABYLON.Matrix.RotationQuaternion(transform.rotation);
+          const rotationMatrix = BABYLON.Matrix.Identity();
+          rotationMatrix.setTranslation(jointWorldMatrix.getTranslation());
+          const rotationQuat = transform.rotation;
+          rotationQuat.toRotationMatrix(rotationMatrix);
           
           const rotatedMatrix = BABYLON.Matrix.Identity();
           rotationMatrix.multiplyToRef(jointWorldMatrix, rotatedMatrix);
@@ -110,7 +113,7 @@ export class ForwardKinematicsSolver {
               // Cache the joint frame world matrix
               this.kinematicsManager.setJointWorldMatrix(chain.id, jointId, rotatedMatrix.clone());
               // Emit FK update event
-              (this.kinematicsManager as any).emitFkUpdated?.(chain.id);
+              this.kinematicsManager.emitFkUpdated(chain.id);
               break;
             }
           }

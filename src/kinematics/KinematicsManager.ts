@@ -423,7 +423,8 @@ export class KinematicsManager implements IKinematicsManager {
    */
   getActiveChainHandle(robotId: string): { chain: KinematicChain; key: string } | undefined {
     for (const [key, chain] of this.chains) {
-      if (chain.robotId === robotId) {
+      // Check if any joint in the chain belongs to this robot
+      if (chain.joints.some(j => j.id.startsWith(robotId))) {
         return { chain, key };
       }
     }
@@ -441,9 +442,9 @@ export class KinematicsManager implements IKinematicsManager {
   }
 
   /**
-   * Emit FK update event
+   * Emit FK update event (called after joint position updates)
    */
-  private emitFkUpdated(chainId: string): void {
+  emitFkUpdated(chainId: string): void {
     this.fkUpdateListeners.forEach(cb => cb(chainId));
   }
 
@@ -470,12 +471,12 @@ export class KinematicsManager implements IKinematicsManager {
     if (childNode.babylonMeshId) {
       babylonNode = scene.getMeshByUniqueId(parseInt(childNode.babylonMeshId)) as BABYLON.TransformNode;
     }
-    if (!babylonNode && childNode.babylonTransformNodeId) {
-      babylonNode = scene.transformNodes.find(tn => tn.uniqueId === parseInt(childNode.babylonTransformNodeId!)) || null;
-    }
-    if (!babylonNode && childNode.type === 'collection') {
-      babylonNode = scene.transformNodes.find(tn => tn.name === childNode.name) || null;
-    }
+          if (!babylonNode && childNode.babylonTransformNodeId) {
+            babylonNode = scene.transformNodes.find((tn: any) => tn.uniqueId === parseInt(childNode.babylonTransformNodeId!)) || null;
+          }
+          if (!babylonNode && childNode.type === 'collection') {
+            babylonNode = scene.transformNodes.find((tn: any) => tn.name === childNode.name) || null;
+          }
     if (!babylonNode) return undefined;
 
     // Get world transformation
@@ -531,10 +532,10 @@ export class KinematicsManager implements IKinematicsManager {
             babylonNode = scene.getMeshByUniqueId(parseInt(childNode.babylonMeshId)) as BABYLON.TransformNode;
           }
           if (!babylonNode && childNode.babylonTransformNodeId) {
-            babylonNode = scene.transformNodes.find(tn => tn.uniqueId === parseInt(childNode.babylonTransformNodeId!)) || null;
+            babylonNode = scene.transformNodes.find((tn: any) => tn.uniqueId === parseInt(childNode.babylonTransformNodeId!)) || null;
           }
           if (!babylonNode && childNode.type === 'collection') {
-            babylonNode = scene.transformNodes.find(tn => tn.name === childNode.name) || null;
+            babylonNode = scene.transformNodes.find((tn: any) => tn.name === childNode.name) || null;
           }
           if (babylonNode) {
             babylonNode.computeWorldMatrix(true);

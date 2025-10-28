@@ -4,7 +4,6 @@
 
 import * as BABYLON from '@babylonjs/core';
 import { KinematicsManager } from './KinematicsManager';
-import { ForwardKinematicsSolver } from './ForwardKinematicsSolver';
 
 export interface SkeletonLinkConfig {
   robotId: string;
@@ -108,55 +107,12 @@ export class SkeletonLinkRenderer {
       const joint2 = chain.joints.find(j => j.id === pair.bId);
       const linkName = joint1 && joint2 ? `${joint1.name}_to_${joint2.name}` : `${pair.aId}_to_${pair.bId}`;
       
-      this.createLink(pair.a, pair.b, config, meshes, this.scene, linkName);
+      if (this.scene) {
+        this.createLink(pair.a, pair.b, config, meshes, this.scene, linkName);
+      }
     });
 
     this.linkMeshes.set(config.robotId, meshes);
-  }
-
-  private getJointWorldPosition(jointId: string): BABYLON.Vector3 | null {
-    const km = KinematicsManager.getInstance();
-    const fk = ForwardKinematicsSolver.getInstance();
-    const joint = km.getJoint(jointId);
-    if (!joint) return null;
-
-    const sceneManager = (window as any).sceneManager;
-    const scene = sceneManager?.getScene?.();
-    if (!scene) return null;
-
-    // Get the parent node
-    const tree = (window as any).sceneTreeManager;
-    const parentNode = tree?.getNode?.(joint.parentNodeId);
-    if (!parentNode) return null;
-
-    // Find the parent Babylon node
-    let parentBabylonNode: BABYLON.TransformNode | null = null;
-    if (parentNode.babylonMeshId) {
-      parentBabylonNode = scene.getMeshByUniqueId(parseInt(parentNode.babylonMeshId)) as BABYLON.TransformNode;
-    }
-    if (!parentBabylonNode && parentNode.babylonTransformNodeId) {
-      parentBabylonNode = scene.transformNodes.find(tn => tn.uniqueId === parseInt(parentNode.babylonTransformNodeId!)) || null;
-    }
-    if (!parentBabylonNode && parentNode.type === 'collection') {
-      parentBabylonNode = scene.transformNodes.find(tn => tn.name === parentNode.name) || null;
-    }
-    if (!parentBabylonNode) return null;
-
-    // Compute world matrix
-    parentBabylonNode.computeWorldMatrix(true);
-    const parentWorldMatrix = parentBabylonNode.getWorldMatrix();
-
-    // Joint origin (mm -> meters conversion)
-    const originLocal = new BABYLON.Vector3(
-      joint.origin.x / 1000, // mm to meters
-      joint.origin.y / 1000,
-      joint.origin.z / 1000
-    );
-
-    // Transform to world space
-    const originWorld = BABYLON.Vector3.TransformCoordinates(originLocal, parentWorldMatrix);
-    
-    return originWorld;
   }
 
   private createLink(
@@ -185,8 +141,10 @@ export class SkeletonLinkRenderer {
       );
       mesh.position = midpoint;
       // Box orientation (align with direction)
-      const rotation = BABYLON.Vector3.GetAngleBetweenVectors(BABYLON.Vector3.Up(), direction);
-      mesh.rotationQuaternion = BABYLON.Quaternion.RotationAxis(BABYLON.Vector3.Cross(BABYLON.Vector3.Up(), direction).normalize(), rotation);
+      const up = BABYLON.Vector3.Up();
+      const cross = BABYLON.Vector3.Cross(up, direction).normalize();
+      const angle = BABYLON.Vector3.Dot(up, direction);
+      mesh.rotationQuaternion = BABYLON.Quaternion.RotationAxis(cross, Math.acos(angle));
     } else if (config.style === 'tube') {
       // Hollow tube (simple path-based)
       mesh = BABYLON.MeshBuilder.CreateTube(
@@ -274,7 +232,6 @@ export class SkeletonLinkRenderer {
       material.emissiveColor = new BABYLON.Color3(0, 1, 1); // Bright cyan
     }
     
-    material.opacity = config.opacity ?? 0.9;
     material.disableLighting = true;
     material.alpha = config.opacity ?? 0.9;
     mesh.material = material;
