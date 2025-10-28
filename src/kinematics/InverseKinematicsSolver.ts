@@ -85,6 +85,16 @@ export class InverseKinematicsSolver {
     let error = Infinity;
 
     for (iteration = 0; iteration < maxIterations; iteration++) {
+      // === COORDINATE SPACE DEBUG (Iteration 0 only) ===
+      if (iteration === 0) {
+        // Get actual TCP from mesh (WORLD space)
+        const nullTCPPose = this.fkSolver.getNullTCPPose(chainName);
+        if (nullTCPPose) {
+          console.log(`[IK DEBUG] === Iteration 0 Coordinate Space Analysis ===`);
+          console.log(`[IK DEBUG] nullTCPPose from mesh (WORLD): ${nullTCPPose.position.toString()}`);
+        }
+      }
+
       // Compute current end-effector pose in robot-local space
       const currentPoseLocal = this.fkSolver.solve(chainName, jointAngles);
       if (!currentPoseLocal) {
@@ -101,13 +111,34 @@ export class InverseKinematicsSolver {
       const baseRot = BABYLON.Quaternion.FromRotationMatrix(baseWorldMatrix.getRotationMatrix());
       const currentRotWorld = baseRot.multiply(currentPoseLocal.rotation);
 
+      // === COORDINATE SPACE DEBUG (Iteration 0 only) ===
+      if (iteration === 0) {
+        console.log(`[IK DEBUG] FK solve result (ROBOT-LOCAL): ${currentPoseLocal.position.toString()}`);
+        console.log(`[IK DEBUG] Base world matrix translation: ${baseWorldMatrix.getTranslation().toString()}`);
+        console.log(`[IK DEBUG] Base is identity: ${baseWorldMatrix.equals(BABYLON.Matrix.Identity())}`);
+        console.log(`[IK DEBUG] FK transformed to WORLD: ${currentPosWorld.toString()}`);
+
+        // Verify: FK→World should match mesh position
+        const nullTCPPose = this.fkSolver.getNullTCPPose(chainName);
+        if (nullTCPPose) {
+          const diff = currentPosWorld.subtract(nullTCPPose.position).length();
+          console.log(`[IK DEBUG] ✓ FK→World vs Mesh diff: ${diff.toFixed(6)}m (should be ~0.000m)`);
+        }
+      }
+
       // Compute position error (both in WORLD space)
       const positionError = target.position.subtract(currentPosWorld);
       const positionErrorMagnitude = positionError.length();
 
+      // === COORDINATE SPACE DEBUG (Iteration 0 only) ===
+      if (iteration === 0) {
+        console.log(`[IK DEBUG] Target position (WORLD): ${target.position.toString()}`);
+        console.log(`[IK DEBUG] Position error (WORLD): ${positionError.toString()}, magnitude=${positionErrorMagnitude.toFixed(4)}m`);
+      }
+
       // DEBUG: Log first 3 iterations and every 100 iterations
       if (iteration < 3 || iteration % 100 === 0) {
-        console.log(`[IK Jacobian] Iter ${iteration}: error=${positionErrorMagnitude.toFixed(4)}, currentPos=${currentPosWorld.toString()}, targetPos=${target.position.toString()}`);
+        console.log(`[IK Jacobian] Iter ${iteration}: error=${positionErrorMagnitude.toFixed(4)}m, currentPos=${currentPosWorld.toString()}, targetPos=${target.position.toString()}`);
       }
 
       // Compute orientation error (if target rotation specified)
@@ -176,14 +207,21 @@ export class InverseKinematicsSolver {
 
       // DEBUG: Log error vector and full Jacobian on first iteration
       if (iteration === 0) {
-        console.log(`[IK Jacobian] Iter 0 errorVector: [${errorVector.map(v => v.toFixed(4)).join(', ')}]`);
-        console.log(`[IK Jacobian] Iter 0 Jacobian (6×${jointAngles.length}):`);
-        console.log(`  Row 0 (dx): [${jacobian[0].map(v => v.toFixed(4)).join(', ')}]`);
-        console.log(`  Row 1 (dy): [${jacobian[1].map(v => v.toFixed(4)).join(', ')}]`);
-        console.log(`  Row 2 (dz): [${jacobian[2].map(v => v.toFixed(4)).join(', ')}]`);
-        console.log(`  Row 3 (ωx): [${jacobian[3].map(v => v.toFixed(4)).join(', ')}]`);
-        console.log(`  Row 4 (ωy): [${jacobian[4].map(v => v.toFixed(4)).join(', ')}]`);
-        console.log(`  Row 5 (ωz): [${jacobian[5].map(v => v.toFixed(4)).join(', ')}]`);
+        console.log(`[IK DEBUG] Error vector (6D): [${errorVector.map(v => v.toFixed(4)).join(', ')}]`);
+        console.log(`[IK DEBUG] Jacobian (6×${jointAngles.length}) - WORLD SPACE:`);
+        console.log(`[IK DEBUG]   Row 0 (dx/dq): [${jacobian[0].map(v => v.toFixed(4)).join(', ')}]`);
+        console.log(`[IK DEBUG]   Row 1 (dy/dq): [${jacobian[1].map(v => v.toFixed(4)).join(', ')}]`);
+        console.log(`[IK DEBUG]   Row 2 (dz/dq): [${jacobian[2].map(v => v.toFixed(4)).join(', ')}]`);
+        console.log(`[IK DEBUG]   Row 3 (ωx/dq): [${jacobian[3].map(v => v.toFixed(4)).join(', ')}]`);
+        console.log(`[IK DEBUG]   Row 4 (ωy/dq): [${jacobian[4].map(v => v.toFixed(4)).join(', ')}]`);
+        console.log(`[IK DEBUG]   Row 5 (ωz/dq): [${jacobian[5].map(v => v.toFixed(4)).join(', ')}]`);
+
+        // Verify Jacobian makes physical sense for Joint 0 (base rotation)
+        if (jointAngles.length > 0) {
+          console.log(`[IK DEBUG] ✓ Joint 0 Jacobian check (should show large XY motion for base rotation):`);
+          console.log(`[IK DEBUG]   Linear:  [${jacobian[0][0].toFixed(3)}, ${jacobian[1][0].toFixed(3)}, ${jacobian[2][0].toFixed(3)}]`);
+          console.log(`[IK DEBUG]   Angular: [${jacobian[3][0].toFixed(3)}, ${jacobian[4][0].toFixed(3)}, ${jacobian[5][0].toFixed(3)}]`);
+        }
       }
 
       // Compute joint angle deltas using damped Jacobian transpose
@@ -217,16 +255,32 @@ export class InverseKinematicsSolver {
 
       // DEBUG: Log first iteration joint update
       if (iteration === 0) {
-        console.log(`[IK Jacobian] Iter 0 jointAngles AFTER: [${jointAngles.map(v => (v * 180 / Math.PI).toFixed(1)).join(', ')}]°`);
+        console.log(`[IK DEBUG] Joint angles AFTER update: [${jointAngles.map(v => (v * 180 / Math.PI).toFixed(1)).join(', ')}]°`);
+
+        // Check if any joints are approaching limits
+        for (let i = 0; i < jointAngles.length; i++) {
+          const limitMargin = Math.min(
+            jointAngles[i] - joints[i].limits.lower,
+            joints[i].limits.upper - jointAngles[i]
+          );
+          if (limitMargin < 0.1) { // Within 5.7 degrees of limit
+            console.warn(`[IK DEBUG] ⚠ Joint ${i} near limit: ${(jointAngles[i] * 180 / Math.PI).toFixed(1)}° (limits: [${(joints[i].limits.lower * 180 / Math.PI).toFixed(1)}°, ${(joints[i].limits.upper * 180 / Math.PI).toFixed(1)}°])`);
+          }
+        }
+        console.log(`[IK DEBUG] === End Iteration 0 Analysis ===\n`);
       }
     }
 
     // Clamp final joint angles to limits
     for (let i = 0; i < jointAngles.length; i++) {
+      const unclamped = jointAngles[i];
       jointAngles[i] = Math.max(
         joints[i].limits.lower,
         Math.min(joints[i].limits.upper, jointAngles[i])
       );
+      if (Math.abs(unclamped - jointAngles[i]) > 0.001) {
+        console.warn(`[IK DEBUG] ⚠ Joint ${i} clamped: ${(unclamped * 180 / Math.PI).toFixed(1)}° → ${(jointAngles[i] * 180 / Math.PI).toFixed(1)}°`);
+      }
     }
 
     return {
