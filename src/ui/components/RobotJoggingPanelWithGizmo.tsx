@@ -349,6 +349,11 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     const baseWorldRotation = BABYLON.Quaternion.FromRotationMatrix(baseWorldMatrix.getRotationMatrix());
     const tcpWorldRotation = baseWorldRotation.multiply(currentPoseLocal.rotation);
 
+    // DEBUG: Log TCP world rotation for debugging
+    const tcpEuler = tcpWorldRotation.toEulerAngles();
+    console.log(`[RobotJoggingPanel] TCP world rotation: Rx=${(tcpEuler.x*180/Math.PI).toFixed(1)}° Ry=${(tcpEuler.y*180/Math.PI).toFixed(1)}° Rz=${(tcpEuler.z*180/Math.PI).toFixed(1)}°`);
+    console.log(`[RobotJoggingPanel] TCP world rotation quaternion: (${tcpWorldRotation.x.toFixed(3)}, ${tcpWorldRotation.y.toFixed(3)}, ${tcpWorldRotation.z.toFixed(3)}, ${tcpWorldRotation.w.toFixed(3)})`);
+
     // Create delta in TCP LOCAL frame (meters)
     const stepMeters = (jogStepTcpLinear * 0.001) * direction;
     const localDeltaBabylon = new BABYLON.Vector3(0, 0, 0);
@@ -362,6 +367,9 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
       localDeltaBabylon.z = stepMeters; // along TCP local Z
     }
 
+    // DEBUG: Log local delta before transformation
+    console.log(`[RobotJoggingPanel] Local delta (TCP frame): (${localDeltaBabylon.x.toFixed(3)}, ${localDeltaBabylon.y.toFixed(3)}, ${localDeltaBabylon.z.toFixed(3)})`);
+
     // Rotate TCP-local delta by WORLD TCP rotation to get WORLD-space delta
     const rotationMatrix = new BABYLON.Matrix();
     tcpWorldRotation.toRotationMatrix(rotationMatrix);
@@ -369,6 +377,9 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
       localDeltaBabylon,
       rotationMatrix
     );
+
+    // DEBUG: Log world delta after transformation
+    console.log(`[RobotJoggingPanel] World delta: (${positionDelta.x.toFixed(3)}, ${positionDelta.y.toFixed(3)}, ${positionDelta.z.toFixed(3)})`);
 
     let success = false;
 
