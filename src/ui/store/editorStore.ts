@@ -286,7 +286,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   panelLayout: null,
 
   // Visualization overlays defaults
-  skeletonEnabled: false,
+  skeletonEnabled: true, // Default ON for testing visibility (user can toggle off)
   skeletonStyle: 'tube',
   skeletonThicknessMm: 6,
   skeletonAnimationSpeed: 1.0,
