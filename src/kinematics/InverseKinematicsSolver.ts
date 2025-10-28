@@ -498,6 +498,7 @@ export class InverseKinematicsSolver {
       return false;
     }
     const currentPoseWorld = nullTCPPose.position;
+    const currentRotWorld = nullTCPPose.rotation;
 
     console.log(`[IK moveTCP] Current TCP (from mesh): ${currentPoseWorld.toString()}, delta: ${positionDelta.toString()}`);
 
