@@ -52,6 +52,17 @@ interface EditorState {
   commandManager: CommandManager;
   panelLayout: any | null; // Dockview panel layout state
   
+  // Visualization overlays (Motion Panel)
+  skeletonEnabled: boolean;
+  skeletonStyle: 'cylinder' | 'tube' | 'line';
+  skeletonThicknessMm: number; // visual thickness in mm
+  skeletonAnimationSpeed: number; // 0.1 - 3.0 UI range
+  skeletonHighlightActiveJoint: boolean;
+  showCoordinateOverlay: boolean; // Corner XYZ compass
+  showJointAxesOverlay: boolean; // Per-joint axis debug frames
+  showLinkLengthLabels: boolean;
+  showOrientationLabels: boolean;
+  
   // Project Manager Integration
   projectManager: ProjectManager;
   worldLoader: ProjectWorldLoader;
@@ -179,6 +190,17 @@ interface EditorState {
   savePanelLayout: (layout: any) => void;
   loadPanelLayout: () => any | null;
 
+  // Visualization overlay setters
+  setSkeletonEnabled: (enabled: boolean) => void;
+  setSkeletonStyle: (style: 'cylinder' | 'tube' | 'line') => void;
+  setSkeletonThicknessMm: (mm: number) => void;
+  setSkeletonAnimationSpeed: (speed: number) => void;
+  setSkeletonHighlightActiveJoint: (enabled: boolean) => void;
+  setShowCoordinateOverlay: (visible: boolean) => void;
+  setShowJointAxesOverlay: (visible: boolean) => void;
+  setShowLinkLengthLabels: (visible: boolean) => void;
+  setShowOrientationLabels: (visible: boolean) => void;
+
   // Transform settings actions
   setPositionIncrement: (value: number) => void;
   setRotationIncrement: (value: number) => void;
@@ -248,6 +270,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   coordinateFrameWidget: null,
   commandManager: new CommandManager(),
   panelLayout: null,
+
+  // Visualization overlays defaults
+  skeletonEnabled: false,
+  skeletonStyle: 'tube',
+  skeletonThicknessMm: 6,
+  skeletonAnimationSpeed: 1.0,
+  skeletonHighlightActiveJoint: true,
+  showCoordinateOverlay: true, // preserve existing behavior
+  showJointAxesOverlay: false,
+  showLinkLengthLabels: false,
+  showOrientationLabels: false,
 
   // Project Manager Integration
   projectManager: ProjectManager.getInstance(),
@@ -2391,6 +2424,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
     return null;
   },
+
+  // Visualization overlay setters
+  setSkeletonEnabled: (enabled) => set({ skeletonEnabled: enabled }),
+  setSkeletonStyle: (style) => set({ skeletonStyle: style }),
+  setSkeletonThicknessMm: (mm) => set({ skeletonThicknessMm: Math.max(1, Math.min(100, Math.round(mm))) }),
+  setSkeletonAnimationSpeed: (speed) => set({ skeletonAnimationSpeed: Math.max(0.1, Math.min(3.0, speed)) }),
+  setSkeletonHighlightActiveJoint: (enabled) => set({ skeletonHighlightActiveJoint: enabled }),
+  setShowCoordinateOverlay: (visible) => set({ showCoordinateOverlay: visible }),
+  setShowJointAxesOverlay: (visible) => set({ showJointAxesOverlay: visible }),
+  setShowLinkLengthLabels: (visible) => set({ showLinkLengthLabels: visible }),
+  setShowOrientationLabels: (visible) => set({ showOrientationLabels: visible }),
 
   // Transform settings setters
   setPositionIncrement: (value: number) => set({ positionIncrement: value }),
