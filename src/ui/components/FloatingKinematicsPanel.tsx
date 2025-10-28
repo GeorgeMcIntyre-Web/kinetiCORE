@@ -269,13 +269,14 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
         return;
       }
 
-      renderer.renderSkeleton({
+      renderer.updateChain({
         robotId: activeRobotId,
         chainId: activeChain.id,
         enabled: skeletonEnabled,
         style: skeletonStyle,
         thicknessMm: skeletonThicknessMm,
         opacity: 0.9,
+        showJointSpheres: true,
       });
     };
     

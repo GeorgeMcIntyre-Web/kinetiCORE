@@ -419,6 +419,36 @@ export class KinematicsManager implements IKinematicsManager {
   }
 
   /**
+   * Joint frame info
+   */
+  getOrderedJointFrames(chainId: string): Array<{ id: string; parentId: string; world: BABYLON.Matrix; origin: BABYLON.Vector3; zAxis: BABYLON.Vector3 }> {
+    const chain = this.getChainById(chainId);
+    if (!chain) return [];
+
+    const result: Array<{ id: string; parentId: string; world: BABYLON.Matrix; origin: BABYLON.Vector3; zAxis: BABYLON.Vector3 }> = [];
+    const cache = this._lastJointWorld.get(chainId);
+
+    for (const joint of chain.joints) {
+      const cachedMatrix = cache?.get(joint.id);
+      if (!cachedMatrix) continue;
+
+      const worldMatrix = cachedMatrix;
+      const origin = worldMatrix.getTranslation();
+      const zAxis = BABYLON.Vector3.TransformCoordinates(BABYLON.Vector3.Up(), worldMatrix).subtract(origin).normalize();
+
+      result.push({
+        id: joint.id,
+        parentId: joint.parentNodeId,
+        world: worldMatrix.clone(),
+        origin,
+        zAxis,
+      });
+    }
+
+    return result;
+  }
+
+  /**
    * Get active chain handle for a robot
    */
   getActiveChainHandle(robotId: string): { chain: KinematicChain; key: string } | undefined {
@@ -570,6 +600,69 @@ export class KinematicsManager implements IKinematicsManager {
       });
     }
     return pairs;
+  }
+
+
+  /**
+   * Get terminal frame (TCP or last link tip)
+   */
+  getTerminalFrame(chainId: string): { origin: BABYLON.Vector3; world: BABYLON.Matrix } | null {
+    const chain = this.getChainById(chainId);
+    if (!chain || chain.joints.length === 0) return null;
+
+    // Check for TCP frames first
+    if (chain.tcpFrames && chain.tcpFrames.length > 0) {
+      // TODO: Get TCP world transform from FK solver
+      // For now, fall through to last link
+    }
+
+    // Use the last joint's child link world transform
+    const lastJoint = chain.joints[chain.joints.length - 1];
+    const childLinkWorld = this.getJointChildLinkWorld(chainId, lastJoint.id);
+    
+    if (childLinkWorld) {
+      const origin = childLinkWorld.getTranslation();
+      return { origin, world: childLinkWorld };
+    }
+
+    return null;
+  }
+
+  /**
+   * Get child link world matrix for a joint
+   */
+  getJointChildLinkWorld(chainId: string, jointId: string): BABYLON.Matrix | null {
+    const chain = this.getChainById(chainId);
+    if (!chain) return null;
+
+    const joint = chain.joints.find(j => j.id === jointId);
+    if (!joint) return null;
+
+    const sceneManager = (window as any).sceneManager;
+    const scene = sceneManager?.getScene?.();
+    const tree = (window as any).sceneTreeManager;
+    
+    if (!scene || !tree) return null;
+
+    const childNode = tree.getNode(joint.childNodeId);
+    if (!childNode) return null;
+
+    // Find the child Babylon node
+    let babylonNode: BABYLON.TransformNode | null = null;
+    if (childNode.babylonMeshId) {
+      babylonNode = scene.getMeshByUniqueId(parseInt(childNode.babylonMeshId)) as BABYLON.TransformNode;
+    }
+    if (!babylonNode && childNode.babylonTransformNodeId) {
+      babylonNode = scene.transformNodes.find((tn: any) => tn.uniqueId === parseInt(childNode.babylonTransformNodeId!)) || null;
+    }
+    if (!babylonNode && childNode.type === 'collection') {
+      babylonNode = scene.transformNodes.find((tn: any) => tn.name === childNode.name) || null;
+    }
+    
+    if (!babylonNode) return null;
+
+    babylonNode.computeWorldMatrix(true);
+    return babylonNode.getWorldMatrix().clone();
   }
 
   /**

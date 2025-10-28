@@ -1,6 +1,6 @@
 // SkeletonLinkRenderer - Visualizes kinematic chains as links between joints
 // Owner: Edwin
-// Implements actual link rendering (cylinders/tubes/lines) between joint positions
+// Implements persistent bone links with in-place updates
 
 import * as BABYLON from '@babylonjs/core';
 import { KinematicsManager } from './KinematicsManager';
@@ -15,13 +15,28 @@ export interface SkeletonLinkConfig {
   showJointSpheres?: boolean;
 }
 
+interface LinkNode {
+  parent: BABYLON.TransformNode;
+  mesh: BABYLON.Mesh;
+  jointSphereA?: BABYLON.Mesh;
+  jointSphereB?: BABYLON.Mesh;
+}
+
+interface ChainRenderState {
+  parentContainer: BABYLON.TransformNode;
+  links: Map<string, LinkNode>;
+  material: BABYLON.StandardMaterial;
+  boneMaterial?: BABYLON.PBRMaterial;
+}
+
 /**
  * Renders skeleton links (visual lines connecting joints) for a kinematic chain
  */
 export class SkeletonLinkRenderer {
   private static instance: SkeletonLinkRenderer | null = null;
-  private linkMeshes: Map<string, BABYLON.Mesh[]> = new Map();
+  private chainsByRobot: Map<string, Map<string, ChainRenderState>> = new Map();
   private scene: BABYLON.Scene | null = null;
+  private pendingFrame: number = 0;
 
   private constructor() {}
 
@@ -38,225 +53,298 @@ export class SkeletonLinkRenderer {
   }
 
   /**
-   * Create or update skeleton links for a kinematic chain
+   * Update or create skeleton links for a kinematic chain
    */
-  renderSkeleton(config: SkeletonLinkConfig): void {
-    if (!this.scene) {
-      console.warn('[SkeletonLinkRenderer] Scene not initialized');
-      return;
-    }
+  updateChain(config: SkeletonLinkConfig): void {
+    if (!this.scene || !config.enabled) return;
 
-    if (!config.enabled) {
-      this.removeSkeleton(config.robotId);
-      return;
-    }
-
-    console.log('[SkeletonLinkRenderer] Looking for chain:', config.chainId);
     const km = KinematicsManager.getInstance();
-    
-    // List all available chains for debugging
-    const chainIds = km.debugListChains();
-    console.log('[SkeletonLinkRenderer] Available chains:', chainIds);
-    
-    // Try to get chain by ID (chain is stored by its ID in the chains Map)
     const chain = km.getChainById(config.chainId);
     
-    if (!chain) {
-      console.warn('[SkeletonLinkRenderer] Chain not found', { 
-        chainId: config.chainId,
-        available: chainIds
-      });
-      return;
-    }
-    
-    if (!chain.joints || chain.joints.length === 0) {
-      console.warn('[SkeletonLinkRenderer] Chain has no joints', { 
-        chainId: config.chainId,
-        jointCount: chain.joints?.length
-      });
-      return;
+    if (!chain || chain.joints.length === 0) return;
+
+    // Get or create chain render state
+    let chainMap = this.chainsByRobot.get(config.robotId);
+    if (!chainMap) {
+      chainMap = new Map();
+      this.chainsByRobot.set(config.robotId, chainMap);
     }
 
-    // Get adjacent joint world poses from KinematicsManager
-    const pairs = km.getAdjacentJointWorldPoses(config.chainId);
-    
-    if (pairs.length === 0) {
-      console.warn('[SkeletonLinkRenderer] No adjacent joint poses found', { chainId: config.chainId });
-      return;
+    let state = chainMap.get(config.chainId);
+    if (!state) {
+      // First render - create container and materials
+      state = this.createChainState(config);
+      chainMap.set(config.chainId, state);
     }
 
-    console.log(`[SkeletonLinkRenderer] Rendering ${pairs.length} links for chain ${config.chainId}`);
-
-    // Remove existing links
-    this.removeSkeleton(config.robotId);
-
-    const meshes: BABYLON.Mesh[] = [];
-
-    // Render links between joints using world poses
-    pairs.forEach((pair, i) => {
-      const distance = BABYLON.Vector3.Distance(pair.a, pair.b);
-      
-      console.log(`[SkeletonLinkRenderer] Link ${i} (${pair.aId}->${pair.bId}) distance: ${distance.toFixed(4)}m`);
-      
-      if (distance < 0.001) {
-        console.warn(`[SkeletonLinkRenderer] Skipping tiny link ${i}: distance=${distance.toFixed(4)}m`);
-        return;
-      }
-      
-      const joint1 = chain.joints.find(j => j.id === pair.aId);
-      const joint2 = chain.joints.find(j => j.id === pair.bId);
-      const linkName = joint1 && joint2 ? `${joint1.name}_to_${joint2.name}` : `${pair.aId}_to_${pair.bId}`;
-      
-      if (this.scene) {
-        this.createLink(pair.a, pair.b, config, meshes, this.scene, linkName);
-      }
-    });
-
-    this.linkMeshes.set(config.robotId, meshes);
+    // Update all link transforms
+    this.updateChainLinks(config, state, km);
   }
 
-  private createLink(
-    start: BABYLON.Vector3,
-    end: BABYLON.Vector3,
-    config: SkeletonLinkConfig,
-    meshes: BABYLON.Mesh[],
-    scene: BABYLON.Scene,
-    name: string
-  ): void {
-    const distance = BABYLON.Vector3.Distance(start, end);
-    if (distance < 0.001) return; // Skip tiny links
+  /**
+   * Create initial chain render state
+   */
+  private createChainState(config: SkeletonLinkConfig): ChainRenderState {
+    const container = new BABYLON.TransformNode(`skeleton_${config.robotId}_${config.chainId}`, this.scene);
+    
+    // Material for non-bone styles
+    const standardMaterial = new BABYLON.StandardMaterial(`skeleton_mat_${config.chainId}`, this.scene);
+    standardMaterial.emissiveColor = new BABYLON.Color3(0, 1, 1);
+    standardMaterial.disableLighting = true;
+    standardMaterial.alpha = config.opacity ?? 0.9;
 
-    const direction = end.subtract(start).normalize();
-    const midpoint = BABYLON.Vector3.Center(start, end);
-    const thickness = config.thicknessMm / 1000; // Convert mm to meters
+    // PBR material for bone style
+    let boneMaterial: BABYLON.PBRMaterial | undefined;
+    if (config.style === 'bone') {
+      boneMaterial = new BABYLON.PBRMaterial(`bone_mat_${config.chainId}`, this.scene);
+      boneMaterial.baseColor = new BABYLON.Color3(0.85, 0.85, 0.9);
+      boneMaterial.metallic = 0.2;
+      boneMaterial.roughness = 0.3;
+      boneMaterial.emissiveColor = new BABYLON.Color3(0.3, 0.3, 0.4);
+      boneMaterial.alpha = config.opacity ?? 0.9;
+    }
+
+    return {
+      parentContainer: container,
+      links: new Map(),
+      material: standardMaterial,
+      boneMaterial,
+    };
+  }
+
+  /**
+   * Update all link transforms in-place
+   */
+  private updateChainLinks(config: SkeletonLinkConfig, state: ChainRenderState, km: KinematicsManager): void {
+    const chain = km.getChainById(config.chainId);
+    if (!chain) return;
+
+    const frames = km.getOrderedJointFrames(config.chainId);
+    const terminalFrame = km.getTerminalFrame(config.chainId);
+
+    if (frames.length === 0) return;
+
+    // Update or create links between joints
+    for (let i = 0; i < frames.length; i++) {
+      const startFrame = frames[i];
+      let endFrame: { origin: BABYLON.Vector3 } | null = null;
+
+      if (i < frames.length - 1) {
+        endFrame = { origin: frames[i + 1].origin };
+      } else if (terminalFrame) {
+        endFrame = terminalFrame;
+      }
+
+      if (!endFrame) continue; // Skip last link if no terminal frame
+
+      const linkKey = `link_${i}`;
+      let linkNode = state.links.get(linkKey);
+
+      if (!linkNode) {
+        // Create new link node
+        linkNode = this.createLinkNode(startFrame.origin, endFrame.origin, config, state, linkKey);
+        state.links.set(linkKey, linkNode);
+      } else {
+        // Update existing link transforms
+        this.updateLinkTransform(linkNode, startFrame.origin, endFrame.origin, state);
+      }
+
+      // Update joint spheres if enabled
+      if (config.showJointSpheres) {
+        this.updateJointSpheres(linkNode, startFrame.origin, endFrame.origin, state);
+      }
+    }
+
+    console.log(`[SkeletonLinkRenderer] Updated chain ${config.chainId} with ${state.links.size} bones`);
+  }
+
+  /**
+   * Create a new link node
+   */
+  private createLinkNode(start: BABYLON.Vector3, end: BABYLON.Vector3, config: SkeletonLinkConfig, state: ChainRenderState, key: string): LinkNode {
+    const distance = BABYLON.Vector3.Distance(start, end);
+    if (distance < 0.001) {
+      // Return placeholder for tiny links
+      const parent = new BABYLON.TransformNode(`link_${key}`, this.scene);
+      parent.isVisible = false;
+      parent.parent = state.parentContainer;
+      return { parent, mesh: null as any };
+    }
+
+    const parent = new BABYLON.TransformNode(`link_${key}`, this.scene);
+    parent.parent = state.parentContainer;
 
     let mesh: BABYLON.Mesh;
 
-    if (config.style === 'line') {
-      // Simple line
-      mesh = BABYLON.MeshBuilder.CreateBox(
-        `skeleton_link_${name}`,
-        { width: distance, height: thickness * 2, depth: thickness * 2 },
-        scene
-      );
-      mesh.position = midpoint;
-      // Box orientation (align with direction)
-      const up = BABYLON.Vector3.Up();
-      const cross = BABYLON.Vector3.Cross(up, direction).normalize();
-      const angle = BABYLON.Vector3.Dot(up, direction);
-      mesh.rotationQuaternion = BABYLON.Quaternion.RotationAxis(cross, Math.acos(angle));
+    if (config.style === 'bone') {
+      // Bone: tapered cylinder (capsule-like)
+      const radius = config.thicknessMm / 1000;
+      mesh = BABYLON.MeshBuilder.CreateCylinder(`bone_${key}`, {
+        height: 1,
+        diameterTop: radius * 1.2,
+        diameterBottom: radius * 0.7,
+        tessellation: 16,
+      }, this.scene);
+      mesh.material = state.boneMaterial;
     } else if (config.style === 'tube') {
-      // Hollow tube (simple path-based)
-      mesh = BABYLON.MeshBuilder.CreateTube(
-        `skeleton_link_${name}`,
-        {
-          path: [start, end],
-          radius: thickness,
-          tessellation: 8,
-          cap: BABYLON.Mesh.CAP_ALL
-        },
-        scene
-      );
-    } else if (config.style === 'bone') {
-      // Tapered bone - thicker at start, thinner at end
-      const diameterTop = thickness * 0.5; // thinner at top
-      const diameterBottom = thickness; // thicker at bottom
-      
-      mesh = BABYLON.MeshBuilder.CreateCylinder(
-        `skeleton_link_${name}`,
-        {
-          height: distance,
-          diameterTop: diameterTop * 2,
-          diameterBottom: diameterBottom * 2,
-          tessellation: 8
-        },
-        scene
-      );
-      
-      mesh.position = midpoint;
-      
-      // Properly orient cylinder to point from start to end
-      const up = BABYLON.Vector3.Up();
-      const cylinderDirection = direction;
-      
-      // Calculate rotation to align cylinder's +Y with direction
-      const cross = BABYLON.Vector3.Cross(up, cylinderDirection);
-      if (cross.length() < 1e-6) {
-        // Vectors are parallel (up or down)
-        mesh.rotationQuaternion = BABYLON.Quaternion.Identity();
-      } else {
-        cross.normalize();
-        const angle = Math.acos(BABYLON.Vector3.Dot(up, cylinderDirection));
-        mesh.rotationQuaternion = BABYLON.Quaternion.RotationAxis(cross, angle);
-      }
+      mesh = BABYLON.MeshBuilder.CreateTube(`tube_${key}`, {
+        path: [BABYLON.Vector3.Zero(), BABYLON.Vector3.Up()],
+        radius: config.thicknessMm / 1000,
+        tessellation: 8,
+        cap: BABYLON.Mesh.CAP_ALL
+      }, this.scene);
+      mesh.material = state.material;
     } else {
-      // Solid cylinder (default) - align Y axis with direction
-      mesh = BABYLON.MeshBuilder.CreateCylinder(
-        `skeleton_link_${name}`,
-        {
-          height: distance,
-          diameter: thickness * 2,
-          tessellation: 8
-        },
-        scene
-      );
-      
-      mesh.position = midpoint;
-      
-      // Properly orient cylinder to point from start to end
-      const up = BABYLON.Vector3.Up();
-      const cylinderDirection = direction;
-      
-      // Calculate rotation to align cylinder's +Y with direction
-      const cross = BABYLON.Vector3.Cross(up, cylinderDirection);
-      if (cross.length() < 1e-6) {
-        // Vectors are parallel (up or down)
-        mesh.rotationQuaternion = BABYLON.Quaternion.Identity();
-      } else {
-        cross.normalize();
-        const angle = Math.acos(BABYLON.Vector3.Dot(up, cylinderDirection));
-        mesh.rotationQuaternion = BABYLON.Quaternion.RotationAxis(cross, angle);
-      }
+      // Cylinder or line
+      mesh = BABYLON.MeshBuilder.CreateCylinder(`cylinder_${key}`, {
+        height: 1,
+        diameter: config.thicknessMm / 1000 * 2,
+        tessellation: 8
+      }, this.scene);
+      mesh.material = state.material;
     }
 
-    // Style the link with bright, visible material
-    const material = new BABYLON.StandardMaterial(`skeleton_mat_${name}`, scene);
-    
-    if (config.style === 'tube') {
-      material.emissiveColor = new BABYLON.Color3(0, 1, 1); // Bright cyan
-      material.wireframe = true;
-    } else if (config.style === 'bone') {
-      material.emissiveColor = new BABYLON.Color3(0.8, 0.8, 0.9); // Subtle bone color
-      material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low specular
-    } else {
-      material.emissiveColor = new BABYLON.Color3(0, 1, 1); // Bright cyan
-    }
-    
-    material.disableLighting = true;
-    material.alpha = config.opacity ?? 0.9;
-    mesh.material = material;
+    mesh.parent = parent;
     mesh.isPickable = false;
-    mesh.renderingGroupId = 2; // Render on top of robot
-    mesh.visibility = config.enabled ? 1 : 0;
+    mesh.renderingGroupId = 2;
 
-    meshes.push(mesh);
-    console.log(`[SkeletonLinkRenderer] Created link mesh "${name}" at distance ${distance.toFixed(4)}m`);
+    const linkNode: LinkNode = { parent, mesh };
+
+    // Create joint spheres if enabled
+    if (config.showJointSpheres) {
+      const sphereRadius = config.thicknessMm / 1000 * 0.5;
+      const sphereA = BABYLON.MeshBuilder.CreateSphere(`sphere_a_${key}`, { diameter: sphereRadius * 2 }, this.scene);
+      const sphereB = BABYLON.MeshBuilder.CreateSphere(`sphere_b_${key}`, { diameter: sphereRadius * 2 }, this.scene);
+      
+      sphereA.material = state.boneMaterial || state.material;
+      sphereB.material = state.boneMaterial || state.material;
+      sphereA.parent = parent;
+      sphereB.parent = parent;
+      sphereA.isPickable = false;
+      sphereB.isPickable = false;
+      sphereA.renderingGroupId = 2;
+      sphereB.renderingGroupId = 2;
+
+      linkNode.jointSphereA = sphereA;
+      linkNode.jointSphereB = sphereB;
+    }
+
+    // Set initial transform
+    this.updateLinkTransform(linkNode, start, end, state);
+
+    return linkNode;
   }
 
-  removeSkeleton(robotId: string): void {
-    const meshes = this.linkMeshes.get(robotId);
-    if (meshes) {
-      meshes.forEach(mesh => mesh.dispose());
-      this.linkMeshes.delete(robotId);
-      console.log(`[SkeletonLinkRenderer] Removed skeleton for ${robotId}`);
+  /**
+   * Update link transform in-place
+   */
+  private updateLinkTransform(linkNode: LinkNode, start: BABYLON.Vector3, end: BABYLON.Vector3, state: ChainRenderState): void {
+    const distance = BABYLON.Vector3.Distance(start, end);
+    
+    // Compute midpoint and direction
+    const midpoint = BABYLON.Vector3.Center(start, end);
+    const dir = end.subtract(start);
+    const dirNorm = dir.normalize();
+
+    // Orientation: rotate up-axis to direction
+    const up = BABYLON.Vector3.Up();
+    const q = BABYLON.Quaternion.FromUnitVectors(up, dirNorm);
+
+    // Update parent transform
+    linkNode.parent.position = midpoint;
+    linkNode.parent.rotationQuaternion = q;
+
+    // Scale mesh along Y axis (cylinder's long axis)
+    const radius = 0.01; // base radius in meters
+    linkNode.mesh.scaling = new BABYLON.Vector3(radius, distance, radius);
+
+    // Update joint spheres
+    if (linkNode.jointSphereA) {
+      linkNode.jointSphereA.position = BABYLON.Vector3.Zero();
     }
+    if (linkNode.jointSphereB) {
+      linkNode.jointSphereB.position = new BABYLON.Vector3(0, distance, 0);
+    }
+  }
+
+  /**
+   * Update joint sphere positions
+   */
+  private updateJointSpheres(linkNode: LinkNode, start: BABYLON.Vector3, end: BABYLON.Vector3, state: ChainRenderState): void {
+    const distance = BABYLON.Vector3.Distance(start, end);
+    
+    if (linkNode.jointSphereA) {
+      linkNode.jointSphereA.position = BABYLON.Vector3.Zero();
+    }
+    if (linkNode.jointSphereB) {
+      linkNode.jointSphereB.position = new BABYLON.Vector3(0, distance, 0);
+    }
+  }
+
+  /**
+   * Legacy method for backward compatibility
+   */
+  renderSkeleton(config: SkeletonLinkConfig): void {
+    this.updateChain(config);
+  }
+
+  /**
+   * Remove skeleton for a robot
+   */
+  removeSkeleton(robotId: string): void {
+    const chainMap = this.chainsByRobot.get(robotId);
+    if (!chainMap) return;
+
+    chainMap.forEach((state) => {
+      state.links.forEach((linkNode) => {
+        linkNode.mesh.dispose();
+        linkNode.jointSphereA?.dispose();
+        linkNode.jointSphereB?.dispose();
+        linkNode.parent.dispose();
+      });
+      state.material.dispose();
+      state.boneMaterial?.dispose();
+    });
+
+    chainMap.clear();
+    this.chainsByRobot.delete(robotId);
+  }
+
+  /**
+   * Remove single chain
+   */
+  disposeChain(chainId: string, robotId: string): void {
+    const chainMap = this.chainsByRobot.get(robotId);
+    if (!chainMap) return;
+
+    const state = chainMap.get(chainId);
+    if (!state) return;
+
+    state.links.forEach((linkNode) => {
+      linkNode.mesh.dispose();
+      linkNode.jointSphereA?.dispose();
+      linkNode.jointSphereB?.dispose();
+      linkNode.parent.dispose();
+    });
+    
+    state.material.dispose();
+    state.boneMaterial?.dispose();
+    chainMap.delete(chainId);
   }
 
   cleanup(): void {
-    this.linkMeshes.forEach((meshes) => {
-      meshes.forEach(mesh => mesh.dispose());
+    this.chainsByRobot.forEach((chainMap) => {
+      chainMap.forEach((state) => {
+        state.links.forEach((linkNode) => {
+          linkNode.mesh.dispose();
+          linkNode.jointSphereA?.dispose();
+          linkNode.jointSphereB?.dispose();
+          linkNode.parent.dispose();
+        });
+        state.material.dispose();
+        state.boneMaterial?.dispose();
+      });
     });
-    this.linkMeshes.clear();
+    this.chainsByRobot.clear();
   }
 }
-
