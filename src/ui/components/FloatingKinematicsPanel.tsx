@@ -5,7 +5,7 @@
  * Wraps the existing KinematicsPanel content in the new floating panel system
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Settings } from 'lucide-react';
 import * as BABYLON from '@babylonjs/core';
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
@@ -270,10 +270,63 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRobotId, activeChain, skeletonStyle, skeletonThicknessMm, skeletonAnimationSpeed, skeletonHighlightActiveJoint, showLinkLengthLabels, showOrientationLabels]);
 
-  // Apply skeleton config when relevant state changes
+  // Ready-gated skeleton creation and update
+  const ready = isVisible && !!activeRobotId && !!activeChain;
+  const wasVisibleRef = useRef(false);
+
   useEffect(() => {
+    if (!ready) {
+      // Cleanup when not ready (but guard against premature cleanup on first render)
+      if (wasVisibleRef.current && activeRobotId) {
+        const mgr: any = (window as any).skeletonGizmoManager || (window as any).skeletonGizmo;
+        try {
+          if (mgr && typeof mgr.removeSkeleton === 'function') {
+            mgr.removeSkeleton(activeRobotId);
+          }
+        } catch {}
+      }
+      wasVisibleRef.current = isVisible;
+      return;
+    }
+
+    wasVisibleRef.current = isVisible;
+    const mgr: any = (window as any).skeletonGizmoManager || (window as any).skeletonGizmo;
+    if (!mgr) return;
+
+    // Create or update skeleton with current config
+    const payload = {
+      robotId: activeRobotId,
+      chainId: activeChain.id,
+      enabled: skeletonEnabled,
+      style: skeletonStyle,
+      thicknessMm: skeletonThicknessMm,
+      animationSpeed: skeletonAnimationSpeed,
+      highlightActiveJoint: skeletonHighlightActiveJoint,
+      showLinkLengthLabels,
+      showOrientationLabels,
+    };
+
+    // Try to create skeleton first (idempotent - won't duplicate if already exists)
+    try {
+      if (typeof mgr.createSkeleton === 'function') {
+        mgr.createSkeleton(payload);
+      } else if (typeof mgr.ensureSkeleton === 'function') {
+        mgr.ensureSkeleton(payload);
+      }
+    } catch {}
+
+    // Update config
     applySkeletonConfig(skeletonEnabled);
-  }, [applySkeletonConfig, skeletonEnabled]);
+
+    // Cleanup on unmount or when robot/chain changes
+    return () => {
+      if (activeRobotId && typeof mgr.removeSkeleton === 'function') {
+        try {
+          mgr.removeSkeleton(activeRobotId);
+        } catch {}
+      }
+    };
+  }, [ready, activeRobotId, activeChain, skeletonEnabled, skeletonStyle, skeletonThicknessMm, skeletonAnimationSpeed, skeletonHighlightActiveJoint, showLinkLengthLabels, showOrientationLabels, isVisible, applySkeletonConfig]);
 
   // Toggle joint axes overlay using KinematicsManager
   useEffect(() => {
