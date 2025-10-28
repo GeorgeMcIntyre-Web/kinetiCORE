@@ -95,49 +95,35 @@ export class InverseKinematicsSolver {
         }
       }
 
-      // Get current end-effector pose from actual mesh (NOT from FK solve)
-      // This is correct because the mesh reflects the actual robot state after updateJointPosition()
-      // Computing FK from jointAngles would be wrong because those are the WORKING angles being iterated,
-      // not the actual applied joint positions
-      const currentMeshPose = this.fkSolver.getNullTCPPose(chainName);
-      if (!currentMeshPose) {
-        console.error('[IK Jacobian] Failed to get null TCP pose at iteration', iteration);
+      // Compute current end-effector pose in robot-local space
+      const currentPoseLocal = this.fkSolver.solve(chainName, jointAngles);
+      if (!currentPoseLocal) {
+        console.error('[IK Jacobian] FK solve failed at iteration', iteration);
         break;
       }
 
-      const currentPosWorld = currentMeshPose.position; // Already in world space
-      const currentRotWorld = currentMeshPose.rotation; // Already in world space
-
-      // Also compute FK for comparison/debugging (iteration 0 only)
-      let currentPoseLocal = null;
-      if (iteration === 0) {
-        currentPoseLocal = this.fkSolver.solve(chainName, jointAngles);
-      }
+      // Transform current pose from robot-local to world space
+      const baseWorldMatrix = this.kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
+      const currentPosWorld = BABYLON.Vector3.TransformCoordinates(
+        currentPoseLocal.position,
+        baseWorldMatrix
+      );
+      const baseRot = BABYLON.Quaternion.FromRotationMatrix(baseWorldMatrix.getRotationMatrix());
+      const currentRotWorld = baseRot.multiply(currentPoseLocal.rotation);
 
       // === COORDINATE SPACE DEBUG (Iteration 0 only) ===
-      if (iteration === 0 && currentPoseLocal) {
-        console.log(`[IK DEBUG] FK solve input jointAngles: [${jointAngles.map(v => (v * 180 / Math.PI).toFixed(1)).join(', ')}]°`);
+      if (iteration === 0) {
         console.log(`[IK DEBUG] FK solve result (ROBOT-LOCAL): ${currentPoseLocal.position.toString()}`);
-
-        const baseWorldMatrix = this.kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
-        const fkPosWorld = BABYLON.Vector3.TransformCoordinates(
-          currentPoseLocal.position,
-          baseWorldMatrix
-        );
-
         console.log(`[IK DEBUG] Base world matrix translation: ${baseWorldMatrix.getTranslation().toString()}`);
         console.log(`[IK DEBUG] Base is identity: ${baseWorldMatrix.equals(BABYLON.Matrix.Identity())}`);
-        console.log(`[IK DEBUG] FK transformed to WORLD: ${fkPosWorld.toString()}`);
+        console.log(`[IK DEBUG] FK transformed to WORLD: ${currentPosWorld.toString()}`);
 
         // Verify: FK→World should match mesh position
-        const diff = currentPosWorld.subtract(fkPosWorld).length();
-        console.log(`[IK DEBUG] ✓ FK→World vs Mesh diff: ${diff.toFixed(6)}m (should be ~0.000m)`);
-
-        // Also log actual joint positions from KinematicsManager
-        const freshJoints = this.kinematicsManager.getActuatedJoints(chain.id);
-        const actualPositions = freshJoints.map(j => (j.position * 180 / Math.PI).toFixed(1));
-        console.log(`[IK DEBUG] Actual joint positions from KinematicsManager: [${actualPositions.join(', ')}]°`);
-        console.log(`[IK DEBUG] 🔧 FIX APPLIED: Using mesh position directly (not FK solve)`);
+        const nullTCPPose = this.fkSolver.getNullTCPPose(chainName);
+        if (nullTCPPose) {
+          const diff = currentPosWorld.subtract(nullTCPPose.position).length();
+          console.log(`[IK DEBUG] ✓ FK→World vs Mesh diff: ${diff.toFixed(6)}m (should be ~0.000m)`);
+        }
       }
 
       // Compute position error (both in WORLD space)
