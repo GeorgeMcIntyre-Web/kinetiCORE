@@ -450,11 +450,7 @@ export class InverseKinematicsSolver {
       return false;
     }
 
-    // Apply joint angles (only actuated joints)
-    const chain = this.kinematicsManager.getChain(chainName);
-    if (!chain) return false;
-    const joints = this.kinematicsManager.getActuatedJoints(chain.id);
-
+    // Apply joint angles (chain and joints already declared above)
     for (let i = 0; i < joints.length; i++) {
       this.fkSolver.updateJointPosition(joints[i].id, solution.jointAngles[i]);
     }
