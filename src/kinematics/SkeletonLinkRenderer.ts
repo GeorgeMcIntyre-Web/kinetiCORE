@@ -56,7 +56,17 @@ export class SkeletonLinkRenderer {
    * Update or create skeleton links for a kinematic chain
    */
   updateChain(config: SkeletonLinkConfig): void {
-    if (!this.scene || !config.enabled) return;
+    if (!this.scene) return;
+
+    if (!config.enabled) {
+      // Hide skeleton but don't dispose
+      const chainMap = this.chainsByRobot.get(config.robotId);
+      const state = chainMap?.get(config.chainId);
+      if (state) {
+        state.parentContainer.isVisible = false;
+      }
+      return;
+    }
 
     const km = KinematicsManager.getInstance();
     const chain = km.getChainById(config.chainId);
@@ -75,9 +85,13 @@ export class SkeletonLinkRenderer {
       // First render - create container and materials
       state = this.createChainState(config);
       chainMap.set(config.chainId, state);
+      console.log(`[SkeletonLinkRenderer] Created chain state for ${config.chainId}`);
     }
 
-    // Update all link transforms
+    // Make container visible
+    state.parentContainer.isVisible = true;
+
+    // Update all link transforms in-place
     this.updateChainLinks(config, state, km);
   }
 
@@ -124,6 +138,8 @@ export class SkeletonLinkRenderer {
 
     if (frames.length === 0) return;
 
+    const processedLinks = new Set<string>();
+
     // Update or create links between joints
     for (let i = 0; i < frames.length; i++) {
       const startFrame = frames[i];
@@ -137,15 +153,17 @@ export class SkeletonLinkRenderer {
 
       if (!endFrame) continue; // Skip last link if no terminal frame
 
-      const linkKey = `link_${i}`;
+      const linkKey = `${startFrame.id}_to_${endFrame.origin ? 'end' : frames[i + 1]?.id || 'end'}`;
+      processedLinks.add(linkKey);
+
       let linkNode = state.links.get(linkKey);
 
       if (!linkNode) {
-        // Create new link node
+        // Create new link node (first time only)
         linkNode = this.createLinkNode(startFrame.origin, endFrame.origin, config, state, linkKey);
         state.links.set(linkKey, linkNode);
       } else {
-        // Update existing link transforms
+        // Update existing link transforms in-place
         this.updateLinkTransform(linkNode, startFrame.origin, endFrame.origin, state);
       }
 
@@ -155,7 +173,19 @@ export class SkeletonLinkRenderer {
       }
     }
 
-    console.log(`[SkeletonLinkRenderer] Updated chain ${config.chainId} with ${state.links.size} bones`);
+    // Hide links that are no longer needed (handles chain changes)
+    state.links.forEach((linkNode, key) => {
+      if (!processedLinks.has(key)) {
+        linkNode.parent.isVisible = false;
+      }
+    });
+
+    // Update once per frame (throttle to avoid spam)
+    if (this.pendingFrame) return;
+    this.pendingFrame = requestAnimationFrame(() => {
+      console.log(`[SkeletonLinkRenderer] Updated chain ${config.chainId} with ${state.links.size} bones`);
+      this.pendingFrame = 0;
+    });
   }
 
   /**
@@ -241,29 +271,53 @@ export class SkeletonLinkRenderer {
   private updateLinkTransform(linkNode: LinkNode, start: BABYLON.Vector3, end: BABYLON.Vector3, state: ChainRenderState): void {
     const distance = BABYLON.Vector3.Distance(start, end);
     
+    if (distance < 0.001) {
+      linkNode.parent.isVisible = false;
+      return;
+    }
+
+    linkNode.parent.isVisible = true;
+    
     // Compute midpoint and direction
-    const midpoint = BABYLON.Vector3.Center(start, end);
     const dir = end.subtract(start);
     const dirNorm = dir.normalize();
+    const midpoint = BABYLON.Vector3.Center(start, end);
 
-    // Orientation: rotate up-axis to direction
+    // Orientation: rotate cylinder's +Y to direction
+    // Babylon cylinders are aligned to +Y
     const up = BABYLON.Vector3.Up();
-    const q = BABYLON.Quaternion.FromUnitVectors(up, dirNorm);
+    const dot = BABYLON.Vector3.Dot(up, dirNorm);
+    
+    let q: BABYLON.Quaternion;
+    
+    if (Math.abs(dot) > 0.98) {
+      // Nearly parallel - use identity or near-identity rotation
+      q = BABYLON.Quaternion.Identity();
+    } else {
+      // Build rotation from Up to dirNorm
+      const cross = BABYLON.Vector3.Cross(up, dirNorm).normalize();
+      const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
+      q = BABYLON.Quaternion.RotationAxis(cross, angle);
+    }
 
     // Update parent transform
     linkNode.parent.position = midpoint;
     linkNode.parent.rotationQuaternion = q;
 
-    // Scale mesh along Y axis (cylinder's long axis)
-    const radius = 0.01; // base radius in meters
-    linkNode.mesh.scaling = new BABYLON.Vector3(radius, distance, radius);
+    // Scale mesh: Y is length, X/Z are diameter
+    const baseRadius = 0.005; // 5mm default
+    const thickness = baseRadius;
+    linkNode.mesh.scaling = new BABYLON.Vector3(thickness, distance, thickness);
 
-    // Update joint spheres
+    // Update joint spheres (in local space of parent)
     if (linkNode.jointSphereA) {
       linkNode.jointSphereA.position = BABYLON.Vector3.Zero();
+      linkNode.jointSphereA.isVisible = true;
     }
     if (linkNode.jointSphereB) {
+      // Position at the end in local space
       linkNode.jointSphereB.position = new BABYLON.Vector3(0, distance, 0);
+      linkNode.jointSphereB.isVisible = true;
     }
   }
 
