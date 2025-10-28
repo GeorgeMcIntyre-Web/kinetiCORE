@@ -332,20 +332,33 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     const chainName = robotChain.name;
     console.log(`[RobotJoggingPanel] Found chain: ${chainName}`);
 
-    // Create delta in USER space (Z-up, mm)
-    const userDelta = { x: 0, y: 0, z: 0 };
-
-    // Linear motion in USER space
-    if (axis === 'X') {
-      userDelta.x = jogStepTcpLinear * direction; // mm
-    } else if (axis === 'Y') {
-      userDelta.y = jogStepTcpLinear * direction; // mm
-    } else if (axis === 'Z') {
-      userDelta.z = jogStepTcpLinear * direction; // mm
+    // Get current null TCP (end-effector) pose for orientation
+    const tcpPose = fkSolver.getTCPPose?.(chainName) || fkSolver.getNullTCPPose(chainName);
+    if (!tcpPose) {
+      console.error('[RobotJoggingPanel] Failed to get null TCP pose');
+      return;
     }
 
-    // Convert USER delta (Z-up, mm) to BABYLON delta (Y-up, meters)
-    const positionDelta = userToBabylon(userDelta);
+    // Create delta in TCP LOCAL frame (Z-up, mm)
+    const localDelta = { x: 0, y: 0, z: 0 };
+
+    // Linear motion in TCP LOCAL frame (follows null TCP orientation)
+    if (axis === 'X') {
+      localDelta.x = jogStepTcpLinear * direction; // mm along TCP's local X
+    } else if (axis === 'Y') {
+      localDelta.y = jogStepTcpLinear * direction; // mm along TCP's local Y
+    } else if (axis === 'Z') {
+      localDelta.z = jogStepTcpLinear * direction; // mm along TCP's local Z
+    }
+
+    // Convert local delta from USER (Z-up, mm) to BABYLON (Y-up, meters)
+    const localDeltaBabylon = userToBabylon(localDelta);
+
+    // Rotate delta by null TCP orientation to get world-space delta
+    const positionDelta = localDeltaBabylon.rotateByQuaternionToRef(
+      tcpPose.rotation,
+      new BABYLON.Vector3(0, 0, 0)
+    );
 
     let success = false;
 
