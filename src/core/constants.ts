@@ -32,6 +32,21 @@ export const CAMERA_DEFAULT_ALPHA = -Math.PI / 2; // Look from side
 export const CAMERA_DEFAULT_BETA = Math.PI / 4; // 45° angle from Y-axis
 export const CAMERA_DEFAULT_RADIUS = 15; // 15m distance
 
+// Camera behavior tuning (percentages and dynamic clipping)
+// When set, Babylon uses percentage-based zoom deltas instead of fixed wheelPrecision
+export const CAMERA_WHEEL_DELTA_PERCENTAGE = 0.02; // 2% of current radius per wheel step
+export const CAMERA_PINCH_DELTA_PERCENTAGE = 0.02; // 2% of current radius per pinch step
+export const CAMERA_ZOOM_TO_MOUSE = true; // Zoom towards cursor location for precision
+
+// Adaptive clipping planes scale with camera distance to avoid near-plane clipping when close
+export const CAMERA_NEAR_PLANE_RATIO = 0.01; // near = radius * 1%
+export const CAMERA_NEAR_MIN = 0.001; // absolute floor for near plane in meters (1mm)
+export const CAMERA_FAR_MIN = 2000; // minimum far plane in meters
+export const CAMERA_FAR_SCENE_MULTIPLIER = 4; // far = scene diagonal * multiplier
+
+// Collision-safe zoom-in buffer to keep camera outside surfaces
+export const CAMERA_COLLISION_BUFFER = 0.02; // 2cm buffer
+
 // Command history
 export const MAX_UNDO_STACK_SIZE = 50;
 

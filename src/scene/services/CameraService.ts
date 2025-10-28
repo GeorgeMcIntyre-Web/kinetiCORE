@@ -10,12 +10,23 @@ import {
   CAMERA_DEFAULT_ALPHA,
   CAMERA_DEFAULT_BETA,
   CAMERA_DEFAULT_RADIUS,
+  CAMERA_WHEEL_DELTA_PERCENTAGE,
+  CAMERA_PINCH_DELTA_PERCENTAGE,
+  CAMERA_ZOOM_TO_MOUSE,
+  CAMERA_NEAR_PLANE_RATIO,
+  CAMERA_NEAR_MIN,
+  CAMERA_FAR_MIN,
+  CAMERA_FAR_SCENE_MULTIPLIER,
+  CAMERA_COLLISION_BUFFER,
 } from '../../core/constants';
 
 export class CameraService {
   private static instance: CameraService | null = null;
   private camera: BABYLON.ArcRotateCamera | null = null;
   private engine: BABYLON.Engine | BABYLON.WebGPUEngine | null = null;
+  private lastBoundsFrameId: number = -1;
+  private cachedSceneDiagonal: number = 1000;
+  private lastRadiusForClamp: number = -1;
 
   private constructor() {}
 
@@ -48,6 +59,10 @@ export class CameraService {
     this.camera.lowerRadiusLimit = CAMERA_MIN_RADIUS;
     this.camera.upperRadiusLimit = CAMERA_MAX_RADIUS;
     this.camera.wheelPrecision = CAMERA_WHEEL_PRECISION;
+    // Distance-proportional zoom for consistent feel near objects
+    this.camera.wheelDeltaPercentage = CAMERA_WHEEL_DELTA_PERCENTAGE;
+    this.camera.pinchDeltaPercentage = CAMERA_PINCH_DELTA_PERCENTAGE;
+    this.camera.zoomToMouseLocation = CAMERA_ZOOM_TO_MOUSE;
     this.camera.inertia = CAMERA_INERTIA;
 
     // Panning settings for large worlds
@@ -78,29 +93,98 @@ export class CameraService {
     this.camera.orthoTop = orthoSize;
     this.camera.orthoBottom = -orthoSize;
 
-    // Set clipping planes to handle large range (0.01m to 20km)
-    this.camera.minZ = CAMERA_MIN_RADIUS; // Match minimum radius
-    this.camera.maxZ = 20000; // 20km far plane
+    // Initialize adaptive clipping planes
+    this.updateClippingPlanes(scene);
+
+    // Per-frame updates (executed once per render)
+    scene.onBeforeRenderObservable.add(() => {
+      this.updateOrthographicViewport();
+      this.updateClippingPlanes(scene);
+      this.updateCollisionAwareLowerRadius(scene);
+    });
   }
 
   /**
    * Start render loop with orthographic updates
    */
   startRenderLoop(scene: BABYLON.Scene): void {
+    // Render loop is managed by SceneCanvas; keep for backward compat if needed
     if (!this.engine || !this.camera) return;
-
+    if ((this.engine as any)._renderingQueueLaunched) {
+      return;
+    }
     this.engine.runRenderLoop(() => {
-      // Update orthographic zoom based on camera radius
-      if (this.camera && this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
-        const orthoSize = this.camera.radius;
-        const aspectRatio = this.engine!.getRenderWidth() / this.engine!.getRenderHeight();
-        this.camera.orthoLeft = -orthoSize * aspectRatio;
-        this.camera.orthoRight = orthoSize * aspectRatio;
-        this.camera.orthoTop = orthoSize;
-        this.camera.orthoBottom = -orthoSize;
-      }
+      this.updateOrthographicViewport();
       scene.render();
     });
+  }
+
+  private updateOrthographicViewport(): void {
+    if (!this.engine || !this.camera) return;
+    if (this.camera.mode !== BABYLON.Camera.ORTHOGRAPHIC_CAMERA) return;
+    const orthoSize = this.camera.radius;
+    const aspectRatio = this.engine.getRenderWidth() / this.engine.getRenderHeight();
+    this.camera.orthoLeft = -orthoSize * aspectRatio;
+    this.camera.orthoRight = orthoSize * aspectRatio;
+    this.camera.orthoTop = orthoSize;
+    this.camera.orthoBottom = -orthoSize;
+  }
+
+  private updateClippingPlanes(scene: BABYLON.Scene): void {
+    if (!this.camera) return;
+    // Near plane scales with radius to reduce clipping when very close
+    const dynamicNear = Math.max(CAMERA_NEAR_MIN, this.camera.radius * CAMERA_NEAR_PLANE_RATIO);
+    this.camera.minZ = dynamicNear;
+
+    // Update far plane from scene bounds occasionally
+    const frameId = scene.getFrameId();
+    if (this.lastBoundsFrameId < 0 || frameId - this.lastBoundsFrameId > 30) {
+      const bounds = scene.getWorldExtends();
+      if (bounds) {
+        const size = bounds.max.subtract(bounds.min);
+        this.cachedSceneDiagonal = Math.max(1, size.length());
+        this.lastBoundsFrameId = frameId;
+      }
+    }
+    const dynamicFar = Math.max(CAMERA_FAR_MIN, this.cachedSceneDiagonal * CAMERA_FAR_SCENE_MULTIPLIER);
+    this.camera.maxZ = dynamicFar;
+  }
+
+  private updateCollisionAwareLowerRadius(scene: BABYLON.Scene): void {
+    if (!this.camera) return;
+
+    // Only recompute when radius meaningfully changes
+    const currentRadius = this.camera.radius;
+    if (this.lastRadiusForClamp >= 0 && Math.abs(currentRadius - this.lastRadiusForClamp) < 1e-3) {
+      return;
+    }
+    this.lastRadiusForClamp = currentRadius;
+
+    const cameraPosition = this.camera.position;
+    const target = this.camera.target;
+    const direction = target.subtract(cameraPosition);
+    const length = direction.length();
+    if (length <= 1e-6) {
+      this.camera.lowerRadiusLimit = CAMERA_MIN_RADIUS;
+      return;
+    }
+    const dirNormalized = direction.scale(1 / length);
+    const ray = new BABYLON.Ray(cameraPosition, dirNormalized, currentRadius);
+
+    // Fast check: only need the nearest intersection along the path from camera to target
+    const pick = scene.pickWithRay(ray, undefined, true);
+    if (pick && pick.hit && typeof pick.distance === 'number') {
+      // Remaining distance from hit point to target determines the safe minimum radius
+      const distanceFromHitToTarget = Math.max(currentRadius - pick.distance, 0);
+      const safeMinRadius = Math.max(distanceFromHitToTarget + CAMERA_COLLISION_BUFFER, CAMERA_MIN_RADIUS);
+      this.camera.lowerRadiusLimit = Math.min(safeMinRadius, this.camera.upperRadiusLimit ?? Number.POSITIVE_INFINITY);
+      // Clamp if currently below
+      if (this.camera.radius < this.camera.lowerRadiusLimit) {
+        this.camera.radius = this.camera.lowerRadiusLimit;
+      }
+    } else {
+      this.camera.lowerRadiusLimit = CAMERA_MIN_RADIUS;
+    }
   }
 
   /**

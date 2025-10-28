@@ -94,8 +94,8 @@ export class SceneManager {
     // Initialize camera service
     this.cameraService.initialize(this.scene, canvas, this.engineService.getEngine()!);
 
-    // Start render loop
-    this.cameraService.startRenderLoop(this.scene);
+    // Render loop is driven by UI layer (SceneCanvas) which also steps physics.
+    // CameraService performs per-frame updates via scene.onBeforeRenderObservable.
 
     // Initialize CSG2 for Boolean operations
     try {
