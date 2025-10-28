@@ -6,10 +6,19 @@ import {
   CAMERA_MIN_RADIUS,
   CAMERA_MAX_RADIUS,
   CAMERA_WHEEL_PRECISION,
+  CAMERA_WHEEL_DELTA_PERCENT,
+  CAMERA_PINCH_DELTA_PERCENT,
   CAMERA_INERTIA,
   CAMERA_DEFAULT_ALPHA,
   CAMERA_DEFAULT_BETA,
   CAMERA_DEFAULT_RADIUS,
+  CAMERA_PANNING_SENSIBILITY,
+  CAMERA_PANNING_INERTIA,
+  CAMERA_LOWER_BETA_LIMIT,
+  CAMERA_UPPER_BETA_LIMIT,
+  CAMERA_MIN_Z,
+  CAMERA_MAX_Z,
+  CAMERA_DEFAULT_MODE,
 } from '../../core/constants';
 
 export class CameraService {
@@ -43,21 +52,29 @@ export class CameraService {
       scene
     );
 
-    // Camera controls - use Babylon.js defaults
+    // Camera controls
     this.camera.attachControl(canvas, true);
     this.camera.lowerRadiusLimit = CAMERA_MIN_RADIUS;
     this.camera.upperRadiusLimit = CAMERA_MAX_RADIUS;
-    this.camera.wheelPrecision = CAMERA_WHEEL_PRECISION;
+    // Prefer percent-based zoom if available; otherwise use precision fallback
+    if ((this.camera as any).wheelDeltaPercentage !== undefined) {
+      (this.camera as any).wheelDeltaPercentage = CAMERA_WHEEL_DELTA_PERCENT;
+    } else {
+      this.camera.wheelPrecision = CAMERA_WHEEL_PRECISION;
+    }
+    if ((this.camera as any).pinchDeltaPercentage !== undefined) {
+      (this.camera as any).pinchDeltaPercentage = CAMERA_PINCH_DELTA_PERCENT;
+    }
     this.camera.inertia = CAMERA_INERTIA;
 
     // Panning settings for large worlds
-    this.camera.panningSensibility = 200; // Higher = slower/less sensitive panning (was 50)
-    this.camera.panningInertia = 0.85; // Reduced inertia for less sliding
+    this.camera.panningSensibility = CAMERA_PANNING_SENSIBILITY;
+    this.camera.panningInertia = CAMERA_PANNING_INERTIA;
     this.camera.panningDistanceLimit = null; // No distance limit for panning
 
     // Allow full rotation range (no limits)
-    this.camera.lowerBetaLimit = 0.1; // Nearly straight down (avoid gimbal lock)
-    this.camera.upperBetaLimit = Math.PI - 0.1; // Nearly straight up (avoid gimbal lock)
+    this.camera.lowerBetaLimit = CAMERA_LOWER_BETA_LIMIT;
+    this.camera.upperBetaLimit = CAMERA_UPPER_BETA_LIMIT;
     this.camera.lowerAlphaLimit = null; // No limit on horizontal rotation
     this.camera.upperAlphaLimit = null; // No limit on horizontal rotation
 
@@ -67,20 +84,24 @@ export class CameraService {
     // Set camera up vector to Y-up (Babylon native)
     this.camera.upVector = new BABYLON.Vector3(0, 1, 0);
 
-    // Set camera to orthographic mode by default
-    this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+    // Set camera projection mode
+    this.camera.mode = CAMERA_DEFAULT_MODE === 'orthographic'
+      ? BABYLON.Camera.ORTHOGRAPHIC_CAMERA
+      : BABYLON.Camera.PERSPECTIVE_CAMERA;
 
-    // Set orthographic viewport (adjust based on initial radius)
-    const orthoSize = CAMERA_DEFAULT_RADIUS;
-    const aspectRatio = this.engine.getRenderWidth() / this.engine.getRenderHeight();
-    this.camera.orthoLeft = -orthoSize * aspectRatio;
-    this.camera.orthoRight = orthoSize * aspectRatio;
-    this.camera.orthoTop = orthoSize;
-    this.camera.orthoBottom = -orthoSize;
+    // If orthographic, set initial viewport from default radius
+    if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+      const orthoSize = CAMERA_DEFAULT_RADIUS;
+      const aspectRatio = this.engine.getRenderWidth() / this.engine.getRenderHeight();
+      this.camera.orthoLeft = -orthoSize * aspectRatio;
+      this.camera.orthoRight = orthoSize * aspectRatio;
+      this.camera.orthoTop = orthoSize;
+      this.camera.orthoBottom = -orthoSize;
+    }
 
     // Set clipping planes to handle large range (0.01m to 20km)
-    this.camera.minZ = CAMERA_MIN_RADIUS; // Match minimum radius
-    this.camera.maxZ = 20000; // 20km far plane
+    this.camera.minZ = CAMERA_MIN_Z;
+    this.camera.maxZ = CAMERA_MAX_Z;
   }
 
   /**

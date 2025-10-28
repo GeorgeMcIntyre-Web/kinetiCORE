@@ -24,13 +24,24 @@ export const GROUND_SIZE = 50; // 50 meters = 50,000mm
 export const AXIS_LENGTH = 2; // 2 meters = 2,000mm
 
 // Camera constants (internal units: meters, Y-up)
-export const CAMERA_MIN_RADIUS = 0.01; // 1cm - reasonable minimum for close inspection
-export const CAMERA_MAX_RADIUS = 10000; // 10,000m - support very large layouts (10km)
-export const CAMERA_WHEEL_PRECISION = 50; // Higher = less sensitive mouse wheel zoom (was 15)
+// Centralized tunables for consistent behavior across app
+export const CAMERA_MIN_RADIUS = 0.01; // 1cm - close inspection
+export const CAMERA_MAX_RADIUS = 10000; // 10km - very large scenes
+// Prefer delta percentage for consistent zoom regardless of DPI/wheel settings
+export const CAMERA_WHEEL_DELTA_PERCENT = 0.01; // 1% per wheel notch (fallback to precision if unsupported)
+export const CAMERA_PINCH_DELTA_PERCENT = 0.01; // 1% per pinch delta
+export const CAMERA_WHEEL_PRECISION = 50; // Fallback: higher = less sensitive
 export const CAMERA_INERTIA = 0.85; // Slightly reduced inertia for less "sliding"
+export const CAMERA_PANNING_SENSIBILITY = 200; // Higher = slower pan
+export const CAMERA_PANNING_INERTIA = 0.85;
+export const CAMERA_LOWER_BETA_LIMIT = 0.1; // Avoid gimbal lock
+export const CAMERA_UPPER_BETA_LIMIT = Math.PI - 0.1;
+export const CAMERA_MIN_Z = CAMERA_MIN_RADIUS; // Near clip
+export const CAMERA_MAX_Z = 20000; // Far clip
 export const CAMERA_DEFAULT_ALPHA = -Math.PI / 2; // Look from side
 export const CAMERA_DEFAULT_BETA = Math.PI / 4; // 45° angle from Y-axis
 export const CAMERA_DEFAULT_RADIUS = 15; // 15m distance
+export const CAMERA_DEFAULT_MODE: 'perspective' | 'orthographic' = 'orthographic';
 
 // Command history
 export const MAX_UNDO_STACK_SIZE = 50;
