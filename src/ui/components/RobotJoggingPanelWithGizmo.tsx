@@ -348,12 +348,14 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     const chainName = robotChain.name;
     logVerbose(`[RobotJoggingPanel] Found chain: ${chainName}`);
 
-    // Compute TCP WORLD rotation from FK with current joint angles
+    // Get TCP WORLD rotation from actual mesh (getNullTCPPose)
     const chain = kinematicsManager.getChain(chainName);
     if (!chain) {
       console.error('[RobotJoggingPanel] Chain not found for TCP jog:', chainName);
       return;
     }
+    
+    // Get current joint angles to update meshes to correct position
     const actuatedJoints = kinematicsManager.getActuatedJoints(chain.id);
     const currentJointAngles = actuatedJoints.map((j: any) => j.position);
     const currentPoseLocal = fkSolver.solve(chainName, currentJointAngles);
@@ -361,13 +363,16 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
       console.error('[RobotJoggingPanel] FK solve failed for TCP jog');
       return;
     }
-    const baseWorldMatrix = kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
-    const baseWorldRotation = BABYLON.Quaternion.FromRotationMatrix(baseWorldMatrix.getRotationMatrix());
-    const currentPosWorld = BABYLON.Vector3.TransformCoordinates(
-      currentPoseLocal.position,
-      baseWorldMatrix
-    );
-    const tcpWorldRotation = baseWorldRotation.multiply(currentPoseLocal.rotation);
+    
+    // Get actual null TCP pose from mesh (world space)
+    const nullTCPPose = fkSolver.getNullTCPPose(chainName);
+    if (!nullTCPPose) {
+      console.error('[RobotJoggingPanel] Could not get null TCP pose');
+      return;
+    }
+    
+    const currentPosWorld = nullTCPPose.position;
+    const tcpWorldRotation = nullTCPPose.rotation;
 
     // DEBUG: Log TCP world rotation for debugging
     const tcpEuler = tcpWorldRotation.toEulerAngles();
