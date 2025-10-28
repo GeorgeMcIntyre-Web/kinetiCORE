@@ -791,6 +791,12 @@ export class ForwardKinematicsSolver {
         const r = endEffectorPos.subtract(jointPos);
         const linearVel = BABYLON.Vector3.Cross(r, worldAxis);
 
+        // DEBUG: Log first joint's Jacobian to verify fix is loaded
+        if (i === 0) {
+          console.log('[FK Jacobian] ✅ FIXED VERSION LOADED - Cross(r, worldAxis)');
+          console.log(`[FK Jacobian] r=${r.toString()}, linearVel=${linearVel.toString()}`);
+        }
+
         jacobian[0][i] = linearVel.x;
         jacobian[1][i] = linearVel.y;
         jacobian[2][i] = linearVel.z;
