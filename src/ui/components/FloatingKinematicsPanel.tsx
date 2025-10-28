@@ -270,55 +270,55 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRobotId, activeChain, skeletonStyle, skeletonThicknessMm, skeletonAnimationSpeed, skeletonHighlightActiveJoint, showLinkLengthLabels, showOrientationLabels]);
 
-  // Ready-gated skeleton configuration update
+  // Ready-gated skeleton link rendering
   const ready = isVisible && !!activeRobotId && !!activeChain;
   const wasVisibleRef = useRef(false);
 
   useEffect(() => {
-    console.log('[FloatingKinematicsPanel] Skeleton config effect:', { ready, isVisible, hasRobotId: !!activeRobotId, hasChain: !!activeChain, skeletonEnabled });
+    console.log('[FloatingKinematicsPanel] Skeleton link effect:', { ready, isVisible, hasRobotId: !!activeRobotId, hasChain: !!activeChain, skeletonEnabled });
     
-    if (!ready) {
+    if (!ready || !skeletonEnabled) {
+      // Cleanup when not ready or disabled
+      if (ready && activeRobotId) {
+        const renderer: any = (window as any).skeletonLinkRenderer;
+        if (renderer && typeof renderer.removeSkeleton === 'function') {
+          renderer.removeSkeleton(activeRobotId);
+        }
+      }
       wasVisibleRef.current = isVisible;
       return;
     }
 
     wasVisibleRef.current = isVisible;
     
-    // Apply skeleton config (for future skeleton system integration)
-    // Note: Actual skeleton rendering is done via showJointAxesOverlay
-    const mgr: any = (window as any).skeletonGizmoManager || (window as any).skeletonGizmo;
-    if (mgr) {
-      console.log('[FloatingKinematicsPanel] Skeleton gizmo manager found, applying config');
-      try {
-        const payload = {
-          robotId: activeRobotId,
-          chainId: activeChain.id,
-          enabled: skeletonEnabled,
-          style: skeletonStyle,
-          thicknessMm: skeletonThicknessMm,
-          animationSpeed: skeletonAnimationSpeed,
-          highlightActiveJoint: skeletonHighlightActiveJoint,
-          showLinkLengthLabels,
-          showOrientationLabels,
-        };
-
-        if (typeof mgr.createSkeleton === 'function') {
-          console.log('[FloatingKinematicsPanel] Calling createSkeleton');
-          mgr.createSkeleton(payload);
-        } else if (typeof mgr.ensureSkeleton === 'function') {
-          console.log('[FloatingKinematicsPanel] Calling ensureSkeleton');
-          mgr.ensureSkeleton(payload);
-        } else if (typeof mgr.updateConfig === 'function') {
-          console.log('[FloatingKinematicsPanel] Calling updateConfig');
-          mgr.updateConfig(payload);
-        }
-      } catch (err) {
-        console.warn('[FloatingKinematicsPanel] Skeleton config error:', err);
-      }
-    } else {
-      console.log('[FloatingKinematicsPanel] No skeleton gizmo manager found - skeleton visualization uses joint debug frames only');
+    // Get the skeleton link renderer
+    const renderer: any = (window as any).skeletonLinkRenderer;
+    if (!renderer) {
+      console.warn('[FloatingKinematicsPanel] SkeletonLinkRenderer not found');
+      return;
     }
-  }, [ready, activeRobotId, activeChain, skeletonEnabled, skeletonStyle, skeletonThicknessMm, skeletonAnimationSpeed, skeletonHighlightActiveJoint, showLinkLengthLabels, showOrientationLabels, isVisible]);
+
+    console.log('[FloatingKinematicsPanel] Rendering skeleton links');
+    renderer.renderSkeleton({
+      robotId: activeRobotId,
+      chainId: activeChain.id,
+      enabled: skeletonEnabled,
+      style: skeletonStyle,
+      thicknessMm: skeletonThicknessMm,
+      opacity: 0.9,
+    });
+
+    // Cleanup on unmount or when robot/chain changes
+    return () => {
+      if (activeRobotId && renderer) {
+        try {
+          renderer.removeSkeleton(activeRobotId);
+        } catch (err) {
+          console.warn('[FloatingKinematicsPanel] Cleanup error:', err);
+        }
+      }
+    };
+  }, [ready, activeRobotId, activeChain, skeletonEnabled, skeletonStyle, skeletonThicknessMm, isVisible]);
 
   // Toggle joint axes overlay using KinematicsManager (this IS the skeleton visualization)
   useEffect(() => {

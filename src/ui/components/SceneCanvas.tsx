@@ -114,6 +114,14 @@ export const SceneCanvas: React.FC = () => {
           unifiedGizmoManager.initialize(scene);
         });
 
+        // Initialize SkeletonLinkRenderer
+        import('../../kinematics/SkeletonLinkRenderer').then(({ SkeletonLinkRenderer }) => {
+          const skeletonRenderer = SkeletonLinkRenderer.getInstance();
+          skeletonRenderer.initialize(scene);
+          (window as any).skeletonLinkRenderer = skeletonRenderer;
+          console.log('[SceneCanvas] SkeletonLinkRenderer initialized');
+        });
+
         // Create transform gizmo
         gizmoRef.current = new TransformGizmo(scene);
 
