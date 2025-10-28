@@ -31,30 +31,6 @@ interface ChainRenderState {
   sphereMaterial?: BABYLON.StandardMaterial; // Yellow material for joint spheres
 }
 
-/**
- * Helper: Compute quaternion from unit vector a to b (robust version)
- */
-function quatFromUnitVectors(a: BABYLON.Vector3, b: BABYLON.Vector3): BABYLON.Quaternion {
-  const v = BABYLON.Vector3.Cross(a, b);
-  const d = BABYLON.Vector3.Dot(a, b);
-  
-  // Handle 180° case (opposite directions)
-  if (d <= -0.999999) {
-    // Pick any orthogonal axis to a (prefer X unless almost parallel)
-    const axis = Math.abs(a.x) < 0.9 ? new BABYLON.Vector3(1, 0, 0) : new BABYLON.Vector3(0, 1, 0);
-    const ortho = BABYLON.Vector3.Cross(a, axis).normalize();
-    return BABYLON.Quaternion.RotationAxis(ortho, Math.PI);
-  }
-  
-  // Standard case: compute rotation quaternion
-  const s = Math.sqrt((1 + d) * 2);
-  return new BABYLON.Quaternion(
-    v.x / s,
-    v.y / s,
-    v.z / s,
-    s * 0.5
-  ).normalize();
-}
 
 /**
  * Renders skeleton links (visual lines connecting joints) for a kinematic chain
@@ -131,7 +107,7 @@ export class SkeletonLinkRenderer {
       const chainMap = this.chainsByRobot.get(config.robotId);
       const state = chainMap?.get(config.chainId);
       if (state) {
-        state.parentContainer.isVisible = false;
+        state.parentContainer.setEnabled(false);
       }
       return;
     }
@@ -157,7 +133,7 @@ export class SkeletonLinkRenderer {
     }
 
     // Make container visible
-    state.parentContainer.isVisible = true;
+    state.parentContainer.setEnabled(true);
 
     // Update all link transforms in-place
     this.updateChainLinks(config, state, km);
@@ -180,6 +156,7 @@ export class SkeletonLinkRenderer {
     }
     
     // Material for non-bone styles
+    if (!this.scene) return null as any;
     const standardMaterial = new BABYLON.StandardMaterial(`skeleton_mat_${config.chainId}`, this.scene);
     standardMaterial.emissiveColor = new BABYLON.Color3(0, 1, 1);
     standardMaterial.disableLighting = true;
@@ -187,7 +164,7 @@ export class SkeletonLinkRenderer {
 
     // PBR material for bone style - realistic bone color with lighting
     let boneMaterial: BABYLON.StandardMaterial | undefined;
-    if (config.style === 'bone') {
+    if (config.style === 'bone' && this.scene) {
       boneMaterial = new BABYLON.StandardMaterial(`bone_mat_${config.chainId}`, this.scene);
       // Pink emissive-only color to ensure exact tone regardless of lighting
       const pink = BABYLON.Color3.FromHexString("#FF4DA6");
@@ -200,7 +177,7 @@ export class SkeletonLinkRenderer {
 
     // Yellow material for joint spheres (if spheres enabled)
     let sphereMaterial: BABYLON.StandardMaterial | undefined;
-    if (config.showJointSpheres) {
+    if (config.showJointSpheres && this.scene) {
       sphereMaterial = new BABYLON.StandardMaterial(`sphere_mat_${config.chainId}`, this.scene);
       sphereMaterial.diffuseColor = new BABYLON.Color3(1, 0.9, 0); // Yellow
       sphereMaterial.emissiveColor = new BABYLON.Color3(0.5, 0.4, 0); // Warm yellow glow
@@ -236,7 +213,8 @@ export class SkeletonLinkRenderer {
       return;
     }
 
-    const parentWorldInv = parent.getWorldMatrix(true).clone().invert();
+    const worldMatrix = parent.getWorldMatrix();
+    const parentWorldInv = worldMatrix.clone().invert();
 
     // Build list of world points: [base, J1, J2, ..., Jn, (TCP?)]
     const worldPoints: BABYLON.Matrix[] = [];
@@ -387,7 +365,9 @@ export class SkeletonLinkRenderer {
         diameter: boneDiameter, // 20mm diameter
         tessellation: 24,
       }, this.scene);
-      mesh.material = state.boneMaterial;
+      if (state.boneMaterial) {
+        mesh.material = state.boneMaterial;
+      }
     } else if (config.style === 'tube') {
       mesh = BABYLON.MeshBuilder.CreateCylinder(`cylinder_${key}`, {
         height: 1,
@@ -465,7 +445,8 @@ export class SkeletonLinkRenderer {
    * Update link transform in-place
    * start and end are in LOCAL space of the skeleton container
    */
-  private updateLinkTransform(linkNode: LinkNode, startLocal: BABYLON.Vector3, endLocal: BABYLON.Vector3, state: ChainRenderState, config?: SkeletonLinkConfig): void {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private updateLinkTransform(linkNode: LinkNode, startLocal: BABYLON.Vector3, endLocal: BABYLON.Vector3, _state: ChainRenderState, _config?: SkeletonLinkConfig): void {
     // Check if mesh is valid
     if (!linkNode.mesh) {
       console.warn('[SkeletonLinkRenderer] Cannot update transform: mesh is null');
@@ -534,14 +515,6 @@ export class SkeletonLinkRenderer {
     // No per-link logging - reduces spam, use frame-level summary instead
   }
 
-  /**
-   * Update joint sphere positions
-   * Note: Spheres are already positioned in updateLinkTransform, this is just for completeness
-   */
-  private updateJointSpheres(linkNode: LinkNode, start: BABYLON.Vector3, end: BABYLON.Vector3, state: ChainRenderState): void {
-    // Spheres are updated in updateLinkTransform, no need to duplicate here
-    // This method kept for compatibility
-  }
 
   /**
    * Legacy method for backward compatibility
@@ -586,7 +559,6 @@ export class SkeletonLinkRenderer {
       linkNode.mesh.dispose();
       linkNode.jointSphereA?.dispose();
       linkNode.jointSphereB?.dispose();
-      linkNode.parent.dispose();
     });
     
     state.material.dispose();
@@ -602,7 +574,6 @@ export class SkeletonLinkRenderer {
           linkNode.mesh.dispose();
           linkNode.jointSphereA?.dispose();
           linkNode.jointSphereB?.dispose();
-          linkNode.parent.dispose();
         });
         state.material.dispose();
         state.boneMaterial?.dispose();
