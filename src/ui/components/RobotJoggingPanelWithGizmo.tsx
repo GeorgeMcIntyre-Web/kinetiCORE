@@ -136,6 +136,14 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
         animationSpeed: 1.0
       });
     }
+
+    // Cleanup function for robot switch
+    return () => {
+      if (robotId) {
+        console.log(`[RobotJoggingPanel] Cleaning up skeleton for robot: ${robotId}`);
+        skeletonGizmo.removeSkeleton(robotId);
+      }
+    };
   }, [robotId, showSkeleton, showCoordinates, skeletonOpacity, skeletonGizmo]);
 
   // Update skeleton when joints move
@@ -144,6 +152,17 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
       skeletonGizmo.updateSkeleton(robotId);
     }
   }, [joints, showSkeleton, robotId, skeletonGizmo]);
+
+  // Component unmount cleanup
+  useEffect(() => {
+    return () => {
+      // Clean up skeleton when component unmounts
+      if (robotId) {
+        console.log(`[RobotJoggingPanel] Component unmounting - cleaning up skeleton for robot: ${robotId}`);
+        skeletonGizmo.removeSkeleton(robotId);
+      }
+    };
+  }, [robotId, skeletonGizmo]);
 
   // Update TCP position display and gizmo
   useEffect(() => {

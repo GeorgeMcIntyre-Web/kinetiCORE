@@ -11,6 +11,7 @@ import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { AssetLibraryDarkPanel, AssetLibraryDarkSection, AssetLibraryDarkDisabled } from './FloatingPanel/AssetLibraryDarkPanel';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
+import { SkeletonGizmoManager } from '../../kinematics/SkeletonGizmoManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { useEditorStore } from '../store/editorStore';
 import { RobotJoggingPanelWithGizmo } from './RobotJoggingPanelWithGizmo';
@@ -175,13 +176,18 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     return () => clearInterval(interval);
   }, [activeRobotId]);
 
-  // Cleanup: Hide all joint gizmos when panel closes
+  // Cleanup: Hide all joint gizmos and skeleton when panel closes
   useEffect(() => {
     if (!isVisible) {
-      console.log('[FloatingKinematicsPanel] Panel closed - hiding all joint gizmos');
+      console.log('[FloatingKinematicsPanel] Panel closed - hiding all joint gizmos and skeleton');
       kinematicsManager.hideAllJointVisuals();
+      // Clean up skeleton for active robot
+      if (activeRobotId) {
+        const skeletonGizmo = SkeletonGizmoManager.getInstance();
+        skeletonGizmo.removeSkeleton(activeRobotId);
+      }
     }
-  }, [isVisible]);
+  }, [isVisible, activeRobotId]);
 
   const activeDevice = robots.find(r => r.nodeId === activeRobotId);
 

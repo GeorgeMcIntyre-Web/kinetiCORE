@@ -186,6 +186,24 @@ export class SkeletonGizmoManager {
   }
 
   /**
+   * Clean up all resources (for scene disposal)
+   */
+  cleanup(): void {
+    this.clearAll();
+    
+    // Dispose materials
+    if (this.linkMaterial) {
+      this.linkMaterial.dispose();
+      this.linkMaterial = null;
+    }
+    
+    this.coordinateMaterials.forEach(material => material.dispose());
+    this.coordinateMaterials.clear();
+    
+    console.log('[SkeletonGizmoManager] Cleanup complete');
+  }
+
+  /**
    * Build skeleton links by connecting consecutive joints with enhanced information
    */
   private buildSkeletonLinks(config: SkeletonGizmoConfig): void {
