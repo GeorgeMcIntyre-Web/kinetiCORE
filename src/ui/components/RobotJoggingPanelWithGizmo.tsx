@@ -371,8 +371,11 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
 
     // DEBUG: Log TCP world rotation for debugging
     const tcpEuler = tcpWorldRotation.toEulerAngles();
-    logSummary(`[RobotJoggingPanel] TCP world rotation: Rx=${(tcpEuler.x*180/Math.PI).toFixed(1)}° Ry=${(tcpEuler.y*180/Math.PI).toFixed(1)}° Rz=${(tcpEuler.z*180/Math.PI).toFixed(1)}°`);
-    logVerbose(`[RobotJoggingPanel] TCP world rotation quaternion: (${tcpWorldRotation.x.toFixed(3)}, ${tcpWorldRotation.y.toFixed(3)}, ${tcpWorldRotation.z.toFixed(3)}, ${tcpWorldRotation.w.toFixed(3)})`);
+    logSummary(`═══════════════════════════════════════════════════════════`);
+    logSummary(`[TCP Jog] ${axis}${direction > 0 ? '+' : '-'} ${jogStepTcpLinear}mm`);
+    logSummary(`[TCP Jog] Current null TCP WORLD position: (${currentPosWorld.x.toFixed(4)}, ${currentPosWorld.y.toFixed(4)}, ${currentPosWorld.z.toFixed(4)})`);
+    logSummary(`[TCP Jog] Current null TCP WORLD rotation: Rx=${(tcpEuler.x*180/Math.PI).toFixed(1)}° Ry=${(tcpEuler.y*180/Math.PI).toFixed(1)}° Rz=${(tcpEuler.z*180/Math.PI).toFixed(1)}°`);
+    logVerbose(`[TCP Jog] TCP world rotation quaternion: (${tcpWorldRotation.x.toFixed(3)}, ${tcpWorldRotation.y.toFixed(3)}, ${tcpWorldRotation.z.toFixed(3)}, ${tcpWorldRotation.w.toFixed(3)})`);
 
     // Create delta in TCP LOCAL frame (meters)
     const stepMeters = (jogStepTcpLinear * 0.001) * direction;
@@ -399,7 +402,10 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     );
 
     // DEBUG: Log world delta after transformation
-    logSummary(`[RobotJoggingPanel] World delta: (${positionDelta.x.toFixed(3)}, ${positionDelta.y.toFixed(3)}, ${positionDelta.z.toFixed(3)})`);
+    const targetPos = currentPosWorld.add(positionDelta);
+    logSummary(`[TCP Jog] Local delta in TCP frame: (${localDeltaBabylon.x.toFixed(4)}, ${localDeltaBabylon.y.toFixed(4)}, ${localDeltaBabylon.z.toFixed(4)})`);
+    logSummary(`[TCP Jog] World delta after rotation: (${positionDelta.x.toFixed(4)}, ${positionDelta.y.toFixed(4)}, ${positionDelta.z.toFixed(4)})`);
+    logSummary(`[TCP Jog] Target position should be: (${targetPos.x.toFixed(4)}, ${targetPos.y.toFixed(4)}, ${targetPos.z.toFixed(4)})`);
 
     // Draw IK debug overlay (axes at TCP and intended delta)
     try {
@@ -479,10 +485,12 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     if (!success) {
       console.warn(`[RobotJoggingPanel] IK failed for TCP jog: ${axis} ${direction > 0 ? '+' : '-'}`);
       console.warn('[RobotJoggingPanel] Target may be out of reach or robot in singular configuration');
+      logSummary(`[TCP Jog] ❌ IK FAILED for ${axis}${direction > 0 ? '+' : '-'}`);
+      logSummary(`═══════════════════════════════════════════════════════════`);
     } else {
       logSummary(`[RobotJoggingPanel] ✅ Successfully moved TCP ${axis} ${direction > 0 ? '+' : '-'}`);
-
-      // After solve, draw error vector (magenta) from achieved to target
+      
+      // Log actual final position for comparison
       try {
         const kinematicsManager = KinematicsManager.getInstance();
         const chain = kinematicsManager.getChain(chainName);
@@ -493,23 +501,29 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
           if (achievedLocal) {
             const baseWM = kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
             const achievedWorld = BABYLON.Vector3.TransformCoordinates(achievedLocal.position, baseWM);
-            const targetWorld = currentPosWorld.add(positionDelta);
+            const errorVec = targetPos.subtract(achievedWorld);
+            const errorMag = errorVec.length();
+            logSummary(`[TCP Jog] ✅ Actual final position: (${achievedWorld.x.toFixed(4)}, ${achievedWorld.y.toFixed(4)}, ${achievedWorld.z.toFixed(4)})`);
+            logSummary(`[TCP Jog] Position error: ${errorMag.toFixed(4)}m (${(errorMag*1000).toFixed(2)}mm)`);
+            logSummary(`═══════════════════════════════════════════════════════════`);
+
+            // After solve, draw error vector (magenta) from achieved to target
             const scene = (window as any).sceneManager?.getScene?.();
             if (scene && (debugMode === 'summary' || debugMode === 'verbose')) {
               if (ikErrorRef.current && !ikErrorRef.current.isDisposed()) {
                 ikErrorRef.current.dispose(false, true);
                 ikErrorRef.current = null;
               }
-              const errLine = BABYLON.MeshBuilder.CreateLines('ik_error_line', { points: [achievedWorld, targetWorld], updatable: false }, scene);
+              const errLine = BABYLON.MeshBuilder.CreateLines('ik_error_line', { points: [achievedWorld, targetPos], updatable: false }, scene);
               errLine.color = new BABYLON.Color3(1, 0, 1);
               errLine.isPickable = false;
               ikErrorRef.current = errLine as BABYLON.LinesMesh;
-              const errMag = targetWorld.subtract(achievedWorld).length();
-              logSummary(`[IK Summary] Final error: ${errMag.toFixed(4)} m, iterations ~ see solver logs`);
             }
           }
         }
-      } catch {}
+      } catch (e) {
+        logVerbose(`[TCP Jog] Error computing final position: ${e}`);
+      }
     }
   };
 
