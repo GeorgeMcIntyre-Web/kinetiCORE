@@ -12,6 +12,7 @@ import { KinematicsManager, RobotKeyframe } from '../../kinematics/KinematicsMan
 import type { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
 import { InverseKinematicsSolver } from '../../kinematics/InverseKinematicsSolver';
 import { UnifiedGizmoManager } from '../../kinematics/UnifiedGizmoManager';
+import { SkeletonGizmoManager } from '../../kinematics/SkeletonGizmoManager';
 import { SceneManager } from '../../scene/SceneManager';
 import { babylonToUser, userToBabylon } from '../../core/CoordinateSystem';
 import { detectJointGroups, shouldUseJointGroups, JointGroup } from '../../kinematics/JointGroupDetector';
@@ -42,9 +43,15 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
   
   // Gizmo management
   const [unifiedGizmo] = useState(() => UnifiedGizmoManager.getInstance());
+  const [skeletonGizmo] = useState(() => SkeletonGizmoManager.getInstance());
   const [_currentTcpPosition, setCurrentTcpPosition] = useState<BABYLON.Vector3 | null>(null);
   const [_currentChainName, setCurrentChainName] = useState<string | null>(null);
   const gizmoInitialized = useRef(false);
+  
+  // Skeleton visualization state
+  const [showSkeleton, setShowSkeleton] = useState(false);
+  const [showCoordinates, setShowCoordinates] = useState(false);
+  const [skeletonOpacity, setSkeletonOpacity] = useState(0.8);
 
   // Use filtered joints from props
   useEffect(() => {
@@ -74,12 +81,13 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
         const scene = sceneManager.getScene();
         if (scene) {
           unifiedGizmo.initialize(scene);
+          skeletonGizmo.initialize(scene);
           gizmoInitialized.current = true;
           console.log('[RobotJoggingPanel] Gizmo system initialized');
         }
       }
     }
-  }, [unifiedGizmo]);
+  }, [unifiedGizmo, skeletonGizmo]);
 
   // Automatically show joint debug frames when panel opens
   useEffect(() => {
@@ -101,6 +109,36 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
       }
     }
   }, [robotId]); // Run when robotId changes or component mounts
+
+  // Manage skeleton visualization
+  useEffect(() => {
+    if (!robotId || !gizmoInitialized.current) return;
+
+    const kinematicsManager = KinematicsManager.getInstance();
+    const chains = kinematicsManager.getAllChains();
+    const robotChain = chains.find((chain: any) =>
+      chain.joints.some((joint: any) => joint.id.startsWith(robotId))
+    );
+
+    if (robotChain) {
+      skeletonGizmo.createSkeleton({
+        robotId,
+        chainId: robotChain.id,
+        enabled: showSkeleton,
+        opacity: skeletonOpacity,
+        linkColor: new BABYLON.Color3(0.2, 0.8, 1.0), // Cyan
+        showCoordinates,
+        coordinateSize: 0.05 // 50mm
+      });
+    }
+  }, [robotId, showSkeleton, showCoordinates, skeletonOpacity, skeletonGizmo]);
+
+  // Update skeleton when joints move
+  useEffect(() => {
+    if (showSkeleton && robotId) {
+      skeletonGizmo.updateSkeleton(robotId);
+    }
+  }, [joints, showSkeleton, robotId, skeletonGizmo]);
 
   // Update TCP position display and gizmo
   useEffect(() => {
@@ -754,6 +792,45 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
           </div>
         </div>
       )}
+
+      {/* Skeleton Visualization Controls */}
+      <div className="skeleton-controls">
+        <h4>Skeleton Visualization</h4>
+        <div className="skeleton-toggle">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={showSkeleton}
+              onChange={(e) => setShowSkeleton(e.target.checked)}
+            />
+            <span>Show Skeleton</span>
+          </label>
+        </div>
+        <div className="skeleton-toggle">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={showCoordinates}
+              onChange={(e) => setShowCoordinates(e.target.checked)}
+              disabled={!showSkeleton}
+            />
+            <span>Show Coordinates</span>
+          </label>
+        </div>
+        {showSkeleton && (
+          <div className="skeleton-opacity">
+            <label>Opacity: {Math.round(skeletonOpacity * 100)}%</label>
+            <input
+              type="range"
+              min="0.1"
+              max="1.0"
+              step="0.1"
+              value={skeletonOpacity}
+              onChange={(e) => setSkeletonOpacity(parseFloat(e.target.value))}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Reset and Debug Buttons */}
       <div className="panel-actions">

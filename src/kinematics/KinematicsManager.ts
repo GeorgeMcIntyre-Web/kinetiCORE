@@ -869,7 +869,7 @@ export class KinematicsManager implements IKinematicsManager {
    * Hide all joint visuals/gizmos
    */
   hideAllJointVisuals(): void {
-    this.jointAxisVisualizers.forEach((visuals, jointId) => {
+    this.jointAxisVisualizers.forEach((visuals) => {
       visuals.forEach(v => v.dispose());
     });
     this.jointAxisVisualizers.clear();
