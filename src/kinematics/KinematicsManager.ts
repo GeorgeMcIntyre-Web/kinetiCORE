@@ -399,6 +399,32 @@ export class KinematicsManager implements IKinematicsManager {
   }
 
   /**
+   * Get a kinematic chain by ID
+   */
+  getChainById(chainId: string): KinematicChain | undefined {
+    return this.chains.get(chainId);
+  }
+
+  /**
+   * Debug helper: list all chain IDs
+   */
+  debugListChains(): string[] {
+    return Array.from(this.chains.keys());
+  }
+
+  /**
+   * Get active chain handle for a robot
+   */
+  getActiveChainHandle(robotId: string): { chain: KinematicChain; key: string } | undefined {
+    for (const [key, chain] of this.chains) {
+      if (chain.robotId === robotId) {
+        return { chain, key };
+      }
+    }
+    return undefined;
+  }
+
+  /**
    * Get all kinematic chains
    */
   getAllChains(): KinematicChain[] {

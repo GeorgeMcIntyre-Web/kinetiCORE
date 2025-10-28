@@ -55,18 +55,24 @@ export class SkeletonLinkRenderer {
     const km = KinematicsManager.getInstance();
     
     // List all available chains for debugging
-    const allChains = (km as any).chains;
-    if (allChains) {
-      const chainIds = Array.from(allChains.keys());
-      console.log('[SkeletonLinkRenderer] Available chains:', chainIds);
+    const chainIds = km.debugListChains();
+    console.log('[SkeletonLinkRenderer] Available chains:', chainIds);
+    
+    // Try to get chain by ID (chain is stored by its ID in the chains Map)
+    const chain = km.getChainById(config.chainId);
+    
+    if (!chain) {
+      console.warn('[SkeletonLinkRenderer] Chain not found', { 
+        chainId: config.chainId,
+        available: chainIds
+      });
+      return;
     }
     
-    const chain = km.getChain(config.chainId);
-    if (!chain || !chain.joints || chain.joints.length === 0) {
-      console.warn('[SkeletonLinkRenderer] No chain or joints found', { 
-        hasChain: !!chain, 
-        jointCount: chain?.joints?.length,
-        chainId: config.chainId 
+    if (!chain.joints || chain.joints.length === 0) {
+      console.warn('[SkeletonLinkRenderer] Chain has no joints', { 
+        chainId: config.chainId,
+        jointCount: chain.joints?.length
       });
       return;
     }

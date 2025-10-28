@@ -291,30 +291,41 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
 
     wasVisibleRef.current = isVisible;
     
-    // Get the skeleton link renderer
-    const renderer: any = (window as any).skeletonLinkRenderer;
-    if (!renderer) {
-      console.warn('[FloatingKinematicsPanel] SkeletonLinkRenderer not found');
-      return;
-    }
+    // Use microtask to ensure KM has built the chain before rendering
+    let cancelled = false;
+    
+    queueMicrotask(() => {
+      if (cancelled) return;
+      
+      // Get the skeleton link renderer
+      const renderer: any = (window as any).skeletonLinkRenderer;
+      if (!renderer) {
+        console.warn('[FloatingKinematicsPanel] SkeletonLinkRenderer not found');
+        return;
+      }
 
-    console.log('[FloatingKinematicsPanel] Rendering skeleton links', { robotId: activeRobotId, chainId: activeChain.id });
-    renderer.renderSkeleton({
-      robotId: activeRobotId,
-      chainId: activeChain.id,
-      enabled: skeletonEnabled,
-      style: skeletonStyle,
-      thicknessMm: skeletonThicknessMm,
-      opacity: 0.9,
+      console.log('[FloatingKinematicsPanel] Rendering skeleton links', { robotId: activeRobotId, chainId: activeChain.id });
+      renderer.renderSkeleton({
+        robotId: activeRobotId,
+        chainId: activeChain.id,
+        enabled: skeletonEnabled,
+        style: skeletonStyle,
+        thicknessMm: skeletonThicknessMm,
+        opacity: 0.9,
+      });
     });
 
     // Cleanup on unmount or when robot/chain changes
     return () => {
-      if (activeRobotId && renderer) {
-        try {
-          renderer.removeSkeleton(activeRobotId);
-        } catch (err) {
-          console.warn('[FloatingKinematicsPanel] Cleanup error:', err);
+      cancelled = true;
+      if (activeRobotId) {
+        const renderer: any = (window as any).skeletonLinkRenderer;
+        if (renderer) {
+          try {
+            renderer.removeSkeleton(activeRobotId);
+          } catch (err) {
+            console.warn('[FloatingKinematicsPanel] Cleanup error:', err);
+          }
         }
       }
     };
