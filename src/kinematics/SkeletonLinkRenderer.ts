@@ -77,47 +77,38 @@ export class SkeletonLinkRenderer {
       return;
     }
 
-    console.log(`[SkeletonLinkRenderer] Rendering ${chain.joints.length} links for chain ${config.chainId}`);
-    console.log('[SkeletonLinkRenderer] Chain info:', { chainId: config.chainId, jointCount: chain.joints.length });
+    // Get adjacent joint world poses from KinematicsManager
+    const pairs = km.getAdjacentJointWorldPoses(config.chainId);
+    
+    if (pairs.length === 0) {
+      console.warn('[SkeletonLinkRenderer] No adjacent joint poses found', { chainId: config.chainId });
+      return;
+    }
+
+    console.log(`[SkeletonLinkRenderer] Rendering ${pairs.length} links for chain ${config.chainId}`);
 
     // Remove existing links
     this.removeSkeleton(config.robotId);
 
     const meshes: BABYLON.Mesh[] = [];
-    const fk = ForwardKinematicsSolver.getInstance();
 
-    // Render link from base to first joint
-    const basePosition = new BABYLON.Vector3(0, 0, 0);
-    const firstJoint = chain.joints[0];
-    const firstJointWorld = this.getJointWorldPosition(firstJoint.id);
-    
-    if (firstJointWorld) {
-      this.createLink(firstJointWorld, basePosition, config, meshes, this.scene, 'base_link');
-    }
-
-    // Render links between joints
-    for (let i = 0; i < chain.joints.length - 1; i++) {
-      const joint1 = chain.joints[i];
-      const joint2 = chain.joints[i + 1];
+    // Render links between joints using world poses
+    pairs.forEach((pair, i) => {
+      const distance = BABYLON.Vector3.Distance(pair.a, pair.b);
       
-      const pos1 = this.getJointWorldPosition(joint1.id);
-      const pos2 = this.getJointWorldPosition(joint2.id);
-      
-      if (!pos1 || !pos2) {
-        console.warn(`[SkeletonLinkRenderer] Missing positions for link ${i}: ${joint1.name}->${joint2.name}`);
-        continue;
-      }
-      
-      const distance = BABYLON.Vector3.Distance(pos1, pos2);
-      console.log(`[SkeletonLinkRenderer] Link ${i} (${joint1.name}->${joint2.name}) distance: ${distance.toFixed(4)}m`);
+      console.log(`[SkeletonLinkRenderer] Link ${i} (${pair.aId}->${pair.bId}) distance: ${distance.toFixed(4)}m`);
       
       if (distance < 0.001) {
         console.warn(`[SkeletonLinkRenderer] Skipping tiny link ${i}: distance=${distance.toFixed(4)}m`);
-        continue;
+        return;
       }
       
-      this.createLink(pos1, pos2, config, meshes, this.scene, `${joint1.name}_to_${joint2.name}`);
-    }
+      const joint1 = chain.joints.find(j => j.id === pair.aId);
+      const joint2 = chain.joints.find(j => j.id === pair.bId);
+      const linkName = joint1 && joint2 ? `${joint1.name}_to_${joint2.name}` : `${pair.aId}_to_${pair.bId}`;
+      
+      this.createLink(pair.a, pair.b, config, meshes, this.scene, linkName);
+    });
 
     this.linkMeshes.set(config.robotId, meshes);
   }

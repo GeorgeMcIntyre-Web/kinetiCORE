@@ -17,6 +17,7 @@ export class ForwardKinematicsSolver {
   private kinematicsManager: KinematicsManager;
   private sceneTreeManager: SceneTreeManager;
   private sceneManager: SceneManager;
+  private warnedNoTCP: Set<string> = new Set();
 
   private constructor() {
     this.kinematicsManager = KinematicsManager.getInstance();
@@ -65,6 +66,17 @@ export class ForwardKinematicsSolver {
     if (scene) {
       this.kinematicsManager.updateJointGizmo(jointId, scene);
       this.updateChildJointGizmos(joint.childNodeId, scene);
+    }
+
+    // Emit FK update event (for chain that this joint belongs to)
+    // Find the chain this joint belongs to
+    const chains = this.kinematicsManager.getAllChains();
+    for (const chain of chains) {
+      if (chain.joints.some(j => j.id === jointId)) {
+        // Use the private emitFkUpdated method via reflection
+        (this.kinematicsManager as any).emitFkUpdated?.(chain.id);
+        break;
+      }
     }
 
     return result;
@@ -865,7 +877,11 @@ export class ForwardKinematicsSolver {
     // Get TCP frames for this chain
     const tcpFrames = this.kinematicsManager.getTCPFrames(chain.id);
     if (tcpFrames.length === 0) {
-      console.warn(`[FK getTCPPose] No TCP frames found for chain: ${chainName}`);
+      // Only warn once per chain to avoid spam
+      if (!this.warnedNoTCP.has(chainName)) {
+        console.warn(`[FK getTCPPose] No TCP frames found for chain: ${chainName}`);
+        this.warnedNoTCP.add(chainName);
+      }
       return this.getTCPPoseWorld(chainName); // Fallback to tool0/last link
     }
 

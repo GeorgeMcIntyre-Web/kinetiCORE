@@ -132,6 +132,9 @@ export class KinematicsManager implements IKinematicsManager {
   private jointAxisVisualizers = new Map<string, BABYLON.Mesh[]>();
   private limitVisualizers = new Map<string, BABYLON.Mesh[]>();
 
+  // FK update event listeners
+  private fkUpdateListeners = new Set<(chainId: string) => void>();
+
   private constructor() {}
 
   static getInstance(): KinematicsManager {
@@ -422,6 +425,83 @@ export class KinematicsManager implements IKinematicsManager {
       }
     }
     return undefined;
+  }
+
+  /**
+   * Subscribe to FK update events
+   */
+  onFkUpdated(callback: (chainId: string) => void): () => void {
+    this.fkUpdateListeners.add(callback);
+    return () => {
+      this.fkUpdateListeners.delete(callback);
+    };
+  }
+
+  /**
+   * Emit FK update event
+   */
+  private emitFkUpdated(chainId: string): void {
+    this.fkUpdateListeners.forEach(cb => cb(chainId));
+  }
+
+  /**
+   * Get joint world pose (position and rotation)
+   */
+  getJointWorldPose(chainId: string, jointId: string): { pos: BABYLON.Vector3; rot: BABYLON.Quaternion } | undefined {
+    const chain = this.getChainById(chainId);
+    if (!chain) return undefined;
+
+    const joint = chain.joints.find(j => j.id === jointId);
+    if (!joint) return undefined;
+
+    const sceneManager = (window as any).sceneManager;
+    const scene = sceneManager?.getScene?.();
+    if (!scene) return undefined;
+
+    const tree = (window as any).sceneTreeManager;
+    const childNode = tree?.getNode?.(joint.childNodeId);
+    if (!childNode) return undefined;
+
+    // Find the Babylon mesh/transform node
+    let babylonNode: BABYLON.TransformNode | null = null;
+    if (childNode.babylonMeshId) {
+      babylonNode = scene.getMeshByUniqueId(parseInt(childNode.babylonMeshId)) as BABYLON.TransformNode;
+    }
+    if (!babylonNode && childNode.babylonTransformNodeId) {
+      babylonNode = scene.transformNodes.find(tn => tn.uniqueId === parseInt(childNode.babylonTransformNodeId!)) || null;
+    }
+    if (!babylonNode && childNode.type === 'collection') {
+      babylonNode = scene.transformNodes.find(tn => tn.name === childNode.name) || null;
+    }
+    if (!babylonNode) return undefined;
+
+    // Get world transformation
+    babylonNode.computeWorldMatrix(true);
+    const worldMatrix = babylonNode.getWorldMatrix();
+    const pos = worldMatrix.getTranslation();
+    const rot = BABYLON.Quaternion.FromRotationMatrix(worldMatrix);
+
+    return { pos, rot };
+  }
+
+  /**
+   * Get adjacent joint world poses for a chain
+   */
+  getAdjacentJointWorldPoses(chainId: string): Array<{ aId: string; bId: string; a: BABYLON.Vector3; b: BABYLON.Vector3 }> {
+    const chain = this.getChainById(chainId);
+    if (!chain) return [];
+
+    const pairs: Array<{ aId: string; bId: string; a: BABYLON.Vector3; b: BABYLON.Vector3 }> = [];
+    for (let i = 0; i < chain.joints.length - 1; i++) {
+      const aId = chain.joints[i].id;
+      const bId = chain.joints[i + 1].id;
+      const aPose = this.getJointWorldPose(chainId, aId);
+      const bPose = this.getJointWorldPose(chainId, bId);
+      if (aPose && bPose) {
+        pairs.push({ aId, bId, a: aPose.pos, b: bPose.pos });
+      }
+    }
+    return pairs;
   }
 
   /**

@@ -291,20 +291,14 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
 
     wasVisibleRef.current = isVisible;
     
-    // Use microtask to ensure KM has built the chain before rendering
-    let cancelled = false;
-    
-    queueMicrotask(() => {
-      if (cancelled) return;
-      
-      // Get the skeleton link renderer
+    // Function to render skeleton links
+    const renderLinks = () => {
       const renderer: any = (window as any).skeletonLinkRenderer;
       if (!renderer) {
         console.warn('[FloatingKinematicsPanel] SkeletonLinkRenderer not found');
         return;
       }
 
-      console.log('[FloatingKinematicsPanel] Rendering skeleton links', { robotId: activeRobotId, chainId: activeChain.id });
       renderer.renderSkeleton({
         robotId: activeRobotId,
         chainId: activeChain.id,
@@ -313,11 +307,27 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
         thicknessMm: skeletonThicknessMm,
         opacity: 0.9,
       });
+    };
+    
+    // Use microtask to ensure KM has built the chain before rendering
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      renderLinks();
+    });
+
+    // Subscribe to FK updates
+    const unsubscribe = kinematicsManager.onFkUpdated((changedChainId) => {
+      if (changedChainId === activeChain.id && !cancelled) {
+        console.log('[FloatingKinematicsPanel] FK updated, re-rendering skeleton links');
+        renderLinks();
+      }
     });
 
     // Cleanup on unmount or when robot/chain changes
     return () => {
       cancelled = true;
+      unsubscribe();
       if (activeRobotId) {
         const renderer: any = (window as any).skeletonLinkRenderer;
         if (renderer) {
@@ -329,7 +339,7 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
         }
       }
     };
-  }, [ready, activeRobotId, activeChain, skeletonEnabled, skeletonStyle, skeletonThicknessMm, isVisible]);
+  }, [ready, activeRobotId, activeChain, skeletonEnabled, skeletonStyle, skeletonThicknessMm, isVisible, kinematicsManager]);
 
   // Toggle joint axes overlay using KinematicsManager (this IS the skeleton visualization)
   useEffect(() => {
