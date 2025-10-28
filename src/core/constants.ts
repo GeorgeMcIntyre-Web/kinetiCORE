@@ -32,7 +32,7 @@ export const CAMERA_WHEEL_DELTA_PERCENT = 0.01; // 1% per wheel notch (fallback 
 export const CAMERA_PINCH_DELTA_PERCENT = 0.01; // 1% per pinch delta
 export const CAMERA_WHEEL_PRECISION = 50; // Fallback: higher = less sensitive
 export const CAMERA_INERTIA = 0.85; // Slightly reduced inertia for less "sliding"
-export const CAMERA_PANNING_SENSIBILITY = 200; // Higher = slower pan
+export const CAMERA_PANNING_SENSIBILITY = 600; // Higher = slower/less sensitive pan (was 200, now 600)
 export const CAMERA_PANNING_INERTIA = 0.85;
 export const CAMERA_LOWER_BETA_LIMIT = 0.1; // Avoid gimbal lock
 export const CAMERA_UPPER_BETA_LIMIT = Math.PI - 0.1;
