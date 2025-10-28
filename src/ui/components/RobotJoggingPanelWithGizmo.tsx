@@ -491,38 +491,40 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
       logSummary(`[RobotJoggingPanel] ✅ Successfully moved TCP ${axis} ${direction > 0 ? '+' : '-'}`);
       
       // Log actual final position for comparison
-      try {
-        const kinematicsManager = KinematicsManager.getInstance();
-        const chain = kinematicsManager.getChain(chainName);
-        if (chain) {
-          const joints = kinematicsManager.getActuatedJoints(chain.id);
-          const jointAngles = joints.map((j: any) => j.position);
-          const achievedLocal = fkSolver.solve(chainName, jointAngles);
-          if (achievedLocal) {
-            const baseWM = kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
-            const achievedWorld = BABYLON.Vector3.TransformCoordinates(achievedLocal.position, baseWM);
-            const errorVec = targetPos.subtract(achievedWorld);
-            const errorMag = errorVec.length();
-            logSummary(`[TCP Jog] ✅ Actual final position: (${achievedWorld.x.toFixed(4)}, ${achievedWorld.y.toFixed(4)}, ${achievedWorld.z.toFixed(4)})`);
-            logSummary(`[TCP Jog] Position error: ${errorMag.toFixed(4)}m (${(errorMag*1000).toFixed(2)}mm)`);
-            logSummary(`═══════════════════════════════════════════════════════════`);
+      if (true) {
+        try {
+          const kinematicsManager = KinematicsManager.getInstance();
+          const chain = kinematicsManager.getChain(chainName);
+          if (chain) {
+            const joints = kinematicsManager.getActuatedJoints(chain.id);
+            const jointAngles = joints.map((j: any) => j.position);
+            const achievedLocal = fkSolver.solve(chainName, jointAngles);
+            if (achievedLocal) {
+              const baseWM = kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
+              const achievedWorld = BABYLON.Vector3.TransformCoordinates(achievedLocal.position, baseWM);
+              const errorVec = targetPos.subtract(achievedWorld);
+              const errorMag = errorVec.length();
+              logSummary(`[TCP Jog] ✅ Actual final position: (${achievedWorld.x.toFixed(4)}, ${achievedWorld.y.toFixed(4)}, ${achievedWorld.z.toFixed(4)})`);
+              logSummary(`[TCP Jog] Position error: ${errorMag.toFixed(4)}m (${(errorMag*1000).toFixed(2)}mm)`);
+              logSummary(`═══════════════════════════════════════════════════════════`);
 
-            // After solve, draw error vector (magenta) from achieved to target
-            const scene = (window as any).sceneManager?.getScene?.();
-            if (scene && (debugMode === 'summary' || debugMode === 'verbose')) {
-              if (ikErrorRef.current && !ikErrorRef.current.isDisposed()) {
-                ikErrorRef.current.dispose(false, true);
-                ikErrorRef.current = null;
+              // After solve, draw error vector (magenta) from achieved to target
+              const scene = (window as any).sceneManager?.getScene?.();
+              if (scene && (debugMode === 'summary' || debugMode === 'verbose')) {
+                if (ikErrorRef.current && !ikErrorRef.current.isDisposed()) {
+                  ikErrorRef.current.dispose(false, true);
+                  ikErrorRef.current = null;
+                }
+                const errLine = BABYLON.MeshBuilder.CreateLines('ik_error_line', { points: [achievedWorld, targetPos], updatable: false }, scene);
+                errLine.color = new BABYLON.Color3(1, 0, 1);
+                errLine.isPickable = false;
+                ikErrorRef.current = errLine as BABYLON.LinesMesh;
               }
-              const errLine = BABYLON.MeshBuilder.CreateLines('ik_error_line', { points: [achievedWorld, targetPos], updatable: false }, scene);
-              errLine.color = new BABYLON.Color3(1, 0, 1);
-              errLine.isPickable = false;
-              ikErrorRef.current = errLine as BABYLON.LinesMesh;
             }
           }
+        } catch (e) {
+          logVerbose(`[TCP Jog] Error computing final position: ${e}`);
         }
-      } catch (e) {
-        logVerbose(`[TCP Jog] Error computing final position: ${e}`);
       }
     }
   };
