@@ -64,12 +64,12 @@ export class InverseKinematicsSolver {
     } = {}
   ): IKSolution {
     const {
-      maxIterations = 300,
-      tolerance = 0.001, // 1mm tolerance - tighter than jog step
-      stepSize = 0.2, // Reduced from 0.5 to 0.2 for more stable convergence
+      maxIterations = 1000, // Increased from 300 - Jacobian transpose converges slowly
+      tolerance = 0.005, // Relaxed from 0.001 (5mm tolerance for 10mm jog step)
+      stepSize = 0.1, // Reduced from 0.2 to 0.1 for more stable convergence
       positionWeight = 1.0,
       orientationWeight = 0.5,
-      damping = 0.1, // Increased from 0.01 to 0.1 for better stability
+      damping = 0.2, // Increased from 0.1 for better stability
     } = options;
 
     const chain = this.kinematicsManager.getChain(chainName);
