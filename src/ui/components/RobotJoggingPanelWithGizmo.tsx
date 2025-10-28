@@ -19,6 +19,7 @@ import './RobotJoggingPanel.css';
 
 type JogMode = 'joint' | 'tcp' | 'poses';
 type JogAxis = 'X' | 'Y' | 'Z' | 'RX' | 'RY' | 'RZ';
+type IKDebugMode = 'off' | 'summary' | 'verbose';
 
 interface RobotJoggingPanelProps {
   joints: any[]; // Filtered joints for this specific robot
@@ -39,12 +40,27 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
   const [jointGroups, setJointGroups] = useState<JointGroup[]>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [useGroups, setUseGroups] = useState<boolean>(false);
+  const [debugMode, setDebugMode] = useState<IKDebugMode>(() => (localStorage.getItem('ikDebugMode') as IKDebugMode) || 'summary');
   
   // Gizmo management
   const [unifiedGizmo] = useState(() => UnifiedGizmoManager.getInstance());
   const [_currentTcpPosition, setCurrentTcpPosition] = useState<BABYLON.Vector3 | null>(null);
   const [_currentChainName, setCurrentChainName] = useState<string | null>(null);
   const gizmoInitialized = useRef(false);
+  // IK debug overlay meshes
+  const ikAxisXRef = useRef<BABYLON.LinesMesh | null>(null);
+  const ikAxisYRef = useRef<BABYLON.LinesMesh | null>(null);
+  const ikAxisZRef = useRef<BABYLON.LinesMesh | null>(null);
+  const ikDeltaRef = useRef<BABYLON.LinesMesh | null>(null);
+  const ikErrorRef = useRef<BABYLON.LinesMesh | null>(null);
+
+  // Logging helpers
+  const logSummary = (...args: any[]) => {
+    if (debugMode === 'summary' || debugMode === 'verbose') console.log(...args);
+  };
+  const logVerbose = (...args: any[]) => {
+    if (debugMode === 'verbose') console.log(...args);
+  };
 
   // Use filtered joints from props
   useEffect(() => {
@@ -309,7 +325,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
   };
 
   const handleJogTcp = (axis: JogAxis, direction: number) => {
-    console.log(`[RobotJoggingPanel] TCP Jog: ${axis} ${direction > 0 ? '+' : '-'}`);
+    logSummary(`[RobotJoggingPanel] TCP Jog: ${axis} ${direction > 0 ? '+' : '-'}`);
     
     const kinematicsManager = KinematicsManager.getInstance();
     const chains = kinematicsManager.getAllChains();
@@ -330,7 +346,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     }
 
     const chainName = robotChain.name;
-    console.log(`[RobotJoggingPanel] Found chain: ${chainName}`);
+    logVerbose(`[RobotJoggingPanel] Found chain: ${chainName}`);
 
     // Compute TCP WORLD rotation from FK with current joint angles
     const chain = kinematicsManager.getChain(chainName);
@@ -347,12 +363,16 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     }
     const baseWorldMatrix = kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
     const baseWorldRotation = BABYLON.Quaternion.FromRotationMatrix(baseWorldMatrix.getRotationMatrix());
+    const currentPosWorld = BABYLON.Vector3.TransformCoordinates(
+      currentPoseLocal.position,
+      baseWorldMatrix
+    );
     const tcpWorldRotation = baseWorldRotation.multiply(currentPoseLocal.rotation);
 
     // DEBUG: Log TCP world rotation for debugging
     const tcpEuler = tcpWorldRotation.toEulerAngles();
-    console.log(`[RobotJoggingPanel] TCP world rotation: Rx=${(tcpEuler.x*180/Math.PI).toFixed(1)}° Ry=${(tcpEuler.y*180/Math.PI).toFixed(1)}° Rz=${(tcpEuler.z*180/Math.PI).toFixed(1)}°`);
-    console.log(`[RobotJoggingPanel] TCP world rotation quaternion: (${tcpWorldRotation.x.toFixed(3)}, ${tcpWorldRotation.y.toFixed(3)}, ${tcpWorldRotation.z.toFixed(3)}, ${tcpWorldRotation.w.toFixed(3)})`);
+    logSummary(`[RobotJoggingPanel] TCP world rotation: Rx=${(tcpEuler.x*180/Math.PI).toFixed(1)}° Ry=${(tcpEuler.y*180/Math.PI).toFixed(1)}° Rz=${(tcpEuler.z*180/Math.PI).toFixed(1)}°`);
+    logVerbose(`[RobotJoggingPanel] TCP world rotation quaternion: (${tcpWorldRotation.x.toFixed(3)}, ${tcpWorldRotation.y.toFixed(3)}, ${tcpWorldRotation.z.toFixed(3)}, ${tcpWorldRotation.w.toFixed(3)})`);
 
     // Create delta in TCP LOCAL frame (meters)
     const stepMeters = (jogStepTcpLinear * 0.001) * direction;
@@ -368,7 +388,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     }
 
     // DEBUG: Log local delta before transformation
-    console.log(`[RobotJoggingPanel] Local delta (TCP frame): (${localDeltaBabylon.x.toFixed(3)}, ${localDeltaBabylon.y.toFixed(3)}, ${localDeltaBabylon.z.toFixed(3)})`);
+    logVerbose(`[RobotJoggingPanel] Local delta (TCP frame): (${localDeltaBabylon.x.toFixed(3)}, ${localDeltaBabylon.y.toFixed(3)}, ${localDeltaBabylon.z.toFixed(3)})`);
 
     // Rotate TCP-local delta by WORLD TCP rotation to get WORLD-space delta
     const rotationMatrix = new BABYLON.Matrix();
@@ -379,7 +399,38 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     );
 
     // DEBUG: Log world delta after transformation
-    console.log(`[RobotJoggingPanel] World delta: (${positionDelta.x.toFixed(3)}, ${positionDelta.y.toFixed(3)}, ${positionDelta.z.toFixed(3)})`);
+    logSummary(`[RobotJoggingPanel] World delta: (${positionDelta.x.toFixed(3)}, ${positionDelta.y.toFixed(3)}, ${positionDelta.z.toFixed(3)})`);
+
+    // Draw IK debug overlay (axes at TCP and intended delta)
+    try {
+      const scene = (window as any).sceneManager?.getScene?.();
+      if (scene && (debugMode === 'summary' || debugMode === 'verbose')) {
+        const rotM = new BABYLON.Matrix();
+        tcpWorldRotation.toRotationMatrix(rotM);
+        const xDir = new BABYLON.Vector3(rotM.m[0], rotM.m[1], rotM.m[2]);
+        const yDir = new BABYLON.Vector3(rotM.m[4], rotM.m[5], rotM.m[6]);
+        const zDir = new BABYLON.Vector3(rotM.m[8], rotM.m[9], rotM.m[10]);
+
+        const axisLen = 0.05; // 5 cm visuals
+        const mkLine = (ref: React.MutableRefObject<BABYLON.LinesMesh | null>, from: BABYLON.Vector3, to: BABYLON.Vector3, color: BABYLON.Color3) => {
+          if (ref.current && !ref.current.isDisposed()) {
+            ref.current.dispose(false, true);
+            ref.current = null;
+          }
+          const line = BABYLON.MeshBuilder.CreateLines('ik_debug_line', { points: [from, to], updatable: false }, scene);
+          line.color = color;
+          line.isPickable = false;
+          ref.current = line as BABYLON.LinesMesh;
+        };
+
+        mkLine(ikAxisXRef, currentPosWorld, currentPosWorld.add(xDir.scale(axisLen)), BABYLON.Color3.Red());
+        mkLine(ikAxisYRef, currentPosWorld, currentPosWorld.add(yDir.scale(axisLen)), BABYLON.Color3.Green());
+        mkLine(ikAxisZRef, currentPosWorld, currentPosWorld.add(zDir.scale(axisLen)), BABYLON.Color3.Blue());
+
+        // Intended world delta (cyan)
+        mkLine(ikDeltaRef, currentPosWorld, currentPosWorld.add(positionDelta), new BABYLON.Color3(0, 1, 1));
+      }
+    } catch {}
 
     let success = false;
 
@@ -415,13 +466,13 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     }
 
     // Linear motion (position IK)
-    console.log(`[RobotJoggingPanel] Moving TCP by ${axis} delta: (${positionDelta.x.toFixed(3)}, ${positionDelta.y.toFixed(3)}, ${positionDelta.z.toFixed(3)})`);
+    logSummary(`[RobotJoggingPanel] Moving TCP by ${axis} delta: (${positionDelta.x.toFixed(3)}, ${positionDelta.y.toFixed(3)}, ${positionDelta.z.toFixed(3)})`);
     
     // Use Jacobian first (faster, more reliable for this robot), fallback to CCD
     success = ikSolver.moveTCP(chainName, positionDelta, 'jacobian');
 
     if (!success) {
-      console.log('[RobotJoggingPanel] Jacobian failed, trying CCD method...');
+      logSummary('[RobotJoggingPanel] Jacobian failed, trying CCD method...');
       success = ikSolver.moveTCP(chainName, positionDelta, 'ccd');
     }
 
@@ -429,7 +480,36 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
       console.warn(`[RobotJoggingPanel] IK failed for TCP jog: ${axis} ${direction > 0 ? '+' : '-'}`);
       console.warn('[RobotJoggingPanel] Target may be out of reach or robot in singular configuration');
     } else {
-      console.log(`[RobotJoggingPanel] ✅ Successfully moved TCP ${axis} ${direction > 0 ? '+' : '-'}`);
+      logSummary(`[RobotJoggingPanel] ✅ Successfully moved TCP ${axis} ${direction > 0 ? '+' : '-'}`);
+
+      // After solve, draw error vector (magenta) from achieved to target
+      try {
+        const kinematicsManager = KinematicsManager.getInstance();
+        const chain = kinematicsManager.getChain(chainName);
+        if (chain) {
+          const joints = kinematicsManager.getActuatedJoints(chain.id);
+          const jointAngles = joints.map((j: any) => j.position);
+          const achievedLocal = fkSolver.solve(chainName, jointAngles);
+          if (achievedLocal) {
+            const baseWM = kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
+            const achievedWorld = BABYLON.Vector3.TransformCoordinates(achievedLocal.position, baseWM);
+            const targetWorld = currentPosWorld.add(positionDelta);
+            const scene = (window as any).sceneManager?.getScene?.();
+            if (scene && (debugMode === 'summary' || debugMode === 'verbose')) {
+              if (ikErrorRef.current && !ikErrorRef.current.isDisposed()) {
+                ikErrorRef.current.dispose(false, true);
+                ikErrorRef.current = null;
+              }
+              const errLine = BABYLON.MeshBuilder.CreateLines('ik_error_line', { points: [achievedWorld, targetWorld], updatable: false }, scene);
+              errLine.color = new BABYLON.Color3(1, 0, 1);
+              errLine.isPickable = false;
+              ikErrorRef.current = errLine as BABYLON.LinesMesh;
+              const errMag = targetWorld.subtract(achievedWorld).length();
+              logSummary(`[IK Summary] Final error: ${errMag.toFixed(4)} m, iterations ~ see solver logs`);
+            }
+          }
+        }
+      } catch {}
     }
   };
 
