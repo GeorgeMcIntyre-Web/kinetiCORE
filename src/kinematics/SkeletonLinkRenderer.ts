@@ -10,9 +10,10 @@ export interface SkeletonLinkConfig {
   robotId: string;
   chainId: string;
   enabled: boolean;
-  style: 'cylinder' | 'tube' | 'line';
+  style: 'cylinder' | 'tube' | 'line' | 'bone';
   thicknessMm: number;
   opacity?: number;
+  showJointSpheres?: boolean;
 }
 
 /**
@@ -198,6 +199,38 @@ export class SkeletonLinkRenderer {
         },
         scene
       );
+    } else if (config.style === 'bone') {
+      // Tapered bone - thicker at start, thinner at end
+      const diameterTop = thickness * 0.5; // thinner at top
+      const diameterBottom = thickness; // thicker at bottom
+      
+      mesh = BABYLON.MeshBuilder.CreateCylinder(
+        `skeleton_link_${name}`,
+        {
+          height: distance,
+          diameterTop: diameterTop * 2,
+          diameterBottom: diameterBottom * 2,
+          tessellation: 8
+        },
+        scene
+      );
+      
+      mesh.position = midpoint;
+      
+      // Properly orient cylinder to point from start to end
+      const up = BABYLON.Vector3.Up();
+      const cylinderDirection = direction;
+      
+      // Calculate rotation to align cylinder's +Y with direction
+      const cross = BABYLON.Vector3.Cross(up, cylinderDirection);
+      if (cross.length() < 1e-6) {
+        // Vectors are parallel (up or down)
+        mesh.rotationQuaternion = BABYLON.Quaternion.Identity();
+      } else {
+        cross.normalize();
+        const angle = Math.acos(BABYLON.Vector3.Dot(up, cylinderDirection));
+        mesh.rotationQuaternion = BABYLON.Quaternion.RotationAxis(cross, angle);
+      }
     } else {
       // Solid cylinder (default) - align Y axis with direction
       mesh = BABYLON.MeshBuilder.CreateCylinder(
@@ -234,6 +267,9 @@ export class SkeletonLinkRenderer {
     if (config.style === 'tube') {
       material.emissiveColor = new BABYLON.Color3(0, 1, 1); // Bright cyan
       material.wireframe = true;
+    } else if (config.style === 'bone') {
+      material.emissiveColor = new BABYLON.Color3(0.8, 0.8, 0.9); // Subtle bone color
+      material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low specular
     } else {
       material.emissiveColor = new BABYLON.Color3(0, 1, 1); // Bright cyan
     }

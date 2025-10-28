@@ -67,20 +67,48 @@ export class ForwardKinematicsSolver {
       this.kinematicsManager.updateJointGizmo(jointId, scene);
       this.updateChildJointGizmos(joint.childNodeId, scene);
       
-      // Cache the world matrix for this joint
+      // Cache the joint frame world matrix (joint origin position + rotation)
+      const parentNode = this.sceneTreeManager.getNode(joint.parentNodeId);
       const childNode = this.sceneTreeManager.getNode(joint.childNodeId);
-      if (childNode) {
-        const babylonNode = this.getBabylonNode(childNode.id, scene);
-        if (babylonNode) {
-          babylonNode.computeWorldMatrix(true);
-          const worldMatrix = babylonNode.getWorldMatrix(true).clone();
+      if (parentNode && childNode) {
+        const parentBabylonNode = this.getBabylonNode(parentNode.id, scene);
+        const childBabylonNode = this.getBabylonNode(childNode.id, scene);
+        
+        if (parentBabylonNode && childBabylonNode) {
+          // The joint frame is at parent's world transform + joint origin
+          parentBabylonNode.computeWorldMatrix(true);
+          const parentWorldMatrix = parentBabylonNode.getWorldMatrix(true);
+          
+          // Joint origin in parent's local space
+          const originLocal = new BABYLON.Vector3(
+            joint.origin.x,
+            joint.origin.y,
+            joint.origin.z
+          );
+          
+          // Transform joint origin to world space
+          const originWorld = BABYLON.Vector3.TransformCoordinates(originLocal, parentWorldMatrix);
+          
+          // Create a simple matrix representing the joint frame position
+          const jointWorldMatrix = BABYLON.Matrix.Translation(
+            originWorld.x,
+            originWorld.y,
+            originWorld.z
+          );
+          
+          // Apply joint rotation to the matrix
+          const transform = this.calculateJointTransform(joint);
+          const rotationMatrix = BABYLON.Matrix.RotationQuaternion(transform.rotation);
+          
+          const rotatedMatrix = BABYLON.Matrix.Identity();
+          rotationMatrix.multiplyToRef(jointWorldMatrix, rotatedMatrix);
           
           // Find the chain this joint belongs to
           const chains = this.kinematicsManager.getAllChains();
           for (const chain of chains) {
             if (chain.joints.some(j => j.id === jointId)) {
-              // Cache the world matrix
-              this.kinematicsManager.setJointWorldMatrix(chain.id, jointId, worldMatrix);
+              // Cache the joint frame world matrix
+              this.kinematicsManager.setJointWorldMatrix(chain.id, jointId, rotatedMatrix.clone());
               // Emit FK update event
               (this.kinematicsManager as any).emitFkUpdated?.(chain.id);
               break;
