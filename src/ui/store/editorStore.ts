@@ -62,6 +62,13 @@ interface EditorState {
   showJointAxesOverlay: boolean; // Per-joint axis debug frames
   showLinkLengthLabels: boolean;
   showOrientationLabels: boolean;
+
+  // Feature flags
+  editableKinematicsFlag: boolean;
+
+  // Edit mode state
+  editModeEnabled: boolean;
+  attachedJointId: string | null;
   
   // Project Manager Integration
   projectManager: ProjectManager;
@@ -201,6 +208,13 @@ interface EditorState {
   setShowLinkLengthLabels: (visible: boolean) => void;
   setShowOrientationLabels: (visible: boolean) => void;
 
+  // Feature flags setters
+  setEditableKinematicsFlag: (enabled: boolean) => void;
+
+  // Edit mode actions
+  setEditModeEnabled: (enabled: boolean) => void;
+  attachJoint: (jointId: string | null) => void;
+
   // Transform settings actions
   setPositionIncrement: (value: number) => void;
   setRotationIncrement: (value: number) => void;
@@ -281,6 +295,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   showJointAxesOverlay: false,
   showLinkLengthLabels: false,
   showOrientationLabels: false,
+
+  // Feature flags
+  editableKinematicsFlag: false,
+
+  // Edit mode state
+  editModeEnabled: false,
+  attachedJointId: null,
 
   // Project Manager Integration
   projectManager: ProjectManager.getInstance(),
@@ -2435,6 +2456,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setShowJointAxesOverlay: (visible) => set({ showJointAxesOverlay: visible }),
   setShowLinkLengthLabels: (visible) => set({ showLinkLengthLabels: visible }),
   setShowOrientationLabels: (visible) => set({ showOrientationLabels: visible }),
+
+  // Feature flags setters
+  setEditableKinematicsFlag: (enabled) => set({ editableKinematicsFlag: enabled }),
+
+  // Edit mode actions
+  setEditModeEnabled: (enabled) => set({ editModeEnabled: enabled }),
+  attachJoint: (jointId) => set({ attachedJointId: jointId }),
 
   // Transform settings setters
   setPositionIncrement: (value: number) => set({ positionIncrement: value }),

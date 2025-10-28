@@ -6,7 +6,8 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Settings } from 'lucide-react';
+import { Settings, Edit3, Lock, Unlock } from 'lucide-react';
+import * as BABYLON from '@babylonjs/core';
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { AssetLibraryDarkPanel, AssetLibraryDarkSection, AssetLibraryDarkDisabled } from './FloatingPanel/AssetLibraryDarkPanel';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
@@ -62,6 +63,14 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
   const setShowJointAxesOverlay = useEditorStore((s) => s.setShowJointAxesOverlay);
   const setShowLinkLengthLabels = useEditorStore((s) => s.setShowLinkLengthLabels);
   const setShowOrientationLabels = useEditorStore((s) => s.setShowOrientationLabels);
+
+  // Edit mode feature flag and state
+  const editableKinematicsFlag = useEditorStore((s) => s.editableKinematicsFlag);
+  const editModeEnabled = useEditorStore((s) => s.editModeEnabled);
+  const attachedJointId = useEditorStore((s) => s.attachedJointId);
+  const setEditModeEnabled = useEditorStore((s) => s.setEditModeEnabled);
+  const attachJoint = useEditorStore((s) => s.attachJoint);
+  const commandManager = useEditorStore((s) => s.commandManager);
 
   // Discover all robots in the scene
   useEffect(() => {
@@ -278,6 +287,121 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     }
   }, [showJointAxesOverlay, activeChain, kinematicsManager]);
 
+  // Edit mode: attach rotation gizmo to selected joint and render limit arc
+  useEffect(() => {
+    if (!editModeEnabled || !attachedJointId) return;
+    const sceneManager = (window as any).sceneManager as any;
+    const scene: BABYLON.Scene | null = sceneManager?.getScene?.() || null;
+    if (!scene) return;
+
+    const joint = kinematicsManager.getJoint(attachedJointId);
+    if (!joint) return;
+
+    // Resolve parent Babylon node (copied from KinematicsManager.showJointDebugFrame)
+    const tree = SceneTreeManager.getInstance();
+    const parentNode = tree.getNode(joint.parentNodeId);
+    let parentBabylonNode: BABYLON.TransformNode | null = null;
+    if (parentNode?.babylonMeshId) {
+      parentBabylonNode = scene.getMeshByUniqueId(parseInt(parentNode.babylonMeshId)) as BABYLON.TransformNode;
+    }
+    if (!parentBabylonNode && parentNode?.babylonTransformNodeId) {
+      parentBabylonNode = scene.transformNodes.find(tn => tn.uniqueId === parseInt(parentNode!.babylonTransformNodeId!)) || null;
+    }
+    if (!parentBabylonNode && parentNode?.type === 'collection') {
+      parentBabylonNode = scene.transformNodes.find(tn => tn.name === parentNode!.name) || null;
+    }
+    if (!parentBabylonNode) return;
+
+    parentBabylonNode.computeWorldMatrix(true);
+    const parentWorldMatrix = parentBabylonNode.getWorldMatrix();
+
+    // Joint origin (user data assumed mm in KinematicsManager; convert to meters for Babylon)
+    const originLocal = new BABYLON.Vector3(joint.origin.x, joint.origin.y, joint.origin.z);
+    const originWorld = BABYLON.Vector3.TransformCoordinates(originLocal, parentWorldMatrix);
+
+    const localAxis = new BABYLON.Vector3(joint.axis.x, joint.axis.y, joint.axis.z).normalize();
+    const worldAxis = BABYLON.Vector3.TransformNormal(localAxis, parentWorldMatrix).normalize();
+
+    // Show limit arc for feedback (single joint)
+    try {
+      kinematicsManager.hideAllJointVisuals();
+      kinematicsManager.showJointDebugFrame(attachedJointId, scene);
+    } catch {}
+
+    // Create an isolated transform node at joint origin for rotation handle
+    const tn = new BABYLON.TransformNode(`edit_joint_${attachedJointId}`, scene);
+    tn.position.copyFrom(originWorld);
+    tn.rotationQuaternion = BABYLON.Quaternion.Identity();
+
+    // Create rotation gizmo
+    const utility = new BABYLON.UtilityLayerRenderer(scene);
+    const rotGizmo = new BABYLON.RotationGizmo(utility);
+    rotGizmo.attachedNode = tn;
+    rotGizmo.updateGizmoRotationToMatchAttachedMesh = false;
+    rotGizmo.scaleRatio = 1.0;
+
+    // Visual emphasis: active joint bold color already standard; keep defaults
+
+    // Live preview + commit
+    const startAngleRef = { value: joint.position };
+
+    const angleFromQuaternionAboutAxis = (q: BABYLON.Quaternion, axis: BABYLON.Vector3) => {
+      const v = new BABYLON.Vector3(q.x, q.y, q.z);
+      const s = BABYLON.Vector3.Dot(v, axis);
+      const angle = 2 * Math.atan2(s, q.w);
+      return angle;
+    };
+
+    const clampToLimits = (val: number) => {
+      const lower = joint.limits?.lower ?? -Math.PI;
+      const upper = joint.limits?.upper ?? Math.PI;
+      return Math.max(lower, Math.min(upper, val));
+    };
+
+    const fk = ForwardKinematicsSolver.getInstance();
+
+    // Drag start
+    rotGizmo.onDragStartObservable.add(() => {
+      const j = kinematicsManager.getJoint(attachedJointId);
+      startAngleRef.value = j?.position ?? 0;
+    });
+
+    // Dragging (live preview)
+    rotGizmo.onDragObservable.add(() => {
+      if (!tn.rotationQuaternion) return;
+      const delta = angleFromQuaternionAboutAxis(tn.rotationQuaternion, worldAxis);
+      const preview = clampToLimits(startAngleRef.value + delta);
+      fk.updateJointPosition(attachedJointId, preview);
+    });
+
+    // Drag end (commit)
+    rotGizmo.onDragEndObservable.add(() => {
+      const current = kinematicsManager.getJoint(attachedJointId)?.position ?? startAngleRef.value;
+      const oldVal = startAngleRef.value;
+      if (Math.abs(current - oldVal) > 1e-6) {
+        try {
+          const { EditJointAngleCommand } = require('../../history/commands/EditJointAngleCommand');
+          const cmd = new EditJointAngleCommand(attachedJointId, oldVal, current);
+          commandManager.execute(cmd);
+        } catch (e) {
+          // Fallback: already updated via preview
+        }
+      }
+
+      // Reset gizmo local rotation for next drag measurement
+      tn.rotationQuaternion = BABYLON.Quaternion.Identity();
+    });
+
+    // Cleanup on detach/disable
+    return () => {
+      try { rotGizmo.dispose(); } catch {}
+      try { utility.dispose(); } catch {}
+      try { tn.dispose(); } catch {}
+      // Hide joint visuals when leaving edit state
+      try { kinematicsManager.hideAllJointVisuals(); } catch {}
+    };
+  }, [editModeEnabled, attachedJointId, kinematicsManager, commandManager]);
+
   const activeDevice = robots.find(r => r.nodeId === activeRobotId);
 
   const panelContent = (
@@ -402,6 +526,46 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
           </div>
         </div>
       </AssetLibraryDarkSection>
+
+      {/* Edit Section (feature-flagged) */}
+      {editableKinematicsFlag && (
+        <AssetLibraryDarkSection title="Edit" hint={!activeRobotId ? 'Select a device to enable' : undefined}>
+          <div className="viz-controls">
+            <div className="viz-row">
+              <label title="Enable editing tools for the active chain">Enable Edit Mode</label>
+              <input
+                type="checkbox"
+                checked={editModeEnabled}
+                onChange={(e) => setEditModeEnabled(e.target.checked)}
+                aria-label="Enable edit mode"
+              />
+            </div>
+
+            {editModeEnabled && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="viz-row">
+                  <label title="Attach to a joint to edit">Attached Joint</label>
+                  <select
+                    value={attachedJointId || ''}
+                    onChange={(e) => attachJoint(e.target.value || null)}
+                    aria-label="Select joint to attach"
+                  >
+                    <option value="">None</option>
+                    {joints.filter(j => j.type === 'revolute' || j.type === 'prismatic').map((j) => (
+                      <option key={j.id} value={j.id}>{j.name || j.id}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="viz-row">
+                  <label title="Dim non-active skeleton while editing">Dim non-active</label>
+                  <input type="checkbox" checked={true} readOnly aria-label="Dim non-active skeleton" />
+                </div>
+              </div>
+            )}
+          </div>
+        </AssetLibraryDarkSection>
+      )}
     </div>
   );
 
