@@ -128,7 +128,12 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
         opacity: skeletonOpacity,
         linkColor: new BABYLON.Color3(0.2, 0.8, 1.0), // Cyan
         showCoordinates,
-        coordinateSize: 0.05 // 50mm
+        coordinateSize: 0.05, // 50mm
+        linkStyle: 'cylinder', // Default style
+        linkThickness: 0.01, // 10mm
+        showLinkInfo: false, // For future tooltip implementation
+        highlightActiveJoints: true,
+        animationSpeed: 1.0
       });
     }
   }, [robotId, showSkeleton, showCoordinates, skeletonOpacity, skeletonGizmo]);
@@ -793,41 +798,112 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
         </div>
       )}
 
-      {/* Skeleton Visualization Controls */}
-      <div className="skeleton-controls">
-        <h4>Skeleton Visualization</h4>
-        <div className="skeleton-toggle">
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={showSkeleton}
-              onChange={(e) => setShowSkeleton(e.target.checked)}
-            />
-            <span>Show Skeleton</span>
-          </label>
+      {/* Enhanced Skeleton Visualization Controls */}
+      <div className="skeleton-controls enhanced">
+        <div className="skeleton-header">
+          <div className="skeleton-title">
+            <div className="skeleton-icon">🦴</div>
+            <h4>Kinematic Skeleton</h4>
+            <div className="skeleton-status">
+              {showSkeleton ? (
+                <span className="status-active">Active</span>
+              ) : (
+                <span className="status-inactive">Hidden</span>
+              )}
+            </div>
+          </div>
+          <div className="skeleton-description">
+            Visualize robot structure with interactive links
+          </div>
         </div>
-        <div className="skeleton-toggle">
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={showCoordinates}
-              onChange={(e) => setShowCoordinates(e.target.checked)}
-              disabled={!showSkeleton}
-            />
-            <span>Show Coordinates</span>
-          </label>
+
+        <div className="skeleton-controls-grid">
+          {/* Main Toggle */}
+          <div className="skeleton-main-toggle">
+            <label className="enhanced-checkbox-label">
+              <input
+                type="checkbox"
+                checked={showSkeleton}
+                onChange={(e) => setShowSkeleton(e.target.checked)}
+                className="skeleton-main-checkbox"
+              />
+              <div className="checkbox-custom">
+                <div className="checkbox-indicator"></div>
+              </div>
+              <div className="checkbox-content">
+                <span className="checkbox-label">Show Skeleton</span>
+                <span className="checkbox-hint">Display kinematic chain links</span>
+              </div>
+            </label>
+          </div>
+
+          {/* Advanced Options */}
+          {showSkeleton && (
+            <div className="skeleton-advanced-options">
+              <div className="skeleton-option">
+                <label className="enhanced-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={showCoordinates}
+                    onChange={(e) => setShowCoordinates(e.target.checked)}
+                    className="skeleton-option-checkbox"
+                  />
+                  <div className="checkbox-custom small">
+                    <div className="checkbox-indicator"></div>
+                  </div>
+                  <div className="checkbox-content">
+                    <span className="checkbox-label">Coordinate Axes</span>
+                    <span className="checkbox-hint">Show XYZ at each joint</span>
+                  </div>
+                </label>
+              </div>
+
+              <div className="skeleton-option">
+                <div className="skeleton-opacity-enhanced">
+                  <div className="opacity-header">
+                    <span className="opacity-label">Transparency</span>
+                    <span className="opacity-value">{Math.round(skeletonOpacity * 100)}%</span>
+                  </div>
+                  <div className="opacity-slider-container">
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="1.0"
+                      step="0.1"
+                      value={skeletonOpacity}
+                      onChange={(e) => setSkeletonOpacity(parseFloat(e.target.value))}
+                      className="opacity-slider"
+                    />
+                    <div className="opacity-track">
+                      <div 
+                        className="opacity-fill" 
+                        style={{ width: `${skeletonOpacity * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Quick Actions */}
         {showSkeleton && (
-          <div className="skeleton-opacity">
-            <label>Opacity: {Math.round(skeletonOpacity * 100)}%</label>
-            <input
-              type="range"
-              min="0.1"
-              max="1.0"
-              step="0.1"
-              value={skeletonOpacity}
-              onChange={(e) => setSkeletonOpacity(parseFloat(e.target.value))}
-            />
+          <div className="skeleton-quick-actions">
+            <button 
+              className="quick-action-btn"
+              onClick={() => setSkeletonOpacity(0.8)}
+              title="Reset to default opacity"
+            >
+              <span>Reset Opacity</span>
+            </button>
+            <button 
+              className="quick-action-btn"
+              onClick={() => setShowCoordinates(!showCoordinates)}
+              title="Toggle coordinate axes"
+            >
+              <span>{showCoordinates ? 'Hide' : 'Show'} Axes</span>
+            </button>
           </div>
         )}
       </div>

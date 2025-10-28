@@ -20,6 +20,13 @@ export interface SkeletonLink {
   direction: BABYLON.Vector3;
   mesh: BABYLON.Mesh | null;
   material: BABYLON.StandardMaterial | null;
+  isActive: boolean;
+  jointType: string;
+  linkInfo?: {
+    length: number;
+    angle: number;
+    jointName: string;
+  };
 }
 
 export interface SkeletonGizmoConfig {
@@ -30,6 +37,11 @@ export interface SkeletonGizmoConfig {
   linkColor: BABYLON.Color3;
   showCoordinates: boolean;
   coordinateSize: number;
+  linkStyle: 'cylinder' | 'line' | 'tube';
+  linkThickness: number;
+  showLinkInfo: boolean;
+  highlightActiveJoints: boolean;
+  animationSpeed: number;
 }
 
 export class SkeletonGizmoManager {
@@ -174,7 +186,7 @@ export class SkeletonGizmoManager {
   }
 
   /**
-   * Build skeleton links by connecting consecutive joints
+   * Build skeleton links by connecting consecutive joints with enhanced information
    */
   private buildSkeletonLinks(config: SkeletonGizmoConfig): void {
     const chains = this.kinematicsManager.getAllChains();
@@ -194,7 +206,7 @@ export class SkeletonGizmoManager {
 
     const links: SkeletonLink[] = [];
 
-    // Connect consecutive joints
+    // Connect consecutive joints with enhanced link information
     for (let i = 0; i < movableJoints.length - 1; i++) {
       const startJoint = movableJoints[i];
       const endJoint = movableJoints[i + 1];
@@ -205,6 +217,13 @@ export class SkeletonGizmoManager {
       if (startPos && endPos) {
         const direction = endPos.subtract(startPos);
         const length = direction.length();
+        const normalizedDirection = direction.normalize();
+
+        // Calculate link angle relative to world axes
+        const angle = Math.acos(Math.abs(normalizedDirection.y)) * (180 / Math.PI);
+
+        // Determine if this joint is currently active (has non-zero velocity or recent movement)
+        const isActive = this.isJointActive(startJoint.id);
 
         links.push({
           id: `link_${startJoint.id}_${endJoint.id}`,
@@ -213,9 +232,16 @@ export class SkeletonGizmoManager {
           startPosition: startPos.clone(),
           endPosition: endPos.clone(),
           length,
-          direction: direction.normalize(),
+          direction: normalizedDirection,
           mesh: null,
-          material: null
+          material: null,
+          isActive,
+          jointType: startJoint.type,
+          linkInfo: {
+            length: length * 1000, // Convert to mm for display
+            angle,
+            jointName: startJoint.name || `Joint ${i + 1}`
+          }
         });
       }
     }
@@ -224,7 +250,24 @@ export class SkeletonGizmoManager {
   }
 
   /**
-   * Create cylinder meshes for skeleton links
+   * Check if a joint is currently active (moving or recently moved)
+   */
+  private isJointActive(jointId: string): boolean {
+    const joint = this.kinematicsManager.getJoint(jointId);
+    if (!joint) return false;
+
+    // Check if joint has non-zero velocity
+    if (joint.velocity && Math.abs(joint.velocity) > 0.001) {
+      return true;
+    }
+
+    // Check if joint position has changed recently (simple heuristic)
+    // This could be enhanced with a more sophisticated tracking system
+    return false;
+  }
+
+  /**
+   * Create meshes for skeleton links with multiple styles
    */
   private createSkeletonMeshes(config: SkeletonGizmoConfig): void {
     if (!this.scene) return;
@@ -234,44 +277,162 @@ export class SkeletonGizmoManager {
     links.forEach(link => {
       if (link.length < 0.001) return; // Skip very short links
 
-      // Create cylinder mesh
-      const cylinder = BABYLON.MeshBuilder.CreateCylinder(
-        `skeleton_link_${link.id}`,
-        {
-          height: link.length,
-          diameter: 0.01, // 10mm diameter
-          tessellation: 8
-        },
-        this.scene
-      );
-
-      // Position cylinder at midpoint
+      let mesh: BABYLON.Mesh;
       const midpoint = link.startPosition.add(link.endPosition).scale(0.5);
-      cylinder.position = midpoint;
 
-      // Orient cylinder along link direction
-      const upVector = new BABYLON.Vector3(0, 1, 0);
-      const angle = Math.acos(BABYLON.Vector3.Dot(upVector, link.direction));
-      const crossProduct = BABYLON.Vector3.Cross(upVector, link.direction).normalize();
-      
-      if (crossProduct.length() > 0.01) {
-        cylinder.rotationQuaternion = BABYLON.Quaternion.RotationAxis(crossProduct, angle);
+      // Create mesh based on style preference
+      switch (config.linkStyle) {
+        case 'line':
+          mesh = this.createLineMesh(link, config);
+          break;
+        case 'tube':
+          mesh = this.createTubeMesh(link, config);
+          break;
+        case 'cylinder':
+        default:
+          mesh = this.createCylinderMesh(link, config);
+          break;
       }
 
-      // Apply material
-      const material = this.linkMaterial!.clone(`skeleton_mat_${link.id}`);
-      material.diffuseColor = config.linkColor;
-      material.alpha = config.opacity;
-      cylinder.material = material;
+      // Position mesh at midpoint
+      mesh.position = midpoint;
+
+      // Orient mesh along link direction
+      this.orientMeshAlongDirection(mesh, link.direction);
+
+      // Apply material with enhanced properties
+      const material = this.createLinkMaterial(link, config);
+      mesh.material = material;
 
       // Configure rendering
-      cylinder.isPickable = false;
-      cylinder.renderingGroupId = 2; // Render on top of robot
-      cylinder.isVisible = config.enabled;
+      mesh.isPickable = false;
+      mesh.renderingGroupId = 2; // Render on top of robot
+      mesh.isVisible = config.enabled;
 
-      link.mesh = cylinder;
+      // Add subtle animation for active joints
+      if (config.highlightActiveJoints && link.isActive) {
+        this.addJointHighlightAnimation(mesh, config.animationSpeed);
+      }
+
+      link.mesh = mesh;
       link.material = material;
     });
+  }
+
+  /**
+   * Create cylinder mesh for link
+   */
+  private createCylinderMesh(link: SkeletonLink, config: SkeletonGizmoConfig): BABYLON.Mesh {
+    return BABYLON.MeshBuilder.CreateCylinder(
+      `skeleton_link_${link.id}`,
+      {
+        height: link.length,
+        diameter: config.linkThickness,
+        tessellation: 8
+      },
+      this.scene!
+    );
+  }
+
+  /**
+   * Create tube mesh for link (more detailed)
+   */
+  private createTubeMesh(link: SkeletonLink, config: SkeletonGizmoConfig): BABYLON.Mesh {
+    const points = [
+      link.startPosition,
+      link.endPosition
+    ];
+    
+    return BABYLON.MeshBuilder.CreateTube(
+      `skeleton_tube_${link.id}`,
+      {
+        path: points,
+        radius: config.linkThickness / 2,
+        tessellation: 8,
+        cap: BABYLON.Mesh.CAP_ALL
+      },
+      this.scene!
+    );
+  }
+
+  /**
+   * Create line mesh for link (lightweight)
+   */
+  private createLineMesh(link: SkeletonLink, _config: SkeletonGizmoConfig): BABYLON.Mesh {
+    const points = [
+      link.startPosition,
+      link.endPosition
+    ];
+    
+    return BABYLON.MeshBuilder.CreateLines(
+      `skeleton_line_${link.id}`,
+      {
+        points: points,
+        updatable: true
+      },
+      this.scene!
+    );
+  }
+
+  /**
+   * Orient mesh along direction vector
+   */
+  private orientMeshAlongDirection(mesh: BABYLON.Mesh, direction: BABYLON.Vector3): void {
+    const upVector = new BABYLON.Vector3(0, 1, 0);
+    const angle = Math.acos(BABYLON.Vector3.Dot(upVector, direction));
+    const crossProduct = BABYLON.Vector3.Cross(upVector, direction).normalize();
+    
+    if (crossProduct.length() > 0.01) {
+      mesh.rotationQuaternion = BABYLON.Quaternion.RotationAxis(crossProduct, angle);
+    }
+  }
+
+  /**
+   * Create enhanced material for link
+   */
+  private createLinkMaterial(link: SkeletonLink, config: SkeletonGizmoConfig): BABYLON.StandardMaterial {
+    const material = this.linkMaterial!.clone(`skeleton_mat_${link.id}`);
+    material.diffuseColor = config.linkColor;
+    material.alpha = config.opacity;
+    
+    // Enhanced visual properties
+    if (link.isActive) {
+      material.emissiveColor = config.linkColor.scale(0.3);
+      material.specularColor = new BABYLON.Color3(1, 1, 1);
+      material.specularPower = 64;
+    }
+    
+    // Add subtle glow for better visibility
+    material.disableLighting = false;
+    material.useEmissiveAsIllumination = true;
+    
+    return material;
+  }
+
+  /**
+   * Add highlight animation for active joints
+   */
+  private addJointHighlightAnimation(mesh: BABYLON.Mesh, speed: number): void {
+    const animation = new BABYLON.Animation(
+      `highlight_${mesh.name}`,
+      'emissiveColor',
+      30, // fps
+      BABYLON.Animation.ANIMATIONTYPE_COLOR3,
+      BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
+    );
+
+    const keys = [
+      { frame: 0, value: new BABYLON.Color3(0.2, 0.2, 0.2) },
+      { frame: 30, value: new BABYLON.Color3(0.8, 0.8, 0.8) },
+      { frame: 60, value: new BABYLON.Color3(0.2, 0.2, 0.2) }
+    ];
+
+    animation.setKeys(keys);
+    mesh.animations.push(animation);
+    
+    if (this.scene) {
+      this.scene.beginAnimation(mesh, 0, 60, true, speed);
+    }
   }
 
   /**
@@ -540,6 +701,51 @@ export class SkeletonGizmoManager {
     
     this.scene = null;
     console.log('[SkeletonGizmoManager] Disposed');
+  }
+
+  /**
+   * Get skeleton information for a robot (for tooltips, debugging, etc.)
+   */
+  getSkeletonInfo(robotId: string): {
+    linkCount: number;
+    totalLength: number;
+    activeLinks: number;
+    links: SkeletonLink[];
+  } | null {
+    const links = this.skeletonLinks.get(robotId);
+    if (!links) return null;
+
+    const totalLength = links.reduce((sum, link) => sum + link.length, 0);
+    const activeLinks = links.filter(link => link.isActive).length;
+
+    return {
+      linkCount: links.length,
+      totalLength: totalLength * 1000, // Convert to mm
+      activeLinks,
+      links: links.map(link => ({
+        ...link,
+        // Remove mesh references for serialization
+        mesh: null,
+        material: null
+      }))
+    };
+  }
+
+  /**
+   * Get link information for tooltip display
+   */
+  getLinkInfo(robotId: string, linkId: string): SkeletonLink | null {
+    const links = this.skeletonLinks.get(robotId);
+    if (!links) return null;
+
+    const link = links.find(l => l.id === linkId);
+    if (!link) return null;
+
+    return {
+      ...link,
+      mesh: null,
+      material: null
+    };
   }
 
   /**
