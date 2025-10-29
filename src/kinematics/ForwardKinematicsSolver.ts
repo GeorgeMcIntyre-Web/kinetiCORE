@@ -503,78 +503,53 @@ export class ForwardKinematicsSolver {
       return null;
     }
 
-    // Start with identity - robot-local space (not world space)  
-    let accumulatedTransform = BABYLON.Matrix.Identity();
+    // FIX: Use scene graph accumulation (same as solve())
+    let accumulatedPosition = BABYLON.Vector3.Zero();
+    let accumulatedRotation = BABYLON.Quaternion.Identity();
 
     // Build transformation chain from base up to specified joint
     for (let i = 0; i <= upToJointIndex; i++) {
       const joint = joints[i];
       const angle = jointAngles[i];
 
-      // Create origin translation matrix
-      const originTranslation = BABYLON.Matrix.Translation(
-        joint.origin.x,
-        joint.origin.y,
-        joint.origin.z
-      );
+      // Build local translation
+      const localTranslation = new BABYLON.Vector3(joint.origin.x, joint.origin.y, joint.origin.z);
 
-      // Create origin rotation matrix
-      let originRotation = BABYLON.Matrix.Identity();
+      // Handle prismatic joint
+      if (joint.type === 'prismatic') {
+        const axis = new BABYLON.Vector3(joint.axis.x, joint.axis.y, joint.axis.z).normalize();
+        localTranslation.addInPlace(axis.scale(angle));
+      }
+
+      // Transform local translation by accumulated rotation (parent's rotation)
+      const worldTranslation = localTranslation.applyRotationQuaternion(accumulatedRotation);
+      accumulatedPosition.addInPlace(worldTranslation);
+
+      // Build local rotation (origin rotation * joint rotation)
+      let localRotation = BABYLON.Quaternion.Identity();
+
       if (joint.originRotation) {
-        const quat = new BABYLON.Quaternion(
+        localRotation = new BABYLON.Quaternion(
           joint.originRotation.x,
           joint.originRotation.y,
           joint.originRotation.z,
           joint.originRotation.w
         );
-        originRotation = BABYLON.Matrix.FromQuaternionToRef(
-          quat,
-          new BABYLON.Matrix()
-        );
       }
 
-      // Create joint rotation/translation matrix based on type
-      let jointTransform = BABYLON.Matrix.Identity();
-
+      // Apply joint rotation
       if (joint.type === 'revolute') {
-        // Rotation around axis
-        const axis = new BABYLON.Vector3(
-          joint.axis.x,
-          joint.axis.y,
-          joint.axis.z
-        ).normalize();
-        jointTransform = BABYLON.Matrix.RotationAxis(axis, angle);
-      } else if (joint.type === 'prismatic') {
-        // Translation along axis
-        const axis = new BABYLON.Vector3(
-          joint.axis.x,
-          joint.axis.y,
-          joint.axis.z
-        ).normalize();
-        const translation = axis.scale(angle);
-        jointTransform = BABYLON.Matrix.Translation(
-          translation.x,
-          translation.y,
-          translation.z
-        );
+        const axis = new BABYLON.Vector3(joint.axis.x, joint.axis.y, joint.axis.z).normalize();
+        const jointRot = BABYLON.Quaternion.RotationAxis(axis, angle);
+        localRotation = localRotation.multiply(jointRot);
       }
 
-      // Combine: T = T_prev * T_origin * R_origin * T_joint
-      const linkTransform = originTranslation
-        .multiply(originRotation)
-        .multiply(jointTransform);
-
-      accumulatedTransform = accumulatedTransform.multiply(linkTransform);
+      // Accumulate rotation (parent * local)
+      accumulatedRotation = accumulatedRotation.multiply(localRotation);
     }
 
-    // Extract position and rotation from accumulated transform
-    const position = new BABYLON.Vector3(
-      accumulatedTransform.m[12],
-      accumulatedTransform.m[13],
-      accumulatedTransform.m[14]
-    );
-
-    const rotation = BABYLON.Quaternion.FromRotationMatrix(accumulatedTransform);
+    const position = accumulatedPosition;
+    const rotation = accumulatedRotation;
 
     return { position, rotation };
   }
@@ -601,73 +576,54 @@ export class ForwardKinematicsSolver {
       return null;
     }
 
-    // Start with identity - robot-local space (not world space)
-    let accumulatedTransform = BABYLON.Matrix.Identity();
+    // FIX: Manually accumulate like a scene graph (position + rotation separately)
+    // This is how Babylon's parent-child hierarchy works
+    let accumulatedPosition = BABYLON.Vector3.Zero();
+    let accumulatedRotation = BABYLON.Quaternion.Identity();
 
     // Build transformation chain from base to TCP (tool0)
     for (let i = 0; i < joints.length; i++) {
       const joint = joints[i];
       const angle = jointAngles[i];
 
-      // Create origin translation matrix
-      const originTranslation = BABYLON.Matrix.Translation(
-        joint.origin.x,
-        joint.origin.y,
-        joint.origin.z
-      );
+      // Build local translation
+      const localTranslation = new BABYLON.Vector3(joint.origin.x, joint.origin.y, joint.origin.z);
 
-      // Create origin rotation matrix
-      let originRotation = BABYLON.Matrix.Identity();
+      // Handle prismatic joint
+      if (joint.type === 'prismatic') {
+        const axis = new BABYLON.Vector3(joint.axis.x, joint.axis.y, joint.axis.z).normalize();
+        localTranslation.addInPlace(axis.scale(angle));
+      }
+
+      // Transform local translation by accumulated rotation (parent's rotation)
+      const worldTranslation = localTranslation.applyRotationQuaternion(accumulatedRotation);
+      accumulatedPosition.addInPlace(worldTranslation);
+
+      // Build local rotation (origin rotation * joint rotation)
+      let localRotation = BABYLON.Quaternion.Identity();
+
       if (joint.originRotation) {
-        const quat = new BABYLON.Quaternion(
+        localRotation = new BABYLON.Quaternion(
           joint.originRotation.x,
           joint.originRotation.y,
           joint.originRotation.z,
           joint.originRotation.w
         );
-        originRotation = BABYLON.Matrix.FromQuaternionToRef(
-          quat,
-          new BABYLON.Matrix()
-        );
       }
 
-      // Create joint rotation/translation matrix based on type
-      let jointTransform = BABYLON.Matrix.Identity();
-
+      // Apply joint rotation
       if (joint.type === 'revolute') {
-        // Rotation around axis
-        const axis = new BABYLON.Vector3(
-          joint.axis.x,
-          joint.axis.y,
-          joint.axis.z
-        ).normalize();
-        jointTransform = BABYLON.Matrix.RotationAxis(axis, angle);
-      } else if (joint.type === 'prismatic') {
-        // Translation along axis
-        const axis = new BABYLON.Vector3(
-          joint.axis.x,
-          joint.axis.y,
-          joint.axis.z
-        ).normalize();
-        const translation = axis.scale(angle);
-        jointTransform = BABYLON.Matrix.Translation(
-          translation.x,
-          translation.y,
-          translation.z
-        );
+        const axis = new BABYLON.Vector3(joint.axis.x, joint.axis.y, joint.axis.z).normalize();
+        const jointRot = BABYLON.Quaternion.RotationAxis(axis, angle);
+        localRotation = localRotation.multiply(jointRot);
       }
 
-      // Combine: T = T_prev * T_origin * R_origin * T_joint
-      const linkTransform = originTranslation
-        .multiply(originRotation)
-        .multiply(jointTransform);
-
-      accumulatedTransform = accumulatedTransform.multiply(linkTransform);
+      // Accumulate rotation (parent * local)
+      accumulatedRotation = accumulatedRotation.multiply(localRotation);
     }
 
-    // Extract position and rotation in WORLD space from final transform
-    const position = accumulatedTransform.getTranslation();
-    const rotation = BABYLON.Quaternion.FromRotationMatrix(accumulatedTransform.getRotationMatrix());
+    const position = accumulatedPosition;
+    const rotation = accumulatedRotation;
 
     return { position, rotation };
   }
@@ -706,62 +662,61 @@ export class ForwardKinematicsSolver {
       baseWorldMatrix
     );
 
-    // Compute transform for each joint - keep matrices in WORLD space
-    const jointTransforms: BABYLON.Matrix[] = [];
-    let accumulatedTransform = baseWorldMatrix.clone();
+    // FIX: Use scene graph accumulation, store positions and rotations at each joint
+    const jointPositions: BABYLON.Vector3[] = [];
+    const jointRotations: BABYLON.Quaternion[] = [];
+
+    let accumulatedPosition = BABYLON.Vector3.Zero();
+    let accumulatedRotation = BABYLON.Quaternion.Identity();
+
+    // Transform by base world matrix
+    const basePos = baseWorldMatrix.getTranslation();
+    const baseRot = BABYLON.Quaternion.FromRotationMatrix(baseWorldMatrix.getRotationMatrix());
+    accumulatedPosition = basePos.clone();
+    accumulatedRotation = baseRot.clone();
 
     for (let i = 0; i < joints.length; i++) {
       const joint = joints[i];
       const angle = jointAngles[i];
 
-      const originTranslation = BABYLON.Matrix.Translation(
-        joint.origin.x,
-        joint.origin.y,
-        joint.origin.z
-      );
+      // Build local translation
+      const localTranslation = new BABYLON.Vector3(joint.origin.x, joint.origin.y, joint.origin.z);
 
-      let originRotation = BABYLON.Matrix.Identity();
+      // Handle prismatic joint
+      if (joint.type === 'prismatic') {
+        const axis = new BABYLON.Vector3(joint.axis.x, joint.axis.y, joint.axis.z).normalize();
+        localTranslation.addInPlace(axis.scale(angle));
+      }
+
+      // Transform local translation by accumulated rotation (parent's rotation)
+      const worldTranslation = localTranslation.applyRotationQuaternion(accumulatedRotation);
+      accumulatedPosition.addInPlace(worldTranslation);
+
+      // Build local rotation (origin rotation * joint rotation)
+      let localRotation = BABYLON.Quaternion.Identity();
+
       if (joint.originRotation) {
-        const quat = new BABYLON.Quaternion(
+        localRotation = new BABYLON.Quaternion(
           joint.originRotation.x,
           joint.originRotation.y,
           joint.originRotation.z,
           joint.originRotation.w
         );
-        originRotation = BABYLON.Matrix.FromQuaternionToRef(
-          quat,
-          new BABYLON.Matrix()
-        );
       }
 
-      let jointTransform = BABYLON.Matrix.Identity();
+      // Apply joint rotation
       if (joint.type === 'revolute') {
-        const axis = new BABYLON.Vector3(
-          joint.axis.x,
-          joint.axis.y,
-          joint.axis.z
-        ).normalize();
-        jointTransform = BABYLON.Matrix.RotationAxis(axis, angle);
-      } else if (joint.type === 'prismatic') {
-        const axis = new BABYLON.Vector3(
-          joint.axis.x,
-          joint.axis.y,
-          joint.axis.z
-        ).normalize();
-        const translation = axis.scale(angle);
-        jointTransform = BABYLON.Matrix.Translation(
-          translation.x,
-          translation.y,
-          translation.z
-        );
+        const axis = new BABYLON.Vector3(joint.axis.x, joint.axis.y, joint.axis.z).normalize();
+        const jointRot = BABYLON.Quaternion.RotationAxis(axis, angle);
+        localRotation = localRotation.multiply(jointRot);
       }
 
-      const linkTransform = originTranslation
-        .multiply(originRotation)
-        .multiply(jointTransform);
+      // Accumulate rotation (parent * local)
+      accumulatedRotation = accumulatedRotation.multiply(localRotation);
 
-      accumulatedTransform = accumulatedTransform.multiply(linkTransform);
-      jointTransforms.push(accumulatedTransform.clone());
+      // Store this joint's world position and rotation
+      jointPositions.push(accumulatedPosition.clone());
+      jointRotations.push(accumulatedRotation.clone());
     }
 
     // Compute Jacobian columns
@@ -769,7 +724,7 @@ export class ForwardKinematicsSolver {
       const joint = joints[i];
 
       // Get joint position in world frame
-      const jointPos = jointTransforms[i].getTranslation();
+      const jointPos = jointPositions[i];
 
       // Get joint axis in world frame
       const localAxis = new BABYLON.Vector3(
@@ -778,11 +733,8 @@ export class ForwardKinematicsSolver {
         joint.axis.z
       ).normalize();
 
-      // Transform axis to world frame
-      const worldAxis = BABYLON.Vector3.TransformNormal(
-        localAxis,
-        jointTransforms[i]
-      );
+      // Transform axis to world frame by the joint's rotation
+      const worldAxis = localAxis.applyRotationQuaternion(jointRotations[i]);
 
       if (joint.type === 'revolute') {
         // Linear velocity: v = r × axis (NOT axis × r!)
