@@ -140,17 +140,6 @@ export class InverseKinematicsSolver {
       const positionError = target.position.subtract(currentPosWorld);
       const positionErrorMagnitude = positionError.length();
 
-      // === COORDINATE SPACE DEBUG (Iteration 0 only) ===
-      if (iteration === 0) {
-        console.log(`[IK DEBUG] Target position (WORLD): ${target.position.toString()}`);
-        console.log(`[IK DEBUG] Position error (WORLD): ${positionError.toString()}, magnitude=${positionErrorMagnitude.toFixed(4)}m`);
-      }
-
-      // DEBUG: Log first 3 iterations and every 100 iterations
-      if (iteration < 3 || iteration % 100 === 0) {
-        console.log(`[IK Jacobian] Iter ${iteration}: error=${positionErrorMagnitude.toFixed(4)}m, currentPos=${currentPosWorld.toString()}, targetPos=${target.position.toString()}`);
-      }
-
       // Compute orientation error (if target rotation specified)
       let orientationError = new BABYLON.Vector3(0, 0, 0);
       if (target.rotation) {
@@ -189,6 +178,33 @@ export class InverseKinematicsSolver {
       // Total error
       error = positionErrorMagnitude * positionWeight +
               orientationError.length() * orientationWeight;
+
+      // === COORDINATE SPACE DEBUG (Iteration 0 only) ===
+      if (iteration === 0) {
+        console.log(`[IK DEBUG] Target position (WORLD): ${target.position.toString()}`);
+        console.log(`[IK DEBUG] Position error (WORLD): ${positionError.toString()}, magnitude=${positionErrorMagnitude.toFixed(4)}m`);
+
+        // === ORIENTATION DEBUG ===
+        console.log(`[IK DEBUG] === Orientation Analysis ===`);
+        console.log(`[IK DEBUG] Target rotation defined: ${target.rotation !== undefined}`);
+        if (target.rotation) {
+          console.log(`[IK DEBUG] Current rotation: ${currentRotWorld.toString()}`);
+          console.log(`[IK DEBUG] Target rotation:  ${target.rotation.toString()}`);
+
+          // Compute angle difference
+          const dot = BABYLON.Quaternion.Dot(currentRotWorld, target.rotation);
+          const angleDiff = 2 * Math.acos(Math.min(1, Math.abs(dot)));
+          console.log(`[IK DEBUG] Orientation difference: ${(angleDiff * 180 / Math.PI).toFixed(3)}° (should be ~0° for pure translation)`);
+          console.log(`[IK DEBUG] Orientation error magnitude: ${orientationError.length().toFixed(6)} rad`);
+        } else {
+          console.warn(`[IK DEBUG] ⚠️ Target rotation NOT defined - orientation will drift!`);
+        }
+      }
+
+      // DEBUG: Log first 3 iterations and every 100 iterations
+      if (iteration < 3 || iteration % 100 === 0) {
+        console.log(`[IK Jacobian] Iter ${iteration}: error=${positionErrorMagnitude.toFixed(4)}m, currentPos=${currentPosWorld.toString()}, targetPos=${target.position.toString()}`);
+      }
 
       if (error < tolerance) {
         // Clamp joint angles to limits
@@ -232,6 +248,20 @@ export class InverseKinematicsSolver {
           console.log(`[IK DEBUG]   Linear:  [${jacobian[0][0].toFixed(3)}, ${jacobian[1][0].toFixed(3)}, ${jacobian[2][0].toFixed(3)}]`);
           console.log(`[IK DEBUG]   Angular: [${jacobian[3][0].toFixed(3)}, ${jacobian[4][0].toFixed(3)}, ${jacobian[5][0].toFixed(3)}]`);
         }
+
+        // === WRIST JOINTS ANALYSIS (Joints 4-6 for orientation control) ===
+        if (jointAngles.length >= 6) {
+          console.log(`[IK DEBUG] === Wrist Joints (4-6) Analysis ===`);
+          console.log(`[IK DEBUG] J4 (wrist roll):`);
+          console.log(`[IK DEBUG]   Position: [${jacobian[0][3].toFixed(4)}, ${jacobian[1][3].toFixed(4)}, ${jacobian[2][3].toFixed(4)}]`);
+          console.log(`[IK DEBUG]   Angular:  [${jacobian[3][3].toFixed(4)}, ${jacobian[4][3].toFixed(4)}, ${jacobian[5][3].toFixed(4)}]`);
+          console.log(`[IK DEBUG] J5 (wrist bend):`);
+          console.log(`[IK DEBUG]   Position: [${jacobian[0][4].toFixed(4)}, ${jacobian[1][4].toFixed(4)}, ${jacobian[2][4].toFixed(4)}]`);
+          console.log(`[IK DEBUG]   Angular:  [${jacobian[3][4].toFixed(4)}, ${jacobian[4][4].toFixed(4)}, ${jacobian[5][4].toFixed(4)}]`);
+          console.log(`[IK DEBUG] J6 (tool rotation):`);
+          console.log(`[IK DEBUG]   Position: [${jacobian[0][5].toFixed(4)}, ${jacobian[1][5].toFixed(4)}, ${jacobian[2][5].toFixed(4)}]`);
+          console.log(`[IK DEBUG]   Angular:  [${jacobian[3][5].toFixed(4)}, ${jacobian[4][5].toFixed(4)}, ${jacobian[5][5].toFixed(4)}]`);
+        }
       }
 
       // Compute joint angle deltas using damped Jacobian transpose
@@ -266,6 +296,28 @@ export class InverseKinematicsSolver {
       // DEBUG: Log first iteration joint update
       if (iteration === 0) {
         console.log(`[IK DEBUG] Joint angles AFTER update: [${jointAngles.map(v => (v * 180 / Math.PI).toFixed(1)).join(', ')}]°`);
+
+        // === WRIST JOINT ACTIVITY ANALYSIS ===
+        if (jointAngles.length >= 6) {
+          const armDelta = Math.sqrt(
+            deltaAngles.slice(0, 3).reduce((sum, v) => sum + v * v, 0)
+          );
+          const wristDelta = Math.sqrt(
+            deltaAngles.slice(3, 6).reduce((sum, v) => sum + v * v, 0)
+          );
+
+          console.log(`[IK DEBUG] === Joint Activity Analysis ===`);
+          console.log(`[IK DEBUG] Arm joints (1-3) delta magnitude:   ${(armDelta * 180 / Math.PI).toFixed(3)}°`);
+          console.log(`[IK DEBUG] Wrist joints (4-6) delta magnitude: ${(wristDelta * 180 / Math.PI).toFixed(3)}°`);
+
+          if (wristDelta < 0.0001) {
+            console.warn(`[IK DEBUG] ⚠️ WRIST JOINTS NOT MOVING! Orientation may not be controlled.`);
+          }
+
+          console.log(`[IK DEBUG] Individual deltas (degrees):`);
+          console.log(`[IK DEBUG]   Arm:   J1=${(deltaAngles[0] * 180 / Math.PI).toFixed(3)}°, J2=${(deltaAngles[1] * 180 / Math.PI).toFixed(3)}°, J3=${(deltaAngles[2] * 180 / Math.PI).toFixed(3)}°`);
+          console.log(`[IK DEBUG]   Wrist: J4=${(deltaAngles[3] * 180 / Math.PI).toFixed(3)}°, J5=${(deltaAngles[4] * 180 / Math.PI).toFixed(3)}°, J6=${(deltaAngles[5] * 180 / Math.PI).toFixed(3)}°`);
+        }
 
         // Check if any joints are approaching limits
         for (let i = 0; i < jointAngles.length; i++) {
