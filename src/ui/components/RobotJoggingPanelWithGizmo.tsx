@@ -12,6 +12,7 @@ import { KinematicsManager, RobotKeyframe } from '../../kinematics/KinematicsMan
 import type { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
 import { InverseKinematicsSolver } from '../../kinematics/InverseKinematicsSolver';
 import { UnifiedGizmoManager } from '../../kinematics/UnifiedGizmoManager';
+import { TransformDebugVisualizer } from '../../kinematics/TransformDebugVisualizer';
 import { SceneManager } from '../../scene/SceneManager';
 import { babylonToUser, userToBabylon } from '../../core/CoordinateSystem';
 import { detectJointGroups, shouldUseJointGroups, JointGroup } from '../../kinematics/JointGroupDetector';
@@ -360,6 +361,12 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
         unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
         unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
       }
+    }
+
+    // Update debug visualizer if enabled
+    const visualizer = TransformDebugVisualizer.getInstance();
+    if (visualizer) {
+      visualizer.update();
     }
   };
 

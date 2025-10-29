@@ -229,6 +229,9 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
         unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
       }
 
+      // Update debug visualizer if enabled
+      visualizer.update();
+
       alert(`✅ Reset ${resetCount} joints to home position (0°)`);
     } else {
       alert('❌ Robot chain not found!');
@@ -631,6 +634,9 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
           }
         }
       }
+
+      // Update debug visualizer during drag for live feedback
+      visualizer.update();
     });
 
     // Drag end (commit)
