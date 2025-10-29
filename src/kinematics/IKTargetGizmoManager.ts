@@ -197,27 +197,14 @@ export class IKTargetGizmoManager {
    */
   updateTargetPosition(targetId: string, position: BABYLON.Vector3): void {
     const target = this.targets.get(targetId);
-    console.log('[DEBUG] IKTargetGizmoManager.updateTargetPosition:', {
-      targetId,
-      position: { x: position.x.toFixed(3), y: position.y.toFixed(3), z: position.z.toFixed(3) },
-      targetFound: !!target,
-      gizmoExists: !!target?.gizmo,
-      transformNodeExists: !!target?.transformNode,
-      availableTargets: Array.from(this.targets.keys()),
-    });
 
     if (!target) {
-      console.error('[DEBUG] No target found for targetId:', targetId);
+      console.warn('[IKTargetGizmoManager] No target found for targetId:', targetId);
       return;
     }
 
-    const oldPos = target.transformNode.position.clone();
     target.transformNode.position = position.clone();
     target.transformNode.computeWorldMatrix(true);
-    console.log('[DEBUG] TransformNode position updated:', {
-      oldPosition: { x: oldPos.x.toFixed(3), y: oldPos.y.toFixed(3), z: oldPos.z.toFixed(3) },
-      newPosition: { x: target.transformNode.position.x.toFixed(3), y: target.transformNode.position.y.toFixed(3), z: target.transformNode.position.z.toFixed(3) },
-    });
 
     // Force gizmo to update by refreshing attachment
     // This ensures the gizmo follows the transform node position
@@ -225,13 +212,11 @@ export class IKTargetGizmoManager {
       const tempNode = target.gizmo.attachedNode;
       target.gizmo.attachedNode = null;
       target.gizmo.attachedNode = tempNode;
-      console.log('[DEBUG] Position gizmo attachment refreshed');
     }
     if (target.rotationGizmo) {
       const tempRotNode = target.rotationGizmo.attachedNode;
       target.rotationGizmo.attachedNode = null;
       target.rotationGizmo.attachedNode = tempRotNode;
-      console.log('[DEBUG] Rotation gizmo attachment refreshed');
     }
   }
 

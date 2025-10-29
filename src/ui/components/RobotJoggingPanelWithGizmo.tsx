@@ -16,6 +16,12 @@ import { TransformDebugVisualizer } from '../../kinematics/TransformDebugVisuali
 import { SceneManager } from '../../scene/SceneManager';
 import { babylonToUser, userToBabylon } from '../../core/CoordinateSystem';
 import { detectJointGroups, shouldUseJointGroups, JointGroup } from '../../kinematics/JointGroupDetector';
+import { 
+  syncTcpGizmoAfterJointMove, 
+  syncTcpGizmoAfterLinearMove, 
+  validateLinearMotionTarget,
+  isSixAxisRobot 
+} from '../../kinematics/utils/SixAxisRobotTargetHandler';
 import './RobotJoggingPanel.css';
 
 type JogMode = 'joint' | 'tcp' | 'poses';
@@ -272,21 +278,57 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
               console.log('[RobotJoggingPanel] Delta:', delta);
               console.log('[RobotJoggingPanel] Delta magnitude:', delta.length());
 
+              // For 6-axis robots, validate target before attempting IK
+              if (isSixAxisRobot(robotId, robotChain.name)) {
+                const validation = validateLinearMotionTarget(robotChain.name, newPosition, currentPose.position);
+                if (!validation.valid) {
+                  console.warn(`[RobotJoggingPanel] Target validation failed: ${validation.error}`);
+                  // Revert gizmo to current position if validation fails
+                  const targetId = `tcp_${robotId}`;
+                  unifiedGizmo.updateTargetPosition(targetId, currentPose.position);
+                  console.log('═══════════════════════════════════════════════════════════');
+                  return;
+                }
+                if (validation.warnings && validation.warnings.length > 0) {
+                  validation.warnings.forEach(warning => {
+                    console.warn(`[RobotJoggingPanel] Warning: ${warning}`);
+                  });
+                }
+              }
+
               // Apply IK to move robot to new TCP position
               console.log('[RobotJoggingPanel] Calling IK with delta:', delta);
               const success = ikSolver.moveTCP(robotChain.name, delta, 'jacobian');
 
-              if (success) {
-                // After successful IK, get the actual achieved position
-                const finalPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
-                if (finalPose) {
-                  console.log('[RobotJoggingPanel] Final TCP after IK:', finalPose.position);
-                  // Update gizmo to match where robot actually ended up
-                  const targetId = `tcp_${robotId}`;
-                  unifiedGizmo.updateTargetPosition(targetId, finalPose.position);
-                  console.log('[RobotJoggingPanel] Gizmo synced to final TCP:', finalPose.position);
+              // Sync TCP gizmo after IK (use enhanced handler for 6-axis robots)
+              if (isSixAxisRobot(robotId, robotChain.name)) {
+                const syncResult = syncTcpGizmoAfterLinearMove(
+                  robotId,
+                  robotChain.name,
+                  fkSolver,
+                  unifiedGizmo,
+                  newPosition,
+                  success
+                );
+                
+                if (!syncResult.success) {
+                  console.warn('[RobotJoggingPanel] Failed to sync TCP gizmo:', syncResult.error);
+                } else {
+                  console.log('[RobotJoggingPanel] TCP gizmo synced to actual position');
                 }
               } else {
+                // Fallback for non-6-axis robots
+                if (success) {
+                  const finalPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
+                  if (finalPose) {
+                    const targetId = `tcp_${robotId}`;
+                    unifiedGizmo.updateTargetPosition(targetId, finalPose.position);
+                    unifiedGizmo.updateTargetRotation(targetId, finalPose.rotation);
+                  }
+                }
+              }
+
+              if (!success) {
                 console.error('[RobotJoggingPanel] IK failed for TCP gizmo movement');
               }
               console.log('═══════════════════════════════════════════════════════════');
@@ -347,7 +389,8 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     const newValue = joint.position + (stepRadians * direction);
     fkSolver.updateJointPosition(jointId, newValue);
 
-    // Update TCP gizmo position immediately after joint move (both joint and TCP mode)
+    // Update TCP gizmo position immediately after joint move
+    // Use enhanced 6-axis robot target handler for better synchronization
     const kinematicsManager = KinematicsManager.getInstance();
     const chains = kinematicsManager.getAllChains();
     const robotChain = chains.find(chain =>
@@ -355,25 +398,29 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     );
 
     if (robotChain) {
-      const tcpPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
-      if (tcpPose) {
-        const targetId = `tcp_${robotId}`;
-        console.log('[DEBUG] handleJogJoint - TCP gizmo update:', {
-          jointId,
-          direction,
-          robotChain: robotChain.name,
-          targetId,
-          tcpPosition: { x: tcpPose.position.x.toFixed(3), y: tcpPose.position.y.toFixed(3), z: tcpPose.position.z.toFixed(3) },
-          tcpRotation: tcpPose.rotation.toEulerAngles(),
-        });
-        unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
-        unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
-        console.log('[DEBUG] handleJogJoint - updateTargetPosition/Rotation called');
+      // For 6-axis robots, use specialized sync function
+      if (isSixAxisRobot(robotId, robotChain.name)) {
+        const syncResult = syncTcpGizmoAfterJointMove(
+          robotId,
+          robotChain.name,
+          fkSolver,
+          unifiedGizmo
+        );
+        
+        if (!syncResult.success) {
+          console.warn('[RobotJoggingPanel] Failed to sync TCP gizmo after joint move:', syncResult.error);
+        } else {
+          logVerbose('[RobotJoggingPanel] TCP gizmo synced after joint move');
+        }
       } else {
-        console.error('[DEBUG] handleJogJoint - No TCP pose found for chain:', robotChain.name);
+        // Fallback for non-6-axis robots
+        const tcpPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
+        if (tcpPose) {
+          const targetId = `tcp_${robotId}`;
+          unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
+          unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
+        }
       }
-    } else {
-      console.error('[DEBUG] handleJogJoint - No robot chain found for robotId:', robotId);
     }
 
     // Update debug visualizer if enabled
@@ -545,12 +592,52 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     // Linear motion (position IK)
     logSummary(`[RobotJoggingPanel] Moving TCP by ${axis} delta: (${positionDelta.x.toFixed(3)}, ${positionDelta.y.toFixed(3)}, ${positionDelta.z.toFixed(3)})`);
     
+    // For 6-axis robots, validate target before attempting IK
+    if (isSixAxisRobot(robotId, chainName)) {
+      const validation = validateLinearMotionTarget(chainName, targetPos, currentPosWorld);
+      if (!validation.valid) {
+        console.warn(`[RobotJoggingPanel] Target validation failed: ${validation.error}`);
+        logSummary(`[TCP Jog] ❌ VALIDATION FAILED: ${validation.error}`);
+        logSummary(`═══════════════════════════════════════════════════════════`);
+        return;
+      }
+      if (validation.warnings && validation.warnings.length > 0) {
+        validation.warnings.forEach(warning => {
+          console.warn(`[RobotJoggingPanel] Warning: ${warning}`);
+        });
+      }
+    }
+    
     // Use Jacobian first (faster, more reliable for this robot), fallback to CCD
     success = ikSolver.moveTCP(chainName, positionDelta, 'jacobian');
 
     if (!success) {
       logSummary('[RobotJoggingPanel] Jacobian failed, trying CCD method...');
       success = ikSolver.moveTCP(chainName, positionDelta, 'ccd');
+    }
+
+    // Sync TCP gizmo after linear motion (use enhanced handler for 6-axis robots)
+    if (isSixAxisRobot(robotId, chainName)) {
+      const syncResult = syncTcpGizmoAfterLinearMove(
+        robotId,
+        chainName,
+        fkSolver,
+        unifiedGizmo,
+        targetPos,
+        success
+      );
+      
+      if (!syncResult.success) {
+        console.warn('[RobotJoggingPanel] Failed to sync TCP gizmo after linear move:', syncResult.error);
+      }
+    } else {
+      // Fallback for non-6-axis robots
+      const tcpPose = fkSolver.getTCPPose?.(chainName) || fkSolver.getNullTCPPose(chainName);
+      if (tcpPose) {
+        const targetId = `tcp_${robotId}`;
+        unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
+        unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
+      }
     }
 
     if (!success) {
@@ -562,40 +649,38 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
       logSummary(`[RobotJoggingPanel] ✅ Successfully moved TCP ${axis} ${direction > 0 ? '+' : '-'}`);
       
       // Log actual final position for comparison
-      if (true) {
-        try {
-          const kinematicsManager = KinematicsManager.getInstance();
-          const chain = kinematicsManager.getChain(chainName);
-          if (chain) {
-            const joints = kinematicsManager.getActuatedJoints(chain.id);
-            const jointAngles = joints.map((j: any) => j.position);
-            const achievedLocal = fkSolver.solve(chainName, jointAngles);
-            if (achievedLocal) {
-              const baseWM = kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
-              const achievedWorld = BABYLON.Vector3.TransformCoordinates(achievedLocal.position, baseWM);
-              const errorVec = targetPos.subtract(achievedWorld);
-              const errorMag = errorVec.length();
-              logSummary(`[TCP Jog] ✅ Actual final position: (${achievedWorld.x.toFixed(4)}, ${achievedWorld.y.toFixed(4)}, ${achievedWorld.z.toFixed(4)})`);
-              logSummary(`[TCP Jog] Position error: ${errorMag.toFixed(4)}m (${(errorMag*1000).toFixed(2)}mm)`);
-              logSummary(`═══════════════════════════════════════════════════════════`);
+      try {
+        const kinematicsManager = KinematicsManager.getInstance();
+        const chain = kinematicsManager.getChain(chainName);
+        if (chain) {
+          const joints = kinematicsManager.getActuatedJoints(chain.id);
+          const jointAngles = joints.map((j: any) => j.position);
+          const achievedLocal = fkSolver.solve(chainName, jointAngles);
+          if (achievedLocal) {
+            const baseWM = kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
+            const achievedWorld = BABYLON.Vector3.TransformCoordinates(achievedLocal.position, baseWM);
+            const errorVec = targetPos.subtract(achievedWorld);
+            const errorMag = errorVec.length();
+            logSummary(`[TCP Jog] ✅ Actual final position: (${achievedWorld.x.toFixed(4)}, ${achievedWorld.y.toFixed(4)}, ${achievedWorld.z.toFixed(4)})`);
+            logSummary(`[TCP Jog] Position error: ${errorMag.toFixed(4)}m (${(errorMag*1000).toFixed(2)}mm)`);
+            logSummary(`═══════════════════════════════════════════════════════════`);
 
-              // After solve, draw error vector (magenta) from achieved to target
-              const scene = (window as any).sceneManager?.getScene?.();
-              if (scene && (debugMode === 'summary' || debugMode === 'verbose')) {
-                if (ikErrorRef.current && !ikErrorRef.current.isDisposed()) {
-                  ikErrorRef.current.dispose(false, true);
-                  ikErrorRef.current = null;
-                }
-                const errLine = BABYLON.MeshBuilder.CreateLines('ik_error_line', { points: [achievedWorld, targetPos], updatable: false }, scene);
-                errLine.color = new BABYLON.Color3(1, 0, 1);
-                errLine.isPickable = false;
-                ikErrorRef.current = errLine as BABYLON.LinesMesh;
+            // After solve, draw error vector (magenta) from achieved to target
+            const scene = (window as any).sceneManager?.getScene?.();
+            if (scene && (debugMode === 'summary' || debugMode === 'verbose')) {
+              if (ikErrorRef.current && !ikErrorRef.current.isDisposed()) {
+                ikErrorRef.current.dispose(false, true);
+                ikErrorRef.current = null;
               }
+              const errLine = BABYLON.MeshBuilder.CreateLines('ik_error_line', { points: [achievedWorld, targetPos], updatable: false }, scene);
+              errLine.color = new BABYLON.Color3(1, 0, 1);
+              errLine.isPickable = false;
+              ikErrorRef.current = errLine as BABYLON.LinesMesh;
             }
           }
-        } catch (e) {
-          logVerbose(`[TCP Jog] Error computing final position: ${e}`);
         }
+      } catch (e) {
+        logVerbose(`[TCP Jog] Error computing final position: ${e}`);
       }
     }
   };
