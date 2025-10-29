@@ -174,7 +174,7 @@ describe('Inverse Kinematics - Convergence Tests', () => {
           const rotationError = target.rotation.multiply(BABYLON.Quaternion.Inverse(finalPose.rotation));
 
           // Convert to axis-angle to get angular error
-          let angle = 2 * Math.acos(Math.min(1.0, Math.abs(rotationError.w)));
+          const angle = 2 * Math.acos(Math.min(1.0, Math.abs(rotationError.w)));
           const angleDegrees = angle * (180 / Math.PI);
 
           // Should be within 1°
@@ -230,7 +230,7 @@ describe('Inverse Kinematics - Convergence Tests', () => {
 
           // Rotation should be accurate (<0.5°)
           const rotationError = target.rotation.multiply(BABYLON.Quaternion.Inverse(finalPose.rotation));
-          let angle = 2 * Math.acos(Math.min(1.0, Math.abs(rotationError.w)));
+          const angle = 2 * Math.acos(Math.min(1.0, Math.abs(rotationError.w)));
           const angleDegrees = angle * (180 / Math.PI);
           expect(angleDegrees).toBeLessThan(0.5);
         }
@@ -271,7 +271,7 @@ describe('Inverse Kinematics - Convergence Tests', () => {
         if (finalPose && target.rotation) {
           // Validate fix: rotation error <0.1° (was 0.52° before fix)
           const rotationError = target.rotation.multiply(BABYLON.Quaternion.Inverse(finalPose.rotation));
-          let angle = 2 * Math.acos(Math.min(1.0, Math.abs(rotationError.w)));
+          const angle = 2 * Math.acos(Math.min(1.0, Math.abs(rotationError.w)));
           const angleDegrees = angle * (180 / Math.PI);
 
           expect(angleDegrees).toBeLessThan(0.1); // Should be ~0.01° with fix
@@ -314,7 +314,7 @@ describe('Inverse Kinematics - Convergence Tests', () => {
 
         // Rotation should match within 0.5°
         const rotationError = pose1.rotation.multiply(BABYLON.Quaternion.Inverse(pose2.rotation));
-        let angle = 2 * Math.acos(Math.min(1.0, Math.abs(rotationError.w)));
+        const angle = 2 * Math.acos(Math.min(1.0, Math.abs(rotationError.w)));
         const angleDegrees = angle * (180 / Math.PI);
         expect(angleDegrees).toBeLessThan(0.5);
       }

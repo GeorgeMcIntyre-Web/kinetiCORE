@@ -637,12 +637,12 @@ export class DWGDatabaseToBabylonConverter {
     }
 
     // Get text location
-    let locationPoint = entity._location;
+    const locationPoint = entity._location;
     if (!locationPoint) {
       return; // Skip text without position
     }
 
-    let position = this.convertPoint(locationPoint, transform);
+    const position = this.convertPoint(locationPoint, transform);
 
     // Apply DWG Z-up to Babylon Y-up rotation (-90° around X)
     // This matches the root node rotation applied in DWGLoader

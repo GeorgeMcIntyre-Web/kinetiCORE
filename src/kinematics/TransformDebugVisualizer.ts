@@ -418,7 +418,7 @@ export class TransformDebugVisualizer {
    */
   clear(): void {
     // Dispose all debug meshes
-    for (const [_chainName, meshes] of this.debugMeshes) {
+    for (const [, meshes] of this.debugMeshes) {
       for (const mesh of meshes) {
         mesh.dispose();
       }
@@ -426,7 +426,7 @@ export class TransformDebugVisualizer {
     this.debugMeshes.clear();
 
     // Remove all labels
-    for (const [_label, textBlocks] of this.debugLabels) {
+    for (const [, textBlocks] of this.debugLabels) {
       for (const textBlock of textBlocks) {
         this.advancedTexture?.removeControl(textBlock);
       }

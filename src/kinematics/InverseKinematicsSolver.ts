@@ -78,7 +78,7 @@ export class InverseKinematicsSolver {
     }
 
     const joints = this.kinematicsManager.getActuatedJoints(chain.id);
-    // eslint-disable-next-line prefer-const -- array elements are mutated in loop (line 149)
+     
     let jointAngles = initialAngles || joints.map((j: JointConfig) => j.position);
 
     let iteration = 0;

@@ -445,7 +445,7 @@ export class SkeletonLinkRenderer {
    * Update link transform in-place
    * start and end are in LOCAL space of the skeleton container
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   private updateLinkTransform(linkNode: LinkNode, startLocal: BABYLON.Vector3, endLocal: BABYLON.Vector3, _state: ChainRenderState, _config?: SkeletonLinkConfig): void {
     // Check if mesh is valid
     if (!linkNode.mesh) {

@@ -172,7 +172,7 @@ export class IKTargetGizmoManager {
 
     // Skip marker creation - using text labels on gizmo axes instead
     // No visual marker - just use the gizmo itself with axis labels
-    let label: GUI.TextBlock | null = null;
+    const label: GUI.TextBlock | null = null;
 
     // Store target data
     this.targets.set(config.targetId, {

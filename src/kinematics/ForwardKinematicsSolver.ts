@@ -504,7 +504,7 @@ export class ForwardKinematicsSolver {
     }
 
     // FIX: Use scene graph accumulation (same as solve())
-    let accumulatedPosition = BABYLON.Vector3.Zero();
+    const accumulatedPosition = BABYLON.Vector3.Zero();
     let accumulatedRotation = BABYLON.Quaternion.Identity();
 
     // Build transformation chain from base up to specified joint
@@ -578,7 +578,7 @@ export class ForwardKinematicsSolver {
 
     // FIX: Manually accumulate like a scene graph (position + rotation separately)
     // This is how Babylon's parent-child hierarchy works
-    let accumulatedPosition = BABYLON.Vector3.Zero();
+    const accumulatedPosition = BABYLON.Vector3.Zero();
     let accumulatedRotation = BABYLON.Quaternion.Identity();
 
     // Build transformation chain from base to TCP (tool0)
@@ -972,8 +972,8 @@ export class ForwardKinematicsSolver {
    * Transform a robot-local pose to world space
    * Helper method used by both null TCP and TCP frame transformations
    */
-  // @ts-ignore - Reserved for future use
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // @ts-expect-error - Reserved for future use
+
   private _transformToWorldSpace(
     chainName: string,
     localPosition: BABYLON.Vector3,

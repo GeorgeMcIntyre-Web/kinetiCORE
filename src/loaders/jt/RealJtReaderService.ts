@@ -574,7 +574,7 @@ export class RealJtReaderService {
     private calculateBounds(vertices: number[], type: 'min' | 'max'): number[] {
         if (vertices.length === 0) return [0, 0, 0];
         
-        let result = [vertices[0], vertices[1], vertices[2]];
+        const result = [vertices[0], vertices[1], vertices[2]];
         
         for (let i = 3; i < vertices.length; i += 3) {
             if (type === 'min') {
