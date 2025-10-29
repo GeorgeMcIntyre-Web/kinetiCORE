@@ -9,7 +9,6 @@
 import { KinematicsManager } from '../KinematicsManager';
 import { ForwardKinematicsSolver } from '../ForwardKinematicsSolver';
 import { 
-  SixAxisJointConfiguration, 
   getSixAxisJointConfiguration,
   isSixAxisRobot 
 } from './SixAxisRobotTargetHandler';
@@ -479,34 +478,36 @@ export function targetToBabylonSpace(target: SixAxisTarget): {
   position: BABYLON.Vector3;
   rotation: BABYLON.Quaternion;
 } {
+  // If no Cartesian is available, return origin with identity rotation
+  if (!target.cartesian) {
+    return { position: new BABYLON.Vector3(0, 0, 0), rotation: BABYLON.Quaternion.Identity() };
+  }
+
+  const [x, y, z] = target.cartesian.position;
+  const [wDeg, pDeg, rDeg] = target.cartesian.orientation;
+
   // Convert from user space (Z-up, mm) to Babylon space (Y-up, meters)
   const position = new BABYLON.Vector3(
-    target.position.x / 1000,      // mm to meters
-    target.position.z / 1000,      // Z-up to Y-up
-    -target.position.y / 1000       // Y to -Z
+    x / 1000,      // mm to meters
+    z / 1000,      // Z-up to Y-up
+    -y / 1000       // Y to -Z
   );
 
   let rotation: BABYLON.Quaternion;
 
-  if (target.orientation.quaternion) {
-    // Use quaternion directly (convert if needed from user space)
-    const [x, y, z, w] = target.orientation.quaternion;
-    rotation = new BABYLON.Quaternion(x, z, -y, w); // Convert Z-up to Y-up
+  if (target.cartesian.quaternion) {
+    const [qx, qy, qz, qw] = target.cartesian.quaternion;
+    rotation = new BABYLON.Quaternion(qx, qz, -qy, qw); // Convert Z-up to Y-up
   } else {
-    // Build quaternion from Euler angles
-    const rx = (target.orientation.rx || 0) * Math.PI / 180;
-    const ry = (target.orientation.ry || 0) * Math.PI / 180;
-    const rz = (target.orientation.rz || 0) * Math.PI / 180;
+    // Build quaternion from Euler angles (W,P,R degrees; treat as ZYX)
+    const rx = (rDeg || 0) * Math.PI / 180;
+    const ry = (pDeg || 0) * Math.PI / 180;
+    const rz = (wDeg || 0) * Math.PI / 180;
 
-    // Create quaternion from Euler angles (ZYX convention for user space)
     const qx = BABYLON.Quaternion.RotationAxis(BABYLON.Vector3.Right(), rx);
     const qy = BABYLON.Quaternion.RotationAxis(BABYLON.Vector3.Forward(), ry);
     const qz = BABYLON.Quaternion.RotationAxis(BABYLON.Vector3.Up(), rz);
-    
     rotation = qz.multiply(qy).multiply(qx);
-    
-    // Convert to Y-up (Babylon)
-    // This is a simplified conversion - may need adjustment based on your coordinate system
     rotation = new BABYLON.Quaternion(rotation.x, rotation.z, -rotation.y, rotation.w);
   }
 
@@ -521,28 +522,30 @@ export function babylonToTarget(
   rotation: BABYLON.Quaternion,
   targetName: string = 'Target',
   motionType: MotionType = 'PTP'
-): Omit<SixAxisTarget, 'id' | 'jointConfiguration'> {
+): Pick<SixAxisTarget, 'name' | 'cartesian' | 'motionType' | 'frame'> {
   // Convert from Babylon (Y-up, meters) to user space (Z-up, mm)
-  const userPos = {
-    x: position.x * 1000,
-    y: -position.z * 1000,  // Convert Y-up to Z-up
-    z: position.y * 1000,
-  };
+  const userPos: [number, number, number] = [
+    position.x * 1000,
+    -position.z * 1000,  // Convert Y-up to Z-up
+    position.y * 1000,
+  ];
 
   // Convert quaternion to Euler
   const euler = rotation.toEulerAngles();
 
   return {
     name: targetName,
-    position: userPos,
-    orientation: {
-      rx: euler.x * 180 / Math.PI,
-      ry: euler.y * 180 / Math.PI,
-      rz: euler.z * 180 / Math.PI,
-      quaternion: [rotation.x, rotation.z, -rotation.y, rotation.w]
+    cartesian: {
+      position: userPos,
+      orientation: [
+        (euler.z * 180) / Math.PI, // W (yaw)
+        (euler.y * 180) / Math.PI, // P (pitch)
+        (euler.x * 180) / Math.PI, // R (roll)
+      ],
+      quaternion: [rotation.x, rotation.z, -rotation.y, rotation.w],
     },
     motionType,
-    coordinateFrame: {
+    frame: {
       type: 'BASE'
     }
   };

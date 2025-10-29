@@ -9,7 +9,6 @@
 import * as BABYLON from '@babylonjs/core';
 import { KinematicsManager } from '../KinematicsManager';
 import { ForwardKinematicsSolver } from '../ForwardKinematicsSolver';
-import { InverseKinematicsSolver } from '../InverseKinematicsSolver';
 import { UnifiedGizmoManager } from '../UnifiedGizmoManager';
 
 export interface SixAxisTargetUpdate {
@@ -25,7 +24,7 @@ export interface SixAxisTargetUpdate {
 /**
  * Validates that a robot is a 6-axis robot
  */
-export function isSixAxisRobot(robotId: string, chainName: string): boolean {
+export function isSixAxisRobot(_robotId: string, chainName: string): boolean {
   const kinematicsManager = KinematicsManager.getInstance();
   const chain = kinematicsManager.getChain(chainName);
   
