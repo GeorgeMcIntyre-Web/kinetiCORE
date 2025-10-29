@@ -296,26 +296,32 @@ export interface SixAxisTargetProgram {
   
   // Target points (like PR[] variables in FANUC, or position registers in other systems)
   // PRIMARY storage: Joint array [J1-J6] + configuration
-  // These are taught/defined positions that can be used in sequences
+  // These are taught/defined positions stored separately
+  // Program instructions reference these targets
   targets: SixAxisTarget[];
   
-  // Sequences - ordered groups of targets/motions within a program
-  // Programs contain sequences, sequences contain targets (or instructions)
-  sequences: Array<{
-    id: string;
-    name: string;
-    description?: string;
-    // What goes in a sequence? Ordered targets? Motion instructions?
-    targetIds: string[];  // Ordered list of target IDs in this sequence
-    // OR should it be:
-    // instructions: Array<...>  // Actual motion/instruction data?
-  }>;
-  
-  // Program structure - how sequences are executed
-  // Programs call/execute sequences in order
-  program?: {
-    sequenceIds: string[];  // Order in which to execute sequences
-    // OR program lines that reference sequences/targets?
+  // Program - sequential instruction execution (like CPU executing code)
+  // NOT "sequences" - just sequential execution from top to bottom
+  // Program Pointer (IP) tracks current execution position
+  program: {
+    // Sequential instructions that execute line by line
+    instructions: Array<{
+      lineNumber: number;        // Program line number (execution order)
+      instruction: string;       // Raw instruction text (vendor-specific or generic)
+      type: 'MOTION' | 'LOGIC' | 'IO' | 'WAIT' | 'COMMENT' | 'LABEL' | 'CALL' | 'RETURN' | 'JUMP';
+      targetId?: string;         // Reference to target if motion instruction
+      motionType?: MotionType;   // PTP, LINEAR, CIRCULAR
+      speed?: SpeedSettings;
+      // Logic/control flow
+      condition?: string;        // IF/WHILE condition
+      jumpToLine?: number;       // JUMP target line number
+      subroutineName?: string;   // CALL target subroutine
+    }>;
+    
+    // Program Pointer (IP) - tracks current execution position
+    currentLine?: number;        // Currently executing instruction line number
+    executionState?: 'RUNNING' | 'PAUSED' | 'STOPPED' | 'ERROR';
+    callStack?: number[];         // Return addresses for nested CALLs
   };
   
   // Current active settings
@@ -565,7 +571,12 @@ export function createTargetProgram(
       toolFrames: [],
     },
     targets: [],
-    // Program lines will be added as needed - no "sequences", just sequential execution
+    program: {
+      instructions: [],
+      currentLine: undefined,
+      executionState: 'STOPPED',
+      callStack: []
+    }
   };
 }
 

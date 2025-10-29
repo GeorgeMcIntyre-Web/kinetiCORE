@@ -87,6 +87,17 @@ export class SceneManager {
     const gridInitiallyVisible = this.currentFloorType === 'grid-only';
     this.gridOverlay = this.floorMaterialManager.createGridOverlay(this.ground, gridInitiallyVisible);
     console.log('🔲 Grid overlay created with enabled:', this.gridOverlay?.isEnabled());
+    
+    // Defensive check: Ensure floor and grid are visible (floor should always be visible, grid depends on type)
+    // This addresses potential issues where floor might not render due to visibility state
+    if (this.ground) {
+      this.ground.setEnabled(true);
+      this.ground.visibility = 1.0; // Ensure full visibility
+      if (this.gridOverlay) {
+        // Grid overlay visibility is controlled by its enabled state
+        console.log('🔲 Floor initialized - Ground visible, Grid overlay enabled:', this.gridOverlay.isEnabled());
+      }
+    }
 
     // Freeze ground world matrix for performance
     this.ground.freezeWorldMatrix();

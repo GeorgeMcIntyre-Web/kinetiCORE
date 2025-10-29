@@ -98,8 +98,10 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       console.log('[FloatingKinematicsPanel] Debug tools initialized for robot:', activeRobotId);
     } else {
       setDebugToolsReady(false);
+      // Changed from console.warn to console.debug - this is expected when no robot is selected
+      // and doesn't need to clutter the console with warnings
       if (!activeRobotId) {
-        console.warn('[FloatingKinematicsPanel] Cannot initialize debug tools: No active robot selected');
+        console.debug('[FloatingKinematicsPanel] Cannot initialize debug tools: No active robot selected');
       }
     }
   }, [fkSolver, ikSolver, kinematicsManager, activeRobotId, visualizer, testHarness]);
@@ -259,11 +261,13 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
         const unifiedGizmo = UnifiedGizmoManager.getInstance();
         const targetId = `tcp_${activeRobotId}`;
 
-        // Force immediate gizmo update (don't wait for 500ms interval)
-        unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
-        unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
+      // Force immediate gizmo update (don't wait for 500ms interval)
+      // This eliminates perceived delay when using Home button by updating gizmo synchronously
+      // rather than waiting for the next interval tick in the TCP position update loop
+      unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
+      unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
 
-        console.log(`[FloatingKinematicsPanel] TCP gizmo updated immediately to home position`);
+      console.log(`[FloatingKinematicsPanel] TCP gizmo updated immediately to home position`);
       }
 
       // Update debug visualizer if enabled
