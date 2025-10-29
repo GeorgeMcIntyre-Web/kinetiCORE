@@ -244,14 +244,26 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       });
       console.log(`[FloatingKinematicsPanel] Reset ${resetCount} joints to home position (0°)`);
 
-      // Update TCP gizmo position after resetting all joints
+      // Force world matrix update on all joints to ensure immediate visual update
+      robotJoints.forEach((joint: any) => {
+        const mesh = joint.mesh;
+        if (mesh) {
+          mesh.computeWorldMatrix(true);
+        }
+      });
+
+      // Update TCP gizmo position IMMEDIATELY after resetting all joints
       const tcpPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
       if (tcpPose) {
         const { UnifiedGizmoManager } = require('../../kinematics/UnifiedGizmoManager');
         const unifiedGizmo = UnifiedGizmoManager.getInstance();
         const targetId = `tcp_${activeRobotId}`;
+
+        // Force immediate gizmo update (don't wait for 500ms interval)
         unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
         unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
+
+        console.log(`[FloatingKinematicsPanel] TCP gizmo updated immediately to home position`);
       }
 
       // Update debug visualizer if enabled
