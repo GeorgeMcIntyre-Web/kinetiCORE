@@ -225,9 +225,9 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     };
 
     updateTcpPosition();
-    // More frequent updates for smoother gizmo tracking
-    // Increased to 500ms to reduce spam and allow IK to complete
-    const interval = setInterval(updateTcpPosition, 500);
+    // Fast updates for immediate gizmo tracking (50ms = 20 FPS)
+    // This ensures minimal delay when joints move (e.g., Home button)
+    const interval = setInterval(updateTcpPosition, 50);
     return () => clearInterval(interval);
   }, [fkSolver, robotId, jogMode, ikSolver, unifiedGizmo]);
 
