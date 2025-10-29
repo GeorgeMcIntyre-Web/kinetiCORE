@@ -24,7 +24,6 @@ import {
   GitBranch,
   Network,
   ToggleLeft,
-  Box,
   Rocket,
 } from 'lucide-react';
 import { loadOBJFile } from '../../loaders/obj/OBJLoader';

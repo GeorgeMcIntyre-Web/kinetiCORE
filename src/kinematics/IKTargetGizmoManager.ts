@@ -519,7 +519,7 @@ export class IKTargetGizmoManager {
             const children = dragMesh.getChildMeshes();
             console.log(`[TCP Gizmo Labels] ${name.toUpperCase()} - dragMesh has ${children.length} children`);
             if (children.length > 0) {
-              const arrowhead = children.find((child: BABYLON.Mesh) => {
+              const arrowhead = children.find((child: BABYLON.AbstractMesh) => {
                 return child.name && (child.name.includes('cone') || child.name.includes('arrow') || child.name.includes('head'));
               }) || children[children.length - 1];
               
@@ -614,7 +614,7 @@ export class IKTargetGizmoManager {
               get: function() { 
                 return lockedPosRef.clone();
               },
-              set: function(newPos) {
+              set: function(_value) {
                 // Position is locked - ignore any changes
                 console.log(`[TCP Gizmo Labels] ${name.toUpperCase()} - Attempted to change locked position, ignoring`);
                 // Don't update _lockedPosition, keep it at lockedPosRef
@@ -625,8 +625,9 @@ export class IKTargetGizmoManager {
           } catch (e) {
             console.warn(`[TCP Gizmo Labels] ${name.toUpperCase()} - Could not lock position property:`, e);
           }
-          
-          plane._lockedPosition = lockedPosRef.clone();
+
+          // Store locked position in a custom property (type-safe)
+          (plane as any)._lockedPosition = lockedPosRef.clone();
           console.log(`[TCP Gizmo Labels] ${name.toUpperCase()} ✅ Position REFINED and LOCKED at:`, plane.position);
         } else {
           console.error(`[TCP Gizmo Labels] ${name.toUpperCase()} ❌ Failed to find arrow tip position!`);
@@ -678,9 +679,13 @@ export class IKTargetGizmoManager {
           
           // Convert to rotation quaternion
           const rotationMatrix = BABYLON.Matrix.Identity();
-          rotationMatrix.setRow(0, right);
-          rotationMatrix.setRow(1, correctedUp);
-          rotationMatrix.setRow(2, forward);
+          BABYLON.Matrix.FromValuesToRef(
+            right.x, right.y, right.z, 0,
+            correctedUp.x, correctedUp.y, correctedUp.z, 0,
+            forward.x, forward.y, forward.z, 0,
+            0, 0, 0, 1,
+            rotationMatrix
+          );
           
           // Get current position (should be locked)
           const currentPos = plane.position.clone();
