@@ -73,12 +73,28 @@ export const SceneCanvas: React.FC = () => {
       const camera = sceneManager.getCamera();
       const scene = sceneManager.getScene();
 
-      // Expose SceneManager to window for easy floor changes via console
+      // Expose managers to window for console debugging
       (window as any).sceneManager = sceneManager;
+
+      // Expose kinematics managers for debug tools
+      import('../../kinematics/KinematicsManager').then(({ KinematicsManager }) => {
+        (window as any).kinematicsManager = KinematicsManager.getInstance();
+        (window as any).KinematicsManager = KinematicsManager;
+      });
+      import('../../kinematics/ForwardKinematicsSolver').then(({ ForwardKinematicsSolver }) => {
+        (window as any).fkSolver = ForwardKinematicsSolver.getInstance();
+        (window as any).ForwardKinematicsSolver = ForwardKinematicsSolver;
+      });
+      import('../../kinematics/InverseKinematicsSolver').then(({ InverseKinematicsSolver }) => {
+        (window as any).ikSolver = InverseKinematicsSolver.getInstance();
+        (window as any).InverseKinematicsSolver = InverseKinematicsSolver;
+      });
+
       console.log('💡 Tip: Change floor via console with: sceneManager.setFloorType("epoxy-gray")');
       console.log('💡 Tip: Toggle background transparency with: sceneManager.setBackgroundTransparent(true/false)');
       console.log('💡 Tip: Check transparency state with: sceneManager.isBackgroundTransparent()');
       console.log('💡 Tip: Force transparent background with: sceneManager.forceTransparentBackground()');
+      console.log('💡 Debug: Kinematics managers available: kinematicsManager, fkSolver, ikSolver');
 
       if (camera) {
         setCamera(camera);

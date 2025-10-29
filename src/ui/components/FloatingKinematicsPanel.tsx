@@ -15,6 +15,8 @@ import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolve
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { useEditorStore } from '../store/editorStore';
 import { RobotJoggingPanelWithGizmo } from './RobotJoggingPanelWithGizmo';
+import { TransformDebugPanel } from './TransformDebugPanel';
+import { InverseKinematicsSolver } from '../../kinematics/InverseKinematicsSolver';
 import './FloatingKinematicsPanel.css';
 
 interface FloatingKinematicsPanelProps {
@@ -36,6 +38,7 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
 }) => {
   const kinematicsManager = KinematicsManager.getInstance();
   const fkSolver = ForwardKinematicsSolver.getInstance();
+  const ikSolver = InverseKinematicsSolver.getInstance();
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
 
   const [robots, setRobots] = useState<RobotInfo[]>([]);
@@ -465,6 +468,15 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
               No joints found for this device. Check console for debugging info.
             </div>
           )
+        ) : (
+          <AssetLibraryDarkDisabled icon={<Settings size={24} />} message="No device selected" />
+        )}
+      </AssetLibraryDarkSection>
+
+      {/* Transform Debug Section */}
+      <AssetLibraryDarkSection title="🔬 Transform Debug & IK Testing" hint={!activeRobotId ? "Select a device to enable" : undefined}>
+        {activeRobotId ? (
+          <TransformDebugPanel fkSolver={fkSolver} ikSolver={ikSolver} robotId={activeRobotId} />
         ) : (
           <AssetLibraryDarkDisabled icon={<Settings size={24} />} message="No device selected" />
         )}
