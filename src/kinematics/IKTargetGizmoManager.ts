@@ -183,9 +183,11 @@ export class IKTargetGizmoManager {
       transformNode,
       config,
     });
-    
-    // Add X, Y, Z text labels at the end of gizmo axes
-    this.addGizmoAxisLabels(gizmo, transformNode, config.targetId);
+
+    // TCP XYZ labels removed - color-coded arrows are industry standard
+    // Red arrow = X, Green arrow = Y, Blue arrow = Z (matches Blender, Maya, Unity)
+    // Previous implementation was 338 lines of complex code with positioning issues
+    // this.addGizmoAxisLabels(gizmo, transformNode, config.targetId);
 
     console.log(`[IKTargetGizmoManager] Created target: ${config.targetId} (${config.chainName})`);
   }
