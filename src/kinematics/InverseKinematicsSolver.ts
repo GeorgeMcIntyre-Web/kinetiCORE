@@ -66,10 +66,10 @@ export class InverseKinematicsSolver {
     const {
       maxIterations = 1000, // Increased from 300 - Jacobian transpose converges slowly
       tolerance = 0.005, // Relaxed from 0.001 (5mm tolerance for 10mm jog step)
-      stepSize = 0.1, // Reduced from 0.2 to 0.1 for more stable convergence
+      stepSize = 0.5, // Increased from 0.2 for faster convergence (line-search ensures stability)
       positionWeight = 1.0,
       orientationWeight = 0.5,
-      damping = 0.2, // Increased from 0.1 for better stability
+      damping = 0.1, // Reduced from 0.2 for better convergence speed (line-search provides stability)
     } = options;
 
     const chain = this.kinematicsManager.getChain(chainName);
@@ -140,42 +140,38 @@ export class InverseKinematicsSolver {
       const positionError = target.position.subtract(currentPosWorld);
       const positionErrorMagnitude = positionError.length();
 
-      // Compute orientation error (if target rotation specified)
-      let orientationError = new BABYLON.Vector3(0, 0, 0);
-      if (target.rotation) {
+      // Helper function to compute orientation error vector
+      const computeOrientationError = (rot: BABYLON.Quaternion): BABYLON.Vector3 => {
+        if (!target.rotation) return new BABYLON.Vector3(0, 0, 0);
+        
         // Compute quaternion error: q_error = q_target * q_current^-1
-        const rotationError = target.rotation.multiply(
-          BABYLON.Quaternion.Inverse(currentRotWorld)
-        );
+        const rotationError = target.rotation.multiply(BABYLON.Quaternion.Inverse(rot));
 
         // Ensure shortest path (quaternion double-cover issue)
-        // If w < 0, negate to get shortest rotation
         const normalizedError = rotationError.w < 0
           ? new BABYLON.Quaternion(
-              -rotationError.x,
-              -rotationError.y,
-              -rotationError.z,
-              -rotationError.w
+              -rotationError.x, -rotationError.y, -rotationError.z, -rotationError.w
             )
           : rotationError;
 
         // Convert quaternion error to axis-angle representation
-        // angle = 2 * acos(w), axis = (x, y, z) / sin(angle/2)
         const angle = 2 * Math.acos(Math.min(1, Math.abs(normalizedError.w)));
         const axis = new BABYLON.Vector3(
-          normalizedError.x,
-          normalizedError.y,
-          normalizedError.z
+          normalizedError.x, normalizedError.y, normalizedError.z
         );
         const axisLength = axis.length();
 
         // Convert to angular velocity error (axis-angle vector)
         if (axisLength > 0.0001 && angle > 0.0001) {
-          orientationError = axis.scale(angle / axisLength);
+          return axis.scale(angle / axisLength);
         }
-      }
+        return new BABYLON.Vector3(0, 0, 0);
+      };
 
-      // Total error
+      // Compute orientation error (if target rotation specified)
+      const orientationError = computeOrientationError(currentRotWorld);
+
+      // Total error (used for convergence checking)
       error = positionErrorMagnitude * positionWeight +
               orientationError.length() * orientationWeight;
 
@@ -264,33 +260,194 @@ export class InverseKinematicsSolver {
         }
       }
 
-      // Compute joint angle deltas using damped Jacobian transpose
-      // Δθ = α * J^T * (J*J^T + λ²I)^-1 * e (simplified: α * J^T * e with damping)
+      // Compute joint angle deltas using Levenberg-Marquardt (damped least squares)
+      // For 6-DOF: Δθ = (J^T * J + λ²I)^-1 * J^T * e
+      // Or equivalently: Δθ = J^T * (J * J^T + λ²I)^-1 * e (more stable for m < n)
+      // Since we have 6 rows (Cartesian) and n joints, use second form
       const deltaAngles: number[] = Array(jointAngles.length).fill(0);
 
-      for (let i = 0; i < jointAngles.length; i++) {
-        let delta = 0;
+      // Compute J * J^T (6x6 matrix)
+      const JJT: number[][] = Array(6).fill(0).map(() => Array(6).fill(0));
+      for (let i = 0; i < 6; i++) {
         for (let j = 0; j < 6; j++) {
-          delta += jacobian[j][i] * errorVector[j];
+          for (let k = 0; k < jointAngles.length; k++) {
+            JJT[i][j] += jacobian[i][k] * jacobian[j][k];
+          }
         }
-        // Apply damping to prevent overshoot
-        const dampingFactor = 1.0 / (1.0 + damping * Math.abs(delta));
-        deltaAngles[i] = delta * dampingFactor;
       }
 
-      // Adaptive step size: smaller steps when error is large, larger steps when error is small
-      // This prevents overshoot when far from target
-      const adaptiveStep = Math.min(1.0, 0.1 / Math.max(positionErrorMagnitude, 0.01)) * stepSize;
+      // Add damping: (J * J^T + λ²I)
+      // Use total error (or orientation error if position is zero) for damping to handle pure orientation moves
+      const errorForDamping = positionErrorMagnitude > 1e-6 
+        ? positionErrorMagnitude 
+        : (orientationError.length() * 0.1); // Scale orientation error for damping (rad ~0.1m equivalent)
+      const lambda = damping * errorForDamping;
+      for (let i = 0; i < 6; i++) {
+        JJT[i][i] += lambda * lambda;
+      }
+
+      // Invert 6x6 matrix (small enough to compute directly)
+      const JJTInv = this.invert6x6Matrix(JJT);
+      if (!JJTInv) {
+        // Fallback to simple transpose if inversion fails
+        for (let i = 0; i < jointAngles.length; i++) {
+          let delta = 0;
+          for (let j = 0; j < 6; j++) {
+            delta += jacobian[j][i] * errorVector[j];
+          }
+          deltaAngles[i] = -delta * stepSize;
+        }
+      } else {
+        // Compute (J * J^T + λ²I)^-1 * e
+        const dampedError: number[] = Array(6).fill(0);
+        for (let i = 0; i < 6; i++) {
+          for (let j = 0; j < 6; j++) {
+            dampedError[i] += JJTInv[i][j] * errorVector[j];
+          }
+        }
+
+        // Compute Δθ = -J^T * dampedError (negative for descent)
+        for (let i = 0; i < jointAngles.length; i++) {
+          let delta = 0;
+          for (let j = 0; j < 6; j++) {
+            delta += jacobian[j][i] * dampedError[j];
+          }
+          deltaAngles[i] = -delta; // Negative for error descent
+        }
+      }
+
+      // Adaptive step size with more aggressive scaling
+      // Scale step by TOTAL error magnitude (position + orientation) to push through plateaus
+      // Use orientation error magnitude for pure rotation moves
+      const totalErrorMagnitude = positionErrorMagnitude > 1e-6 
+        ? positionErrorMagnitude 
+        : (orientationError.length() * 0.1); // Scale orientation error for step size (rad ~0.1m equivalent)
+      const adaptiveStep = totalErrorMagnitude < 0.01
+        ? stepSize * 3.0  // Triple when very close (line-search protects)
+        : totalErrorMagnitude < 0.02
+        ? stepSize * 2.0  // Double when close
+        : Math.min(1.0, 0.2 / Math.max(totalErrorMagnitude, 0.01)) * stepSize;
 
       // DEBUG: Log first iteration details
       if (iteration === 0) {
         console.log(`[IK Jacobian] Iter 0 adaptiveStep=${adaptiveStep.toFixed(4)}, deltaAngles: [${deltaAngles.map(v => v.toFixed(4)).join(', ')}]`);
         console.log(`[IK Jacobian] Iter 0 jointAngles BEFORE: [${jointAngles.map(v => (v * 180 / Math.PI).toFixed(1)).join(', ')}]°`);
+        console.log(`[IK DEBUG] Line-search starting: current TOTAL error=${error.toFixed(6)} (pos: ${positionErrorMagnitude.toFixed(6)}m, orient: ${orientationError.length().toFixed(6)}rad)`);
       }
 
-      // Update joint angles
-      for (let i = 0; i < jointAngles.length; i++) {
-        jointAngles[i] += adaptiveStep * deltaAngles[i];
+      // Tentative update with line-search that checks actual TOTAL error reduction (position + orientation)
+      let step = adaptiveStep;
+      let improved = false;
+      let candidateAngles = jointAngles.slice();
+      let bestErr = error; // Use total error (position + orientation)
+      let bestAngles = jointAngles.slice();
+
+      // Try progressive step sizes, keeping the best
+      for (let attempt = 0; attempt < 8; attempt++) {
+        // Apply step to candidate
+        for (let i = 0; i < candidateAngles.length; i++) {
+          candidateAngles[i] = jointAngles[i] + step * deltaAngles[i];
+        }
+
+        // Clamp to limits
+        for (let i = 0; i < candidateAngles.length; i++) {
+          candidateAngles[i] = Math.max(
+            joints[i].limits.lower,
+            Math.min(joints[i].limits.upper, candidateAngles[i])
+          );
+        }
+
+        // Evaluate new TOTAL error (position + orientation) using FK → WORLD
+        const poseLocal = this.fkSolver.solve(chainName, candidateAngles);
+        if (!poseLocal) {
+          step *= 0.5;
+          candidateAngles = jointAngles.slice();
+          continue;
+        }
+        const baseWorldMatrixLS = this.kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
+        const posWorldLS = BABYLON.Vector3.TransformCoordinates(poseLocal.position, baseWorldMatrixLS);
+        const baseRotLS = BABYLON.Quaternion.FromRotationMatrix(baseWorldMatrixLS.getRotationMatrix());
+        const rotWorldLS = baseRotLS.multiply(poseLocal.rotation);
+        
+        // Compute total error (position + orientation)
+        const posErrLS = target.position.subtract(posWorldLS).length();
+        const orientErrLS = computeOrientationError(rotWorldLS);
+        const newTotalErr = posErrLS * positionWeight + orientErrLS.length() * orientationWeight;
+
+        // Keep track of best candidate (lowest total error)
+        if (newTotalErr < bestErr) {
+          bestErr = newTotalErr;
+          bestAngles = candidateAngles.slice();
+          improved = true;
+        }
+
+        // If we found an improvement (at least 0.1% reduction), accept it (don't continue searching)
+        if (newTotalErr <= error * 0.999) {
+          improved = true;
+          jointAngles = candidateAngles;
+          break;
+        }
+
+        // Reduce step and retry
+        step *= 0.5;
+        candidateAngles = jointAngles.slice();
+      }
+
+      // Use best candidate found, or if none improved, use smallest step
+      if (improved) {
+        jointAngles = bestAngles;
+        if (iteration === 0) {
+          console.log(`[IK DEBUG] Line-search: improved TOTAL error from ${error.toFixed(6)} to ${bestErr.toFixed(6)} (pos+orient weighted)`);
+        }
+      } else {
+        // If no improvement, try NEGATING the step direction (might be sign error)
+        if (iteration === 0) {
+          console.log(`[IK DEBUG] Line-search: NO improvement found. Best TOTAL error: ${bestErr.toFixed(6)} (worse than ${error.toFixed(6)}). Trying NEGATED step...`);
+        }
+        for (let i = 0; i < candidateAngles.length; i++) {
+          candidateAngles[i] = jointAngles[i] - (adaptiveStep * 0.1) * deltaAngles[i];
+        }
+        for (let i = 0; i < candidateAngles.length; i++) {
+          candidateAngles[i] = Math.max(
+            joints[i].limits.lower,
+            Math.min(joints[i].limits.upper, candidateAngles[i])
+          );
+        }
+        const poseLocalNeg = this.fkSolver.solve(chainName, candidateAngles);
+        if (poseLocalNeg) {
+          const baseWorldMatrixNeg = this.kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
+          const posWorldNeg = BABYLON.Vector3.TransformCoordinates(poseLocalNeg.position, baseWorldMatrixNeg);
+          const baseRotNeg = BABYLON.Quaternion.FromRotationMatrix(baseWorldMatrixNeg.getRotationMatrix());
+          const rotWorldNeg = baseRotNeg.multiply(poseLocalNeg.rotation);
+          
+          // Compute total error for negated step
+          const posErrNeg = target.position.subtract(posWorldNeg).length();
+          const orientErrNeg = computeOrientationError(rotWorldNeg);
+          const negTotalErr = posErrNeg * positionWeight + orientErrNeg.length() * orientationWeight;
+          
+          if (negTotalErr < error) {
+            jointAngles = candidateAngles;
+            if (iteration === 0) {
+              console.log(`[IK DEBUG] ✓ NEGATED step improved! TOTAL error: ${negTotalErr.toFixed(6)} (this may indicate a sign issue)`);
+            }
+          } else {
+            // Last resort: tiny step in original direction
+            if (iteration === 0) {
+              console.log(`[IK DEBUG] ⚠️ Even negated step didn't help (total error: ${negTotalErr.toFixed(6)}). Using tiny step as last resort.`);
+            }
+            for (let i = 0; i < jointAngles.length; i++) {
+              jointAngles[i] += (adaptiveStep * 0.01) * deltaAngles[i];
+            }
+          }
+        } else {
+          // Last resort: tiny step in original direction
+          if (iteration === 0) {
+            console.log(`[IK DEBUG] ⚠️ Negated step FK solve failed. Using tiny step.`);
+          }
+          for (let i = 0; i < jointAngles.length; i++) {
+            jointAngles[i] += (adaptiveStep * 0.01) * deltaAngles[i];
+          }
+        }
       }
 
       // DEBUG: Log first iteration joint update
@@ -490,11 +647,28 @@ export class InverseKinematicsSolver {
     target: IKTarget,
     method: 'jacobian' | 'ccd' = 'jacobian'
   ): boolean {
-    const solution = method === 'jacobian'
+    // First attempt: requested method
+    let solution = method === 'jacobian'
       ? this.solveJacobianTranspose(chainName, target)
       : this.solveCCD(chainName, target);
 
-    if (!solution.success) {
+    // Fallback: if Jacobian fails, try CCD which is often more robust near singularities
+    if (!solution.success && method === 'jacobian') {
+      console.warn(
+        `IK failed with Jacobian (error=${solution.error.toFixed(4)}, iterations=${solution.iterations}). ` +
+        `Falling back to CCD...`
+      );
+      const ccdSolution = this.solveCCD(chainName, target);
+      if (ccdSolution.success) {
+        solution = ccdSolution;
+      } else {
+        console.warn(
+          `IK fallback CCD also failed: error=${ccdSolution.error.toFixed(4)}, ` +
+          `iterations=${ccdSolution.iterations}`
+        );
+        return false;
+      }
+    } else if (!solution.success) {
       console.warn(
         `IK failed: error=${solution.error.toFixed(4)}, ` +
         `iterations=${solution.iterations}`
@@ -559,11 +733,21 @@ export class InverseKinematicsSolver {
     const targetRotation = rotationDelta.multiply(currentRotWorld);
 
     // Solve IK for new rotation (maintain position)
+    // For pure orientation moves, prioritize orientation accuracy with higher orientationWeight
     const solution = method === 'jacobian'
-      ? this.solveJacobianTranspose(chainName, {
-          position: currentPosWorld,
-          rotation: targetRotation,
-        })
+      ? this.solveJacobianTranspose(
+          chainName,
+          {
+            position: currentPosWorld,
+            rotation: targetRotation,
+          },
+          undefined, // No initial angles override, use current
+          {
+            orientationWeight: 2.0, // Higher weight for orientation accuracy in pure rotation moves
+            positionWeight: 1.0,     // Maintain position (prevent drift)
+            tolerance: 0.001,        // Tighter tolerance for orientation (weighted error)
+          }
+        )
       : this.solveFABRIK(chainName, {
           position: currentPosWorld,
           rotation: targetRotation,
@@ -638,7 +822,37 @@ export class InverseKinematicsSolver {
       return true;
     }
 
-    const result = this.solveAndApply(
+    // For pure translation moves, use low orientation weight to prioritize position
+    // This reduces unwanted Y/Z drift and allows more accurate X movement
+    if (method === 'jacobian') {
+      const solution = this.solveJacobianTranspose(chainName, {
+        position: targetPosition,
+        rotation: currentRotWorld, // Maintain current orientation (world space)
+      }, undefined, {
+        maxIterations: 1000,
+        tolerance: 0.005,
+        stepSize: 0.5,
+        positionWeight: 1.0,
+        orientationWeight: 0.01, // Very low - prioritize position for translation
+        damping: 0.1,
+      });
+
+      if (!solution.success) {
+        return false;
+      }
+
+      // Apply joint angles
+      const chain = this.kinematicsManager.getChain(chainName);
+      if (!chain) return false;
+      const joints = this.kinematicsManager.getActuatedJoints(chain.id);
+      for (let i = 0; i < joints.length; i++) {
+        this.fkSolver.updateJointPosition(joints[i].id, solution.jointAngles[i]);
+      }
+      return true;
+    }
+
+    // For CCD, use standard solveAndApply
+    return this.solveAndApply(
       chainName,
       {
         position: targetPosition,
@@ -646,8 +860,6 @@ export class InverseKinematicsSolver {
       },
       method
     );
-
-    return result;
   }
 
   /**
@@ -895,6 +1107,74 @@ export class InverseKinematicsSolver {
     }
 
     return resultAngles;
+  }
+
+  /**
+   * Invert a 6x6 matrix using Gaussian elimination with partial pivoting
+   * Returns null if matrix is singular (non-invertible)
+   */
+  private invert6x6Matrix(matrix: number[][]): number[][] | null {
+    const n = 6;
+    // Create augmented matrix [A | I]
+    const augmented: number[][] = Array(n).fill(0).map(() => Array(2 * n).fill(0));
+    
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) {
+        augmented[i][j] = matrix[i][j];
+      }
+      augmented[i][n + i] = 1.0; // Identity matrix
+    }
+
+    // Gauss-Jordan elimination with partial pivoting (eliminates both above and below)
+    for (let i = 0; i < n; i++) {
+      // Find pivot (largest element in column i from row i onwards)
+      let maxRow = i;
+      let maxVal = Math.abs(augmented[i][i]);
+      for (let k = i + 1; k < n; k++) {
+        if (Math.abs(augmented[k][i]) > maxVal) {
+          maxVal = Math.abs(augmented[k][i]);
+          maxRow = k;
+        }
+      }
+
+      // Check for singularity
+      if (maxVal < 1e-10) {
+        return null; // Singular matrix
+      }
+
+      // Swap rows
+      if (maxRow !== i) {
+        const temp = augmented[i];
+        augmented[i] = augmented[maxRow];
+        augmented[maxRow] = temp;
+      }
+
+      // Normalize pivot row (divide by pivot so pivot becomes 1)
+      const pivot = augmented[i][i];
+      for (let j = 0; j < 2 * n; j++) {
+        augmented[i][j] /= pivot;
+      }
+
+      // Eliminate column i in all other rows (both above and below)
+      for (let k = 0; k < n; k++) {
+        if (k !== i) {
+          const factor = augmented[k][i];
+          for (let j = 0; j < 2 * n; j++) {
+            augmented[k][j] -= factor * augmented[i][j];
+          }
+        }
+      }
+    }
+
+    // Extract inverse (right half of augmented matrix)
+    const inverse: number[][] = Array(n).fill(0).map(() => Array(n).fill(0));
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) {
+        inverse[i][j] = augmented[i][n + j];
+      }
+    }
+
+    return inverse;
   }
 
   /**

@@ -660,11 +660,12 @@ export const EssentialModeLayout: React.FC = () => {
             color: '#ffffff',
             textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.7)',
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace',
-            fontSize: '13px',
+            fontSize: '8px',
             fontWeight: '600',
             WebkitFontSmoothing: 'antialiased',
             MozOsxFontSmoothing: 'grayscale',
             minWidth: '280px',
+            marginBottom: '16px', // Add bottom margin to prevent overlap with version
           }}
         >
           <div className="flex justify-between text-sm">

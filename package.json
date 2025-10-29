@@ -1,7 +1,7 @@
 {
   "name": "kineticore",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Web-based 3D industrial simulation and kinematics platform",
   "author": "George McIntyre, Cole, Edwin",

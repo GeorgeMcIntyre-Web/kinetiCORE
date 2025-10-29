@@ -45,6 +45,7 @@ export const VersionDisplay: React.FC<VersionDisplayProps> = ({
     userSelect: 'none',
     pointerEvents: 'none',
     textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)',
+    marginBottom: '0px', // Ensure version stays at bottom
   };
 
   const overlayStyle: React.CSSProperties = {
