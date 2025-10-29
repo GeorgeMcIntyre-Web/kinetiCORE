@@ -122,6 +122,27 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     }
   }, [visualizerEnabled, activeRobotId, visualizer]);
 
+  // Handle panel close - cleanup gizmos and debug visualizations
+  const handlePanelClose = () => {
+    // Clean up TCP gizmos
+    const { UnifiedGizmoManager } = require('../../kinematics/UnifiedGizmoManager');
+    const unifiedGizmo = UnifiedGizmoManager.getInstance();
+    unifiedGizmo.setActivePanel('none');
+
+    if (activeRobotId) {
+      const targetId = `tcp_${activeRobotId}`;
+      unifiedGizmo.removeTarget(targetId);
+      console.log('[FloatingKinematicsPanel] Cleaned up TCP gizmo:', targetId);
+    }
+
+    // Clean up joint debug frames
+    kinematicsManager.hideAllJointVisuals();
+    console.log('[FloatingKinematicsPanel] Cleaned up joint debug visuals');
+
+    // Call parent onClose
+    onClose?.();
+  };
+
   const handleToggleVisualizer = () => {
     setVisualizerEnabled(!visualizerEnabled);
   };
@@ -682,8 +703,16 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     };
 
     if (showVizSettings) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      // Delay listener attachment to avoid catching the same click that opened the popover
+      // This prevents the popover from closing immediately after opening
+      const timer = setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+      }, 100);
+
+      return () => {
+        clearTimeout(timer);
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
     }
   }, [showVizSettings]);
 
@@ -1027,7 +1056,7 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     <FloatingPanel
         title="Motion"
         subtitle={activeDevice ? `${activeDevice.name} (${activeDevice.jointCount} joints)` : "Select device from scene tree"}
-        onClose={onClose}
+        onClose={handlePanelClose}
       isVisible={isVisible}
       zIndex={zIndex}
       defaultSize={{ width: 250, height: 500 }}
