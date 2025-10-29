@@ -730,10 +730,13 @@ export class IKTargetGizmoManager {
     //         Y label goes to where Z currently goes (yGizmo)
     //         Z label goes to where X currently goes (zGizmo)
     
-    // Final fix: Swap gizmo references to rotate labels to correct positions
-    createLabel('X', colors.x, new BABYLON.Vector3(1, 0, 0), 'x', zGizmo);  // X (red) on blue arrow's gizmo → goes to red arrow position
-    createLabel('Y', colors.y, new BABYLON.Vector3(0, 1, 0), 'y', xGizmo);  // Y (green) on red arrow's gizmo → goes to green arrow position
-    createLabel('Z', colors.z, new BABYLON.Vector3(0, 0, 1), 'z', yGizmo);  // Z (blue) on green arrow's gizmo → goes to blue arrow position
+    // Create labels with correct gizmo assignments:
+    // xGizmo = red arrow → should have red "X" label
+    // yGizmo = green arrow → should have green "Y" label
+    // zGizmo = blue arrow → should have blue "Z" label
+    createLabel('X', colors.x, new BABYLON.Vector3(1, 0, 0), 'x', xGizmo);  // X (red) on red arrow
+    createLabel('Y', colors.y, new BABYLON.Vector3(0, 1, 0), 'y', yGizmo);  // Y (green) on green arrow
+    createLabel('Z', colors.z, new BABYLON.Vector3(0, 0, 1), 'z', zGizmo);  // Z (blue) on blue arrow
   }
 
   /**

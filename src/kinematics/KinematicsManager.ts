@@ -1252,6 +1252,14 @@ export class KinematicsManager implements IKinematicsManager {
     const visuals = this.jointAxisVisualizers.get(jointId);
     if (!visuals || visuals.length === 0) return;
 
+    // CRITICAL FIX: Force world matrix update before recreating gizmo
+    // This ensures the gizmo uses the updated joint mesh position
+    const tree = SceneTreeManager.getInstance();
+    const node = tree.getNode(joint.parentNodeId);
+    if (node?.babylonNode) {
+      node.babylonNode.computeWorldMatrix(true);
+    }
+
     // Hide old gizmo and recreate with new angle
     this.hideJointVisuals(jointId);
     this.showJointDebugFrame(jointId, scene);
