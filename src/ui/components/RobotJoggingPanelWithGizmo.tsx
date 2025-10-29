@@ -992,8 +992,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
                 disabled={!newPoseName.trim()}
                 title="Save current joint positions"
               >
-                <Save size={14} />
-                Save Current
+                <Save size={16} />
               </button>
             </div>
 
@@ -1014,8 +1013,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
                         onClick={() => handleLoadPose(keyframe.id)}
                         title="Load this pose"
                       >
-                        <Play size={12} />
-                        Load
+                        <Play size={14} />
                       </button>
                       <button
                         className="pose-delete-btn"
