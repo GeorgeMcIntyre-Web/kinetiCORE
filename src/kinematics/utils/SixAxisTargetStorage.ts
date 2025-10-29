@@ -296,23 +296,26 @@ export interface SixAxisTargetProgram {
   
   // Target points (like PR[] variables in FANUC, or position registers in other systems)
   // PRIMARY storage: Joint array [J1-J6] + configuration
+  // These are taught/defined positions that can be used in sequences
   targets: SixAxisTarget[];
   
-  // Program structure - sequential instructions (like real robot programs)
-  // Not "sequences" - just line-by-line program statements
-  // Examples:
-  //   FANUC: "L P[1] 100mm/sec FINE"
-  //   KUKA: "PTP P1 Vel=100"
-  //   ABB: "MoveL p1, v100, fine, tool0;"
+  // Sequences - ordered groups of targets/motions within a program
+  // Programs contain sequences, sequences contain targets (or instructions)
+  sequences: Array<{
+    id: string;
+    name: string;
+    description?: string;
+    // What goes in a sequence? Ordered targets? Motion instructions?
+    targetIds: string[];  // Ordered list of target IDs in this sequence
+    // OR should it be:
+    // instructions: Array<...>  // Actual motion/instruction data?
+  }>;
+  
+  // Program structure - how sequences are executed
+  // Programs call/execute sequences in order
   program?: {
-    lines: Array<{
-      lineNumber: number;
-      instruction: string;  // Raw instruction text (vendor-specific or generic)
-      targetId?: string;    // Reference to target if motion instruction
-      motionType?: MotionType;
-      speed?: number;
-      type: 'MOTION' | 'LOGIC' | 'IO' | 'WAIT' | 'COMMENT' | 'LABEL' | 'CALL';
-    }>;
+    sequenceIds: string[];  // Order in which to execute sequences
+    // OR program lines that reference sequences/targets?
   };
   
   // Current active settings
