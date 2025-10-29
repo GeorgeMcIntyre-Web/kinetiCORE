@@ -400,7 +400,11 @@ export class IKTargetGizmoManager {
   /**
    * Add X, Y, Z text labels at the end of gizmo axes
    * Uses same font and colors as the corner transform display
+   *
+   * NOTE: This function is currently unused (commented out in createTarget)
+   * Kept for potential future debug mode. Remove after confirming not needed.
    */
+  // @ts-ignore - Keeping for potential future debug mode
   private addGizmoAxisLabels(
     gizmo: BABYLON.PositionGizmo,
     transformNode: BABYLON.TransformNode,

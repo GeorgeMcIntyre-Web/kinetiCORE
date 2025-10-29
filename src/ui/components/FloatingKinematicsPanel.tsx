@@ -16,7 +16,7 @@ import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { useEditorStore } from '../store/editorStore';
 import { RobotJoggingPanelWithGizmo } from './RobotJoggingPanelWithGizmo';
 import { InverseKinematicsSolver } from '../../kinematics/InverseKinematicsSolver';
-import { Eye, EyeOff, TestTube, Download, Bug, Settings as SettingsIcon, ArrowLeft, Home, Edit } from 'lucide-react';
+import { Eye, EyeOff, Bug, Settings as SettingsIcon, ArrowLeft, Home, Edit } from 'lucide-react';
 import { TransformDebugVisualizer } from '../../kinematics/TransformDebugVisualizer';
 import { IKTestHarness } from '../../kinematics/IKTestHarness';
 import './FloatingKinematicsPanel.css';
@@ -126,6 +126,8 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     setVisualizerEnabled(!visualizerEnabled);
   };
 
+  // Removed toolbar button handlers - keeping code for potential future debug mode
+  // @ts-ignore - Keeping for potential future debug mode
   const handleRunTestSuite = () => {
     if (!activeRobotId) {
       alert('⚠️ No robot selected!\n\nPlease select a robot from the dropdown above.');
@@ -151,6 +153,7 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     }
   };
 
+  // @ts-ignore - Keeping for potential future debug mode
   const handleTestConsistency = () => {
     if (!activeRobotId) {
       alert('⚠️ No robot selected!\n\nPlease select a robot from the dropdown above.');
@@ -176,6 +179,7 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     }
   };
 
+  // @ts-ignore - Keeping for potential future debug mode
   const handleGetDivergenceReport = () => {
     if (!debugToolsReady) {
       alert('⚠️ Debug tools not initialized!\n\nPlease:\n1. Select a robot\n2. Enable visualizer (Eye button)\n3. Try again');
