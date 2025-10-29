@@ -352,9 +352,9 @@ export class SkeletonLinkRenderer {
 
     let mesh: BABYLON.Mesh;
 
-    // Use 20mm diameter for bones (half of 40mm)
-    const boneDiameter = 0.020; // 20mm diameter
-    const sphereDiameter = 0.026; // 26mm diameter for spheres (20% larger than 22mm)
+    // Use 10mm diameter for bones (0.5x of 20mm)
+    const boneDiameter = 0.010; // 10mm diameter (half of previous 20mm)
+    const sphereDiameter = 0.013; // 13mm diameter for spheres (0.5x of previous 26mm)
     
     console.log(`[CreateBoneMesh] Creating bone with diameter: ${boneDiameter * 1000}mm`);
     

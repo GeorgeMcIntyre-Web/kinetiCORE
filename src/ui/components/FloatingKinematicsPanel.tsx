@@ -15,8 +15,10 @@ import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolve
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { useEditorStore } from '../store/editorStore';
 import { RobotJoggingPanelWithGizmo } from './RobotJoggingPanelWithGizmo';
-import { TransformDebugPanel } from './TransformDebugPanel';
 import { InverseKinematicsSolver } from '../../kinematics/InverseKinematicsSolver';
+import { Eye, EyeOff, TestTube, Download, Bug, Settings as SettingsIcon, ArrowLeft, Home, Edit } from 'lucide-react';
+import { TransformDebugVisualizer } from '../../kinematics/TransformDebugVisualizer';
+import { IKTestHarness } from '../../kinematics/IKTestHarness';
 import './FloatingKinematicsPanel.css';
 
 interface FloatingKinematicsPanelProps {
@@ -74,6 +76,108 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
   const setEditModeEnabled = useEditorStore((s) => s.setEditModeEnabled);
   const attachJoint = useEditorStore((s) => s.attachJoint);
   const commandManager = useEditorStore((s) => s.commandManager);
+
+  // Debug tools state
+  const [visualizerEnabled, setVisualizerEnabled] = useState(false);
+  const [visualizer] = useState(() => TransformDebugVisualizer.getInstance());
+  const [testHarness] = useState(() => IKTestHarness.getInstance());
+
+  // Visualization settings popover state
+  const [showVizSettings, setShowVizSettings] = useState(false);
+  const vizSettingsRef = useRef<HTMLDivElement>(null);
+
+  // Initialize debug tools
+  useEffect(() => {
+    const sceneManager = (window as any).sceneManager;
+    const scene = sceneManager?.getScene?.();
+    if (scene && activeRobotId) {
+      visualizer.initialize(scene, fkSolver, kinematicsManager);
+      testHarness.initialize(fkSolver, ikSolver, kinematicsManager);
+    }
+  }, [fkSolver, ikSolver, kinematicsManager, activeRobotId, visualizer, testHarness]);
+
+  // Update visualizer when enabled
+  useEffect(() => {
+    if (visualizerEnabled && activeRobotId) {
+      visualizer.setEnabled(true, {
+        showJointFrames: false,
+        showMeshFrames: true,
+        showFKFrames: true,
+        showDivergence: true,
+        frameSize: 0.1,
+        showBaseFrame: true,
+        showTCPFrame: true,
+        divergenceThreshold: 0.001,
+      });
+    } else {
+      visualizer.setEnabled(false, {});
+    }
+  }, [visualizerEnabled, activeRobotId, visualizer]);
+
+  const handleToggleVisualizer = () => {
+    setVisualizerEnabled(!visualizerEnabled);
+  };
+
+  const handleRunTestSuite = () => {
+    if (!activeRobotId) return;
+    const chains = kinematicsManager.getAllChains();
+    const robotChain = chains.find(chain =>
+      chain.joints.some((joint: any) => joint.id.startsWith(activeRobotId))
+    );
+    if (robotChain) {
+      testHarness.runTestSuite(robotChain.name);
+    }
+  };
+
+  const handleTestConsistency = () => {
+    if (!activeRobotId) return;
+    const chains = kinematicsManager.getAllChains();
+    const robotChain = chains.find(chain =>
+      chain.joints.some((joint: any) => joint.id.startsWith(activeRobotId))
+    );
+    if (robotChain) {
+      testHarness.testForwardBackwardConsistency(robotChain.name);
+    }
+  };
+
+  const handleGetDivergenceReport = () => {
+    const report = visualizer.getDivergenceReport();
+    console.log(report);
+    alert('Divergence report printed to console');
+  };
+
+  const handleResetAll = () => {
+    if (!activeRobotId) return;
+    const robotChain = kinematicsManager.getAllChains().find(chain =>
+      chain.joints.some((joint: any) => joint.id.startsWith(activeRobotId))
+    );
+    if (robotChain) {
+      const robotJoints = kinematicsManager.getChainJoints(robotChain.id);
+      robotJoints.forEach((joint: any) => {
+        if (joint.type === 'revolute' || joint.type === 'prismatic' || joint.type === 'continuous') {
+          fkSolver.updateJointPosition(joint.id, 0);
+        }
+      });
+    }
+  };
+
+  const handleShowJointDebug = () => {
+    if (!activeRobotId) return;
+    const sceneManager = (window as any).sceneManager;
+    const scene = sceneManager?.getScene?.();
+    if (scene) {
+      const chains = kinematicsManager.getAllChains();
+      const robotChain = chains.find(chain =>
+        chain.joints.some((joint: any) => joint.id.startsWith(activeRobotId))
+      );
+      if (robotChain) {
+        console.log(`[DEBUG] Showing debug frames for chain: ${robotChain.id}, ${robotChain.name}`);
+        kinematicsManager.showAllJointDebugFrames(robotChain.id, scene);
+        console.log('[DEBUG] Debug frames added! Check console for XYZ/RPY values at each joint.');
+        console.log('[DEBUG] You should now see red/green/blue axis lines at each joint.');
+      }
+    }
+  };
 
   // Discover all robots in the scene
   useEffect(() => {
@@ -456,8 +560,368 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
 
   const activeDevice = robots.find(r => r.nodeId === activeRobotId);
 
+  // Close popover when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (vizSettingsRef.current && !vizSettingsRef.current.contains(event.target as Node)) {
+        setShowVizSettings(false);
+      }
+    };
+
+    if (showVizSettings) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showVizSettings]);
+
   const panelContent = (
-    <div className="floating-kinematics-content">
+    <div className="floating-kinematics-content" style={{ position: 'relative' }}>
+      {/* Compact Icon-Only Debug Buttons at Top */}
+      {activeRobotId && (
+        <div style={{
+          display: 'flex',
+          gap: '2px',
+          padding: '4px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          position: 'relative',
+        }}>
+          <div style={{ display: 'flex', gap: '2px' }}>
+          <button
+            onClick={handleResetAll}
+            style={{
+              padding: '4px',
+              width: '24px',
+              height: '24px',
+              background: '#444',
+              border: 'none',
+              borderRadius: '3px',
+              color: 'white',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            title="Reset All to Home"
+          >
+            <Home size={14} />
+          </button>
+          <button
+            onClick={handleToggleVisualizer}
+            style={{
+              padding: '4px',
+              width: '24px',
+              height: '24px',
+              background: visualizerEnabled ? '#00d4aa' : '#333',
+              border: 'none',
+              borderRadius: '3px',
+              color: 'white',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            title={visualizerEnabled ? 'Disable Debug Visualizer' : 'Enable Debug Visualizer'}
+          >
+            {visualizerEnabled ? <Eye size={14} /> : <EyeOff size={14} />}
+          </button>
+          {visualizerEnabled && (
+            <button
+              onClick={handleGetDivergenceReport}
+              style={{
+                padding: '4px',
+                width: '24px',
+                height: '24px',
+                background: '#444',
+                border: 'none',
+                borderRadius: '3px',
+                color: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              title="Get Divergence Report"
+            >
+              <Download size={14} />
+            </button>
+          )}
+          <button
+            onClick={handleRunTestSuite}
+            style={{
+              padding: '4px',
+              width: '24px',
+              height: '24px',
+              background: '#444',
+              border: 'none',
+              borderRadius: '3px',
+              color: 'white',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            title="Run IK Test Suite"
+          >
+            <TestTube size={14} />
+          </button>
+          <button
+            onClick={handleTestConsistency}
+            style={{
+              padding: '4px',
+              width: '24px',
+              height: '24px',
+              background: '#444',
+              border: 'none',
+              borderRadius: '3px',
+              color: 'white',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '10px',
+              fontWeight: 'bold',
+            }}
+            title="Test FK/IK Consistency"
+          >
+            ✓
+          </button>
+          <button
+            onClick={handleShowJointDebug}
+            style={{
+              padding: '4px',
+              width: '24px',
+              height: '24px',
+              background: '#444',
+              border: 'none',
+              borderRadius: '3px',
+              color: 'white',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            title="Show Joint Debug Frames"
+          >
+            <Bug size={14} />
+          </button>
+          {editableKinematicsFlag && (
+            <button
+              onClick={() => setEditModeEnabled(!editModeEnabled)}
+              style={{
+                padding: '4px',
+                width: '24px',
+                height: '24px',
+                background: editModeEnabled ? '#00d4aa' : '#444',
+                border: 'none',
+                borderRadius: '3px',
+                color: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginLeft: '2px',
+              }}
+              title="Enable Edit Mode"
+            >
+              <Edit size={14} />
+            </button>
+          )}
+          </div>
+          
+          {/* Visualization Settings Button (Top Right) */}
+          <div ref={vizSettingsRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowVizSettings(!showVizSettings)}
+              style={{
+                padding: '4px',
+                width: '24px',
+                height: '24px',
+                background: showVizSettings ? '#00d4aa' : '#444',
+                border: 'none',
+                borderRadius: '3px',
+                color: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              title="Visualization Settings"
+            >
+              <SettingsIcon size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Visualization Settings - Full Panel Overlay (outside button container) */}
+      {showVizSettings && (
+        <div style={{
+          position: 'absolute',
+          top: '0',
+          left: '0',
+          right: '0',
+          bottom: '0',
+          background: 'rgba(20, 20, 25, 0.98)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          padding: '16px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+          zIndex: 10001,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+        }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '12px',
+                }}>
+                  <button
+                    onClick={() => setShowVizSettings(false)}
+                    style={{
+                      padding: '4px',
+                      width: '24px',
+                      height: '24px',
+                      background: '#444',
+                      border: 'none',
+                      borderRadius: '3px',
+                      color: 'white',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    title="Back to Motion Panel"
+                  >
+                    <ArrowLeft size={14} />
+                  </button>
+                  <div style={{
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                  }}>
+                    Visualization
+                  </div>
+                </div>
+                
+                <div className="viz-controls">
+                  <div className="viz-row">
+                    <label title="Toggle kinematic skeleton overlay (mm units)">Skeleton</label>
+                    <input
+                      type="checkbox"
+                      checked={skeletonEnabled}
+                      onChange={(e) => setSkeletonEnabled(e.target.checked)}
+                      aria-label="Show skeleton"
+                    />
+                  </div>
+
+                  <div className="viz-row">
+                    <label title="Cylinder, tube, or line rendering">Style</label>
+                    <select
+                      value={skeletonStyle}
+                      onChange={(e) => setSkeletonStyle(e.target.value as any)}
+                      aria-label="Skeleton style"
+                    >
+                      <option value="cylinder">Cylinder</option>
+                      <option value="tube">Tube</option>
+                      <option value="line">Line</option>
+                    </select>
+                  </div>
+
+                  <div className="viz-row">
+                    <label title="Visual thickness in millimeters">Thickness</label>
+                    <input
+                      type="range"
+                      min={1}
+                      max={50}
+                      step={1}
+                      value={skeletonThicknessMm}
+                      onChange={(e) => setSkeletonThicknessMm(parseInt(e.target.value, 10))}
+                      aria-label="Skeleton thickness"
+                    />
+                    <span className="viz-value">{skeletonThicknessMm} mm</span>
+                  </div>
+
+                  <div className="viz-row">
+                    <label title="Animation speed for link transitions">Speed</label>
+                    <input
+                      type="range"
+                      min={0.1}
+                      max={3}
+                      step={0.1}
+                      value={skeletonAnimationSpeed}
+                      onChange={(e) => setSkeletonAnimationSpeed(parseFloat(e.target.value))}
+                      aria-label="Skeleton animation speed"
+                    />
+                    <span className="viz-value">{skeletonAnimationSpeed.toFixed(1)}×</span>
+                  </div>
+
+                  <div className="viz-row">
+                    <label title="Highlight currently active joint">Active joint highlight</label>
+                    <input
+                      type="checkbox"
+                      checked={skeletonHighlightActiveJoint}
+                      onChange={(e) => setSkeletonHighlightActiveJoint(e.target.checked)}
+                      aria-label="Highlight active joint"
+                    />
+                  </div>
+
+                  <div className="viz-row">
+                    <label title="Corner XYZ compass overlay">Coordinate overlay</label>
+                    <input
+                      type="checkbox"
+                      checked={showCoordinateOverlay}
+                      onChange={(e) => setShowCoordinateOverlay(e.target.checked)}
+                      aria-label="Show coordinate overlay"
+                    />
+                  </div>
+
+                  <div className="viz-row">
+                    <label title="Per-joint axis debug frames">Joint indicators</label>
+                    <input
+                      type="checkbox"
+                      checked={showJointAxesOverlay}
+                      onChange={(e) => setShowJointAxesOverlay(e.target.checked)}
+                      aria-label="Show joint indicators"
+                    />
+                  </div>
+
+                  <div className="viz-row">
+                    <label title="Display link/skeleton visualization">Link indicators</label>
+                    <input
+                      type="checkbox"
+                      checked={skeletonEnabled}
+                      onChange={(e) => setSkeletonEnabled(e.target.checked)}
+                      aria-label="Show link indicators"
+                    />
+                  </div>
+
+                  <div className="viz-row">
+                    <label title="Display link lengths in mm">Link length labels</label>
+                    <input
+                      type="checkbox"
+                      checked={showLinkLengthLabels}
+                      onChange={(e) => setShowLinkLengthLabels(e.target.checked)}
+                      aria-label="Show link length labels"
+                    />
+                  </div>
+
+                  <div className="viz-row">
+                    <label title="Display orientation labels (XYZ/RPY)">Orientation labels</label>
+                    <input
+                      type="checkbox"
+                      checked={showOrientationLabels}
+                      onChange={(e) => setShowOrientationLabels(e.target.checked)}
+                      aria-label="Show orientation labels"
+                    />
+                  </div>
+                </div>
+        </div>
+      )}
+
       {/* Joint Control Section - Now at the top */}
       <AssetLibraryDarkSection title="Joint Control" hint={!activeRobotId ? "Select a device to enable" : undefined}>
         {activeRobotId ? (
@@ -473,157 +937,30 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
         )}
       </AssetLibraryDarkSection>
 
-      {/* Transform Debug Section */}
-      <AssetLibraryDarkSection title="🔬 Transform Debug & IK Testing" hint={!activeRobotId ? "Select a device to enable" : undefined}>
-        {activeRobotId ? (
-          <TransformDebugPanel fkSolver={fkSolver} ikSolver={ikSolver} robotId={activeRobotId} />
-        ) : (
-          <AssetLibraryDarkDisabled icon={<Settings size={24} />} message="No device selected" />
-        )}
-      </AssetLibraryDarkSection>
-
-      {/* Visualization Section */}
-      <AssetLibraryDarkSection title="Visualization" hint={!activeRobotId ? 'Select a device to enable' : undefined}>
-        <div className="viz-controls">
-          <div className="viz-row">
-            <label title="Toggle kinematic skeleton overlay (mm units)">Skeleton</label>
-            <input
-              type="checkbox"
-              checked={skeletonEnabled}
-              onChange={(e) => setSkeletonEnabled(e.target.checked)}
-              aria-label="Show skeleton"
-            />
-          </div>
-
-          <div className="viz-row">
-            <label title="Cylinder, tube, or line rendering">Style</label>
-            <select
-              value={skeletonStyle}
-              onChange={(e) => setSkeletonStyle(e.target.value as any)}
-              aria-label="Skeleton style"
-            >
-              <option value="cylinder">Cylinder</option>
-              <option value="tube">Tube</option>
-              <option value="line">Line</option>
-            </select>
-          </div>
-
-          <div className="viz-row">
-            <label title="Visual thickness in millimeters">Thickness</label>
-            <input
-              type="range"
-              min={1}
-              max={50}
-              step={1}
-              value={skeletonThicknessMm}
-              onChange={(e) => setSkeletonThicknessMm(parseInt(e.target.value, 10))}
-              aria-label="Skeleton thickness"
-            />
-            <span className="viz-value">{skeletonThicknessMm} mm</span>
-          </div>
-
-          <div className="viz-row">
-            <label title="Animation speed for link transitions">Speed</label>
-            <input
-              type="range"
-              min={0.1}
-              max={3}
-              step={0.1}
-              value={skeletonAnimationSpeed}
-              onChange={(e) => setSkeletonAnimationSpeed(parseFloat(e.target.value))}
-              aria-label="Skeleton animation speed"
-            />
-            <span className="viz-value">{skeletonAnimationSpeed.toFixed(1)}×</span>
-          </div>
-
-          <div className="viz-row">
-            <label title="Highlight currently active joint">Active joint highlight</label>
-            <input
-              type="checkbox"
-              checked={skeletonHighlightActiveJoint}
-              onChange={(e) => setSkeletonHighlightActiveJoint(e.target.checked)}
-              aria-label="Highlight active joint"
-            />
-          </div>
-
-          <div className="viz-row">
-            <label title="Corner XYZ compass overlay">Coordinate overlay</label>
-            <input
-              type="checkbox"
-              checked={showCoordinateOverlay}
-              onChange={(e) => setShowCoordinateOverlay(e.target.checked)}
-              aria-label="Show coordinate overlay"
-            />
-          </div>
-
-          <div className="viz-row">
-            <label title="Per-joint axis debug frames">Joint axes overlay</label>
-            <input
-              type="checkbox"
-              checked={showJointAxesOverlay}
-              onChange={(e) => setShowJointAxesOverlay(e.target.checked)}
-              aria-label="Show joint axes overlay"
-            />
-          </div>
-
-          <div className="viz-row">
-            <label title="Display link lengths in mm">Link length labels</label>
-            <input
-              type="checkbox"
-              checked={showLinkLengthLabels}
-              onChange={(e) => setShowLinkLengthLabels(e.target.checked)}
-              aria-label="Show link length labels"
-            />
-          </div>
-
-          <div className="viz-row">
-            <label title="Display orientation labels (XYZ/RPY)">Orientation labels</label>
-            <input
-              type="checkbox"
-              checked={showOrientationLabels}
-              onChange={(e) => setShowOrientationLabels(e.target.checked)}
-              aria-label="Show orientation labels"
-            />
-          </div>
-        </div>
-      </AssetLibraryDarkSection>
-
-      {/* Edit Section (feature-flagged) */}
-      {editableKinematicsFlag && (
+      {/* Edit Section - Conditional, only show joint selection when edit mode is enabled */}
+      {editableKinematicsFlag && editModeEnabled && (
         <AssetLibraryDarkSection title="Edit" hint={!activeRobotId ? 'Select a device to enable' : undefined}>
           <div className="viz-controls">
-            <div className="viz-row">
-              <label title="Enable editing tools for the active chain">Enable Edit Mode</label>
-              <input
-                type="checkbox"
-                checked={editModeEnabled}
-                onChange={(e) => setEditModeEnabled(e.target.checked)}
-                aria-label="Enable edit mode"
-              />
-            </div>
-
-            {editModeEnabled && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div className="viz-row">
-                  <label title="Attach to a joint to edit">Attached Joint</label>
-                  <select
-                    value={attachedJointId || ''}
-                    onChange={(e) => attachJoint(e.target.value || null)}
-                    aria-label="Select joint to attach"
-                  >
-                    <option value="">None</option>
-                    {joints.filter(j => j.type === 'revolute' || j.type === 'prismatic').map((j) => (
-                      <option key={j.id} value={j.id}>{j.name || j.id}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="viz-row">
-                  <label title="Dim non-active skeleton while editing">Dim non-active</label>
-                  <input type="checkbox" checked={true} readOnly aria-label="Dim non-active skeleton" />
-                </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="viz-row">
+                <label title="Attach to a joint to edit">Attached Joint</label>
+                <select
+                  value={attachedJointId || ''}
+                  onChange={(e) => attachJoint(e.target.value || null)}
+                  aria-label="Select joint to attach"
+                >
+                  <option value="">None</option>
+                  {joints.filter(j => j.type === 'revolute' || j.type === 'prismatic').map((j) => (
+                    <option key={j.id} value={j.id}>{j.name || j.id}</option>
+                  ))}
+                </select>
               </div>
-            )}
+
+              <div className="viz-row">
+                <label title="Dim non-active skeleton while editing">Dim non-active</label>
+                <input type="checkbox" checked={true} readOnly aria-label="Dim non-active skeleton" />
+              </div>
+            </div>
           </div>
         </AssetLibraryDarkSection>
       )}
@@ -631,7 +968,7 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
   );
 
   return (
-      <FloatingPanel
+    <FloatingPanel
         title="Motion"
         subtitle={activeDevice ? `${activeDevice.name} (${activeDevice.jointCount} joints)` : "Select device from scene tree"}
         onClose={onClose}

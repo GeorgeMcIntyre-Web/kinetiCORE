@@ -855,7 +855,7 @@ export class KinematicsManager implements IKinematicsManager {
     // Create joint origin marker (sphere)
     const originMarker = BABYLON.MeshBuilder.CreateSphere(
       `jointOrigin_${jointId}`,
-      { diameter: 0.02 }, // 20mm diameter
+      { diameter: 0.01 }, // 10mm diameter (0.5x of previous 20mm)
       scene
     );
     originMarker.position.copyFrom(jointOriginWorld);

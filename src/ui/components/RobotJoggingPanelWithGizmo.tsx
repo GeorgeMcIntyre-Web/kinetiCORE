@@ -97,6 +97,43 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     }
   }, [unifiedGizmo]);
 
+  // Show TCP gizmo in joint mode if device has TCP
+  useEffect(() => {
+    if (jogMode === 'joint') {
+      // Switch to motion panel context
+      unifiedGizmo.setActivePanel('motion');
+      
+      // Get current TCP position and create gizmo if device has TCP
+      const kinematicsManager = KinematicsManager.getInstance();
+      const chains = kinematicsManager.getAllChains();
+      const robotChain = chains.find(chain => {
+        return chain.joints.some((joint: any) => joint.id.startsWith(robotId));
+      });
+      
+      if (robotChain) {
+        // Check if device has TCP
+        const tcpPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
+        if (tcpPose) {
+          // Create TCP gizmo even in joint mode
+          unifiedGizmo.createTcpControl(
+            robotId,
+            robotChain.name,
+            tcpPose.position,
+            (newPosition) => {
+              // In joint mode, TCP gizmo movement should still work for visual reference
+              // but we don't apply IK automatically
+              const targetId = `tcp_${robotId}`;
+              unifiedGizmo.updateTargetPosition(targetId, newPosition);
+            },
+            tcpPose.rotation,
+            undefined // No rotation callback in joint mode
+          );
+          console.log('[RobotJoggingPanel] TCP gizmo shown in joint mode');
+        }
+      }
+    }
+  }, [jogMode, robotId, unifiedGizmo, fkSolver]);
+
   // Automatically show joint debug frames when panel opens
   useEffect(() => {
     const kinematicsManager = KinematicsManager.getInstance();
@@ -263,11 +300,15 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
           console.log('[RobotJoggingPanel] Created TCP gizmo at:', tcpPose.position);
         }
       }
+    } else if (jogMode === 'joint') {
+      // Keep TCP gizmo visible in joint mode (handled by separate effect)
+      // Just ensure motion panel context is active
+      unifiedGizmo.setActivePanel('motion');
     } else {
-      // Clear TCP gizmo when not in TCP mode
+      // Clear TCP gizmo when not in TCP or joint mode
       unifiedGizmo.removeTarget(`tcp_${robotId}`);
       unifiedGizmo.setActivePanel('none');
-      console.log('[RobotJoggingPanel] Switched away from TCP mode - gizmo cleared');
+      console.log('[RobotJoggingPanel] Switched away from TCP/Joint mode - gizmo cleared');
     }
   }, [jogMode, robotId, unifiedGizmo, fkSolver, ikSolver]);
 
@@ -541,11 +582,6 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     }
   };
 
-  const handleResetAll = () => {
-    revoluteJoints.forEach(joint => {
-      fkSolver.updateJointPosition(joint.id, 0);
-    });
-  };
 
   const handleLoadPose = (keyframeId: string) => {
     console.log(`Loading pose: ${keyframeId}`);
@@ -901,37 +937,6 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
         </div>
       )}
 
-      {/* Reset and Debug Buttons */}
-      <div className="panel-actions">
-        <button className="reset-button" onClick={handleResetAll}>
-          Reset All to Home
-        </button>
-        <button className="reset-button" onClick={() => {
-          const kinematicsManager = KinematicsManager.getInstance();
-          const sceneManager = SceneManager.getInstance();
-          const scene = sceneManager.getScene();
-          
-          if (scene) {
-            const chains = kinematicsManager.getAllChains();
-            const robotChain = chains.find(chain => 
-              chain.joints.some((joint: any) => joint.id.startsWith(robotId))
-            );
-            
-            if (robotChain) {
-              console.log(`[DEBUG] Showing debug frames for chain: ${robotChain.id}, ${robotChain.name}`);
-              kinematicsManager.showAllJointDebugFrames(robotChain.id, scene);
-              console.log('[DEBUG] Debug frames added! Check console for XYZ/RPY values at each joint.');
-              console.log('[DEBUG] You should now see red/green/blue axis lines at each joint.');
-            } else {
-              console.error('[DEBUG] No robot chain found for robotId:', robotId);
-            }
-          } else {
-            console.error('[DEBUG] Scene not available');
-          }
-        }}>
-          Show Joint Debug Frames
-        </button>
-      </div>
     </div>
   );
 };

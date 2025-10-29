@@ -9,8 +9,6 @@ import {
   Minus,
   Square,
   Crosshair,
-  Circle,
-  Box,
   Package,
   FileUp,
   FolderUp,
@@ -18,7 +16,6 @@ import {
   Move,
   Calculator,
   Zap,
-  Cylinder as CylinderIcon,
   RotateCw,
   Maximize2,
   FolderKanban,
@@ -26,13 +23,16 @@ import {
   Target,
   GitBranch,
   Network,
+  ToggleLeft,
+  Box,
+  Rocket,
 } from 'lucide-react';
 import { loadOBJFile } from '../../loaders/obj/OBJLoader';
 import { SceneManager } from '../../scene/SceneManager';
 import { toast } from '../components/ToastNotifications';
 import { loading } from '../components/LoadingIndicator';
 
-// Custom Quick Move Icon combining speed lines with move arrows
+// Custom Quick Move Icon - 3 horizontal lines behind a cube
 const QuickMoveIcon = ({ size = 32 }: { size?: number }) => (
   <svg
     width={size}
@@ -44,34 +44,70 @@ const QuickMoveIcon = ({ size = 32 }: { size?: number }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
   >
-    {/* Speed lines (left side) - shorter to make room for move symbol */}
-    <line x1="2" y1="6" x2="6" y2="6" />
-    <line x1="2" y1="10" x2="8" y2="10" />
-    <line x1="2" y1="14" x2="10" y2="14" />
-    <line x1="2" y1="18" x2="12" y2="18" />
-    
-    {/* Move arrows (right side) - much larger and clearer */}
-    {/* Up arrow */}
-    <path d="M14 6l2 2-2 2" />
-    <path d="M16 8V4" />
-    
-    {/* Down arrow */}
-    <path d="M14 16l2-2-2-2" />
-    <path d="M16 14v4" />
-    
-    {/* Left arrow */}
-    <path d="M6 14l2 2-2 2" />
-    <path d="M8 16H4" />
-    
-    {/* Right arrow */}
-    <path d="M18 14l-2 2 2 2" />
-    <path d="M16 16h4" />
+    <g transform="scale(1.3) translate(-0.5, 0.5)">
+      {/* 3 horizontal lines on left side with even spacing - hierarchical structure */}
+      {/* These are drawn first so they appear behind the cube */}
+      {/* Lines positioned to not overlap with cube - shortened to give more room */}
+      {/* Lines vertical span (5 to 14.5 = 9.5 units) matches cube height (9.5 units) */}
+      {/* Top line - shorter to avoid touching cube */}
+      <line x1="1" y1="5" x2="4" y2="5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      {/* Middle line - shorter, indented */}
+      <line x1="1" y1="9.75" x2="4" y2="9.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      {/* Bottom line - shortest, more indented */}
+      <line x1="1" y1="14.5" x2="3" y2="14.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      
+      {/* Cube icon - positioned on the right side, moved left slightly with more room */}
+      {/* Front face - starts at x=6.5, height matches line span (9.5 units from y=5 to y=14.5) */}
+      <rect x="6.5" y="5" width="9" height="9.5" fill="none" stroke="currentColor" strokeWidth="2" />
+      {/* Top face - adjusted to fit */}
+      <path d="M6.5 5 L9.5 2 L18.5 2 L15.5 5 Z" fill="none" stroke="currentColor" strokeWidth="2" />
+      {/* Right face - adjusted to fit, ensuring it doesn't go beyond viewBox */}
+      <path d="M15.5 5 L18.5 2 L18.5 11.5 L15.5 14.5 Z" fill="none" stroke="currentColor" strokeWidth="2" />
+    </g>
   </svg>
 );
 import { useEditorStore } from '../store/editorStore';
 import { ViewDropdown } from './ViewDropdown';
 import { SaveDropdown } from './SaveDropdown';
+import { CreateDropdown } from './CreateDropdown';
 import './RibbonToolbar.css';
+
+// Transform Gizmo Toggle Component - inline with label
+const TransformGizmoToggle = () => {
+  const transformGizmoEnabled = useEditorStore((state) => state.transformGizmoEnabled);
+  const setTransformGizmoEnabled = useEditorStore((state) => state.setTransformGizmoEnabled);
+  const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (selectedNodeId) {
+      setTransformGizmoEnabled(!transformGizmoEnabled);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      onMouseDown={(e) => e.stopPropagation()}
+      title={transformGizmoEnabled ? "Disable Transform Gizmo" : "Enable Transform Gizmo"}
+      disabled={!selectedNodeId}
+      style={{
+        background: 'transparent',
+        border: 'none',
+        padding: '0',
+        marginLeft: '4px',
+        cursor: selectedNodeId ? 'pointer' : 'not-allowed',
+        display: 'flex',
+        alignItems: 'center',
+        color: transformGizmoEnabled ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.4)',
+        pointerEvents: 'auto',
+      }}
+    >
+      <ToggleLeft size={14} style={{ transform: transformGizmoEnabled ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform 0.2s' }} />
+    </button>
+  );
+};
 
 export interface RibbonToolbarProps {
   onKinematicsClick?: () => void;
@@ -264,15 +300,11 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
       <div className="ribbon-category-excel">
         <div className="ribbon-category-label">Create</div>
         <div className="ribbon-buttons-row">
-          <button className="ribbon-btn" onClick={() => createObject('box')} title="Box">
-            <Box size={32} />
-          </button>
-          <button className="ribbon-btn" onClick={() => createObject('sphere')} title="Sphere">
-            <Circle size={32} />
-          </button>
-          <button className="ribbon-btn" onClick={() => createObject('cylinder')} title="Cylinder">
-            <CylinderIcon size={32} />
-          </button>
+          <CreateDropdown
+            onCreateBox={() => createObject('box')}
+            onCreateSphere={() => createObject('sphere')}
+            onCreateCylinder={() => createObject('cylinder')}
+          />
           <button className="ribbon-btn" onClick={() => createCollection()} title="Collection">
             <Package size={32} />
           </button>
@@ -281,7 +313,10 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
 
       {/* Transform Category */}
       <div className="ribbon-category-excel">
-        <div className="ribbon-category-label">Transform</div>
+        <div className="ribbon-category-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          Transform
+          <TransformGizmoToggle />
+        </div>
         <div className="ribbon-buttons-row">
           <button
             className={`ribbon-btn ${transformMode === 'translate' ? 'active' : ''}`}
@@ -387,10 +422,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
         <div className="ribbon-category-label">Kinematics</div>
         <div className="ribbon-buttons-row">
           <button className="ribbon-btn" onClick={onKinematicsClick} title="Motion Panel">
-            <div style={{ position: 'relative', width: '32px', height: '32px' }}>
-              <Move size={12} style={{ position: 'absolute', left: '6px', top: '6px' }} />
-              <RotateCw size={12} style={{ position: 'absolute', right: '6px', bottom: '6px' }} />
-            </div>
+            <Rocket size={32} />
           </button>
           <button className="ribbon-btn" onClick={onKinematicsAnalysisClick} title="Kinematics Analysis">
             <Calculator size={32} />
