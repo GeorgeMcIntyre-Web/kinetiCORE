@@ -206,17 +206,19 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
           setTcpPosition(
             `X:${userPos.x.toFixed(1)} Y:${userPos.y.toFixed(1)} Z:${userPos.z.toFixed(1)} mm | Rx:${rxDeg.toFixed(1)}° Ry:${ryDeg.toFixed(1)}° Rz:${rzDeg.toFixed(1)}°`
           );
-          
-          // Update gizmo position and rotation if in TCP mode
-          if (jogMode === 'tcp' && tcpPose.position) {
-            setCurrentTcpPosition(tcpPose.position.clone());
-            setCurrentChainName(robotChain.name);
 
-          // Update existing gizmo position and rotation instead of recreating
-          const targetId = `tcp_${robotId}`;
-          // Removed excessive logging - only log on significant changes
-          unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
-          unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
+          // Update gizmo position and rotation in BOTH TCP and Joint modes
+          // (TCP gizmo should always track the robot's TCP position)
+          if (tcpPose.position) {
+            if (jogMode === 'tcp') {
+              setCurrentTcpPosition(tcpPose.position.clone());
+              setCurrentChainName(robotChain.name);
+            }
+
+            // Update existing gizmo position and rotation in both modes
+            const targetId = `tcp_${robotId}`;
+            unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
+            unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
           }
         }
       }

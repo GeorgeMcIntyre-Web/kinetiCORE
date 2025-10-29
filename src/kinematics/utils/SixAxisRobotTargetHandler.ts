@@ -297,3 +297,312 @@ export function validateJointLimits(chainName: string, jointAngles: number[]): {
   };
 }
 
+/**
+ * Joint configuration interface for 6-axis robots
+ */
+export interface SixAxisJointConfiguration {
+  jointAngles: [number, number, number, number, number, number]; // Exactly 6 angles in radians
+  jointNames?: [string, string, string, string, string, string];
+  timestamp?: number;
+  description?: string;
+}
+
+/**
+ * Gets current joint configuration for a 6-axis robot
+ */
+export function getSixAxisJointConfiguration(chainName: string): SixAxisJointConfiguration | null {
+  const jointAngles = getSixAxisJointAngles(chainName);
+  
+  if (!jointAngles || jointAngles.length !== 6) {
+    return null;
+  }
+
+  const kinematicsManager = KinematicsManager.getInstance();
+  const chain = kinematicsManager.getChain(chainName);
+  if (!chain) {
+    return null;
+  }
+
+  const joints = kinematicsManager.getActuatedJoints(chain.id);
+  const jointNames: [string, string, string, string, string, string] = [
+    joints[0]?.name || 'J1',
+    joints[1]?.name || 'J2',
+    joints[2]?.name || 'J3',
+    joints[3]?.name || 'J4',
+    joints[4]?.name || 'J5',
+    joints[5]?.name || 'J6'
+  ];
+
+  return {
+    jointAngles: [
+      jointAngles[0],
+      jointAngles[1],
+      jointAngles[2],
+      jointAngles[3],
+      jointAngles[4],
+      jointAngles[5]
+    ],
+    jointNames,
+    timestamp: Date.now()
+  };
+}
+
+/**
+ * Validates and clamps a joint configuration to valid limits
+ * Returns the clamped configuration and any warnings
+ */
+export function clampJointConfiguration(
+  chainName: string,
+  config: SixAxisJointConfiguration
+): {
+  clamped: SixAxisJointConfiguration;
+  warnings: string[];
+  wasClamped: boolean;
+} {
+  const kinematicsManager = KinematicsManager.getInstance();
+  const chain = kinematicsManager.getChain(chainName);
+  
+  if (!chain) {
+    throw new Error(`Chain not found: ${chainName}`);
+  }
+
+  if (!isSixAxisRobot('', chainName)) {
+    throw new Error(`Not a 6-axis robot: ${chainName}`);
+  }
+
+  const joints = kinematicsManager.getActuatedJoints(chain.id);
+  const clampedAngles: [number, number, number, number, number, number] = [0, 0, 0, 0, 0, 0];
+  const warnings: string[] = [];
+  let wasClamped = false;
+
+  for (let i = 0; i < 6; i++) {
+    const joint = joints[i];
+    let angle = config.jointAngles[i];
+
+    if (joint.limits) {
+      const original = angle;
+      
+      // Clamp to limits
+      if (joint.limits.lower !== undefined && angle < joint.limits.lower) {
+        angle = joint.limits.lower;
+        warnings.push(`${joint.name || `J${i + 1}`}: ${(original * 180 / Math.PI).toFixed(1)}° clamped to min ${(angle * 180 / Math.PI).toFixed(1)}°`);
+        wasClamped = true;
+      }
+      
+      if (joint.limits.upper !== undefined && angle > joint.limits.upper) {
+        angle = joint.limits.upper;
+        warnings.push(`${joint.name || `J${i + 1}`}: ${(original * 180 / Math.PI).toFixed(1)}° clamped to max ${(angle * 180 / Math.PI).toFixed(1)}°`);
+        wasClamped = true;
+      }
+    }
+
+    clampedAngles[i] = angle;
+  }
+
+  return {
+    clamped: {
+      ...config,
+      jointAngles: clampedAngles
+    },
+    warnings,
+    wasClamped
+  };
+}
+
+/**
+ * Applies a joint configuration to a 6-axis robot with validation
+ */
+export function applyJointConfiguration(
+  chainName: string,
+  config: SixAxisJointConfiguration,
+  fkSolver: ForwardKinematicsSolver,
+  enforceLimits: boolean = true
+): {
+  success: boolean;
+  applied: SixAxisJointConfiguration;
+  warnings: string[];
+  errors: string[];
+} {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // Validate robot type
+  if (!isSixAxisRobot('', chainName)) {
+    errors.push('Not a 6-axis robot');
+    return {
+      success: false,
+      applied: config,
+      warnings,
+      errors
+    };
+  }
+
+  // Clamp configuration if needed
+  let configToApply = config;
+  if (enforceLimits) {
+    try {
+      const clamped = clampJointConfiguration(chainName, config);
+      configToApply = clamped.clamped;
+      warnings.push(...clamped.warnings);
+      
+      if (clamped.wasClamped) {
+        warnings.push('Some joint angles were clamped to limits');
+      }
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : 'Failed to clamp configuration');
+      return {
+        success: false,
+        applied: config,
+        warnings,
+        errors
+      };
+    }
+  } else {
+    // Validate without clamping
+    const validation = validateJointLimits(chainName, [...config.jointAngles]);
+    if (!validation.valid) {
+      validation.violations.forEach(v => {
+        warnings.push(`${v.jointName}: ${(v.value * 180 / Math.PI).toFixed(1)}° violates ${v.limit} limit (${(v.limitValue * 180 / Math.PI).toFixed(1)}°)`);
+      });
+    }
+  }
+
+  // Apply joint angles
+  const kinematicsManager = KinematicsManager.getInstance();
+  const chain = kinematicsManager.getChain(chainName);
+  if (!chain) {
+    errors.push('Chain not found');
+    return {
+      success: false,
+      applied: configToApply,
+      warnings,
+      errors
+    };
+  }
+
+  const joints = kinematicsManager.getActuatedJoints(chain.id);
+  let appliedCount = 0;
+
+  for (let i = 0; i < 6 && i < joints.length; i++) {
+    const success = fkSolver.updateJointPosition(
+      joints[i].id,
+      configToApply.jointAngles[i],
+      true // syncPhysics
+    );
+    
+    if (success) {
+      appliedCount++;
+    } else {
+      errors.push(`Failed to apply ${joints[i].name || `J${i + 1}`}`);
+    }
+  }
+
+  return {
+    success: appliedCount === 6,
+    applied: configToApply,
+    warnings,
+    errors
+  };
+}
+
+/**
+ * Formats joint configuration for display (degrees)
+ */
+export function formatJointConfiguration(
+  config: SixAxisJointConfiguration,
+  useDegrees: boolean = true
+): string {
+  const angles = useDegrees
+    ? config.jointAngles.map(a => (a * 180 / Math.PI).toFixed(1) + '°')
+    : config.jointAngles.map(a => a.toFixed(4) + ' rad');
+  
+  const names = config.jointNames || ['J1', 'J2', 'J3', 'J4', 'J5', 'J6'];
+  
+  return names.map((name, i) => `${name}: ${angles[i]}`).join(', ');
+}
+
+/**
+ * Creates a home (zero) joint configuration for a 6-axis robot
+ */
+export function createHomeConfiguration(chainName: string): SixAxisJointConfiguration | null {
+  if (!isSixAxisRobot('', chainName)) {
+    return null;
+  }
+
+  const kinematicsManager = KinematicsManager.getInstance();
+  const chain = kinematicsManager.getChain(chainName);
+  if (!chain) {
+    return null;
+  }
+
+  const joints = kinematicsManager.getActuatedJoints(chain.id);
+  const jointNames: [string, string, string, string, string, string] = [
+    joints[0]?.name || 'J1',
+    joints[1]?.name || 'J2',
+    joints[2]?.name || 'J3',
+    joints[3]?.name || 'J4',
+    joints[4]?.name || 'J5',
+    joints[5]?.name || 'J6'
+  ];
+
+  return {
+    jointAngles: [0, 0, 0, 0, 0, 0],
+    jointNames,
+    description: 'Home position (all joints at 0°)',
+    timestamp: Date.now()
+  };
+}
+
+/**
+ * Gets joint configuration summary with limits info
+ */
+export function getJointConfigurationSummary(chainName: string): {
+  current: SixAxisJointConfiguration | null;
+  home: SixAxisJointConfiguration | null;
+  limits: Array<{
+    jointName: string;
+    min: number;
+    max: number;
+    current: number;
+    currentDeg: number;
+    minDeg: number;
+    maxDeg: number;
+    inRange: boolean;
+  }>;
+} {
+  const kinematicsManager = KinematicsManager.getInstance();
+  const chain = kinematicsManager.getChain(chainName);
+  
+  if (!chain || !isSixAxisRobot('', chainName)) {
+    return {
+      current: null,
+      home: null,
+      limits: []
+    };
+  }
+
+  const joints = kinematicsManager.getActuatedJoints(chain.id);
+  const limits = joints.slice(0, 6).map((joint, i) => {
+    const current = joint.position;
+    const min = joint.limits?.lower ?? -Math.PI;
+    const max = joint.limits?.upper ?? Math.PI;
+    
+    return {
+      jointName: joint.name || `J${i + 1}`,
+      min,
+      max,
+      current,
+      currentDeg: current * 180 / Math.PI,
+      minDeg: min * 180 / Math.PI,
+      maxDeg: max * 180 / Math.PI,
+      inRange: current >= min && current <= max
+    };
+  });
+
+  return {
+    current: getSixAxisJointConfiguration(chainName),
+    home: createHomeConfiguration(chainName),
+    limits
+  };
+}
+
