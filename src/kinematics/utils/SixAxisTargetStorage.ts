@@ -25,16 +25,140 @@ export type MotionType =
   | 'PTP';       // Point-to-point (fastest path, may not be linear)
 
 /**
- * Coordinate frame reference
+ * Robot manufacturer/vendor types
+ */
+export type RobotVendor = 'FANUC' | 'KUKA' | 'ABB' | 'Kawasaki' | 'Universal' | 'Motoman' | 'Generic';
+
+/**
+ * FANUC Frame definitions (like FANUC FRAME, USER_FRAME, TOOL_FRAME)
+ * FUT = Frame, User Frame, Tool Frame
+ */
+export interface FanucFrame {
+  frameType: 'FRAME' | 'USER_FRAME' | 'TOOL_FRAME';
+  id: number;  // Frame number (0-9 for USER, 0-9 for TOOL)
+  name?: string;
+  position: [number, number, number];  // mm
+  orientation: [number, number, number]; // W,P,R (degrees) - FANUC convention
+  // Relationship to base/world
+  parentFrame?: number;  // Parent frame ID if hierarchical
+}
+
+/**
+ * KUKA Status and Turns (configuration disambiguation)
+ */
+export interface KukaConfiguration {
+  status: {
+    s1: number;  // Bit 0: Elbow (up=+/down=-)
+    s2: number;  // Bit 1: Wrist (flip=+/non-flip=-) 
+    s3: number;  // Bit 2: Front/Rear (front=+/rear=-)
+  };
+  turns: {
+    t1: number;  // Full rotations for J1 (continuous joint)
+    t2: number;  // Full rotations for J2 (continuous joint)
+    t3: number;  // Full rotations for J3 (continuous joint)
+    t5?: number; // Full rotations for J5 (if continuous)
+    t6?: number; // Full rotations for J6 (if continuous)
+  };
+}
+
+/**
+ * ABB Configuration (similar concept to KUKA Status)
+ */
+export interface AbbConfiguration {
+  cf1: number;  // Configuration bit 1
+  cf4: number;  // Configuration bit 4 (elbow)
+  cf6: number;  // Configuration bit 6 (wrist)
+  cfx: number;  // Additional config flags
+}
+
+/**
+ * Kawasaki configuration (Kawasaki-specific representation)
+ */
+export interface KawasakiConfiguration {
+  config: number;  // Configuration value (model-specific encoding)
+  // Kawasaki may use different representation
+}
+
+/**
+ * Vendor-specific format adapters
+ * These are ONLY used for import/export, not internal storage
+ */
+
+/**
+ * Convert common configuration to KUKA Status/Turns format
+ */
+export function toKukaConfig(config: SixAxisTarget['configuration']): KukaConfiguration {
+  return {
+    status: {
+      s1: config.elbow === 'up' ? 1 : -1,
+      s2: config.wrist === 'flip' ? 1 : -1,
+      s3: config.front === 'front' ? 1 : -1,
+    },
+    turns: {
+      t1: config.turns[0],
+      t2: config.turns[1],
+      t3: config.turns[2],
+      t5: config.turns[4],
+      t6: config.turns[5],
+    }
+  };
+}
+
+/**
+ * Convert KUKA Status/Turns to common configuration
+ */
+export function fromKukaConfig(kuka: KukaConfiguration): SixAxisTarget['configuration'] {
+  return {
+    elbow: kuka.status.s1 > 0 ? 'up' : 'down',
+    wrist: kuka.status.s2 > 0 ? 'flip' : 'non-flip',
+    front: kuka.status.s3 > 0 ? 'front' : 'rear',
+    turns: [
+      kuka.turns.t1,
+      kuka.turns.t2,
+      kuka.turns.t3,
+      0, // J4 typically not continuous
+      kuka.turns.t5 ?? 0,
+      kuka.turns.t6 ?? 0,
+    ]
+  };
+}
+
+/**
+ * Convert common configuration to ABB format
+ */
+export function toAbbConfig(config: SixAxisTarget['configuration']): AbbConfiguration {
+  return {
+    cf1: config.front === 'front' ? 1 : 0,
+    cf4: config.elbow === 'up' ? 1 : 0,
+    cf6: config.wrist === 'flip' ? 1 : 0,
+    cfx: 0, // Additional flags
+  };
+}
+
+/**
+ * Convert ABB config to common configuration
+ */
+export function fromAbbConfig(abb: AbbConfiguration): SixAxisTarget['configuration'] {
+  return {
+    elbow: abb.cf4 > 0 ? 'up' : 'down',
+    wrist: abb.cf6 > 0 ? 'flip' : 'non-flip',
+    front: abb.cf1 > 0 ? 'front' : 'rear',
+    turns: [0, 0, 0, 0, 0, 0], // ABB doesn't explicitly store turns
+  };
+}
+
+/**
+ * Coordinate frame reference (properly defined relative to base)
  */
 export interface CoordinateFrame {
   type: 'WORLD' | 'BASE' | 'TOOL' | 'USER';
-  id?: string;
-  name?: string;
-  offset?: {
-    position: [number, number, number];
-    rotation: [number, number, number, number]; // Quaternion
-  };
+  frameId?: number;  // Frame number (for FANUC: USER 0-9, TOOL 0-9)
+  frameName?: string;
+  // Transform relative to parent frame (BASE by default)
+  position: [number, number, number];  // mm
+  rotation: [number, number, number];  // W,P,R (degrees) - standard robot convention
+  // For FANUC: stores the full FRAME/USER_FRAME/TOOL_FRAME definition
+  fanucFrame?: FanucFrame;
 }
 
 /**
@@ -57,58 +181,80 @@ export interface AccelerationSettings {
 }
 
 /**
- * Target point for 6-axis robot (like FANUC PR[], ABB robtarget, KUKA PTP/LIN)
+ * UNIFIED TARGET FORMAT - Single Source of Truth for All 6-Axis Robots
+ * 
+ * Core format that works for all vendors. Joint array is PRIMARY.
+ * Model-specific data is stored separately and only used for export/import translation.
  */
 export interface SixAxisTarget {
   id: string;
   name: string;
   
-  // Cartesian coordinates (in specified frame)
-  position: {
-    x: number;  // mm
-    y: number;  // mm
-    z: number;  // mm
+  // ============================================================
+  // PRIMARY STORAGE - Joint array (common across ALL robots)
+  // ============================================================
+  // Real robots operate primarily in joint space
+  // This is the canonical representation
+  joints: [number, number, number, number, number, number]; // J1, J2, J3, J4, J5, J6 in degrees
+  
+  // ============================================================
+  // COMMON CONFIGURATION (computed from joints, stored for efficiency)
+  // ============================================================
+  // Configuration flags that resolve redundancy (8 solutions for same Cartesian pose)
+  // Stored in common format, converted to vendor-specific when needed
+  configuration: {
+    elbow: 'up' | 'down';        // J3 configuration
+    wrist: 'flip' | 'non-flip';  // J5 configuration  
+    front: 'front' | 'rear';      // J1/arm orientation
+    // Turns for continuous joints (how many full 360° rotations)
+    turns: [number, number, number, number, number, number]; // T1-T6 full rotations
   };
   
-  // Orientation (Euler angles or quaternion)
-  orientation: {
-    // Euler angles (degrees) - most common in real robots
-    rx?: number;  // Roll (degrees)
-    ry?: number;  // Pitch (degrees)
-    rz?: number;  // Yaw (degrees)
-    // Or quaternion
-    quaternion?: [number, number, number, number]; // [x, y, z, w]
+  // ============================================================
+  // COMMON FRAME REFERENCE
+  // ============================================================
+  // Frame this target is relative to (common across all robots)
+  frame: {
+    type: 'WORLD' | 'BASE' | 'USER' | 'TOOL';
+    frameId?: number;  // Frame number (0-9 for USER/TOOL in most robots)
+    frameName?: string;
   };
   
-  // Joint configuration (when target was taught)
-  // Real robots store this for each target point
-  jointConfiguration?: {
-    j1: number;  // degrees
-    j2: number;
-    j3: number;
-    j4: number;
-    j5: number;
-    j6: number;
-  };
-  
-  // Motion parameters
+  // ============================================================
+  // MOTION PARAMETERS (common across all robots)
+  // ============================================================
   motionType: MotionType;
-  coordinateFrame: CoordinateFrame;
   speed?: SpeedSettings;
   acceleration?: AccelerationSettings;
   
-  // Configuration flags (like real robots)
-  configuration?: {
-    flip?: boolean;      // Elbow up/down
-    front?: boolean;     // Front/rear
-    wrist?: number;      // Wrist configuration index
+  // ============================================================
+  // OPTIONAL: Cartesian (computed from joints, cached for efficiency)
+  // ============================================================
+  // Only computed/stored when needed for calculations or visualization
+  // NOT the source of truth - joints are
+  cartesian?: {
+    position: [number, number, number];  // mm (x, y, z)
+    orientation: [number, number, number]; // W, P, R (degrees)
+    quaternion?: [number, number, number, number]; // For internal calculations
   };
   
-  // Metadata
+  // ============================================================
+  // VENDOR-SPECIFIC METADATA (stored separately, only for export/import)
+  // ============================================================
+  // This is NOT used internally - only for translating to/from vendor formats
+  // Stored as raw data to avoid loss during round-trip conversion
+  vendorMetadata?: {
+    vendor: RobotVendor;
+    originalFormat?: any;  // Original vendor-specific format (FANUC PR, KUKA Status, etc.)
+  };
+  
+  // ============================================================
+  // METADATA
+  // ============================================================
   timestamp?: number;
   description?: string;
-  createdBy?: string;
-  programPosition?: number;  // Position in program sequence
+  taughtBy?: string;
+  programLine?: number;
 }
 
 /**
@@ -140,25 +286,34 @@ export interface SixAxisTargetProgram {
     cog?: [number, number, number];  // Center of gravity (mm)
   }>;
   
-  // Work object/coordinate frame definitions (like USER_FRAME)
-  workFrames: Array<{
-    id: string;
-    name: string;
-    position: [number, number, number];
-    rotation: [number, number, number, number];
-  }>;
+  // Frame definitions (like FANUC USER_FRAME, TOOL_FRAME)
+  // Hierarchical: BASE → USER → TOOL
+  frames: {
+    userFrames: FanucFrame[];  // USER frames (0-9)
+    toolFrames: FanucFrame[];  // TOOL frames (0-9)
+    worldFrame?: FanucFrame;   // World/WORK frame if defined
+  };
   
-  // Target points (like PR[] variables in FANUC)
+  // Target points (like PR[] variables in FANUC, or position registers in other systems)
+  // PRIMARY storage: Joint array [J1-J6] + configuration
   targets: SixAxisTarget[];
   
-  // Motion sequences (program structure)
-  sequences: Array<{
-    id: string;
-    name: string;
-    targetIds: string[];  // Sequence of target IDs
-    loop?: boolean;
-    repeatCount?: number;
-  }>;
+  // Program structure - sequential instructions (like real robot programs)
+  // Not "sequences" - just line-by-line program statements
+  // Examples:
+  //   FANUC: "L P[1] 100mm/sec FINE"
+  //   KUKA: "PTP P1 Vel=100"
+  //   ABB: "MoveL p1, v100, fine, tool0;"
+  program?: {
+    lines: Array<{
+      lineNumber: number;
+      instruction: string;  // Raw instruction text (vendor-specific or generic)
+      targetId?: string;    // Reference to target if motion instruction
+      motionType?: MotionType;
+      speed?: number;
+      type: 'MOTION' | 'LOGIC' | 'IO' | 'WAIT' | 'COMMENT' | 'LABEL' | 'CALL';
+    }>;
+  };
   
   // Current active settings
   activeTool?: string;
@@ -166,12 +321,15 @@ export interface SixAxisTargetProgram {
 }
 
 /**
- * Convert current robot state to SixAxisTarget
+ * Capture current robot state as target
+ * PRIMARY: Joint array [J1-J6]
+ * OPTIONAL: Cartesian computed and stored for reference
  */
 export function captureCurrentTarget(
   chainName: string,
   targetName: string,
   motionType: MotionType = 'PTP',
+  vendor: RobotVendor = 'Generic',
   fkSolver: ForwardKinematicsSolver
 ): SixAxisTarget | null {
   if (!isSixAxisRobot('', chainName)) {
@@ -184,53 +342,86 @@ export function captureCurrentTarget(
     return null;
   }
 
-  // Get TCP pose (Cartesian)
-  const tcpPose = fkSolver.getTCPPose?.(chainName) || fkSolver.getNullTCPPose(chainName);
-  if (!tcpPose) {
-    return null;
-  }
-
-  // Get joint configuration
+  // PRIMARY: Get joint angles (degrees) - this is what real robots store
   const jointConfig = getSixAxisJointConfiguration(chainName);
   if (!jointConfig) {
     return null;
   }
 
-  // Convert to user space (Z-up, mm)
-  const userPos = {
-    x: tcpPose.position.x * 1000,  // meters to mm
-    y: tcpPose.position.y * 1000,
-    z: tcpPose.position.z * 1000,
+  const joints: [number, number, number, number, number, number] = [
+    jointConfig.jointAngles[0] * 180 / Math.PI,
+    jointConfig.jointAngles[1] * 180 / Math.PI,
+    jointConfig.jointAngles[2] * 180 / Math.PI,
+    jointConfig.jointAngles[3] * 180 / Math.PI,
+    jointConfig.jointAngles[4] * 180 / Math.PI,
+    jointConfig.jointAngles[5] * 180 / Math.PI,
+  ];
+
+  // OPTIONAL: Compute Cartesian from joints (if needed for calculations)
+  const tcpPose = fkSolver.getTCPPose?.(chainName) || fkSolver.getNullTCPPose(chainName);
+  let cartesian: SixAxisTarget['cartesian'] | undefined;
+  
+  if (tcpPose) {
+    // Convert to user space (Z-up, mm)
+    const position: [number, number, number] = [
+      tcpPose.position.x * 1000,
+      tcpPose.position.y * 1000,
+      tcpPose.position.z * 1000,
+    ];
+
+    // Convert quaternion to W,P,R (robot convention)
+    const euler = tcpPose.rotation.toEulerAngles();
+    const orientation: [number, number, number] = [
+      euler.x * 180 / Math.PI,  // W (roll)
+      euler.y * 180 / Math.PI,  // P (pitch)
+      euler.z * 180 / Math.PI,  // R (yaw)
+    ];
+
+    cartesian = {
+      position,
+      orientation,
+      quaternion: [tcpPose.rotation.x, tcpPose.rotation.y, tcpPose.rotation.z, tcpPose.rotation.w]
+    };
+  }
+
+  // Calculate common configuration from joint angles
+  // This is the single source of truth - works for all robots
+  const configuration: SixAxisTarget['configuration'] = {
+    elbow: joints[2] > 0 ? 'up' : 'down',  // J3 sign determines elbow
+    wrist: Math.abs(joints[4]) < 90 ? 'flip' : 'non-flip',  // J5 angle determines wrist
+    front: joints[0] > 0 ? 'front' : 'rear',  // J1 sign determines front/rear
+    turns: [
+      Math.floor(joints[0] / 360),  // Full rotations for continuous joints
+      Math.floor(joints[1] / 360),
+      Math.floor(joints[2] / 360),
+      0,  // J4 typically not continuous
+      Math.floor(joints[4] / 360),
+      Math.floor(joints[5] / 360),
+    ]
   };
 
-  // Convert quaternion to Euler angles (degrees)
-  const euler = tcpPose.rotation.toEulerAngles();
-
-  // Convert joint angles to degrees
-  const jointAnglesDeg = jointConfig.jointAngles.map(a => a * 180 / Math.PI);
+  // Store vendor metadata if provided (for export/import round-trip)
+  let vendorMetadata: SixAxisTarget['vendorMetadata'] | undefined;
+  if (vendor !== 'Generic') {
+    vendorMetadata = {
+      vendor,
+      // Original format computed on-demand when exporting
+    };
+  }
 
   return {
     id: `target_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     name: targetName,
-    position: userPos,
-    orientation: {
-      rx: euler.x * 180 / Math.PI,
-      ry: euler.y * 180 / Math.PI,
-      rz: euler.z * 180 / Math.PI,
-      quaternion: [tcpPose.rotation.x, tcpPose.rotation.y, tcpPose.rotation.z, tcpPose.rotation.w]
-    },
-    jointConfiguration: {
-      j1: jointAnglesDeg[0],
-      j2: jointAnglesDeg[1],
-      j3: jointAnglesDeg[2],
-      j4: jointAnglesDeg[3],
-      j5: jointAnglesDeg[4],
-      j6: jointAnglesDeg[5],
+    joints,  // PRIMARY storage - single source of truth
+    configuration,  // Common format computed from joints
+    frame: {
+      type: 'BASE',
+      frameId: undefined,
+      frameName: undefined
     },
     motionType,
-    coordinateFrame: {
-      type: 'BASE'
-    },
+    cartesian,  // OPTIONAL: computed from joints for efficiency
+    vendorMetadata,  // OPTIONAL: only for export/import translation
     timestamp: Date.now()
   };
 }
@@ -366,9 +557,12 @@ export function createTargetProgram(
     createdAt: new Date(),
     updatedAt: new Date(),
     tools: [],
-    workFrames: [],
+    frames: {
+      userFrames: [],
+      toolFrames: [],
+    },
     targets: [],
-    sequences: []
+    // Program lines will be added as needed - no "sequences", just sequential execution
   };
 }
 
@@ -398,19 +592,209 @@ export function getTargetById(
 
 /**
  * Format target for display (like robot teach pendant)
+ * Shows PRIMARY data: Joint array + common configuration
+ * Shows OPTIONAL: Cartesian if available
  */
-export function formatTargetForDisplay(target: SixAxisTarget): string {
-  const pos = target.position;
-  const orient = target.orientation;
+export function formatTargetForDisplay(target: SixAxisTarget, showVendorFormat: boolean = false): string {
+  const joints = target.joints;
+  let output = `${target.name}:\n`;
   
-  return `${target.name}:\n` +
-    `  Position: X=${pos.x.toFixed(2)} Y=${pos.y.toFixed(2)} Z=${pos.z.toFixed(2)} mm\n` +
-    `  Orientation: Rx=${orient.rx?.toFixed(1)}° Ry=${orient.ry?.toFixed(1)}° Rz=${orient.rz?.toFixed(1)}°\n` +
-    (target.jointConfiguration ? 
-      `  Joints: J1=${target.jointConfiguration.j1.toFixed(1)}° J2=${target.jointConfiguration.j2.toFixed(1)}° J3=${target.jointConfiguration.j3.toFixed(1)}° ` +
-      `J4=${target.jointConfiguration.j4.toFixed(1)}° J5=${target.jointConfiguration.j5.toFixed(1)}° J6=${target.jointConfiguration.j6.toFixed(1)}°\n` :
-      '') +
-    `  Motion: ${target.motionType}\n` +
-    `  Frame: ${target.coordinateFrame.type}`;
+  // PRIMARY: Joints (what real robots show first)
+  output += `  Joints: J1=${joints[0].toFixed(1)}° J2=${joints[1].toFixed(1)}° J3=${joints[2].toFixed(1)}° ` +
+           `J4=${joints[3].toFixed(1)}° J5=${joints[4].toFixed(1)}° J6=${joints[5].toFixed(1)}°\n`;
+  
+  // Common configuration (works for all robots)
+  const config = target.configuration;
+  output += `  Config: Elbow=${config.elbow} Wrist=${config.wrist} Front=${config.front}\n`;
+  if (config.turns.some(t => t !== 0)) {
+    output += `  Turns: T1=${config.turns[0]} T2=${config.turns[1]} T3=${config.turns[2]} T5=${config.turns[4]} T6=${config.turns[5]}\n`;
+  }
+  
+  // Show vendor-specific format if requested (for export preview)
+  if (showVendorFormat && target.vendorMetadata) {
+    const vendor = target.vendorMetadata.vendor;
+    if (vendor === 'KUKA') {
+      const kuka = toKukaConfig(target.configuration);
+      output += `  [KUKA] Status: S1=${kuka.status.s1} S2=${kuka.status.s2} S3=${kuka.status.s3}\n`;
+    } else if (vendor === 'ABB') {
+      const abb = toAbbConfig(target.configuration);
+      output += `  [ABB] Config: CF1=${abb.cf1} CF4=${abb.cf4} CF6=${abb.cf6}\n`;
+    }
+  }
+  
+  // OPTIONAL: Cartesian (shown if available, but secondary)
+  if (target.cartesian) {
+    const pos = target.cartesian.position;
+    const orient = target.cartesian.orientation;
+    output += `  Cartesian: X=${pos[0].toFixed(2)} Y=${pos[1].toFixed(2)} Z=${pos[2].toFixed(2)} mm\n`;
+    output += `  Orientation: W=${orient[0].toFixed(1)}° P=${orient[1].toFixed(1)}° R=${orient[2].toFixed(1)}°\n`;
+  }
+  
+  output += `  Motion: ${target.motionType}\n`;
+  output += `  Frame: ${target.frame.type}`;
+  if (target.frame.frameId !== undefined) {
+    output += ` ${target.frame.frameId}`;
+  }
+  
+  return output;
+}
+
+/**
+ * Export target to vendor-specific format (for compatibility/import into real robots)
+ */
+export function exportToVendorFormat(target: SixAxisTarget, vendor: RobotVendor): any {
+  // Start with common data
+  const vendorTarget: any = {
+    name: target.name,
+    joints: [...target.joints],
+    motionType: target.motionType,
+  };
+
+  // Add vendor-specific formatting
+  switch (vendor) {
+    case 'KUKA':
+      vendorTarget.status = toKukaConfig(target.configuration).status;
+      vendorTarget.turns = toKukaConfig(target.configuration).turns;
+      if (target.cartesian) {
+        vendorTarget.x = target.cartesian.position[0];
+        vendorTarget.y = target.cartesian.position[1];
+        vendorTarget.z = target.cartesian.position[2];
+        vendorTarget.a = target.cartesian.orientation[0];
+        vendorTarget.b = target.cartesian.orientation[1];
+        vendorTarget.c = target.cartesian.orientation[2];
+      }
+      break;
+    case 'ABB':
+      vendorTarget.config = toAbbConfig(target.configuration);
+      if (target.cartesian) {
+        vendorTarget.trans = target.cartesian.position;
+        vendorTarget.rot = target.cartesian.orientation; // ABB uses quaternion typically
+      }
+      break;
+    case 'FANUC':
+      // FANUC PR format
+      vendorTarget.pr = {
+        j1: target.joints[0],
+        j2: target.joints[1],
+        j3: target.joints[2],
+        j4: target.joints[3],
+        j5: target.joints[4],
+        j6: target.joints[5],
+        // FANUC also stores config flags and optional Cartesian
+      };
+      if (target.frame.frameId !== undefined) {
+        vendorTarget.userFrame = target.frame.frameId;
+      }
+      if (target.cartesian) {
+        vendorTarget.pr.x = target.cartesian.position[0];
+        vendorTarget.pr.y = target.cartesian.position[1];
+        vendorTarget.pr.z = target.cartesian.position[2];
+        vendorTarget.pr.w = target.cartesian.orientation[0];
+        vendorTarget.pr.p = target.cartesian.orientation[1];
+        vendorTarget.pr.r = target.cartesian.orientation[2];
+      }
+      break;
+    case 'Kawasaki':
+      // Kawasaki typically stores as pure joint array
+      vendorTarget.joints = target.joints;
+      vendorTarget.config = target.configuration; // Simplified for now
+      break;
+    default:
+      // Generic: just return common format
+      return target;
+  }
+
+  return vendorTarget;
+}
+
+/**
+ * Import target from vendor-specific format (convert to common format)
+ */
+export function importFromVendorFormat(vendorData: any, vendor: RobotVendor, targetName: string): SixAxisTarget | null {
+  let joints: [number, number, number, number, number, number];
+  let configuration: SixAxisTarget['configuration'];
+
+  switch (vendor) {
+    case 'KUKA':
+      // Extract from KUKA format
+      if (!vendorData.joints || !vendorData.status) {
+        return null;
+      }
+      joints = vendorData.joints;
+      configuration = fromKukaConfig({
+        status: vendorData.status,
+        turns: vendorData.turns || { t1: 0, t2: 0, t3: 0, t5: 0, t6: 0 }
+      });
+      break;
+    case 'ABB':
+      // Extract from ABB format
+      if (!vendorData.trans || !vendorData.config) {
+        return null;
+      }
+      // ABB stores Cartesian, need to solve IK to get joints
+      // For now, assume joints provided separately or need IK
+      joints = vendorData.joints || [0, 0, 0, 0, 0, 0];
+      configuration = fromAbbConfig(vendorData.config);
+      break;
+    case 'FANUC':
+      // Extract from FANUC PR format
+      if (vendorData.pr) {
+        joints = [
+          vendorData.pr.j1 || 0,
+          vendorData.pr.j2 || 0,
+          vendorData.pr.j3 || 0,
+          vendorData.pr.j4 || 0,
+          vendorData.pr.j5 || 0,
+          vendorData.pr.j6 || 0,
+        ];
+      } else {
+        return null;
+      }
+      // FANUC config calculation needed
+      configuration = {
+        elbow: joints[2] > 0 ? 'up' : 'down',
+        wrist: Math.abs(joints[4]) < 90 ? 'flip' : 'non-flip',
+        front: joints[0] > 0 ? 'front' : 'rear',
+        turns: [0, 0, 0, 0, 0, 0], // FANUC doesn't store turns explicitly
+      };
+      break;
+    case 'Kawasaki':
+      // Kawasaki pure joint array
+      if (Array.isArray(vendorData) && vendorData.length === 6) {
+        joints = vendorData as [number, number, number, number, number, number];
+      } else if (vendorData.joints && Array.isArray(vendorData.joints)) {
+        joints = vendorData.joints as [number, number, number, number, number, number];
+      } else {
+        return null;
+      }
+      configuration = {
+        elbow: joints[2] > 0 ? 'up' : 'down',
+        wrist: Math.abs(joints[4]) < 90 ? 'flip' : 'non-flip',
+        front: joints[0] > 0 ? 'front' : 'rear',
+        turns: [0, 0, 0, 0, 0, 0], // Kawasaki stores config separately if needed
+      };
+      break;
+    default:
+      return null;
+  }
+
+  return {
+    id: `target_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    name: targetName,
+    joints,
+    configuration,
+    frame: {
+      type: vendorData.frame?.type || 'BASE',
+      frameId: vendorData.frame?.frameId,
+      frameName: vendorData.frame?.frameName,
+    },
+    motionType: vendorData.motionType || 'PTP',
+    cartesian: vendorData.cartesian,
+    vendorMetadata: {
+      vendor,
+      originalFormat: vendorData,
+    },
+    timestamp: Date.now(),
+  };
 }
 

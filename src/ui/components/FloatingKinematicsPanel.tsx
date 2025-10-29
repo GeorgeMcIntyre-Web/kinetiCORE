@@ -812,7 +812,7 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
           </div>
           
           {/* Visualization Settings Button (Top Right) */}
-          <div ref={vizSettingsRef} style={{ position: 'relative' }}>
+          <div style={{ position: 'relative' }}>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -842,20 +842,24 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
 
       {/* Visualization Settings - Full Panel Overlay (outside button container) */}
       {showVizSettings && (
-        <div style={{
-          position: 'absolute',
-          top: '0',
-          left: '0',
-          right: '0',
-          bottom: '0',
-          background: 'rgba(20, 20, 25, 0.98)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          padding: '16px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
-          zIndex: 10001,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-        }}>
+        <div
+          ref={vizSettingsRef}
+          style={{
+            position: 'absolute',
+            top: '0',
+            left: '0',
+            right: '0',
+            bottom: '0',
+            background: 'rgba(20, 20, 25, 0.98)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            padding: '16px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+            zIndex: 10001,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
