@@ -81,6 +81,7 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
   const [visualizerEnabled, setVisualizerEnabled] = useState(false);
   const [visualizer] = useState(() => TransformDebugVisualizer.getInstance());
   const [testHarness] = useState(() => IKTestHarness.getInstance());
+  const [debugToolsReady, setDebugToolsReady] = useState(false);
 
   // Visualization settings popover state
   const [showVizSettings, setShowVizSettings] = useState(false);
@@ -93,6 +94,13 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     if (scene && activeRobotId) {
       visualizer.initialize(scene, fkSolver, kinematicsManager);
       testHarness.initialize(fkSolver, ikSolver, kinematicsManager);
+      setDebugToolsReady(true);
+      console.log('[FloatingKinematicsPanel] Debug tools initialized for robot:', activeRobotId);
+    } else {
+      setDebugToolsReady(false);
+      if (!activeRobotId) {
+        console.warn('[FloatingKinematicsPanel] Cannot initialize debug tools: No active robot selected');
+      }
     }
   }, [fkSolver, ikSolver, kinematicsManager, activeRobotId, visualizer, testHarness]);
 
@@ -119,63 +127,130 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
   };
 
   const handleRunTestSuite = () => {
-    if (!activeRobotId) return;
+    if (!activeRobotId) {
+      alert('⚠️ No robot selected!\n\nPlease select a robot from the dropdown above.');
+      console.error('[FloatingKinematicsPanel] Cannot run test suite: activeRobotId is null');
+      return;
+    }
+    if (!debugToolsReady) {
+      alert('⚠️ Debug tools not initialized!\n\nPlease wait a few seconds and try again.');
+      console.error('[FloatingKinematicsPanel] Debug tools not ready');
+      return;
+    }
     const chains = kinematicsManager.getAllChains();
     const robotChain = chains.find(chain =>
       chain.joints.some((joint: any) => joint.id.startsWith(activeRobotId))
     );
     if (robotChain) {
+      console.log('[FloatingKinematicsPanel] Running IK test suite...');
       testHarness.runTestSuite(robotChain.name);
+      alert(`✅ Test suite running for ${robotChain.name}\n\nCheck console (F12) for detailed results.`);
+    } else {
+      alert('❌ Robot chain not found!');
+      console.error('[FloatingKinematicsPanel] Cannot find robot chain for:', activeRobotId);
     }
   };
 
   const handleTestConsistency = () => {
-    if (!activeRobotId) return;
+    if (!activeRobotId) {
+      alert('⚠️ No robot selected!\n\nPlease select a robot from the dropdown above.');
+      console.error('[FloatingKinematicsPanel] Cannot test consistency: activeRobotId is null');
+      return;
+    }
+    if (!debugToolsReady) {
+      alert('⚠️ Debug tools not initialized!\n\nPlease wait a few seconds and try again.');
+      console.error('[FloatingKinematicsPanel] Debug tools not ready');
+      return;
+    }
     const chains = kinematicsManager.getAllChains();
     const robotChain = chains.find(chain =>
       chain.joints.some((joint: any) => joint.id.startsWith(activeRobotId))
     );
     if (robotChain) {
+      console.log('[FloatingKinematicsPanel] Testing FK/IK consistency...');
       testHarness.testForwardBackwardConsistency(robotChain.name);
+      alert(`✅ Consistency test running for ${robotChain.name}\n\nCheck console (F12) for results.`);
+    } else {
+      alert('❌ Robot chain not found!');
+      console.error('[FloatingKinematicsPanel] Cannot find robot chain for:', activeRobotId);
     }
   };
 
   const handleGetDivergenceReport = () => {
+    if (!debugToolsReady) {
+      alert('⚠️ Debug tools not initialized!\n\nPlease:\n1. Select a robot\n2. Enable visualizer (Eye button)\n3. Try again');
+      console.warn('[FloatingKinematicsPanel] Cannot get divergence report: Debug tools not ready');
+      return;
+    }
     const report = visualizer.getDivergenceReport();
+
+    // Check if report indicates failure
+    if (report.includes('not initialized') || report.includes('No debug data')) {
+      alert(`⚠️ ${report}\n\nSteps to fix:\n1. Enable visualizer (Eye button)\n2. Move some joints\n3. Try again`);
+      console.warn('[FloatingKinematicsPanel]', report);
+      return;
+    }
+
+    console.log('═══════════════════════════════════════════════');
+    console.log('           DIVERGENCE REPORT');
+    console.log('═══════════════════════════════════════════════');
     console.log(report);
-    alert('Divergence report printed to console');
+    console.log('═══════════════════════════════════════════════');
+    alert('✅ Divergence report printed to console\n\nOpen DevTools (F12) → Console tab to view.');
   };
 
   const handleResetAll = () => {
-    if (!activeRobotId) return;
+    if (!activeRobotId) {
+      alert('⚠️ No robot selected!\n\nPlease select a robot from the dropdown above.');
+      console.error('[FloatingKinematicsPanel] Cannot reset: activeRobotId is null');
+      return;
+    }
     const robotChain = kinematicsManager.getAllChains().find(chain =>
       chain.joints.some((joint: any) => joint.id.startsWith(activeRobotId))
     );
     if (robotChain) {
       const robotJoints = kinematicsManager.getChainJoints(robotChain.id);
+      let resetCount = 0;
       robotJoints.forEach((joint: any) => {
         if (joint.type === 'revolute' || joint.type === 'prismatic' || joint.type === 'continuous') {
           fkSolver.updateJointPosition(joint.id, 0);
+          resetCount++;
         }
       });
+      console.log(`[FloatingKinematicsPanel] Reset ${resetCount} joints to home position (0°)`);
+      alert(`✅ Reset ${resetCount} joints to home position (0°)`);
+    } else {
+      alert('❌ Robot chain not found!');
+      console.error('[FloatingKinematicsPanel] Cannot find robot chain for:', activeRobotId);
     }
   };
 
   const handleShowJointDebug = () => {
-    if (!activeRobotId) return;
+    if (!activeRobotId) {
+      alert('⚠️ No robot selected!\n\nPlease select a robot from the dropdown above.');
+      console.error('[FloatingKinematicsPanel] Cannot show debug frames: activeRobotId is null');
+      return;
+    }
     const sceneManager = (window as any).sceneManager;
     const scene = sceneManager?.getScene?.();
-    if (scene) {
-      const chains = kinematicsManager.getAllChains();
-      const robotChain = chains.find(chain =>
-        chain.joints.some((joint: any) => joint.id.startsWith(activeRobotId))
-      );
-      if (robotChain) {
-        console.log(`[DEBUG] Showing debug frames for chain: ${robotChain.id}, ${robotChain.name}`);
-        kinematicsManager.showAllJointDebugFrames(robotChain.id, scene);
-        console.log('[DEBUG] Debug frames added! Check console for XYZ/RPY values at each joint.');
-        console.log('[DEBUG] You should now see red/green/blue axis lines at each joint.');
-      }
+    if (!scene) {
+      alert('❌ Scene not available!\n\nPlease wait for the scene to load.');
+      console.error('[FloatingKinematicsPanel] Scene not available');
+      return;
+    }
+    const chains = kinematicsManager.getAllChains();
+    const robotChain = chains.find(chain =>
+      chain.joints.some((joint: any) => joint.id.startsWith(activeRobotId))
+    );
+    if (robotChain) {
+      console.log(`[DEBUG] Showing debug frames for chain: ${robotChain.id}, ${robotChain.name}`);
+      kinematicsManager.showAllJointDebugFrames(robotChain.id, scene);
+      console.log('[DEBUG] Debug frames added! Check console for XYZ/RPY values at each joint.');
+      console.log('[DEBUG] You should now see red/green/blue axis lines at each joint.');
+      alert(`✅ Debug frames added for ${robotChain.name}\n\nLook for RGB axes at each joint.`);
+    } else {
+      alert('❌ Robot chain not found!');
+      console.error('[FloatingKinematicsPanel] Cannot find robot chain for:', activeRobotId);
     }
   };
 
@@ -576,6 +651,77 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
 
   const panelContent = (
     <div className="floating-kinematics-content" style={{ position: 'relative' }}>
+      {/* Robot Selection Dropdown */}
+      <div style={{
+        padding: '8px 12px',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        background: 'rgba(0, 0, 0, 0.2)'
+      }}>
+        <label style={{
+          display: 'block',
+          marginBottom: '6px',
+          fontSize: '11px',
+          color: '#aaa',
+          fontWeight: '600',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          Active Robot
+        </label>
+        <select
+          value={activeRobotId || ''}
+          onChange={(e) => {
+            const newRobotId = e.target.value || null;
+            setActiveRobotId(newRobotId);
+            console.log('[FloatingKinematicsPanel] Robot selected:', newRobotId);
+          }}
+          style={{
+            width: '100%',
+            padding: '6px 8px',
+            background: '#2a2a2a',
+            border: '1px solid #555',
+            borderRadius: '4px',
+            color: 'white',
+            fontSize: '12px',
+            cursor: 'pointer'
+          }}
+        >
+          <option value="">-- Select Robot --</option>
+          {robots.map(robot => (
+            <option key={robot.nodeId} value={robot.nodeId}>
+              {robot.name} ({robot.jointCount} joints)
+            </option>
+          ))}
+        </select>
+
+        {/* Debug Tools Status Indicator */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginTop: '8px',
+          padding: '6px 8px',
+          background: debugToolsReady ? 'rgba(0, 212, 170, 0.1)' : 'rgba(255, 68, 68, 0.1)',
+          borderRadius: '4px',
+          border: `1px solid ${debugToolsReady ? 'rgba(0, 212, 170, 0.3)' : 'rgba(255, 68, 68, 0.3)'}`
+        }}>
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: debugToolsReady ? '#00d4aa' : '#ff4444',
+            boxShadow: debugToolsReady ? '0 0 8px rgba(0, 212, 170, 0.6)' : '0 0 8px rgba(255, 68, 68, 0.6)'
+          }} />
+          <span style={{
+            fontSize: '11px',
+            color: debugToolsReady ? '#00d4aa' : '#ff4444',
+            fontWeight: '500'
+          }}>
+            {debugToolsReady ? '✓ Debug Tools Ready' : '⚠ Debug Tools Not Initialized'}
+          </span>
+        </div>
+      </div>
+
       {/* Compact Icon-Only Debug Buttons at Top */}
       {activeRobotId && (
         <div style={{

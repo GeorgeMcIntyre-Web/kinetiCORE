@@ -1256,8 +1256,19 @@ export class KinematicsManager implements IKinematicsManager {
     // This ensures the gizmo uses the updated joint mesh position
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(joint.parentNodeId);
-    if (node?.babylonNode) {
-      node.babylonNode.computeWorldMatrix(true);
+    if (node) {
+      // Get the actual Babylon node from the scene
+      if (node.babylonTransformNodeId) {
+        const transformNode = scene.getTransformNodeById(String(node.babylonTransformNodeId));
+        if (transformNode) {
+          transformNode.computeWorldMatrix(true);
+        }
+      } else if (node.babylonMeshId) {
+        const mesh = scene.getMeshById(String(node.babylonMeshId));
+        if (mesh) {
+          mesh.computeWorldMatrix(true);
+        }
+      }
     }
 
     // Hide old gizmo and recreate with new angle
