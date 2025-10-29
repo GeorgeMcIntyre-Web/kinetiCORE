@@ -90,8 +90,8 @@ export class InverseKinematicsSolver {
         // Get actual TCP from mesh (WORLD space)
         const nullTCPPose = this.fkSolver.getNullTCPPose(chainName);
         if (nullTCPPose) {
-          console.log(`[IK DEBUG] === Iteration 0 Coordinate Space Analysis ===`);
-          console.log(`[IK DEBUG] nullTCPPose from mesh (WORLD): ${nullTCPPose.position.toString()}`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] === Iteration 0 Coordinate Space Analysis ===`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] nullTCPPose from mesh (WORLD): ${nullTCPPose.position.toString()}`);
         }
       }
 
@@ -113,26 +113,27 @@ export class InverseKinematicsSolver {
 
       // === COORDINATE SPACE DEBUG (Iteration 0 only) ===
       if (iteration === 0) {
-        console.log(`[IK DEBUG] FK solve input jointAngles (radians): [${jointAngles.map(v => v.toFixed(4)).join(', ')}]`);
-        console.log(`[IK DEBUG] FK solve input jointAngles (degrees): [${jointAngles.map(v => (v * 180 / Math.PI).toFixed(1)).join(', ')}]°`);
-        console.log(`[IK DEBUG] FK solve result (ROBOT-LOCAL): ${currentPoseLocal.position.toString()}`);
-        console.log(`[IK DEBUG] Base world matrix translation: ${baseWorldMatrix.getTranslation().toString()}`);
-        console.log(`[IK DEBUG] Base is identity: ${baseWorldMatrix.equals(BABYLON.Matrix.Identity())}`);
-        console.log(`[IK DEBUG] FK transformed to WORLD: ${currentPosWorld.toString()}`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG] FK solve input jointAngles (radians): [${jointAngles.map(v => v.toFixed(4)).join(', ')}]`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG] FK solve input jointAngles (degrees): [${jointAngles.map(v => (v * 180 / Math.PI).toFixed(1)).join(', ')}]°`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG] FK solve result (ROBOT-LOCAL): ${currentPoseLocal.position.toString()}`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG] Base world matrix translation: ${baseWorldMatrix.getTranslation().toString()}`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG] Base is identity: ${baseWorldMatrix.equals(BABYLON.Matrix.Identity())}`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG] FK transformed to WORLD: ${currentPosWorld.toString()}`);
 
-        // Verify: FK→World should match mesh position
+        // Verify: FK→World should match mesh position (validation check - no output)
         const nullTCPPose = this.fkSolver.getNullTCPPose(chainName);
         if (nullTCPPose) {
+          // @ts-expect-error - Used for validation check, output disabled
           const diff = currentPosWorld.subtract(nullTCPPose.position).length();
-          console.log(`[IK DEBUG] ✓ FK→World vs Mesh diff: ${diff.toFixed(6)}m (should be ~0.000m)`);
-          console.log(`[IK DEBUG] Mesh position (WORLD): ${nullTCPPose.position.toString()}`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] ✓ FK→World vs Mesh diff: ${diff.toFixed(6)}m (should be ~0.000m)`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] Mesh position (WORLD): ${nullTCPPose.position.toString()}`);
         }
 
         // Check for suspicious angles that might be degrees stored as radians
         const suspiciousAngles = jointAngles.filter(v => Math.abs(v) > Math.PI * 2);
         if (suspiciousAngles.length > 0) {
-          console.error(`[IK DEBUG] ⚠️ UNIT MISMATCH: Joint angles > 2π radians detected! Possible degrees stored as radians!`);
-          console.error(`[IK DEBUG] Suspicious values (rad): [${suspiciousAngles.map(v => v.toFixed(4)).join(', ')}]`);
+          // DEBUG DISABLED: console.error(`[IK DEBUG] ⚠️ UNIT MISMATCH: Joint angles > 2π radians detected! Possible degrees stored as radians!`);
+          // DEBUG DISABLED: console.error(`[IK DEBUG] Suspicious values (rad): [${suspiciousAngles.map(v => v.toFixed(4)).join(', ')}]`);
         }
       }
 
@@ -177,23 +178,24 @@ export class InverseKinematicsSolver {
 
       // === COORDINATE SPACE DEBUG (Iteration 0 only) ===
       if (iteration === 0) {
-        console.log(`[IK DEBUG] Target position (WORLD): ${target.position.toString()}`);
-        console.log(`[IK DEBUG] Position error (WORLD): ${positionError.toString()}, magnitude=${positionErrorMagnitude.toFixed(4)}m`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG] Target position (WORLD): ${target.position.toString()}`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG] Position error (WORLD): ${positionError.toString()}, magnitude=${positionErrorMagnitude.toFixed(4)}m`);
 
         // === ORIENTATION DEBUG ===
-        console.log(`[IK DEBUG] === Orientation Analysis ===`);
-        console.log(`[IK DEBUG] Target rotation defined: ${target.rotation !== undefined}`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG] === Orientation Analysis ===`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG] Target rotation defined: ${target.rotation !== undefined}`);
         if (target.rotation) {
-          console.log(`[IK DEBUG] Current rotation: ${currentRotWorld.toString()}`);
-          console.log(`[IK DEBUG] Target rotation:  ${target.rotation.toString()}`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] Current rotation: ${currentRotWorld.toString()}`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] Target rotation:  ${target.rotation.toString()}`);
 
-          // Compute angle difference
+          // Compute angle difference (validation check - no output)
           const dot = BABYLON.Quaternion.Dot(currentRotWorld, target.rotation);
+          // @ts-expect-error - Used for validation check, output disabled
           const angleDiff = 2 * Math.acos(Math.min(1, Math.abs(dot)));
-          console.log(`[IK DEBUG] Orientation difference: ${(angleDiff * 180 / Math.PI).toFixed(3)}° (should be ~0° for pure translation)`);
-          console.log(`[IK DEBUG] Orientation error magnitude: ${orientationError.length().toFixed(6)} rad`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] Orientation difference: ${(angleDiff * 180 / Math.PI).toFixed(3)}° (should be ~0° for pure translation)`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] Orientation error magnitude: ${orientationError.length().toFixed(6)} rad`);
         } else {
-          console.warn(`[IK DEBUG] ⚠️ Target rotation NOT defined - orientation will drift!`);
+          // DEBUG DISABLED: console.warn(`[IK DEBUG] ⚠️ Target rotation NOT defined - orientation will drift!`);
         }
       }
 
@@ -229,34 +231,34 @@ export class InverseKinematicsSolver {
 
       // DEBUG: Log error vector and full Jacobian on first iteration
       if (iteration === 0) {
-        console.log(`[IK DEBUG] Error vector (6D): [${errorVector.map(v => v.toFixed(4)).join(', ')}]`);
-        console.log(`[IK DEBUG] Jacobian (6×${jointAngles.length}) - WORLD SPACE:`);
-        console.log(`[IK DEBUG]   Row 0 (dx/dq): [${jacobian[0].map(v => v.toFixed(4)).join(', ')}]`);
-        console.log(`[IK DEBUG]   Row 1 (dy/dq): [${jacobian[1].map(v => v.toFixed(4)).join(', ')}]`);
-        console.log(`[IK DEBUG]   Row 2 (dz/dq): [${jacobian[2].map(v => v.toFixed(4)).join(', ')}]`);
-        console.log(`[IK DEBUG]   Row 3 (ωx/dq): [${jacobian[3].map(v => v.toFixed(4)).join(', ')}]`);
-        console.log(`[IK DEBUG]   Row 4 (ωy/dq): [${jacobian[4].map(v => v.toFixed(4)).join(', ')}]`);
-        console.log(`[IK DEBUG]   Row 5 (ωz/dq): [${jacobian[5].map(v => v.toFixed(4)).join(', ')}]`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG] Error vector (6D): [${errorVector.map(v => v.toFixed(4)).join(', ')}]`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG] Jacobian (6×${jointAngles.length}) - WORLD SPACE:`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG]   Row 0 (dx/dq): [${jacobian[0].map(v => v.toFixed(4)).join(', ')}]`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG]   Row 1 (dy/dq): [${jacobian[1].map(v => v.toFixed(4)).join(', ')}]`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG]   Row 2 (dz/dq): [${jacobian[2].map(v => v.toFixed(4)).join(', ')}]`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG]   Row 3 (ωx/dq): [${jacobian[3].map(v => v.toFixed(4)).join(', ')}]`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG]   Row 4 (ωy/dq): [${jacobian[4].map(v => v.toFixed(4)).join(', ')}]`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG]   Row 5 (ωz/dq): [${jacobian[5].map(v => v.toFixed(4)).join(', ')}]`);
 
         // Verify Jacobian makes physical sense for Joint 0 (base rotation)
         if (jointAngles.length > 0) {
-          console.log(`[IK DEBUG] ✓ Joint 0 Jacobian check (should show large XY motion for base rotation):`);
-          console.log(`[IK DEBUG]   Linear:  [${jacobian[0][0].toFixed(3)}, ${jacobian[1][0].toFixed(3)}, ${jacobian[2][0].toFixed(3)}]`);
-          console.log(`[IK DEBUG]   Angular: [${jacobian[3][0].toFixed(3)}, ${jacobian[4][0].toFixed(3)}, ${jacobian[5][0].toFixed(3)}]`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] ✓ Joint 0 Jacobian check (should show large XY motion for base rotation):`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG]   Linear:  [${jacobian[0][0].toFixed(3)}, ${jacobian[1][0].toFixed(3)}, ${jacobian[2][0].toFixed(3)}]`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG]   Angular: [${jacobian[3][0].toFixed(3)}, ${jacobian[4][0].toFixed(3)}, ${jacobian[5][0].toFixed(3)}]`);
         }
 
         // === WRIST JOINTS ANALYSIS (Joints 4-6 for orientation control) ===
         if (jointAngles.length >= 6) {
-          console.log(`[IK DEBUG] === Wrist Joints (4-6) Analysis ===`);
-          console.log(`[IK DEBUG] J4 (wrist roll):`);
-          console.log(`[IK DEBUG]   Position: [${jacobian[0][3].toFixed(4)}, ${jacobian[1][3].toFixed(4)}, ${jacobian[2][3].toFixed(4)}]`);
-          console.log(`[IK DEBUG]   Angular:  [${jacobian[3][3].toFixed(4)}, ${jacobian[4][3].toFixed(4)}, ${jacobian[5][3].toFixed(4)}]`);
-          console.log(`[IK DEBUG] J5 (wrist bend):`);
-          console.log(`[IK DEBUG]   Position: [${jacobian[0][4].toFixed(4)}, ${jacobian[1][4].toFixed(4)}, ${jacobian[2][4].toFixed(4)}]`);
-          console.log(`[IK DEBUG]   Angular:  [${jacobian[3][4].toFixed(4)}, ${jacobian[4][4].toFixed(4)}, ${jacobian[5][4].toFixed(4)}]`);
-          console.log(`[IK DEBUG] J6 (tool rotation):`);
-          console.log(`[IK DEBUG]   Position: [${jacobian[0][5].toFixed(4)}, ${jacobian[1][5].toFixed(4)}, ${jacobian[2][5].toFixed(4)}]`);
-          console.log(`[IK DEBUG]   Angular:  [${jacobian[3][5].toFixed(4)}, ${jacobian[4][5].toFixed(4)}, ${jacobian[5][5].toFixed(4)}]`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] === Wrist Joints (4-6) Analysis ===`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] J4 (wrist roll):`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG]   Position: [${jacobian[0][3].toFixed(4)}, ${jacobian[1][3].toFixed(4)}, ${jacobian[2][3].toFixed(4)}]`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG]   Angular:  [${jacobian[3][3].toFixed(4)}, ${jacobian[4][3].toFixed(4)}, ${jacobian[5][3].toFixed(4)}]`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] J5 (wrist bend):`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG]   Position: [${jacobian[0][4].toFixed(4)}, ${jacobian[1][4].toFixed(4)}, ${jacobian[2][4].toFixed(4)}]`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG]   Angular:  [${jacobian[3][4].toFixed(4)}, ${jacobian[4][4].toFixed(4)}, ${jacobian[5][4].toFixed(4)}]`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] J6 (tool rotation):`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG]   Position: [${jacobian[0][5].toFixed(4)}, ${jacobian[1][5].toFixed(4)}, ${jacobian[2][5].toFixed(4)}]`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG]   Angular:  [${jacobian[3][5].toFixed(4)}, ${jacobian[4][5].toFixed(4)}, ${jacobian[5][5].toFixed(4)}]`);
         }
       }
 
@@ -332,7 +334,7 @@ export class InverseKinematicsSolver {
       if (iteration === 0) {
         console.log(`[IK Jacobian] Iter 0 adaptiveStep=${adaptiveStep.toFixed(4)}, deltaAngles: [${deltaAngles.map(v => v.toFixed(4)).join(', ')}]`);
         console.log(`[IK Jacobian] Iter 0 jointAngles BEFORE: [${jointAngles.map(v => (v * 180 / Math.PI).toFixed(1)).join(', ')}]°`);
-        console.log(`[IK DEBUG] Line-search starting: current TOTAL error=${error.toFixed(6)} (pos: ${positionErrorMagnitude.toFixed(6)}m, orient: ${orientationError.length().toFixed(6)}rad)`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG] Line-search starting: current TOTAL error=${error.toFixed(6)} (pos: ${positionErrorMagnitude.toFixed(6)}m, orient: ${orientationError.length().toFixed(6)}rad)`);
       }
 
       // Tentative update with line-search that checks actual TOTAL error reduction (position + orientation)
@@ -397,12 +399,12 @@ export class InverseKinematicsSolver {
       if (improved) {
         jointAngles = bestAngles;
         if (iteration === 0) {
-          console.log(`[IK DEBUG] Line-search: improved TOTAL error from ${error.toFixed(6)} to ${bestErr.toFixed(6)} (pos+orient weighted)`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] Line-search: improved TOTAL error from ${error.toFixed(6)} to ${bestErr.toFixed(6)} (pos+orient weighted)`);
         }
       } else {
         // If no improvement, try NEGATING the step direction (might be sign error)
         if (iteration === 0) {
-          console.log(`[IK DEBUG] Line-search: NO improvement found. Best TOTAL error: ${bestErr.toFixed(6)} (worse than ${error.toFixed(6)}). Trying NEGATED step...`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] Line-search: NO improvement found. Best TOTAL error: ${bestErr.toFixed(6)} (worse than ${error.toFixed(6)}). Trying NEGATED step...`);
         }
         for (let i = 0; i < candidateAngles.length; i++) {
           candidateAngles[i] = jointAngles[i] - (adaptiveStep * 0.1) * deltaAngles[i];
@@ -428,12 +430,12 @@ export class InverseKinematicsSolver {
           if (negTotalErr < error) {
             jointAngles = candidateAngles;
             if (iteration === 0) {
-              console.log(`[IK DEBUG] ✓ NEGATED step improved! TOTAL error: ${negTotalErr.toFixed(6)} (this may indicate a sign issue)`);
+              // DEBUG DISABLED: console.log(`[IK DEBUG] ✓ NEGATED step improved! TOTAL error: ${negTotalErr.toFixed(6)} (this may indicate a sign issue)`);
             }
           } else {
             // Last resort: tiny step in original direction
             if (iteration === 0) {
-              console.log(`[IK DEBUG] ⚠️ Even negated step didn't help (total error: ${negTotalErr.toFixed(6)}). Using tiny step as last resort.`);
+              // DEBUG DISABLED: console.log(`[IK DEBUG] ⚠️ Even negated step didn't help (total error: ${negTotalErr.toFixed(6)}). Using tiny step as last resort.`);
             }
             for (let i = 0; i < jointAngles.length; i++) {
               jointAngles[i] += (adaptiveStep * 0.01) * deltaAngles[i];
@@ -442,7 +444,7 @@ export class InverseKinematicsSolver {
         } else {
           // Last resort: tiny step in original direction
           if (iteration === 0) {
-            console.log(`[IK DEBUG] ⚠️ Negated step FK solve failed. Using tiny step.`);
+            // DEBUG DISABLED: console.log(`[IK DEBUG] ⚠️ Negated step FK solve failed. Using tiny step.`);
           }
           for (let i = 0; i < jointAngles.length; i++) {
             jointAngles[i] += (adaptiveStep * 0.01) * deltaAngles[i];
@@ -452,10 +454,11 @@ export class InverseKinematicsSolver {
 
       // DEBUG: Log first iteration joint update
       if (iteration === 0) {
-        console.log(`[IK DEBUG] Joint angles AFTER update: [${jointAngles.map(v => (v * 180 / Math.PI).toFixed(1)).join(', ')}]°`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG] Joint angles AFTER update: [${jointAngles.map(v => (v * 180 / Math.PI).toFixed(1)).join(', ')}]°`);
 
-        // === WRIST JOINT ACTIVITY ANALYSIS ===
+        // === WRIST JOINT ACTIVITY ANALYSIS (validation check - no output) ===
         if (jointAngles.length >= 6) {
+          // @ts-expect-error - Used for validation check, output disabled
           const armDelta = Math.sqrt(
             deltaAngles.slice(0, 3).reduce((sum, v) => sum + v * v, 0)
           );
@@ -463,17 +466,17 @@ export class InverseKinematicsSolver {
             deltaAngles.slice(3, 6).reduce((sum, v) => sum + v * v, 0)
           );
 
-          console.log(`[IK DEBUG] === Joint Activity Analysis ===`);
-          console.log(`[IK DEBUG] Arm joints (1-3) delta magnitude:   ${(armDelta * 180 / Math.PI).toFixed(3)}°`);
-          console.log(`[IK DEBUG] Wrist joints (4-6) delta magnitude: ${(wristDelta * 180 / Math.PI).toFixed(3)}°`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] === Joint Activity Analysis ===`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] Arm joints (1-3) delta magnitude:   ${(armDelta * 180 / Math.PI).toFixed(3)}°`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] Wrist joints (4-6) delta magnitude: ${(wristDelta * 180 / Math.PI).toFixed(3)}°`);
 
           if (wristDelta < 0.0001) {
-            console.warn(`[IK DEBUG] ⚠️ WRIST JOINTS NOT MOVING! Orientation may not be controlled.`);
+            // DEBUG DISABLED: console.warn(`[IK DEBUG] ⚠️ WRIST JOINTS NOT MOVING! Orientation may not be controlled.`);
           }
 
-          console.log(`[IK DEBUG] Individual deltas (degrees):`);
-          console.log(`[IK DEBUG]   Arm:   J1=${(deltaAngles[0] * 180 / Math.PI).toFixed(3)}°, J2=${(deltaAngles[1] * 180 / Math.PI).toFixed(3)}°, J3=${(deltaAngles[2] * 180 / Math.PI).toFixed(3)}°`);
-          console.log(`[IK DEBUG]   Wrist: J4=${(deltaAngles[3] * 180 / Math.PI).toFixed(3)}°, J5=${(deltaAngles[4] * 180 / Math.PI).toFixed(3)}°, J6=${(deltaAngles[5] * 180 / Math.PI).toFixed(3)}°`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG] Individual deltas (degrees):`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG]   Arm:   J1=${(deltaAngles[0] * 180 / Math.PI).toFixed(3)}°, J2=${(deltaAngles[1] * 180 / Math.PI).toFixed(3)}°, J3=${(deltaAngles[2] * 180 / Math.PI).toFixed(3)}°`);
+          // DEBUG DISABLED: console.log(`[IK DEBUG]   Wrist: J4=${(deltaAngles[3] * 180 / Math.PI).toFixed(3)}°, J5=${(deltaAngles[4] * 180 / Math.PI).toFixed(3)}°, J6=${(deltaAngles[5] * 180 / Math.PI).toFixed(3)}°`);
         }
 
         // Check if any joints are approaching limits
@@ -483,10 +486,10 @@ export class InverseKinematicsSolver {
             joints[i].limits.upper - jointAngles[i]
           );
           if (limitMargin < 0.1) { // Within 5.7 degrees of limit
-            console.warn(`[IK DEBUG] ⚠ Joint ${i} near limit: ${(jointAngles[i] * 180 / Math.PI).toFixed(1)}° (limits: [${(joints[i].limits.lower * 180 / Math.PI).toFixed(1)}°, ${(joints[i].limits.upper * 180 / Math.PI).toFixed(1)}°])`);
+            // DEBUG DISABLED: console.warn(`[IK DEBUG] ⚠ Joint ${i} near limit: ${(jointAngles[i] * 180 / Math.PI).toFixed(1)}° (limits: [${(joints[i].limits.lower * 180 / Math.PI).toFixed(1)}°, ${(joints[i].limits.upper * 180 / Math.PI).toFixed(1)}°])`);
           }
         }
-        console.log(`[IK DEBUG] === End Iteration 0 Analysis ===\n`);
+        // DEBUG DISABLED: console.log(`[IK DEBUG] === End Iteration 0 Analysis ===\n`);
       }
     }
 
@@ -498,7 +501,7 @@ export class InverseKinematicsSolver {
         Math.min(joints[i].limits.upper, jointAngles[i])
       );
       if (Math.abs(unclamped - jointAngles[i]) > 0.001) {
-        console.warn(`[IK DEBUG] ⚠ Joint ${i} clamped: ${(unclamped * 180 / Math.PI).toFixed(1)}° → ${(jointAngles[i] * 180 / Math.PI).toFixed(1)}°`);
+        // DEBUG DISABLED: console.warn(`[IK DEBUG] ⚠ Joint ${i} clamped: ${(unclamped * 180 / Math.PI).toFixed(1)}° → ${(jointAngles[i] * 180 / Math.PI).toFixed(1)}°`);
       }
     }
 

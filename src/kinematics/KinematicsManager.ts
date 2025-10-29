@@ -1216,7 +1216,7 @@ export class KinematicsManager implements IKinematicsManager {
       }
     });
 
-    console.log(`[DEBUG] Showing ${joints.length} joint debug frames for chain ${chainId}`);
+    // DEBUG DISABLED: console.log(`[DEBUG] Showing ${joints.length} joint debug frames for chain ${chainId}`);
   }
 
   /**
