@@ -358,9 +358,22 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
       const tcpPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
       if (tcpPose) {
         const targetId = `tcp_${robotId}`;
+        console.log('[DEBUG] handleJogJoint - TCP gizmo update:', {
+          jointId,
+          direction,
+          robotChain: robotChain.name,
+          targetId,
+          tcpPosition: { x: tcpPose.position.x.toFixed(3), y: tcpPose.position.y.toFixed(3), z: tcpPose.position.z.toFixed(3) },
+          tcpRotation: tcpPose.rotation.toEulerAngles(),
+        });
         unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
         unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
+        console.log('[DEBUG] handleJogJoint - updateTargetPosition/Rotation called');
+      } else {
+        console.error('[DEBUG] handleJogJoint - No TCP pose found for chain:', robotChain.name);
       }
+    } else {
+      console.error('[DEBUG] handleJogJoint - No robot chain found for robotId:', robotId);
     }
 
     // Update debug visualizer if enabled

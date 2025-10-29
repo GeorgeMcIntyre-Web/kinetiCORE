@@ -172,11 +172,29 @@ export class UnifiedGizmoManager {
    */
   updateTargetPosition(targetId: string, position: BABYLON.Vector3): void {
     const config = this.activeTargets.get(targetId);
+    console.log('[DEBUG] UnifiedGizmoManager.updateTargetPosition:', {
+      targetId,
+      position: { x: position.x.toFixed(3), y: position.y.toFixed(3), z: position.z.toFixed(3) },
+      configFound: !!config,
+      activePanel: this.activePanel,
+      shouldShow: config ? this.shouldShowGizmo(config) : 'N/A',
+      targetType: config?.targetType,
+    });
+
     if (config) {
       config.position = position.clone();
       if (this.shouldShowGizmo(config)) {
+        console.log('[DEBUG] Calling IKTargetGizmoManager.updateTargetPosition');
         this.ikGizmoManager.updateTargetPosition(targetId, position);
+      } else {
+        console.warn('[DEBUG] shouldShowGizmo returned false!', {
+          activePanel: this.activePanel,
+          targetType: config.targetType,
+          expectedPanel: 'motion',
+        });
       }
+    } else {
+      console.error('[DEBUG] No config found for targetId:', targetId, 'Available targets:', Array.from(this.activeTargets.keys()));
     }
   }
 
