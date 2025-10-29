@@ -651,77 +651,6 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
 
   const panelContent = (
     <div className="floating-kinematics-content" style={{ position: 'relative' }}>
-      {/* Robot Selection Dropdown */}
-      <div style={{
-        padding: '8px 12px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        background: 'rgba(0, 0, 0, 0.2)'
-      }}>
-        <label style={{
-          display: 'block',
-          marginBottom: '6px',
-          fontSize: '11px',
-          color: '#aaa',
-          fontWeight: '600',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          Active Robot
-        </label>
-        <select
-          value={activeRobotId || ''}
-          onChange={(e) => {
-            const newRobotId = e.target.value || null;
-            setActiveRobotId(newRobotId);
-            console.log('[FloatingKinematicsPanel] Robot selected:', newRobotId);
-          }}
-          style={{
-            width: '100%',
-            padding: '6px 8px',
-            background: '#2a2a2a',
-            border: '1px solid #555',
-            borderRadius: '4px',
-            color: 'white',
-            fontSize: '12px',
-            cursor: 'pointer'
-          }}
-        >
-          <option value="">-- Select Robot --</option>
-          {robots.map(robot => (
-            <option key={robot.nodeId} value={robot.nodeId}>
-              {robot.name} ({robot.jointCount} joints)
-            </option>
-          ))}
-        </select>
-
-        {/* Debug Tools Status Indicator */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          marginTop: '8px',
-          padding: '6px 8px',
-          background: debugToolsReady ? 'rgba(0, 212, 170, 0.1)' : 'rgba(255, 68, 68, 0.1)',
-          borderRadius: '4px',
-          border: `1px solid ${debugToolsReady ? 'rgba(0, 212, 170, 0.3)' : 'rgba(255, 68, 68, 0.3)'}`
-        }}>
-          <div style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            background: debugToolsReady ? '#00d4aa' : '#ff4444',
-            boxShadow: debugToolsReady ? '0 0 8px rgba(0, 212, 170, 0.6)' : '0 0 8px rgba(255, 68, 68, 0.6)'
-          }} />
-          <span style={{
-            fontSize: '11px',
-            color: debugToolsReady ? '#00d4aa' : '#ff4444',
-            fontWeight: '500'
-          }}>
-            {debugToolsReady ? '✓ Debug Tools Ready' : '⚠ Debug Tools Not Initialized'}
-          </span>
-        </div>
-      </div>
-
       {/* Compact Icon-Only Debug Buttons at Top */}
       {activeRobotId && (
         <div style={{
@@ -772,67 +701,6 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
           >
             {visualizerEnabled ? <Eye size={14} /> : <EyeOff size={14} />}
           </button>
-          {visualizerEnabled && (
-            <button
-              onClick={handleGetDivergenceReport}
-              style={{
-                padding: '4px',
-                width: '24px',
-                height: '24px',
-                background: '#444',
-                border: 'none',
-                borderRadius: '3px',
-                color: 'white',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              title="Get Divergence Report"
-            >
-              <Download size={14} />
-            </button>
-          )}
-          <button
-            onClick={handleRunTestSuite}
-            style={{
-              padding: '4px',
-              width: '24px',
-              height: '24px',
-              background: '#444',
-              border: 'none',
-              borderRadius: '3px',
-              color: 'white',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-            title="Run IK Test Suite"
-          >
-            <TestTube size={14} />
-          </button>
-          <button
-            onClick={handleTestConsistency}
-            style={{
-              padding: '4px',
-              width: '24px',
-              height: '24px',
-              background: '#444',
-              border: 'none',
-              borderRadius: '3px',
-              color: 'white',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '10px',
-              fontWeight: 'bold',
-            }}
-            title="Test FK/IK Consistency"
-          >
-            ✓
-          </button>
           <button
             onClick={handleShowJointDebug}
             style={{
@@ -879,7 +747,11 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
           {/* Visualization Settings Button (Top Right) */}
           <div ref={vizSettingsRef} style={{ position: 'relative' }}>
             <button
-              onClick={() => setShowVizSettings(!showVizSettings)}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                setShowVizSettings(!showVizSettings);
+              }}
               style={{
                 padding: '4px',
                 width: '24px',
