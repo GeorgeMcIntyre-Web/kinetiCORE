@@ -124,8 +124,8 @@ export function autoFixUpAxis(
 /* ---------------------- detection helpers ---------------------- */
 
 function computeExtents(root: TransformNode) {
-  let min = new Vector3(+Infinity, +Infinity, +Infinity);
-  let max = new Vector3(-Infinity, -Infinity, -Infinity);
+  const min = new Vector3(+Infinity, +Infinity, +Infinity);
+  const max = new Vector3(-Infinity, -Infinity, -Infinity);
 
   const meshes = root.getChildMeshes(false) as AbstractMesh[];
   for (const m of meshes) {

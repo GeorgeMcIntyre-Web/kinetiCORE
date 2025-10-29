@@ -73,12 +73,28 @@ export const SceneCanvas: React.FC = () => {
       const camera = sceneManager.getCamera();
       const scene = sceneManager.getScene();
 
-      // Expose SceneManager to window for easy floor changes via console
+      // Expose managers to window for console debugging
       (window as any).sceneManager = sceneManager;
+
+      // Expose kinematics managers for debug tools
+      import('../../kinematics/KinematicsManager').then(({ KinematicsManager }) => {
+        (window as any).kinematicsManager = KinematicsManager.getInstance();
+        (window as any).KinematicsManager = KinematicsManager;
+      });
+      import('../../kinematics/ForwardKinematicsSolver').then(({ ForwardKinematicsSolver }) => {
+        (window as any).fkSolver = ForwardKinematicsSolver.getInstance();
+        (window as any).ForwardKinematicsSolver = ForwardKinematicsSolver;
+      });
+      import('../../kinematics/InverseKinematicsSolver').then(({ InverseKinematicsSolver }) => {
+        (window as any).ikSolver = InverseKinematicsSolver.getInstance();
+        (window as any).InverseKinematicsSolver = InverseKinematicsSolver;
+      });
+
       console.log('💡 Tip: Change floor via console with: sceneManager.setFloorType("epoxy-gray")');
       console.log('💡 Tip: Toggle background transparency with: sceneManager.setBackgroundTransparent(true/false)');
       console.log('💡 Tip: Check transparency state with: sceneManager.isBackgroundTransparent()');
       console.log('💡 Tip: Force transparent background with: sceneManager.forceTransparentBackground()');
+      console.log('💡 Debug: Kinematics managers available: kinematicsManager, fkSolver, ikSolver');
 
       if (camera) {
         setCamera(camera);
@@ -289,36 +305,46 @@ export const SceneCanvas: React.FC = () => {
     };
   }, [setCamera, selectMesh, clearSelection, initializeCoordinateFrameWidget]);
 
+  const transformGizmoEnabled = useEditorStore((state) => state.transformGizmoEnabled);
+
   // Update gizmo when selection or mode changes
   useEffect(() => {
     if (!gizmoRef.current) return;
-    const registry = EntityRegistry.getInstance();
+    
+    // Check if gizmo should be enabled
+    const shouldEnable = transformGizmoEnabled && (selectedMeshes.length > 0 || selectedCollectionTransformNode);
+    
+    if (shouldEnable) {
+      gizmoRef.current.setEnabled(true);
+      const registry = EntityRegistry.getInstance();
 
-    if (selectedMeshes.length > 0) {
-      const selectedMesh = selectedMeshes[0];
-      const entity = registry.getByMesh(selectedMesh);
+      if (selectedMeshes.length > 0) {
+        const selectedMesh = selectedMeshes[0];
+        const entity = registry.getByMesh(selectedMesh);
 
-      // If this is a device entity, attach gizmo to the root transform node
-      if (entity && entity.getIsDevice()) {
-        const rootNode = entity.getRootTransformNode();
-        if (rootNode) {
-          gizmoRef.current.attachToNode(rootNode);
+        // If this is a device entity, attach gizmo to the root transform node
+        if (entity && entity.getIsDevice()) {
+          const rootNode = entity.getRootTransformNode();
+          if (rootNode) {
+            gizmoRef.current.attachToNode(rootNode);
+            gizmoRef.current.setMode('combined');
+          }
+        } else {
+          // Regular mesh - attach directly
+          gizmoRef.current.attachToMesh(selectedMesh);
           gizmoRef.current.setMode('combined');
         }
-      } else {
-        // Regular mesh - attach directly
-        gizmoRef.current.attachToMesh(selectedMesh);
+      } else if (selectedCollectionTransformNode) {
+        // Collection node selected from tree - attach gizmo to TransformNode
+        gizmoRef.current.attachToNode(selectedCollectionTransformNode);
         gizmoRef.current.setMode('combined');
       }
-    } else if (selectedCollectionTransformNode) {
-      // Collection node selected from tree - attach gizmo to TransformNode
-      gizmoRef.current.attachToNode(selectedCollectionTransformNode);
-      gizmoRef.current.setMode('combined');
     } else {
-      // Detach gizmo when nothing selected
+      // Disable and detach gizmo
       gizmoRef.current.attachToMesh(null);
+      gizmoRef.current.setEnabled(false);
     }
-  }, [selectedMeshes, selectedCollectionTransformNode, transformMode]);
+  }, [selectedMeshes, selectedCollectionTransformNode, transformMode, transformGizmoEnabled]);
 
   // Update snap settings when they change - ALL 13 snap types
   useEffect(() => {

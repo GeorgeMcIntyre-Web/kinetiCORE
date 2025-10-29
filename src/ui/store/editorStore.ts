@@ -44,6 +44,8 @@ interface EditorState {
   selectedCollectionNodeId: string | null; // For collection node selection
   selectedCollectionTransformNode: BABYLON.TransformNode | null; // Babylon TransformNode for collection
   transformMode: TransformMode;
+  transformGizmoEnabled: boolean;
+  setTransformGizmoEnabled: (enabled: boolean) => void;
   camera: BABYLON.Camera | null;
   isPlaying: boolean;
   customFrameSelectionMode: 'none' | CustomFrameFeatureType;
@@ -277,6 +279,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   selectedCollectionNodeId: null,
   selectedCollectionTransformNode: null,
   transformMode: DEFAULT_TRANSFORM_MODE,
+  transformGizmoEnabled: false,
+  setTransformGizmoEnabled: (enabled) => set({ transformGizmoEnabled: enabled }),
   camera: null,
   isPlaying: false,
   customFrameSelectionMode: 'none',

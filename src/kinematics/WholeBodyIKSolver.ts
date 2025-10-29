@@ -436,9 +436,9 @@ export class WholeBodyIKSolver {
   }
 
   /**
-   * Get current end-effector pose for a chain
+   * Get current null TCP pose for a chain (last joint transformation)
    */
-  getCurrentEndEffectorPose(chainName: string): {
+  getCurrentNullTCPPose(chainName: string): {
     position: BABYLON.Vector3;
     rotation: BABYLON.Quaternion;
   } | null {

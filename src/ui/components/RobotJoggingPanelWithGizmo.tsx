@@ -19,6 +19,7 @@ import './RobotJoggingPanel.css';
 
 type JogMode = 'joint' | 'tcp' | 'poses';
 type JogAxis = 'X' | 'Y' | 'Z' | 'RX' | 'RY' | 'RZ';
+type IKDebugMode = 'off' | 'summary' | 'verbose';
 
 interface RobotJoggingPanelProps {
   joints: any[]; // Filtered joints for this specific robot
@@ -39,12 +40,27 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
   const [jointGroups, setJointGroups] = useState<JointGroup[]>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [useGroups, setUseGroups] = useState<boolean>(false);
+  const [debugMode] = useState<IKDebugMode>(() => (localStorage.getItem('ikDebugMode') as IKDebugMode) || 'summary');
   
   // Gizmo management
   const [unifiedGizmo] = useState(() => UnifiedGizmoManager.getInstance());
   const [_currentTcpPosition, setCurrentTcpPosition] = useState<BABYLON.Vector3 | null>(null);
   const [_currentChainName, setCurrentChainName] = useState<string | null>(null);
   const gizmoInitialized = useRef(false);
+  // IK debug overlay meshes
+  const ikAxisXRef = useRef<BABYLON.LinesMesh | null>(null);
+  const ikAxisYRef = useRef<BABYLON.LinesMesh | null>(null);
+  const ikAxisZRef = useRef<BABYLON.LinesMesh | null>(null);
+  const ikDeltaRef = useRef<BABYLON.LinesMesh | null>(null);
+  const ikErrorRef = useRef<BABYLON.LinesMesh | null>(null);
+
+  // Logging helpers
+  const logSummary = (...args: any[]) => {
+    if (debugMode === 'summary' || debugMode === 'verbose') console.log(...args);
+  };
+  const logVerbose = (...args: any[]) => {
+    if (debugMode === 'verbose') console.log(...args);
+  };
 
   // Use filtered joints from props
   useEffect(() => {
@@ -80,6 +96,43 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
       }
     }
   }, [unifiedGizmo]);
+
+  // Show TCP gizmo in joint mode if device has TCP
+  useEffect(() => {
+    if (jogMode === 'joint') {
+      // Switch to motion panel context
+      unifiedGizmo.setActivePanel('motion');
+      
+      // Get current TCP position and create gizmo if device has TCP
+      const kinematicsManager = KinematicsManager.getInstance();
+      const chains = kinematicsManager.getAllChains();
+      const robotChain = chains.find(chain => {
+        return chain.joints.some((joint: any) => joint.id.startsWith(robotId));
+      });
+      
+      if (robotChain) {
+        // Check if device has TCP
+        const tcpPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
+        if (tcpPose) {
+          // Create TCP gizmo even in joint mode
+          unifiedGizmo.createTcpControl(
+            robotId,
+            robotChain.name,
+            tcpPose.position,
+            (newPosition) => {
+              // In joint mode, TCP gizmo movement should still work for visual reference
+              // but we don't apply IK automatically
+              const targetId = `tcp_${robotId}`;
+              unifiedGizmo.updateTargetPosition(targetId, newPosition);
+            },
+            tcpPose.rotation,
+            undefined // No rotation callback in joint mode
+          );
+          console.log('[RobotJoggingPanel] TCP gizmo shown in joint mode');
+        }
+      }
+    }
+  }, [jogMode, robotId, unifiedGizmo, fkSolver]);
 
   // Automatically show joint debug frames when panel opens
   useEffect(() => {
@@ -154,13 +207,9 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
 
           // Update existing gizmo position and rotation instead of recreating
           const targetId = `tcp_${robotId}`;
-          console.log(`[RobotJoggingPanel] Updating gizmo ${targetId} to position: (${tcpPose.position.x.toFixed(3)}, ${tcpPose.position.y.toFixed(3)}, ${tcpPose.position.z.toFixed(3)})`);
+          // Removed excessive logging - only log on significant changes
           unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
           unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
-
-          // Debug log to verify rotation
-          const euler = tcpPose.rotation.toEulerAngles();
-          console.log(`[RobotJoggingPanel] Gizmo rotation update: Rx=${(euler.x*180/Math.PI).toFixed(1)}° Ry=${(euler.y*180/Math.PI).toFixed(1)}° Rz=${(euler.z*180/Math.PI).toFixed(1)}°`);
           }
         }
       }
@@ -168,7 +217,8 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
 
     updateTcpPosition();
     // More frequent updates for smoother gizmo tracking
-    const interval = setInterval(updateTcpPosition, 100);
+    // Increased to 500ms to reduce spam and allow IK to complete
+    const interval = setInterval(updateTcpPosition, 500);
     return () => clearInterval(interval);
   }, [fkSolver, robotId, jogMode, ikSolver, unifiedGizmo]);
 
@@ -250,11 +300,15 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
           console.log('[RobotJoggingPanel] Created TCP gizmo at:', tcpPose.position);
         }
       }
+    } else if (jogMode === 'joint') {
+      // Keep TCP gizmo visible in joint mode (handled by separate effect)
+      // Just ensure motion panel context is active
+      unifiedGizmo.setActivePanel('motion');
     } else {
-      // Clear TCP gizmo when not in TCP mode
+      // Clear TCP gizmo when not in TCP or joint mode
       unifiedGizmo.removeTarget(`tcp_${robotId}`);
       unifiedGizmo.setActivePanel('none');
-      console.log('[RobotJoggingPanel] Switched away from TCP mode - gizmo cleared');
+      console.log('[RobotJoggingPanel] Switched away from TCP/Joint mode - gizmo cleared');
     }
   }, [jogMode, robotId, unifiedGizmo, fkSolver, ikSolver]);
 
@@ -312,6 +366,8 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
   };
 
   const handleJogTcp = (axis: JogAxis, direction: number) => {
+    logSummary(`[RobotJoggingPanel] TCP Jog: ${axis} ${direction > 0 ? '+' : '-'}`);
+    
     const kinematicsManager = KinematicsManager.getInstance();
     const chains = kinematicsManager.getAllChains();
 
@@ -331,21 +387,109 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     }
 
     const chainName = robotChain.name;
+    logVerbose(`[RobotJoggingPanel] Found chain: ${chainName}`);
 
-    // Create delta in USER space (Z-up, mm)
-    const userDelta = { x: 0, y: 0, z: 0 };
+    // Get TCP WORLD rotation from actual mesh (getNullTCPPose)
+    const chain = kinematicsManager.getChain(chainName);
+    if (!chain) {
+      console.error('[RobotJoggingPanel] Chain not found for TCP jog:', chainName);
+      return;
+    }
+    
+    // Get current joint angles to update meshes to correct position
+    const actuatedJoints = kinematicsManager.getActuatedJoints(chain.id);
+    const currentJointAngles = actuatedJoints.map((j: any) => j.position);
+    const currentPoseLocal = fkSolver.solve(chainName, currentJointAngles);
+    if (!currentPoseLocal) {
+      console.error('[RobotJoggingPanel] FK solve failed for TCP jog');
+      return;
+    }
+    
+    // Get actual null TCP pose from mesh (world space)
+    const nullTCPPose = fkSolver.getNullTCPPose(chainName);
+    if (!nullTCPPose) {
+      console.error('[RobotJoggingPanel] Could not get null TCP pose');
+      return;
+    }
+    
+    const currentPosWorld = nullTCPPose.position;
+    const tcpWorldRotation = nullTCPPose.rotation;
 
-    // Linear motion in USER space
+    // DEBUG: Log TCP world rotation for debugging
+    const tcpEuler = tcpWorldRotation.toEulerAngles();
+    
+    // Get TCP local X axis direction in world space
+    const tcpRotMatrix = new BABYLON.Matrix();
+    tcpWorldRotation.toRotationMatrix(tcpRotMatrix);
+    const tcpLocalXAxis = new BABYLON.Vector3(tcpRotMatrix.m[0], tcpRotMatrix.m[1], tcpRotMatrix.m[2]);
+    
+    logSummary(`═══════════════════════════════════════════════════════════`);
+    logSummary(`[TCP Jog] ${axis}${direction > 0 ? '+' : '-'} ${jogStepTcpLinear}mm`);
+    logSummary(`[TCP Jog] Current null TCP WORLD position: (${currentPosWorld.x.toFixed(4)}, ${currentPosWorld.y.toFixed(4)}, ${currentPosWorld.z.toFixed(4)})`);
+    logSummary(`[TCP Jog] Current null TCP WORLD rotation: Rx=${(tcpEuler.x*180/Math.PI).toFixed(1)}° Ry=${(tcpEuler.y*180/Math.PI).toFixed(1)}° Rz=${(tcpEuler.z*180/Math.PI).toFixed(1)}°`);
+    logSummary(`[TCP Jog] TCP local X-axis direction (world): (${tcpLocalXAxis.x.toFixed(3)}, ${tcpLocalXAxis.y.toFixed(3)}, ${tcpLocalXAxis.z.toFixed(3)})`);
+    logVerbose(`[TCP Jog] TCP world rotation quaternion: (${tcpWorldRotation.x.toFixed(3)}, ${tcpWorldRotation.y.toFixed(3)}, ${tcpWorldRotation.z.toFixed(3)}, ${tcpWorldRotation.w.toFixed(3)})`);
+
+    // Create delta in TCP LOCAL frame (meters)
+    const stepMeters = (jogStepTcpLinear * 0.001) * direction;
+    const localDeltaBabylon = new BABYLON.Vector3(0, 0, 0);
+
+    // Linear motion in TCP LOCAL frame (follows null TCP orientation)
     if (axis === 'X') {
-      userDelta.x = jogStepTcpLinear * direction; // mm
+      localDeltaBabylon.x = stepMeters; // along TCP local X
     } else if (axis === 'Y') {
-      userDelta.y = jogStepTcpLinear * direction; // mm
+      localDeltaBabylon.y = stepMeters; // along TCP local Y
     } else if (axis === 'Z') {
-      userDelta.z = jogStepTcpLinear * direction; // mm
+      localDeltaBabylon.z = stepMeters; // along TCP local Z
     }
 
-    // Convert USER delta (Z-up, mm) to BABYLON delta (Y-up, meters)
-    const positionDelta = userToBabylon(userDelta);
+    // DEBUG: Log local delta before transformation
+    logVerbose(`[RobotJoggingPanel] Local delta (TCP frame): (${localDeltaBabylon.x.toFixed(3)}, ${localDeltaBabylon.y.toFixed(3)}, ${localDeltaBabylon.z.toFixed(3)})`);
+
+    // Rotate TCP-local delta by WORLD TCP rotation to get WORLD-space delta
+    const rotationMatrix = new BABYLON.Matrix();
+    tcpWorldRotation.toRotationMatrix(rotationMatrix);
+    const positionDelta = BABYLON.Vector3.TransformCoordinates(
+      localDeltaBabylon,
+      rotationMatrix
+    );
+
+    // DEBUG: Log world delta after transformation
+    const targetPos = currentPosWorld.add(positionDelta);
+    logSummary(`[TCP Jog] Local delta in TCP frame: (${localDeltaBabylon.x.toFixed(4)}, ${localDeltaBabylon.y.toFixed(4)}, ${localDeltaBabylon.z.toFixed(4)})`);
+    logSummary(`[TCP Jog] World delta after rotation: (${positionDelta.x.toFixed(4)}, ${positionDelta.y.toFixed(4)}, ${positionDelta.z.toFixed(4)})`);
+    logSummary(`[TCP Jog] Target position should be: (${targetPos.x.toFixed(4)}, ${targetPos.y.toFixed(4)}, ${targetPos.z.toFixed(4)})`);
+
+    // Draw IK debug overlay (axes at TCP and intended delta)
+    try {
+      const scene = (window as any).sceneManager?.getScene?.();
+      if (scene && (debugMode === 'summary' || debugMode === 'verbose')) {
+        const rotM = new BABYLON.Matrix();
+        tcpWorldRotation.toRotationMatrix(rotM);
+        const xDir = new BABYLON.Vector3(rotM.m[0], rotM.m[1], rotM.m[2]);
+        const yDir = new BABYLON.Vector3(rotM.m[4], rotM.m[5], rotM.m[6]);
+        const zDir = new BABYLON.Vector3(rotM.m[8], rotM.m[9], rotM.m[10]);
+
+        const axisLen = 0.05; // 5 cm visuals
+        const mkLine = (ref: React.MutableRefObject<BABYLON.LinesMesh | null>, from: BABYLON.Vector3, to: BABYLON.Vector3, color: BABYLON.Color3) => {
+          if (ref.current && !ref.current.isDisposed()) {
+            ref.current.dispose(false, true);
+            ref.current = null;
+          }
+          const line = BABYLON.MeshBuilder.CreateLines('ik_debug_line', { points: [from, to], updatable: false }, scene);
+          line.color = color;
+          line.isPickable = false;
+          ref.current = line as BABYLON.LinesMesh;
+        };
+
+        mkLine(ikAxisXRef, currentPosWorld, currentPosWorld.add(xDir.scale(axisLen)), BABYLON.Color3.Red());
+        mkLine(ikAxisYRef, currentPosWorld, currentPosWorld.add(yDir.scale(axisLen)), BABYLON.Color3.Green());
+        mkLine(ikAxisZRef, currentPosWorld, currentPosWorld.add(zDir.scale(axisLen)), BABYLON.Color3.Blue());
+
+        // Intended world delta (cyan)
+        mkLine(ikDeltaRef, currentPosWorld, currentPosWorld.add(positionDelta), new BABYLON.Color3(0, 1, 1));
+      }
+    } catch {}
 
     let success = false;
 
@@ -381,25 +525,63 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     }
 
     // Linear motion (position IK)
-    // Try CCD first (more robust), fallback to Jacobian
-    success = ikSolver.moveTCP(chainName, positionDelta, 'ccd');
+    logSummary(`[RobotJoggingPanel] Moving TCP by ${axis} delta: (${positionDelta.x.toFixed(3)}, ${positionDelta.y.toFixed(3)}, ${positionDelta.z.toFixed(3)})`);
+    
+    // Use Jacobian first (faster, more reliable for this robot), fallback to CCD
+    success = ikSolver.moveTCP(chainName, positionDelta, 'jacobian');
 
     if (!success) {
-      console.log('CCD failed, trying Jacobian method...');
-      success = ikSolver.moveTCP(chainName, positionDelta, 'jacobian');
+      logSummary('[RobotJoggingPanel] Jacobian failed, trying CCD method...');
+      success = ikSolver.moveTCP(chainName, positionDelta, 'ccd');
     }
 
     if (!success) {
-      console.warn(`IK failed for TCP jog: ${axis} ${direction > 0 ? '+' : '-'}`);
-      console.warn('Target may be out of reach or robot in singular configuration');
+      console.warn(`[RobotJoggingPanel] IK failed for TCP jog: ${axis} ${direction > 0 ? '+' : '-'}`);
+      console.warn('[RobotJoggingPanel] Target may be out of reach or robot in singular configuration');
+      logSummary(`[TCP Jog] ❌ IK FAILED for ${axis}${direction > 0 ? '+' : '-'}`);
+      logSummary(`═══════════════════════════════════════════════════════════`);
+    } else {
+      logSummary(`[RobotJoggingPanel] ✅ Successfully moved TCP ${axis} ${direction > 0 ? '+' : '-'}`);
+      
+      // Log actual final position for comparison
+      if (true) {
+        try {
+          const kinematicsManager = KinematicsManager.getInstance();
+          const chain = kinematicsManager.getChain(chainName);
+          if (chain) {
+            const joints = kinematicsManager.getActuatedJoints(chain.id);
+            const jointAngles = joints.map((j: any) => j.position);
+            const achievedLocal = fkSolver.solve(chainName, jointAngles);
+            if (achievedLocal) {
+              const baseWM = kinematicsManager.getBaseWorldMatrix(chain.id) || BABYLON.Matrix.Identity();
+              const achievedWorld = BABYLON.Vector3.TransformCoordinates(achievedLocal.position, baseWM);
+              const errorVec = targetPos.subtract(achievedWorld);
+              const errorMag = errorVec.length();
+              logSummary(`[TCP Jog] ✅ Actual final position: (${achievedWorld.x.toFixed(4)}, ${achievedWorld.y.toFixed(4)}, ${achievedWorld.z.toFixed(4)})`);
+              logSummary(`[TCP Jog] Position error: ${errorMag.toFixed(4)}m (${(errorMag*1000).toFixed(2)}mm)`);
+              logSummary(`═══════════════════════════════════════════════════════════`);
+
+              // After solve, draw error vector (magenta) from achieved to target
+              const scene = (window as any).sceneManager?.getScene?.();
+              if (scene && (debugMode === 'summary' || debugMode === 'verbose')) {
+                if (ikErrorRef.current && !ikErrorRef.current.isDisposed()) {
+                  ikErrorRef.current.dispose(false, true);
+                  ikErrorRef.current = null;
+                }
+                const errLine = BABYLON.MeshBuilder.CreateLines('ik_error_line', { points: [achievedWorld, targetPos], updatable: false }, scene);
+                errLine.color = new BABYLON.Color3(1, 0, 1);
+                errLine.isPickable = false;
+                ikErrorRef.current = errLine as BABYLON.LinesMesh;
+              }
+            }
+          }
+        } catch (e) {
+          logVerbose(`[TCP Jog] Error computing final position: ${e}`);
+        }
+      }
     }
   };
 
-  const handleResetAll = () => {
-    revoluteJoints.forEach(joint => {
-      fkSolver.updateJointPosition(joint.id, 0);
-    });
-  };
 
   const handleLoadPose = (keyframeId: string) => {
     console.log(`Loading pose: ${keyframeId}`);
@@ -755,37 +937,6 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
         </div>
       )}
 
-      {/* Reset and Debug Buttons */}
-      <div className="panel-actions">
-        <button className="reset-button" onClick={handleResetAll}>
-          Reset All to Home
-        </button>
-        <button className="reset-button" onClick={() => {
-          const kinematicsManager = KinematicsManager.getInstance();
-          const sceneManager = SceneManager.getInstance();
-          const scene = sceneManager.getScene();
-          
-          if (scene) {
-            const chains = kinematicsManager.getAllChains();
-            const robotChain = chains.find(chain => 
-              chain.joints.some((joint: any) => joint.id.startsWith(robotId))
-            );
-            
-            if (robotChain) {
-              console.log(`[DEBUG] Showing debug frames for chain: ${robotChain.id}, ${robotChain.name}`);
-              kinematicsManager.showAllJointDebugFrames(robotChain.id, scene);
-              console.log('[DEBUG] Debug frames added! Check console for XYZ/RPY values at each joint.');
-              console.log('[DEBUG] You should now see red/green/blue axis lines at each joint.');
-            } else {
-              console.error('[DEBUG] No robot chain found for robotId:', robotId);
-            }
-          } else {
-            console.error('[DEBUG] Scene not available');
-          }
-        }}>
-          Show Joint Debug Frames
-        </button>
-      </div>
     </div>
   );
 };

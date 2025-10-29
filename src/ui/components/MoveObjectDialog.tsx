@@ -399,7 +399,7 @@ export const MoveObjectDialog: React.FC<MoveObjectDialogProps> = ({ isOpen, onCl
       if (rotChanged) {
         // Convert new world rotation to local rotation (similar to position conversion)
         // Get parent world rotation quaternion
-        let parentWorldRotationQuat = BABYLON.Quaternion.Identity();
+        const parentWorldRotationQuat = BABYLON.Quaternion.Identity();
         if (babylonNode.parent && 'getWorldMatrix' in babylonNode.parent) {
           const parentWorldMatrix = (babylonNode.parent as BABYLON.TransformNode).getWorldMatrix();
           parentWorldMatrix.decompose(undefined, parentWorldRotationQuat, undefined);

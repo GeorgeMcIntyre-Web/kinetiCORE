@@ -109,7 +109,9 @@
       "Bash(nslookup:*)",
       "Bash(git fetch:*)",
       "Bash(npx supabase:*)",
-      "Bash(code:*)"
+      "Bash(code:*)",
+      "Read(//c/Users/George/Documents/kineticCORE/logs/**)",
+      "Bash(git revert:*)"
     ],
     "deny": [],
     "ask": []

@@ -3,10 +3,16 @@ import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { useEditorStore } from './ui/store/editorStore';
+import { TransformDebugVisualizer } from './kinematics/TransformDebugVisualizer';
+import { IKTestHarness } from './kinematics/IKTestHarness';
+import * as BABYLON from '@babylonjs/core';
 
-// Expose useEditorStore to window for debugging
+// Expose debug tools to window for console access
 if (typeof window !== 'undefined') {
   (window as any).useEditorStore = useEditorStore;
+  (window as any).TransformDebugVisualizer = TransformDebugVisualizer;
+  (window as any).IKTestHarness = IKTestHarness;
+  (window as any).BABYLON = BABYLON; // Expose BABYLON for console commands
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

@@ -805,7 +805,7 @@ export class DWGToBabylonConverter {
     }
 
     const scale = this.options.unitScale || 1;
-    let x = (point.x || 0) * scale;
+    const x = (point.x || 0) * scale;
     let y = (point.y || 0) * scale;
     let z = (point.z || 0) * scale;
 
