@@ -345,22 +345,20 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     const stepRadians = (jogStepJoint * Math.PI) / 180;
     const newValue = joint.position + (stepRadians * direction);
     fkSolver.updateJointPosition(jointId, newValue);
-    
-    // If in TCP mode, update gizmo position immediately after joint move
-    if (jogMode === 'tcp') {
-      const kinematicsManager = KinematicsManager.getInstance();
-      const chains = kinematicsManager.getAllChains();
-      const robotChain = chains.find(chain => 
-        chain.joints.some((joint: any) => joint.id.startsWith(robotId))
-      );
-      
-      if (robotChain) {
-        const tcpPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
-        if (tcpPose) {
-          const targetId = `tcp_${robotId}`;
-          unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
-          unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
-        }
+
+    // Update TCP gizmo position immediately after joint move (both joint and TCP mode)
+    const kinematicsManager = KinematicsManager.getInstance();
+    const chains = kinematicsManager.getAllChains();
+    const robotChain = chains.find(chain =>
+      chain.joints.some((joint: any) => joint.id.startsWith(robotId))
+    );
+
+    if (robotChain) {
+      const tcpPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
+      if (tcpPose) {
+        const targetId = `tcp_${robotId}`;
+        unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
+        unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
       }
     }
   };

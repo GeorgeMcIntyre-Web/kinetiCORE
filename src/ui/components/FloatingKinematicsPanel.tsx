@@ -218,6 +218,17 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
         }
       });
       console.log(`[FloatingKinematicsPanel] Reset ${resetCount} joints to home position (0°)`);
+
+      // Update TCP gizmo position after resetting all joints
+      const tcpPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
+      if (tcpPose) {
+        const { UnifiedGizmoManager } = require('../../kinematics/UnifiedGizmoManager');
+        const unifiedGizmo = UnifiedGizmoManager.getInstance();
+        const targetId = `tcp_${activeRobotId}`;
+        unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
+        unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
+      }
+
       alert(`✅ Reset ${resetCount} joints to home position (0°)`);
     } else {
       alert('❌ Robot chain not found!');
@@ -603,6 +614,23 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       const delta = angleFromQuaternionAboutAxis(tn.rotationQuaternion, worldAxis);
       const preview = clampToLimits(startAngleRef.value + delta);
       fk.updateJointPosition(attachedJointId, preview);
+
+      // Update TCP gizmo position during drag for live feedback
+      if (activeRobotId) {
+        const robotChain = kinematicsManager.getAllChains().find(chain =>
+          chain.joints.some((j: any) => j.id.startsWith(activeRobotId))
+        );
+        if (robotChain) {
+          const tcpPose = fk.getTCPPose?.(robotChain.name) || fk.getNullTCPPose(robotChain.name);
+          if (tcpPose) {
+            const { UnifiedGizmoManager } = require('../../kinematics/UnifiedGizmoManager');
+            const unifiedGizmo = UnifiedGizmoManager.getInstance();
+            const targetId = `tcp_${activeRobotId}`;
+            unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
+            unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
+          }
+        }
+      }
     });
 
     // Drag end (commit)
