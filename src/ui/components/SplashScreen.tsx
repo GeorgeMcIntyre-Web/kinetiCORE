@@ -39,7 +39,7 @@ const INSPIRING_MESSAGES = [
 ];
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({
-  message = 'Initializing kinetiCORE...',
+  message = 'Initializing kinetic CORE...',
   progress,
   error,
   onRetry,
@@ -97,7 +97,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
               <Zap className="splash-logo-icon" size={56} strokeWidth={2.5} />
             </div>
           </div>
-          <h1 className="splash-title">kinetiCORE</h1>
+          <h1 className="splash-title">kinetic CORE</h1>
           <p className="splash-subtitle">Industrial Simulation Platform</p>
           <p className="splash-tagline" key={inspiringMessage}>
             {inspiringMessage}
@@ -169,7 +169,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         {/* Version Info */}
         <div className="splash-footer">
           <p className="splash-version">Version 0.1.0</p>
-          <p className="splash-copyright">© 2025 kinetiCORE Team</p>
+          <p className="splash-copyright">© 2025 kinetic CORE Team</p>
         </div>
       </div>
     </div>

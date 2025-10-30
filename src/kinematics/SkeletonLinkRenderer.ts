@@ -92,6 +92,10 @@ export class SkeletonLinkRenderer {
       return null;
     }
 
+    // Ensure the node has an up-to-date world matrix before anyone queries it
+    try {
+      babylonNode.computeWorldMatrix(true);
+    } catch {}
     console.log(`[SkeletonLinkRenderer] Found robot model root: ${babylonNode.name} (uniqueId: ${babylonNode.uniqueId})`);
     return babylonNode;
   }
@@ -213,6 +217,10 @@ export class SkeletonLinkRenderer {
       return;
     }
 
+    // Important: make sure parent's world matrix reflects any recent robot moves
+    // Without this, world->local conversion can use a stale transform and place
+    // bones/spheres at the robot's previous location when the panel opens.
+    parent.computeWorldMatrix(true);
     const worldMatrix = parent.getWorldMatrix();
     const parentWorldInv = worldMatrix.clone().invert();
 

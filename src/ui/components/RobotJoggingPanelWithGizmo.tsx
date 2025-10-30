@@ -6,7 +6,7 @@
 // - TCP Mode: Jog tool center point in Cartesian space with visual gizmo
 
 import { useState, useEffect, useRef } from 'react';
-import { Move, RotateCw, Minus, Plus, Play, Save, Trash2, ChevronDown, ChevronRight, Target, PlayCircle, StopCircle, ArrowUp, ArrowDown } from 'lucide-react';
+import { Move, RotateCw, Minus, Plus, Play, Save, Trash2, ChevronDown, ChevronRight, Target, PlayCircle, StopCircle, ArrowUp, ArrowDown, ArrowRight, Info } from 'lucide-react';
 import * as BABYLON from '@babylonjs/core';
 import { KinematicsManager, RobotKeyframe } from '../../kinematics/KinematicsManager';
 import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
@@ -49,13 +49,14 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
 
   // Targets (teaching points with motion type)
   const [targets, setTargets] = useState<SixAxisTarget[]>([]);
-  const [newTargetName, setNewTargetName] = useState<string>('');
   const [newTargetMotionType, setNewTargetMotionType] = useState<MotionType>('JOINT');
   const [isPlaying, setIsPlaying] = useState(false);
+  const isPlayingRef = useRef(false); // Use ref for immediate stop detection in async loop
+  const [showTargetDetails, setShowTargetDetails] = useState(false); // Toggle to show/hide Cartesian values
   const [jointGroups, setJointGroups] = useState<JointGroup[]>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [useGroups, setUseGroups] = useState<boolean>(false);
-  const [debugMode] = useState<IKDebugMode>(() => (localStorage.getItem('ikDebugMode') as IKDebugMode) || 'summary');
+  const [debugMode] = useState<IKDebugMode>(() => (localStorage.getItem('ikDebugMode') as IKDebugMode) || 'none');
   
   // Gizmo management
   const [unifiedGizmo] = useState(() => UnifiedGizmoManager.getInstance());
@@ -538,7 +539,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     // Draw IK debug overlay (axes at TCP and intended delta)
     try {
       const scene = (window as any).sceneManager?.getScene?.();
-      if (scene && (debugMode === 'summary' || debugMode === 'verbose')) {
+      if (scene && (debugMode === 'verbose')) {
         const rotM = new BABYLON.Matrix();
         tcpWorldRotation.toRotationMatrix(rotM);
         const xDir = new BABYLON.Vector3(rotM.m[0], rotM.m[1], rotM.m[2]);
@@ -677,7 +678,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
 
             // After solve, draw error vector (magenta) from achieved to target
             const scene = (window as any).sceneManager?.getScene?.();
-            if (scene && (debugMode === 'summary' || debugMode === 'verbose')) {
+            if (scene && (debugMode === 'verbose')) {
               if (ikErrorRef.current && !ikErrorRef.current.isDisposed()) {
                 ikErrorRef.current.dispose(false, true);
                 ikErrorRef.current = null;
@@ -735,9 +736,14 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     }
   };
 
+  // Helper: auto-generate point names based on sequence position (P001, P002, ...)
+  // Names are regenerated whenever the target list changes to reflect current order
+  const generatePointName = (index: number) => {
+    return `P${String(index + 1).padStart(3, '0')}`;
+  };
+
   // Target (teaching point) handlers
   const handleTeachTarget = () => {
-    if (!newTargetName.trim()) return;
     if (!robotId) return;
 
     const kinematicsManager = KinematicsManager.getInstance();
@@ -770,11 +776,11 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
       jointConfig.jointAngles[5] * 180 / Math.PI,
     ];
 
-    // Create target
+    // Create target with auto-generated name based on position in sequence
     const euler = tcpPose.rotation.toEulerAngles();
     const target: SixAxisTarget = {
       id: `target_${Date.now()}`,
-      name: newTargetName.trim(),
+      name: generatePointName(targets.length), // Auto-generate based on sequence position
       joints: jointsDegrees,
       configuration: {
         elbow: 'up',  // TODO: Detect from current configuration
@@ -807,7 +813,6 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     };
 
     setTargets(prev => [...prev, target]);
-    setNewTargetName('');
     console.log(`✅ Target ${target.name} taught (${newTargetMotionType} motion)`);
   };
 
@@ -821,7 +826,8 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     setTargets(prev => {
       const newTargets = [...prev];
       [newTargets[index - 1], newTargets[index]] = [newTargets[index], newTargets[index - 1]];
-      return newTargets;
+      // Renumber all targets to reflect new order
+      return newTargets.map((t, i) => ({ ...t, name: generatePointName(i) }));
     });
   };
 
@@ -830,27 +836,198 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     setTargets(prev => {
       const newTargets = [...prev];
       [newTargets[index], newTargets[index + 1]] = [newTargets[index + 1], newTargets[index]];
-      return newTargets;
+      // Renumber all targets to reflect new order
+      return newTargets.map((t, i) => ({ ...t, name: generatePointName(i) }));
     });
   };
 
   const handlePlaySequence = async () => {
     if (targets.length === 0) return;
     setIsPlaying(true);
+    isPlayingRef.current = true;
     console.log(`▶️ Playing sequence of ${targets.length} targets...`);
 
-    // TODO: Implement sequential playback with motion interpolation
-    // For now, just log the sequence
-    for (let i = 0; i < targets.length; i++) {
-      const target = targets[i];
-      console.log(`  ${i + 1}. ${target.name} (${target.motionType} motion)`);
+    // Resolve the kinematic chain for this robot
+    const km = KinematicsManager.getInstance();
+    const chains = km.getAllChains();
+    const chain = chains.find(c => c.joints.some((j: any) => j.id.startsWith(robotId)));
+    if (!chain) {
+      console.warn('[PlaySequence] No kinematic chain found for robotId:', robotId);
+      setIsPlaying(false);
+      return;
     }
 
-    setIsPlaying(false);
+    // PERFORMANCE OPTIMIZATION: Disable joint visuals during playback for smooth motion
+    // Joint debug frames cause significant overhead during rapid updates
+    km.hideAllJointVisuals();
+
+    // Helper: sleep using requestAnimationFrame for smoother animation
+    const sleep = (ms: number) => new Promise<void>(res => {
+      if (ms <= 16) {
+        requestAnimationFrame(() => res());
+      } else {
+        setTimeout(() => res(), ms);
+      }
+    });
+
+    // Determine actuated joints (revolute/prismatic) in order; cap at 6 for typical 6-axis
+    const actuated = km.getActuatedJoints(chain.id).slice(0, 6);
+    if (actuated.length === 0) {
+      console.warn('[PlaySequence] Chain has no actuated joints');
+      setIsPlaying(false);
+      return;
+    }
+
+    // PERFORMANCE-OPTIMIZED Playback settings:
+    // - Fewer steps (30 instead of 60) reduces IK calculations by 50%
+    // - Longer step delay (50ms vs 25ms) gives render engine time to breathe
+    // - Total duration stays same (1500ms), but smoother due to less thrashing
+    const moveDurationMs = 1500; // per-target move time
+    const steps = 30; // OPTIMIZED: fewer steps = less computation, smoother motion
+    const stepDelay = Math.max(16, Math.floor(moveDurationMs / steps)); // Min 16ms (60 FPS)
+
+    try {
+      for (let i = 0; i < targets.length; i++) {
+        if (!isPlayingRef.current) break; // allow stop
+        const target = targets[i];
+        console.log(`  ${i + 1}. ${target.name} (${target.motionType} motion)`);
+
+        // Target joint angles are in degrees; convert to radians
+        const targetRad: number[] = target.joints.map(j => (j * Math.PI) / 180);
+
+        // Read current joint positions (radians)
+        const currentRad: number[] = actuated.map(j => j.position);
+
+        if (target.motionType === 'JOINT') {
+          // JOINT motion: Linear interpolation in joint space
+          // OPTIMIZED: Update all joints in a batch to reduce FK solver overhead
+          for (let s = 1; s <= steps; s++) {
+            if (!isPlayingRef.current) break;
+            const t = s / steps;
+
+            // Update all joints without triggering FK until the last one
+            for (let j = 0; j < actuated.length - 1; j++) {
+              const jointId = actuated[j].id;
+              const value = currentRad[j] + (targetRad[j] - currentRad[j]) * t;
+              fkSolver.updateJointPosition(jointId, value, false);
+            }
+
+            // Update last joint and trigger FK chain update
+            const lastJoint = actuated[actuated.length - 1];
+            const lastValue = currentRad[actuated.length - 1] + (targetRad[actuated.length - 1] - currentRad[actuated.length - 1]) * t;
+            fkSolver.updateJointPosition(lastJoint.id, lastValue, true);
+
+            // eslint-disable-next-line no-await-in-loop
+            await sleep(stepDelay);
+          }
+        } else if (target.motionType === 'LINEAR' && target.cartesian) {
+          // LINEAR motion: Straight line in Cartesian space using IK
+          // Get current TCP position
+          const currentPose = fkSolver.getTCPPose?.(chain.name) || fkSolver.getNullTCPPose(chain.name);
+          if (!currentPose) {
+            console.warn(`[PlaySequence] Cannot get TCP pose for LINEAR motion, falling back to JOINT`);
+            // Fallback to joint interpolation (optimized batch update)
+            for (let s = 1; s <= steps; s++) {
+              if (!isPlayingRef.current) break;
+              const t = s / steps;
+
+              // Update all joints without triggering FK until the last one
+              for (let j = 0; j < actuated.length - 1; j++) {
+                const jointId = actuated[j].id;
+                const value = currentRad[j] + (targetRad[j] - currentRad[j]) * t;
+                fkSolver.updateJointPosition(jointId, value, false);
+              }
+
+              // Update last joint and trigger FK chain update
+              const lastJoint = actuated[actuated.length - 1];
+              const lastValue = currentRad[actuated.length - 1] + (targetRad[actuated.length - 1] - currentRad[actuated.length - 1]) * t;
+              fkSolver.updateJointPosition(lastJoint.id, lastValue, true);
+
+              // eslint-disable-next-line no-await-in-loop
+              await sleep(stepDelay);
+            }
+          } else {
+            // Convert target position from mm to meters (Babylon space)
+            const targetPos = new BABYLON.Vector3(
+              target.cartesian.position[0] * 0.001,
+              target.cartesian.position[1] * 0.001,
+              target.cartesian.position[2] * 0.001
+            );
+            const startPos = currentPose.position.clone();
+
+            // Interpolate along straight line in Cartesian space
+            for (let s = 1; s <= steps; s++) {
+              if (!isPlayingRef.current) break;
+              const t = s / steps;
+              const intermediatePos = BABYLON.Vector3.Lerp(startPos, targetPos, t);
+              const delta = intermediatePos.subtract(currentPose.position);
+
+              // Use IK to move TCP to intermediate position
+              const success = ikSolver.moveTCP(chain.name, delta, 'jacobian');
+              if (!success) {
+                console.warn(`[PlaySequence] IK failed at step ${s}/${steps}, continuing...`);
+              }
+
+              // Update current pose for next iteration
+              const newPose = fkSolver.getTCPPose?.(chain.name) || fkSolver.getNullTCPPose(chain.name);
+              if (newPose) {
+                currentPose.position.copyFrom(newPose.position);
+              }
+
+              // eslint-disable-next-line no-await-in-loop
+              await sleep(stepDelay);
+            }
+          }
+        } else {
+          // Unknown motion type, fallback to joint interpolation (optimized batch update)
+          console.warn(`[PlaySequence] Unknown motion type: ${target.motionType}, using JOINT interpolation`);
+          for (let s = 1; s <= steps; s++) {
+            if (!isPlayingRef.current) break;
+            const t = s / steps;
+
+            // Update all joints without triggering FK until the last one
+            for (let j = 0; j < actuated.length - 1; j++) {
+              const jointId = actuated[j].id;
+              const value = currentRad[j] + (targetRad[j] - currentRad[j]) * t;
+              fkSolver.updateJointPosition(jointId, value, false);
+            }
+
+            // Update last joint and trigger FK chain update
+            const lastJoint = actuated[actuated.length - 1];
+            const lastValue = currentRad[actuated.length - 1] + (targetRad[actuated.length - 1] - currentRad[actuated.length - 1]) * t;
+            fkSolver.updateJointPosition(lastJoint.id, lastValue, true);
+
+            // eslint-disable-next-line no-await-in-loop
+            await sleep(stepDelay);
+          }
+        }
+
+        // Short dwell between targets
+        // eslint-disable-next-line no-await-in-loop
+        await sleep(150);
+      }
+    } catch (err) {
+      console.error('[PlaySequence] Error during playback:', err);
+    } finally {
+      // CLEANUP: Re-enable joint debug frames after playback
+      const sceneManager = (window as any).sceneManager as SceneManager;
+      if (sceneManager) {
+        const scene = sceneManager.getScene();
+        if (scene) {
+          // Re-show joint debug frames for this robot's chain
+          km.showAllJointDebugFrames(chain.id, scene);
+        }
+      }
+
+      setIsPlaying(false);
+      isPlayingRef.current = false;
+      console.log(`✅ Playback complete`);
+    }
   };
 
   const handleStopSequence = () => {
     setIsPlaying(false);
+    isPlayingRef.current = false;
     console.log(`⏹️ Sequence stopped`);
   };
 
@@ -885,18 +1062,18 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
           <span>TCP</span>
         </button>
         <button
-          className={`mode-button ${jogMode === 'poses' ? 'active' : ''}`}
-          onClick={() => setJogMode('poses')}
-        >
-          <Play size={14} />
-          <span>Poses</span>
-        </button>
-        <button
           className={`mode-button ${jogMode === 'targets' ? 'active' : ''}`}
           onClick={() => setJogMode('targets')}
         >
           <Target size={14} />
           <span>Targets</span>
+        </button>
+        <button
+          className={`mode-button ${jogMode === 'poses' ? 'active' : ''}`}
+          onClick={() => setJogMode('poses')}
+        >
+          <Play size={14} />
+          <span>Poses</span>
         </button>
       </div>
 
@@ -1174,13 +1351,20 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
         </div>
       )}
 
-      {/* Targets Mode (Teaching/Waypoints) */}
+      {/* Targets Mode (Teaching/Waypoints) */
+      }
       {jogMode === 'targets' && (
         <div className="targets-mode">
           <div className="targets-content">
             <div className="targets-header">
-              <h4>Target Sequence</h4>
               <span className="targets-count">{targets.length} targets</span>
+              <button
+                className="targets-detail-toggle"
+                onClick={() => setShowTargetDetails(!showTargetDetails)}
+                title={showTargetDetails ? "Hide Cartesian coordinates" : "Show Cartesian coordinates"}
+              >
+                <Info size={12} />
+              </button>
             </div>
 
             {/* Playback controls */}
@@ -1203,56 +1387,52 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
               </button>
             </div>
 
-            {/* Teach new target */}
-            <div className="target-teach-section">
-              <div className="target-teach-inputs">
-                <input
-                  type="text"
-                  className="target-name-input"
-                  placeholder="Target name..."
-                  value={newTargetName}
-                  onChange={(e) => setNewTargetName(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleTeachTarget()}
-                />
-                <select
-                  className="motion-type-select"
-                  value={newTargetMotionType}
-                  onChange={(e) => setNewTargetMotionType(e.target.value as MotionType)}
-                  title="Motion type for moving TO this target"
+            {/* Teach new target - compact, icon-only controls */}
+            <div className="target-teach-section" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <div className="motion-type-toggle" style={{ display: 'flex', gap: 4 }}>
+                <button
+                  aria-label="Joint move"
+                  title="Joint"
+                  onClick={() => setNewTargetMotionType('JOINT')}
+                  className={`icon-toggle ${newTargetMotionType === 'JOINT' ? 'active' : ''}`}
+                  style={{ width: 24, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', background: newTargetMotionType === 'JOINT' ? '#3182ce' : '#4a5568', border: 'none', borderRadius: 3, color: '#fff' }}
                 >
-                  <option value="JOINT">Joint</option>
-                  <option value="LINEAR">Linear</option>
-                  <option value="PTP">PTP</option>
-                </select>
+                  <Move size={16} color="#ffffff" stroke="#ffffff" strokeWidth={2} style={{ display: 'block', flexShrink: 0, pointerEvents: 'none' }} />
+                </button>
+                <button
+                  aria-label="Linear move"
+                  title="Linear"
+                  onClick={() => setNewTargetMotionType('LINEAR')}
+                  className={`icon-toggle ${newTargetMotionType === 'LINEAR' ? 'active' : ''}`}
+                  style={{ width: 24, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', background: newTargetMotionType === 'LINEAR' ? '#3182ce' : '#4a5568', border: 'none', borderRadius: 3, color: '#fff' }}
+                >
+                  <ArrowRight size={16} color="#ffffff" stroke="#ffffff" strokeWidth={2} style={{ display: 'block', flexShrink: 0, pointerEvents: 'none' }} />
+                </button>
               </div>
               <button
                 className="target-teach-btn"
                 onClick={handleTeachTarget}
-                disabled={!newTargetName.trim()}
                 title="Teach current position as target"
+                style={{ width: 28, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#2f855a', border: 'none', borderRadius: 3, color: '#fff' }}
               >
-                <Target size={16} />
+                <Target size={16} color="#ffffff" stroke="#ffffff" strokeWidth={2} style={{ display: 'block', flexShrink: 0, pointerEvents: 'none' }} />
               </button>
             </div>
 
-            {/* Targets list */}
+            {/* Targets list - Ultra compact single-line layout */}
             <div className="targets-list">
               {targets.length > 0 ? (
                 targets.map((target, index) => (
                   <div key={target.id} className="target-item">
                     <div className="target-number">{index + 1}</div>
                     <div className="target-info">
-                      <div className="target-name">{target.name}</div>
-                      <div className="target-details">
-                        <span className="motion-type">{target.motionType}</span>
-                        {target.cartesian && (
-                          <span className="target-position">
-                            X:{target.cartesian.position[0].toFixed(1)}
-                            Y:{target.cartesian.position[1].toFixed(1)}
-                            Z:{target.cartesian.position[2].toFixed(1)}mm
-                          </span>
-                        )}
-                      </div>
+                      <span className="target-name">{target.name}</span>
+                      <span className="motion-type">{target.motionType}</span>
+                      {showTargetDetails && target.cartesian && (
+                        <span className="target-position">
+                          X:{target.cartesian.position[0].toFixed(0)} Y:{target.cartesian.position[1].toFixed(0)} Z:{target.cartesian.position[2].toFixed(0)}
+                        </span>
+                      )}
                     </div>
                     <div className="target-actions">
                       <button
@@ -1261,7 +1441,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
                         disabled={index === 0}
                         title="Move up"
                       >
-                        <ArrowUp size={12} />
+                        <ArrowUp size={8} />
                       </button>
                       <button
                         className="target-move-btn"
@@ -1269,26 +1449,19 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
                         disabled={index === targets.length - 1}
                         title="Move down"
                       >
-                        <ArrowDown size={12} />
+                        <ArrowDown size={8} />
                       </button>
                       <button
                         className="target-delete-btn"
                         onClick={() => handleDeleteTarget(target.id)}
                         title="Delete target"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={8} />
                       </button>
                     </div>
                   </div>
                 ))
-              ) : (
-                <div className="targets-empty">
-                  <p>No targets taught</p>
-                  <p className="targets-hint">
-                    Move robot to position, select motion type, and click Teach
-                  </p>
-                </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
