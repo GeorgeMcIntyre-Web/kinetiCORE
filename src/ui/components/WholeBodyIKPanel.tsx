@@ -475,8 +475,14 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
       dockable={false}
       minimizable={false}
     >
-      {/* Picking Mode Banner */}
-      {activePickingIndex !== null && (
+      <div style={{
+        height: '100%',
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        paddingRight: '4px'
+      }}>
+        {/* Picking Mode Banner */}
+        {activePickingIndex !== null && (
         <div style={{
           padding: '12px',
           marginBottom: '16px',
@@ -1003,10 +1009,11 @@ export const WholeBodyIKPanel: React.FC<WholeBodyIKPanelProps> = ({ isVisible, o
         </button>
       </div>
 
-      <div style={{ marginTop: '20px', fontSize: '12px', color: '#999', borderTop: '1px solid #444', paddingTop: '10px' }}>
-        <p style={{ margin: '5px 0' }}>
-          <strong>💡 Quick Tip:</strong> Try a Quick Action preset above, or create Custom Targets to control specific robot parts
-        </p>
+        <div style={{ marginTop: '20px', fontSize: '12px', color: '#999', borderTop: '1px solid #444', paddingTop: '10px' }}>
+          <p style={{ margin: '5px 0' }}>
+            <strong>💡 Quick Tip:</strong> Try a Quick Action preset above, or create Custom Targets to control specific robot parts
+          </p>
+        </div>
       </div>
     </FloatingPanel>
   );

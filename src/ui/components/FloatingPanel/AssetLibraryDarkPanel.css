@@ -61,7 +61,7 @@
 .asset-library-dark-content {
   flex: 1;
   min-height: 0; /* Critical for flex children */
-  overflow: visible;
+  overflow: hidden; /* Allow child scrollable divs to work properly */
   padding: 12px;
 }
 
