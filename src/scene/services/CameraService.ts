@@ -284,6 +284,41 @@ export class CameraService {
     );
   }
 
+  /**
+   * Toggle camera mode between orthographic and perspective
+   */
+  toggleCameraMode(): void {
+    if (!this.camera || !this.engine) return;
+
+    // Toggle mode
+    if (this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+      // Switch to perspective
+      this.camera.mode = BABYLON.Camera.PERSPECTIVE_CAMERA;
+      console.log('[CameraService] Switched to Perspective mode');
+    } else {
+      // Switch to orthographic
+      this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+
+      // Update orthographic viewport based on current radius
+      const orthoSize = this.camera.radius;
+      const aspectRatio = this.engine.getRenderWidth() / this.engine.getRenderHeight();
+      this.camera.orthoLeft = -orthoSize * aspectRatio;
+      this.camera.orthoRight = orthoSize * aspectRatio;
+      this.camera.orthoTop = orthoSize;
+      this.camera.orthoBottom = -orthoSize;
+
+      console.log('[CameraService] Switched to Orthographic mode');
+    }
+  }
+
+  /**
+   * Get current camera mode
+   */
+  getCameraMode(): 'orthographic' | 'perspective' | null {
+    if (!this.camera) return null;
+    return this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA ? 'orthographic' : 'perspective';
+  }
+
   getCamera(): BABYLON.ArcRotateCamera | null {
     return this.camera;
   }

@@ -169,6 +169,7 @@ interface EditorState {
   zoomFit: () => void; // Zoom to fit all visible objects
   zoomIn: () => void; // Zoom camera in
   zoomOut: () => void; // Zoom camera out
+  toggleCameraMode: () => void; // Toggle between orthographic and perspective
   deselectMesh: (mesh: BABYLON.Mesh) => void;
   clearSelection: () => void;
   toggleMeshSelection: (mesh: BABYLON.Mesh) => void;
@@ -657,6 +658,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   zoomOut: () => {
     const sceneManager = SceneManager.getInstance();
     sceneManager.zoomOut();
+  },
+
+  toggleCameraMode: () => {
+    const sceneManager = SceneManager.getInstance();
+    sceneManager.toggleCameraMode();
   },
 
   deselectMesh: (mesh) => {

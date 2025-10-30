@@ -493,6 +493,20 @@ export class SceneManager {
     this.cameraService.zoomOut();
   }
 
+  /**
+   * Toggle camera mode between orthographic and perspective
+   */
+  toggleCameraMode(): void {
+    this.cameraService.toggleCameraMode();
+  }
+
+  /**
+   * Get current camera mode
+   */
+  getCameraMode(): 'orthographic' | 'perspective' | null {
+    return this.cameraService.getCameraMode();
+  }
+
   dispose(): void {
     this.scene?.dispose();
     this.scene = null;
