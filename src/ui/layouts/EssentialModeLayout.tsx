@@ -798,3 +798,4 @@ export const EssentialModeLayout: React.FC = () => {
     </div>
   );
 };
+
