@@ -2,7 +2,9 @@
 
 [![Deploy Status](https://img.shields.io/badge/Cloudflare-Pages-orange)](https://kineticore.pages.dev)
 
-**The Future of Industrial Robot Simulation**
+**The Linux of Manufacturing Simulation**
+
+The Future of Industrial Robot Simulation
 
 kinetiCORE is a revolutionary web-based platform that transforms how engineers design, simulate, and optimize industrial robot systems. Built with cutting-edge web technologies, it brings professional-grade robotics simulation directly to your browser - no installation required.
 

@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.2.0",
   "type": "module",
-  "description": "Web-based 3D industrial simulation and kinematics platform",
+  "description": "The Linux of Manufacturing Simulation - Web-based 3D industrial simulation and kinematics platform",
   "author": "George McIntyre, Cole, Edwin",
   "license": "MIT",
   "scripts": {
