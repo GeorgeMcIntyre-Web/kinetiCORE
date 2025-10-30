@@ -111,7 +111,11 @@
       "Bash(npx supabase:*)",
       "Bash(code:*)",
       "Read(//c/Users/George/Documents/kineticCORE/logs/**)",
-      "Bash(git revert:*)"
+      "Bash(git revert:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(timeout 30 npm run lint:*)",
+      "Bash(timeout 60 npm run lint:*)"
     ],
     "deny": [],
     "ask": []

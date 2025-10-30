@@ -408,7 +408,7 @@ export class IKTargetGizmoManager {
    * NOTE: This function is currently unused (commented out in createTarget)
    * Kept for potential future debug mode. Remove after confirming not needed.
    */
-  // @ts-ignore - Keeping for potential future debug mode
+  // @ts-expect-error - Keeping for potential future debug mode
   private addGizmoAxisLabels(
     gizmo: BABYLON.PositionGizmo,
     transformNode: BABYLON.TransformNode,
