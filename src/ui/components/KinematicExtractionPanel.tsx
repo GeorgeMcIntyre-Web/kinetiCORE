@@ -79,8 +79,15 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
 
   // Step 1: Analyze Scene
   const handleAnalyzeScene = useCallback(async () => {
-    if (!pipeline) return;
+    console.log('[KinematicExtractionPanel] Analyze Scene clicked');
 
+    if (!pipeline) {
+      console.error('[KinematicExtractionPanel] Pipeline not initialized');
+      updateStepStatus('analyze', 'error', 'Pipeline not initialized');
+      return;
+    }
+
+    console.log('[KinematicExtractionPanel] Starting scene analysis...');
     updateStepStatus('analyze', 'in_progress', 'Analyzing scene geometry...');
 
     try {
@@ -89,10 +96,16 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
         similarityThreshold: 0.85,
       });
 
+      console.log('[KinematicExtractionPanel] Analysis complete:', graph);
       setToolGraph(graph);
 
       const fixedCount = graph.units.filter((u) => u.isFixed).length;
       const movingCount = graph.units.filter((u) => !u.isFixed).length;
+
+      if (graph.units.length === 0) {
+        updateStepStatus('analyze', 'error', 'No tool units detected in scene. Try loading a GLB file first.');
+        return;
+      }
 
       updateStepStatus(
         'analyze',
@@ -104,9 +117,13 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
       const firstMoving = graph.units.find((u) => !u.isFixed);
       if (firstMoving) {
         setSelectedUnitId(firstMoving.id);
+        console.log('[KinematicExtractionPanel] Auto-selected unit:', firstMoving.name);
+      } else {
+        console.warn('[KinematicExtractionPanel] No moving units found');
       }
     } catch (error) {
-      updateStepStatus('analyze', 'error', `Error: ${(error as Error).message}`);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      updateStepStatus('analyze', 'error', `Error: ${errorMsg}`);
       console.error('[KinematicExtractionPanel] Analysis failed:', error);
     }
   }, [pipeline, updateStepStatus]);
@@ -268,7 +285,7 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
         <div className="info-banner">
           <Info size={16} />
           <span>
-            This workflow generates tooling JSON from scene geometry using ICP-based joint fitting.
+            Load a GLB file, then analyze the entire scene to automatically identify fixed/moving tool units.
           </span>
         </div>
 
@@ -281,7 +298,7 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
               <span className="step-title">1. Analyze Scene</span>
             </div>
             <p className="step-description">
-              Identify tool units using geometric properties (volume, proximity, connectivity).
+              Automatically detect all tool units in the loaded GLB using geometric analysis (no selection needed).
             </p>
             <button
               className="btn btn-primary"
