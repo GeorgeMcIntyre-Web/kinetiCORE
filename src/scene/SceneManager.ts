@@ -507,6 +507,20 @@ export class SceneManager {
     return this.cameraService.getCameraMode();
   }
 
+  /**
+   * Adjust camera clipping planes based on selected object
+   */
+  adjustClippingPlanesForObject(mesh: BABYLON.AbstractMesh | null): void {
+    this.cameraService.adjustClippingPlanesForObject(mesh);
+  }
+
+  /**
+   * Reset camera clipping planes to defaults
+   */
+  resetClippingPlanes(): void {
+    this.cameraService.resetClippingPlanes();
+  }
+
   dispose(): void {
     this.scene?.dispose();
     this.scene = null;

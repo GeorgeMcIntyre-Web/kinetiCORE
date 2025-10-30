@@ -468,6 +468,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     tree.expandToNode(nodeId);
     window.dispatchEvent(new Event('scenetree-update'));
 
+    // Track if we found a mesh to adjust clipping planes
+    let selectedMesh: BABYLON.AbstractMesh | null = null;
+
     // If it's a collection/TransformNode, show coordinate frame at its origin
     if (node && node.type === 'collection' && scene) {
       let transformNode: BABYLON.TransformNode | undefined;
@@ -572,18 +575,21 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         const entity = registry.get(node.entityId);
 
         if (entity) {
+          const mesh = entity.getMesh();
+          selectedMesh = mesh;
+
           // If it's a device entity, select the device mesh (triggers device highlighting)
           if (entity.getIsDevice()) {
-            set({ 
-              selectedMeshes: [entity.getMesh()],
+            set({
+              selectedMeshes: [mesh],
               selectedCollectionNodeId: null, // Clear collection selection
               selectedCollectionTransformNode: null
             });
           } else {
             // Check if this entity is a child of a device (it's a link)
             // For links, select the link mesh directly
-            set({ 
-              selectedMeshes: [entity.getMesh()],
+            set({
+              selectedMeshes: [mesh],
               selectedCollectionNodeId: null, // Clear collection selection
               selectedCollectionTransformNode: null
             });
@@ -594,7 +600,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       else if (node && node.babylonMeshId && scene) {
         const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
         if (mesh && mesh instanceof BABYLON.Mesh) {
-          set({ 
+          selectedMesh = mesh;
+          set({
             selectedMeshes: [mesh],
             selectedCollectionNodeId: null, // Clear collection selection
             selectedCollectionTransformNode: null
@@ -602,6 +609,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         }
       }
     }
+
+    // Dynamically adjust camera clipping planes based on selected mesh size
+    sceneManager.adjustClippingPlanesForObject(selectedMesh);
   },
 
   zoomFit: () => {
@@ -679,13 +689,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       coordinateFrameWidget.hide();
     }
 
-    set({ 
-      selectedMeshes: [], 
-      selectedNodeId: null, 
+    set({
+      selectedMeshes: [],
+      selectedNodeId: null,
       selectedNodeIds: [],
       selectedCollectionNodeId: null,
       selectedCollectionTransformNode: null
     });
+
+    // Reset camera clipping planes to defaults when nothing selected
+    const sceneManager = SceneManager.getInstance();
+    sceneManager.resetClippingPlanes();
   },
 
   toggleMeshSelection: (mesh) => {

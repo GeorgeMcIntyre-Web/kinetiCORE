@@ -319,6 +319,55 @@ export class CameraService {
     return this.camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA ? 'orthographic' : 'perspective';
   }
 
+  /**
+   * Adjust camera clipping planes dynamically based on selected object size
+   * This provides optimal clipping for both small and large objects
+   */
+  adjustClippingPlanesForObject(mesh: BABYLON.AbstractMesh | null): void {
+    if (!this.camera) return;
+
+    if (!mesh) {
+      // Reset to default clipping planes when no object selected
+      this.camera.minZ = CAMERA_MIN_Z;
+      this.camera.maxZ = CAMERA_MAX_Z;
+      console.log('[CameraService] Reset clipping planes to defaults:', { minZ: CAMERA_MIN_Z, maxZ: CAMERA_MAX_Z });
+      return;
+    }
+
+    // Get object bounding box
+    const boundingInfo = mesh.getBoundingInfo();
+    const boundingBox = boundingInfo.boundingBox;
+    const size = boundingBox.extendSizeWorld;
+    const maxDimension = Math.max(size.x, size.y, size.z) * 2;
+
+    // Calculate optimal clipping planes based on object size
+    // Near plane: 1% of object size (min 0.0001m = 0.1mm for very small objects)
+    const nearClip = Math.max(maxDimension * 0.01, 0.0001);
+
+    // Far plane: 100x object size (ensures we can see the whole object from any angle)
+    const farClip = Math.min(maxDimension * 100, CAMERA_MAX_Z);
+
+    // Apply new clipping planes
+    this.camera.minZ = nearClip;
+    this.camera.maxZ = farClip;
+
+    console.log('[CameraService] Adjusted clipping planes for object:', {
+      objectSize: maxDimension.toFixed(3),
+      minZ: nearClip.toFixed(6),
+      maxZ: farClip.toFixed(1)
+    });
+  }
+
+  /**
+   * Reset clipping planes to defaults
+   */
+  resetClippingPlanes(): void {
+    if (!this.camera) return;
+    this.camera.minZ = CAMERA_MIN_Z;
+    this.camera.maxZ = CAMERA_MAX_Z;
+    console.log('[CameraService] Reset clipping planes to defaults');
+  }
+
   getCamera(): BABYLON.ArcRotateCamera | null {
     return this.camera;
   }
