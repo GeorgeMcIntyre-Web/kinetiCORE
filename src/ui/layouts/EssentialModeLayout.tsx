@@ -669,21 +669,27 @@ export const EssentialModeLayout: React.FC = () => {
         <div
           className="fixed"
           style={{
-            bottom: '12px',
+            position: 'absolute',
+            bottom: '16px',
             right: '12px',
-            zIndex: 900,
             background: 'transparent',
-            color: '#ffffff',
-            textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.7)',
-            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace',
-            fontSize: '7.5px',
+            border: 'none',
+            borderRadius: '10px',
+            paddingTop: 0,
+            paddingBottom: 0,
+            paddingLeft: '12px',
+            paddingRight: '12px',
+            color: '#fff',
+            boxShadow: 'none',
             fontWeight: '600',
             WebkitFontSmoothing: 'antialiased',
             MozOsxFontSmoothing: 'grayscale',
             minWidth: '280px',
             marginBottom: '16px', // Add bottom margin to prevent overlap with version
+            transformOrigin: 'bottom right',
           }}
         >
+          <div style={{ transform: 'scale(0.95)', transformOrigin: 'bottom right', padding: '8px 0' }}>
           {/* Tiny coord mode toggle */}
           <div className="flex justify-end mb-1">
             <button
@@ -702,9 +708,9 @@ export const EssentialModeLayout: React.FC = () => {
               {coordMode === 'world' ? 'World' : 'Local'}
             </button>
           </div>
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between" style={{ fontSize: '11.5px' }}>
             <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-              <span style={{ color: '#4A90E2', fontWeight: '500' }}>X:</span>
+              <span style={{ color: '#D0021B', fontWeight: '500' }}>X:</span>
               <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.x.toFixed(1)}</span>
             </div>
             <div className="flex space-x-1" style={{ minWidth: '80px' }}>
@@ -712,13 +718,13 @@ export const EssentialModeLayout: React.FC = () => {
               <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.y.toFixed(1)}</span>
             </div>
             <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-              <span style={{ color: '#D0021B', fontWeight: '500' }}>Z:</span>
+              <span style={{ color: '#4A90E2', fontWeight: '500' }}>Z:</span>
               <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.z.toFixed(1)}</span>
             </div>
           </div>
-          <div className="flex justify-between text-sm mt-1">
+          <div className="flex justify-between mt-1" style={{ fontSize: '11.5px' }}>
             <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-              <span style={{ color: '#4A90E2', fontWeight: '500' }}>RX:</span>
+              <span style={{ color: '#D0021B', fontWeight: '500' }}>RX:</span>
               <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rx.toFixed(1)}°</span>
             </div>
             <div className="flex space-x-1" style={{ minWidth: '80px' }}>
@@ -726,11 +732,12 @@ export const EssentialModeLayout: React.FC = () => {
               <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.ry.toFixed(1)}°</span>
             </div>
             <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-              <span style={{ color: '#D0021B', fontWeight: '500' }}>RZ:</span>
+              <span style={{ color: '#4A90E2', fontWeight: '500' }}>RZ:</span>
               <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rz.toFixed(1)}°</span>
             </div>
           </div>
         </div>
+      </div>
       )}
 
       {/* Hidden file inputs */}
