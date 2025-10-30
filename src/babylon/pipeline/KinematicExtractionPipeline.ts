@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 import { GeometricToolAnalyzer, type GeometricAnalyzeOptions } from '../sceneAnalysis/GeometricToolAnalyzer';
+import { NameBasedToolAnalyzer, type NameBasedAnalyzeOptions } from '../sceneAnalysis/NameBasedToolAnalyzer';
 import type { ToolGraph, ToolUnit } from '../sceneAnalysis/ToolGraphAnalyzer';
 import { StateCapture, type CapturedStateSnapshot } from '../stateCapture/StateCapture';
 import { ICP, type ICPOptions, type ICPResult } from '../pointCloud/ICP';
@@ -14,13 +15,21 @@ import type {
   ActuatorProgramOutput,
   KinematicModelExport,
 } from '../io/Schemas';
+import { FastNodeFilter, type FilterOptions, type NodePair } from './FastNodeFilter';
+import { PCLICPSolver } from '../pointCloud/PCLICPSolver';
 
 /**
  * Configuration for the complete kinematic extraction pipeline.
  */
 export interface PipelineOptions {
-  /** Geometric analysis options */
+  /** Analysis method: 'name-based' (recommended for automotive GLB) or 'geometric' */
+  analysisMethod?: 'name-based' | 'geometric';
+
+  /** Geometric analysis options (used when analysisMethod = 'geometric') */
   geometric?: GeometricAnalyzeOptions;
+
+  /** Name-based analysis options (used when analysisMethod = 'name-based') */
+  nameBased?: NameBasedAnalyzeOptions;
 
   /** ICP alignment options */
   icp?: ICPOptions;
@@ -46,11 +55,27 @@ export interface PipelineOptions {
    * Range: 0-1, default: 0.5
    */
   minConfidence?: number;
+
+  /**
+   * Fast node filtering options (multi-stage ICP-based filtering).
+   * Enables early rejection of invalid node pairs for performance.
+   */
+  fastFiltering?: FilterOptions;
+
+  /**
+   * Use professional ICP solver (icpts) instead of custom ICP.
+   * Recommended for production use (cascaded registration from ModelAnalyzer3D).
+   */
+  useProfessionalICP?: boolean;
 }
 
 const DEFAULT_PIPELINE_OPTIONS: Required<PipelineOptions> = {
+  analysisMethod: 'geometric',
   geometric: {},
-  icp: {},
+  nameBased: {},
+  icp: {
+    enableDebug: true, // Enable detailed ICP debugging by default
+  },
   jointExtraction: {},
   stateCapture: {
     samplePoints: true,
@@ -59,6 +84,22 @@ const DEFAULT_PIPELINE_OPTIONS: Required<PipelineOptions> = {
   },
   limitSafetyFactor: 1.1,
   minConfidence: 0.5,
+  fastFiltering: {
+    minPoints: 50,
+    maxCentroidDistance: 2.0, // 2m for automotive tooling
+    minCentroidDistance: 0.001, // 1mm minimum motion
+    bypassGeometricFilter: false, // Set to true for testing static GLB files
+    coarsePointCount: 100,
+    coarseMaxIterations: 20,
+    coarseErrorMin: 0.001, // Below = no motion
+    coarseErrorMax: 0.5, // Above = bad correspondence
+    fullMaxIterations: 200,
+    fullErrorTolerance: 1e-7,
+    translationRange: { min: 0.01, max: 2.0 }, // 10mm - 2m
+    rotationRange: { min: 1.0, max: 180.0 }, // 1° - 180°
+    enableDebug: true,
+  },
+  useProfessionalICP: true, // Use icpts by default (ModelAnalyzer3D proven)
 };
 
 /**
@@ -126,7 +167,8 @@ interface UnitICPResult {
  */
 export class KinematicExtractionPipeline {
   private scene: BABYLON.Scene;
-  private analyzer: GeometricToolAnalyzer;
+  private geometricAnalyzer: GeometricToolAnalyzer;
+  private nameBasedAnalyzer: NameBasedToolAnalyzer;
   private stateCapture: StateCapture;
 
   private toolGraph: ToolGraph | null = null;
@@ -135,19 +177,56 @@ export class KinematicExtractionPipeline {
 
   constructor(scene: BABYLON.Scene) {
     this.scene = scene;
-    this.analyzer = new GeometricToolAnalyzer();
+    this.geometricAnalyzer = new GeometricToolAnalyzer();
+    this.nameBasedAnalyzer = new NameBasedToolAnalyzer();
     this.stateCapture = new StateCapture();
   }
 
   /**
-   * Step 1: Analyze scene to identify tool units using geometric properties.
+   * Step 1: Analyze scene to identify tool units.
    *
-   * @param options - Geometric analysis options
+   * @param options - Analysis options (supports both geometric and name-based methods)
+   * @param rootNode - Root node to analyze (required for name-based analysis)
    * @returns ToolGraph with identified units
+   *
+   * @example
+   * ```typescript
+   * // Name-based analysis (recommended for automotive GLB files)
+   * await pipeline.analyzeScene({ analysisMethod: 'name-based' }, rootNode);
+   *
+   * // Geometric analysis (fallback for unknown structures)
+   * await pipeline.analyzeScene({ analysisMethod: 'geometric', geometric: { ... } }, rootNode);
+   * ```
    */
-  async analyzeScene(options?: GeometricAnalyzeOptions, rootNode?: BABYLON.Node): Promise<ToolGraph> {
+  async analyzeScene(options?: PipelineOptions | GeometricAnalyzeOptions, rootNode?: BABYLON.Node): Promise<ToolGraph> {
     console.log('[Pipeline] Step 1: Analyzing scene for tool units...');
-    this.toolGraph = this.analyzer.analyze(this.scene, options, rootNode);
+
+    // Support both old (GeometricAnalyzeOptions) and new (PipelineOptions) signatures
+    const pipelineOpts: PipelineOptions = (options as any)?.analysisMethod
+      ? (options as PipelineOptions)
+      : { analysisMethod: 'geometric', geometric: options as GeometricAnalyzeOptions };
+
+    const method = pipelineOpts.analysisMethod || 'geometric';
+
+    if (method === 'name-based') {
+      if (!rootNode) {
+        throw new Error('[Pipeline] Name-based analysis requires a rootNode parameter');
+      }
+
+      console.log(`[Pipeline] Using name-based analyzer (automotive GLB structure)`);
+      this.toolGraph = this.nameBasedAnalyzer.analyze(
+        this.scene,
+        rootNode,
+        pipelineOpts.nameBased
+      );
+    } else {
+      console.log(`[Pipeline] Using geometric analyzer (heuristic-based)`);
+      this.toolGraph = this.geometricAnalyzer.analyze(
+        this.scene,
+        pipelineOpts.geometric,
+        rootNode
+      );
+    }
 
     const fixed = this.toolGraph.units.filter(u => u.isFixed);
     const moving = this.toolGraph.units.filter(u => !u.isFixed);
@@ -237,6 +316,12 @@ export class KinematicExtractionPipeline {
   /**
    * Step 4: Fit joints using ICP alignment between retracted and extended states.
    *
+   * **NEW: Multi-stage ICP-based filtering for fast early rejection**
+   * - Stage 1: Geometric pre-filtering (< 1ms per node)
+   * - Stage 2: Coarse ICP with downsampled points (10-20ms per node)
+   * - Stage 3: Full ICP refinement (100-200ms per node)
+   * - Stage 4: Confidence scoring
+   *
    * @param options - ICP and joint extraction options
    */
   async fitJoints(options?: PipelineOptions): Promise<void> {
@@ -244,10 +329,12 @@ export class KinematicExtractionPipeline {
       throw new Error('[Pipeline] Must capture states before fitting joints');
     }
 
-    console.log('[Pipeline] Step 4: Fitting joints using ICP...');
+    console.log('[Pipeline] Step 4: Fitting joints using multi-stage ICP filtering...');
 
     const opts = { ...DEFAULT_PIPELINE_OPTIONS, ...options };
 
+    // Build node pairs for FastNodeFilter
+    const nodePairs: NodePair[] = [];
     for (const [unitId, statePair] of this.statePairs.entries()) {
       const { unit, retracted, extended } = statePair;
 
@@ -261,13 +348,111 @@ export class KinematicExtractionPipeline {
         continue;
       }
 
-      // Run ICP alignment
-      console.log(`[Pipeline] Running ICP for unit '${unit.name}'...`);
-      const icpResult = ICP.align(retracted.pointCloud, extended.pointCloud, opts.icp);
+      // DEBUG: Log unit details
+      console.log(`[Pipeline] Unit: ${unit.name} (ID: ${unitId})`);
+      console.log(`  - Type: ${unit.type} (isFixed: ${unit.isFixed})`);
+      console.log(`  - Root node: ${unit.root}`);
+      console.log(`  - Nodes in unit: ${unit.nodes.length}`);
+      console.log(`  - Retracted points: ${retracted.pointCloud.length}`);
+      console.log(`  - Extended points: ${extended.pointCloud.length}`);
+
+      // Sample first few points from each state
+      const retractedSample = retracted.pointCloud.slice(0, 3);
+      const extendedSample = extended.pointCloud.slice(0, 3);
+      console.log(`  - Retracted sample:`, retractedSample.map(p => `(${p.x.toFixed(3)}, ${p.y.toFixed(3)}, ${p.z.toFixed(3)})`));
+      console.log(`  - Extended sample:`, extendedSample.map(p => `(${p.x.toFixed(3)}, ${p.y.toFixed(3)}, ${p.z.toFixed(3)})`));
+
+      nodePairs.push({
+        fixedNodeId: unitId, // Use unitId as identifier
+        movingNodeId: unitId,
+        fixedPoints: retracted.pointCloud,
+        movingPoints: extended.pointCloud,
+      });
+    }
+
+    if (nodePairs.length === 0) {
+      console.warn('[Pipeline] No valid node pairs to process');
+      return;
+    }
+
+    console.log(`[Pipeline] Processing ${nodePairs.length} node pairs through filter pipeline...`);
+
+    // Run multi-stage filtering pipeline
+    const filterResults = await FastNodeFilter.filterBatch(nodePairs, opts.fastFiltering);
+
+    console.log(`[Pipeline] Filtering complete. Processing final results...`);
+
+    // Log filtering statistics
+    const stats = {
+      prefilter: 0,
+      coarse: 0,
+      full: 0,
+      confidence: 0,
+    };
+    for (const [_nodeId, result] of filterResults.entries()) {
+      if (result.stage === 'prefilter' && !result.passed) stats.prefilter++;
+      else if (result.stage === 'coarse' && !result.passed) stats.coarse++;
+      else if (result.stage === 'full' && !result.passed) stats.full++;
+      else if (result.stage === 'confidence') stats.confidence++;
+    }
+
+    console.log(
+      `[Pipeline] Filter Statistics:\n` +
+      `  - Rejected at Stage 1 (geometric): ${stats.prefilter}\n` +
+      `  - Rejected at Stage 2 (coarse ICP): ${stats.coarse}\n` +
+      `  - Rejected at Stage 3 (full ICP): ${stats.full}\n` +
+      `  - Passed all stages: ${stats.confidence}`
+    );
+
+    // Process nodes that passed all filtering stages
+    for (const [unitId, filterResult] of filterResults.entries()) {
+      if (!filterResult.passed || filterResult.stage !== 'confidence') {
+        const statePair = this.statePairs.get(unitId);
+        const unitName = statePair?.unit?.name || unitId;
+        const unitRoot = statePair?.unit?.root || 'unknown';
+        console.warn(
+          `[Pipeline] Unit '${unitName}' (root: ${unitRoot}) rejected at stage '${filterResult.stage}': ${filterResult.reason}`
+        );
+        continue;
+      }
+
+      const statePair = this.statePairs.get(unitId);
+      if (!statePair) continue;
+
+      const { unit, retracted } = statePair;
+
+      // Run final high-quality ICP using professional solver
+      console.log(`[Pipeline] Running final ICP for unit '${unit.name}'...`);
+
+      let icpResult: ICPResult;
+
+      if (opts.useProfessionalICP) {
+        // Use icpts (ModelAnalyzer3D cascaded registration)
+        const pclResult = await PCLICPSolver.align(
+          retracted.pointCloud,
+          statePair.extended.pointCloud,
+          {
+            maxIterations: opts.fastFiltering?.fullMaxIterations ?? 200,
+            errorTolerance: opts.fastFiltering?.fullErrorTolerance ?? 1e-7,
+            enableDebug: opts.icp?.enableDebug ?? true,
+          }
+        );
+
+        icpResult = {
+          success: pclResult.success,
+          transform: pclResult.transform,
+          rmsError: pclResult.error,
+          iterations: pclResult.iterations,
+          correspondences: retracted.pointCloud.length,
+        };
+      } else {
+        // Use custom ICP
+        icpResult = ICP.align(retracted.pointCloud, statePair.extended.pointCloud, opts.icp);
+      }
 
       if (!icpResult.success) {
         console.warn(
-          `[Pipeline] ICP failed for unit '${unit.name}': ` +
+          `[Pipeline] Final ICP failed for unit '${unit.name}': ` +
           `${icpResult.correspondences} correspondences, ` +
           `RMS error ${icpResult.rmsError.toFixed(4)}m`
         );
@@ -296,6 +481,7 @@ export class KinematicExtractionPipeline {
         `[Pipeline] Fitted ${jointFit.type} joint for unit '${unit.name}': ` +
         `magnitude=${jointFit.magnitude.toFixed(4)}, ` +
         `confidence=${jointFit.confidence.toFixed(2)}, ` +
+        `filterConfidence=${filterResult.metrics?.confidence?.toFixed(2) ?? 'N/A'}, ` +
         `error=${icpResult.rmsError.toFixed(4)}m`
       );
     }

@@ -26,6 +26,8 @@ export default defineConfig({
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(version),
     'import.meta.env.VITE_GIT_COMMIT': JSON.stringify(gitCommit),
     'import.meta.env.VITE_BUILD_TIME': JSON.stringify(buildTime),
+    // Polyfill for Node.js global object (required by icpts/eigen-js)
+    global: 'globalThis',
   },
   resolve: {
     alias: {
@@ -132,9 +134,9 @@ export default defineConfig({
     reportCompressedSize: true,
   },
   optimizeDeps: {
-    exclude: ['@dimforge/rapier3d-compat', '@mlightcad/libredwg-web'],
+    exclude: ['@dimforge/rapier3d-compat', '@mlightcad/libredwg-web', 'pcl.js'],
   },
-  assetsInclude: ['**/*.wasm'],
+  assetsInclude: ['**/*.wasm', '**/pcl-core.wasm'],
   worker: {
     format: 'es',
     plugins: () => [],

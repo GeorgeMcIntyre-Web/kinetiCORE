@@ -1,7 +1,18 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Read(//c/Users/George/source/repos/WebGLKinematicsClaudeCode/**)",
+      "Bash(npm run type-check:*)",
+      "Read(//c/Users/George/Documents/kineticCORE/**)",
+      "Bash(cat:*)",
+      "Bash(python -m json.tool:*)",
+      "Read(//c/Users/George/source/repos/ModelAnalyzer3D/ModelAnalyzer3D-master/**)",
+      "Bash(npm search:*)",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm run dev:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

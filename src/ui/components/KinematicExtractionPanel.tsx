@@ -55,7 +55,6 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const [pipeline, setPipeline] = useState<KinematicExtractionPipeline | null>(null);
   const [toolGraph, setToolGraph] = useState<ToolGraph | null>(null);
-  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [stepStatuses, setStepStatuses] = useState<Record<WorkflowStep, StepStatus>>({
     analyze: { step: 'analyze', status: 'pending' },
     capture_retracted: { step: 'capture_retracted', status: 'pending' },
@@ -159,50 +158,36 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
         return;
       }
 
-      // If the chosen root has no meshes in its subtree, try to find
-      // the first descendant that actually contains meshes (handles
-      // cases where the user selects a container/asset folder node)
-      const getDescMeshesCount = (n: BABYLON.Node) => {
-        const desc = (n as any).getDescendants ? (n as any).getDescendants(true) as BABYLON.Node[] : [];
-        return desc.filter((d) => d instanceof BABYLON.Mesh).length + (n instanceof BABYLON.Mesh ? 1 : 0);
+      console.log('[KinematicExtractionPanel] Resolved Babylon node:', rootBabylonNode.name, 'uniqueId:', rootBabylonNode.uniqueId);
+      console.log('[KinematicExtractionPanel] Node metadata:', (rootBabylonNode as any).metadata);
+
+      // For name-based analysis, don't skip to mesh-containing descendants
+      // We need to stay at the UNIT level to find FIXED/MOVING children
+      // The name-based analyzer will traverse the hierarchy itself
+      const getMeshCount = (n: BABYLON.Node) => {
+        const meshes = (n as any).getChildMeshes ? (n as any).getChildMeshes() as BABYLON.AbstractMesh[] : [];
+        return meshes.length;
       };
 
-      if (getDescMeshesCount(rootBabylonNode) === 0) {
-        const descendants = (rootBabylonNode as any).getDescendants ? (rootBabylonNode as any).getDescendants(true) as BABYLON.Node[] : [];
-        let fallback: BABYLON.Node | null = null;
-        for (const d of descendants) {
-          if (getDescMeshesCount(d) > 0) {
-            fallback = d;
-            break;
-          }
-        }
-        if (fallback) {
-          console.log('[KinematicExtractionPanel] Selected node had no meshes; falling back to descendant with meshes:', fallback.name);
-          rootBabylonNode = fallback;
-        }
-      }
+      const meshCount = getMeshCount(rootBabylonNode);
+      console.log('[KinematicExtractionPanel] Root node has', meshCount, 'child meshes');
 
-      // Try multiple parameter sets and pick the result with the most units
-      const paramSweep = [
-        { minVolume: 1e-8, clusteringDistance: 0.03, similarityThreshold: 0.8 },
-        { minVolume: 5e-9, clusteringDistance: 0.02, similarityThreshold: 0.8 },
-        { minVolume: 1e-9, clusteringDistance: 0.015, similarityThreshold: 0.8 },
-        { minVolume: 1e-9, clusteringDistance: 0.01, similarityThreshold: 0.75 },
-      ];
+      // List immediate children to help debug
+      const children = (rootBabylonNode as any).getChildren ? (rootBabylonNode as any).getChildren() as BABYLON.Node[] : [];
+      console.log('[KinematicExtractionPanel] Root node has', children.length, 'children:');
+      children.forEach((child, idx) => {
+        const childName = child.name || `child_${idx}`;
+        const childMeshCount = getMeshCount(child);
+        console.log(`  - ${childName} (${childMeshCount} meshes)`);
+      });
 
-      let bestGraph: ToolGraph | null = null;
-      for (const params of paramSweep) {
-        try {
-          const g = await activePipeline.analyzeScene(params, rootBabylonNode);
-          if (!bestGraph || g.units.length > bestGraph.units.length) {
-            bestGraph = g;
-          }
-        } catch (e) {
-          console.warn('[KinematicExtractionPanel] Param sweep analyze failed:', e);
-        }
-      }
+      // Use name-based analyzer for automotive GLB files (UNIT_XXX/RH/LH/FIXED/MOVING structure)
+      console.log('[KinematicExtractionPanel] Using name-based analyzer for automotive GLB structure');
 
-      const graph = bestGraph!;
+      const graph = await activePipeline.analyzeScene(
+        { analysisMethod: 'name-based', nameBased: { verbose: true } },
+        rootBabylonNode
+      );
 
       console.log('[KinematicExtractionPanel] Analysis complete:', graph);
       setToolGraph(graph);
@@ -218,17 +203,8 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
       updateStepStatus(
         'analyze',
         'complete',
-        `Found ${graph.units.length} units (${fixedCount} fixed, ${movingCount} moving)`
+        `Found ${graph.units.length} units (${fixedCount} fixed, ${movingCount} moving). Ready to capture states for all ${movingCount} moving units.`
       );
-
-      // Auto-select first moving unit
-      const firstMoving = graph.units.find((u) => !u.isFixed);
-      if (firstMoving) {
-        setSelectedUnitId(firstMoving.id);
-        console.log('[KinematicExtractionPanel] Auto-selected unit:', firstMoving.name);
-      } else {
-        console.warn('[KinematicExtractionPanel] No moving units found');
-      }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       updateStepStatus('analyze', 'error', `Error: ${errorMsg}`);
@@ -236,73 +212,153 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
     }
   }, [pipeline, updateStepStatus, selectedNodeId]);
 
-  // Step 2: Capture Retracted State
+  // Step 2: Capture Retracted State (ALL moving units)
   const handleCaptureRetracted = useCallback(async () => {
-    if (!pipeline || !selectedUnitId) return;
+    if (!pipeline || !toolGraph) return;
 
-    updateStepStatus('capture_retracted', 'in_progress', `Capturing retracted state...`);
+    const movingUnits = toolGraph.units.filter(u => !u.isFixed);
+
+    if (movingUnits.length === 0) {
+      updateStepStatus('capture_retracted', 'error', 'No moving units found');
+      return;
+    }
+
+    updateStepStatus('capture_retracted', 'in_progress', `Capturing retracted state for ${movingUnits.length} units...`);
 
     try {
-      await pipeline.captureUnitState(selectedUnitId, 'retract', {
-        samplePoints: true,
-        stride: 10,
-        maxPoints: 1000,
-      });
+      let totalPoints = 0;
 
-      const statePairs = pipeline.getStatePairs();
-      const statePair = statePairs.get(selectedUnitId);
-      const pointCount = statePair?.retracted?.pointCloud.length || 0;
+      for (const unit of movingUnits) {
+        console.log(`[KinematicExtractionPanel] Capturing retracted state for: ${unit.name}`);
 
-      updateStepStatus('capture_retracted', 'complete', `Captured ${pointCount} points`);
+        await pipeline.captureUnitState(unit.id, 'retract', {
+          samplePoints: true,
+          stride: 10,
+          maxPoints: 1000,
+        });
+
+        const statePairs = pipeline.getStatePairs();
+        const statePair = statePairs.get(unit.id);
+        const pointCount = statePair?.retracted?.pointCloud.length || 0;
+        totalPoints += pointCount;
+
+        console.log(`[KinematicExtractionPanel] Unit ${unit.name}: ${pointCount} points`);
+      }
+
+      updateStepStatus('capture_retracted', 'complete', `Captured ${totalPoints} points from ${movingUnits.length} units`);
     } catch (error) {
       updateStepStatus('capture_retracted', 'error', `Error: ${(error as Error).message}`);
       console.error('[KinematicExtractionPanel] Retracted capture failed:', error);
     }
-  }, [pipeline, selectedUnitId, updateStepStatus]);
+  }, [pipeline, toolGraph, updateStepStatus]);
 
-  // Step 3: Capture Extended State
+  // Step 3: Capture Extended State (ALL moving units)
   const handleCaptureExtended = useCallback(async () => {
-    if (!pipeline || !selectedUnitId) return;
+    if (!pipeline || !toolGraph) return;
 
-    updateStepStatus('capture_extended', 'in_progress', `Capturing extended state...`);
+    const movingUnits = toolGraph.units.filter(u => !u.isFixed);
+
+    if (movingUnits.length === 0) {
+      updateStepStatus('capture_extended', 'error', 'No moving units found');
+      return;
+    }
+
+    updateStepStatus('capture_extended', 'in_progress', `Capturing extended state for ${movingUnits.length} units...`);
 
     try {
-      await pipeline.captureUnitState(selectedUnitId, 'advance', {
-        samplePoints: true,
-        stride: 10,
-        maxPoints: 1000,
-      });
+      let totalPoints = 0;
 
-      const statePairs = pipeline.getStatePairs();
-      const statePair = statePairs.get(selectedUnitId);
-      const pointCount = statePair?.extended?.pointCloud.length || 0;
+      for (const unit of movingUnits) {
+        console.log(`[KinematicExtractionPanel] Capturing extended state for: ${unit.name}`);
 
-      updateStepStatus('capture_extended', 'complete', `Captured ${pointCount} points`);
+        await pipeline.captureUnitState(unit.id, 'advance', {
+          samplePoints: true,
+          stride: 10,
+          maxPoints: 1000,
+        });
+
+        const statePairs = pipeline.getStatePairs();
+        const statePair = statePairs.get(unit.id);
+        const pointCount = statePair?.extended?.pointCloud.length || 0;
+        totalPoints += pointCount;
+
+        console.log(`[KinematicExtractionPanel] Unit ${unit.name}: ${pointCount} points`);
+      }
+
+      updateStepStatus('capture_extended', 'complete', `Captured ${totalPoints} points from ${movingUnits.length} units`);
     } catch (error) {
       updateStepStatus('capture_extended', 'error', `Error: ${(error as Error).message}`);
       console.error('[KinematicExtractionPanel] Extended capture failed:', error);
     }
-  }, [pipeline, selectedUnitId, updateStepStatus]);
+  }, [pipeline, toolGraph, updateStepStatus]);
 
   // Step 4: Fit Joints
   const handleFitJoints = useCallback(async () => {
     if (!pipeline) return;
 
-    updateStepStatus('fit_joints', 'in_progress', 'Running ICP alignment...');
+    updateStepStatus('fit_joints', 'in_progress', 'Running multi-stage ICP filtering...');
 
     try {
+      // Get state pairs before fitting to check point cloud sizes
+      const statePairs = pipeline.getStatePairs();
+      console.log('[KinematicExtractionPanel] State pairs before ICP:');
+      for (const [_unitId, pair] of statePairs.entries()) {
+        const retractedPoints = pair.retracted?.pointCloud?.length || 0;
+        const extendedPoints = pair.extended?.pointCloud?.length || 0;
+        console.log(`  Unit ${pair.unit?.name}: retracted=${retractedPoints} pts, extended=${extendedPoints} pts`);
+
+        if (retractedPoints === 0 || extendedPoints === 0) {
+          console.error(`[KinematicExtractionPanel] Unit ${pair.unit?.name} has empty point clouds!`);
+        }
+      }
+
       await pipeline.fitJoints({
-        minConfidence: 0.5,
+        minConfidence: 0.3, // Lowered from 0.5 to be more permissive
         limitSafetyFactor: 1.1,
+        useProfessionalICP: true, // Use icpts (ModelAnalyzer3D)
+        fastFiltering: {
+          minPoints: 50,
+          maxCentroidDistance: 2.0,
+          minCentroidDistance: 0.001,
+          bypassGeometricFilter: true, // TEMP: Bypass Stage 1 for static GLB testing
+          coarsePointCount: 100,
+          coarseMaxIterations: 20,
+          coarseErrorMin: 0.001,
+          coarseErrorMax: 0.5,
+          fullMaxIterations: 200,
+          fullErrorTolerance: 1e-7,
+          translationRange: { min: 0.01, max: 2.0 },
+          rotationRange: { min: 1.0, max: 180.0 },
+          enableDebug: true,
+        },
       });
 
       const icpResults = pipeline.getICPResults();
       const jointCount = icpResults.size;
 
       if (jointCount === 0) {
-        updateStepStatus('fit_joints', 'error', 'No joints fitted (confidence too low or ICP failed)');
+        // Provide more detailed error message
+        let errorDetails = 'No joints fitted. Check console for detailed filtering statistics.\n\n';
+
+        // Check for empty point clouds first
+        let hasEmptyPointClouds = false;
+        for (const [_unitId, pair] of statePairs.entries()) {
+          const retractedPoints = pair.retracted?.pointCloud?.length || 0;
+          const extendedPoints = pair.extended?.pointCloud?.length || 0;
+          if (retractedPoints === 0 || extendedPoints === 0) {
+            errorDetails += `\n- ${pair.unit?.name}: Empty point cloud (retracted=${retractedPoints}, extended=${extendedPoints})`;
+            hasEmptyPointClouds = true;
+          }
+        }
+
+        if (!hasEmptyPointClouds) {
+          errorDetails += 'Most likely: All pairs rejected for "no motion detected" (static GLB file).\n';
+          errorDetails += 'To test with static geometry, manually position parts between captures or use ICP Test Panel.';
+        }
+
+        updateStepStatus('fit_joints', 'error', errorDetails);
       } else {
-        updateStepStatus('fit_joints', 'complete', `Fitted ${jointCount} joints`);
+        updateStepStatus('fit_joints', 'complete', `Fitted ${jointCount} joints using multi-stage ICP filtering`);
       }
     } catch (error) {
       updateStepStatus('fit_joints', 'error', `Error: ${(error as Error).message}`);
@@ -350,7 +406,6 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
       pipeline.reset();
     }
     setToolGraph(null);
-    setSelectedUnitId(null);
     setExportedModel(null);
     setStepStatuses({
       analyze: { step: 'analyze', status: 'pending' },
@@ -465,28 +520,6 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
             )}
           </div>
 
-          {/* Unit Selection */}
-          {toolGraph && (
-            <div className="unit-selection">
-              <label htmlFor="unit-select">Select Moving Unit:</label>
-              <select
-                id="unit-select"
-                value={selectedUnitId || ''}
-                onChange={(e) => setSelectedUnitId(e.target.value)}
-                className="unit-select"
-              >
-                <option value="">-- Select Unit --</option>
-                {toolGraph.units
-                  .filter((u) => !u.isFixed)
-                  .map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.name} ({unit.type})
-                    </option>
-                  ))}
-              </select>
-            </div>
-          )}
-
           {/* Step 2: Capture Retracted */}
           <div className={`workflow-step ${stepStatuses.capture_retracted.status}`}>
             <div className="step-header">
@@ -494,13 +527,13 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
               <span className="step-title">2. Capture Retracted State</span>
             </div>
             <p className="step-description">
-              Position the selected unit in its home (retracted) position, then capture.
+              Position all moving units in their home (retracted) positions, then capture. This will automatically process all moving units found in step 1.
             </p>
             <button
               className="btn btn-primary"
               onClick={handleCaptureRetracted}
               disabled={
-                !selectedUnitId ||
+                !toolGraph ||
                 stepStatuses.capture_retracted.status === 'in_progress' ||
                 stepStatuses.analyze.status !== 'complete'
               }
@@ -522,13 +555,13 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
               <span className="step-title">3. Capture Extended State</span>
             </div>
             <p className="step-description">
-              Position the selected unit in its actuated (extended) position, then capture.
+              Position all moving units in their actuated (extended) positions, then capture. This will automatically process all moving units.
             </p>
             <button
               className="btn btn-primary"
               onClick={handleCaptureExtended}
               disabled={
-                !selectedUnitId ||
+                !toolGraph ||
                 stepStatuses.capture_extended.status === 'in_progress' ||
                 stepStatuses.capture_retracted.status !== 'complete'
               }
@@ -547,11 +580,19 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
           <div className={`workflow-step ${stepStatuses.fit_joints.status}`}>
             <div className="step-header">
               {renderStepIndicator('fit_joints')}
-              <span className="step-title">4. Fit Joints with ICP</span>
+              <span className="step-title">4. Fit Joints with Multi-Stage ICP</span>
             </div>
             <p className="step-description">
-              Automatically fit joint parameters using Iterative Closest Point alignment.
+              Fast 4-stage progressive filtering: (1) geometric checks, (2) coarse ICP, (3) full ICP refinement, (4) confidence scoring. Uses ModelAnalyzer3D proven algorithms.
             </p>
+            <div className="info-banner" style={{ marginBottom: '0.75rem', fontSize: '0.8rem' }}>
+              <Info size={14} />
+              <span>
+                <strong>Testing Mode:</strong> Geometric filter BYPASSED to test static GLB files.
+                All 18 units will proceed to Stage 2 (coarse ICP) regardless of centroid distance.
+                Check console for detailed Stage 2-4 metrics.
+              </span>
+            </div>
             <button
               className="btn btn-primary"
               onClick={handleFitJoints}
@@ -561,7 +602,7 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
               }
             >
               <Zap size={16} />
-              Fit Joints
+              Fit Joints (Fast Filter)
             </button>
             {stepStatuses.fit_joints.message && (
               <p className={`step-message ${stepStatuses.fit_joints.status}`}>

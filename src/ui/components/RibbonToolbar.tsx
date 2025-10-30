@@ -26,6 +26,7 @@ import {
   ToggleLeft,
   Rocket,
   Scan,
+  TestTube,
 } from 'lucide-react';
 import { loadOBJFile } from '../../loaders/obj/OBJLoader';
 import { SceneManager } from '../../scene/SceneManager';
@@ -116,6 +117,7 @@ export interface RibbonToolbarProps {
   onComplexIKClick?: () => void;
   onWholeBodyIKClick?: () => void;
   onKinematicExtractionClick?: () => void;
+  onICPTestClick?: () => void;
   onPhysicsClick?: () => void;
   onCollisionsClick?: () => void;
   onProjectionClick?: () => void;
@@ -138,6 +140,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onComplexIKClick,
   onWholeBodyIKClick,
   onKinematicExtractionClick,
+  onICPTestClick,
   onPhysicsClick,
   onCollisionsClick,
   onProjectionClick: _onProjectionClick,
@@ -443,6 +446,9 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           </button>
           <button className="ribbon-btn" onClick={onKinematicExtractionClick} title="Auto Kinematic Extraction">
             <Scan size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={onICPTestClick} title="ICP Test Tool - Manual FIXED/MOVING Selection">
+            <TestTube size={32} />
           </button>
         </div>
       </div>

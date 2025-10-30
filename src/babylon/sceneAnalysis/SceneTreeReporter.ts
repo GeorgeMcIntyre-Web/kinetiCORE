@@ -34,11 +34,25 @@ function buildPath(node: BABYLON.Node): string {
 }
 
 export function generateTreeReport(root: BABYLON.Node): TreeReport {
-  const all: BABYLON.Node[] = (root as any).getDescendants
+  // CRITICAL FIX: Use getChildMeshes() to collect ALL descendant meshes
+  // getDescendants() only returns TransformNodes, missing actual Mesh objects
+  const meshes: BABYLON.AbstractMesh[] = (root as any).getChildMeshes
+    ? (root as any).getChildMeshes() as BABYLON.AbstractMesh[]
+    : [];
+
+  const descendants: BABYLON.Node[] = (root as any).getDescendants
     ? (root as any).getDescendants(true) as BABYLON.Node[]
     : [];
 
-  const nodes: BABYLON.Node[] = [root, ...all];
+  // Combine: root + all descendants + all meshes (deduplicated)
+  const allNodes = new Set<BABYLON.Node>([root, ...descendants, ...meshes]);
+  const nodes: BABYLON.Node[] = Array.from(allNodes);
+
+  console.log(`[generateTreeReport] Root: ${root.name || root.id}`);
+  console.log(`[generateTreeReport] Found ${meshes.length} child meshes via getChildMeshes()`);
+  console.log(`[generateTreeReport] Found ${descendants.length} descendants via getDescendants()`);
+  console.log(`[generateTreeReport] Total unique nodes: ${nodes.length}`);
+
   let transformCount = 0;
   let meshCount = 0;
   let maxDepth = 0;
@@ -77,6 +91,8 @@ export function generateTreeReport(root: BABYLON.Node): TreeReport {
       samples.push(buildPath(n));
     }
   }
+
+  console.log(`[generateTreeReport] Result: ${meshCount} meshes, ${transformCount} transform nodes`);
 
   const bbox = hasBBox
     ? {
@@ -144,7 +160,21 @@ export function downloadMappedSceneTreeReport(scene: BABYLON.Scene, sceneTreeNod
     let depth = 0;
     let hasTransform = !!root;
     if (root) {
-      const nodes: BABYLON.Node[] = [root, ...(((root as any).getDescendants?.(true)) as BABYLON.Node[] || [])];
+      // CRITICAL FIX: Use getChildMeshes() to collect ALL descendant meshes
+      const meshes: BABYLON.AbstractMesh[] = (root as any).getChildMeshes
+        ? (root as any).getChildMeshes() as BABYLON.AbstractMesh[]
+        : [];
+
+      const descendants: BABYLON.Node[] = (root as any).getDescendants
+        ? (root as any).getDescendants(true) as BABYLON.Node[]
+        : [];
+
+      // Combine and deduplicate
+      const allNodes = new Set<BABYLON.Node>([root, ...descendants, ...meshes]);
+      const nodes: BABYLON.Node[] = Array.from(allNodes);
+
+      console.log(`[downloadMappedSceneTreeReport] Child "${c.name}": ${meshes.length} meshes, ${descendants.length} descendants`);
+
       for (const n of nodes) {
         if (n instanceof BABYLON.AbstractMesh) count++;
         if (n instanceof BABYLON.TransformNode) totalTransforms++;
