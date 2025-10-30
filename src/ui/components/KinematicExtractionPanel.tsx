@@ -60,14 +60,20 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
   });
   const [exportedModel, setExportedModel] = useState<KinematicModelExport | null>(null);
 
-  // Initialize pipeline when component mounts
+  // Initialize pipeline when component mounts or becomes visible
   useEffect(() => {
+    if (!isVisible) return;
+
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
+
     if (scene) {
+      console.log('[KinematicExtractionPanel] Initializing pipeline with scene');
       setPipeline(new KinematicExtractionPipeline(scene));
+    } else {
+      console.warn('[KinematicExtractionPanel] Scene not ready yet');
     }
-  }, []);
+  }, [isVisible]);
 
   // Update step status helper
   const updateStepStatus = useCallback((step: WorkflowStep, status: StepStatus['status'], message?: string) => {
@@ -81,17 +87,29 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
   const handleAnalyzeScene = useCallback(async () => {
     console.log('[KinematicExtractionPanel] Analyze Scene clicked');
 
-    if (!pipeline) {
-      console.error('[KinematicExtractionPanel] Pipeline not initialized');
-      updateStepStatus('analyze', 'error', 'Pipeline not initialized');
-      return;
+    // Try to initialize pipeline if not already done
+    let activePipeline = pipeline;
+    if (!activePipeline) {
+      console.log('[KinematicExtractionPanel] Pipeline not initialized, trying to create...');
+      const sceneManager = SceneManager.getInstance();
+      const scene = sceneManager.getScene();
+
+      if (!scene) {
+        console.error('[KinematicExtractionPanel] No scene available');
+        updateStepStatus('analyze', 'error', 'No scene loaded. Please load a GLB file first.');
+        return;
+      }
+
+      activePipeline = new KinematicExtractionPipeline(scene);
+      setPipeline(activePipeline);
+      console.log('[KinematicExtractionPanel] Pipeline created successfully');
     }
 
     console.log('[KinematicExtractionPanel] Starting scene analysis...');
     updateStepStatus('analyze', 'in_progress', 'Analyzing scene geometry...');
 
     try {
-      const graph = await pipeline.analyzeScene({
+      const graph = await activePipeline.analyzeScene({
         clusteringDistance: 0.05,
         similarityThreshold: 0.85,
       });
