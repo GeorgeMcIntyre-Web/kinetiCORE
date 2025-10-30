@@ -55,7 +55,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
   const [jointGroups, setJointGroups] = useState<JointGroup[]>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [useGroups, setUseGroups] = useState<boolean>(false);
-  const [debugMode] = useState<IKDebugMode>(() => (localStorage.getItem('ikDebugMode') as IKDebugMode) || 'summary');
+  const [debugMode] = useState<IKDebugMode>(() => (localStorage.getItem('ikDebugMode') as IKDebugMode) || 'none');
   
   // Gizmo management
   const [unifiedGizmo] = useState(() => UnifiedGizmoManager.getInstance());
@@ -538,7 +538,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     // Draw IK debug overlay (axes at TCP and intended delta)
     try {
       const scene = (window as any).sceneManager?.getScene?.();
-      if (scene && (debugMode === 'summary' || debugMode === 'verbose')) {
+      if (scene && (debugMode === 'verbose')) {
         const rotM = new BABYLON.Matrix();
         tcpWorldRotation.toRotationMatrix(rotM);
         const xDir = new BABYLON.Vector3(rotM.m[0], rotM.m[1], rotM.m[2]);
@@ -677,7 +677,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
 
             // After solve, draw error vector (magenta) from achieved to target
             const scene = (window as any).sceneManager?.getScene?.();
-            if (scene && (debugMode === 'summary' || debugMode === 'verbose')) {
+            if (scene && (debugMode === 'verbose')) {
               if (ikErrorRef.current && !ikErrorRef.current.isDisposed()) {
                 ikErrorRef.current.dispose(false, true);
                 ikErrorRef.current = null;
@@ -885,18 +885,18 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
           <span>TCP</span>
         </button>
         <button
-          className={`mode-button ${jogMode === 'poses' ? 'active' : ''}`}
-          onClick={() => setJogMode('poses')}
-        >
-          <Play size={14} />
-          <span>Poses</span>
-        </button>
-        <button
           className={`mode-button ${jogMode === 'targets' ? 'active' : ''}`}
           onClick={() => setJogMode('targets')}
         >
           <Target size={14} />
           <span>Targets</span>
+        </button>
+        <button
+          className={`mode-button ${jogMode === 'poses' ? 'active' : ''}`}
+          onClick={() => setJogMode('poses')}
+        >
+          <Play size={14} />
+          <span>Poses</span>
         </button>
       </div>
 
@@ -1174,12 +1174,12 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
         </div>
       )}
 
-      {/* Targets Mode (Teaching/Waypoints) */}
+      {/* Targets Mode (Teaching/Waypoints) */
+      }
       {jogMode === 'targets' && (
         <div className="targets-mode">
           <div className="targets-content">
             <div className="targets-header">
-              <h4>Target Sequence</h4>
               <span className="targets-count">{targets.length} targets</span>
             </div>
 
@@ -1281,14 +1281,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
                     </div>
                   </div>
                 ))
-              ) : (
-                <div className="targets-empty">
-                  <p>No targets taught</p>
-                  <p className="targets-hint">
-                    Move robot to position, select motion type, and click Teach
-                  </p>
-                </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

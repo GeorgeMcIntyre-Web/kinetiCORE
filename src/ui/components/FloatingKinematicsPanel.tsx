@@ -125,9 +125,9 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
   }, [visualizerEnabled, activeRobotId, visualizer]);
 
   // Handle panel close - cleanup gizmos and debug visualizations
-  const handlePanelClose = () => {
+  const handlePanelClose = async () => {
     // Clean up TCP gizmos
-    const { UnifiedGizmoManager } = require('../../kinematics/UnifiedGizmoManager');
+    const { UnifiedGizmoManager } = await import('../../kinematics/UnifiedGizmoManager');
     const unifiedGizmo = UnifiedGizmoManager.getInstance();
     unifiedGizmo.setActivePanel('none');
 
@@ -257,8 +257,9 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       // Update TCP gizmo position IMMEDIATELY after resetting all joints
       const tcpPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
       if (tcpPose) {
-        const { UnifiedGizmoManager } = require('../../kinematics/UnifiedGizmoManager');
-        const unifiedGizmo = UnifiedGizmoManager.getInstance();
+        (async () => {
+          const { UnifiedGizmoManager } = await import('../../kinematics/UnifiedGizmoManager');
+          const unifiedGizmo = UnifiedGizmoManager.getInstance();
         const targetId = `tcp_${activeRobotId}`;
 
       // Force immediate gizmo update (don't wait for 500ms interval)
@@ -268,6 +269,7 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
 
       console.log(`[FloatingKinematicsPanel] TCP gizmo updated immediately to home position`);
+        })();
       }
 
       // Update debug visualizer if enabled
@@ -448,20 +450,24 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       console.log('[FloatingKinematicsPanel] Panel closed - hiding all joint gizmos');
       kinematicsManager.hideAllJointVisuals();
       // Clear Motion panel gizmos context
-      try {
-        const { UnifiedGizmoManager } = require('../../kinematics/UnifiedGizmoManager');
-        UnifiedGizmoManager.getInstance().setActivePanel('none');
-      } catch {}
+      (async () => {
+        try {
+          const { UnifiedGizmoManager } = await import('../../kinematics/UnifiedGizmoManager');
+          UnifiedGizmoManager.getInstance().setActivePanel('none');
+        } catch {}
+      })();
     }
   }, [isVisible]);
 
   // Ensure Motion context active when panel is visible
   useEffect(() => {
     if (isVisible) {
-      try {
-        const { UnifiedGizmoManager } = require('../../kinematics/UnifiedGizmoManager');
-        UnifiedGizmoManager.getInstance().setActivePanel('motion');
-      } catch {}
+      (async () => {
+        try {
+          const { UnifiedGizmoManager } = await import('../../kinematics/UnifiedGizmoManager');
+          UnifiedGizmoManager.getInstance().setActivePanel('motion');
+        } catch {}
+      })();
     }
   }, [isVisible]);
 
@@ -667,11 +673,13 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
         if (robotChain) {
           const tcpPose = fk.getTCPPose?.(robotChain.name) || fk.getNullTCPPose(robotChain.name);
           if (tcpPose) {
-            const { UnifiedGizmoManager } = require('../../kinematics/UnifiedGizmoManager');
-            const unifiedGizmo = UnifiedGizmoManager.getInstance();
+            (async () => {
+              const { UnifiedGizmoManager } = await import('../../kinematics/UnifiedGizmoManager');
+              const unifiedGizmo = UnifiedGizmoManager.getInstance();
             const targetId = `tcp_${activeRobotId}`;
             unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
             unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
+            })();
           }
         }
       }
@@ -685,13 +693,15 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       const current = kinematicsManager.getJoint(attachedJointId)?.position ?? startAngleRef.value;
       const oldVal = startAngleRef.value;
       if (Math.abs(current - oldVal) > 1e-6) {
-        try {
-          const { EditJointAngleCommand } = require('../../history/commands/EditJointAngleCommand');
-          const cmd = new EditJointAngleCommand(attachedJointId, oldVal, current);
-          commandManager.execute(cmd);
-        } catch (e) {
-          // Fallback: already updated via preview
-        }
+        (async () => {
+          try {
+            const { EditJointAngleCommand } = await import('../../history/commands/EditJointAngleCommand');
+            const cmd = new EditJointAngleCommand(attachedJointId, oldVal, current);
+            commandManager.execute(cmd);
+          } catch (e) {
+            // Fallback: already updated via preview
+          }
+        })();
       }
 
       // Reset gizmo local rotation for next drag measurement
@@ -1027,8 +1037,8 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
         </div>
       )}
 
-      {/* Joint Control Section - Now at the top */}
-      <AssetLibraryDarkSection title="Joint Control" hint={!activeRobotId ? "Select a device to enable" : undefined}>
+  {/* Motion Control Section - Now at the top */}
+  <AssetLibraryDarkSection title="Motion Control" hint={!activeRobotId ? "Select a device to enable" : undefined}>
         {activeRobotId ? (
           joints.length > 0 ? (
             <RobotJoggingPanelWithGizmo joints={joints} fkSolver={fkSolver} robotId={activeRobotId} />

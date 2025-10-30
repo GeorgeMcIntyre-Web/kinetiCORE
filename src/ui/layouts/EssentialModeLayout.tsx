@@ -62,6 +62,9 @@ export const EssentialModeLayout: React.FC = () => {
     rz: number;
   } | null>(null);
 
+  // Coordinate display mode: 'world' (default) or 'local'
+  const [coordMode, setCoordMode] = useState<'world' | 'local'>('world');
+
   const [showKinematicsPanel, setShowKinematicsPanel] = useState(false);
   const [showKinematicsAnalysisPanel, setShowKinematicsAnalysisPanel] = useState(false);
   const [showActuatorPanel, setShowActuatorPanel] = useState(false);
@@ -428,7 +431,7 @@ export const EssentialModeLayout: React.FC = () => {
     }
   }, [isResizing, handleMouseMove, handleMouseUp]);
 
-  // Update transform display when selection changes
+  // Update transform display when selection or mode changes
   useEffect(() => {
     if (!selectedNodeId) {
       setTransform(null);
@@ -467,23 +470,36 @@ export const EssentialModeLayout: React.FC = () => {
       }
 
       if (babylonNode) {
-        const userPos = babylonToUser(babylonNode.position);
+        // Position (mm) and rotation (deg) in either local or world coordinates
+        let posUser: { x: number; y: number; z: number };
+        let eulerRad: BABYLON.Vector3;
 
-        // Get rotation - check for quaternion first (takes precedence over Euler angles)
-        let rotation: BABYLON.Vector3;
-        if (babylonNode.rotationQuaternion) {
-          rotation = babylonNode.rotationQuaternion.toEulerAngles();
+        if (coordMode === 'world') {
+          // WORLD: use absolute/world transform
+          babylonNode.computeWorldMatrix(true);
+          const worldMatrix = babylonNode.getWorldMatrix();
+          const worldTranslation = worldMatrix.getTranslation();
+          const worldRotationQuat = new BABYLON.Quaternion();
+          worldMatrix.decompose(undefined, worldRotationQuat, undefined);
+          posUser = babylonToUser(worldTranslation);
+          eulerRad = worldRotationQuat.toEulerAngles();
         } else {
-          rotation = babylonNode.rotation;
+          // LOCAL: use node-local transform
+          posUser = babylonToUser(babylonNode.position);
+          if (babylonNode.rotationQuaternion) {
+            eulerRad = babylonNode.rotationQuaternion.toEulerAngles();
+          } else {
+            eulerRad = babylonNode.rotation;
+          }
         }
 
         const newTransform = {
-          x: Math.round(userPos.x * 10) / 10,
-          y: Math.round(userPos.y * 10) / 10,
-          z: Math.round(userPos.z * 10) / 10,
-          rx: Math.round((rotation.x * 180 / Math.PI) * 10) / 10,
-          ry: Math.round((rotation.y * 180 / Math.PI) * 10) / 10,
-          rz: Math.round((rotation.z * 180 / Math.PI) * 10) / 10,
+          x: Math.round(posUser.x * 10) / 10,
+          y: Math.round(posUser.y * 10) / 10,
+          z: Math.round(posUser.z * 10) / 10,
+          rx: Math.round((eulerRad.x * 180 / Math.PI) * 10) / 10,
+          ry: Math.round((eulerRad.y * 180 / Math.PI) * 10) / 10,
+          rz: Math.round((eulerRad.z * 180 / Math.PI) * 10) / 10,
         };
 
         const newTransformStr = JSON.stringify(newTransform);
@@ -511,7 +527,7 @@ export const EssentialModeLayout: React.FC = () => {
         scene.onBeforeRenderObservable.remove(observer);
       }
     };
-  }, [selectedNodeId]);
+  }, [selectedNodeId, coordMode]);
 
 
   return (
@@ -660,7 +676,7 @@ export const EssentialModeLayout: React.FC = () => {
             color: '#ffffff',
             textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 4px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.7)',
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace',
-            fontSize: '8px',
+            fontSize: '7.5px',
             fontWeight: '600',
             WebkitFontSmoothing: 'antialiased',
             MozOsxFontSmoothing: 'grayscale',
@@ -668,6 +684,24 @@ export const EssentialModeLayout: React.FC = () => {
             marginBottom: '16px', // Add bottom margin to prevent overlap with version
           }}
         >
+          {/* Tiny coord mode toggle */}
+          <div className="flex justify-end mb-1">
+            <button
+              onClick={() => setCoordMode(coordMode === 'world' ? 'local' : 'world')}
+              title={coordMode === 'world' ? 'Showing World coordinates. Click for Local.' : 'Showing Local coordinates. Click for World.'}
+              style={{
+                background: 'rgba(0,0,0,0.45)',
+                border: '1px solid rgba(255,255,255,0.18)',
+                color: '#fff',
+                padding: '2px 6px',
+                borderRadius: '8px',
+                fontSize: '9px',
+                lineHeight: 1,
+              }}
+            >
+              {coordMode === 'world' ? 'World' : 'Local'}
+            </button>
+          </div>
           <div className="flex justify-between text-sm">
             <div className="flex space-x-1" style={{ minWidth: '80px' }}>
               <span style={{ color: '#4A90E2', fontWeight: '500' }}>X:</span>

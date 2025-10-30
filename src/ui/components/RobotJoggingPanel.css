@@ -14,19 +14,21 @@
 /* Mode Selector */
 .jog-mode-selector {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   background: #2d3748;
   padding: 2px;
   border-radius: 6px;
+  flex-wrap: wrap; /* allow tabs to wrap when space is tight */
 }
 
 .mode-button {
-  flex: 1;
+  flex: 0 0 auto; /* auto-size to content; no forced equal widths */
+  min-width: 0; /* allow shrinking */
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 4px 4px;
+  padding: 3px 3px;
   background: transparent;
   border: none;
   border-radius: 4px;
@@ -35,6 +37,12 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.mode-button span {
+  white-space: nowrap;
+  overflow: visible;   /* show full label when possible */
+  text-overflow: unset;
 }
 
 
@@ -355,6 +363,11 @@
   .joints-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Extremely narrow panel: icon-only tabs */
+@media (max-width: 260px) {
+  .mode-button span { display: none; }
 }
 
 /* Poses Mode */
