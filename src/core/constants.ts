@@ -36,7 +36,7 @@ export const CAMERA_PANNING_SENSIBILITY = 600; // Higher = slower/less sensitive
 export const CAMERA_PANNING_INERTIA = 0.85;
 export const CAMERA_LOWER_BETA_LIMIT = 0.1; // Avoid gimbal lock
 export const CAMERA_UPPER_BETA_LIMIT = Math.PI - 0.1;
-export const CAMERA_MIN_Z = CAMERA_MIN_RADIUS; // Near clip
+export const CAMERA_MIN_Z = 0.001; // Near clip: 1mm - prevents clipping when zooming close in orthographic mode
 export const CAMERA_MAX_Z = 20000; // Far clip
 export const CAMERA_DEFAULT_ALPHA = -Math.PI / 2; // Look from side
 export const CAMERA_DEFAULT_BETA = Math.PI / 4; // 45° angle from Y-axis

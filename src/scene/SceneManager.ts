@@ -493,6 +493,34 @@ export class SceneManager {
     this.cameraService.zoomOut();
   }
 
+  /**
+   * Toggle camera mode between orthographic and perspective
+   */
+  toggleCameraMode(): void {
+    this.cameraService.toggleCameraMode();
+  }
+
+  /**
+   * Get current camera mode
+   */
+  getCameraMode(): 'orthographic' | 'perspective' | null {
+    return this.cameraService.getCameraMode();
+  }
+
+  /**
+   * Adjust camera clipping planes based on selected object
+   */
+  adjustClippingPlanesForObject(mesh: BABYLON.AbstractMesh | null): void {
+    this.cameraService.adjustClippingPlanesForObject(mesh);
+  }
+
+  /**
+   * Reset camera clipping planes to defaults
+   */
+  resetClippingPlanes(): void {
+    this.cameraService.resetClippingPlanes();
+  }
+
   dispose(): void {
     this.scene?.dispose();
     this.scene = null;

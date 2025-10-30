@@ -7,7 +7,7 @@ import { useEditorStore } from '../store/editorStore';
 export const useKeyboardShortcuts = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const { undo, redo, duplicateNode, deleteNode, selectedNodeId, zoomIn, zoomOut } = useEditorStore.getState();
+      const { undo, redo, duplicateNode, deleteNode, selectedNodeId, zoomIn, zoomOut, toggleCameraMode } = useEditorStore.getState();
 
       // Ctrl/Cmd + Z: Undo
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
@@ -65,6 +65,13 @@ export const useKeyboardShortcuts = () => {
         }
         e.preventDefault();
         zoomOut();
+        return;
+      }
+
+      // Ctrl/Cmd + Shift + C: Toggle camera mode (orthographic/perspective)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        toggleCameraMode();
         return;
       }
     };
