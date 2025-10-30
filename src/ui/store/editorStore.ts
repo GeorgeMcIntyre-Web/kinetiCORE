@@ -167,6 +167,8 @@ interface EditorState {
   toggleNodeSelection: (nodeId: string) => void; // Toggle node in multi-selection
   zoomToNode: (nodeId: string) => void;
   zoomFit: () => void; // Zoom to fit all visible objects
+  zoomIn: () => void; // Zoom camera in
+  zoomOut: () => void; // Zoom camera out
   deselectMesh: (mesh: BABYLON.Mesh) => void;
   clearSelection: () => void;
   toggleMeshSelection: (mesh: BABYLON.Mesh) => void;
@@ -645,6 +647,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       (minY + maxY) / 2,
       (minZ + maxZ) / 2
     );
+  },
+
+  zoomIn: () => {
+    const sceneManager = SceneManager.getInstance();
+    sceneManager.zoomIn();
+  },
+
+  zoomOut: () => {
+    const sceneManager = SceneManager.getInstance();
+    sceneManager.zoomOut();
   },
 
   deselectMesh: (mesh) => {

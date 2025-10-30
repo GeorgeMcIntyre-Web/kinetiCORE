@@ -7,7 +7,7 @@ import { useEditorStore } from '../store/editorStore';
 export const useKeyboardShortcuts = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const { undo, redo, duplicateNode, deleteNode, selectedNodeId } = useEditorStore.getState();
+      const { undo, redo, duplicateNode, deleteNode, selectedNodeId, zoomIn, zoomOut } = useEditorStore.getState();
 
       // Ctrl/Cmd + Z: Undo
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
@@ -32,8 +32,8 @@ export const useKeyboardShortcuts = () => {
         return;
       }
 
-      // Delete or Backspace: Delete selected object
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodeId) {
+      // Delete: Delete selected object
+      if (e.key === 'Delete' && selectedNodeId) {
         // Don't trigger delete if user is typing in an input
         const target = e.target as HTMLElement;
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
@@ -41,6 +41,30 @@ export const useKeyboardShortcuts = () => {
         }
         e.preventDefault();
         deleteNode(selectedNodeId);
+        return;
+      }
+
+      // Shift + = or Shift + +: Zoom in
+      if ((e.key === '=' || e.key === '+') && e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        // Don't trigger if user is typing in an input
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+          return;
+        }
+        e.preventDefault();
+        zoomIn();
+        return;
+      }
+
+      // Shift + -: Zoom out
+      if (e.key === '-' && e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        // Don't trigger if user is typing in an input
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+          return;
+        }
+        e.preventDefault();
+        zoomOut();
         return;
       }
     };

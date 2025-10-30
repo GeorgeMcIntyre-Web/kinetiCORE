@@ -236,6 +236,54 @@ export class CameraService {
     );
   }
 
+  /**
+   * Zoom camera in by decreasing radius
+   */
+  zoomIn(): void {
+    if (!this.camera) return;
+
+    const zoomFactor = 0.9; // Zoom in by 10%
+    const newRadius = Math.max(
+      this.camera.radius * zoomFactor,
+      CAMERA_MIN_RADIUS
+    );
+
+    BABYLON.Animation.CreateAndStartAnimation(
+      'zoomIn',
+      this.camera,
+      'radius',
+      60,
+      10,
+      this.camera.radius,
+      newRadius,
+      BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+    );
+  }
+
+  /**
+   * Zoom camera out by increasing radius
+   */
+  zoomOut(): void {
+    if (!this.camera) return;
+
+    const zoomFactor = 1.1; // Zoom out by 10%
+    const newRadius = Math.min(
+      this.camera.radius * zoomFactor,
+      CAMERA_MAX_RADIUS
+    );
+
+    BABYLON.Animation.CreateAndStartAnimation(
+      'zoomOut',
+      this.camera,
+      'radius',
+      60,
+      10,
+      this.camera.radius,
+      newRadius,
+      BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+    );
+  }
+
   getCamera(): BABYLON.ArcRotateCamera | null {
     return this.camera;
   }

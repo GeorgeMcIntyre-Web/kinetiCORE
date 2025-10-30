@@ -27,6 +27,8 @@ export const KeyboardShortcuts: React.FC = () => {
   const togglePhysics = useEditorStore((state) => state.togglePhysics);
   const zoomToNode = useEditorStore((state) => state.zoomToNode);
   const zoomFit = useEditorStore((state) => state.zoomFit);
+  const zoomIn = useEditorStore((state) => state.zoomIn);
+  const zoomOut = useEditorStore((state) => state.zoomOut);
   const undo = useEditorStore((state) => state.undo);
   const redo = useEditorStore((state) => state.redo);
 
@@ -43,7 +45,6 @@ export const KeyboardShortcuts: React.FC = () => {
 
     // Object operations
     { key: 'Delete', description: 'Delete Selected', action: () => selectedNodeId && deleteNode(selectedNodeId), category: 'Edit' },
-    { key: 'Backspace', description: 'Delete Selected', action: () => selectedNodeId && deleteNode(selectedNodeId), category: 'Edit' },
     { key: 'd', ctrl: true, description: 'Duplicate', action: () => selectedNodeId && duplicateNode(selectedNodeId), category: 'Edit' },
     { key: 'z', ctrl: true, description: 'Undo', action: () => undo(), category: 'Edit' },
     { key: 'y', ctrl: true, description: 'Redo', action: () => redo(), category: 'Edit' },
@@ -62,6 +63,8 @@ export const KeyboardShortcuts: React.FC = () => {
     { key: '7', description: 'Top View', action: () => {}, category: 'View' },
     { key: '0', description: 'Camera View', action: () => {}, category: 'View' },
     { key: '.', description: 'Zoom Fit All', action: () => zoomFit(), category: 'View' },
+    { key: '+', shift: true, description: 'Zoom In', action: () => zoomIn(), category: 'View' },
+    { key: '-', shift: true, description: 'Zoom Out', action: () => zoomOut(), category: 'View' },
 
     // Help
     { key: '?', description: 'Show Shortcuts', action: () => setShowHelp(!showHelp), category: 'Help' },
@@ -71,8 +74,8 @@ export const KeyboardShortcuts: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger shortcuts if typing in input field
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        // Allow Delete/Backspace in input fields
-        if (e.key !== 'Delete' && e.key !== 'Backspace') {
+        // Allow Delete in input fields, but not other shortcuts
+        if (e.key !== 'Delete') {
           return;
         }
       }

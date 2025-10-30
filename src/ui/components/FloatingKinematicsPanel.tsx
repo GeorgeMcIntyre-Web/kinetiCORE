@@ -1099,7 +1099,6 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     >
       <AssetLibraryDarkPanel
         title=""
-        onClose={undefined}
       >
         {panelContent}
       </AssetLibraryDarkPanel>
