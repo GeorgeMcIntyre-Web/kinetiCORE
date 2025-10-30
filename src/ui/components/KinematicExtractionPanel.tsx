@@ -181,11 +181,11 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
         console.log(`  - ${childName} (${childMeshCount} meshes)`);
       });
 
-      // Use name-based analyzer for automotive GLB files (UNIT_XXX/RH/LH/FIXED/MOVING structure)
-      console.log('[KinematicExtractionPanel] Using name-based analyzer for automotive GLB structure');
+      // Use geometry-based analyzer (ICP matching - ROBUST to naming changes)
+      console.log('[KinematicExtractionPanel] Using geometry-based analyzer (ICP matching)');
 
       const graph = await activePipeline.analyzeScene(
-        { analysisMethod: 'name-based', nameBased: { verbose: true } },
+        { analysisMethod: 'geometry-based', geometryBased: { verbose: true } },
         rootBabylonNode
       );
 
