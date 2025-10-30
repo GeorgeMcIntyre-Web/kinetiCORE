@@ -145,9 +145,9 @@ export class KinematicExtractionPipeline {
    * @param options - Geometric analysis options
    * @returns ToolGraph with identified units
    */
-  async analyzeScene(options?: GeometricAnalyzeOptions): Promise<ToolGraph> {
+  async analyzeScene(options?: GeometricAnalyzeOptions, rootNode?: BABYLON.Node): Promise<ToolGraph> {
     console.log('[Pipeline] Step 1: Analyzing scene for tool units...');
-    this.toolGraph = this.analyzer.analyze(this.scene, options);
+    this.toolGraph = this.analyzer.analyze(this.scene, options, rootNode);
 
     const fixed = this.toolGraph.units.filter(u => u.isFixed);
     const moving = this.toolGraph.units.filter(u => !u.isFixed);
@@ -356,6 +356,78 @@ export class KinematicExtractionPipeline {
     console.log(`[Pipeline] Export complete: ${joints.length} joints, ${actuatorProgram.channels.length} channels`);
 
     return { joints, actuatorProgram };
+  }
+
+  /**
+   * Export in legacy tooling JSON format (array of units with joint records),
+   * approximated from our ICP/joint results.
+   */
+  exportToLegacyJSON(): any[] {
+    if (!this.toolGraph) {
+      throw new Error('[Pipeline] Must call analyzeScene() before exporting');
+    }
+
+    const out: any[] = [];
+
+    // Build lookup for quick access to state point counts and centroids
+    const computeCentroid = (pts: BABYLON.Vector3[] | undefined): BABYLON.Vector3 => {
+      if (!pts || pts.length === 0) return new BABYLON.Vector3(0, 0, 0);
+      const sum = pts.reduce((acc, p) => acc.add(p), BABYLON.Vector3.Zero());
+      return sum.scale(1 / pts.length);
+    };
+
+    // Group ICP results by unit for legacy structure
+    const byUnitId = new Map<string, Array<{ unit: ToolUnit; icp: ICPResult; }>>();
+    for (const [unitId, { unit, icpResult }] of this.icpResults.entries()) {
+      const arr = byUnitId.get(unitId) || [];
+      arr.push({ unit, icp: icpResult });
+      byUnitId.set(unitId, arr);
+    }
+
+    for (const [unitId, entries] of byUnitId.entries()) {
+      const state = this.statePairs.get(unitId);
+      const retractedPts = state?.retracted?.pointCloud;
+      const extendedPts = state?.extended?.pointCloud;
+      const c0 = computeCentroid(retractedPts);
+      const c1 = computeCentroid(extendedPts);
+      const delta = c1.subtract(c0);
+
+      const joints = entries.map((e, idx) => {
+        const T = e.icp.transform;
+        const rows = [
+          `${T.m[0].toFixed(4)}     ${T.m[1].toFixed(4)}     ${T.m[2].toFixed(4)}     ${T.m[3].toFixed(4)}`,
+          `${T.m[4].toFixed(4)}     ${T.m[5].toFixed(4)}     ${T.m[6].toFixed(4)}     ${T.m[7].toFixed(4)}`,
+          `${T.m[8].toFixed(4)}     ${T.m[9].toFixed(4)}     ${T.m[10].toFixed(4)}     ${T.m[11].toFixed(4)}`,
+          `${T.m[12].toFixed(4)}     ${T.m[13].toFixed(4)}     ${T.m[14].toFixed(4)}     ${T.m[15].toFixed(4)}`,
+        ];
+
+        // Best-effort mapping of type and magnitude
+        const jf = this.icpResults.get(unitId)?.jointFit;
+        const typeCode = jf?.type === 'hinge' ? 1 : 0; // 0=prismatic, 1=revolute(hinge)
+        const maxVal = (jf?.magnitude ?? delta.length());
+
+        return {
+          Name: `C${idx + 1}`,
+          ElectricalName: e.unit.name,
+          NodeId: e.unit.root,
+          HideId: `${e.unit.root}/WIRE/OPEN`,
+          Type: typeCode,
+          MaxValue: maxVal,
+          MinValue: 0,
+          ToVector: { X: delta.x, Y: delta.y, Z: delta.z },
+          FromVector: { X: 0, Y: 0, Z: 0 },
+          PointCountClose: retractedPts?.length ?? 0,
+          PointCountOpen: extendedPts?.length ?? 0,
+          RmsError: e.icp.rmsError,
+          MaxError: e.icp.rmsError,
+          TransformationMatrix: rows,
+        };
+      });
+
+      out.push({ UnitName: entries[0].unit.name, Joints: joints });
+    }
+
+    return out;
   }
 
   /**

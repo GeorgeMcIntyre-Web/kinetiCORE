@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import * as BABYLON from '@babylonjs/core';
 import {
   Scan,
   Camera,
@@ -25,9 +26,12 @@ import {
 } from 'lucide-react';
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { SceneManager } from '../../scene/SceneManager';
+import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { KinematicExtractionPipeline } from '../../babylon/pipeline/KinematicExtractionPipeline';
+import { downloadTreeReport, downloadMappedSceneTreeReport } from '../../babylon/sceneAnalysis/SceneTreeReporter';
 import type { ToolGraph } from '../../babylon/sceneAnalysis/ToolGraphAnalyzer';
 import type { KinematicModelExport } from '../../babylon/io/Schemas';
+import { useEditorStore } from '../store/editorStore';
 
 type WorkflowStep = 'analyze' | 'capture_retracted' | 'capture_extended' | 'fit_joints' | 'export';
 
@@ -48,6 +52,7 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
   isVisible = true,
   zIndex = 1003,
 }) => {
+  const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const [pipeline, setPipeline] = useState<KinematicExtractionPipeline | null>(null);
   const [toolGraph, setToolGraph] = useState<ToolGraph | null>(null);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
@@ -87,6 +92,24 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
   const handleAnalyzeScene = useCallback(async () => {
     console.log('[KinematicExtractionPanel] Analyze Scene clicked');
 
+    // Check if user has selected a node
+    if (!selectedNodeId) {
+      console.error('[KinematicExtractionPanel] No node selected');
+      updateStepStatus('analyze', 'error', 'Please select a device/unit in the scene tree first (e.g., 9X_110_GEO)');
+      return;
+    }
+
+    const tree = SceneTreeManager.getInstance();
+    const selectedNode = tree.getNode(selectedNodeId);
+
+    if (!selectedNode) {
+      console.error('[KinematicExtractionPanel] Selected node not found in tree');
+      updateStepStatus('analyze', 'error', 'Selected node not found');
+      return;
+    }
+
+    console.log('[KinematicExtractionPanel] Selected node:', selectedNode.name);
+
     // Try to initialize pipeline if not already done
     let activePipeline = pipeline;
     if (!activePipeline) {
@@ -105,14 +128,81 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
       console.log('[KinematicExtractionPanel] Pipeline created successfully');
     }
 
-    console.log('[KinematicExtractionPanel] Starting scene analysis...');
-    updateStepStatus('analyze', 'in_progress', 'Analyzing scene geometry...');
+    console.log('[KinematicExtractionPanel] Starting scene analysis for selected node...');
+    updateStepStatus('analyze', 'in_progress', `Analyzing ${selectedNode.name}...`);
 
     try {
-      const graph = await activePipeline.analyzeScene({
-        clusteringDistance: 0.05,
-        similarityThreshold: 0.85,
-      });
+      // Resolve Babylon transform node for the selected scene tree node
+      const scene = SceneManager.getInstance().getScene();
+      let rootBabylonNode: BABYLON.Node | null = null as any;
+      if (scene) {
+        // Prefer explicit transform node id if present
+        const tnId = (selectedNode as any).babylonTransformNodeId ?? (selectedNode as any).babylonNodeId;
+        if (tnId) {
+          const uid = parseInt(String(tnId));
+          rootBabylonNode = scene.transformNodes.find((n) => (n as any).uniqueId === uid) || null;
+        }
+        // Fallback to mesh unique id if available
+        if (!rootBabylonNode && (selectedNode as any).babylonMeshId) {
+          const meshUid = parseInt(String((selectedNode as any).babylonMeshId));
+          const mesh = scene.getMeshByUniqueId(meshUid);
+          rootBabylonNode = (mesh?.parent as any) || (mesh as any) || null;
+        }
+        // Final fallback by name
+        if (!rootBabylonNode) {
+          rootBabylonNode = scene.getTransformNodeByName(selectedNode.name) as any;
+        }
+      }
+
+      if (!rootBabylonNode) {
+        updateStepStatus('analyze', 'error', 'Selected node is not present in the scene.');
+        return;
+      }
+
+      // If the chosen root has no meshes in its subtree, try to find
+      // the first descendant that actually contains meshes (handles
+      // cases where the user selects a container/asset folder node)
+      const getDescMeshesCount = (n: BABYLON.Node) => {
+        const desc = (n as any).getDescendants ? (n as any).getDescendants(true) as BABYLON.Node[] : [];
+        return desc.filter((d) => d instanceof BABYLON.Mesh).length + (n instanceof BABYLON.Mesh ? 1 : 0);
+      };
+
+      if (getDescMeshesCount(rootBabylonNode) === 0) {
+        const descendants = (rootBabylonNode as any).getDescendants ? (rootBabylonNode as any).getDescendants(true) as BABYLON.Node[] : [];
+        let fallback: BABYLON.Node | null = null;
+        for (const d of descendants) {
+          if (getDescMeshesCount(d) > 0) {
+            fallback = d;
+            break;
+          }
+        }
+        if (fallback) {
+          console.log('[KinematicExtractionPanel] Selected node had no meshes; falling back to descendant with meshes:', fallback.name);
+          rootBabylonNode = fallback;
+        }
+      }
+
+      // Try multiple parameter sets and pick the result with the most units
+      const paramSweep = [
+        { minVolume: 1e-8, clusteringDistance: 0.03, similarityThreshold: 0.8 },
+        { minVolume: 5e-9, clusteringDistance: 0.02, similarityThreshold: 0.8 },
+        { minVolume: 1e-9, clusteringDistance: 0.015, similarityThreshold: 0.8 },
+        { minVolume: 1e-9, clusteringDistance: 0.01, similarityThreshold: 0.75 },
+      ];
+
+      let bestGraph: ToolGraph | null = null;
+      for (const params of paramSweep) {
+        try {
+          const g = await activePipeline.analyzeScene(params, rootBabylonNode);
+          if (!bestGraph || g.units.length > bestGraph.units.length) {
+            bestGraph = g;
+          }
+        } catch (e) {
+          console.warn('[KinematicExtractionPanel] Param sweep analyze failed:', e);
+        }
+      }
+
+      const graph = bestGraph!;
 
       console.log('[KinematicExtractionPanel] Analysis complete:', graph);
       setToolGraph(graph);
@@ -121,7 +211,7 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
       const movingCount = graph.units.filter((u) => !u.isFixed).length;
 
       if (graph.units.length === 0) {
-        updateStepStatus('analyze', 'error', 'No tool units detected in scene. Try loading a GLB file first.');
+        updateStepStatus('analyze', 'error', 'No tool units detected under the selected device. Check console for mesh counts and try selecting a deeper node.');
         return;
       }
 
@@ -144,7 +234,7 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
       updateStepStatus('analyze', 'error', `Error: ${errorMsg}`);
       console.error('[KinematicExtractionPanel] Analysis failed:', error);
     }
-  }, [pipeline, updateStepStatus]);
+  }, [pipeline, updateStepStatus, selectedNodeId]);
 
   // Step 2: Capture Retracted State
   const handleCaptureRetracted = useCallback(async () => {
@@ -303,7 +393,7 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
         <div className="info-banner">
           <Info size={16} />
           <span>
-            Load a GLB file, then analyze the entire scene to automatically identify fixed/moving tool units.
+            Select a device in the tree (e.g., 9X_110_GEO), then analyze to identify fixed/moving parts.
           </span>
         </div>
 
@@ -313,19 +403,61 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
           <div className={`workflow-step ${stepStatuses.analyze.status}`}>
             <div className="step-header">
               {renderStepIndicator('analyze')}
-              <span className="step-title">1. Analyze Scene</span>
+              <span className="step-title">1. Analyze Selected Device</span>
             </div>
             <p className="step-description">
-              Automatically detect all tool units in the loaded GLB using geometric analysis (no selection needed).
+              Select a device in the scene tree first, then click to detect fixed/moving parts within it.
             </p>
             <button
               className="btn btn-primary"
               onClick={handleAnalyzeScene}
-              disabled={stepStatuses.analyze.status === 'in_progress'}
+              disabled={stepStatuses.analyze.status === 'in_progress' || !selectedNodeId}
+              title={!selectedNodeId ? 'Please select a device in the scene tree first' : 'Analyze selected device'}
             >
               <Scan size={16} />
-              Analyze Scene
+              Analyze Selected Device
             </button>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  const scene = SceneManager.getInstance().getScene();
+                  if (!scene || !selectedNodeId) return;
+                  const tree = SceneTreeManager.getInstance();
+                  const selectedNode = tree.getNode(selectedNodeId);
+                  if (!selectedNode) return;
+                  const tnId = (selectedNode as any).babylonTransformNodeId ?? (selectedNode as any).babylonNodeId;
+                  let root: BABYLON.Node | null = null as any;
+                  if (tnId) {
+                    const uid = parseInt(String(tnId));
+                    root = scene.transformNodes.find((n) => (n as any).uniqueId === uid) || null;
+                  }
+                  if (!root && (selectedNode as any).babylonMeshId) {
+                    const meshUid = parseInt(String((selectedNode as any).babylonMeshId));
+                    const mesh = scene.getMeshByUniqueId(meshUid);
+                    root = (mesh?.parent as any) || (mesh as any) || null;
+                  }
+                  root = root || (scene.getTransformNodeByName(selectedNode.name) as any);
+                  if (root) downloadTreeReport(root);
+                }}
+                disabled={!selectedNodeId}
+                title={!selectedNodeId ? 'Select a node to generate tree report' : 'Download JSON report of subtree'}
+              >
+                Generate Tree Report
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  const scene = SceneManager.getInstance().getScene();
+                  if (!scene || !selectedNodeId) return;
+                  downloadMappedSceneTreeReport(scene, selectedNodeId);
+                }}
+                disabled={!selectedNodeId}
+                title={!selectedNodeId ? 'Select a node' : 'Download report mapped via SceneTree children'}
+              >
+                Generate Mapped Report
+              </button>
+            </div>
             {stepStatuses.analyze.message && (
               <p className={`step-message ${stepStatuses.analyze.status}`}>
                 {stepStatuses.analyze.message}

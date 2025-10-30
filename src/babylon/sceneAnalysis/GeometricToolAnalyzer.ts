@@ -108,11 +108,11 @@ function computeSurfaceArea(bbox: BABYLON.BoundingBox): number {
  * Extract geometric signature from a mesh for similarity comparison.
  */
 function computeGeometricSignature(node: BABYLON.TransformNode): GeometricSignature | null {
-  if (!(node instanceof BABYLON.Mesh)) {
+  if (!(node instanceof BABYLON.AbstractMesh)) {
     return null;
   }
 
-  const mesh = node as BABYLON.Mesh;
+  const mesh = node as BABYLON.AbstractMesh;
   mesh.computeWorldMatrix(true);
   const bbox = mesh.getBoundingInfo().boundingBox;
 
@@ -205,8 +205,8 @@ function clusterBySpatialProximity(
     let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
 
     for (const n of clusterNodes) {
-      if (!(n instanceof BABYLON.Mesh)) continue;
-      const mesh = n as BABYLON.Mesh;
+      if (!(n instanceof BABYLON.AbstractMesh)) continue;
+      const mesh = n as BABYLON.AbstractMesh;
       mesh.computeWorldMatrix(true);
       const bbox = mesh.getBoundingInfo().boundingBox;
 
@@ -377,26 +377,50 @@ export class GeometricToolAnalyzer {
    * @param options - Configuration for geometric analysis
    * @returns ToolGraph with classified units and anchor points
    */
-  analyze(scene: BABYLON.Scene, options: GeometricAnalyzeOptions = {}): ToolGraph {
+  analyze(scene: BABYLON.Scene, options: GeometricAnalyzeOptions = {}, rootNode?: BABYLON.Node): ToolGraph {
     const opts: Required<GeometricAnalyzeOptions> = { ...DEFAULT_GEOMETRIC_OPTIONS, ...options };
 
-    // Step 1: Collect significant transform nodes
+    // Name-agnostic: do not rely on string patterns; use geometric heuristics only
+
+    // Step 1: Collect significant transform nodes (scoped to subtree if rootNode provided)
     const significantNodes: BABYLON.TransformNode[] = [];
+    let totalMeshes = 0;
+    let tooSmall = 0;
 
-    for (const node of scene.transformNodes) {
-      if (!(node instanceof BABYLON.Mesh)) continue;
+    // Build candidate iterable: either descendants of rootNode or all scene meshes
+    const candidateNodes: BABYLON.Node[] = [];
+    if (rootNode) {
+      // Include the root and all descendants
+      candidateNodes.push(rootNode);
+      const descendants = (rootNode as any).getDescendants ? (rootNode as any).getDescendants(true) as BABYLON.Node[] : [];
+      candidateNodes.push(...descendants);
+      console.log(`[GeometricToolAnalyzer] Scoped analysis to subtree of '${rootNode.name || rootNode.id}' with ${candidateNodes.length} nodes`);
+    } else {
+      candidateNodes.push(...scene.transformNodes);
+      console.log(`[GeometricToolAnalyzer] Scanning scene.transformNodes (${scene.transformNodes.length} total)`);
+    }
 
-      const mesh = node as BABYLON.Mesh;
+    console.log(`[GeometricToolAnalyzer] Candidate nodes in scope: ${candidateNodes.length}`);
+
+    for (const node of candidateNodes) {
+      if (!(node instanceof BABYLON.AbstractMesh)) continue;
+
+      totalMeshes++;
+      const mesh = node as BABYLON.AbstractMesh;
       mesh.computeWorldMatrix(true);
       const bbox = mesh.getBoundingInfo().boundingBox;
       const volume = computeVolume(bbox);
 
       if (volume >= opts.minVolume) {
         significantNodes.push(node);
+        console.log(`[GeometricToolAnalyzer] ✓ Significant node: ${node.name}, volume: ${volume.toExponential(2)}m³`);
+      } else {
+        tooSmall++;
       }
     }
 
-    console.log(`[GeometricToolAnalyzer] Found ${significantNodes.length} significant nodes (volume >= ${opts.minVolume}m³)`);
+    console.log(`[GeometricToolAnalyzer] Total meshes scanned: ${totalMeshes}, significant: ${significantNodes.length}, too small: ${tooSmall}`);
+    console.log(`[GeometricToolAnalyzer] Min volume threshold: ${opts.minVolume}m³`);
 
     // Step 2: Cluster by spatial proximity
     const clusters = clusterBySpatialProximity(significantNodes, opts.clusteringDistance);
@@ -493,4 +517,5 @@ export class GeometricToolAnalyzer {
 
     return { units, anchors };
   }
+
 }
