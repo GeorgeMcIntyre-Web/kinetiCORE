@@ -98,6 +98,7 @@ export class FloorMaterialManager {
     gridMaterial.mainColor = new BABYLON.Color3(0.25, 0.25, 0.28); // Lighter main color for dark background
     gridMaterial.lineColor = new BABYLON.Color3(0.4, 0.4, 0.45); // Much lighter grid lines
     gridMaterial.opacity = 0.8; // Higher opacity for better visibility
+    gridMaterial.depthFunction = BABYLON.Engine.LESSEQUAL; // Enable depth testing
 
     const gridOverlay = BABYLON.MeshBuilder.CreateGround(
       'gridOverlay',
@@ -106,7 +107,7 @@ export class FloorMaterialManager {
     );
     gridOverlay.position.y = 0.001; // Slightly above ground to avoid z-fighting
     gridOverlay.material = gridMaterial;
-    gridOverlay.renderingGroupId = 1;
+    // Remove renderingGroupId to use default (0) so grid respects depth buffer
     
     // Set visibility based on parameter
     gridOverlay.setEnabled(visible);
