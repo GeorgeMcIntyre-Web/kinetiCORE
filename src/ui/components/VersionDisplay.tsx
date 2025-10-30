@@ -71,7 +71,7 @@ export const VersionDisplay: React.FC<VersionDisplayProps> = ({
 
   return (
     <div style={style}>
-      <span style={{ color: '#60a5fa', fontWeight: '600' }}>kinetiCORE</span>
+      <span style={{ color: '#60a5fa', fontWeight: '600' }}>kinetic CORE</span>
       {' '}
       <span style={{ color: '#9ca3af' }}>v{version}</span>
       {showBuildInfo && buildTime !== 'dev' && (
