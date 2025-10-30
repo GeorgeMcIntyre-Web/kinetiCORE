@@ -314,7 +314,14 @@ export const FloatingComplexIKPanel: React.FC<FloatingComplexIKPanelProps> = ({
         title=""
         onClose={undefined}
       >
-        {panelContent}
+        <div style={{
+          height: '100%',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          paddingRight: '4px'
+        }}>
+          {panelContent}
+        </div>
       </AssetLibraryDarkPanel>
     </FloatingPanel>
   );
