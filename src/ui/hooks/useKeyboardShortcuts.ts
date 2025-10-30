@@ -44,8 +44,8 @@ export const useKeyboardShortcuts = () => {
         return;
       }
 
-      // = or +: Zoom in (don't trigger if Ctrl/Cmd is held for browser zoom)
-      if ((e.key === '=' || e.key === '+') && !e.ctrlKey && !e.metaKey) {
+      // Shift + = or Shift + +: Zoom in
+      if ((e.key === '=' || e.key === '+') && e.shiftKey && !e.ctrlKey && !e.metaKey) {
         // Don't trigger if user is typing in an input
         const target = e.target as HTMLElement;
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
@@ -56,8 +56,8 @@ export const useKeyboardShortcuts = () => {
         return;
       }
 
-      // -: Zoom out (don't trigger if Ctrl/Cmd is held for browser zoom)
-      if (e.key === '-' && !e.ctrlKey && !e.metaKey) {
+      // Shift + -: Zoom out
+      if (e.key === '-' && e.shiftKey && !e.ctrlKey && !e.metaKey) {
         // Don't trigger if user is typing in an input
         const target = e.target as HTMLElement;
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
