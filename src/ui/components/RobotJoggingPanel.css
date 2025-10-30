@@ -670,3 +670,331 @@
   flex-direction: column;
   gap: 4px;
 }
+
+/* Targets Mode */
+.targets-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.targets-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.targets-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+  background: #2d3748;
+  border-radius: 4px;
+}
+
+.targets-count {
+  font-size: 10px;
+  font-weight: 600;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.targets-detail-toggle {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #4a5568;
+  border: none;
+  border-radius: 3px;
+  color: #a0aec0;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.targets-detail-toggle:hover {
+  background: #63b3ed;
+  color: #fff;
+}
+
+.targets-detail-toggle:active {
+  transform: scale(0.95);
+}
+
+/* Playback Controls - Compact */
+.playback-controls {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: #2d3748;
+  border-radius: 4px;
+}
+
+.playback-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  background: #48bb78;
+  border: none;
+  border-radius: 3px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.playback-btn:hover:not(:disabled) {
+  background: #38a169;
+}
+
+.playback-btn.stop-btn {
+  background: #e53e3e;
+}
+
+.playback-btn.stop-btn:hover:not(:disabled) {
+  background: #c53030;
+}
+
+.playback-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Target Teaching Section - Compact */
+.target-teach-section {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 4px;
+  background: #2d3748;
+  border-radius: 4px;
+}
+
+.motion-type-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.icon-toggle {
+  width: 24px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 3px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.icon-toggle:hover {
+  opacity: 0.9;
+}
+
+.icon-toggle:active {
+  transform: scale(0.95);
+}
+
+.target-teach-btn {
+  width: 28px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2f855a;
+  border: none;
+  border-radius: 3px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.target-teach-btn:hover {
+  background: #276749;
+}
+
+.target-teach-btn:active {
+  transform: scale(0.95);
+}
+
+/* Targets List - Scrollable with Compact Layout */
+.targets-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px;
+  background: #1a202c;
+  border-radius: 4px;
+}
+
+/* Custom scrollbar for targets list */
+.targets-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.targets-list::-webkit-scrollbar-track {
+  background: #2d3748;
+  border-radius: 3px;
+}
+
+.targets-list::-webkit-scrollbar-thumb {
+  background: #4a5568;
+  border-radius: 3px;
+}
+
+.targets-list::-webkit-scrollbar-thumb:hover {
+  background: #718096;
+}
+
+/* Target Item - Ultra Compact Single Line */
+.target-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  background: #2d3748;
+  border-radius: 2px;
+  border: 1px solid #4a5568;
+  transition: background 0.15s;
+  min-height: 20px;
+  height: 20px;
+  overflow: hidden;
+}
+
+.target-item:hover {
+  background: #374151;
+  border-color: #63b3ed;
+}
+
+.target-number {
+  font-size: 8px;
+  font-weight: 700;
+  color: #63b3ed;
+  text-align: center;
+  line-height: 1;
+  width: 12px;
+  flex-shrink: 0;
+}
+
+.target-info {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  overflow: hidden;
+  flex: 1;
+}
+
+.target-name {
+  font-size: 8px;
+  font-weight: 600;
+  color: #e2e8f0;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+  min-width: 30px;
+}
+
+.target-details {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 8px;
+  color: #a0aec0;
+  white-space: nowrap;
+  overflow: hidden;
+  flex-shrink: 1;
+}
+
+.motion-type {
+  font-size: 6px;
+  font-weight: 700;
+  padding: 2px 3px;
+  background: #4a5568;
+  border-radius: 2px;
+  color: #e2e8f0;
+  text-transform: uppercase;
+  line-height: 1;
+  flex-shrink: 0;
+  white-space: nowrap;
+  min-width: 32px;
+  text-align: center;
+}
+
+.target-position {
+  font-family: 'Courier New', monospace;
+  font-size: 6px;
+  color: #718096;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+  flex-shrink: 1;
+}
+
+/* Target Actions - Icon-Only Compact Buttons */
+.target-actions {
+  display: flex;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.target-move-btn,
+.target-delete-btn {
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+  line-height: 1;
+}
+
+.target-move-btn {
+  background: #4a5568;
+  color: #e2e8f0;
+}
+
+.target-move-btn:hover:not(:disabled) {
+  background: #63b3ed;
+}
+
+.target-move-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.target-delete-btn {
+  background: #4a5568;
+  color: #e2e8f0;
+}
+
+.target-delete-btn:hover {
+  background: #e53e3e;
+  color: white;
+}
+
+.target-move-btn:active,
+.target-delete-btn:active {
+  transform: scale(0.9);
+}
