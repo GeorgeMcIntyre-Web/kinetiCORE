@@ -468,9 +468,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     tree.expandToNode(nodeId);
     window.dispatchEvent(new Event('scenetree-update'));
 
-    // Track if we found a mesh to adjust clipping planes
-    let selectedMesh: BABYLON.AbstractMesh | null = null;
-
     // If it's a collection/TransformNode, show coordinate frame at its origin
     if (node && node.type === 'collection' && scene) {
       let transformNode: BABYLON.TransformNode | undefined;
@@ -541,6 +538,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     if (!scene) return;
+
+    // Track if we found a mesh to adjust clipping planes
+    let selectedMesh: BABYLON.AbstractMesh | null = null;
 
     // If it's a mesh node, zoom to the specific mesh
     if (node.type === 'mesh' && node.babylonMeshId) {
