@@ -298,6 +298,127 @@ export class GLBLoader {
 
       result.success = true;
 
+      // Integrate into Scene Tree (mirror OBJ/MJCF behavior)
+      try {
+        if (result.rootNodes.length > 0 || result.meshes.length > 0) {
+          const nameSource = isUrl ? (fileOrUrl as string) : (fileOrUrl as File).name;
+          const baseName = nameSource.replace(/\\/g, '/').split('/').pop() || nameSource;
+          const modelName = baseName.replace(/\.[^.]+$/i, '');
+
+          // Dynamic import to avoid circular deps
+          const { SceneTreeManager } = await import('../../scene/SceneTreeManager');
+          const tree = SceneTreeManager.getInstance();
+          const assetsNode = tree.getAssetsNode();
+
+          const modelCollection = tree.createNode(
+            'collection',
+            modelName,
+            assetsNode?.id || null
+          );
+
+          const isSyntheticRoot = (n: TransformNode): boolean => {
+            const nm = n.name || '';
+
+            // NEVER skip our own axis wrappers or file containers - these are structural
+            if (n.metadata?.__axisWrapper === true) {
+              return false;
+            }
+            if (n.metadata?.originalCADPosition) {
+              return false;
+            }
+
+            // Skip generic placeholder roots
+            return (
+              nm === '__root__' ||
+              nm.startsWith('__root') ||
+              nm === 'mjcf_root' ||
+              nm.startsWith('mjcf_root')
+            );
+          };
+
+          const visitedTransformIds = new Set<number>();
+
+          const addNodeRecursively = (node: TransformNode, parentTreeNodeId: string, depth: number = 0): void => {
+            // Guard rail 1: Prevent stack overflow with depth limit
+            if (depth > 100) {
+              console.warn(`[GLB Loader] Maximum recursion depth (100) exceeded for node "${node.name}"`);
+              return;
+            }
+
+            // Guard rail 2: Avoid processing same TransformNode multiple times (cycle detection)
+            if (typeof node.uniqueId === 'number') {
+              if (visitedTransformIds.has(node.uniqueId)) {
+                console.log(`[GLB Loader] Skipping already visited node "${node.name}" (uniqueId: ${node.uniqueId})`);
+                return;
+              }
+              visitedTransformIds.add(node.uniqueId);
+            }
+
+            // Skip synthetic containers and duplicate filename nodes
+            if (isSyntheticRoot(node)) {
+              const children = node.getChildren();
+              console.log(`[GLB Loader] Skipping synthetic root "${node.name}", processing ${children.length} children`);
+              children.forEach((c) => {
+                if (c instanceof BABYLON.TransformNode) {
+                  addNodeRecursively(c, parentTreeNodeId, depth + 1);
+                }
+              });
+              return;
+            }
+
+            const isMesh = (node as any).getClassName && (node as any).getClassName() === 'Mesh';
+            const nodeType = isMesh ? 'mesh' : 'collection';
+
+            const worldPos = node.getAbsolutePosition();
+            const treeNode = tree.createNode(
+              nodeType as any,
+              node.name || (isMesh ? 'mesh' : 'group'),
+              parentTreeNodeId,
+              { x: worldPos.x, y: worldPos.y, z: worldPos.z }
+            );
+
+            if (isMesh) {
+              treeNode.babylonMeshId = (node as any).uniqueId?.toString?.() || undefined;
+            }
+            treeNode.babylonTransformNodeId = node.uniqueId?.toString?.();
+
+            // Process children with incremented depth
+            const children = node.getChildren();
+            children.forEach((c) => {
+              if (c instanceof BABYLON.TransformNode) {
+                addNodeRecursively(c, treeNode.id, depth + 1);
+              }
+            });
+          };
+
+          // Build tree from root nodes only
+          // After up-axis correction, result.rootNodes contains the final hierarchy root(s)
+          console.log(`[GLB Loader] Building scene tree from ${result.rootNodes.length} root node(s)`);
+
+          if (result.rootNodes.length === 0) {
+            console.warn('[GLB Loader] No root nodes found - tree will be empty');
+          }
+
+          result.rootNodes.forEach((r) => {
+            const metadata = r.metadata || {};
+            console.log(`[GLB Loader] Processing root: "${r.name}" (uniqueId: ${r.uniqueId})`, {
+              isWrapper: metadata.__axisWrapper === true,
+              isContainer: !!metadata.originalCADPosition,
+              childCount: r.getChildren().length
+            });
+            addNodeRecursively(r, modelCollection.id);
+          });
+
+          // Notify UI
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('scenetree-update'));
+            setTimeout(() => window.dispatchEvent(new Event('model-import-complete')), 100);
+          }
+        }
+      } catch (treeError) {
+        console.warn('[GLB Loader] Scene tree integration warning:', treeError);
+      }
+
       // Progress callback
       defaultOptions.onProgress?.(100, 'GLB file loaded successfully');
 
@@ -440,10 +561,72 @@ export class GLBLoader {
 
       const bounds = options.enableBoundsCalculation ? this.calculateBounds(result.meshes) : null;
 
+      // CRITICAL FIX: Find actual root nodes in GLB hierarchy
+      // Babylon's ImportMeshAsync returns ALL transform nodes (including deeply nested children)
+      // GLB files typically have a structure like: __root__ > actual_content > children
+      // We need to find the top-level content nodes, not intermediate containers
+
+      console.log('[GLB Loader] Analyzing node hierarchy...');
+
+      // Strategy: Build a parent-child map to find nodes at the top level
+      const nodesByParent = new Map<string, BABYLON.TransformNode[]>();
+      let globalRootNodes: BABYLON.TransformNode[] = [];
+
+      result.transformNodes.forEach(node => {
+        if (!node.parent) {
+          // True orphan nodes (no parent at all) - rare but possible
+          globalRootNodes.push(node);
+        } else {
+          // Group by parent name
+          const parentKey = node.parent.name || '_unnamed_parent';
+          if (!nodesByParent.has(parentKey)) {
+            nodesByParent.set(parentKey, []);
+          }
+          nodesByParent.get(parentKey)!.push(node);
+        }
+      });
+
+      console.log(`[GLB Loader] Found ${globalRootNodes.length} nodes with no parent`);
+      console.log(`[GLB Loader] Parent groups:`, Array.from(nodesByParent.keys()));
+
+      // Look for nodes under __root__ or similar containers
+      let rootTransformNodes: BABYLON.TransformNode[] = globalRootNodes;
+
+      if (rootTransformNodes.length === 0) {
+        // Check for __root__ pattern
+        const rootChildren = nodesByParent.get('__root__') || [];
+        if (rootChildren.length > 0) {
+          console.log(`[GLB Loader] Found ${rootChildren.length} children under '__root__'`);
+          rootTransformNodes = rootChildren;
+        } else {
+          // Fall back to finding top-level nodes (fewest ancestors)
+          // Find nodes with the shallowest depth
+          let minDepth = Infinity;
+          const nodeDepths = result.transformNodes.map(node => {
+            let depth = 0;
+            let current = node.parent;
+            while (current && depth < 100) {
+              depth++;
+              current = current.parent;
+            }
+            return { node, depth };
+          });
+
+          minDepth = Math.min(...nodeDepths.map(nd => nd.depth));
+          rootTransformNodes = nodeDepths
+            .filter(nd => nd.depth === minDepth)
+            .map(nd => nd.node);
+
+          console.log(`[GLB Loader] Using nodes at depth ${minDepth} as roots (${rootTransformNodes.length} nodes)`);
+        }
+      }
+
+      console.log(`[GLB Loader] Filtered ${result.transformNodes.length} transform nodes to ${rootTransformNodes.length} root nodes`);
+
       return {
         success: true,
         meshes: result.meshes,
-        rootNodes: result.transformNodes,
+        rootNodes: rootTransformNodes,
         bounds,
         errors: []
       };
@@ -480,10 +663,52 @@ export class GLBLoader {
 
       const bounds = options.enableBoundsCalculation ? this.calculateBounds(result.meshes) : null;
 
+      // CRITICAL FIX: Find actual root nodes (same logic as ImportMeshAsync)
+      const nodesByParent = new Map<string, BABYLON.TransformNode[]>();
+      let globalRootNodes: BABYLON.TransformNode[] = [];
+
+      result.transformNodes.forEach(node => {
+        if (!node.parent) {
+          globalRootNodes.push(node);
+        } else {
+          const parentKey = node.parent.name || '_unnamed_parent';
+          if (!nodesByParent.has(parentKey)) {
+            nodesByParent.set(parentKey, []);
+          }
+          nodesByParent.get(parentKey)!.push(node);
+        }
+      });
+
+      let rootTransformNodes: BABYLON.TransformNode[] = globalRootNodes;
+
+      if (rootTransformNodes.length === 0) {
+        const rootChildren = nodesByParent.get('__root__') || [];
+        if (rootChildren.length > 0) {
+          rootTransformNodes = rootChildren;
+        } else {
+          const nodeDepths = result.transformNodes.map(node => {
+            let depth = 0;
+            let current = node.parent;
+            while (current && depth < 100) {
+              depth++;
+              current = current.parent;
+            }
+            return { node, depth };
+          });
+
+          const minDepth = Math.min(...nodeDepths.map(nd => nd.depth));
+          rootTransformNodes = nodeDepths
+            .filter(nd => nd.depth === minDepth)
+            .map(nd => nd.node);
+        }
+      }
+
+      console.log(`[GLB Loader] Filtered ${result.transformNodes.length} transform nodes to ${rootTransformNodes.length} root nodes`);
+
       return {
         success: true,
         meshes: result.meshes,
-        rootNodes: result.transformNodes,
+        rootNodes: rootTransformNodes,
         bounds,
         errors: []
       };

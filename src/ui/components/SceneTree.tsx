@@ -236,9 +236,10 @@ interface TreeNodeProps {
   level: number;
   searchTerm: string;
   maxDepth?: number; // Add depth limit to prevent infinite recursion
+  visitedIds?: Set<string>; // Cycle protection
 }
 
-const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth = 50 }) => {
+const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth = 50, visitedIds }) => {
   const tree = SceneTreeManager.getInstance();
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
@@ -257,7 +258,20 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const { getNodeMenuItems } = useNodeContextMenu();
 
-  const children = tree.getChildren(node.id);
+  // Cycle protection: track visited node IDs
+  const localVisited = useMemo(() => {
+    const set = new Set<string>(visitedIds || []);
+    set.add(node.id);
+    return set;
+  }, [visitedIds, node.id]);
+
+  const children = tree.getChildren(node.id).filter((child) => {
+    if (localVisited.has(child.id)) {
+      console.warn(`[SceneTree] Cycle detected: skipping child ${child.id} (${child.name}) of ${node.id} (${node.name})`);
+      return false;
+    }
+    return true;
+  });
   const hasChildren = children.length > 0;
   const isSelected = selectedNodeId === node.id || selectedNodeIds.includes(node.id);
   const canDelete = node.type !== 'world' &&
@@ -597,6 +611,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
                 level={level + 1}
                 searchTerm={searchTerm}
                 maxDepth={maxDepth}
+                visitedIds={localVisited}
               />
             ))}
         </div>

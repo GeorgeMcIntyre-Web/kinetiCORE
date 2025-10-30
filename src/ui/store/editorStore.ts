@@ -1636,6 +1636,20 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Get the model name from the file
       const modelName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
 
+      // CRITICAL: GLBLoader handles its own tree building (lines 301-410 in GLBLoader.ts)
+      // Skip duplicate tree building for GLB files to avoid creating duplicate nodes
+      const isGLB = file.name.toLowerCase().endsWith('.glb');
+
+      if (isGLB) {
+        console.log('[EditorStore] Skipping tree building for GLB file - GLBLoader handles this');
+        loading.end();
+
+        // Store loaded meshes for reference
+        console.log(`Imported ${meshes.length} meshes with ${rootNodes.length} root nodes`);
+
+        return;
+      }
+
       // Create a collection for this model (or device node for URDF)
       const nodeType = deviceEntity ? 'collection' : 'collection'; // Use 'device' type when available
       const modelCollection = tree.createNode(

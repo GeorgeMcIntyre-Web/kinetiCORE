@@ -77,7 +77,12 @@ export class SceneTreeManager {
     if (parentId) {
       const parent = this.nodes.get(parentId);
       if (parent) {
-        parent.childIds.push(node.id);
+        // Prevent self-parenting and duplicate entries
+        if (parentId === node.id) {
+          console.warn(`[SceneTree] Prevented self-parenting for node ${node.id} (${name})`);
+        } else if (!parent.childIds.includes(node.id)) {
+          parent.childIds.push(node.id);
+        }
       }
     }
 
