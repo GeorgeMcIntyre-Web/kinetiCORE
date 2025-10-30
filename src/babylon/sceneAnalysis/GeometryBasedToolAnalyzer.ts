@@ -193,12 +193,14 @@ export class GeometryBasedToolAnalyzer {
     const nodes = this.getAllTransformNodes(rootNode);
 
     for (const node of nodes) {
-      // Sample point cloud from all child meshes
+      // Sample point cloud from all child meshes IN LOCAL SPACE
+      // CRITICAL: Use local space so FIXED and MOVING parts can be compared geometrically
+      // even if they're positioned differently in the scene
       const pointCloud: BABYLON.Vector3[] = [];
       const meshes = (node as any).getChildMeshes?.() as BABYLON.AbstractMesh[] || [];
 
       for (const mesh of meshes) {
-        const points = WorldSpace.sampleMeshWorldPoints(mesh, {
+        const points = WorldSpace.sampleMeshLocalPoints(mesh, {
           stride: opts.sampleStride,
           maxPoints: opts.maxSamplePoints,
         });
