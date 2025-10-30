@@ -47,7 +47,7 @@ export interface GeometryBasedAnalyzeOptions {
 }
 
 const DEFAULT_OPTIONS: Required<GeometryBasedAnalyzeOptions> = {
-  maxICPError: 0.01, // 10mm - geometry must match within this tolerance
+  maxICPError: 0.15, // 150mm - more lenient for automotive tooling (was 10mm)
   minPoints: 50,
   maxSamplePoints: 500,
   sampleStride: 10,
@@ -149,7 +149,11 @@ export class GeometryBasedToolAnalyzer {
     const pairs = await this.findGeometryMatchingPairs(candidates, opts);
 
     if (opts.verbose) {
-      console.log(`[GeometryAnalyzer] Found ${pairs.length} matching geometry pairs`);
+      console.log(`[GeometryAnalyzer] ===== ICP MATCHING RESULTS =====`);
+      console.log(`[GeometryAnalyzer] Total candidate nodes: ${candidates.length}`);
+      console.log(`[GeometryAnalyzer] Total pairs tested: ${(candidates.length * (candidates.length - 1)) / 2}`);
+      console.log(`[GeometryAnalyzer] Matching pairs found: ${pairs.length}`);
+      console.log(`[GeometryAnalyzer] ================================`);
     }
 
     // Step 3: Create ToolUnits from pairs
@@ -294,10 +298,30 @@ export class GeometryBasedToolAnalyzer {
           console.log(`  - ✅ MATCH FOUND: ${jointType} joint (error: ${(icpResult.error * 1000).toFixed(2)}mm)`);
         }
 
-        // Determine which is fixed/moving based on naming or position
-        // For now, use alphabetical order as heuristic (can be improved)
-        const fixed = candA.node.name < candB.node.name ? candA : candB;
-        const moving = candA.node.name < candB.node.name ? candB : candA;
+        // Determine which is fixed/moving based on naming
+        // Priority: 1) Check for "FIXED" or "MOVING" in name, 2) Fall back to alphabetical
+        let fixed: NodeCandidate, moving: NodeCandidate;
+
+        const aHasFixed = candA.node.name.toUpperCase().includes('FIXED');
+        const bHasFixed = candB.node.name.toUpperCase().includes('FIXED');
+        const aHasMoving = candA.node.name.toUpperCase().includes('MOVING');
+        const bHasMoving = candB.node.name.toUpperCase().includes('MOVING');
+
+        if (aHasFixed && bHasMoving) {
+          fixed = candA;
+          moving = candB;
+        } else if (bHasFixed && aHasMoving) {
+          fixed = candB;
+          moving = candA;
+        } else {
+          // Fallback to alphabetical order
+          fixed = candA.node.name < candB.node.name ? candA : candB;
+          moving = candA.node.name < candB.node.name ? candB : candA;
+
+          if (opts.verbose) {
+            console.log(`  - ⚠️  No FIXED/MOVING in names, using alphabetical heuristic`);
+          }
+        }
 
         pairs.push({
           fixed,
