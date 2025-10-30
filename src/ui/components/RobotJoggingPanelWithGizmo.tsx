@@ -6,7 +6,7 @@
 // - TCP Mode: Jog tool center point in Cartesian space with visual gizmo
 
 import { useState, useEffect, useRef } from 'react';
-import { Move, RotateCw, Minus, Plus, Play, Save, Trash2, ChevronDown, ChevronRight, Target, PlayCircle, StopCircle, ArrowUp, ArrowDown } from 'lucide-react';
+import { Move, RotateCw, Minus, Plus, Play, Save, Trash2, ChevronDown, ChevronRight, Target, PlayCircle, StopCircle, ArrowUp, ArrowDown, ArrowRight } from 'lucide-react';
 import * as BABYLON from '@babylonjs/core';
 import { KinematicsManager, RobotKeyframe } from '../../kinematics/KinematicsManager';
 import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
@@ -735,9 +735,20 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     }
   };
 
+  // Helper: auto-generate compact target names (T001, T002, ...)
+  const generateNextTargetName = () => {
+    const existingNumbers = targets
+      .map(t => {
+        const match = /T(\d{1,4})$/i.exec(t.name || '');
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter(n => !Number.isNaN(n));
+    const next = (existingNumbers.length ? Math.max(...existingNumbers) + 1 : 1);
+    return `T${String(next).padStart(3, '0')}`;
+  };
+
   // Target (teaching point) handlers
   const handleTeachTarget = () => {
-    if (!newTargetName.trim()) return;
     if (!robotId) return;
 
     const kinematicsManager = KinematicsManager.getInstance();
@@ -774,7 +785,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     const euler = tcpPose.rotation.toEulerAngles();
     const target: SixAxisTarget = {
       id: `target_${Date.now()}`,
-      name: newTargetName.trim(),
+      name: (newTargetName.trim() || generateNextTargetName()),
       joints: jointsDegrees,
       configuration: {
         elbow: 'up',  // TODO: Detect from current configuration
@@ -1203,35 +1214,35 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
               </button>
             </div>
 
-            {/* Teach new target */}
-            <div className="target-teach-section">
-              <div className="target-teach-inputs">
-                <input
-                  type="text"
-                  className="target-name-input"
-                  placeholder="Target name..."
-                  value={newTargetName}
-                  onChange={(e) => setNewTargetName(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleTeachTarget()}
-                />
-                <select
-                  className="motion-type-select"
-                  value={newTargetMotionType}
-                  onChange={(e) => setNewTargetMotionType(e.target.value as MotionType)}
-                  title="Motion type for moving TO this target"
+            {/* Teach new target - compact, icon-only controls */}
+            <div className="target-teach-section" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <div className="motion-type-toggle" style={{ display: 'flex', gap: 4 }}>
+                <button
+                  aria-label="Joint move"
+                  title="Joint"
+                  onClick={() => setNewTargetMotionType('JOINT')}
+                  className={`icon-toggle ${newTargetMotionType === 'JOINT' ? 'active' : ''}`}
+                  style={{ width: 24, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', background: newTargetMotionType === 'JOINT' ? '#3182ce' : '#4a5568', border: 'none', borderRadius: 3, color: '#fff' }}
                 >
-                  <option value="JOINT">Joint</option>
-                  <option value="LINEAR">Linear</option>
-                  <option value="PTP">PTP</option>
-                </select>
+                  <Move size={16} color="#ffffff" stroke="#ffffff" strokeWidth={2} style={{ display: 'block', flexShrink: 0, pointerEvents: 'none' }} />
+                </button>
+                <button
+                  aria-label="Linear move"
+                  title="Linear"
+                  onClick={() => setNewTargetMotionType('LINEAR')}
+                  className={`icon-toggle ${newTargetMotionType === 'LINEAR' ? 'active' : ''}`}
+                  style={{ width: 24, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', background: newTargetMotionType === 'LINEAR' ? '#3182ce' : '#4a5568', border: 'none', borderRadius: 3, color: '#fff' }}
+                >
+                  <ArrowRight size={16} color="#ffffff" stroke="#ffffff" strokeWidth={2} style={{ display: 'block', flexShrink: 0, pointerEvents: 'none' }} />
+                </button>
               </div>
               <button
                 className="target-teach-btn"
                 onClick={handleTeachTarget}
-                disabled={!newTargetName.trim()}
                 title="Teach current position as target"
+                style={{ width: 28, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#2f855a', border: 'none', borderRadius: 3, color: '#fff' }}
               >
-                <Target size={16} />
+                <Target size={16} color="#ffffff" stroke="#ffffff" strokeWidth={2} style={{ display: 'block', flexShrink: 0, pointerEvents: 'none' }} />
               </button>
             </div>
 

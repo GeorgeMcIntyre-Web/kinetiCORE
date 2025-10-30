@@ -18,31 +18,39 @@
   background: #2d3748;
   padding: 2px;
   border-radius: 6px;
-  flex-wrap: wrap; /* allow tabs to wrap when space is tight */
+  flex-wrap: nowrap; /* keep tabs on a single line */
+  overflow: hidden;  /* no scrollbar; contents must fit */
+  container-type: inline-size; /* enable container query-based scaling */
 }
 
 .mode-button {
-  flex: 0 0 auto; /* auto-size to content; no forced equal widths */
+  flex: 1 1 0; /* distribute space equally and allow shrinking */
   min-width: 0; /* allow shrinking */
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 3px 3px;
+  padding: 2px 4px; /* tighter to fit more */
   background: transparent;
   border: none;
   border-radius: 4px;
   color: #a0aec0;
-  font-size: 11px;
+  font-size: 11px; /* base, scaled down with container queries below */
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
 }
 
+/* Icons scale with text size */
+.mode-button svg {
+  width: 1.05em;
+  height: 1.05em;
+}
+
 .mode-button span {
   white-space: nowrap;
-  overflow: visible;   /* show full label when possible */
-  text-overflow: unset;
+  overflow: hidden;      /* allow truncation to keep one line */
+  text-overflow: ellipsis;
 }
 
 
@@ -366,7 +374,29 @@
 }
 
 /* Extremely narrow panel: icon-only tabs */
-@media (max-width: 260px) {
+@media (max-width: 320px) {
+  .mode-button span { display: none; }
+}
+
+/* Container-based responsive scaling (preferred over viewport) */
+@container (max-width: 360px) {
+  .mode-button { font-size: 10.5px; gap: 2px; }
+}
+
+@container (max-width: 320px) {
+  .mode-button { font-size: 10px; gap: 2px; }
+}
+
+@container (max-width: 290px) {
+  .mode-button { font-size: 9.5px; padding: 2px 3px; gap: 1px; }
+}
+
+@container (max-width: 260px) {
+  .mode-button { font-size: 9px; padding: 1px 3px; gap: 1px; }
+}
+
+@container (max-width: 230px) {
+  /* When extremely tight, hide labels to keep icons only */
   .mode-button span { display: none; }
 }
 
