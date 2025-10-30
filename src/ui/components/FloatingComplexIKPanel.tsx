@@ -1,14 +1,18 @@
 /**
  * FloatingComplexIKPanel - Complex IK Systems Control in Floating Panel
  * Owner: George
- * 
+ *
  * Provides advanced inverse kinematics controls for complex multi-joint systems
  */
 
 import React, { useState, useEffect } from 'react';
 import { GitBranch, Target, Move, RotateCw } from 'lucide-react';
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
-import { AssetLibraryDarkPanel, AssetLibraryDarkSection, AssetLibraryDarkDisabled } from './FloatingPanel/AssetLibraryDarkPanel';
+import {
+  AssetLibraryDarkPanel,
+  AssetLibraryDarkSection,
+  AssetLibraryDarkDisabled,
+} from './FloatingPanel/AssetLibraryDarkPanel';
 import './FloatingComplexIKPanel.css';
 
 interface FloatingComplexIKPanelProps {
@@ -103,7 +107,7 @@ export const FloatingComplexIKPanel: React.FC<FloatingComplexIKPanelProps> = ({
 
     setIkChains(mockChains);
     setIkTargets(mockTargets);
-    
+
     if (mockChains.length > 0) {
       setActiveChain(mockChains[0]);
     }
@@ -111,16 +115,16 @@ export const FloatingComplexIKPanel: React.FC<FloatingComplexIKPanelProps> = ({
 
   const handleIKSolve = () => {
     if (!activeChain || !selectedTarget) return;
-    
-    const target = ikTargets.find(t => t.targetId === selectedTarget);
+
+    const target = ikTargets.find((t) => t.targetId === selectedTarget);
     if (!target) return;
 
     // Update chain status to computing
-    setActiveChain(prev => prev ? { ...prev, status: 'computing' } : null);
-    
+    setActiveChain((prev) => (prev ? { ...prev, status: 'computing' } : null));
+
     // Simulate IK computation
     setTimeout(() => {
-      setActiveChain(prev => prev ? { ...prev, status: 'idle' } : null);
+      setActiveChain((prev) => (prev ? { ...prev, status: 'idle' } : null));
       // Here you would call the actual IK solver
     }, 1000);
   };
@@ -134,7 +138,7 @@ export const FloatingComplexIKPanel: React.FC<FloatingComplexIKPanelProps> = ({
       isReachable: true,
       distance: 0.0,
     };
-    setIkTargets(prev => [...prev, newTarget]);
+    setIkTargets((prev) => [...prev, newTarget]);
     setSelectedTarget(newTarget.targetId);
   };
 
@@ -145,8 +149,8 @@ export const FloatingComplexIKPanel: React.FC<FloatingComplexIKPanelProps> = ({
         {ikChains.length > 0 ? (
           <div className="ik-chains-list">
             {ikChains.map((chain) => (
-              <div 
-                key={chain.chainId} 
+              <div
+                key={chain.chainId}
                 className={`ik-chain-item ${activeChain?.chainId === chain.chainId ? 'active' : ''}`}
                 onClick={() => setActiveChain(chain)}
               >
@@ -171,32 +175,31 @@ export const FloatingComplexIKPanel: React.FC<FloatingComplexIKPanelProps> = ({
       {/* IK Targets */}
       <AssetLibraryDarkSection title="IK Targets">
         <div className="ik-targets-controls">
-          <button 
-            className="add-target-btn"
-            onClick={handleAddTarget}
-            title="Add new IK target"
-          >
+          <button className="add-target-btn" onClick={handleAddTarget} title="Add new IK target">
             <Target size={16} />
             Add Target
           </button>
         </div>
-        
+
         {ikTargets.length > 0 ? (
           <div className="ik-targets-list">
             {ikTargets.map((target) => (
-              <div 
-                key={target.targetId} 
+              <div
+                key={target.targetId}
                 className={`ik-target-item ${selectedTarget === target.targetId ? 'selected' : ''}`}
                 onClick={() => setSelectedTarget(target.targetId)}
               >
                 <div className="target-info">
                   <div className="target-name">{target.name}</div>
                   <div className="target-position">
-                    ({target.position.x.toFixed(0)}, {target.position.y.toFixed(0)}, {target.position.z.toFixed(0)})
+                    ({target.position.x.toFixed(0)}, {target.position.y.toFixed(0)},{' '}
+                    {target.position.z.toFixed(0)})
                   </div>
                 </div>
                 <div className="target-status">
-                  <div className={`reachability-indicator ${target.isReachable ? 'reachable' : 'unreachable'}`} />
+                  <div
+                    className={`reachability-indicator ${target.isReachable ? 'reachable' : 'unreachable'}`}
+                  />
                 </div>
               </div>
             ))}
@@ -211,56 +214,72 @@ export const FloatingComplexIKPanel: React.FC<FloatingComplexIKPanelProps> = ({
         <div className="ik-settings">
           <div className="setting-item">
             <label>Max Iterations</label>
-            <input 
-              type="number" 
+            <input
+              type="number"
               value={ikSettings.maxIterations}
-              onChange={(e) => setIkSettings(prev => ({ ...prev, maxIterations: parseInt(e.target.value) || 100 }))}
+              onChange={(e) =>
+                setIkSettings((prev) => ({
+                  ...prev,
+                  maxIterations: parseInt(e.target.value) || 100,
+                }))
+              }
               min="10"
               max="1000"
             />
           </div>
-          
+
           <div className="setting-item">
             <label>Tolerance</label>
-            <input 
-              type="number" 
+            <input
+              type="number"
               value={ikSettings.tolerance}
-              onChange={(e) => setIkSettings(prev => ({ ...prev, tolerance: parseFloat(e.target.value) || 0.001 }))}
+              onChange={(e) =>
+                setIkSettings((prev) => ({
+                  ...prev,
+                  tolerance: parseFloat(e.target.value) || 0.001,
+                }))
+              }
               min="0.0001"
               max="0.1"
               step="0.0001"
             />
           </div>
-          
+
           <div className="setting-item">
             <label>Damping</label>
-            <input 
-              type="number" 
+            <input
+              type="number"
               value={ikSettings.damping}
-              onChange={(e) => setIkSettings(prev => ({ ...prev, damping: parseFloat(e.target.value) || 0.1 }))}
+              onChange={(e) =>
+                setIkSettings((prev) => ({ ...prev, damping: parseFloat(e.target.value) || 0.1 }))
+              }
               min="0.01"
               max="1.0"
               step="0.01"
             />
           </div>
-          
+
           <div className="setting-item checkbox">
             <label>
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={ikSettings.enableCollisionAvoidance}
-                onChange={(e) => setIkSettings(prev => ({ ...prev, enableCollisionAvoidance: e.target.checked }))}
+                onChange={(e) =>
+                  setIkSettings((prev) => ({ ...prev, enableCollisionAvoidance: e.target.checked }))
+                }
               />
               Collision Avoidance
             </label>
           </div>
-          
+
           <div className="setting-item checkbox">
             <label>
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={ikSettings.enableJointLimits}
-                onChange={(e) => setIkSettings(prev => ({ ...prev, enableJointLimits: e.target.checked }))}
+                onChange={(e) =>
+                  setIkSettings((prev) => ({ ...prev, enableJointLimits: e.target.checked }))
+                }
               />
               Joint Limits
             </label>
@@ -271,7 +290,7 @@ export const FloatingComplexIKPanel: React.FC<FloatingComplexIKPanelProps> = ({
       {/* IK Actions */}
       <AssetLibraryDarkSection title="Actions">
         <div className="ik-actions">
-          <button 
+          <button
             className="solve-ik-btn"
             onClick={handleIKSolve}
             disabled={!activeChain || !selectedTarget || activeChain.status === 'computing'}
@@ -279,11 +298,11 @@ export const FloatingComplexIKPanel: React.FC<FloatingComplexIKPanelProps> = ({
             <Move size={16} />
             Solve IK
           </button>
-          
-          <button 
+
+          <button
             className="reset-ik-btn"
             onClick={() => {
-              setActiveChain(prev => prev ? { ...prev, status: 'idle' } : null);
+              setActiveChain((prev) => (prev ? { ...prev, status: 'idle' } : null));
             }}
           >
             <RotateCw size={16} />
@@ -297,29 +316,30 @@ export const FloatingComplexIKPanel: React.FC<FloatingComplexIKPanelProps> = ({
   return (
     <FloatingPanel
       title="Complex IK Systems"
-      subtitle={activeChain ? `${activeChain.name} (${activeChain.jointCount} joints)` : "Select IK chain"}
+      subtitle={
+        activeChain ? `${activeChain.name} (${activeChain.jointCount} joints)` : 'Select IK chain'
+      }
       icon={<GitBranch size={20} />}
       onClose={onClose}
       isVisible={isVisible}
       zIndex={zIndex}
-      defaultSize={{ width: 350, height: 600 }}
+      defaultSize={{ width: 350, height: 550 }}
       minWidth={320}
       minHeight={500}
       maxWidth={500}
-      maxHeight={800}
+      maxHeight={100}
       draggable={true}
       resizable={true}
     >
-      <AssetLibraryDarkPanel
-        title=""
-        onClose={undefined}
-      >
-        <div style={{
-          height: '100%',
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          paddingRight: '4px'
-        }}>
+      <AssetLibraryDarkPanel title="" onClose={undefined}>
+        <div
+          style={{
+            height: '100%',
+            overflowY: 'auto',
+            overflowX: 'auto',
+            paddingRight: '4px',
+          }}
+        >
           {panelContent}
         </div>
       </AssetLibraryDarkPanel>
