@@ -479,6 +479,20 @@ export class SceneManager {
     this.cameraService.zoomToNode(node);
   }
 
+  /**
+   * Zoom camera in
+   */
+  zoomIn(): void {
+    this.cameraService.zoomIn();
+  }
+
+  /**
+   * Zoom camera out
+   */
+  zoomOut(): void {
+    this.cameraService.zoomOut();
+  }
+
   dispose(): void {
     this.scene?.dispose();
     this.scene = null;

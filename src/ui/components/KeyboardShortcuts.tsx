@@ -27,6 +27,8 @@ export const KeyboardShortcuts: React.FC = () => {
   const togglePhysics = useEditorStore((state) => state.togglePhysics);
   const zoomToNode = useEditorStore((state) => state.zoomToNode);
   const zoomFit = useEditorStore((state) => state.zoomFit);
+  const zoomIn = useEditorStore((state) => state.zoomIn);
+  const zoomOut = useEditorStore((state) => state.zoomOut);
   const undo = useEditorStore((state) => state.undo);
   const redo = useEditorStore((state) => state.redo);
 
@@ -61,6 +63,8 @@ export const KeyboardShortcuts: React.FC = () => {
     { key: '7', description: 'Top View', action: () => {}, category: 'View' },
     { key: '0', description: 'Camera View', action: () => {}, category: 'View' },
     { key: '.', description: 'Zoom Fit All', action: () => zoomFit(), category: 'View' },
+    { key: '=', description: 'Zoom In', action: () => zoomIn(), category: 'View' },
+    { key: '-', description: 'Zoom Out', action: () => zoomOut(), category: 'View' },
 
     // Help
     { key: '?', description: 'Show Shortcuts', action: () => setShowHelp(!showHelp), category: 'Help' },

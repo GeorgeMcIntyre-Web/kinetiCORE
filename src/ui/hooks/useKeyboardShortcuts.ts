@@ -7,7 +7,7 @@ import { useEditorStore } from '../store/editorStore';
 export const useKeyboardShortcuts = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const { undo, redo, duplicateNode, deleteNode, selectedNodeId } = useEditorStore.getState();
+      const { undo, redo, duplicateNode, deleteNode, selectedNodeId, zoomIn, zoomOut } = useEditorStore.getState();
 
       // Ctrl/Cmd + Z: Undo
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
@@ -41,6 +41,20 @@ export const useKeyboardShortcuts = () => {
         }
         e.preventDefault();
         deleteNode(selectedNodeId);
+        return;
+      }
+
+      // = or +: Zoom in
+      if (e.key === '=' || e.key === '+') {
+        e.preventDefault();
+        zoomIn();
+        return;
+      }
+
+      // -: Zoom out
+      if (e.key === '-') {
+        e.preventDefault();
+        zoomOut();
         return;
       }
     };
