@@ -115,7 +115,8 @@
       "Bash(gh run list:*)",
       "Bash(gh run view:*)",
       "Bash(timeout 30 npm run lint:*)",
-      "Bash(timeout 60 npm run lint:*)"
+      "Bash(timeout 60 npm run lint:*)",
+      "Bash(locations moving in joint or linear motion. Those are for teaching the robot\"\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []

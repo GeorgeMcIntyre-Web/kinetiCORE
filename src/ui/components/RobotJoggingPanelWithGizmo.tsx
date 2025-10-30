@@ -6,25 +6,27 @@
 // - TCP Mode: Jog tool center point in Cartesian space with visual gizmo
 
 import { useState, useEffect, useRef } from 'react';
-import { Move, RotateCw, Minus, Plus, Play, Save, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Move, RotateCw, Minus, Plus, Play, Save, Trash2, ChevronDown, ChevronRight, Target, PlayCircle, StopCircle, ArrowUp, ArrowDown } from 'lucide-react';
 import * as BABYLON from '@babylonjs/core';
 import { KinematicsManager, RobotKeyframe } from '../../kinematics/KinematicsManager';
-import type { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
+import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
 import { InverseKinematicsSolver } from '../../kinematics/InverseKinematicsSolver';
 import { UnifiedGizmoManager } from '../../kinematics/UnifiedGizmoManager';
 import { TransformDebugVisualizer } from '../../kinematics/TransformDebugVisualizer';
 import { SceneManager } from '../../scene/SceneManager';
 import { babylonToUser, userToBabylon } from '../../core/CoordinateSystem';
 import { detectJointGroups, shouldUseJointGroups, JointGroup } from '../../kinematics/JointGroupDetector';
-import { 
-  syncTcpGizmoAfterJointMove, 
-  syncTcpGizmoAfterLinearMove, 
+import {
+  syncTcpGizmoAfterJointMove,
+  syncTcpGizmoAfterLinearMove,
   validateLinearMotionTarget,
-  isSixAxisRobot 
+  isSixAxisRobot,
+  getSixAxisJointConfiguration
 } from '../../kinematics/utils/SixAxisRobotTargetHandler';
+import { SixAxisTarget, MotionType } from '../../kinematics/utils/SixAxisTargetStorage';
 import './RobotJoggingPanel.css';
 
-type JogMode = 'joint' | 'tcp' | 'poses';
+type JogMode = 'joint' | 'tcp' | 'poses' | 'targets';
 type JogAxis = 'X' | 'Y' | 'Z' | 'RX' | 'RY' | 'RZ';
 type IKDebugMode = 'off' | 'summary' | 'verbose';
 
@@ -44,6 +46,12 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
   const [ikSolver] = useState(() => InverseKinematicsSolver.getInstance());
   const [keyframes, setKeyframes] = useState<RobotKeyframe[]>([]);
   const [newPoseName, setNewPoseName] = useState<string>('');
+
+  // Targets (teaching points with motion type)
+  const [targets, setTargets] = useState<SixAxisTarget[]>([]);
+  const [newTargetName, setNewTargetName] = useState<string>('');
+  const [newTargetMotionType, setNewTargetMotionType] = useState<MotionType>('JOINT');
+  const [isPlaying, setIsPlaying] = useState(false);
   const [jointGroups, setJointGroups] = useState<JointGroup[]>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [useGroups, setUseGroups] = useState<boolean>(false);
@@ -727,6 +735,125 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
     }
   };
 
+  // Target (teaching point) handlers
+  const handleTeachTarget = () => {
+    if (!newTargetName.trim()) return;
+    if (!robotId) return;
+
+    const kinematicsManager = KinematicsManager.getInstance();
+    const fkSolver = ForwardKinematicsSolver.getInstance();
+    const chains = kinematicsManager.getAllChains();
+    const robotChain = chains.find(chain =>
+      chain.joints.some((joint: any) => joint.id.startsWith(robotId))
+    );
+
+    if (!robotChain) return;
+
+    // Get current joint positions
+    const jointConfig = getSixAxisJointConfiguration(robotChain.name);
+    if (!jointConfig) {
+      console.warn('Cannot teach target: Not a 6-axis robot or invalid configuration');
+      return;
+    }
+
+    // Get TCP pose
+    const tcpPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
+    if (!tcpPose) return;
+
+    // Convert joint angles from radians to degrees
+    const jointsDegrees: [number, number, number, number, number, number] = [
+      jointConfig.jointAngles[0] * 180 / Math.PI,
+      jointConfig.jointAngles[1] * 180 / Math.PI,
+      jointConfig.jointAngles[2] * 180 / Math.PI,
+      jointConfig.jointAngles[3] * 180 / Math.PI,
+      jointConfig.jointAngles[4] * 180 / Math.PI,
+      jointConfig.jointAngles[5] * 180 / Math.PI,
+    ];
+
+    // Create target
+    const euler = tcpPose.rotation.toEulerAngles();
+    const target: SixAxisTarget = {
+      id: `target_${Date.now()}`,
+      name: newTargetName.trim(),
+      joints: jointsDegrees,
+      configuration: {
+        elbow: 'up',  // TODO: Detect from current configuration
+        wrist: 'non-flip',
+        front: 'front',
+        turns: [0, 0, 0, 0, 0, 0],
+      },
+      frame: {
+        type: 'WORLD',
+      },
+      motionType: newTargetMotionType,
+      cartesian: {
+        position: [
+          tcpPose.position.x * 1000,  // m → mm
+          tcpPose.position.y * 1000,
+          tcpPose.position.z * 1000,
+        ],
+        orientation: [
+          euler.x * 180 / Math.PI,  // rad → deg
+          euler.y * 180 / Math.PI,
+          euler.z * 180 / Math.PI,
+        ],
+        quaternion: [
+          tcpPose.rotation.x,
+          tcpPose.rotation.y,
+          tcpPose.rotation.z,
+          tcpPose.rotation.w,
+        ],
+      },
+    };
+
+    setTargets(prev => [...prev, target]);
+    setNewTargetName('');
+    console.log(`✅ Target ${target.name} taught (${newTargetMotionType} motion)`);
+  };
+
+  const handleDeleteTarget = (targetId: string) => {
+    setTargets(prev => prev.filter(t => t.id !== targetId));
+    console.log(`✅ Target deleted`);
+  };
+
+  const handleMoveTargetUp = (index: number) => {
+    if (index === 0) return;
+    setTargets(prev => {
+      const newTargets = [...prev];
+      [newTargets[index - 1], newTargets[index]] = [newTargets[index], newTargets[index - 1]];
+      return newTargets;
+    });
+  };
+
+  const handleMoveTargetDown = (index: number) => {
+    if (index === targets.length - 1) return;
+    setTargets(prev => {
+      const newTargets = [...prev];
+      [newTargets[index], newTargets[index + 1]] = [newTargets[index + 1], newTargets[index]];
+      return newTargets;
+    });
+  };
+
+  const handlePlaySequence = async () => {
+    if (targets.length === 0) return;
+    setIsPlaying(true);
+    console.log(`▶️ Playing sequence of ${targets.length} targets...`);
+
+    // TODO: Implement sequential playback with motion interpolation
+    // For now, just log the sequence
+    for (let i = 0; i < targets.length; i++) {
+      const target = targets[i];
+      console.log(`  ${i + 1}. ${target.name} (${target.motionType} motion)`);
+    }
+
+    setIsPlaying(false);
+  };
+
+  const handleStopSequence = () => {
+    setIsPlaying(false);
+    console.log(`⏹️ Sequence stopped`);
+  };
+
   const toggleGroupCollapse = (groupName: string) => {
     setCollapsedGroups(prev => {
       const newSet = new Set(prev);
@@ -763,6 +890,13 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
         >
           <Play size={14} />
           <span>Poses</span>
+        </button>
+        <button
+          className={`mode-button ${jogMode === 'targets' ? 'active' : ''}`}
+          onClick={() => setJogMode('targets')}
+        >
+          <Target size={14} />
+          <span>Targets</span>
         </button>
       </div>
 
@@ -1032,6 +1166,126 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
                     {joints.length > 0
                       ? 'Set joint positions and save a pose'
                       : 'Load a robot with joints to save poses'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Targets Mode (Teaching/Waypoints) */}
+      {jogMode === 'targets' && (
+        <div className="targets-mode">
+          <div className="targets-content">
+            <div className="targets-header">
+              <h4>Target Sequence</h4>
+              <span className="targets-count">{targets.length} targets</span>
+            </div>
+
+            {/* Playback controls */}
+            <div className="playback-controls">
+              <button
+                className="playback-btn"
+                onClick={handlePlaySequence}
+                disabled={targets.length === 0 || isPlaying}
+                title={isPlaying ? 'Playing sequence...' : 'Play sequence'}
+              >
+                <PlayCircle size={20} />
+              </button>
+              <button
+                className="playback-btn stop-btn"
+                onClick={handleStopSequence}
+                disabled={!isPlaying}
+                title="Stop sequence"
+              >
+                <StopCircle size={20} />
+              </button>
+            </div>
+
+            {/* Teach new target */}
+            <div className="target-teach-section">
+              <div className="target-teach-inputs">
+                <input
+                  type="text"
+                  className="target-name-input"
+                  placeholder="Target name..."
+                  value={newTargetName}
+                  onChange={(e) => setNewTargetName(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleTeachTarget()}
+                />
+                <select
+                  className="motion-type-select"
+                  value={newTargetMotionType}
+                  onChange={(e) => setNewTargetMotionType(e.target.value as MotionType)}
+                  title="Motion type for moving TO this target"
+                >
+                  <option value="JOINT">Joint</option>
+                  <option value="LINEAR">Linear</option>
+                  <option value="PTP">PTP</option>
+                </select>
+              </div>
+              <button
+                className="target-teach-btn"
+                onClick={handleTeachTarget}
+                disabled={!newTargetName.trim()}
+                title="Teach current position as target"
+              >
+                <Target size={16} />
+              </button>
+            </div>
+
+            {/* Targets list */}
+            <div className="targets-list">
+              {targets.length > 0 ? (
+                targets.map((target, index) => (
+                  <div key={target.id} className="target-item">
+                    <div className="target-number">{index + 1}</div>
+                    <div className="target-info">
+                      <div className="target-name">{target.name}</div>
+                      <div className="target-details">
+                        <span className="motion-type">{target.motionType}</span>
+                        {target.cartesian && (
+                          <span className="target-position">
+                            X:{target.cartesian.position[0].toFixed(1)}
+                            Y:{target.cartesian.position[1].toFixed(1)}
+                            Z:{target.cartesian.position[2].toFixed(1)}mm
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="target-actions">
+                      <button
+                        className="target-move-btn"
+                        onClick={() => handleMoveTargetUp(index)}
+                        disabled={index === 0}
+                        title="Move up"
+                      >
+                        <ArrowUp size={12} />
+                      </button>
+                      <button
+                        className="target-move-btn"
+                        onClick={() => handleMoveTargetDown(index)}
+                        disabled={index === targets.length - 1}
+                        title="Move down"
+                      >
+                        <ArrowDown size={12} />
+                      </button>
+                      <button
+                        className="target-delete-btn"
+                        onClick={() => handleDeleteTarget(target.id)}
+                        title="Delete target"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="targets-empty">
+                  <p>No targets taught</p>
+                  <p className="targets-hint">
+                    Move robot to position, select motion type, and click Teach
                   </p>
                 </div>
               )}
