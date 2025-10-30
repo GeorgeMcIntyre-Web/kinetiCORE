@@ -5,11 +5,14 @@
 
 ---
 
-## Pre-Test: Load Robot
+## Pre-Test: Load Robot & Open Panel
 
-1. Load a 6-axis robot (Fanuc/ABB)
-2. Open Motion Panel
-3. Verify 6 joints visible
+1. Load a 6-axis robot (Fanuc/ABB/UR5)
+2. **Open Motion Panel:**
+   - Click the **Rocket icon** (🚀) in the **Kinematics** section of the ribbon toolbar (top of screen)
+   - Panel title: "Kinematics - Motion Panel"
+   - Should see floating panel appear
+3. Verify 6 joints visible in the panel
 
 ---
 
