@@ -17,6 +17,7 @@ import type {
 } from '../io/Schemas';
 import { FastNodeFilter, type FilterOptions, type NodePair } from './FastNodeFilter';
 import { PCLICPSolver } from '../pointCloud/PCLICPSolver';
+import { SceneTreeManager } from '../../scene/SceneTreeManager';
 
 /**
  * Configuration for the complete kinematic extraction pipeline.
@@ -235,6 +236,44 @@ export class KinematicExtractionPipeline {
       `[Pipeline] Analysis complete: ${this.toolGraph.units.length} units ` +
       `(${fixed.length} fixed, ${moving.length} moving)`
     );
+
+    // DEBUG: Log SceneTree structure to verify node mappings
+    console.log('[Pipeline] ===== SCENE TREE STRUCTURE =====');
+    const tree = SceneTreeManager.getInstance();
+
+    for (const unit of this.toolGraph.units) {
+      const sceneNode = tree.getNode(unit.root);
+      if (!sceneNode) {
+        console.error(`[Pipeline] ❌ Unit ${unit.name} not found in SceneTree!`);
+        continue;
+      }
+
+      console.log(`[Pipeline] Unit: ${unit.name}`);
+      console.log(`  - SceneTree ID: ${sceneNode.id}`);
+      console.log(`  - babylonTransformNodeId: ${sceneNode.babylonTransformNodeId || '❌ MISSING'}`);
+      console.log(`  - babylonMeshId: ${sceneNode.babylonMeshId || 'N/A'}`);
+      console.log(`  - Parent: ${sceneNode.parentId || 'N/A'}`);
+      console.log(`  - Children: ${sceneNode.childIds.length}`);
+
+      // Show parent and sibling info
+      if (sceneNode.parentId) {
+        const parent = tree.getNode(sceneNode.parentId);
+        if (parent) {
+          console.log(`  - Parent name: ${parent.name}`);
+          console.log(`  - Siblings count: ${parent.childIds.length - 1}`);
+
+          // Show sibling names (useful for finding FIXED/MOVING pairs)
+          const siblings = parent.childIds
+            .map(id => tree.getNode(id))
+            .filter(n => n && n.id !== sceneNode.id);
+
+          if (siblings.length > 0) {
+            console.log(`  - Sibling names: ${siblings.map(s => s?.name).join(', ')}`);
+          }
+        }
+      }
+    }
+    console.log('[Pipeline] ===== END SCENE TREE =====');
 
     return this.toolGraph;
   }
