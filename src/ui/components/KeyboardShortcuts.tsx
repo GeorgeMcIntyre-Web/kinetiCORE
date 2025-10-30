@@ -43,7 +43,6 @@ export const KeyboardShortcuts: React.FC = () => {
 
     // Object operations
     { key: 'Delete', description: 'Delete Selected', action: () => selectedNodeId && deleteNode(selectedNodeId), category: 'Edit' },
-    { key: 'Backspace', description: 'Delete Selected', action: () => selectedNodeId && deleteNode(selectedNodeId), category: 'Edit' },
     { key: 'd', ctrl: true, description: 'Duplicate', action: () => selectedNodeId && duplicateNode(selectedNodeId), category: 'Edit' },
     { key: 'z', ctrl: true, description: 'Undo', action: () => undo(), category: 'Edit' },
     { key: 'y', ctrl: true, description: 'Redo', action: () => redo(), category: 'Edit' },
@@ -71,8 +70,8 @@ export const KeyboardShortcuts: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger shortcuts if typing in input field
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        // Allow Delete/Backspace in input fields
-        if (e.key !== 'Delete' && e.key !== 'Backspace') {
+        // Allow Delete in input fields, but not other shortcuts
+        if (e.key !== 'Delete') {
           return;
         }
       }

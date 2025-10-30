@@ -32,8 +32,8 @@ export const useKeyboardShortcuts = () => {
         return;
       }
 
-      // Delete or Backspace: Delete selected object
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodeId) {
+      // Delete: Delete selected object
+      if (e.key === 'Delete' && selectedNodeId) {
         // Don't trigger delete if user is typing in an input
         const target = e.target as HTMLElement;
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
