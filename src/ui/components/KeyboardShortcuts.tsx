@@ -64,6 +64,7 @@ export const KeyboardShortcuts: React.FC = () => {
     { key: '0', description: 'Camera View', action: () => {}, category: 'View' },
     { key: '.', description: 'Zoom Fit All', action: () => zoomFit(), category: 'View' },
     { key: '=', description: 'Zoom In', action: () => zoomIn(), category: 'View' },
+    { key: '+', shift: true, description: 'Zoom In', action: () => zoomIn(), category: 'View' },
     { key: '-', description: 'Zoom Out', action: () => zoomOut(), category: 'View' },
 
     // Help

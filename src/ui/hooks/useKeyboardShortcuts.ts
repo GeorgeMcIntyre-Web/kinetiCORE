@@ -44,15 +44,25 @@ export const useKeyboardShortcuts = () => {
         return;
       }
 
-      // = or +: Zoom in
-      if (e.key === '=' || e.key === '+') {
+      // = or +: Zoom in (don't trigger if Ctrl/Cmd is held for browser zoom)
+      if ((e.key === '=' || e.key === '+') && !e.ctrlKey && !e.metaKey) {
+        // Don't trigger if user is typing in an input
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+          return;
+        }
         e.preventDefault();
         zoomIn();
         return;
       }
 
-      // -: Zoom out
-      if (e.key === '-') {
+      // -: Zoom out (don't trigger if Ctrl/Cmd is held for browser zoom)
+      if (e.key === '-' && !e.ctrlKey && !e.metaKey) {
+        // Don't trigger if user is typing in an input
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+          return;
+        }
         e.preventDefault();
         zoomOut();
         return;
