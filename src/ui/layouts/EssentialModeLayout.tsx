@@ -15,6 +15,7 @@ import { FloatingKinematicsAnalysisPanel } from '../components/FloatingKinematic
 import { FloatingActuatorPanel } from '../components/FloatingActuatorPanel';
 import { FloatingComplexIKPanel } from '../components/FloatingComplexIKPanel';
 import { WholeBodyIKPanel } from '../components/WholeBodyIKPanel';
+import { KinematicExtractionPanel } from '../components/KinematicExtractionPanel';
 import { FloatingPhysicsPanel } from '../components/FloatingPhysicsPanel';
 import { FloatingCollisionPanel } from '../components/FloatingCollisionPanel';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
@@ -70,6 +71,7 @@ export const EssentialModeLayout: React.FC = () => {
   const [showActuatorPanel, setShowActuatorPanel] = useState(false);
   const [showComplexIKPanel, setShowComplexIKPanel] = useState(false);
   const [showWholeBodyIKPanel, setShowWholeBodyIKPanel] = useState(false);
+  const [showKinematicExtractionPanel, setShowKinematicExtractionPanel] = useState(false);
   const [showPhysicsSettings, setShowPhysicsSettings] = useState(false);
   const [showCollisionVisualizer, setShowCollisionVisualizer] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
@@ -546,6 +548,7 @@ export const EssentialModeLayout: React.FC = () => {
             onActuatorsClick: () => setShowActuatorPanel(!showActuatorPanel),
             onComplexIKClick: () => setShowComplexIKPanel(!showComplexIKPanel),
             onWholeBodyIKClick: () => setShowWholeBodyIKPanel(!showWholeBodyIKPanel),
+            onKinematicExtractionClick: () => setShowKinematicExtractionPanel(!showKinematicExtractionPanel),
             onPhysicsClick: () => setShowPhysicsSettings(!showPhysicsSettings),
             onCollisionsClick: () => setShowCollisionVisualizer(!showCollisionVisualizer),
             onProjectionClick: handleCreateProjectionView,
@@ -646,22 +649,28 @@ export const EssentialModeLayout: React.FC = () => {
         zIndex={1005}
       />
 
+      <KinematicExtractionPanel
+        isVisible={showKinematicExtractionPanel}
+        onClose={() => setShowKinematicExtractionPanel(false)}
+        zIndex={1006}
+      />
+
       <FloatingPhysicsPanel
         isVisible={showPhysicsSettings}
         onClose={() => setShowPhysicsSettings(false)}
-        zIndex={1006}
+        zIndex={1007}
       />
 
       <FloatingCollisionPanel
         isVisible={showCollisionVisualizer}
         onClose={() => setShowCollisionVisualizer(false)}
-        zIndex={1007}
+        zIndex={1008}
       />
 
       <FloatingSettingsPanel
         isVisible={showSettingsPanel}
         onClose={() => setShowSettingsPanel(false)}
-        zIndex={1008}
+        zIndex={1009}
       />
 
       {/* Transform Display - Bottom-right corner */}

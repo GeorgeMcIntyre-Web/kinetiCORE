@@ -25,6 +25,7 @@ import {
   Network,
   ToggleLeft,
   Rocket,
+  Scan,
 } from 'lucide-react';
 import { loadOBJFile } from '../../loaders/obj/OBJLoader';
 import { SceneManager } from '../../scene/SceneManager';
@@ -114,6 +115,7 @@ export interface RibbonToolbarProps {
   onActuatorsClick?: () => void;
   onComplexIKClick?: () => void;
   onWholeBodyIKClick?: () => void;
+  onKinematicExtractionClick?: () => void;
   onPhysicsClick?: () => void;
   onCollisionsClick?: () => void;
   onProjectionClick?: () => void;
@@ -135,6 +137,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onActuatorsClick,
   onComplexIKClick,
   onWholeBodyIKClick,
+  onKinematicExtractionClick,
   onPhysicsClick,
   onCollisionsClick,
   onProjectionClick: _onProjectionClick,
@@ -437,6 +440,9 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           </button>
           <button className="ribbon-btn" onClick={onWholeBodyIKClick} title="FullBody IK">
             <Network size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={onKinematicExtractionClick} title="Auto Kinematic Extraction">
+            <Scan size={32} />
           </button>
         </div>
       </div>
