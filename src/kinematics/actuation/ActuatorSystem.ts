@@ -523,3 +523,13 @@ export class ActuatorSystem {
     console.log('[ActuatorSystem] Disposed');
   }
 }
+
+// Singleton accessor to avoid multiple instances and break cycles cleanly
+let __actuatorSystemInstance: ActuatorSystem | null = null;
+
+export function getActuatorSystemInstance(): ActuatorSystem {
+  if (!__actuatorSystemInstance) {
+    __actuatorSystemInstance = new ActuatorSystem();
+  }
+  return __actuatorSystemInstance;
+}

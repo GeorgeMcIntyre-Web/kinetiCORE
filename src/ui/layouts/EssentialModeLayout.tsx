@@ -69,7 +69,7 @@ export const EssentialModeLayout: React.FC = () => {
 
   const [showKinematicsPanel, setShowKinematicsPanel] = useState(false);
   const [showKinematicsAnalysisPanel, setShowKinematicsAnalysisPanel] = useState(false);
-  const [showActuatorPanel, setShowActuatorPanel] = useState(false);
+  const [showActuatorPanel, setShowActuatorPanel] = useState(true);
   const [showComplexIKPanel, setShowComplexIKPanel] = useState(false);
   const [showWholeBodyIKPanel, setShowWholeBodyIKPanel] = useState(false);
   const [showKinematicExtractionPanel, setShowKinematicExtractionPanel] = useState(false);

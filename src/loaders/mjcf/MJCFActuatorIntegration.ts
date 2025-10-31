@@ -41,12 +41,16 @@ export function createActuatorFromMJCF(
     return null;
   }
 
-  // Determine actuator type based on joint type and MJCF specs
+  // Determine actuator type based on joint and MJCF type string
   let actuatorType: 'servo_motor' | 'linear_actuator' | 'pneumatic_cylinder' = 'servo_motor';
 
-  if (joint.type === 'prismatic') {
+  const mjcfType = (mjcfActuator.type || '').toLowerCase();
+  const isLinear = joint.type === 'prismatic' || mjcfType.includes('slide') || mjcfType.includes('linear');
+  const isServo = joint.type === 'revolute' || mjcfType.includes('motor') || mjcfType.includes('hinge') || mjcfType.includes('position') || mjcfType.includes('velocity');
+
+  if (isLinear) {
     actuatorType = 'linear_actuator';
-  } else if (joint.type === 'revolute') {
+  } else if (isServo) {
     actuatorType = 'servo_motor';
   }
 
@@ -54,8 +58,8 @@ export function createActuatorFromMJCF(
   const actuatorId = `${robotRootNodeId}_actuator_${mjcfActuator.name}`;
 
   // Extract control range from MJCF
-  let ctrlMin = -Math.PI;
-  let ctrlMax = Math.PI;
+  let ctrlMin = joint.type === 'prismatic' ? 0 : -Math.PI;
+  let ctrlMax = joint.type === 'prismatic' ? (joint.limits?.upper ?? 0.1) : Math.PI;
 
   if (mjcfActuator.ctrlrange) {
     ctrlMin = mjcfActuator.ctrlrange[0];
