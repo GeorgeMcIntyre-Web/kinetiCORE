@@ -2,6 +2,7 @@
 // Owner: Edwin
 
 import { useEffect, useState, useMemo } from 'react';
+import * as BABYLON from '@babylonjs/core';
 import { useEditorStore } from '../store/editorStore';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import type { SceneNode } from '../../scene/SceneTreeNode';
@@ -44,6 +45,8 @@ import {
   Factory,
 } from 'lucide-react';
 import { ContextMenu, useNodeContextMenu } from './ContextMenu';
+import { GLBExportService } from '../../library/GLBExportService';
+import { SceneManager } from '../../scene/SceneManager';
 import { EntityRegistry } from '../../entities/EntityRegistry';
 import { SaveToLibraryService } from '../../library/SaveToLibraryService';
 import { SaveToLibraryDialog, type SaveToLibraryFormData } from './SaveToLibraryDialog';
@@ -413,6 +416,45 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
     setShowSaveDialog(true);
   };
 
+  // Export current node (or its subtree) to GLB
+  const handleExportGLB = async () => {
+    try {
+      const scene = SceneManager.getInstance().getScene();
+      if (!scene) throw new Error('Scene not initialized');
+
+      const roots: BABYLON.Node[] = [] as any;
+
+      if (node.babylonTransformNodeId) {
+        const tn = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId, 10));
+        if (tn) roots.push(tn);
+      } else if (node.babylonMeshId) {
+        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
+        if (mesh) roots.push(mesh);
+      }
+
+      // Fallback: if no direct Babylon link, try children
+      if (roots.length === 0) {
+        const children = tree.getChildren(node.id);
+        for (const c of children) {
+          if (c.babylonTransformNodeId) {
+            const tn = scene.getTransformNodeByUniqueId(parseInt(c.babylonTransformNodeId, 10));
+            if (tn) roots.push(tn);
+          } else if (c.babylonMeshId) {
+            const mesh = scene.getMeshByUniqueId(parseInt(c.babylonMeshId, 10));
+            if (mesh) roots.push(mesh);
+          }
+        }
+      }
+
+      const fileName = `${node.name || 'selection'}.glb`;
+      await GLBExportService.exportSelection(scene, roots as any, fileName);
+      alert('Exported GLB');
+    } catch (err) {
+      console.error('Export GLB failed:', err);
+      alert('Failed to export GLB (see console)');
+    }
+  };
+
   const handleSaveDialogSubmit = async (formData: SaveToLibraryFormData) => {
     const registry = EntityRegistry.getInstance();
     const entity = node.entityId ? registry.get(node.entityId) : null;
@@ -472,6 +514,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
       onToggleLock: () => handleToggleLock({} as React.MouseEvent),
       onZoom: () => zoomToNode(node.id),
       onSaveToLibrary: handleSaveToLibrary,
+      onExportGLB: () => { handleExportGLB(); },
     }
   ) : [];
 
