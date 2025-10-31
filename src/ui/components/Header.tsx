@@ -61,13 +61,20 @@ export const Header: React.FC<HeaderProps> = ({
       }
     };
     setVar();
-    const ro = new (window as any).ResizeObserver?.(() => setVar());
-    if (ro && headerRef.current) ro.observe(headerRef.current);
+
+    // Safely create a ResizeObserver if available (avoid optional chaining after `new`)
+    const RO: any = (window as any).ResizeObserver;
+    let ro: any = null;
+    if (typeof RO === 'function') {
+      ro = new RO(() => setVar());
+      if (headerRef.current) ro.observe(headerRef.current);
+    }
+
     const onResize = () => setVar();
     window.addEventListener('resize', onResize);
     return () => {
       window.removeEventListener('resize', onResize);
-      try { ro?.disconnect?.(); } catch {}
+      try { ro && ro.disconnect && ro.disconnect(); } catch {}
     };
   }, []);
 
