@@ -517,36 +517,63 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
       }
     } else {
-      // For mesh or entity-backed nodes, update selectedMeshes so SceneCanvas can highlight
+      // For non-collection nodes, collect the node's mesh AND all descendant meshes
       if (node && scene) {
-        // Try entity first for robust device/link selection
-        if (node.entityId) {
-          const registry = EntityRegistry.getInstance();
-          const entity = registry.get(node.entityId);
-          if (entity && typeof entity.getMesh === 'function') {
-            const mesh = entity.getMesh();
-            if (mesh) {
-              set({
-                selectedMeshes: [mesh],
-                selectedCollectionNodeId: null,
-                selectedCollectionTransformNode: null,
-              });
-              return;
-            }
-          }
-        }
+        const meshes: BABYLON.Mesh[] = [];
+        const registry = EntityRegistry.getInstance();
 
-        // Fallback to direct Babylon mesh reference on node
-        if (node.babylonMeshId) {
-          const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
-          if (mesh && mesh instanceof BABYLON.Mesh) {
-            set({
-              selectedMeshes: [mesh],
-              selectedCollectionNodeId: null,
-              selectedCollectionTransformNode: null,
-            });
-            return;
+        // Helper to collect meshes recursively
+        const collectMeshes = (nid: string) => {
+          const n = tree.getNode(nid);
+          if (!n) return;
+
+          console.log(`[EditorStore] Collecting meshes for node: ${n.name} (type: ${n.type}, entityId: ${n.entityId}, babylonMeshId: ${n.babylonMeshId})`);
+
+          // Prefer entity mesh if available
+          if (n.entityId) {
+            const ent = registry.get(n.entityId);
+            if (ent && typeof ent.getMesh === 'function') {
+              const m = ent.getMesh();
+              if (m && m instanceof BABYLON.Mesh) {
+                console.log(`[EditorStore] ✓ Found entity mesh: ${m.name}, visible: ${m.isVisible}, enabled: ${m.isEnabled()}`);
+                // Include ALL meshes regardless of visibility - user wants the entire hierarchy
+                meshes.push(m);
+              } else {
+                console.log(`[EditorStore] ✗ Entity has no mesh or not a Mesh instance`);
+              }
+            } else {
+              console.log(`[EditorStore] ✗ Entity not found or no getMesh() for entityId: ${n.entityId}`);
+            }
+          } else if (n.babylonMeshId) {
+            const m = scene.getMeshByUniqueId(parseInt(n.babylonMeshId, 10));
+            if (m && m instanceof BABYLON.Mesh) {
+              console.log(`[EditorStore] ✓ Found babylon mesh: ${m.name}, visible: ${m.isVisible}, enabled: ${m.isEnabled()}`);
+              // Include ALL meshes regardless of visibility - user wants the entire hierarchy
+              meshes.push(m);
+            } else {
+              console.log(`[EditorStore] ✗ Babylon mesh not found or not a Mesh instance for babylonMeshId: ${n.babylonMeshId}`);
+            }
+          } else {
+            console.log(`[EditorStore] ○ Node has no mesh (likely collection/group): ${n.name}`);
           }
+
+          // Recurse through all children
+          const children = tree.getChildren(nid);
+          console.log(`[EditorStore] Node ${n.name} has ${children.length} children`);
+          children.forEach(child => collectMeshes(child.id));
+        };
+
+        // Collect meshes starting from selected node
+        console.log(`[EditorStore] Starting mesh collection from node: ${node.name} (id: ${nodeId})`);
+        collectMeshes(nodeId);
+        console.log(`[EditorStore] Collected ${meshes.length} total meshes for highlighting`);
+
+        if (meshes.length > 0) {
+          set({
+            selectedMeshes: meshes,
+            selectedCollectionNodeId: null,
+            selectedCollectionTransformNode: null,
+          });
         }
       }
 
