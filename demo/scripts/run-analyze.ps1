@@ -7,3 +7,5 @@ node "$PSScriptRoot/../headless/AnalyzeScene.mjs" --json "$JsonPath"
 exit $LASTEXITCODE
 
 
+
+

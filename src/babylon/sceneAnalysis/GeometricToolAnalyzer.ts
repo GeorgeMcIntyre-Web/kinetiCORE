@@ -419,6 +419,23 @@ export class GeometricToolAnalyzer {
       }
     }
 
+    // Fallback: if no candidates found under hierarchy, try name-prefix match across entire scene
+    if (significantNodes.length === 0 && rootNode) {
+      const name = rootNode.name || String((rootNode as any).id ?? (rootNode as any).uniqueId ?? '');
+      const pref = `${name}/`;
+      for (const m of scene.meshes as BABYLON.AbstractMesh[]) {
+        const nm = m.name || '';
+        if (nm === name || nm.startsWith(pref) || nm.includes(`/${name}/`)) {
+          m.computeWorldMatrix(true);
+          const bbox = m.getBoundingInfo().boundingBox;
+          const volume = computeVolume(bbox);
+          if (volume >= opts.minVolume) {
+            significantNodes.push(m as any);
+          }
+        }
+      }
+    }
+
     console.log(`[GeometricToolAnalyzer] Total meshes scanned: ${totalMeshes}, significant: ${significantNodes.length}, too small: ${tooSmall}`);
     console.log(`[GeometricToolAnalyzer] Min volume threshold: ${opts.minVolume}m³`);
 

@@ -78,6 +78,32 @@ export function generateTreeReport(root: BABYLON.Node): TreeReport {
     }
   }
 
+  // Fallback: some importers attach meshes at scene root with names prefixed by the logical path
+  if (!hasBBox) {
+    try {
+      const scene = root.getScene?.();
+      if (scene) {
+        const name = root.name || String(root.id ?? root.uniqueId ?? '');
+        const pref = `${name}/`;
+        for (const m of scene.meshes as BABYLON.AbstractMesh[]) {
+          const nm = m.name || '';
+          if (nm === name || nm.startsWith(pref) || nm.includes(`/${name}/`)) {
+            meshCount++;
+            m.computeWorldMatrix(true);
+            const bbox = m.getBoundingInfo().boundingBox;
+            minX = Math.min(minX, bbox.minimum.x);
+            minY = Math.min(minY, bbox.minimum.y);
+            minZ = Math.min(minZ, bbox.minimum.z);
+            maxX = Math.max(maxX, bbox.maximum.x);
+            maxY = Math.max(maxY, bbox.maximum.y);
+            maxZ = Math.max(maxZ, bbox.maximum.z);
+            hasBBox = true;
+          }
+        }
+      }
+    } catch {}
+  }
+
   const bbox = hasBBox
     ? {
         min: { x: minX, y: minY, z: minZ },
