@@ -422,32 +422,35 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
       const scene = SceneManager.getInstance().getScene();
       if (!scene) throw new Error('Scene not initialized');
 
-      const roots: BABYLON.Node[] = [] as any;
+      // Collect Babylon roots recursively for the entire subtree so we don't miss deep meshes
+      const seen = new Set<number>();
+      const roots: BABYLON.Node[] = [];
 
-      if (node.babylonTransformNodeId) {
-        const tn = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId, 10));
-        if (tn) roots.push(tn);
-      } else if (node.babylonMeshId) {
-        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
-        if (mesh) roots.push(mesh);
-      }
+      const collect = (treeNodeId: string) => {
+        const tnode = tree.getNode(treeNodeId);
+        if (!tnode) return;
 
-      // Fallback: if no direct Babylon link, try children
-      if (roots.length === 0) {
-        const children = tree.getChildren(node.id);
-        for (const c of children) {
-          if (c.babylonTransformNodeId) {
-            const tn = scene.getTransformNodeByUniqueId(parseInt(c.babylonTransformNodeId, 10));
-            if (tn) roots.push(tn);
-          } else if (c.babylonMeshId) {
-            const mesh = scene.getMeshByUniqueId(parseInt(c.babylonMeshId, 10));
-            if (mesh) roots.push(mesh);
-          }
+        if (tnode.babylonTransformNodeId) {
+          const tn = scene.getTransformNodeByUniqueId(parseInt(tnode.babylonTransformNodeId, 10));
+          if (tn && !seen.has(tn.uniqueId)) { roots.push(tn); seen.add(tn.uniqueId); }
         }
-      }
+        if (tnode.babylonMeshId) {
+          const m = scene.getMeshByUniqueId(parseInt(tnode.babylonMeshId, 10));
+          if (m && !seen.has(m.uniqueId)) { roots.push(m); seen.add(m.uniqueId); }
+        }
+        const children = tree.getChildren(treeNodeId);
+        for (const c of children) collect(c.id);
+      };
+
+      collect(node.id);
 
       const fileName = `${node.name || 'selection'}.glb`;
-      await GLBExportService.exportSelection(scene, roots as any, fileName);
+
+      if (roots.length > 0) {
+        await GLBExportService.exportSelection(scene, roots as any, fileName);
+      } else {
+        await GLBExportService.exportScene(scene, fileName);
+      }
       alert('Exported GLB');
     } catch (err) {
       console.error('Export GLB failed:', err);
