@@ -11,7 +11,14 @@
 }
 
 .scene-tree-header {
-  display: none;
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  background: #111827;
+  border-bottom: 1px solid #333;
+  position: sticky; /* stays visible if parent scrolls */
+  top: 0;
+  z-index: 1;
 }
 
 .scene-tree-header h2 {
@@ -145,10 +152,9 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0;
-  /* Reserve a safe area at the top so the first items cannot be covered by
-     fixed UI at different browser zoom levels. Adjustable via CSS var. */
-  padding-top: var(--scene-tree-safe-top, 80px);
-  scroll-padding-top: var(--scene-tree-safe-top, 80px);
+  /* Minimal spacing now that header is visible and layout is offset below app header */
+  padding-top: 4px;
+  scroll-padding-top: 4px;
 }
 
 /* Tree Node */
