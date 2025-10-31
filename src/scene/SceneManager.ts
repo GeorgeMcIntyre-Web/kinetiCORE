@@ -535,8 +535,8 @@ export class SceneManager {
       this.scene.debugLayer.hide();
     } else {
       await this.scene.debugLayer.show({
-        embedMode: false, // Open in separate pop-out window
-        overlay: false
+        enablePopup: true, // Open in separate popup window
+        embedMode: false
       });
     }
   }
