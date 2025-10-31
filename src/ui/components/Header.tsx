@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Menu, X, Settings, HelpCircle, Zap, ZapOff, ZapIcon } from 'lucide-react';
 import { zIndex, colors } from '../styles/design-tokens';
 import { RibbonToolbar, RibbonToolbarProps } from './RibbonToolbar';
@@ -51,8 +51,29 @@ export const Header: React.FC<HeaderProps> = ({
   const currentModeConfig = modeConfig[currentMode];
   const CurrentModeIcon = currentModeConfig.icon;
 
+  // Dynamically publish header height to CSS var so content can offset correctly
+  const headerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const setVar = () => {
+      const el = headerRef.current;
+      if (el) {
+        document.documentElement.style.setProperty('--app-header-height', `${el.offsetHeight}px`);
+      }
+    };
+    setVar();
+    const ro = new (window as any).ResizeObserver?.(() => setVar());
+    if (ro && headerRef.current) ro.observe(headerRef.current);
+    const onResize = () => setVar();
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      try { ro?.disconnect?.(); } catch {}
+    };
+  }, []);
+
   return (
     <header
+      ref={headerRef}
       className={`
         fixed top-0 left-0 right-0 bg-gray-900 border-b border-gray-700
         ${className}
