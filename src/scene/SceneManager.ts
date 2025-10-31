@@ -77,18 +77,19 @@ export class SceneManager {
     this.floorMaterialManager = new FloorMaterialManager(this.scene);
 
     // Apply default floor material (polished concrete)
-    const floorMaterial = this.floorMaterialManager.createFloorMaterial(
-      this.currentFloorType
-    );
+    const floorMaterial = this.floorMaterialManager.createFloorMaterial(this.currentFloorType);
     this.ground.material = floorMaterial;
     this.ground.receiveShadows = true;
 
     // Create grid overlay for spatial reference
     // Enable grid by default for grid-only floor type, disable for others
     const gridInitiallyVisible = this.currentFloorType === 'grid-only';
-    this.gridOverlay = this.floorMaterialManager.createGridOverlay(this.ground, gridInitiallyVisible);
+    this.gridOverlay = this.floorMaterialManager.createGridOverlay(
+      this.ground,
+      gridInitiallyVisible
+    );
     console.log('🔲 Grid overlay created with enabled:', this.gridOverlay?.isEnabled());
-    
+
     // Defensive check: Ensure floor and grid are visible (floor should always be visible, grid depends on type)
     // This addresses potential issues where floor might not render due to visibility state
     if (this.ground) {
@@ -96,7 +97,10 @@ export class SceneManager {
       this.ground.visibility = 1.0; // Ensure full visibility
       if (this.gridOverlay) {
         // Grid overlay visibility is controlled by its enabled state
-        console.log('🔲 Floor initialized - Ground visible, Grid overlay enabled:', this.gridOverlay.isEnabled());
+        console.log(
+          '🔲 Floor initialized - Ground visible, Grid overlay enabled:',
+          this.gridOverlay.isEnabled()
+        );
       }
     }
 
@@ -122,7 +126,6 @@ export class SceneManager {
       console.error('Failed to initialize CSG2:', error);
     }
   }
-
 
   /**
    * Load a GLB by URL using ModelLoader helper and attach under scene root
@@ -363,18 +366,18 @@ export class SceneManager {
 
     console.log('🔧 Force setting transparent background...');
     this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
-    
+
     // Disable grid overlay
     if (this.gridOverlay) {
       this.gridOverlay.setEnabled(false);
     }
-    
+
     // Also disable any existing grid overlay by name
     const existingGridOverlay = this.scene.getMeshByName('gridOverlay');
     if (existingGridOverlay) {
       existingGridOverlay.setEnabled(false);
     }
-    
+
     console.log('✅ Forced transparent background and disabled grid overlay');
   }
 
@@ -536,7 +539,7 @@ export class SceneManager {
     } else {
       // Show the debug layer first
       const debugLayer = await this.scene.debugLayer.show({
-        embedMode: true
+        embedMode: false,
       });
 
       // Then pop out both the Scene Explorer and Inspector panes into separate windows
