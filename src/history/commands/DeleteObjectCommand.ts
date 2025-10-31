@@ -103,14 +103,59 @@ export class DeleteObjectCommand extends Command {
       }
     }
 
-    // Perform deletion
-    if (node.entityId) {
-      registry.remove(node.entityId);
-    }
-    tree.deleteNode(this.nodeId);
+    // Recursively delete node and all children (both from tree and scene)
+    this.deleteNodeRecursively(this.nodeId, tree, registry, scene);
+
     window.dispatchEvent(new Event('scenetree-update'));
 
     this.onExecuted();
+  }
+
+  /**
+   * Recursively delete a node and all its children from both the tree and scene
+   */
+  private deleteNodeRecursively(
+    nodeId: string,
+    tree: SceneTreeManager,
+    registry: EntityRegistry,
+    scene: BABYLON.Scene
+  ): void {
+    const node = tree.getNode(nodeId);
+    if (!node) return;
+
+    // First, recursively delete all children
+    const children = [...node.childIds];
+    for (const childId of children) {
+      this.deleteNodeRecursively(childId, tree, registry, scene);
+    }
+
+    // Dispose entity if it exists
+    if (node.entityId) {
+      const entity = registry.get(node.entityId);
+      if (entity) {
+        entity.dispose();
+      }
+      registry.remove(node.entityId);
+    }
+
+    // Dispose Babylon mesh if it exists
+    if (node.babylonMeshId) {
+      const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
+      if (mesh) {
+        mesh.dispose();
+      }
+    }
+
+    // Dispose TransformNode if it exists
+    if (node.babylonTransformNodeId) {
+      const transformNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId, 10));
+      if (transformNode) {
+        transformNode.dispose();
+      }
+    }
+
+    // Finally, remove from tree (this only removes the tree node, not the Babylon objects)
+    tree.deleteNode(nodeId);
   }
 
   undo(): void {
