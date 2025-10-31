@@ -522,36 +522,42 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
       }
     } else {
-      // For mesh or entity-backed nodes, update selectedMeshes so SceneCanvas can highlight
+      // For mesh or entity-backed nodes, collect the node's mesh AND all descendant meshes
       if (node && scene) {
-        // Try entity first for robust device/link selection
-        if (node.entityId) {
-          const registry = EntityRegistry.getInstance();
-          const entity = registry.get(node.entityId);
-          if (entity && typeof entity.getMesh === 'function') {
-            const mesh = entity.getMesh();
-            if (mesh) {
-              set({
-                selectedMeshes: [mesh],
-                selectedCollectionNodeId: null,
-                selectedCollectionTransformNode: null,
-              });
-              return;
-            }
-          }
-        }
+        const meshes: BABYLON.Mesh[] = [];
+        const registry = EntityRegistry.getInstance();
 
-        // Fallback to direct Babylon mesh reference on node
-        if (node.babylonMeshId) {
-          const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
-          if (mesh && mesh instanceof BABYLON.Mesh) {
-            set({
-              selectedMeshes: [mesh],
-              selectedCollectionNodeId: null,
-              selectedCollectionTransformNode: null,
-            });
-            return;
+        // Helper to collect meshes recursively
+        const collectMeshes = (nid: string) => {
+          const n = tree.getNode(nid);
+          if (!n) return;
+
+          // Prefer entity mesh if available
+          if (n.entityId) {
+            const ent = registry.get(n.entityId);
+            if (ent && typeof ent.getMesh === 'function') {
+              const m = ent.getMesh();
+              if (m && m instanceof BABYLON.Mesh && m.isVisible) meshes.push(m);
+            }
+          } else if (n.babylonMeshId) {
+            const m = scene.getMeshByUniqueId(parseInt(n.babylonMeshId, 10));
+            if (m && m instanceof BABYLON.Mesh && m.isVisible) meshes.push(m);
           }
+
+          // Recurse through all children
+          tree.getChildren(nid).forEach(child => collectMeshes(child.id));
+        };
+
+        // Collect meshes starting from selected node
+        collectMeshes(nodeId);
+
+        if (meshes.length > 0) {
+          set({
+            selectedMeshes: meshes,
+            selectedCollectionNodeId: null,
+            selectedCollectionTransformNode: null,
+          });
+          return;
         }
       }
 
