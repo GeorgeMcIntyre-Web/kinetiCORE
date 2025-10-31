@@ -264,13 +264,17 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
   // Cycle protection: track visited node IDs
   const localVisited = useMemo(() => {
     const set = new Set<string>(visitedIds || []);
+    // Check if this node was already visited (circular reference detected)
+    if (set.has(node.id)) {
+      console.error(`[SceneTree] CRITICAL: Circular reference detected! Node ${node.id} (${node.name}) is already in the visited set.`, Array.from(set));
+    }
     set.add(node.id);
     return set;
   }, [visitedIds, node.id]);
 
   const children = tree.getChildren(node.id).filter((child) => {
     if (localVisited.has(child.id)) {
-      console.warn(`[SceneTree] Cycle detected: skipping child ${child.id} (${child.name}) of ${node.id} (${node.name})`);
+      console.error(`[SceneTree] Cycle detected: skipping child ${child.id} (${child.name}) of parent ${node.id} (${node.name}). Visited path:`, Array.from(localVisited));
       return false;
     }
     return true;
@@ -790,7 +794,7 @@ export const SceneTree: React.FC = () => {
       )}
 
       <div className="scene-tree-content">
-        <TreeNode node={rootNode} level={0} searchTerm={searchTerm} />
+        <TreeNode node={rootNode} level={0} searchTerm={searchTerm} visitedIds={new Set()} />
       </div>
 
       {/* Search bar */}
