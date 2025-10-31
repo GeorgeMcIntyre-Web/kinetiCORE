@@ -14,6 +14,7 @@ import { KinematicExtractionPipeline, type PipelineOptions } from './KinematicEx
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import type { KinematicModelExport } from '../io/Schemas';
 import { useEditorStore } from '../../ui/store/editorStore';
+import type { ToolUnit } from '../sceneAnalysis/ToolGraphAnalyzer';
 
 /**
  * Test result for a single stage of the pipeline.
@@ -668,8 +669,8 @@ export class AutoKinematicsFullPipelineTest {
       console.log(`[${stageName}] ✓ Analysis complete`);
       console.log(`[${stageName}]   - Total units: ${toolGraph.units.length}`);
 
-      const fixedUnits = toolGraph.units.filter(u => u.isFixed);
-      const movingUnits = toolGraph.units.filter(u => !u.isFixed);
+      const fixedUnits = toolGraph.units.filter((u: ToolUnit) => u.isFixed);
+      const movingUnits = toolGraph.units.filter((u: ToolUnit) => !u.isFixed);
 
       console.log(`[${stageName}]   - Fixed units: ${fixedUnits.length}`);
       console.log(`[${stageName}]   - Moving units: ${movingUnits.length}`);
@@ -703,7 +704,7 @@ export class AutoKinematicsFullPipelineTest {
           totalUnits: toolGraph.units.length,
           fixedUnits: fixedUnits.length,
           movingUnits: movingUnits.length,
-          units: toolGraph.units.map(u => ({
+          units: toolGraph.units.map((u: ToolUnit) => ({
             name: u.name,
             isFixed: u.isFixed,
             type: u.type,
