@@ -16,6 +16,7 @@ import { FloatingActuatorPanel } from '../components/FloatingActuatorPanel';
 import { FloatingComplexIKPanel } from '../components/FloatingComplexIKPanel';
 import { WholeBodyIKPanel } from '../components/WholeBodyIKPanel';
 import { KinematicExtractionPanel } from '../components/KinematicExtractionPanel';
+import { ICPTestPanel } from '../components/ICPTestPanel';
 import { FloatingPhysicsPanel } from '../components/FloatingPhysicsPanel';
 import { FloatingCollisionPanel } from '../components/FloatingCollisionPanel';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
@@ -72,6 +73,7 @@ export const EssentialModeLayout: React.FC = () => {
   const [showComplexIKPanel, setShowComplexIKPanel] = useState(false);
   const [showWholeBodyIKPanel, setShowWholeBodyIKPanel] = useState(false);
   const [showKinematicExtractionPanel, setShowKinematicExtractionPanel] = useState(false);
+  const [showICPTestPanel, setShowICPTestPanel] = useState(false);
   const [showPhysicsSettings, setShowPhysicsSettings] = useState(false);
   const [showCollisionVisualizer, setShowCollisionVisualizer] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
@@ -549,6 +551,7 @@ export const EssentialModeLayout: React.FC = () => {
             onComplexIKClick: () => setShowComplexIKPanel(!showComplexIKPanel),
             onWholeBodyIKClick: () => setShowWholeBodyIKPanel(!showWholeBodyIKPanel),
             onKinematicExtractionClick: () => setShowKinematicExtractionPanel(!showKinematicExtractionPanel),
+            onICPTestClick: () => setShowICPTestPanel(!showICPTestPanel),
             onPhysicsClick: () => setShowPhysicsSettings(!showPhysicsSettings),
             onCollisionsClick: () => setShowCollisionVisualizer(!showCollisionVisualizer),
             onProjectionClick: handleCreateProjectionView,
@@ -653,6 +656,12 @@ export const EssentialModeLayout: React.FC = () => {
         isVisible={showKinematicExtractionPanel}
         onClose={() => setShowKinematicExtractionPanel(false)}
         zIndex={1006}
+      />
+
+      <ICPTestPanel
+        isVisible={showICPTestPanel}
+        onClose={() => setShowICPTestPanel(false)}
+        zIndex={1007}
       />
 
       <FloatingPhysicsPanel
@@ -789,3 +798,4 @@ export const EssentialModeLayout: React.FC = () => {
     </div>
   );
 };
+

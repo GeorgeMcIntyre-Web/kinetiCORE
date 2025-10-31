@@ -85,7 +85,14 @@ function uuid(): string {
 }
 
 function nodeId(node: BABYLON.Node): string {
-  return `${node.id || node.uniqueId || node.name}`;
+  // Prefer uniqueId (numerical, consistent) over name (can have duplicates) over id (optional string)
+  if (node.uniqueId !== undefined) {
+    return String(node.uniqueId);
+  }
+  if (node.id) {
+    return String(node.id);
+  }
+  return node.name || 'unknown';
 }
 
 /**
@@ -323,14 +330,48 @@ function findGeometricDuplicates(
 
 function collectDescendantIds(root: BABYLON.Node): string[] {
   const ids: string[] = [];
+  const visited = new Set<string>();
+
+  // Add root node ID
+  const rootIdStr = nodeId(root);
+  ids.push(rootIdStr);
+  visited.add(rootIdStr);
+
+  // CRITICAL FIX: Use getChildMeshes() to collect ALL descendant meshes
+  // This matches the WebGLKinematicsClaudeCode pattern for reliable mesh collection
+  if ((root as any).getChildMeshes) {
+    const meshes = (root as any).getChildMeshes() as BABYLON.AbstractMesh[];
+    console.log(`[collectDescendantIds] Found ${meshes.length} child meshes for ${root.name || rootIdStr}`);
+
+    for (const mesh of meshes) {
+      const meshIdStr = nodeId(mesh);
+      if (!visited.has(meshIdStr)) {
+        ids.push(meshIdStr);
+        visited.add(meshIdStr);
+      }
+    }
+  }
+
+  // Also traverse TransformNode children using getChildren() for completeness
   const stack: BABYLON.Node[] = [root];
   while (stack.length) {
     const n = stack.pop()!;
-    ids.push(nodeId(n));
+    const nIdStr = nodeId(n);
+
+    if (!visited.has(nIdStr)) {
+      ids.push(nIdStr);
+      visited.add(nIdStr);
+    }
+
     const children = (n as any).getChildren ? (n as any).getChildren() as BABYLON.Node[] : [];
-    for (const c of children) stack.push(c);
+    for (const c of children) {
+      if (!visited.has(nodeId(c))) {
+        stack.push(c);
+      }
+    }
   }
-  return Array.from(new Set(ids));
+
+  return ids;
 }
 
 /**
@@ -487,6 +528,13 @@ export class GeometricToolAnalyzer {
       const root = cluster.nodes[0];
       const nodeIds = cluster.nodes.flatMap(n => collectDescendantIds(n));
       const wt = getWorldTransform(root);
+
+      console.log(`[GeometricToolAnalyzer] Creating ToolUnit: ${root.name || id}`);
+      console.log(`  - Root node: ${nodeId(root)}`);
+      console.log(`  - Cluster nodes: ${cluster.nodes.length}`);
+      console.log(`  - Total collected node IDs: ${nodeIds.length}`);
+      console.log(`  - Is fixed: ${cluster.isFixed ?? false}`);
+      console.log(`  - Type: ${cluster.type || 'unknown'}`);
 
       units.push({
         id,

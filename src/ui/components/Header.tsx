@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div className="hidden sm:block">
             <h1 className="text-xl font-bold bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">kinetic CORE</h1>
-            <p className="text-xs text-gray-400">Industrial Simulation</p>
+            <p className="text-xs text-gray-400">The Linux of Manufacturing Simulation</p>
           </div>
         </div>
 

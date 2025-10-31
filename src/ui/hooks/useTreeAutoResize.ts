@@ -69,11 +69,13 @@ export function useTreeAutoResize(options: TreeAutoResizeOptions = {}) {
     // Calculate width for children
     const children = tree.getChildren(nodeId);
     let maxChildWidth = 0;
-    
-    // Always calculate children width to ensure we account for all visible nodes
-    // This ensures the tree auto-resizes properly when importing new models
-    if (children.length > 0) {
+
+    // Only include children that are actually visible in the tree UI:
+    // - Parent must be expanded
+    // - Child must not be hidden from the tree (showInTree !== false)
+    if (node.expanded && children.length > 0) {
       for (const child of children) {
+        if (child.showInTree === false) continue;
         const childWidth = calculateNodeWidth(child.id, level + 1);
         maxChildWidth = Math.max(maxChildWidth, childWidth);
       }

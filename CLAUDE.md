@@ -4,6 +4,10 @@
 Web-based 3D industrial simulation and kinematics platform for robot simulation.
 **Stack:** React + TypeScript + Babylon.js + Rapier physics
 
+**Product Strategy:**
+- **kinetiCORE** (kinetic-core.com) - Current open-source foundation/community version
+- **kineticXCORE** (kineticxcore.com) - Future full-featured commercial version (domain purchased, future planning)
+
 ## Team Structure
 - **George:** Architecture lead, physics abstraction, integration (Claude Code)
 - **Cole:** 3D rendering, Babylon.js, scene management (Cursor)

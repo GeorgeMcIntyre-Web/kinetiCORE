@@ -261,44 +261,56 @@ export const SceneCanvas: React.FC = () => {
           }
         };
 
-        // Physics update loop
+        // Physics + metrics via scene observables (avoid a second runRenderLoop)
         const engine = sceneManager.getEngine();
-        engine?.runRenderLoop(() => {
-          const frameStartTime = performance.now();
 
-          // Step physics (fixed 60 FPS timestep)
+        let frameStartTime = 0;
+        const beforeRenderObserver = scene.onBeforeRenderObservable.add(() => {
+          frameStartTime = performance.now();
+          // Step physics (fixed timestep) and sync entities
           physicsEngine.step(1 / 60);
-
-          // Sync all entities from physics to meshes
           registry.syncAllFromPhysics();
+        });
 
-          // Render scene
-          scene.render();
-
-          // Record performance metrics
+        const afterRenderObserver = scene.onAfterRenderObservable.add(() => {
           const frameTime = performance.now() - frameStartTime;
           const fps = engine?.getFps() || 0;
+
+          // Triangles from active indices, draw calls approximated by active meshes
+          const triangles = Math.floor(scene.getActiveIndices() / 3);
 
           performanceMetrics.recordFrame({
             fps,
             frameTime,
             drawCalls: scene.getActiveMeshes().length,
-            triangles: scene.getTotalVertices(),
+            triangles,
             entities: registry.getAll().length,
             physicsBodies: physicsEngine.getBodyCount(),
           });
 
-          // Record memory every 60 frames (~1 second at 60 FPS)
           if (scene.getFrameId() % 60 === 0) {
             performanceMetrics.recordMemory();
           }
         });
+
+        // Store observers for cleanup in dev tools if needed
+        ;(window as any).__sceneCanvasObservers = { beforeRenderObserver, afterRenderObserver };
       }
     });
 
     // Cleanup on unmount
     return () => {
       gizmoRef.current?.dispose();
+      // Remove scene observers if present
+      try {
+        const scene = SceneManager.getInstance().getScene();
+        const obs = (window as any).__sceneCanvasObservers;
+        if (scene && obs) {
+          if (obs.beforeRenderObserver) scene.onBeforeRenderObservable.remove(obs.beforeRenderObserver);
+          if (obs.afterRenderObserver) scene.onAfterRenderObservable.remove(obs.afterRenderObserver);
+        }
+      } catch {}
+
       physicsEngine.dispose();
       registry.clear();
       sceneManager.dispose();

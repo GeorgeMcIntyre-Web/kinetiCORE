@@ -6,6 +6,7 @@ export interface ICPOptions {
   tolerance?: number; // RMS change threshold
   trimFraction?: number; // 0..1 keep best matches
   rejectThreshold?: number; // max correspondence distance (meters)
+  enableDebug?: boolean; // Enable detailed debugging output
 }
 
 export interface ICPResult {
@@ -14,6 +15,23 @@ export interface ICPResult {
   rmsError: number;
   iterations: number;
   correspondences: number;
+  debug?: {
+    iterationHistory: Array<{
+      iteration: number;
+      rmsError: number;
+      correspondences: number;
+      trimmedOutliers: number;
+      transform: BABYLON.Matrix;
+    }>;
+    sourceCentroid: BABYLON.Vector3;
+    targetCentroid: BABYLON.Vector3;
+    finalRotationDegrees: BABYLON.Vector3; // Euler angles in degrees
+    finalTranslation: BABYLON.Vector3;
+    pointCloudBounds: {
+      source: { min: BABYLON.Vector3; max: BABYLON.Vector3; size: BABYLON.Vector3 };
+      target: { min: BABYLON.Vector3; max: BABYLON.Vector3; size: BABYLON.Vector3 };
+    };
+  };
 }
 
 function computeCentroid(points: BABYLON.Vector3[]): BABYLON.Vector3 {
@@ -118,6 +136,56 @@ function outer(a: BABYLON.Vector3, b: BABYLON.Vector3): BABYLON.Matrix {
   ]);
 }
 
+function computeBounds(points: BABYLON.Vector3[]): { min: BABYLON.Vector3; max: BABYLON.Vector3; size: BABYLON.Vector3 } {
+  if (points.length === 0) {
+    const zero = BABYLON.Vector3.Zero();
+    return { min: zero, max: zero, size: zero };
+  }
+
+  const min = new BABYLON.Vector3(Infinity, Infinity, Infinity);
+  const max = new BABYLON.Vector3(-Infinity, -Infinity, -Infinity);
+
+  for (const p of points) {
+    min.x = Math.min(min.x, p.x);
+    min.y = Math.min(min.y, p.y);
+    min.z = Math.min(min.z, p.z);
+    max.x = Math.max(max.x, p.x);
+    max.y = Math.max(max.y, p.y);
+    max.z = Math.max(max.z, p.z);
+  }
+
+  const size = max.subtract(min);
+  return { min, max, size };
+}
+
+function matrixToEulerDegrees(matrix: BABYLON.Matrix): BABYLON.Vector3 {
+  // Extract rotation from 4x4 matrix and convert to Euler angles (in degrees)
+  const m = matrix.m;
+
+  // Extract Euler angles using XYZ convention
+  const sy = Math.sqrt(m[0] * m[0] + m[4] * m[4]);
+  const singular = sy < 1e-6;
+
+  let rotX: number, rotY: number, rotZ: number;
+
+  if (!singular) {
+    rotX = Math.atan2(m[9], m[10]);
+    rotY = Math.atan2(-m[8], sy);
+    rotZ = Math.atan2(m[4], m[0]);
+  } else {
+    rotX = Math.atan2(-m[6], m[5]);
+    rotY = Math.atan2(-m[8], sy);
+    rotZ = 0;
+  }
+
+  // Convert to degrees
+  return new BABYLON.Vector3(
+    rotX * 180 / Math.PI,
+    rotY * 180 / Math.PI,
+    rotZ * 180 / Math.PI
+  );
+}
+
 export class ICP {
   static align(
     sourcePointsWorld: BABYLON.Vector3[],
@@ -128,18 +196,45 @@ export class ICP {
     const tolerance = options.tolerance ?? 1e-5;
     const trim = Math.min(1, Math.max(0.2, options.trimFraction ?? 0.8));
     const reject = options.rejectThreshold ?? 0.05; // 5cm default
+    const enableDebug = options.enableDebug ?? false;
 
     if (sourcePointsWorld.length === 0 || targetPointsWorld.length === 0) {
+      console.error('[ICP] Empty point clouds:', { source: sourcePointsWorld.length, target: targetPointsWorld.length });
       return { success: false, transform: BABYLON.Matrix.Identity(), rmsError: Infinity, iterations: 0, correspondences: 0 };
+    }
+
+    // Debug: Compute bounds and centroids
+    const sourceBounds = computeBounds(sourcePointsWorld);
+    const targetBounds = computeBounds(targetPointsWorld);
+    const sourceCentroid = computeCentroid(sourcePointsWorld);
+    const targetCentroid = computeCentroid(targetPointsWorld);
+
+    if (enableDebug) {
+      console.log('[ICP] Starting alignment with debug enabled');
+      console.log('[ICP] Source points:', sourcePointsWorld.length);
+      console.log('[ICP] Target points:', targetPointsWorld.length);
+      console.log('[ICP] Source bounds:', { min: sourceBounds.min, max: sourceBounds.max, size: sourceBounds.size });
+      console.log('[ICP] Target bounds:', { min: targetBounds.min, max: targetBounds.max, size: targetBounds.size });
+      console.log('[ICP] Source centroid:', sourceCentroid);
+      console.log('[ICP] Target centroid:', targetCentroid);
+      console.log('[ICP] Options:', { maxIterations, tolerance, trim, reject });
     }
 
     const targetTree = new KDTree(targetPointsWorld);
     let T = BABYLON.Matrix.Identity();
     let lastRMS = Number.POSITIVE_INFINITY;
+    const iterationHistory: Array<{
+      iteration: number;
+      rmsError: number;
+      correspondences: number;
+      trimmedOutliers: number;
+      transform: BABYLON.Matrix;
+    }> = [];
 
     for (let iter = 0; iter < maxIterations; iter++) {
       // 1) Transform source by current T
       const srcT: BABYLON.Vector3[] = sourcePointsWorld.map(p => BABYLON.Vector3.TransformCoordinates(p, T));
+
       // 2) Find correspondences
       const pairs: Array<{ a: BABYLON.Vector3; b: BABYLON.Vector3; d2: number }> = [];
       for (const p of srcT) {
@@ -148,27 +243,107 @@ export class ICP {
         const d = Math.sqrt(nn.dist2);
         if (d <= reject) pairs.push({ a: p, b: nn.point, d2: nn.dist2 });
       }
-      if (pairs.length < 3) {
-        return { success: false, transform: T, rmsError: lastRMS, iterations: iter, correspondences: pairs.length };
+
+      if (enableDebug) {
+        console.log(`[ICP] Iteration ${iter}: Found ${pairs.length}/${sourcePointsWorld.length} correspondences within ${reject}m threshold`);
       }
+
+      if (pairs.length < 3) {
+        if (enableDebug) {
+          console.error(`[ICP] Insufficient correspondences at iteration ${iter}: ${pairs.length} < 3`);
+        }
+        return {
+          success: false,
+          transform: T,
+          rmsError: lastRMS,
+          iterations: iter,
+          correspondences: pairs.length,
+          ...(enableDebug && { debug: {
+            iterationHistory,
+            sourceCentroid,
+            targetCentroid,
+            finalRotationDegrees: matrixToEulerDegrees(T),
+            finalTranslation: new BABYLON.Vector3(T.m[12], T.m[13], T.m[14]),
+            pointCloudBounds: { source: sourceBounds, target: targetBounds }
+          }})
+        };
+      }
+
       // 3) Trim outliers by distance
       const sorted = pairs.sort((x, y) => x.d2 - y.d2);
       const keep = Math.max(3, Math.floor(sorted.length * trim));
       const kept = sorted.slice(0, keep);
+      const trimmedCount = sorted.length - kept.length;
+
       const A = kept.map(p => p.a);
       const B = kept.map(p => p.b);
+
       // 4) Solve for rigid transform
       const { R } = svdRigidTransform(A, B);
+
       // 5) Update T: compose R with previous
       T = R.multiply(T);
+
       // 6) Compute RMS
       const err = Math.sqrt(kept.reduce((acc, k) => acc + k.d2, 0) / kept.length);
+
+      if (enableDebug) {
+        const rotation = matrixToEulerDegrees(T);
+        const translation = new BABYLON.Vector3(T.m[12], T.m[13], T.m[14]);
+        console.log(`[ICP] Iteration ${iter}: RMS=${err.toFixed(6)}m, kept=${kept.length}, trimmed=${trimmedCount}`);
+        console.log(`[ICP] Iteration ${iter}: Rotation(deg)=[${rotation.x.toFixed(2)}, ${rotation.y.toFixed(2)}, ${rotation.z.toFixed(2)}], Translation=[${translation.x.toFixed(4)}, ${translation.y.toFixed(4)}, ${translation.z.toFixed(4)}]`);
+      }
+
+      iterationHistory.push({
+        iteration: iter,
+        rmsError: err,
+        correspondences: kept.length,
+        trimmedOutliers: trimmedCount,
+        transform: T.clone()
+      });
+
       if (Math.abs(lastRMS - err) < tolerance) {
-        return { success: true, transform: T, rmsError: err, iterations: iter + 1, correspondences: kept.length };
+        if (enableDebug) {
+          console.log(`[ICP] Converged at iteration ${iter + 1}: RMS change ${Math.abs(lastRMS - err).toExponential()} < tolerance ${tolerance}`);
+        }
+        return {
+          success: true,
+          transform: T,
+          rmsError: err,
+          iterations: iter + 1,
+          correspondences: kept.length,
+          ...(enableDebug && { debug: {
+            iterationHistory,
+            sourceCentroid,
+            targetCentroid,
+            finalRotationDegrees: matrixToEulerDegrees(T),
+            finalTranslation: new BABYLON.Vector3(T.m[12], T.m[13], T.m[14]),
+            pointCloudBounds: { source: sourceBounds, target: targetBounds }
+          }})
+        };
       }
       lastRMS = err;
     }
-    return { success: true, transform: T, rmsError: lastRMS, iterations: maxIterations, correspondences: 0 };
+
+    if (enableDebug) {
+      console.log(`[ICP] Max iterations reached: ${maxIterations}`);
+    }
+
+    return {
+      success: true,
+      transform: T,
+      rmsError: lastRMS,
+      iterations: maxIterations,
+      correspondences: 0,
+      ...(enableDebug && { debug: {
+        iterationHistory,
+        sourceCentroid,
+        targetCentroid,
+        finalRotationDegrees: matrixToEulerDegrees(T),
+        finalTranslation: new BABYLON.Vector3(T.m[12], T.m[13], T.m[14]),
+        pointCloudBounds: { source: sourceBounds, target: targetBounds }
+      }})
+    };
   }
 }
 

@@ -65,6 +65,28 @@ export namespace WorldSpace {
   }
 
   /**
+   * Sample local-space points from a mesh's vertices (optionally strided).
+   * Returns points in the mesh's own coordinate system (no world transform applied).
+   * Use this for ICP geometry matching where parts need to be compared in their local frame.
+   */
+  export function sampleMeshLocalPoints(
+    mesh: BABYLON.AbstractMesh,
+    options: { stride?: number; maxPoints?: number } = {}
+  ): BABYLON.Vector3[] {
+    const stride = Math.max(1, options.stride ?? 1);
+    const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+    if (!positions || positions.length === 0) return [];
+
+    const points: BABYLON.Vector3[] = [];
+    for (let i = 0; i < positions.length; i += 3 * stride) {
+      const p = new BABYLON.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+      points.push(p);
+      if (options.maxPoints && points.length >= options.maxPoints) break;
+    }
+    return points;
+  }
+
+  /**
    * Returns true if a node has a tag that matches the query string (Babylon Tags).
    */
   export function nodeHasTag(node: BABYLON.Node, query: string): boolean {
