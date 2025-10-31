@@ -447,7 +447,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
       const fileName = `${node.name || 'selection'}.glb`;
 
       if (roots.length > 0) {
-        await GLBExportService.exportSelection(scene, roots as any, fileName);
+        await GLBExportService.exportSelectionRobust(scene, roots as any, fileName);
       } else {
         await GLBExportService.exportScene(scene, fileName);
       }
