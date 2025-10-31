@@ -73,7 +73,6 @@ export class GLBExportService {
     const { GLTF2Export } = await import('@babylonjs/serializers/glTF/2.0/glTFSerializer');
     const glb = await GLTF2Export.GLBAsync(scene, 'selection', {
       shouldExportNode: (node: BABYLON.Node) => node === exportContainer || node.isDescendantOf(exportContainer),
-      exportOnlyActiveMeshes: false,
     });
     const blob = glb.glTFFiles['selection.glb'] as Blob;
     
@@ -157,7 +156,6 @@ export class GLBExportService {
     const { GLTF2Export } = await import('@babylonjs/serializers/glTF/2.0/glTFSerializer');
     const glb = await GLTF2Export.GLBAsync(scene, 'selection', {
       shouldExportNode: (n: BABYLON.Node) => n === exportContainer || n.isDescendantOf(exportContainer),
-      exportOnlyActiveMeshes: false,
     });
     const blob = glb.glTFFiles['selection.glb'] as Blob;
     try { exportContainer.dispose(false, true); } catch {}
