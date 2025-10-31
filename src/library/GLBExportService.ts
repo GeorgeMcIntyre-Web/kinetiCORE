@@ -23,23 +23,36 @@ export class GLBExportService {
       return;
     }
 
-    const { GLTF2Export } = await import('@babylonjs/serializers/glTF/2.0/glTFSerializer');
-    const rootSet = new Set(roots);
+    // Robust path: clone selected meshes under a temporary container and export that subtree
+    const exportContainer = new BABYLON.TransformNode('__export_container__', scene);
 
-    // Important: allow traversal through ancestors of the selected roots.
-    // Some exporters prune recursion when a parent is filtered out. By
-    // returning true for ancestors (r.isDescendantOf(node)), we ensure the
-    // walk reaches the selected subtrees, and we include all descendants.
+    const addMeshClone = (mesh: BABYLON.AbstractMesh) => {
+      if (!(mesh instanceof BABYLON.Mesh)) return;
+      // Skip invisible or helper meshes if any
+      if (!mesh.isEnabled() || mesh.name.includes('_dummy')) return;
+      mesh.clone(`${mesh.name}__exp`, exportContainer);
+    };
+
+    for (const r of roots) {
+      if (r instanceof BABYLON.Mesh) {
+        addMeshClone(r);
+      } else if (r instanceof BABYLON.TransformNode) {
+        const childMeshes = r.getChildMeshes(false);
+        childMeshes.forEach(addMeshClone);
+      } else if ((r as any).getChildMeshes) {
+        try { (r as any).getChildMeshes(false).forEach(addMeshClone); } catch {}
+      }
+    }
+
+    const { GLTF2Export } = await import('@babylonjs/serializers/glTF/2.0/glTFSerializer');
     const glb = await GLTF2Export.GLBAsync(scene, 'selection', {
-      shouldExportNode: (node: BABYLON.Node) => {
-        if (rootSet.size === 0) return true;
-        for (const r of rootSet) {
-          if (node === r || node.isDescendantOf(r) || r.isDescendantOf(node)) return true;
-        }
-        return false;
-      },
+      shouldExportNode: (node: BABYLON.Node) => node === exportContainer || node.isDescendantOf(exportContainer),
     });
     const blob = glb.glTFFiles['selection.glb'] as Blob;
+    
+    // Cleanup clones
+    try { exportContainer.dispose(false, true); } catch {}
+
     GLBExportService.downloadBlob(blob, fileName);
   }
 
