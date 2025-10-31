@@ -1,7 +1,7 @@
 /**
  * Admin Panel for Asset Management
  * Owner: George
- * 
+ *
  * Web interface for bulk asset management, metadata extraction, and asset operations
  */
 
@@ -38,10 +38,10 @@ class SimpleMetadataService {
     return {
       success: false,
       confidence: 'low',
-      data: {}
+      data: {},
     };
   }
-  
+
   static getInstance() {
     return new SimpleMetadataService();
   }
@@ -80,7 +80,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
   const [filters, setFilters] = useState({
     domain: '',
     assetClass: '',
-    tags: [] as string[]
+    tags: [] as string[],
   });
 
   // Metadata extraction state
@@ -96,7 +96,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
     assetClass: 'structures',
     tags: [],
     generateThumbnail: true,
-    extractMetadata: false
+    extractMetadata: false,
   });
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -112,7 +112,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
     try {
       const response = await fetch('/api/assets', {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       if (response.ok) {
@@ -139,14 +139,14 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
       const result = await metadataService.extractMetadata({
         query: metadataQuery,
         includeSpecifications: true,
-        includeImages: true
+        includeImages: true,
       });
 
       setMetadataResult(result);
 
       if (result.success) {
         // Pre-fill upload form with extracted data
-        setUploadConfig(prev => ({
+        setUploadConfig((prev) => ({
           ...prev,
           name: result.data.name || '',
           description: result.data.description || '',
@@ -154,7 +154,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
           modelNumber: result.data.modelNumber || '',
           tags: result.data.tags || [],
           domain: result.data.domain || 'custom',
-          assetClass: result.data.assetClass || 'structures'
+          assetClass: result.data.assetClass || 'structures',
         }));
       }
     } catch (error) {
@@ -183,13 +183,13 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
           manufacturer: uploadConfig.manufacturer,
           modelNumber: uploadConfig.modelNumber,
           loaderType: getLoaderType(file.name),
-          source: 'admin-upload'
+          source: 'admin-upload',
         };
 
         const response = await fetch('/api/assets', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(assetData)
+          body: JSON.stringify(assetData),
         });
 
         if (response.ok) {
@@ -203,7 +203,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
 
           const uploadResponse = await fetch('/api/admin/upload', {
             method: 'POST',
-            body: formData
+            body: formData,
           });
 
           if (uploadResponse.ok) {
@@ -214,8 +214,8 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   assetId,
-                  modelUrl: `/api/assets/file/${assetId}`
-                })
+                  modelUrl: `/api/assets/file/${assetId}`,
+                }),
               });
             }
           }
@@ -224,7 +224,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
 
       // Reload assets
       await loadAssets();
-      
+
       // Reset form
       setUploadFiles([]);
       setUploadConfig({
@@ -234,9 +234,8 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
         assetClass: 'structures',
         tags: [],
         generateThumbnail: true,
-        extractMetadata: false
+        extractMetadata: false,
       });
-
     } catch (error) {
       console.error('Upload failed:', error);
     } finally {
@@ -252,7 +251,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
 
     try {
       const response = await fetch(`/api/assets/${assetId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       if (response.ok) {
@@ -271,29 +270,37 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
   const getLoaderType = (filename: string): string => {
     const extension = filename.split('.').pop()?.toLowerCase();
     switch (extension) {
-      case 'glb': return 'glb';
-      case 'gltf': return 'gltf';
-      case 'obj': return 'obj';
-      case 'stl': return 'stl';
-      case 'urdf': return 'urdf';
-      case 'xml': return 'mjcf';
-      default: return 'glb';
+      case 'glb':
+        return 'glb';
+      case 'gltf':
+        return 'gltf';
+      case 'obj':
+        return 'obj';
+      case 'stl':
+        return 'stl';
+      case 'urdf':
+        return 'urdf';
+      case 'xml':
+        return 'mjcf';
+      default:
+        return 'glb';
     }
   };
 
   /**
    * Filter assets based on search and filters
    */
-  const filteredAssets = assets.filter(asset => {
-    const matchesSearch = !searchQuery || 
+  const filteredAssets = assets.filter((asset) => {
+    const matchesSearch =
+      !searchQuery ||
       asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       asset.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      asset.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+      asset.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesDomain = !filters.domain || asset.domain === filters.domain;
     const matchesAssetClass = !filters.assetClass || asset.assetClass === filters.assetClass;
-    const matchesTags = filters.tags.length === 0 || 
-      filters.tags.some(tag => asset.tags.includes(tag));
+    const matchesTags =
+      filters.tags.length === 0 || filters.tags.some((tag) => asset.tags.includes(tag));
 
     return matchesSearch && matchesDomain && matchesAssetClass && matchesTags;
   });
@@ -303,32 +310,32 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
   }, [loadAssets]);
 
   return (
-    <div className="admin-panel">
+    <div className="admin-panel m-3">
       <div className="admin-header">
         <h2>Asset Library Admin</h2>
         <div className="admin-tabs">
-          <button 
+          <button
             className={activeTab === 'assets' ? 'active' : ''}
             onClick={() => setActiveTab('assets')}
           >
             <Database className="w-4 h-4" />
             Assets
           </button>
-          <button 
+          <button
             className={activeTab === 'upload' ? 'active' : ''}
             onClick={() => setActiveTab('upload')}
           >
             <Upload className="w-4 h-4" />
             Upload
           </button>
-          <button 
+          <button
             className={activeTab === 'bulk' ? 'active' : ''}
             onClick={() => setActiveTab('bulk')}
           >
             <FileText className="w-4 h-4" />
             Bulk Import
           </button>
-          <button 
+          <button
             className={activeTab === 'analytics' ? 'active' : ''}
             onClick={() => setActiveTab('analytics')}
           >
@@ -359,7 +366,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
               <div className="filters">
                 <select
                   value={filters.domain}
-                  onChange={(e) => setFilters(prev => ({ ...prev, domain: e.target.value }))}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, domain: e.target.value }))}
                 >
                   <option value="">All Domains</option>
                   <option value="manufacturing">Manufacturing</option>
@@ -370,7 +377,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                 </select>
                 <select
                   value={filters.assetClass}
-                  onChange={(e) => setFilters(prev => ({ ...prev, assetClass: e.target.value }))}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, assetClass: e.target.value }))}
                 >
                   <option value="">All Classes</option>
                   <option value="robots">Robots</option>
@@ -386,7 +393,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                 <div className="loading">Loading assets...</div>
               ) : (
                 <div className="assets-grid">
-                  {filteredAssets.map(asset => (
+                  {filteredAssets.map((asset) => (
                     <div key={asset.id} className="asset-card">
                       <div className="asset-thumbnail">
                         {asset.thumbnail ? (
@@ -402,7 +409,9 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                         <p className="asset-description">{asset.description}</p>
                         <div className="asset-tags">
                           {asset.tags.slice(0, 3).map((tag: string) => (
-                            <span key={tag} className="tag">{tag}</span>
+                            <span key={tag} className="tag">
+                              {tag}
+                            </span>
                           ))}
                         </div>
                         <div className="asset-stats">
@@ -411,10 +420,16 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                         </div>
                       </div>
                       <div className="asset-actions">
-                        <button onClick={() => window.open(`/api/assets/file/${asset.id}`, '_blank')}>
+                        <button
+                          onClick={() => window.open(`/api/assets/file/${asset.id}`, '_blank')}
+                        >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button onClick={() => {/* Edit asset */}}>
+                        <button
+                          onClick={() => {
+                            /* Edit asset */
+                          }}
+                        >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button onClick={() => handleDeleteAsset(asset.id)}>
@@ -441,19 +456,17 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                     value={metadataQuery}
                     onChange={(e) => setMetadataQuery(e.target.value)}
                   />
-                  <button 
+                  <button
                     onClick={handleExtractMetadata}
                     disabled={extractingMetadata || !metadataQuery.trim()}
                   >
                     {extractingMetadata ? 'Extracting...' : 'Extract Metadata'}
                   </button>
                 </div>
-                
+
                 {metadataResult && (
                   <div className={`extraction-result confidence-${metadataResult.confidence}`}>
-                    <div className="confidence-badge">
-                      Confidence: {metadataResult.confidence}
-                    </div>
+                    <div className="confidence-badge">Confidence: {metadataResult.confidence}</div>
                     {metadataResult.success ? (
                       <div className="extracted-data">
                         <h4>Extracted Data:</h4>
@@ -477,7 +490,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                   <input
                     type="text"
                     value={uploadConfig.name}
-                    onChange={(e) => setUploadConfig(prev => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) => setUploadConfig((prev) => ({ ...prev, name: e.target.value }))}
                     placeholder="Asset name"
                   />
                 </div>
@@ -486,7 +499,9 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                   <input
                     type="text"
                     value={uploadConfig.manufacturer || ''}
-                    onChange={(e) => setUploadConfig(prev => ({ ...prev, manufacturer: e.target.value }))}
+                    onChange={(e) =>
+                      setUploadConfig((prev) => ({ ...prev, manufacturer: e.target.value }))
+                    }
                     placeholder="Manufacturer"
                   />
                 </div>
@@ -495,7 +510,9 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                   <input
                     type="text"
                     value={uploadConfig.modelNumber || ''}
-                    onChange={(e) => setUploadConfig(prev => ({ ...prev, modelNumber: e.target.value }))}
+                    onChange={(e) =>
+                      setUploadConfig((prev) => ({ ...prev, modelNumber: e.target.value }))
+                    }
                     placeholder="Model number"
                   />
                 </div>
@@ -503,7 +520,9 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                   <label>Domain</label>
                   <select
                     value={uploadConfig.domain}
-                    onChange={(e) => setUploadConfig(prev => ({ ...prev, domain: e.target.value }))}
+                    onChange={(e) =>
+                      setUploadConfig((prev) => ({ ...prev, domain: e.target.value }))
+                    }
                   >
                     <option value="manufacturing">Manufacturing</option>
                     <option value="logistics">Logistics</option>
@@ -516,7 +535,9 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                   <label>Asset Class</label>
                   <select
                     value={uploadConfig.assetClass}
-                    onChange={(e) => setUploadConfig(prev => ({ ...prev, assetClass: e.target.value }))}
+                    onChange={(e) =>
+                      setUploadConfig((prev) => ({ ...prev, assetClass: e.target.value }))
+                    }
                   >
                     <option value="robots">Robots</option>
                     <option value="machinery">Machinery</option>
@@ -529,7 +550,9 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                   <label>Description</label>
                   <textarea
                     value={uploadConfig.description || ''}
-                    onChange={(e) => setUploadConfig(prev => ({ ...prev, description: e.target.value }))}
+                    onChange={(e) =>
+                      setUploadConfig((prev) => ({ ...prev, description: e.target.value }))
+                    }
                     placeholder="Asset description"
                     rows={3}
                   />
@@ -541,7 +564,9 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                   <input
                     type="checkbox"
                     checked={uploadConfig.generateThumbnail}
-                    onChange={(e) => setUploadConfig(prev => ({ ...prev, generateThumbnail: e.target.checked }))}
+                    onChange={(e) =>
+                      setUploadConfig((prev) => ({ ...prev, generateThumbnail: e.target.checked }))
+                    }
                   />
                   Generate thumbnail automatically
                 </label>
@@ -563,7 +588,9 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                     <h4>Selected Files:</h4>
                     <ul>
                       {uploadFiles.map((file, index) => (
-                        <li key={index}>{file.name} ({(file.size / 1024 / 1024).toFixed(2)}MB)</li>
+                        <li key={index}>
+                          {file.name} ({(file.size / 1024 / 1024).toFixed(2)}MB)
+                        </li>
                       ))}
                     </ul>
                   </div>
@@ -629,11 +656,13 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
               <div className="analytics-card">
                 <h4>Recent Uploads</h4>
                 <div className="metric">
-                  {assets.filter(asset => {
-                    const createdAt = new Date(asset.customMetadata?.exportedAt || '');
-                    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-                    return createdAt > weekAgo;
-                  }).length}
+                  {
+                    assets.filter((asset) => {
+                      const createdAt = new Date(asset.customMetadata?.exportedAt || '');
+                      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                      return createdAt > weekAgo;
+                    }).length
+                  }
                 </div>
               </div>
             </div>
