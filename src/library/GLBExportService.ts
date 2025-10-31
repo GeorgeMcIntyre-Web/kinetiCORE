@@ -27,10 +27,36 @@ export class GLBExportService {
     const exportContainer = new BABYLON.TransformNode('__export_container__', scene);
 
     const addMeshClone = (mesh: BABYLON.AbstractMesh) => {
-      if (!(mesh instanceof BABYLON.Mesh)) return;
-      // Skip invisible or helper meshes if any
-      if (!mesh.isEnabled() || mesh.name.includes('_dummy')) return;
-      mesh.clone(`${mesh.name}__exp`, exportContainer);
+      if (mesh.name.includes('_dummy')) return;
+      // Real mesh
+      if (mesh instanceof BABYLON.Mesh) {
+        const clone = mesh.clone(`${mesh.name}__exp`, exportContainer);
+        if (clone) {
+          clone.isVisible = true;
+          clone.setEnabled(true);
+        }
+        return;
+      }
+      // Instanced mesh
+      if (mesh instanceof BABYLON.InstancedMesh) {
+        const src = mesh.sourceMesh;
+        const inst = src.createInstance(`${mesh.name}__exp`);
+        inst.parent = exportContainer;
+        inst.position.copyFrom(mesh.position);
+        inst.rotation.copyFrom(mesh.rotation);
+        inst.scaling.copyFrom(mesh.scaling);
+        inst.isVisible = true;
+        inst.setEnabled(true);
+        return;
+      }
+      // Fallback: try to cast as any Mesh and clone
+      try {
+        const anyMesh = mesh as any;
+        if (typeof anyMesh.clone === 'function') {
+          const c = anyMesh.clone(`${mesh.name}__exp`, exportContainer);
+          if (c) { c.isVisible = true; c.setEnabled?.(true); }
+        }
+      } catch {}
     };
 
     for (const r of roots) {
@@ -47,6 +73,7 @@ export class GLBExportService {
     const { GLTF2Export } = await import('@babylonjs/serializers/glTF/2.0/glTFSerializer');
     const glb = await GLTF2Export.GLBAsync(scene, 'selection', {
       shouldExportNode: (node: BABYLON.Node) => node === exportContainer || node.isDescendantOf(exportContainer),
+      exportOnlyActiveMeshes: false,
     });
     const blob = glb.glTFFiles['selection.glb'] as Blob;
     
