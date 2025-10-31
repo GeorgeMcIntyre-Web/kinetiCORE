@@ -534,10 +534,14 @@ export class SceneManager {
     if (this.scene.debugLayer.isVisible()) {
       this.scene.debugLayer.hide();
     } else {
-      await this.scene.debugLayer.show({
-        enablePopup: true, // Open in separate popup window
-        embedMode: false
+      // Show the debug layer first
+      const debugLayer = await this.scene.debugLayer.show({
+        embedMode: true
       });
+
+      // Then pop out both the Scene Explorer and Inspector panes into separate windows
+      debugLayer.popupSceneExplorer();
+      debugLayer.popupInspector();
     }
   }
 
