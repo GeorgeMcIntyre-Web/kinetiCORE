@@ -1,6 +1,11 @@
 /* Essential Mode Layout Styles - Dark Theme */
 
 .essential-layout {
+  /* Layout-level CSS variables used by child components */
+  --sidebar-width: 240px;
+  --scene-tree-safe-top: 80px; /* Ensures SceneTree top rows aren't covered at various zoom levels */
+  --app-header-height: 96px; /* Default header (logo + ribbon) height */
+
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -37,8 +42,9 @@
 /* Floating Toolbar - COMPACT - left-aligned */
 .floating-toolbar {
   position: fixed;
-  top: 76px;
-  left: 260px; /* Left-align after sidebar (240px + 20px margin) */
+  top: calc(var(--app-header-height, 96px) + 16px);
+  /* Place toolbar just to the right of the sidebar using the declared width */
+  left: calc(var(--sidebar-width, 240px) + 20px);
   display: flex;
   align-items: center;
   gap: 6px;

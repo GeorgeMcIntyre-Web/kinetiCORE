@@ -264,17 +264,31 @@ export class SceneTreeManager {
    * Get effective visibility of a node (considering parent visibility)
    */
   getEffectiveVisibility(nodeId: string): boolean {
-    const node = this.nodes.get(nodeId);
-    if (!node) return false;
+    // Defensive cycle protection to prevent stack overflows if the tree becomes cyclic
+    const visited = new Set<string>();
 
-    // If this node is explicitly hidden, it's hidden regardless of parents
-    if (!node.visible) return false;
+    const check = (id: string): boolean => {
+      if (visited.has(id)) {
+        console.warn(`[SceneTree] Cycle detected in getEffectiveVisibility for node ${id}`);
+        // When a cycle is detected, treat as not visible to avoid infinite recursion
+        return false;
+      }
+      visited.add(id);
 
-    // If no parent, use local visibility
-    if (!node.parentId) return node.visible;
+      const node = this.nodes.get(id);
+      if (!node) return false;
 
-    // Check parent visibility recursively
-    return this.getEffectiveVisibility(node.parentId);
+      // If this node is explicitly hidden, it's hidden regardless of parents
+      if (!node.visible) return false;
+
+      // If no parent, use local visibility
+      if (!node.parentId) return node.visible;
+
+      // Check parent visibility recursively
+      return check(node.parentId);
+    };
+
+    return check(nodeId);
   }
 
   /**
