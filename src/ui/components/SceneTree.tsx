@@ -220,15 +220,20 @@ function nodeMatchesSearch(node: SceneNode, searchTerm: string): boolean {
 function nodeOrChildrenMatchSearch(
   node: SceneNode,
   searchTerm: string,
-  tree: SceneTreeManager
+  tree: SceneTreeManager,
+  visited: Set<string> = new Set()
 ): boolean {
+  // Prevent cycles from causing infinite recursion
+  if (visited.has(node.id)) return false;
+  visited.add(node.id);
+
   if (nodeMatchesSearch(node, searchTerm)) {
     return true;
   }
 
   // Check children
   const children = tree.getChildren(node.id);
-  return children.some(child => nodeOrChildrenMatchSearch(child, searchTerm, tree));
+  return children.some(child => nodeOrChildrenMatchSearch(child, searchTerm, tree, visited));
 }
 
 /**
@@ -430,17 +435,18 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
       const seen = new Set<number>();
       const roots: BABYLON.Node[] = [];
 
+      const allowed = new Set<number>();
       const collect = (treeNodeId: string) => {
         const tnode = tree.getNode(treeNodeId);
         if (!tnode) return;
 
         if (tnode.babylonTransformNodeId) {
           const tn = scene.getTransformNodeByUniqueId(parseInt(tnode.babylonTransformNodeId, 10));
-          if (tn && !seen.has(tn.uniqueId)) { roots.push(tn); seen.add(tn.uniqueId); }
+          if (tn) { allowed.add(tn.uniqueId); if (!seen.has(tn.uniqueId)) { roots.push(tn); seen.add(tn.uniqueId); } }
         }
         if (tnode.babylonMeshId) {
           const m = scene.getMeshByUniqueId(parseInt(tnode.babylonMeshId, 10));
-          if (m && !seen.has(m.uniqueId)) { roots.push(m); seen.add(m.uniqueId); }
+          if (m) { allowed.add(m.uniqueId); if (!seen.has(m.uniqueId)) { roots.push(m); seen.add(m.uniqueId); } }
         }
         const children = tree.getChildren(treeNodeId);
         for (const c of children) collect(c.id);
@@ -451,7 +457,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
       const fileName = `${node.name || 'selection'}.glb`;
 
       if (roots.length > 0) {
-        await GLBExportService.exportSelectionRobust(scene, roots as any, fileName);
+        await GLBExportService.exportSelectionWithHierarchy(scene, roots as any, fileName, allowed);
       } else {
         await GLBExportService.exportScene(scene, fileName);
       }
@@ -819,3 +825,5 @@ export const SceneTree: React.FC = () => {
     </div>
   );
 };
+
+

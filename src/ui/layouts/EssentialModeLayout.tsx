@@ -69,7 +69,7 @@ export const EssentialModeLayout: React.FC = () => {
 
   const [showKinematicsPanel, setShowKinematicsPanel] = useState(false);
   const [showKinematicsAnalysisPanel, setShowKinematicsAnalysisPanel] = useState(false);
-  const [showActuatorPanel, setShowActuatorPanel] = useState(false);
+  const [showActuatorPanel, setShowActuatorPanel] = useState(true);
   const [showComplexIKPanel, setShowComplexIKPanel] = useState(false);
   const [showWholeBodyIKPanel, setShowWholeBodyIKPanel] = useState(false);
   const [showKinematicExtractionPanel, setShowKinematicExtractionPanel] = useState(false);
@@ -569,7 +569,17 @@ export const EssentialModeLayout: React.FC = () => {
         />
 
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+      {/* Offset main content by the header height so the sidebar/tree are never covered */}
+      <div
+        className="flex flex-1 overflow-hidden"
+        style={{
+          position: 'fixed',
+          top: 'var(--app-header-height, 96px)',
+          left: 0,
+          right: 0,
+          bottom: 0,
+        }}
+      >
         {/* Left Sidebar - Resizable */}
         <aside
           className="border-r border-gray-200 bg-white flex-shrink-0 flex flex-col min-h-0 relative"

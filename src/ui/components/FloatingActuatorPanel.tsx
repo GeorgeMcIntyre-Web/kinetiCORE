@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { AssetLibraryDarkPanel } from './FloatingPanel/AssetLibraryDarkPanel';
-// import { KinematicsManager } from '../../kinematics/KinematicsManager'; // TEMP DISABLED
+import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { useEditorStore } from '../store/editorStore';
 import './FloatingActuatorPanel.css';
@@ -52,9 +52,8 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
   isVisible = true,
   zIndex = 1002,
 }) => {
-  // const kinematicsManager = KinematicsManager.getInstance();
-  // const actuatorSystem = kinematicsManager.getActuatorSystem(); // TODO: Fix async actuatorSystem
-  const actuatorSystem: any = null; // TEMPORARY: Disabled until circular dependency fixed
+  const kinematicsManager = KinematicsManager.getInstance();
+  const actuatorSystem: any = kinematicsManager.getActuatorSystem();
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
 
   const [devices, setDevices] = useState<{ nodeId: string; name: string; actuatorCount: number }[]>([]);
@@ -414,21 +413,21 @@ export const FloatingActuatorPanel: React.FC<FloatingActuatorPanelProps> = ({
                   <Gauge size={14} />
                   <div className="metric-info">
                     <span className="metric-label">Force</span>
-                    <span className="metric-value">{selectedActuator.state.force?.toFixed(1) ?? '—'} N</span>
+                    <span className="metric-value">{selectedActuator.state.force?.toFixed(1) ?? '?'} N</span>
                   </div>
                 </div>
                 <div className="metric-card">
                   <Zap size={14} />
                   <div className="metric-info">
                     <span className="metric-label">Velocity</span>
-                    <span className="metric-value">{selectedActuator.state.velocity?.toFixed(2) ?? '—'} m/s</span>
+                    <span className="metric-value">{selectedActuator.state.velocity?.toFixed(2) ?? '?'} m/s</span>
                   </div>
                 </div>
                 <div className="metric-card">
                   <Thermometer size={14} />
                   <div className="metric-info">
                     <span className="metric-label">Temp</span>
-                    <span className="metric-value">25°C</span>
+                    <span className="metric-value">25?C</span>
                   </div>
                 </div>
               </div>
