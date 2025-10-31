@@ -30,6 +30,7 @@ export const KeyboardShortcuts: React.FC = () => {
   const zoomIn = useEditorStore((state) => state.zoomIn);
   const zoomOut = useEditorStore((state) => state.zoomOut);
   const toggleCameraMode = useEditorStore((state) => state.toggleCameraMode);
+  const toggleInspector = useEditorStore((state) => state.toggleInspector);
   const undo = useEditorStore((state) => state.undo);
   const redo = useEditorStore((state) => state.redo);
 
@@ -67,6 +68,7 @@ export const KeyboardShortcuts: React.FC = () => {
     { key: '+', shift: true, description: 'Zoom In', action: () => zoomIn(), category: 'View' },
     { key: '-', shift: true, description: 'Zoom Out', action: () => zoomOut(), category: 'View' },
     { key: 'c', ctrl: true, shift: true, description: 'Toggle Orthographic/Perspective', action: () => toggleCameraMode(), category: 'View' },
+    { key: 'i', ctrl: true, shift: true, description: 'Toggle Inspector', action: () => toggleInspector(), category: 'View' },
 
     // Help
     { key: '?', description: 'Show Shortcuts', action: () => setShowHelp(!showHelp), category: 'Help' },
