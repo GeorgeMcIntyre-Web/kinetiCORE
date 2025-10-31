@@ -523,7 +523,7 @@ export class SceneManager {
   }
 
   /**
-   * Toggle Babylon.js inspector
+   * Toggle Babylon.js inspector (opens in pop-out window)
    */
   async toggleInspector(): Promise<void> {
     if (!this.scene) {
@@ -534,7 +534,10 @@ export class SceneManager {
     if (this.scene.debugLayer.isVisible()) {
       this.scene.debugLayer.hide();
     } else {
-      await this.scene.debugLayer.show();
+      await this.scene.debugLayer.show({
+        embedMode: false, // Open in separate pop-out window
+        overlay: false
+      });
     }
   }
 
