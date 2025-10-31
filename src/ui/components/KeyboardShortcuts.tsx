@@ -69,6 +69,7 @@ export const KeyboardShortcuts: React.FC = () => {
     { key: '-', shift: true, description: 'Zoom Out', action: () => zoomOut(), category: 'View' },
     { key: 'c', ctrl: true, shift: true, description: 'Toggle Orthographic/Perspective', action: () => toggleCameraMode(), category: 'View' },
     { key: 'i', ctrl: true, shift: true, description: 'Toggle Inspector', action: () => toggleInspector(), category: 'View' },
+    { key: ' ', ctrl: true, description: 'Focus Camera on Selected', action: () => selectedNodeId && zoomToNode(selectedNodeId), category: 'View' },
 
     // Help
     { key: '?', description: 'Show Shortcuts', action: () => setShowHelp(!showHelp), category: 'Help' },
