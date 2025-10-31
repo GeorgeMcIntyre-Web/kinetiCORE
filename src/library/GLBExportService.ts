@@ -25,10 +25,16 @@ export class GLBExportService {
 
     const { GLTF2Export } = await import('@babylonjs/serializers/glTF/2.0/glTFSerializer');
     const rootSet = new Set(roots);
+
+    // Important: allow traversal through ancestors of the selected roots.
+    // Some exporters prune recursion when a parent is filtered out. By
+    // returning true for ancestors (r.isDescendantOf(node)), we ensure the
+    // walk reaches the selected subtrees, and we include all descendants.
     const glb = await GLTF2Export.GLBAsync(scene, 'selection', {
       shouldExportNode: (node: BABYLON.Node) => {
+        if (rootSet.size === 0) return true;
         for (const r of rootSet) {
-          if (node === r || node.isDescendantOf(r)) return true;
+          if (node === r || node.isDescendantOf(r) || r.isDescendantOf(node)) return true;
         }
         return false;
       },
@@ -46,4 +52,3 @@ export class GLBExportService {
     URL.revokeObjectURL(url);
   }
 }
-
