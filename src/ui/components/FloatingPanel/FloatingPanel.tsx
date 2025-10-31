@@ -1,20 +1,13 @@
 /**
  * FloatingPanel - Clean Dark Floating UI Component
  * Owner: Edwin
- * 
+ *
  * A consistent, draggable floating panel system for all UI panels
  * Features: drag-to-move, minimize/maximize, dock/undock, clean dark design
  */
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import {
-  Minimize2,
-  Maximize2,
-  X,
-  Move,
-  Pin,
-  PinOff,
-} from 'lucide-react';
+import { Minimize2, Maximize2, X, Move, Pin, PinOff } from 'lucide-react';
 import './FloatingPanel.css';
 
 export type DockPosition = 'floating' | 'left' | 'right' | 'bottom';
@@ -28,30 +21,30 @@ interface FloatingPanelProps {
   onClose?: () => void;
   onMinimize?: () => void;
   onMaximize?: () => void;
-  
+
   // Panel configuration
   defaultPosition?: { x: number; y: number };
   defaultSize?: { width: number; height: number };
   defaultDockPosition?: DockPosition;
   defaultMinimized?: boolean;
-  
+
   // Panel behavior
   draggable?: boolean;
   resizable?: boolean;
   minimizable?: boolean;
   dockable?: boolean;
   closable?: boolean;
-  
+
   // Panel constraints
   minWidth?: number;
   minHeight?: number;
   maxWidth?: number;
   maxHeight?: number;
-  
+
   // Custom styling
   className?: string;
   style?: React.CSSProperties;
-  
+
   // Panel state
   isVisible?: boolean;
   zIndex?: number;
@@ -77,7 +70,7 @@ export function FloatingPanel({
   minWidth = 300,
   minHeight = 200,
   maxWidth = 1200,
-  maxHeight = 800,
+  maxHeight = 550,
   className = '',
   style = {},
   isVisible = true,
@@ -104,34 +97,40 @@ export function FloatingPanel({
   const resizeStartMouse = useRef({ x: 0, y: 0 });
 
   // Handle panel dragging
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (
-      dockPosition !== 'floating' ||
-      !draggable ||
-      !(e.target as HTMLElement).closest('.floating-panel-header')
-    ) {
-      return;
-    }
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (
+        dockPosition !== 'floating' ||
+        !draggable ||
+        !(e.target as HTMLElement).closest('.floating-panel-header')
+      ) {
+        return;
+      }
 
-    setIsDragging(true);
-    const rect = panelRef.current?.getBoundingClientRect();
-    if (rect) {
-      dragOffset.current = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      };
-    }
-  }, [dockPosition, draggable]);
+      setIsDragging(true);
+      const rect = panelRef.current?.getBoundingClientRect();
+      if (rect) {
+        dragOffset.current = {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        };
+      }
+    },
+    [dockPosition, draggable]
+  );
 
   // Handle panel resizing
-  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!resizable || dockPosition !== 'floating') return;
+  const handleResizeMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (!resizable || dockPosition !== 'floating') return;
 
-    e.stopPropagation();
-    setIsResizing(true);
-    resizeStartSize.current = { width: size.width, height: size.height };
-    resizeStartMouse.current = { x: e.clientX, y: e.clientY };
-  }, [resizable, dockPosition, size.width, size.height]);
+      e.stopPropagation();
+      setIsResizing(true);
+      resizeStartSize.current = { width: size.width, height: size.height };
+      resizeStartMouse.current = { x: e.clientX, y: e.clientY };
+    },
+    [resizable, dockPosition, size.width, size.height]
+  );
 
   // Mouse move handler for dragging and resizing
   useEffect(() => {
@@ -144,12 +143,18 @@ export function FloatingPanel({
           y: e.clientY - dragOffset.current.y,
         });
       }
-      
+
       if (isResizing && panelRef.current) {
         const deltaX = e.clientX - resizeStartMouse.current.x;
         const deltaY = e.clientY - resizeStartMouse.current.y;
-        const newWidth = Math.max(minWidth, Math.min(maxWidth, resizeStartSize.current.width + deltaX));
-        const newHeight = Math.max(minHeight, Math.min(maxHeight, resizeStartSize.current.height + deltaY));
+        const newWidth = Math.max(
+          minWidth,
+          Math.min(maxWidth, resizeStartSize.current.width + deltaX)
+        );
+        const newHeight = Math.max(
+          minHeight,
+          Math.min(maxHeight, resizeStartSize.current.height + deltaY)
+        );
         setSize({ width: newWidth, height: newHeight });
       }
     };
@@ -232,12 +237,7 @@ export function FloatingPanel({
   };
 
   return (
-    <div
-      ref={panelRef}
-      className={panelClasses}
-      style={panelStyle}
-      onMouseDown={handleMouseDown}
-    >
+    <div ref={panelRef} className={panelClasses} style={panelStyle} onMouseDown={handleMouseDown}>
       {/* Header */}
       <div className="floating-panel-header">
         <div className="floating-panel-title-section">
@@ -252,14 +252,14 @@ export function FloatingPanel({
             </span>
           )}
         </div>
-        
+
         <div className="floating-panel-controls">
           {dockable && (
             <button
               className={`floating-panel-control-btn pin-btn ${isPinned ? 'pinned' : ''}`}
               onClick={handlePinToggle}
-              title={isPinned ? "Unpin" : "Pin"}
-              aria-label={isPinned ? "Unpin panel" : "Pin panel"}
+              title={isPinned ? 'Unpin' : 'Pin'}
+              aria-label={isPinned ? 'Unpin panel' : 'Pin panel'}
             >
               {isPinned ? <Pin size={12} /> : <PinOff size={12} />}
             </button>
@@ -301,16 +301,20 @@ export function FloatingPanel({
       </div>
 
       {/* Content */}
-      <div className="floating-panel-content">
+      <div
+        className="floating-panel-content"
+        style={{
+          overflowY: 'auto',
+          overflowX: 'auto',
+          margin: '3px',
+        }}
+      >
         {children}
       </div>
 
       {/* Resize Handle */}
       {resizable && dockPosition === 'floating' && (
-        <div
-          className="floating-panel-resize-handle"
-          onMouseDown={handleResizeMouseDown}
-        />
+        <div className="floating-panel-resize-handle" onMouseDown={handleResizeMouseDown} />
       )}
     </div>
   );

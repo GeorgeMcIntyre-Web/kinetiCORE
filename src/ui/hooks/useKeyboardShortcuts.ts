@@ -7,7 +7,7 @@ import { useEditorStore } from '../store/editorStore';
 export const useKeyboardShortcuts = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const { undo, redo, duplicateNode, deleteNode, selectedNodeId, zoomIn, zoomOut, toggleCameraMode } = useEditorStore.getState();
+      const { undo, redo, duplicateNode, deleteNode, selectedNodeId, zoomIn, zoomOut, toggleCameraMode, toggleInspector } = useEditorStore.getState();
 
       // Ctrl/Cmd + Z: Undo
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
@@ -72,6 +72,13 @@ export const useKeyboardShortcuts = () => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'c') {
         e.preventDefault();
         toggleCameraMode();
+        return;
+      }
+
+      // Ctrl/Cmd + Shift + I: Toggle Babylon.js inspector
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'i') {
+        e.preventDefault();
+        toggleInspector();
         return;
       }
     };
