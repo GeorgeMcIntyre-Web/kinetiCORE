@@ -569,7 +569,8 @@ export const EssentialModeLayout: React.FC = () => {
         />
 
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+      {/* Offset main content by the header height so the sidebar/tree are never covered */}
+      <div className="flex flex-1 overflow-hidden" style={{ position: 'fixed', top: 76, left: 0, right: 0, bottom: 0 }}>
         {/* Left Sidebar - Resizable */}
         <aside
           className="border-r border-gray-200 bg-white flex-shrink-0 flex flex-col min-h-0 relative"

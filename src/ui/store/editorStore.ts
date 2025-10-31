@@ -472,13 +472,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (node && node.type === 'collection' && scene) {
       let transformNode: BABYLON.TransformNode | undefined;
       
-      // Use uniqueId lookup first for reliability, fallback to name lookup
+      // Use uniqueId lookup first for reliability (canonical field)
       if (node.babylonTransformNodeId) {
         const uniqueId = parseInt(node.babylonTransformNodeId, 10);
         const foundNode = scene.getTransformNodeByUniqueId(uniqueId);
         transformNode = foundNode ? foundNode : undefined;
+      } else if ((node as any).babylonNodeId) {
+        // Backward compatibility with older saves that used `babylonNodeId`
+        const legacyId = parseInt((node as any).babylonNodeId, 10);
+        const foundNode = scene.getTransformNodeByUniqueId(legacyId);
+        transformNode = foundNode ? foundNode : undefined;
       } else {
-        // Fallback to name lookup (legacy support for nodes without unique ID)
+        // Final fallback: name lookup (may be ambiguous if names repeat)
         transformNode = scene.transformNodes.find(tn => tn.name === node.name);
       }
       
@@ -555,6 +560,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (node.babylonTransformNodeId) {
         const transformNode = scene.getTransformNodeByUniqueId(
           parseInt(node.babylonTransformNodeId, 10)
+        );
+        if (transformNode) {
+          sceneManager.zoomToNode(transformNode);
+        }
+      } else if ((node as any).babylonNodeId) {
+        // Backward compatibility with older saves that used `babylonNodeId`
+        const transformNode = scene.getTransformNodeByUniqueId(
+          parseInt((node as any).babylonNodeId, 10)
         );
         if (transformNode) {
           sceneManager.zoomToNode(transformNode);
@@ -1111,9 +1124,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           node.name,
           parentNodeId
         );
-        
-        treeNode.babylonMeshId = isMesh ? (node as BABYLON.Mesh).uniqueId.toString() : null;
-        treeNode.babylonNodeId = node.uniqueId.toString();
+
+        // Store stable Babylon identifiers for later lookup.
+        // Use mesh uniqueId for meshes and transform uniqueId for collections.
+        treeNode.babylonMeshId = isMesh ? (node as BABYLON.Mesh).uniqueId.toString() : undefined;
+        // IMPORTANT: Use babylonTransformNodeId (the canonical property used across the app)
+        // Some older code used `babylonNodeId`; keep backward compatibility by not removing it here,
+        // but make sure the canonical field is populated so lookups do not fall back to name.
+        (treeNode as any).babylonNodeId = node.uniqueId.toString();
+        treeNode.babylonTransformNodeId = node.uniqueId.toString();
         treeNode.position = babylonToUser(worldPosition);
         treeNode.isURDF = isURDF;
         
@@ -2269,8 +2288,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // It's a mesh
       babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
     } else if (node.type === 'collection') {
-      // It's a collection/TransformNode - find by name
-      babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
+      // It's a collection/TransformNode - prefer uniqueId over name
+      if (node.babylonTransformNodeId) {
+        babylonNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId, 10));
+      } else if ((node as any).babylonNodeId) {
+        babylonNode = scene.getTransformNodeByUniqueId(parseInt((node as any).babylonNodeId, 10));
+      } else {
+        babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
+      }
     }
 
     if (babylonNode) {
@@ -2313,7 +2338,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (node.babylonMeshId) {
       babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
     } else if (node.type === 'collection') {
-      babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
+      if (node.babylonTransformNodeId) {
+        babylonNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId, 10));
+      } else if ((node as any).babylonNodeId) {
+        babylonNode = scene.getTransformNodeByUniqueId(parseInt((node as any).babylonNodeId, 10));
+      } else {
+        babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
+      }
     }
 
     if (babylonNode) {
@@ -2359,7 +2390,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (node.babylonMeshId) {
       babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
     } else if (node.type === 'collection') {
-      babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
+      if (node.babylonTransformNodeId) {
+        babylonNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId, 10));
+      } else if ((node as any).babylonNodeId) {
+        babylonNode = scene.getTransformNodeByUniqueId(parseInt((node as any).babylonNodeId, 10));
+      } else {
+        babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
+      }
     }
 
     if (babylonNode) {

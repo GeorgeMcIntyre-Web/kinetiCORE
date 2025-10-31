@@ -145,7 +145,10 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0;
-  padding-top: 80px;
+  /* Reserve a safe area at the top so the first items cannot be covered by
+     fixed UI at different browser zoom levels. Adjustable via CSS var. */
+  padding-top: var(--scene-tree-safe-top, 80px);
+  scroll-padding-top: var(--scene-tree-safe-top, 80px);
 }
 
 /* Tree Node */
