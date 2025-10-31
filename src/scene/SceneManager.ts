@@ -2,6 +2,7 @@
 // Owner: Cole
 
 import * as BABYLON from '@babylonjs/core';
+import '@babylonjs/inspector'; // Inspector for debugging
 import { GROUND_SIZE } from '../core/constants';
 import { FloorType } from '../core/types';
 import { FloorMaterialManager } from './FloorMaterialManager';
@@ -519,6 +520,22 @@ export class SceneManager {
    */
   resetClippingPlanes(): void {
     this.cameraService.resetClippingPlanes();
+  }
+
+  /**
+   * Toggle Babylon.js inspector
+   */
+  async toggleInspector(): Promise<void> {
+    if (!this.scene) {
+      console.warn('Scene not initialized');
+      return;
+    }
+
+    if (this.scene.debugLayer.isVisible()) {
+      this.scene.debugLayer.hide();
+    } else {
+      await this.scene.debugLayer.show();
+    }
   }
 
   dispose(): void {

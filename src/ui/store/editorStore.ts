@@ -170,6 +170,7 @@ interface EditorState {
   zoomIn: () => void; // Zoom camera in
   zoomOut: () => void; // Zoom camera out
   toggleCameraMode: () => void; // Toggle between orthographic and perspective
+  toggleInspector: () => void; // Toggle Babylon.js inspector
   deselectMesh: (mesh: BABYLON.Mesh) => void;
   clearSelection: () => void;
   toggleMeshSelection: (mesh: BABYLON.Mesh) => void;
@@ -673,6 +674,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   toggleCameraMode: () => {
     const sceneManager = SceneManager.getInstance();
     sceneManager.toggleCameraMode();
+  },
+
+  toggleInspector: () => {
+    const sceneManager = SceneManager.getInstance();
+    sceneManager.toggleInspector();
   },
 
   deselectMesh: (mesh) => {
