@@ -71,6 +71,9 @@ interface EditorState {
   // Edit mode state
   editModeEnabled: boolean;
   attachedJointId: string | null;
+  // Attachment workflow
+  attachMode: boolean;
+  attachParentCandidateId: string | null;
   
   // Project Manager Integration
   projectManager: ProjectManager;
@@ -175,6 +178,10 @@ interface EditorState {
   clearSelection: () => void;
   toggleMeshSelection: (mesh: BABYLON.Mesh) => void;
   togglePhysics: (nodeId: string) => void;
+  // Attachment actions
+  toggleAttachMode: () => void;
+  setAttachParentCandidate: (nodeId: string | null) => void;
+  attachNodes: (parentNodeId: string, childNodeId: string) => void;
   createCollection: (name?: string) => void;
   deleteNode: (nodeId: string) => void;
   duplicateNode: (nodeId: string) => void;
@@ -310,6 +317,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // Edit mode state
   editModeEnabled: false,
   attachedJointId: null,
+  attachMode: false,
+  attachParentCandidateId: null,
 
   // Project Manager Integration
   projectManager: ProjectManager.getInstance(),
@@ -842,6 +851,91 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     window.dispatchEvent(new Event('scenetree-update'));
   },
 
+  // Toggle attachment mode (click parent then child)
+  toggleAttachMode: () => {
+    const on = get().attachMode;
+    set({ attachMode: !on, attachParentCandidateId: null });
+  },
+
+  // Set the first picked node as parent candidate
+  setAttachParentCandidate: (nodeId) => {
+    set({ attachParentCandidateId: nodeId });
+  },
+
+  // Attach child node under parent with Babylon reparenting (preserve world transform)
+  attachNodes: (parentNodeId, childNodeId) => {
+    try {
+      if (!parentNodeId || !childNodeId || parentNodeId === childNodeId) return;
+
+      const tree = SceneTreeManager.getInstance();
+      const scene = SceneManager.getInstance().getScene();
+      if (!scene) return;
+
+      const parent = tree.getNode(parentNodeId);
+      const child = tree.getNode(childNodeId);
+      if (!parent || !child) return;
+
+      // prevent cycles
+      const isDescendant = (ancestorId: string, nodeId: string | null): boolean => {
+        if (!nodeId) return false;
+        if (ancestorId === nodeId) return true;
+        const n = tree.getNode(nodeId);
+        if (!n || !n.parentId) return false;
+        return isDescendant(ancestorId, n.parentId);
+      };
+      if (isDescendant(childNodeId, parentNodeId)) return;
+
+      // Resolve Babylon nodes
+      const resolve = (n: typeof parent): BABYLON.TransformNode | null => {
+        if (!n) return null;
+        if (n.babylonTransformNodeId) {
+          const tn = scene.getTransformNodeByUniqueId(parseInt(n.babylonTransformNodeId, 10));
+          if (tn) return tn as BABYLON.TransformNode;
+        }
+        if (n.babylonMeshId) {
+          const m = scene.getMeshByUniqueId(parseInt(n.babylonMeshId, 10));
+          if (m) return m as unknown as BABYLON.TransformNode;
+        }
+        return null;
+      };
+
+      const parentTn = resolve(parent);
+      const childTn = resolve(child);
+
+      if (parentTn && childTn) {
+        parentTn.computeWorldMatrix(true);
+        childTn.computeWorldMatrix(true);
+        const parentWorld = parentTn.getWorldMatrix().clone();
+        const childWorld = childTn.getWorldMatrix().clone();
+        const invParent = parentWorld.clone();
+        invParent.invert();
+        const local = childWorld.multiply(invParent);
+        const localPos = new BABYLON.Vector3();
+        const localScale = new BABYLON.Vector3();
+        const localQuat = new BABYLON.Quaternion();
+        local.decompose(localScale, localQuat, localPos);
+
+        childTn.setParent(parentTn);
+        childTn.position.copyFrom(localPos);
+        childTn.scaling.copyFrom(localScale);
+        childTn.rotationQuaternion = localQuat.clone();
+        childTn.computeWorldMatrix(true);
+      }
+
+      // mark indicator
+      child.userData = child.userData || {};
+      (child.userData as any).attachedParentId = parent.id;
+
+      // reflect in tree
+      tree.moveNode(child.id, parent.id);
+
+      set({ attachMode: false, attachParentCandidateId: null });
+      window.dispatchEvent(new Event('scenetree-update'));
+    } catch (e) {
+      console.error('[attachNodes] error', e);
+    }
+  },
+
   // Transform actions
   setTransformMode: (mode) => set({ transformMode: mode }),
 
@@ -1167,9 +1261,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       try {
         const urdfContent = await urdfFile.text();
         await createKinematicsFromURDF(urdfContent, modelCollection.id);
-        console.log('✅ Kinematics extracted from URDF');
+        console.log('? Kinematics extracted from URDF');
       } catch (kinematicsError) {
-        console.warn('⚠️ Could not extract kinematics:', kinematicsError);
+        console.warn('?? Could not extract kinematics:', kinematicsError);
       }
       
       loading.update('Finalizing...', 95);
@@ -1225,7 +1319,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
         // No URDF found, try MJCF
         console.log(`[File Import] No URDF found in ZIP, trying MJCF...`);
-        console.log('🔴🔴🔴 EDITOR STORE MJCF IMPORT CODE IS RUNNING - VERSION 2025.01.22.1341 🔴🔴🔴');
+        console.log('?????? EDITOR STORE MJCF IMPORT CODE IS RUNNING - VERSION 2025.01.22.1341 ??????');
 
         // Import MJCF loader
         const { loadMJCFFromFile } = await import('../../loaders/mjcf/MJCFLoader');
@@ -1233,7 +1327,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         try {
           // MJCF loader will handle ZIP extraction internally
           const mjcfResult = await loadMJCFFromFile(file, scene);
-          console.log('🔴🔴🔴 MJCF LOAD COMPLETE - ABOUT TO CHECK RESULT 🔴🔴🔴');
+          console.log('?????? MJCF LOAD COMPLETE - ABOUT TO CHECK RESULT ??????');
 
           if (mjcfResult.success) {
             console.log(`[File Import] Successfully loaded MJCF from ZIP: ${mjcfResult.meshes.length} meshes`);
@@ -1276,7 +1370,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
                   kinematicsManager
                 );
 
-                console.log(`[EditorStore] ✅ Integrated ${createdActuators.length} MJCF actuators`);
+                console.log(`[EditorStore] ? Integrated ${createdActuators.length} MJCF actuators`);
               } catch (error) {
                 console.error('[EditorStore] Failed to integrate MJCF actuators:', error);
               }
@@ -1316,7 +1410,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
                     kinematicsManager
                   );
 
-                  console.log(`[EditorStore] ✅ Integrated ${registeredKeyframes.length} MJCF keyframes`);
+                  console.log(`[EditorStore] ? Integrated ${registeredKeyframes.length} MJCF keyframes`);
                 } catch (error) {
                   console.error('[EditorStore] Failed to integrate MJCF keyframes:', error);
                 }
@@ -1809,7 +1903,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           await createKinematicsFromURDF(urdfXML, modelCollection.id);
           loading.update('Finalizing...', 90);
           loading.end();
-          toast.success(`Imported ${meshes.length} meshes from ${file.name} + kinematics! 🤖`);
+          toast.success(`Imported ${meshes.length} meshes from ${file.name} + kinematics! ??`);
           console.log(`Imported ${meshes.length} meshes with kinematics auto-extracted`);
         } catch (error) {
           console.warn('Failed to auto-extract kinematics:', error);
@@ -1845,7 +1939,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             const floorWidth = width * margin;
             const floorDepth = depth * margin;
             sceneManager.resizeFloor(floorWidth, floorDepth);
-            console.log(`Auto-resized floor to ${floorWidth.toFixed(1)}m × ${floorDepth.toFixed(1)}m for DWG layout`);
+            console.log(`Auto-resized floor to ${floorWidth.toFixed(1)}m ? ${floorDepth.toFixed(1)}m for DWG layout`);
           }
         }
 
@@ -2025,7 +2119,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         await createKinematicsFromURDF(urdfXML, modelCollection.id);
         loading.update('Finalizing...', 90);
         loading.end();
-        toast.success(`Imported URDF robot with ${meshes.length} meshes + kinematics! 🤖`);
+        toast.success(`Imported URDF robot with ${meshes.length} meshes + kinematics! ??`);
         console.log(`Imported ${meshes.length} meshes with kinematics auto-extracted`);
       } catch (error) {
         console.warn('Failed to auto-extract kinematics:', error);
@@ -2267,11 +2361,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   // Transform update actions
   updateNodePosition: (nodeId: string, position: { x: number; y: number; z: number }) => {
-    console.log('🔧 updateNodePosition called:', { nodeId, position });
+    console.log('?? updateNodePosition called:', { nodeId, position });
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(nodeId);
     if (!node) {
-      console.log('❌ Node not found in tree:', nodeId);
+      console.log('? Node not found in tree:', nodeId);
       return;
     }
 
@@ -2281,12 +2375,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     if (!scene) {
-      console.log('❌ No scene');
+      console.log('? No scene');
       return;
     }
 
     const babylonPos = userToBabylon(position);
-    console.log('🔄 Converted to Babylon coords:', babylonPos);
+    console.log('?? Converted to Babylon coords:', babylonPos);
 
     // Update Babylon node (Mesh or TransformNode)
     let babylonNode: BABYLON.TransformNode | null = null;
@@ -2305,9 +2399,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
 
     if (babylonNode) {
-      console.log('✅ Found Babylon node, setting position from', babylonNode.position, 'to', babylonPos);
+      console.log('? Found Babylon node, setting position from', babylonNode.position, 'to', babylonPos);
       babylonNode.position.copyFrom(babylonPos);
-      console.log('✅ Position set, new value:', babylonNode.position);
+      console.log('? Position set, new value:', babylonNode.position);
 
       // Sync to physics if entity exists (only for meshes)
       if (node.entityId) {
@@ -2316,7 +2410,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         entity?.syncToPhysics();
       }
     } else {
-      console.log('❌ Babylon node not found');
+      console.log('? Babylon node not found');
     }
 
     window.dispatchEvent(new Event('scenetree-update'));

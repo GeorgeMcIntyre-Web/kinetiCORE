@@ -258,6 +258,10 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
   const deleteNode = useEditorStore((state) => state.deleteNode);
   const renameNode = useEditorStore((state) => state.renameNode);
   const moveNode = useEditorStore((state) => state.moveNode);
+  const attachMode = useEditorStore((state) => state.attachMode);
+  const attachParentCandidateId = useEditorStore((state) => state.attachParentCandidateId);
+  const setAttachParentCandidate = useEditorStore((state) => state.setAttachParentCandidate);
+  const attachNodes = useEditorStore((state) => state.attachNodes);
 
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameName, setRenameName] = useState(node.name);
@@ -310,6 +314,16 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    // Attachment workflow: first click selects parent, second click attaches child
+    if (attachMode) {
+      const currentCandidate = attachParentCandidateId;
+      if (!currentCandidate) {
+        setAttachParentCandidate(node.id);
+      } else if (currentCandidate !== node.id) {
+        attachNodes(currentCandidate, node.id);
+      }
+      return;
+    }
 
     // Ctrl+Click or Cmd+Click for multi-selection
     if (e.ctrlKey || e.metaKey) {
@@ -495,14 +509,14 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
       });
 
       if (result.success) {
-        alert(`✅ Asset saved to library: ${result.assetId}`);
+        alert(`? Asset saved to library: ${result.assetId}`);
         setShowSaveDialog(false);
       } else {
-        alert(`❌ Failed to save: ${result.error}`);
+        alert(`? Failed to save: ${result.error}`);
       }
     } catch (error) {
       console.error('Error saving to library:', error);
-      alert(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      alert(`? Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -598,6 +612,26 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
                 <div className="tree-node-badges">
                   {statusBadges}
                 </div>
+              )}
+              {/* Attachment indicator */}
+              {node.userData && (node.userData as any).attachedParentId && (
+                <button
+                  className="tree-node-action"
+                  title={`Attached to parent - click to navigate`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const parentId = (node.userData as any).attachedParentId as string;
+                    if (parentId) {
+                      const treeInst = SceneTreeManager.getInstance();
+                      treeInst.expandToNode(parentId);
+                      window.dispatchEvent(new Event('scenetree-update'));
+                      selectNode(parentId);
+                    }
+                  }}
+                  style={{ marginLeft: 6 }}
+                >
+                  <Link2 size={12} />
+                </button>
               )}
             </>
           )}
@@ -705,6 +739,9 @@ export const SceneTree: React.FC = () => {
   const rootNode = tree.getRootNode();
   const createCollection = useEditorStore((state) => state.createCollection);
   const deleteNode = useEditorStore((state) => state.deleteNode);
+  const attachMode = useEditorStore((state) => state.attachMode);
+  const toggleAttachMode = useEditorStore((state) => state.toggleAttachMode);
+  const attachParentCandidateId = useEditorStore((state) => state.attachParentCandidateId);
 
   // Listen for tree updates
   useEffect(() => {
@@ -776,6 +813,22 @@ export const SceneTree: React.FC = () => {
     <div className="scene-tree">
       <div className="scene-tree-header">
         <h2>Scene</h2>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button
+            onClick={() => toggleAttachMode()}
+            className="tree-node-action"
+            style={{
+              backgroundColor: attachMode ? '#646cff' : 'transparent',
+              color: attachMode ? '#ffffff' : '#858585',
+            }}
+            title={attachMode ? 'Attachment mode: pick parent then child' : 'Start attachment (pick parent then child)'}
+          >
+            <Link2 size={14} /> {attachMode ? 'Attaching...' : 'Attach'}
+          </button>
+          {attachMode && attachParentCandidateId && (
+            <span style={{ fontSize: 12, opacity: 0.8 }}>Parent selected</span>
+          )}
+        </div>
       </div>
 
       {/* Bulk operations panel */}
