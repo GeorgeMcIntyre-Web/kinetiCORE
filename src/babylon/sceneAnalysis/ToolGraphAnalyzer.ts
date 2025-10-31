@@ -46,8 +46,11 @@ function uuid(): string {
 }
 
 function nodeId(node: BABYLON.Node): string {
-  // Prefer uniqueId if available; fallback to name
-  return `${node.id || node.uniqueId || node.name}`;
+  // Prefer Babylon uniqueId as canonical identifier (stringified)
+  const u = (node as any).uniqueId;
+  if (u !== undefined && u !== null) return `${u}`;
+  // Fallbacks (rare): use id, then name
+  return `${node.id || node.name}`;
 }
 
 function classifyTypeByName(name: string, hints: AnalyzeOptions['nameHints']): ToolUnitType {

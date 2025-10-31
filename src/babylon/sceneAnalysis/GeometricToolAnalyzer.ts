@@ -52,7 +52,7 @@ const DEFAULT_GEOMETRIC_OPTIONS: Required<GeometricAnalyzeOptions> = {
   clusteringDistance: 0.05,
   fixedProximityThreshold: 0.5,
   fixedConnectivityThreshold: 3,
-  similarityThreshold: 0.85,
+  similarityThreshold: 0.95, // Higher threshold for bounding box matching (orientation-invariant)
   minMovementThreshold: 0.01,
 };
 
@@ -136,6 +136,83 @@ function computeGeometricSignature(node: BABYLON.TransformNode): GeometricSignat
     vertexCount,
     centroid,
   };
+}
+
+/**
+ * Compute aggregate bounding box for a TransformNode (union of all descendant meshes).
+ */
+function computeAggregateBoundingBox(node: BABYLON.TransformNode): BABYLON.BoundingBox | null {
+  const meshes: BABYLON.AbstractMesh[] = [];
+
+  // Collect all descendant meshes
+  const descendants = node.getDescendants(true);
+  for (const desc of descendants) {
+    if (desc instanceof BABYLON.AbstractMesh) {
+      meshes.push(desc);
+    }
+  }
+
+  // Also check if node itself is a mesh
+  if (node instanceof BABYLON.AbstractMesh) {
+    meshes.push(node);
+  }
+
+  if (meshes.length === 0) {
+    return null;
+  }
+
+  // Compute union bounding box in world space
+  let minX = Infinity, minY = Infinity, minZ = Infinity;
+  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+
+  for (const mesh of meshes) {
+    mesh.computeWorldMatrix(true);
+    const bbox = mesh.getBoundingInfo().boundingBox;
+    const worldMin = bbox.minimumWorld;
+    const worldMax = bbox.maximumWorld;
+
+    minX = Math.min(minX, worldMin.x);
+    minY = Math.min(minY, worldMin.y);
+    minZ = Math.min(minZ, worldMin.z);
+    maxX = Math.max(maxX, worldMax.x);
+    maxY = Math.max(maxY, worldMax.y);
+    maxZ = Math.max(maxZ, worldMax.z);
+  }
+
+  const min = new BABYLON.Vector3(minX, minY, minZ);
+  const max = new BABYLON.Vector3(maxX, maxY, maxZ);
+
+  return new BABYLON.BoundingBox(min, max);
+}
+
+/**
+ * Compute sorted dimensions (orientation-invariant) for bounding box matching.
+ * Returns [small, medium, large] dimensions.
+ */
+function getSortedDimensions(bbox: BABYLON.BoundingBox): [number, number, number] {
+  const size = bbox.maximum.subtract(bbox.minimum);
+  const dims = [Math.abs(size.x), Math.abs(size.y), Math.abs(size.z)];
+  dims.sort((a, b) => a - b);
+  return [dims[0], dims[1], dims[2]];
+}
+
+/**
+ * Compute dimension similarity between two bounding boxes (orientation-invariant).
+ * Returns 0-1 score (1 = identical dimensions, 0 = completely different).
+ */
+function computeDimensionSimilarity(bbox1: BABYLON.BoundingBox, bbox2: BABYLON.BoundingBox): number {
+  const dims1 = getSortedDimensions(bbox1);
+  const dims2 = getSortedDimensions(bbox2);
+
+  // Compute relative difference for each dimension
+  const diff0 = Math.abs(dims1[0] - dims2[0]) / Math.max(dims1[0], dims2[0], 0.001);
+  const diff1 = Math.abs(dims1[1] - dims2[1]) / Math.max(dims1[1], dims2[1], 0.001);
+  const diff2 = Math.abs(dims1[2] - dims2[2]) / Math.max(dims1[2], dims2[2], 0.001);
+
+  // Weighted average (larger dimensions are more important)
+  const weightedDiff = (diff0 * 0.2 + diff1 * 0.3 + diff2 * 0.5);
+
+  return Math.max(0, 1 - weightedDiff);
 }
 
 /**
@@ -401,6 +478,69 @@ function collectDescendantIds(root: BABYLON.Node): string[] {
  */
 export class GeometricToolAnalyzer {
   /**
+   * Find TransformNode pairs by matching bounding box dimensions (orientation-invariant).
+   * This is used to detect FIXED/MOVING pairs without relying on naming conventions.
+   *
+   * @param containerNode - Parent node to search within (e.g., UNIT_112)
+   * @param similarityThreshold - Minimum dimension similarity (0-1) to consider a match
+   * @returns Array of [node1, node2] pairs with similar dimensions
+   */
+  findTransformNodePairsByDimensions(
+    containerNode: BABYLON.Node,
+    similarityThreshold: number = 0.90
+  ): Array<[BABYLON.TransformNode, BABYLON.TransformNode]> {
+    const pairs: Array<[BABYLON.TransformNode, BABYLON.TransformNode]> = [];
+
+    // Get all direct children TransformNodes
+    const children = containerNode.getChildren();
+    const transformNodes: BABYLON.TransformNode[] = [];
+
+    for (const child of children) {
+      if (child instanceof BABYLON.TransformNode && !(child instanceof BABYLON.AbstractMesh)) {
+        transformNodes.push(child);
+      }
+    }
+
+    console.log(`[GeometricToolAnalyzer] Finding dimension-matched pairs in '${containerNode.name}':`);
+    console.log(`  - Direct TransformNode children: ${transformNodes.length}`);
+
+    // Compute bounding boxes for all TransformNodes
+    const bboxMap = new Map<BABYLON.TransformNode, BABYLON.BoundingBox>();
+
+    for (const node of transformNodes) {
+      const bbox = computeAggregateBoundingBox(node);
+      if (bbox) {
+        bboxMap.set(node, bbox);
+        const dims = getSortedDimensions(bbox);
+        console.log(`  - ${node.name}: dims=[${dims[0].toFixed(3)}, ${dims[1].toFixed(3)}, ${dims[2].toFixed(3)}]m`);
+      }
+    }
+
+    // Compare all pairs
+    const nodes = Array.from(bboxMap.keys());
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const node1 = nodes[i];
+        const node2 = nodes[j];
+        const bbox1 = bboxMap.get(node1)!;
+        const bbox2 = bboxMap.get(node2)!;
+
+        const similarity = computeDimensionSimilarity(bbox1, bbox2);
+
+        if (similarity >= similarityThreshold) {
+          pairs.push([node1, node2]);
+          console.log(`  ✓ MATCH: ${node1.name} ↔ ${node2.name} (similarity: ${similarity.toFixed(3)})`);
+        } else {
+          console.log(`    ${node1.name} ↔ ${node2.name} (similarity: ${similarity.toFixed(3)}) - below threshold`);
+        }
+      }
+    }
+
+    console.log(`  - Total pairs found: ${pairs.length}`);
+    return pairs;
+  }
+
+  /**
    * Analyze scene to identify tool units using geometric properties.
    *
    * **Algorithm:**
@@ -422,6 +562,207 @@ export class GeometricToolAnalyzer {
     const opts: Required<GeometricAnalyzeOptions> = { ...DEFAULT_GEOMETRIC_OPTIONS, ...options };
 
     // Name-agnostic: do not rely on string patterns; use geometric heuristics only
+
+    // FAST PATH (Hierarchical depth-based bounding-box pairing): If a rootNode is provided, try hierarchical BB matching
+    if (rootNode) {
+      try {
+        const units: ToolUnit[] = [];
+        const anchors: ToolGraph['anchors'] = {};
+
+        // Helper: compute world-space bbox signature for a TransformNode and its descendant meshes
+        const signatureOf = (tn: BABYLON.TransformNode, unitRoot: BABYLON.Node) => {
+          tn.computeWorldMatrix(true);
+          const meshes = tn.getChildMeshes(false) as BABYLON.AbstractMesh[];
+          if (meshes.length === 0) return null;
+          let min = new BABYLON.Vector3(+Infinity,+Infinity,+Infinity);
+          let max = new BABYLON.Vector3(-Infinity,-Infinity,-Infinity);
+          for (const m of meshes) {
+            m.computeWorldMatrix(true);
+            const bb = m.getBoundingInfo().boundingBox;
+            min = BABYLON.Vector3.Minimize(min, bb.minimumWorld);
+            max = BABYLON.Vector3.Maximize(max, bb.maximumWorld);
+          }
+          const size = max.subtract(min);
+          const dims = [Math.abs(size.x), Math.abs(size.y), Math.abs(size.z)].sort((a,b)=>a-b);
+          const volume = Math.abs(size.x*size.y*size.z);
+          const pos = tn.getAbsolutePosition();
+          const conn = (tn.getChildren?.() || []).length;
+          return { dims, volume, pos, connectivity: conn };
+        };
+
+        // Helper: similarity (orientation invariant)
+        const dimSimilarity = (a: number[], b: number[]) => {
+          const diff = [
+            Math.abs(a[0]-b[0]) / Math.max(a[0], b[0], 1e-6),
+            Math.abs(a[1]-b[1]) / Math.max(a[1], b[1], 1e-6),
+            Math.abs(a[2]-b[2]) / Math.max(a[2], b[2], 1e-6),
+          ];
+          const w = [0.2,0.3,0.5];
+          const d = diff[0]*w[0] + diff[1]*w[1] + diff[2]*w[2];
+          return Math.max(0, 1 - d);
+        };
+
+        // Helper: compute depth of a node relative to unit root
+        const getDepth = (node: BABYLON.Node, unitRoot: BABYLON.Node): number => {
+          let d = 0;
+          let cur: BABYLON.Node | null = node;
+          while (cur && cur !== unitRoot && cur.parent) {
+            d++;
+            cur = cur.parent;
+          }
+          return cur === unitRoot ? d : -1;
+        };
+
+        // Helper: get all nodes at a specific depth within unit subtree
+        const getNodesAtDepth = (unitRoot: BABYLON.Node, targetDepth: number): BABYLON.TransformNode[] => {
+          const result: BABYLON.TransformNode[] = [];
+          const stack: Array<{ node: BABYLON.Node; depth: number }> = [{ node: unitRoot, depth: 0 }];
+          
+          while (stack.length) {
+            const { node, depth } = stack.pop()!;
+            if (depth === targetDepth && node !== unitRoot) {
+              if (node instanceof BABYLON.TransformNode && !(node instanceof BABYLON.AbstractMesh)) {
+                result.push(node);
+              }
+            }
+            if (depth < targetDepth) {
+              const children = (node as any).getChildren ? (node as any).getChildren() as BABYLON.Node[] : [];
+              for (const child of children) {
+                stack.push({ node: child, depth: depth + 1 });
+              }
+            }
+          }
+          return result;
+        };
+
+        // Helper: find max depth in unit subtree
+        const findMaxDepth = (node: BABYLON.Node, unitRoot: BABYLON.Node, current = 0): number => {
+          let max = current;
+          const children = (node as any).getChildren ? (node as any).getChildren() as BABYLON.Node[] : [];
+          for (const child of children) {
+            max = Math.max(max, findMaxDepth(child, unitRoot, current + 1));
+          }
+          return max;
+        };
+
+        // Auto-detect UNIT_* nodes from rootNode children or use rootNode itself if it's a UNIT
+        const children = (rootNode as any).getChildren ? (rootNode as any).getChildren() as BABYLON.Node[] : [];
+        let unitNodes: BABYLON.TransformNode[] = [];
+        
+        if ((rootNode.name || '').match(/^UNIT_\d+/)) {
+          // rootNode is a UNIT itself
+          unitNodes = [rootNode as BABYLON.TransformNode];
+        } else {
+          // Find UNIT_* children
+          unitNodes = children.filter(n => (n.name || '').match(/^UNIT_\d+/)) as BABYLON.TransformNode[];
+        }
+
+        if (unitNodes.length === 0) {
+          console.log('[GeometricToolAnalyzer][BB] No UNIT_* nodes found, skipping hierarchical pairing');
+        } else {
+          console.log(`[GeometricToolAnalyzer][BB] Processing ${unitNodes.length} UNIT_* node(s) with hierarchical depth-based pairing`);
+
+          for (const unit of unitNodes) {
+            const maxDepth = findMaxDepth(unit, unit);
+            const foundPairs: Array<{ fixed: BABYLON.TransformNode; moving: BABYLON.TransformNode; depth: number; sim: number; volume: number }> = [];
+            const used = new Set<BABYLON.TransformNode>();
+
+            // Process each depth level
+            for (let d = 1; d <= maxDepth && d <= 5; d++) { // Limit to depth 5 to avoid excessive pairs
+              const levelNodes = getNodesAtDepth(unit, d);
+              const sigs = levelNodes
+                .filter(tn => !used.has(tn) && (tn.getChildMeshes(false) || []).length > 0)
+                .map(tn => ({ tn, sig: signatureOf(tn, unit) }))
+                .filter((x): x is { tn: BABYLON.TransformNode; sig: NonNullable<ReturnType<typeof signatureOf>> } => x.sig !== null && x.sig.volume >= opts.minVolume * 10); // Filter small components
+
+              for (let i = 0; i < sigs.length; i++) {
+                if (used.has(sigs[i].tn)) continue;
+                for (let j = i + 1; j < sigs.length; j++) {
+                  if (used.has(sigs[j].tn)) continue;
+
+                  const A = sigs[i], B = sigs[j];
+                  const vr = A.sig.volume / B.sig.volume;
+                  if (vr < 0.9 || vr > 1.1) continue;
+
+                  const sim = dimSimilarity(A.sig.dims, B.sig.dims);
+                  if (sim < (opts.similarityThreshold ?? 0.95)) continue;
+
+                  // Geometric classification: fixed = closer to origin + higher connectivity
+                  const distA = A.sig.pos.length();
+                  const distB = B.sig.pos.length();
+                  const scoreA = (distA < distB ? 1 : 0) * 0.4 + (A.sig.connectivity > B.sig.connectivity ? 1 : 0) * 0.6;
+                  const scoreB = (distB < distA ? 1 : 0) * 0.4 + (B.sig.connectivity > A.sig.connectivity ? 1 : 0) * 0.6;
+
+                  const fixedTN = scoreA >= scoreB ? A.tn : B.tn;
+                  const movingTN = scoreA >= scoreB ? B.tn : A.tn;
+
+                  foundPairs.push({
+                    fixed: fixedTN,
+                    moving: movingTN,
+                    depth: d,
+                    sim,
+                    volume: Math.min(A.sig.volume, B.sig.volume),
+                  });
+
+                  used.add(A.tn);
+                  used.add(B.tn);
+                  break; // One pair per node
+                }
+              }
+            }
+
+            // Filter and prioritize: prefer shallower, larger pairs
+            foundPairs.sort((a, b) => {
+              // Primary: depth (shallower = better)
+              if (a.depth !== b.depth) return a.depth - b.depth;
+              // Secondary: volume (larger = better)
+              return b.volume - a.volume;
+            });
+
+            // Take top pairs per unit (limit to depth <= 3 for meaningful kinematic units)
+            const topPairs = foundPairs.filter(p => p.depth <= 3).slice(0, 4); // Max 2 joints per unit typically
+
+            for (const pair of topPairs) {
+              const fixedId = uuid();
+              const movingId = uuid();
+              const fixedNodes = collectDescendantIds(pair.fixed);
+              const movingNodes = collectDescendantIds(pair.moving);
+              const fixedWT = getWorldTransform(pair.fixed);
+              const movingWT = getWorldTransform(pair.moving);
+
+              units.push({
+                id: fixedId,
+                name: `${unit.name}/FIXED`,
+                root: nodeId(pair.fixed),
+                type: 'fixture',
+                isFixed: true,
+                nodes: fixedNodes,
+              });
+              anchors[fixedId] = { position: fixedWT.position, rotation: fixedWT.rotation };
+
+              units.push({
+                id: movingId,
+                name: `${unit.name}/MOVING`,
+                root: nodeId(pair.moving),
+                type: 'gripper',
+                isFixed: false,
+                nodes: movingNodes,
+              });
+              anchors[movingId] = { position: movingWT.position, rotation: movingWT.rotation };
+
+              console.log(`[GeometricToolAnalyzer][BB] ${unit.name} (depth ${pair.depth}): matched '${pair.fixed.name}' ↔ '${pair.moving.name}' (sim=${pair.sim.toFixed(3)}, vol=${pair.volume.toExponential(2)}m³)`);
+            }
+          }
+
+          if (units.length > 0) {
+            console.log(`[GeometricToolAnalyzer][BB] Produced ${units.length} units via hierarchical bounding-box pairing.`);
+            return { units, anchors };
+          }
+        }
+      } catch (e) {
+        console.warn('[GeometricToolAnalyzer][BB] Hierarchical pairing failed, falling back to clustering.', e);
+      }
+    }
 
     // Step 1: Collect significant transform nodes (scoped to subtree if rootNode provided)
     const significantNodes: BABYLON.TransformNode[] = [];
@@ -460,21 +801,37 @@ export class GeometricToolAnalyzer {
       }
     }
 
-    // Fallback: if no candidates found under hierarchy, try name-prefix match across entire scene
+    // Fallback: if no candidates found under hierarchy, scan all meshes and check parent hierarchy
     if (significantNodes.length === 0 && rootNode) {
-      const name = rootNode.name || String((rootNode as any).id ?? (rootNode as any).uniqueId ?? '');
-      const pref = `${name}/`;
+      console.log(`[GeometricToolAnalyzer] No meshes found via getDescendants(), trying parent hierarchy scan...`);
+
+      // Helper: Check if a node is a descendant of rootNode
+      const isDescendantOf = (node: BABYLON.Node, ancestor: BABYLON.Node): boolean => {
+        let current: BABYLON.Node | null = node;
+        while (current) {
+          if (current === ancestor) return true;
+          current = current.parent;
+        }
+        return false;
+      };
+
       for (const m of scene.meshes as BABYLON.AbstractMesh[]) {
-        const nm = m.name || '';
-        if (nm === name || nm.startsWith(pref) || nm.includes(`/${name}/`)) {
+        if (isDescendantOf(m, rootNode)) {
+          totalMeshes++;
           m.computeWorldMatrix(true);
           const bbox = m.getBoundingInfo().boundingBox;
           const volume = computeVolume(bbox);
+
           if (volume >= opts.minVolume) {
             significantNodes.push(m as any);
+            console.log(`[GeometricToolAnalyzer] ✓ Significant node (via parent scan): ${m.name}, volume: ${volume.toExponential(2)}m³`);
+          } else {
+            tooSmall++;
           }
         }
       }
+
+      console.log(`[GeometricToolAnalyzer] Parent hierarchy scan found ${significantNodes.length} significant meshes`);
     }
 
     console.log(`[GeometricToolAnalyzer] Total meshes scanned: ${totalMeshes}, significant: ${significantNodes.length}, too small: ${tooSmall}`);
@@ -523,14 +880,37 @@ export class GeometricToolAnalyzer {
     const units: ToolUnit[] = [];
     const anchors: ToolGraph['anchors'] = {};
 
+    // Helper: Find the TransformNode parent for a mesh (or return the node if it's already a TransformNode)
+    const findTransformNodeParent = (node: BABYLON.Node): BABYLON.Node => {
+      // If it's already a TransformNode (not a mesh), use it
+      if (node instanceof BABYLON.TransformNode && !(node instanceof BABYLON.AbstractMesh)) {
+        return node;
+      }
+
+      // If it's a mesh, find the first TransformNode parent
+      let current: BABYLON.Node | null = node.parent;
+      while (current) {
+        if (current instanceof BABYLON.TransformNode && !(current instanceof BABYLON.AbstractMesh)) {
+          return current;
+        }
+        current = current.parent;
+      }
+
+      // Fallback: use the node itself (shouldn't happen with our mock structure)
+      console.warn(`[GeometricToolAnalyzer] No TransformNode parent found for ${node.name}, using node itself`);
+      return node;
+    };
+
     for (const cluster of clusters) {
       const id = uuid();
-      const root = cluster.nodes[0];
+      // Use TransformNode parent instead of mesh for root
+      const rootNode = findTransformNodeParent(cluster.nodes[0]);
       const nodeIds = cluster.nodes.flatMap(n => collectDescendantIds(n));
-      const wt = getWorldTransform(root);
+      const wt = getWorldTransform(rootNode);
 
-      console.log(`[GeometricToolAnalyzer] Creating ToolUnit: ${root.name || id}`);
-      console.log(`  - Root node: ${nodeId(root)}`);
+      console.log(`[GeometricToolAnalyzer] Creating ToolUnit: ${rootNode.name || id}`);
+      console.log(`  - Root node (TransformNode): ${nodeId(rootNode)} (${rootNode.name})`);
+      console.log(`  - Original cluster node: ${nodeId(cluster.nodes[0])} (${cluster.nodes[0].name})`);
       console.log(`  - Cluster nodes: ${cluster.nodes.length}`);
       console.log(`  - Total collected node IDs: ${nodeIds.length}`);
       console.log(`  - Is fixed: ${cluster.isFixed ?? false}`);
@@ -538,8 +918,8 @@ export class GeometricToolAnalyzer {
 
       units.push({
         id,
-        name: root.name || id,
-        root: nodeId(root),
+        name: rootNode.name || id,
+        root: nodeId(rootNode),
         type: cluster.type || 'unknown',
         isFixed: cluster.isFixed ?? false,
         nodes: nodeIds,
