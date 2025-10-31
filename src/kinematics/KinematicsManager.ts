@@ -7,7 +7,8 @@ import { SceneTreeManager } from '../scene/SceneTreeManager';
 import type { SceneNode } from '../scene/SceneTreeNode';
 import type { JointType } from '../scene/SceneTreeNode';
 import type { IKinematicsManager } from './IKinematicsManager';
-// ActuatorSystem is imported via dynamic import() in getActuatorSystem() to break circular dependency
+// Actuation: import singleton accessor (internal dynamic import remains inside ActuatorSystem)
+import { getActuatorSystemInstance } from './actuation/ActuatorSystem';
 
 // Re-export JointType for convenience
 export type { JointType };
@@ -152,9 +153,7 @@ export class KinematicsManager implements IKinematicsManager {
    * Note: ActuatorSystem is lazily loaded to avoid circular dependency
    */
   getActuatorSystem(): any {
-    // TEMPORARILY DISABLED - require() not supported in browser
-    // TODO: Fix circular dependency properly without require()
-    return null;
+    return getActuatorSystemInstance();
   }
 
   /**
