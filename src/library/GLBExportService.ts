@@ -143,6 +143,17 @@ export class GLBExportService {
       else if (r instanceof BABYLON.Mesh) { add(r); }
     }
 
+    // Fallback: if nothing was cloned (scene-tree mapping missing), clone all visible meshes
+    if (exportContainer.getChildMeshes(false).length === 0) {
+      try {
+        scene.meshes.forEach((m) => {
+          if (m && m.isEnabled() && m.isVisible) {
+            add(m);
+          }
+        });
+      } catch {}
+    }
+
     const { GLTF2Export } = await import('@babylonjs/serializers/glTF/2.0/glTFSerializer');
     const glb = await GLTF2Export.GLBAsync(scene, 'selection', {
       shouldExportNode: (n: BABYLON.Node) => n === exportContainer || n.isDescendantOf(exportContainer),
