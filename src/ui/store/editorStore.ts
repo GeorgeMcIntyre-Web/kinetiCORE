@@ -487,14 +487,69 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         // For collection nodes, we need to trigger gizmo activation
         // by setting a special flag that SceneCanvas can detect
         // Clear any existing mesh selection to avoid conflicts
+        // Collect all descendant meshes for highlight
+        const meshes: BABYLON.Mesh[] = [];
+        const registry = EntityRegistry.getInstance();
+        const collectMeshes = (nid: string) => {
+          const n = tree.getNode(nid);
+          if (!n) return;
+          // Prefer entity mesh if available
+          if (n.entityId) {
+            const ent = registry.get(n.entityId);
+            if (ent && typeof ent.getMesh === 'function') {
+              const m = ent.getMesh();
+              if (m && m instanceof BABYLON.Mesh && m.isVisible) meshes.push(m);
+            }
+          } else if (n.babylonMeshId) {
+            const m = scene.getMeshByUniqueId(parseInt(n.babylonMeshId, 10));
+            if (m && m instanceof BABYLON.Mesh && m.isVisible) meshes.push(m);
+          }
+          // Recurse children
+          tree.getChildren(nid).forEach(child => collectMeshes(child.id));
+        };
+        collectMeshes(nodeId);
+
         set({ 
-          selectedMeshes: [], // Clear mesh selection
+          selectedMeshes: meshes,
           selectedCollectionNodeId: nodeId,
           selectedCollectionTransformNode: transformNode 
         });
 
       }
     } else {
+      // For mesh or entity-backed nodes, update selectedMeshes so SceneCanvas can highlight
+      if (node && scene) {
+        // Try entity first for robust device/link selection
+        if (node.entityId) {
+          const registry = EntityRegistry.getInstance();
+          const entity = registry.get(node.entityId);
+          if (entity && typeof entity.getMesh === 'function') {
+            const mesh = entity.getMesh();
+            if (mesh) {
+              set({
+                selectedMeshes: [mesh],
+                selectedCollectionNodeId: null,
+                selectedCollectionTransformNode: null,
+              });
+              return;
+            }
+          }
+        }
+
+        // Fallback to direct Babylon mesh reference on node
+        if (node.babylonMeshId) {
+          const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
+          if (mesh && mesh instanceof BABYLON.Mesh) {
+            set({
+              selectedMeshes: [mesh],
+              selectedCollectionNodeId: null,
+              selectedCollectionTransformNode: null,
+            });
+            return;
+          }
+        }
+      }
+
       // Hide coordinate frame widget if not a collection
       if (coordinateFrameWidget && !get().customFrame) {
         coordinateFrameWidget.hide();
