@@ -82,6 +82,11 @@ interface EditorState {
   openToolbarPopup: 'transform-settings' | 'snap-geometric' | 'snap-object' | 'snap-auxiliary' | null;
   setOpenToolbarPopup: (popup: 'transform-settings' | 'snap-geometric' | 'snap-object' | 'snap-auxiliary' | null) => void;
   
+  // Kinematics Inspector (debug) state
+  kinematicsInspectorNodeId: string | null;
+  openKinematicsInspector: (nodeId: string) => void;
+  closeKinematicsInspector: () => void;
+  
   // Camera view state
   currentView: 'front' | 'right' | 'top' | 'iso';
   setCurrentView: (view: 'front' | 'right' | 'top' | 'iso') => void;
@@ -319,6 +324,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // UI state defaults
   openToolbarPopup: null,
   setOpenToolbarPopup: (popup) => set({ openToolbarPopup: popup }),
+  
+  // Kinematics Inspector (debug)
+  kinematicsInspectorNodeId: null,
+  openKinematicsInspector: (nodeId: string) => set({ kinematicsInspectorNodeId: nodeId }),
+  closeKinematicsInspector: () => set({ kinematicsInspectorNodeId: null }),
   
   // Camera view state defaults
   currentView: 'front',

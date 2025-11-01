@@ -259,10 +259,41 @@ export class KinematicExtractionPipeline {
     console.log('[Pipeline] ===== SCENE TREE STRUCTURE =====');
     const tree = SceneTreeManager.getInstance();
 
+    // First, log how many nodes are in SceneTree total
+    console.log(`[Pipeline] SceneTree has ${tree.getAllNodes().length} total nodes`);
+
     for (const unit of this.toolGraph.units) {
+      // Enhanced debug logging
+      console.log(`[Pipeline] Checking unit: ${unit.name}, root: ${unit.root}`);
+
+      // Try to find the Babylon node first
+      const uid = parseInt(unit.root, 10);
+      const babylonNode = !isNaN(uid) ? this.scene.getTransformNodeByUniqueId(uid) : null;
+
+      if (babylonNode) {
+        console.log(`  - ✓ Babylon TransformNode found: ${babylonNode.name} (uniqueId: ${babylonNode.uniqueId})`);
+      } else {
+        console.error(`  - ❌ Babylon TransformNode NOT found for uniqueId: ${unit.root}`);
+      }
+
       const sceneNode = tree.getNodeByBabylonTransformNodeId(unit.root);
       if (!sceneNode) {
         console.error(`[Pipeline] ❌ Unit ${unit.name} not found in SceneTree!`);
+        console.error(`  - Looking for babylonTransformNodeId: ${unit.root}`);
+
+        // Try to find by name as a fallback diagnostic
+        const allNodes = tree.getAllNodes();
+        const nodesByName = allNodes.filter(n => n.name.includes(unit.name) || unit.name.includes(n.name));
+
+        if (nodesByName.length > 0) {
+          console.log(`  - Found ${nodesByName.length} nodes with similar names:`);
+          nodesByName.forEach(n => {
+            console.log(`    - "${n.name}" (id: ${n.id}, babylonTransformNodeId: ${n.babylonTransformNodeId || 'NONE'})`);
+          });
+        } else {
+          console.log(`  - No nodes found with similar names to "${unit.name}"`);
+        }
+
         continue;
       }
 

@@ -524,6 +524,10 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
       onZoom: () => zoomToNode(node.id),
       onSaveToLibrary: handleSaveToLibrary,
       onExportGLB: () => { handleExportGLB(); },
+      onInspectKinematics: () => {
+        const { openKinematicsInspector } = useEditorStore.getState();
+        openKinematicsInspector(node.id);
+      },
     }
   ) : [];
 
