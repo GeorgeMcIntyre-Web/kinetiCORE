@@ -215,3 +215,17 @@ debug-*.js
 *.backup
 *_OLD.ts
 *_OLD.js
+
+# Analysis and test documentation
+ANALYZE_*.md
+EXTRACT_*.md
+GOAL_*.md
+NEXT_SESSION*.md
+PWA_*.md
+QUICK_*.md
+RUN_*.md
+TEST_*.md
+
+# Debug folders
+src/babylon/kinematics/debug/
+src/*/debug/
