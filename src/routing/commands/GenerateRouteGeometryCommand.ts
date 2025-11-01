@@ -7,6 +7,7 @@ import { EntityRegistry } from '../../entities/EntityRegistry';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { SceneManager } from '../../scene/SceneManager';
 import { useRoutingStore } from '../../ui/store/routingStore';
+import { getGlobalDebugLabels } from '../ui/RouteDebugLabels';
 
 /**
  * Command for generating 3D geometry for a route
@@ -69,6 +70,14 @@ export class GenerateRouteGeometryCommand extends Command {
 
     this.meshId = mesh.uniqueId.toString();
 
+    // Create debug label if debug labels are enabled
+    const debugLabels = getGlobalDebugLabels();
+    if (debugLabels) {
+      // Extract specifications from route (can be undefined - labels will show basic info)
+      const specifications = extractRouteSpecifications(route);
+      debugLabels.createRouteLabel(route, mesh, specifications);
+    }
+
     window.dispatchEvent(new Event('scenetree-update'));
     this.onExecuted();
   }
@@ -106,8 +115,28 @@ export class GenerateRouteGeometryCommand extends Command {
       }
     }
 
+    // Remove debug label if it exists
+    const debugLabels = getGlobalDebugLabels();
+    if (debugLabels) {
+      debugLabels.removeLabel(this.routeId);
+    }
+
     window.dispatchEvent(new Event('scenetree-update'));
     this.onUndone();
   }
+}
+
+/**
+ * Helper function to extract specifications from a route
+ * Returns undefined if no specifications are available (labels will show basic info)
+ */
+function extractRouteSpecifications(_route: any): any {
+  // For now, return undefined to use basic label info
+  // Full implementation would combine specs from:
+  // - _route.source?.specifications
+  // - _route.destination?.specifications
+  // - _route.material, _route.constraints, and connection points
+  // This is optional - RouteDebugLabels works without specifications
+  return undefined;
 }
 

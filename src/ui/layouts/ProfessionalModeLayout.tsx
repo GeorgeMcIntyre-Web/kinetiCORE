@@ -21,6 +21,8 @@ import {
   Undo,
   Redo,
   Navigation,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
@@ -29,6 +31,8 @@ import { MoveObjectDialog } from '../components/MoveObjectDialog';
 import { ExportDialog } from '../components/ExportDialog';
 import { MeasurementTools, MeasurementType } from '../components/MeasurementTools';
 import { SelectionIndicator } from '../components/SelectionIndicator';
+import { RouteDebugLabels, setGlobalDebugLabels } from '../../routing/ui/RouteDebugLabels';
+import { SceneManager } from '../../scene/SceneManager';
 import './ProfessionalModeLayout.css';
 
 export const ProfessionalModeLayout: React.FC = () => {
@@ -55,6 +59,8 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [activeMeasurement, setActiveMeasurement] = useState<MeasurementType>(null);
+  const [showDebugLabels, setShowDebugLabels] = useState(false);
+  const debugLabelsRef = useRef<RouteDebugLabels | null>(null);
 
   // Load saved panel layout on mount
   useEffect(() => {
@@ -63,6 +69,43 @@ export const ProfessionalModeLayout: React.FC = () => {
       setSavedLayout(layout);
     }
   }, [loadPanelLayout]);
+
+  // Initialize RouteDebugLabels when scene is available
+  useEffect(() => {
+    const scene = SceneManager.getInstance().getScene();
+    if (scene) {
+      debugLabelsRef.current = new RouteDebugLabels(scene);
+      // Set global reference for commands to access
+      setGlobalDebugLabels(debugLabelsRef.current);
+      // Set initial visibility state
+      debugLabelsRef.current.setVisible(showDebugLabels);
+    }
+    return () => {
+      debugLabelsRef.current?.clearAll();
+      setGlobalDebugLabels(null);
+    };
+  }, [showDebugLabels]);
+
+  // Update debug labels visibility when state changes
+  useEffect(() => {
+    debugLabelsRef.current?.setVisible(showDebugLabels);
+  }, [showDebugLabels]);
+
+  // Keyboard shortcut for debug labels toggle
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Only trigger if not typing in an input field
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (e.key === 'd' || e.key === 'D') {
+        setShowDebugLabels((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
 
   const handleImport = () => {
     fileInputRef.current?.click();
@@ -418,6 +461,23 @@ export const ProfessionalModeLayout: React.FC = () => {
               onClick={() => handleMeasurement('volume')}
             >
               Volume
+            </button>
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
+        {/* Routing Tools */}
+        <div className="tool-group">
+          <div className="group-label">Routing</div>
+          <div className="tool-buttons">
+            <button
+              className={`tool-btn ${showDebugLabels ? 'active' : ''}`}
+              onClick={() => setShowDebugLabels(!showDebugLabels)}
+              title="Toggle Route Debug Labels (D)"
+            >
+              {showDebugLabels ? <Eye size={20} /> : <EyeOff size={20} />}
+              <span className="tool-btn-label">Labels</span>
             </button>
           </div>
         </div>

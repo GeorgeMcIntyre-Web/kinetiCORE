@@ -7,6 +7,26 @@ import { Route } from '../core/Route';
 import { ElectricalSpec, PipeSpec, CableTraySpec, ConduitSpec } from '../specifications/RouteSpecifications';
 
 /**
+ * Global reference to RouteDebugLabels instance
+ * Set by ProfessionalModeLayout, accessed by commands
+ */
+let globalDebugLabelsInstance: RouteDebugLabels | null = null;
+
+/**
+ * Set the global RouteDebugLabels instance
+ */
+export function setGlobalDebugLabels(instance: RouteDebugLabels | null): void {
+  globalDebugLabelsInstance = instance;
+}
+
+/**
+ * Get the global RouteDebugLabels instance
+ */
+export function getGlobalDebugLabels(): RouteDebugLabels | null {
+  return globalDebugLabelsInstance;
+}
+
+/**
  * RouteDebugLabels creates professional floating labels above route meshes
  * showing specifications, dimensions, and validation status
  */

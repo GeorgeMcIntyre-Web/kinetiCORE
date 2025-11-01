@@ -5,6 +5,7 @@ import { Command } from '../../history/Command';
 import { RouteSegment, SupportPoint } from '../core/types';
 import { useRoutingStore } from '../../ui/store/routingStore';
 import { Route } from '../core/Route';
+import { getGlobalDebugLabels } from '../ui/RouteDebugLabels';
 
 /**
  * Command for editing a route
@@ -55,6 +56,12 @@ export class EditRouteCommand extends Command {
       // Replace in store
       const updatedRoutes = routes.map((r) => (r.getId() === this.routeId ? updatedRoute : r));
       store.activeRoutes = updatedRoutes;
+
+      // Update debug label if it exists
+      const debugLabels = getGlobalDebugLabels();
+      if (debugLabels && updatedRoute.generated) {
+        debugLabels.updateLabel(updatedRoute);
+      }
     }
 
     this.onExecuted();
