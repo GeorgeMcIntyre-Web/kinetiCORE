@@ -40,6 +40,7 @@ import { createPresetRoute, createMixedPreset } from '../../routing/ui/QuickRout
 import { RouteWarningsPanel } from '../../routing/ui/RouteWarningsPanel';
 import { useRoutingStore } from '../store/routingStore';
 import { SceneManager } from '../../scene/SceneManager';
+import { SceneCanvas } from '../components/SceneCanvas';
 import './ProfessionalModeLayout.css';
 
 export const ProfessionalModeLayout: React.FC = () => {
@@ -554,7 +555,11 @@ export const ProfessionalModeLayout: React.FC = () => {
             bottomPanels: [
               { id: 'routeStats-panel', type: 'routeStats' },
             ],
-            mainContent: <main id="viewport-professional" className="professional-viewport"></main>,
+            mainContent: (
+              <main id="viewport-professional" className="professional-viewport">
+                <SceneCanvas />
+              </main>
+            ),
           }}
           onLayoutChange={savePanelLayout}
           savedLayout={savedLayout}
