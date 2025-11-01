@@ -205,3 +205,13 @@ test.jt
 
 # Wrangler debug files
 wrangler-debug.toml
+# Debug and test scripts
+test-*.cjs
+test-*.js
+debug-*.cjs
+debug-*.js
+
+# Backup files
+*.backup
+*_OLD.ts
+*_OLD.js
