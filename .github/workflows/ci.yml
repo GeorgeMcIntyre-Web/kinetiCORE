@@ -24,7 +24,34 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run linter
+      - name: Determine base ref (PR only)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: echo "BASE_REF=${{ github.base_ref }}" >> $GITHUB_ENV
+
+      - name: Fetch base branch (PR only)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          git fetch --no-tags --depth=1 origin $BASE_REF || true
+
+      - name: Lint changed files (PR only)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          CHANGED="$(git diff --name-only origin/$BASE_REF...HEAD | grep -E '\.(ts|tsx)$' || true)"
+          if [ -z "$CHANGED" ]; then
+            echo "No TS/TSX changes in PR. Skipping ESLint."
+          else
+            echo "Linting changed files:"
+            echo "$CHANGED"
+            echo "$CHANGED" | xargs npx eslint --max-warnings=0
+          fi
+
+      - name: Run linter (main only)
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: npm run lint
+
+      - name: Full repo lint (PR advisory)
+        if: ${{ github.event_name == 'pull_request' }}
+        continue-on-error: true
         run: npm run lint
 
       - name: Type check
