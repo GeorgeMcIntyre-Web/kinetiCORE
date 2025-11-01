@@ -6,8 +6,7 @@
  * Asset Library -> SceneManager -> AssetLoader -> Babylon Scene
  */
 
-import { describe, it, expect, beforeAll, vi } from 'vitest';
-import * as BABYLON from '@babylonjs/core';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { SceneManager } from '../../scene/SceneManager';
 import type { LibraryAsset } from '../../library/types';
 

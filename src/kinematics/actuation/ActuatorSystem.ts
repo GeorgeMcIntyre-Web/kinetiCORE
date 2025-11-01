@@ -88,7 +88,7 @@ export class ActuatorSystem {
         actuator.state.enabled = false;
         break;
 
-      case 'set_value':
+      case 'set_value': {
         if (command.value === undefined) {
           console.error('[ActuatorSystem] set_value requires value parameter');
           return false;
@@ -107,6 +107,7 @@ export class ActuatorSystem {
         // Apply to coordinated joints (would be handled by kinematics system)
         this.applyToJoints(actuator);
         break;
+      }
 
       case 'set_velocity':
         if (command.value === undefined) return false;

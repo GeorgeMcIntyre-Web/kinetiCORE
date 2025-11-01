@@ -164,7 +164,7 @@ async function handleAuth(request: Request, supabase: any, env: Env): Promise<Re
  */
 async function handleRest(request: Request, supabase: any, env: Env): Promise<Response> {
   const url = new URL(request.url)
-  // Path and query extracted from URL
+  const path = url.pathname.replace('/rest/', '')
 
   // Extract JWT token from Authorization header
   const authHeader = request.headers.get('Authorization')
@@ -204,7 +204,7 @@ async function handleRest(request: Request, supabase: any, env: Env): Promise<Re
  */
 async function handleStorage(request: Request, supabase: any, env: Env): Promise<Response> {
   const url = new URL(request.url)
-  // Path and query extracted from URL
+  const path = url.pathname.replace('/storage/', '')
 
   // Forward storage requests to Supabase
   const supabaseUrl = `${env.SUPABASE_URL}/storage/v1/${path}`
@@ -257,7 +257,7 @@ async function handleRealtime(_request: Request, _supabase: any, _env: Env): Pro
  */
 async function handleFunctions(request: Request, supabase: any, env: Env): Promise<Response> {
   const url = new URL(request.url)
-  // Path and query extracted from URL
+  const path = url.pathname.replace('/functions/', '')
 
   // Forward function requests to Supabase
   const supabaseUrl = `${env.SUPABASE_URL}/functions/v1/${path}`

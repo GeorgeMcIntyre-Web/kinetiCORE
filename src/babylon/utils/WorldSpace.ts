@@ -4,6 +4,7 @@ import * as BABYLON from '@babylonjs/core';
  * World-space helpers. Everything returns/accepts world-space values.
  * Never assume local authoring frames.
  */
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace WorldSpace {
   export function getWorldMatrix(node: BABYLON.Node): BABYLON.Matrix {
     // Force update world matrix for correctness
