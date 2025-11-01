@@ -153,6 +153,7 @@ export class RoutingWorkflowHandler {
    */
   static getDefaultConstraints(routeType: string) {
     // Import utilities dynamically to avoid circular dependencies
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { getDefaultConstraints: getDefaults } = require('../core/RoutingUtils');
     return getDefaults(routeType as any);
   }
@@ -162,6 +163,7 @@ export class RoutingWorkflowHandler {
    */
   static getObstacles(scene: BABYLON.Scene): BABYLON.Mesh[] {
     // Import utilities dynamically to avoid circular dependencies
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { getObstacles: getObst } = require('../core/RoutingUtils');
     return getObst(scene);
   }

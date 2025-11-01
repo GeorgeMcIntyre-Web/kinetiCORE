@@ -15,6 +15,7 @@ import {
 } from '../core/types';
 import { SearchGraph } from './SearchGraph';
 import { ConstraintValidator } from './ConstraintValidator';
+import { generateId } from '../core/RoutingUtils';
 
 /**
  * A* pathfinding node with cost tracking
@@ -273,11 +274,7 @@ export class RouteOptimizer {
     const length = this.distance(start, end);
 
     return {
-      id: (() => {
-        // Import from RoutingUtils for consistency
-        const { generateId } = require('../core/RoutingUtils');
-        return generateId();
-      })(),
+      id: generateId(),
       startPoint: { ...start },
       endPoint: { ...end },
       segmentType: type,
