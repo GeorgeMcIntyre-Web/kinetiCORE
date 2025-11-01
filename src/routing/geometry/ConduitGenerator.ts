@@ -54,8 +54,8 @@ export class ConduitGenerator extends RouteGeometryGenerator {
     const length = direction.length();
     direction.normalize();
 
-    // Conduit diameter (default 50mm)
-    const diameter = 0.05;
+    // Conduit diameter: 25mm (standard EMT/IMC size)
+    const diameter = 0.025;
 
     // Create cylinder
     const conduit = BABYLON.MeshBuilder.CreateCylinder(
@@ -91,7 +91,7 @@ export class ConduitGenerator extends RouteGeometryGenerator {
     const end = this.toBabylonVector(segment.endPoint);
 
     const bendRadius = segment.bendRadius || minBendRadius;
-    const diameter = 0.05;
+    const diameter = 0.025; // 25mm diameter matching conduit
 
     // Create torus segment for bend
     const bend = BABYLON.MeshBuilder.CreateTorus(

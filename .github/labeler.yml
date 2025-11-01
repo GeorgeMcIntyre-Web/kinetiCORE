@@ -1,0 +1,20 @@
+feature-gated:
+  - changed-files:
+      - any-glob-to-any-file: 
+          - 'src/routing/**'
+          - 'src/ui/store/routingStore.ts'
+          - 'docs/SMART_ROUTING_*.md'
+          - '.github/workflows/**'
+          - '.github/CODEOWNERS'
+
+routing:
+  - changed-files:
+      - any-glob-to-any-file: 
+          - 'src/routing/**'
+          - 'src/ui/store/routingStore.ts'
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/**'
+

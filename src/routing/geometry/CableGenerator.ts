@@ -40,9 +40,9 @@ export class CableGenerator extends RouteGeometryGenerator {
     const length = direction.length();
     direction.normalize();
 
-    // Number of wires in bundle (default 3)
+    // Number of wires in bundle (default 3-5 for realistic bundle)
     const wireCount = 3;
-    const wireDiameter = 0.02; // 20mm per wire
+    const wireDiameter = 0.003; // 3mm per wire (thin wire mesh)
     const bundleDiameter = wireDiameter * 2.5; // Bundle is larger than individual wires
 
     const meshes: BABYLON.Mesh[] = [];
@@ -75,13 +75,11 @@ export class CableGenerator extends RouteGeometryGenerator {
         }
       }
 
-      // Color wires differently (in a real implementation, use voltage/material)
+      // Use yellow/gold material matching electrical spec
+      // Individual wires will use the combined material later, but keep them yellow
       const wireMaterial = new BABYLON.StandardMaterial(`wire_mat_${i}`, this.scene);
-      wireMaterial.diffuseColor = new BABYLON.Color3(
-        0.8 + Math.random() * 0.2,
-        0.8 + Math.random() * 0.2,
-        0.8 + Math.random() * 0.2
-      );
+      wireMaterial.diffuseColor = BABYLON.Color3.FromHexString('#FFD700'); // Yellow/gold
+      wireMaterial.emissiveColor = BABYLON.Color3.FromHexString('#FFD700').scale(0.3); // Slightly emissive
       wire.material = wireMaterial;
 
       meshes.push(wire);

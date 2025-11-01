@@ -2,14 +2,18 @@
 
 .measurement-tools-panel {
   position: fixed;
-  top: 120px;
-  right: 20px;
-  width: 320px;
-  background: #2d3748;
+  top: 50%;
+  right: 24px;
+  transform: translateY(-50%);
+  background: rgba(26, 26, 26, 0.95);
+  border: 1px solid rgba(0, 217, 255, 0.3);
   border-radius: 8px;
-  border: 1px solid #4a5568;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5),
+              0 0 32px rgba(0, 217, 255, 0.15);
+  padding: 16px;
+  min-width: 240px;
   z-index: 1000;
+  backdrop-filter: blur(10px);
   display: flex;
   flex-direction: column;
 }
@@ -58,19 +62,31 @@
 
 .measurement-instructions {
   font-size: 13px;
-  color: #a0aec0;
-  line-height: 1.5;
-  padding: 12px;
-  background: #1a202c;
-  border-radius: 6px;
-  border-left: 3px solid #48bb78;
+  color: #aaa;
+  margin-top: 8px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
 }
 
 .measurement-result {
+  margin-top: 16px;
   padding: 12px;
-  background: #1e3a2e;
-  border-radius: 6px;
-  border: 1px solid #48bb78;
+  background: rgba(0, 217, 255, 0.1);
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  border-radius: 4px;
+  animation: resultAppear 0.3s ease-out;
+}
+
+@keyframes resultAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .measurement-result-label {
@@ -82,10 +98,17 @@
 }
 
 .measurement-result-value {
-  font-size: 18px;
-  font-weight: 600;
-  color: #48bb78;
+  font-size: 24px;
+  font-weight: 700;
+  color: #00D9FF;
+  margin: 0;
   font-family: 'Courier New', monospace;
+}
+
+.measurement-unit {
+  font-size: 14px;
+  color: #999;
+  margin-left: 4px;
 }
 
 .measurement-info {
@@ -127,11 +150,11 @@
 }
 
 .measurement-btn.close {
-  background: #48bb78;
-  color: white;
+  background: var(--kc-accent, #00D9FF);
+  color: #001a1a;
 }
 
 .measurement-btn.close:hover {
-  background: #38a169;
+  filter: brightness(1.05);
 }
 

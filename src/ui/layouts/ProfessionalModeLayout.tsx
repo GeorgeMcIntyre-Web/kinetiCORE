@@ -37,6 +37,7 @@ export const ProfessionalModeLayout: React.FC = () => {
   const importModel = useEditorStore((state) => state.importModel);
   const saveWorld = useEditorStore((state) => state.saveWorld);
   const setTransformMode = useEditorStore((state) => state.setTransformMode);
+  const transformMode = useEditorStore((state) => state.transformMode);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
   const duplicateNode = useEditorStore((state) => state.duplicateNode);
@@ -311,7 +312,7 @@ export const ProfessionalModeLayout: React.FC = () => {
           <div className="group-label">Transform</div>
           <div className="tool-buttons">
             <button
-              className="tool-btn"
+              className={`tool-btn ${transformMode === 'translate' ? 'active' : ''}`}
               disabled={!selectedNodeId}
               title={selectedNodeId ? "Move" : "Select an object first"}
               onClick={() => handleTransformTool('translate')}
@@ -320,7 +321,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               <span>Move</span>
             </button>
             <button
-              className="tool-btn"
+              className={`tool-btn ${transformMode === 'rotate' ? 'active' : ''}`}
               disabled={!selectedNodeId}
               title={selectedNodeId ? "Rotate" : "Select an object first"}
               onClick={() => handleTransformTool('rotate')}
@@ -329,7 +330,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               <span>Rotate</span>
             </button>
             <button
-              className="tool-btn"
+              className={`tool-btn ${transformMode === 'scale' ? 'active' : ''}`}
               disabled={!selectedNodeId}
               title={selectedNodeId ? "Scale" : "Select an object first"}
               onClick={() => handleTransformTool('scale')}

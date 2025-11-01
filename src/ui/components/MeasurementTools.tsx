@@ -88,21 +88,41 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
           const distanceMm = distance * 1000; // Convert to mm
           result = `Distance: ${distanceMm.toFixed(2)} mm`;
           
-          // Create line between points
-          const line = BABYLON.MeshBuilder.CreateLines('measurement-line', {
-            points: newPoints,
+          // Create thicker glowing line using tube in accent color
+          const tube = BABYLON.MeshBuilder.CreateTube('distance-line-tube', {
+            path: [newPoints[0], newPoints[1]],
+            radius: 0.01,
+            updatable: false,
           }, scene!);
-          line.color = new BABYLON.Color3(1, 0.8, 0);
-          newHelperMeshes.push(line);
+          const lineMat = new BABYLON.StandardMaterial('kc-measure-line-mat', scene!);
+          lineMat.emissiveColor = BABYLON.Color3.FromHexString('#00D9FF');
+          lineMat.diffuseColor = BABYLON.Color3.FromHexString('#00D9FF');
+          lineMat.alpha = 0.7;
+          tube.material = lineMat;
+          newHelperMeshes.push(tube);
 
-          // Create sphere markers
+          // Create sphere markers with cyan glow
           newPoints.forEach((p, i) => {
             const sphere = BABYLON.MeshBuilder.CreateSphere(`marker-${i}`, {
-              diameter: 0.02,
+              diameter: 0.04,
             }, scene!);
             sphere.position = p;
-            sphere.material = new BABYLON.StandardMaterial('marker-mat', scene!);
-            (sphere.material as BABYLON.StandardMaterial).emissiveColor = new BABYLON.Color3(1, 0.8, 0);
+
+            // Create emissive cyan material
+            const mat = new BABYLON.StandardMaterial(`marker-mat-${i}`, scene!);
+            mat.emissiveColor = BABYLON.Color3.FromHexString('#00D9FF');
+            mat.diffuseColor = BABYLON.Color3.FromHexString('#00D9FF');
+            mat.alpha = 0.9;
+            sphere.material = mat;
+
+            // Add glow layer
+            if (!scene!.getGlowLayerByName('measurement-glow')) {
+              const gl = new BABYLON.GlowLayer('measurement-glow', scene!);
+              gl.intensity = 0.8;
+            }
+            const glowLayer = scene!.getGlowLayerByName('measurement-glow') as BABYLON.GlowLayer;
+            glowLayer.addIncludedOnlyMesh(sphere);
+
             newHelperMeshes.push(sphere);
           });
         }
@@ -116,25 +136,39 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
           const angleDeg = angleRad * (180 / Math.PI);
           result = `Angle: ${angleDeg.toFixed(2)}°`;
 
-          // Create lines for angle
-          const line1 = BABYLON.MeshBuilder.CreateLines('angle-line1', {
-            points: [newPoints[0], newPoints[1]],
+          // Create thicker glowing lines for angle
+          const tube1 = BABYLON.MeshBuilder.CreateTube('angle-line1', {
+            path: [newPoints[0], newPoints[1]],
+            radius: 0.01,
           }, scene!);
-          const line2 = BABYLON.MeshBuilder.CreateLines('angle-line2', {
-            points: [newPoints[1], newPoints[2]],
+          const tube2 = BABYLON.MeshBuilder.CreateTube('angle-line2', {
+            path: [newPoints[1], newPoints[2]],
+            radius: 0.01,
           }, scene!);
-          line1.color = new BABYLON.Color3(1, 0.8, 0);
-          line2.color = new BABYLON.Color3(1, 0.8, 0);
-          newHelperMeshes.push(line1, line2);
+          const angleMat = new BABYLON.StandardMaterial('kc-angle-line-mat', scene!);
+          angleMat.emissiveColor = BABYLON.Color3.FromHexString('#00D9FF');
+          angleMat.diffuseColor = BABYLON.Color3.FromHexString('#00D9FF');
+          angleMat.alpha = 0.7;
+          tube1.material = angleMat;
+          tube2.material = angleMat;
+          newHelperMeshes.push(tube1, tube2);
 
-          // Create markers
+          // Create markers with cyan glow
           newPoints.forEach((p, i) => {
             const sphere = BABYLON.MeshBuilder.CreateSphere(`angle-marker-${i}`, {
-              diameter: 0.02,
+              diameter: 0.04,
             }, scene!);
             sphere.position = p;
-            sphere.material = new BABYLON.StandardMaterial('angle-marker-mat', scene!);
-            (sphere.material as BABYLON.StandardMaterial).emissiveColor = new BABYLON.Color3(1, 0.8, 0);
+
+            const mat = new BABYLON.StandardMaterial(`angle-marker-mat-${i}`, scene!);
+            mat.emissiveColor = BABYLON.Color3.FromHexString('#00D9FF');
+            mat.diffuseColor = BABYLON.Color3.FromHexString('#00D9FF');
+            mat.alpha = 0.9;
+            sphere.material = mat;
+
+            const glowLayer = scene!.getGlowLayerByName('measurement-glow') as BABYLON.GlowLayer;
+            if (glowLayer) glowLayer.addIncludedOnlyMesh(sphere);
+
             newHelperMeshes.push(sphere);
           });
         }

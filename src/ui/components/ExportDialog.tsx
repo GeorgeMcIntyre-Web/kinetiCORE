@@ -2,7 +2,7 @@
 // Owner: George (Architecture)
 
 import React, { useState } from 'react';
-import { X, Download, FileJson, Box, Database } from 'lucide-react';
+import { X, Download, FileJson, Database, Package } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import { toast } from './ToastNotifications';
 import { loading } from './LoadingIndicator';
@@ -21,29 +21,37 @@ interface ExportOption {
   description: string;
   icon: React.ReactNode;
   fileExtension: string;
+  estimatedSize: string;
+  badge?: string;
 }
 
 const exportOptions: ExportOption[] = [
   {
     format: 'basic',
     label: 'Basic World (JSON)',
-    description: 'Scene tree and metadata only. Smallest file size.',
-    icon: <FileJson size={24} />,
+    description: 'Scene tree and metadata only.',
+    icon: <FileJson size={32} />,
     fileExtension: '.json',
+    estimatedSize: '~500 KB',
+    badge: 'Fastest',
   },
   {
     format: 'babylon',
-    label: 'Babylon Scene (JSON)',
-    description: 'Full Babylon.js scene data. Can be loaded in Babylon Editor.',
-    icon: <Box size={24} />,
-    fileExtension: '.babylon.json',
+    label: 'Babylon Scene',
+    description: 'Full Babylon.js scene data.',
+    icon: <Database size={32} />,
+    fileExtension: '.babylon',
+    estimatedSize: '~2 MB',
+    badge: 'Recommended',
   },
   {
     format: 'comprehensive',
-    label: 'Comprehensive World (JSON)',
-    description: 'Everything: scene, assets, physics, kinematics. Largest file size.',
-    icon: <Database size={24} />,
-    fileExtension: '.kineticore.json',
+    label: 'Comprehensive',
+    description: 'Everything including physics and kinematics.',
+    icon: <Package size={32} />,
+    fileExtension: '.kineticore',
+    estimatedSize: '~5 MB',
+    badge: 'Complete',
   },
 ];
 
@@ -96,23 +104,32 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ isOpen, onClose }) =
             Choose the export format. The file will be downloaded to your default download folder.
           </p>
 
-          <div className="export-options">
+          <div className="export-format-grid">
             {exportOptions.map((option) => (
-              <div
+              <label
                 key={option.format}
-                className={`export-option ${selectedFormat === option.format ? 'selected' : ''}`}
-                onClick={() => setSelectedFormat(option.format)}
+                className={`export-format-card ${selectedFormat === option.format ? 'selected' : ''}`}
               >
-                <div className="export-option-icon">{option.icon}</div>
-                <div className="export-option-content">
-                  <div className="export-option-label">{option.label}</div>
-                  <div className="export-option-description">{option.description}</div>
-                  <div className="export-option-extension">{option.fileExtension}</div>
+                <input
+                  type="radio"
+                  name="exportFormat"
+                  value={option.format}
+                  checked={selectedFormat === option.format}
+                  onChange={(e) => setSelectedFormat(e.target.value as ExportFormat)}
+                />
+                <div className="format-icon">{option.icon}</div>
+                <div className="format-content">
+                  <div className="format-header">
+                    <h4>{option.label}</h4>
+                    {option.badge && <span className="format-badge">{option.badge}</span>}
+                  </div>
+                  <p className="format-description">{option.description}</p>
+                  <div className="format-meta">
+                    <span className="format-size">{option.estimatedSize}</span>
+                    <span className="format-ext">{option.fileExtension}</span>
+                  </div>
                 </div>
-                <div className="export-option-radio">
-                  <div className={`radio-circle ${selectedFormat === option.format ? 'checked' : ''}`} />
-                </div>
-              </div>
+              </label>
             ))}
           </div>
         </div>

@@ -43,35 +43,94 @@ export class CableTrayGenerator extends RouteGeometryGenerator {
     const length = direction.length();
     direction.normalize();
 
-    // Tray dimensions (default 150mm wide, 75mm deep)
-    const width = 0.15;
-    const depth = 0.075;
+    // Tray dimensions: 400mm wide, 75mm deep (standard cable tray sizes)
+    const width = 0.4; // 400mm width
+    const depth = 0.075; // 75mm depth (height of sides)
+    const sideThickness = 0.01; // 10mm side thickness
+    const rungSpacing = 0.2; // 200mm spacing between rungs
+    const rungThickness = 0.01; // 10mm rung thickness
 
-    // Create U-shaped channel from box extrusions
-    // For MVP, create a simple box (full implementation would create proper U-channel)
-    const tray = BABYLON.MeshBuilder.CreateBox(
-      `tray_${segment.id}`,
+    const meshes: BABYLON.Mesh[] = [];
+
+    // Create U-shaped channel: left side, right side, bottom, and rungs
+    // Left side
+    const leftSide = BABYLON.MeshBuilder.CreateBox(
+      `tray_left_${segment.id}`,
       {
-        width: width,
+        width: sideThickness,
         height: depth,
         depth: length,
       },
       this.scene
     );
+    leftSide.position = new BABYLON.Vector3(-width / 2 + sideThickness / 2, depth / 2, 0);
+    meshes.push(leftSide);
 
+    // Right side
+    const rightSide = BABYLON.MeshBuilder.CreateBox(
+      `tray_right_${segment.id}`,
+      {
+        width: sideThickness,
+        height: depth,
+        depth: length,
+      },
+      this.scene
+    );
+    rightSide.position = new BABYLON.Vector3(width / 2 - sideThickness / 2, depth / 2, 0);
+    meshes.push(rightSide);
+
+    // Bottom
+    const bottom = BABYLON.MeshBuilder.CreateBox(
+      `tray_bottom_${segment.id}`,
+      {
+        width: width,
+        height: sideThickness,
+        depth: length,
+      },
+      this.scene
+    );
+    bottom.position = new BABYLON.Vector3(0, 0, 0);
+    meshes.push(bottom);
+
+    // Add rungs (ladder style) along the length
+    const numRungs = Math.floor(length / rungSpacing);
+    for (let i = 0; i <= numRungs; i++) {
+      const rungZ = -length / 2 + (i * rungSpacing);
+      const rung = BABYLON.MeshBuilder.CreateBox(
+        `tray_rung_${segment.id}_${i}`,
+        {
+          width: width,
+          height: rungThickness,
+          depth: rungThickness,
+        },
+        this.scene
+      );
+      rung.position = new BABYLON.Vector3(0, depth / 2, rungZ);
+      meshes.push(rung);
+    }
+
+    // Combine into single mesh
+    const combined = BABYLON.Mesh.MergeMeshes(meshes, true, true);
+    if (!combined) {
+      // Fallback: return bottom if merge fails
+      meshes[2].name = `tray_${segment.id}`;
+      return meshes[2];
+    }
+
+    combined.name = `tray_${segment.id}`;
     const midPoint = start.add(end).scale(0.5);
-    tray.position = midPoint;
+    combined.position = midPoint;
 
     // Rotate to align with direction
     if (Math.abs(direction.y) < 0.99) {
       const axis = BABYLON.Vector3.Cross(BABYLON.Vector3.Up(), direction);
       const angle = Math.acos(BABYLON.Vector3.Dot(BABYLON.Vector3.Up(), direction));
       if (axis.length() > 0.001) {
-        tray.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis, angle);
+        combined.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis, angle);
       }
     }
 
-    return tray;
+    return combined;
   }
 
   /**

@@ -162,46 +162,66 @@
   align-items: center;
   gap: 4px;
   padding: 8px 12px;
-  background: #374151;
-  border: 1px solid #4a5568;
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: 4px;
   color: #e2e8f0;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   font-size: 11px;
   min-width: 60px;
 }
 
-.tool-btn:not(:disabled):hover {
-  background: #4299e1;
-  border-color: #4299e1;
-  color: white;
+.tool-btn:hover {
+  background: rgba(0, 217, 255, 0.1);
+  border-color: rgba(0, 217, 255, 0.3);
+}
+
+.tool-btn.active {
+  background: rgba(0, 217, 255, 0.2);
+  border-color: #00D9FF;
+  color: #00D9FF;
 }
 
 .tool-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+}
+
+.tool-btn:disabled:hover {
+  background: transparent;
+  border-color: transparent;
+}
+
+.tool-btn span {
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tool-btn svg {
+  flex-shrink: 0;
 }
 
 .tool-btn-small {
   padding: 6px 12px;
-  background: #374151;
-  border: 1px solid #4a5568;
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: 4px;
   color: #e2e8f0;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   font-size: 12px;
 }
 
 .tool-btn-small:not(:disabled):hover {
-  background: #4299e1;
-  border-color: #4299e1;
-  color: white;
+  background: rgba(var(--kc-accent-rgb), 0.1);
+  border-color: rgba(var(--kc-accent-rgb), 0.3);
+  color: #fff;
 }
 
 .tool-btn-small:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 

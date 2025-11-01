@@ -72,91 +72,95 @@
   line-height: 1.5;
 }
 
-.export-options {
-  display: flex;
-  flex-direction: column;
+.export-format-grid {
+  display: grid;
   gap: 12px;
+  margin: 20px 0;
 }
 
-.export-option {
+.export-format-card {
   display: flex;
-  align-items: flex-start;
+  gap: 16px;
   padding: 16px;
-  border: 2px solid #4a5568;
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
-  background: #1a202c;
+  transition: all 0.2s ease;
 }
 
-.export-option:hover {
-  border-color: #48bb78;
-  background: #233440;
+.export-format-card:hover {
+  background: rgba(0, 217, 255, 0.05);
+  border-color: rgba(0, 217, 255, 0.3);
 }
 
-.export-option.selected {
-  border-color: #48bb78;
-  background: #1e3a2e;
+.export-format-card.selected {
+  background: rgba(0, 217, 255, 0.1);
+  border-color: var(--kc-accent, #00D9FF);
+  box-shadow: 0 0 12px rgba(0, 217, 255, 0.2);
 }
 
-.export-option-icon {
-  margin-right: 16px;
-  color: #48bb78;
+.export-format-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+}
+
+.format-icon {
   flex-shrink: 0;
+  color: #999;
+  transition: color 0.2s ease;
 }
 
-.export-option-content {
+.export-format-card.selected .format-icon {
+  color: var(--kc-accent, #00D9FF);
+}
+
+.format-content {
   flex: 1;
 }
 
-.export-option-label {
-  font-size: 16px;
-  font-weight: 600;
-  color: #e2e8f0;
+.format-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 4px;
 }
 
-.export-option-description {
+.format-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.format-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: rgba(0, 217, 255, 0.2);
+  color: var(--kc-accent, #00D9FF);
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.format-description {
+  margin: 0 0 8px 0;
   font-size: 13px;
-  color: #a0aec0;
-  margin-bottom: 6px;
-  line-height: 1.4;
+  color: #999;
 }
 
-.export-option-extension {
+.format-meta {
+  display: flex;
+  gap: 12px;
   font-size: 12px;
-  color: #718096;
+  color: #666;
+}
+
+.format-size::before {
+  content: '📦 ';
+}
+
+.format-ext {
+  color: #888;
   font-family: 'Courier New', monospace;
-}
-
-.export-option-radio {
-  margin-left: 12px;
-  flex-shrink: 0;
-}
-
-.radio-circle {
-  width: 20px;
-  height: 20px;
-  border: 2px solid #4a5568;
-  border-radius: 50%;
-  position: relative;
-  transition: all 0.2s;
-}
-
-.radio-circle.checked {
-  border-color: #48bb78;
-}
-
-.radio-circle.checked::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 10px;
-  height: 10px;
-  background: #48bb78;
-  border-radius: 50%;
 }
 
 .export-dialog-footer {
@@ -193,13 +197,13 @@
 }
 
 .export-dialog-export {
-  background: #48bb78;
+  background: var(--kc-accent, #00D9FF);
   border: none;
-  color: white;
+  color: #001a1a;
 }
 
 .export-dialog-export:hover {
-  background: #38a169;
+  filter: brightness(1.05);
 }
 
 .export-dialog-export:disabled {

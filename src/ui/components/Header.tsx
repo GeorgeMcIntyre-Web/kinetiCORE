@@ -3,6 +3,7 @@ import { Menu, X, Settings, HelpCircle, Zap, ZapOff, ZapIcon } from 'lucide-reac
 import { zIndex, colors } from '../styles/design-tokens';
 import { RibbonToolbar, RibbonToolbarProps } from './RibbonToolbar';
 import { useTheme } from '../core/ThemeContext';
+import './Header.css';
 
 export interface HeaderProps {
   currentMode: 'essential' | 'professional' | 'expert';
@@ -157,14 +158,11 @@ export const Header: React.FC<HeaderProps> = ({
                         onModeChange(mode as 'essential' | 'professional' | 'expert');
                         setIsModeMenuOpen(false);
                       }}
-                      className={`
-                        w-full flex items-start space-x-3 p-3 rounded-lg
-                        transition-colors duration-200 text-left
-                        ${isActive 
+                      className={`mode-option ${
+                        isActive 
                           ? 'bg-blue-50 border border-blue-200' 
                           : 'hover:bg-gray-50'
-                        }
-                      `}
+                      }`}
                     >
                       <Icon 
                         className="w-5 h-5 mt-0.5 flex-shrink-0" 
@@ -183,6 +181,9 @@ export const Header: React.FC<HeaderProps> = ({
                           {config.description}
                         </p>
                       </div>
+                      {mode === 'essential' && <kbd className="keyboard-hint">Ctrl+1</kbd>}
+                      {mode === 'professional' && <kbd className="keyboard-hint">Ctrl+2</kbd>}
+                      {mode === 'expert' && <kbd className="keyboard-hint">Ctrl+3</kbd>}
                     </button>
                   );
                 })}

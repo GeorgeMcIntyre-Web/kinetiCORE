@@ -54,16 +54,16 @@ export class PipeGenerator extends RouteGeometryGenerator {
     const length = direction.length();
     direction.normalize();
 
-    // Default diameter (could come from specifications)
-    const diameter = 0.1; // 100mm default
+    // Default diameter: 40mm (could come from specifications)
+    const diameter = 0.04; // 40mm (0.025m radius = 50mm diameter for larger pipes)
 
-    // Create cylinder
+    // Create cylinder with proper tessellation for smooth appearance
     const cylinder = BABYLON.MeshBuilder.CreateCylinder(
       `tube_${segment.id}`,
       {
         height: length,
         diameter,
-        tessellation: 16,
+        tessellation: 24, // Higher tessellation for smoother pipes
       },
       this.scene
     );
@@ -98,7 +98,7 @@ export class PipeGenerator extends RouteGeometryGenerator {
 
     // For MVP, create a simple curved tube
     // Full implementation would create a proper 90-degree elbow mesh
-    const diameter = 0.1;
+    const diameter = 0.04; // 40mm diameter matching pipe
 
     // Create a torus segment to represent the elbow
     const elbow = BABYLON.MeshBuilder.CreateTorus(
@@ -106,7 +106,7 @@ export class PipeGenerator extends RouteGeometryGenerator {
       {
         diameter: bendRadius * 2,
         thickness: diameter,
-        tessellation: 32,
+        tessellation: 32, // Higher tessellation for smoother elbows
       },
       this.scene
     );

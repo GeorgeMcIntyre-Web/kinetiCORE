@@ -71,17 +71,40 @@ export abstract class RouteGeometryGenerator {
       this.scene
     );
 
-    // Default colors by type
+    // Default colors by type - matching design specification
     const typeColors: Record<RouteType, BABYLON.Color3> = {
-      pipe: new BABYLON.Color3(0.7, 0.7, 0.8), // Light gray/blue
-      electrical: new BABYLON.Color3(1.0, 0.9, 0.0), // Yellow
-      cable_tray: new BABYLON.Color3(0.5, 0.5, 0.5), // Gray
-      conduit: new BABYLON.Color3(0.9, 0.6, 0.2), // Orange
+      pipe: BABYLON.Color3.FromHexString('#00D9FF'), // Blue for water/industrial
+      electrical: BABYLON.Color3.FromHexString('#FFD700'), // Yellow/gold for electrical
+      cable_tray: BABYLON.Color3.FromHexString('#FF8C00'), // Orange for cable tray
+      conduit: BABYLON.Color3.FromHexString('#00FF00'), // Green for conduit
     };
 
     material.diffuseColor = typeColors[type];
-    material.specularColor = new BABYLON.Color3(0.3, 0.3, 0.3);
-    material.emissiveColor = typeColors[type].scale(0.2);
+    
+    // Material properties based on type
+    if (type === 'electrical') {
+      // Electrical wires should be slightly emissive (glows in dark)
+      material.emissiveColor = typeColors[type].scale(0.3);
+      material.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+    } else if (type === 'pipe') {
+      // Pipes should have metallic appearance
+      material.specularColor = new BABYLON.Color3(0.8, 0.8, 0.8);
+      material.emissiveColor = new BABYLON.Color3(0, 0, 0);
+      // Use PBR material for better metallic look (would need to check if available)
+    } else if (type === 'cable_tray') {
+      // Cable tray: matte metal (galvanized look)
+      material.specularColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+      material.emissiveColor = new BABYLON.Color3(0, 0, 0);
+    } else if (type === 'conduit') {
+      // Conduit: semi-glossy plastic or metal
+      material.specularColor = new BABYLON.Color3(0.6, 0.6, 0.6);
+      material.emissiveColor = new BABYLON.Color3(0, 0, 0);
+    } else {
+      // Fallback for any other route types
+      const fallbackColor = typeColors[type as RouteType] || new BABYLON.Color3(0.5, 0.5, 0.5);
+      material.specularColor = new BABYLON.Color3(0.3, 0.3, 0.3);
+      material.emissiveColor = fallbackColor.scale(0.2);
+    }
 
     return material;
   }
