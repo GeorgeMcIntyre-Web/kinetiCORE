@@ -32,6 +32,12 @@ Navigate to: http://localhost:5173
 **Option A:** Press `D` key
 **Option B:** Click Eye icon in Routing toolbar (right side)
 
+### 5. (Optional) Use Quick Presets
+- In Professional mode Ribbon > Routing group, use the preset buttons:
+  - `Electrical`, `Pipe`, `Tray`, `Conduit` generate a route with two default points and auto-generate geometry + labels
+  - `Mixed` creates all 4 arranged in parallel for the overview shot
+  - These presets match the expected colors, diameters, and label content
+
 ---
 
 ## Screenshot Captures
@@ -44,7 +50,7 @@ Navigate to: http://localhost:5173
 3. Click in viewport to place 2 connection points:
    - Point A: Near origin (0, 0, 0)
    - Point B: ~2 meters away (2, 0.5, 0.5)
-4. Click "Generate Route" button
+4. Click "Generate Geometry" in the Route Inspector (right panel)
 5. Verify:
    - ✅ Yellow/gold wire bundle appears (3 wires, 3mm diameter)
    - ✅ Slight emissive glow on wires
@@ -70,7 +76,7 @@ Navigate to: http://localhost:5173
 1. Clear previous route (delete or create new)
 2. Select "Pipe" route type
 3. Place 2 connection points (similar positions)
-4. Click "Generate Route"
+4. Click "Generate Geometry" in the Route Inspector
 5. Verify:
    - ✅ Blue pipe appears (40mm diameter)
    - ✅ Elbow joints at bends (torus geometry)
@@ -97,7 +103,7 @@ Navigate to: http://localhost:5173
 1. Clear previous route
 2. Select "Cable Tray" route type
 3. Place 2 connection points
-4. Click "Generate Route"
+4. Click "Generate Geometry" in the Route Inspector
 5. Verify:
    - ✅ Orange cable tray appears (400mm width)
    - ✅ Ladder-type rungs visible along length
@@ -125,7 +131,7 @@ Navigate to: http://localhost:5173
 1. Clear previous route
 2. Select "Conduit" route type
 3. Place 2 connection points
-4. Click "Generate Route"
+4. Click "Generate Geometry" in the Route Inspector
 5. Verify:
    - ✅ Green conduit appears (25mm diameter)
    - ✅ Semi-glossy finish

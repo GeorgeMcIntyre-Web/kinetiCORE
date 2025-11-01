@@ -24,6 +24,10 @@ export class CreateConnectionPointCommand extends Command {
     this.entityId = entityId;
   }
 
+  getConnectionPoint(): ConnectionPoint | null {
+    return this.connectionPoint;
+  }
+
   execute(): void {
     const connectionManager = ConnectionManager.getInstance();
     this.connectionPoint = connectionManager.addConnectionPoint(this.config);

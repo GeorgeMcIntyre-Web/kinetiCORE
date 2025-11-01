@@ -5,6 +5,7 @@ import * as BABYLON from '@babylonjs/core';
 import * as GUI from '@babylonjs/gui';
 import { Route } from '../core/Route';
 import { ElectricalSpec, PipeSpec, CableTraySpec, ConduitSpec } from '../specifications/RouteSpecifications';
+import { EnhancedValidationResult } from '../validation/RouteValidator';
 
 /**
  * Global reference to RouteDebugLabels instance
@@ -43,14 +44,24 @@ export class RouteDebugLabels {
   /**
    * Create a floating label for a route
    */
-  createRouteLabel(route: Route, mesh: BABYLON.Mesh, specifications?: any): GUI.Rectangle {
+  createRouteLabel(
+    route: Route,
+    mesh: BABYLON.Mesh,
+    specifications?: any,
+    validationResult?: EnhancedValidationResult
+  ): GUI.Rectangle {
     const labelContainer = new GUI.Rectangle(`label_${route.getId()}`);
     labelContainer.width = '320px';
     labelContainer.height = 'auto';
     labelContainer.cornerRadius = 8;
     labelContainer.thickness = 2;
     labelContainer.background = 'rgba(26, 26, 26, 0.95)';
-    labelContainer.color = this.getRouteColor(route.type);
+    
+    // Set border color based on validation status
+    const validationStatus = validationResult?.status || 'valid';
+    const borderColor = this.getValidationBorderColor(validationStatus);
+    labelContainer.color = borderColor;
+    
     labelContainer.paddingTop = '12px';
     labelContainer.paddingBottom = '12px';
     labelContainer.paddingLeft = '16px';
@@ -117,29 +128,83 @@ export class RouteDebugLabels {
     );
     stackPanel.addControl(segments);
 
-    // Add validation status (check if route has generated geometry)
+    // Add validation status with icon and text
     const statusContainer = new GUI.StackPanel();
     statusContainer.isVertical = false;
     statusContainer.spacing = 6;
 
-    const isGenerated = route.generated;
-    const statusIcon = this.createTextBlock(
-      isGenerated ? '✓' : '⚠',
-      '14px',
-      'bold',
-      isGenerated ? '#4CAF50' : '#FFC107'
-    );
-    statusContainer.addControl(statusIcon);
+    // Validation status (priority) or generation status (fallback)
+    let statusIcon: string;
+    let statusText: string;
+    let statusColor: string;
 
-    const statusText = this.createTextBlock(
-      isGenerated ? 'Generated' : 'Pending',
-      '13px',
-      'normal',
-      isGenerated ? '#4CAF50' : '#FFC107'
-    );
-    statusContainer.addControl(statusText);
+    if (validationResult) {
+      const status = validationResult.status;
+      if (status === 'error') {
+        statusIcon = '✗';
+        statusText = 'Invalid';
+        statusColor = '#F44336'; // Red
+      } else if (status === 'warning') {
+        statusIcon = '⚠';
+        statusText = 'Warnings';
+        statusColor = '#FFC107'; // Yellow
+      } else {
+        statusIcon = '✓';
+        statusText = 'Valid';
+        statusColor = '#4CAF50'; // Green
+      }
+    } else {
+      // Fallback to generation status
+      const isGenerated = route.generated;
+      statusIcon = isGenerated ? '✓' : '⚠';
+      statusText = isGenerated ? 'Generated' : 'Pending';
+      statusColor = isGenerated ? '#4CAF50' : '#FFC107';
+    }
+
+    const iconBlock = this.createTextBlock(statusIcon, '14px', 'bold', statusColor);
+    statusContainer.addControl(iconBlock);
+
+    const textBlock = this.createTextBlock(statusText, '13px', 'normal', statusColor);
+    statusContainer.addControl(textBlock);
 
     stackPanel.addControl(statusContainer);
+
+    // Add validation violations if present
+    if (validationResult && validationResult.violations.length > 0) {
+      const separator = this.createSeparator();
+      stackPanel.addControl(separator);
+
+      const violationsTitle = this.createTextBlock(
+        `Issues: ${validationResult.violations.length}`,
+        '12px',
+        'bold',
+        validationResult.status === 'error' ? '#F44336' : '#FFC107'
+      );
+      stackPanel.addControl(violationsTitle);
+
+      // Show first 3 violations as preview
+      const previewViolations = validationResult.violations.slice(0, 3);
+      for (const violation of previewViolations) {
+        const violationText = this.createTextBlock(
+          `• ${violation.message}`,
+          '11px',
+          'normal',
+          violation.severity === 'error' ? '#F44336' : '#FFC107'
+        );
+        violationText.textWrapping = 2; // GUI.TextWrapping.WordWrap
+        stackPanel.addControl(violationText);
+      }
+
+      if (validationResult.violations.length > 3) {
+        const moreText = this.createTextBlock(
+          `... and ${validationResult.violations.length - 3} more`,
+          '10px',
+          'normal',
+          '#999'
+        );
+        stackPanel.addControl(moreText);
+      }
+    }
 
     labelContainer.addControl(stackPanel);
 
@@ -340,6 +405,18 @@ export class RouteDebugLabels {
   }
 
   /**
+   * Get border color based on validation status
+   */
+  private getValidationBorderColor(status: 'valid' | 'warning' | 'error'): string {
+    const colors: Record<string, string> = {
+      valid: '#4CAF50',   // Green
+      warning: '#FFC107', // Yellow
+      error: '#F44336',   // Red
+    };
+    return colors[status] || '#FFFFFF';
+  }
+
+  /**
    * Format route type for display
    */
   private formatRouteType(type: string): string {
@@ -387,7 +464,7 @@ export class RouteDebugLabels {
   /**
    * Update label for a route
    */
-  updateLabel(route: Route): void {
+  updateLabel(route: Route, validationResult?: EnhancedValidationResult): void {
     const label = this.labels.get(route.getId());
     if (label) {
       // Remove old label
@@ -398,7 +475,7 @@ export class RouteDebugLabels {
     // Create new label if mesh exists
     const mesh = this.scene.getMeshByName(`${route.type}_${route.getId()}`);
     if (mesh) {
-      this.createRouteLabel(route, mesh as BABYLON.Mesh);
+      this.createRouteLabel(route, mesh as BABYLON.Mesh, undefined, validationResult);
     }
   }
 

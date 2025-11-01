@@ -8,6 +8,15 @@ import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { SceneManager } from '../../scene/SceneManager';
 import { useRoutingStore } from '../../ui/store/routingStore';
 import { getGlobalDebugLabels } from '../ui/RouteDebugLabels';
+import { RouteValidator } from '../validation/RouteValidator';
+import { RouteVisualWarnings } from '../validation/RouteVisualWarnings';
+import { getObstacles } from '../core/RoutingUtils';
+import {
+  DEFAULT_CABLE_TRAY_SPEC,
+  DEFAULT_CONDUIT_SPEC,
+  DEFAULT_ELECTRICAL_SPEC,
+  DEFAULT_PIPE_SPEC,
+} from '../specifications/RouteSpecifications';
 
 /**
  * Command for generating 3D geometry for a route
@@ -44,8 +53,25 @@ export class GenerateRouteGeometryCommand extends Command {
 
     this.wasGenerated = route.generated;
 
+    // Validate route before generation
+    const validator = new RouteValidator();
+    const obstacles = getObstacles(scene);
+    const validationResult = validator.validateRouteEnhanced(route, obstacles);
+
+    // Check for critical errors - if there are errors, warn but allow generation
+    // (UI can show blocking dialog if needed)
+    const hasErrors = validationResult.violations.some((v) => v.severity === 'error');
+
     // Generate geometry
     const mesh = GeometryGeneratorFactory.generateGeometry(route, scene);
+    
+    // Store route ID in mesh metadata for easy route identification
+    if (!mesh.metadata) {
+      mesh.metadata = {};
+    }
+    mesh.metadata.routeId = route.getId();
+    mesh.metadata.isRoute = true;
+    
     route.markAsGenerated();
 
     // Create entity
@@ -70,12 +96,27 @@ export class GenerateRouteGeometryCommand extends Command {
 
     this.meshId = mesh.uniqueId.toString();
 
+    // Apply visual warnings for invalid segments
+    const visualWarnings = new RouteVisualWarnings(scene);
+    visualWarnings.applyWarnings(route, validationResult);
+
     // Create debug label if debug labels are enabled
     const debugLabels = getGlobalDebugLabels();
     if (debugLabels) {
       // Extract specifications from route (can be undefined - labels will show basic info)
       const specifications = extractRouteSpecifications(route);
-      debugLabels.createRouteLabel(route, mesh, specifications);
+      // Pass validation result to label for visual feedback
+      debugLabels.createRouteLabel(route, mesh, specifications, validationResult);
+    }
+
+    // Store validation result in routing store for warnings panel
+    store.setValidationResult(route.getId(), validationResult);
+
+    // Log warnings for debugging
+    if (hasErrors) {
+      console.warn(`Route ${route.getId()} has validation errors:`, validationResult.violations);
+    } else if (validationResult.violations.length > 0) {
+      console.info(`Route ${route.getId()} has validation warnings:`, validationResult.violations);
     }
 
     window.dispatchEvent(new Event('scenetree-update'));
@@ -130,13 +171,55 @@ export class GenerateRouteGeometryCommand extends Command {
  * Helper function to extract specifications from a route
  * Returns undefined if no specifications are available (labels will show basic info)
  */
-function extractRouteSpecifications(_route: any): any {
-  // For now, return undefined to use basic label info
-  // Full implementation would combine specs from:
-  // - _route.source?.specifications
-  // - _route.destination?.specifications
-  // - _route.material, _route.constraints, and connection points
-  // This is optional - RouteDebugLabels works without specifications
-  return undefined;
+function extractRouteSpecifications(route: any): any {
+  // Provide sensible defaults that match our visual geometry for clearer labels
+  switch (route?.type) {
+    case 'electrical': {
+      return {
+        ...DEFAULT_ELECTRICAL_SPEC,
+        coreCount: 3,
+        wireGauge: '14 AWG',
+        wireDiameter: 0.003, // 3mm individual wires (matches visuals)
+        outerDiameter: 0.008, // ~8mm bundle
+        voltage: 120,
+        current: 15,
+      };
+    }
+    case 'pipe': {
+      return {
+        ...DEFAULT_PIPE_SPEC,
+        nominalSize: '40mm',
+        outerDiameter: 0.04, // 40mm OD (matches visuals)
+        innerDiameter: 0.034, // approximate
+        material: 'steel',
+        pressureRating: 1000,
+        flowRate: 10,
+      };
+    }
+    case 'cable_tray': {
+      return {
+        ...DEFAULT_CABLE_TRAY_SPEC,
+        width: 0.4, // 400mm (matches visuals)
+        height: 0.075,
+        trayType: 'ladder',
+        material: 'galvanized-steel',
+        loadRating: 50,
+        maxCables: 20,
+      };
+    }
+    case 'conduit': {
+      return {
+        ...DEFAULT_CONDUIT_SPEC,
+        nominalSize: '1/2"', // label-friendly size
+        conduitType: 'EMT',
+        outerDiameter: 0.025, // 25mm OD (matches visuals)
+        innerDiameter: 0.021,
+        maxWires: 4,
+        fillPercentage: 40,
+      };
+    }
+    default:
+      return undefined;
+  }
 }
 

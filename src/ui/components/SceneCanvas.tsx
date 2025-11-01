@@ -213,6 +213,26 @@ export const SceneCanvas: React.FC = () => {
             if (pickResult.hit && pickResult.pickedMesh) {
               const mesh = pickResult.pickedMesh;
 
+              // Check if this is a route mesh (has routeId in metadata)
+              if (mesh.metadata && mesh.metadata.isRoute && mesh.metadata.routeId) {
+                // Route selection - handle separately
+                import('../../ui/store/routingStore').then(({ useRoutingStore }) => {
+                  const routingStore = useRoutingStore.getState();
+                  const activeRoutes = routingStore.activeRoutes;
+                  const route = activeRoutes.find((r) => r.getId() === mesh.metadata.routeId);
+
+                  if (route) {
+                    // Select the route in routing store
+                    routingStore.selectRoute(route);
+                    // Also select the mesh for visual feedback
+                    if (mesh instanceof BABYLON.Mesh) {
+                      selectMesh(mesh);
+                    }
+                  }
+                });
+                return; // Don't process as regular selection
+              }
+
               // Check if mesh is selectable (using centralized filtering from SceneUtils.ts)
               if (mesh instanceof BABYLON.Mesh && isSelectableObject(mesh)) {
                 // Check if this mesh belongs to a device entity

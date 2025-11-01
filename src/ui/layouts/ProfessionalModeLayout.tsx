@@ -23,6 +23,7 @@ import {
   Navigation,
   Eye,
   EyeOff,
+  LayoutTemplate,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
@@ -32,6 +33,12 @@ import { ExportDialog } from '../components/ExportDialog';
 import { MeasurementTools, MeasurementType } from '../components/MeasurementTools';
 import { SelectionIndicator } from '../components/SelectionIndicator';
 import { RouteDebugLabels, setGlobalDebugLabels } from '../../routing/ui/RouteDebugLabels';
+import { RouteEditPanel } from '../../routing/ui/RouteEditPanel';
+import { RouteSelectionVisuals } from '../../routing/ui/RouteSelectionVisuals';
+import { RouteTemplatesPanel } from '../../routing/ui/RouteTemplatesPanel';
+import { createPresetRoute, createMixedPreset } from '../../routing/ui/QuickRoutePresets';
+import { RouteWarningsPanel } from '../../routing/ui/RouteWarningsPanel';
+import { useRoutingStore } from '../store/routingStore';
 import { SceneManager } from '../../scene/SceneManager';
 import './ProfessionalModeLayout.css';
 
@@ -58,9 +65,11 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [savedLayout, setSavedLayout] = useState<any>(null);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showTemplatesPanel, setShowTemplatesPanel] = useState(false);
   const [activeMeasurement, setActiveMeasurement] = useState<MeasurementType>(null);
   const [showDebugLabels, setShowDebugLabels] = useState(false);
   const debugLabelsRef = useRef<RouteDebugLabels | null>(null);
+  const routeSelection = useRoutingStore((state) => state.selectedRoute);
 
   // Load saved panel layout on mount
   useEffect(() => {
@@ -178,6 +187,9 @@ export const ProfessionalModeLayout: React.FC = () => {
     <div className="professional-layout">
       {/* Selection Indicator - Always visible */}
       <SelectionIndicator selectedNodeIds={selectedNodeIds} />
+
+      {/* Route Warnings Panel - Top notification bar */}
+      <RouteWarningsPanel />
 
       {/* Header */}
       <header className="professional-header">
@@ -479,6 +491,51 @@ export const ProfessionalModeLayout: React.FC = () => {
               {showDebugLabels ? <Eye size={20} /> : <EyeOff size={20} />}
               <span className="tool-btn-label">Labels</span>
             </button>
+            <button
+              className={`tool-btn ${showTemplatesPanel ? 'active' : ''}`}
+              onClick={() => setShowTemplatesPanel(!showTemplatesPanel)}
+              title="Open Route Templates Library"
+            >
+              <LayoutTemplate size={20} />
+              <span className="tool-btn-label">Templates</span>
+            </button>
+
+            {/* Quick preset generators to speed up documentation screenshots */}
+            <button
+              className="tool-btn-small"
+              title="Quick Electrical preset"
+              onClick={() => createPresetRoute('electrical', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 })}
+            >
+              Electrical
+            </button>
+            <button
+              className="tool-btn-small"
+              title="Quick Pipe preset"
+              onClick={() => createPresetRoute('pipe', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 })}
+            >
+              Pipe
+            </button>
+            <button
+              className="tool-btn-small"
+              title="Quick Cable Tray preset"
+              onClick={() => createPresetRoute('cable_tray', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 })}
+            >
+              Tray
+            </button>
+            <button
+              className="tool-btn-small"
+              title="Quick Conduit preset"
+              onClick={() => createPresetRoute('conduit', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 })}
+            >
+              Conduit
+            </button>
+            <button
+              className="tool-btn-small"
+              title="Create all 4 (arranged)"
+              onClick={() => createMixedPreset()}
+            >
+              Mixed
+            </button>
           </div>
         </div>
       </div>
@@ -493,6 +550,9 @@ export const ProfessionalModeLayout: React.FC = () => {
             ],
             rightPanels: [
               { id: 'inspector-panel', type: 'inspector' },
+            ],
+            bottomPanels: [
+              { id: 'routeStats-panel', type: 'routeStats' },
             ],
             mainContent: <main id="viewport-professional" className="professional-viewport"></main>,
           }}
@@ -516,11 +576,28 @@ export const ProfessionalModeLayout: React.FC = () => {
       {/* Export Dialog */}
       <ExportDialog isOpen={showExportDialog} onClose={() => setShowExportDialog(false)} />
 
+      {/* Route Templates Panel */}
+      <RouteTemplatesPanel
+        isOpen={showTemplatesPanel}
+        onClose={() => setShowTemplatesPanel(false)}
+      />
+
       {/* Measurement Tools */}
       <MeasurementTools
         measurementType={activeMeasurement}
         onClose={handleCloseMeasurement}
       />
+
+      {/* Route Selection Visuals - Cyan glow and connection handles */}
+      <RouteSelectionVisuals />
+
+      {/* Route Edit Panel - Right side panel */}
+      {routeSelection && (
+        <RouteEditPanel
+          route={routeSelection}
+          onClose={() => useRoutingStore.getState().selectRoute(null)}
+        />
+      )}
     </div>
   );
 };

@@ -6,8 +6,9 @@ import { IDockviewPanelProps } from 'dockview-react';
 import { SceneTree } from '../components/SceneTree';
 import { Inspector } from '../components/Inspector';
 import { KinematicsPanel } from '../components/KinematicsPanel';
+import { RouteStatsPanel } from '../../routing/ui/RouteStatsPanel';
 
-export type PanelType = 'sceneTree' | 'inspector' | 'kinematics' | 'toolPalette';
+export type PanelType = 'sceneTree' | 'inspector' | 'kinematics' | 'toolPalette' | 'routeStats';
 
 export interface PanelConfig {
   id: PanelType;
@@ -40,6 +41,10 @@ const ToolPalettePanel: React.FC<IDockviewPanelProps> = () => {
   );
 };
 
+const RouteStatsPanelWrapper: React.FC<IDockviewPanelProps> = () => {
+  return <RouteStatsPanel />;
+};
+
 export const PANEL_REGISTRY: Record<PanelType, PanelConfig> = {
   sceneTree: {
     id: 'sceneTree',
@@ -64,6 +69,13 @@ export const PANEL_REGISTRY: Record<PanelType, PanelConfig> = {
     title: 'Tools',
     component: ToolPalettePanel,
     defaultWidth: 250,
+  },
+  routeStats: {
+    id: 'routeStats',
+    title: 'Route Statistics',
+    component: RouteStatsPanelWrapper,
+    defaultWidth: 350,
+    defaultHeight: 400,
   },
 };
 

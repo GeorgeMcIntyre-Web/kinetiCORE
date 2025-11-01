@@ -105,7 +105,11 @@ export const RouteInspector: React.FC<RouteInspectorProps> = ({
       )}
 
       <div className="route-inspector-actions">
-        <button className="btn-primary" onClick={onGenerateGeometry}>
+        <button 
+          className="btn-primary" 
+          onClick={onGenerateGeometry}
+          data-testid="generate-geometry-btn"
+        >
           Generate Geometry
         </button>
         <button className="btn-secondary" onClick={onEditSegments}>

@@ -474,7 +474,10 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
       {userLevel !== 'essential' && (
         <div className="ribbon-category-excel">
           <div className="ribbon-category-label">Routing</div>
-          <RoutingToolbar />
+          <RoutingToolbar onTemplatesClick={() => {
+            // This will be passed from ProfessionalModeLayout
+            window.dispatchEvent(new CustomEvent('routing-templates-click'));
+          }} />
         </div>
       )}
 

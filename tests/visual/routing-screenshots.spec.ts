@@ -2,8 +2,8 @@
  * Routing System Screenshot Capture (Playwright)
  *
  * Captures 10 screenshots covering UI polish and geometry + labels.
- * - Uses existing UI where feasible (mode switcher, ribbons, dialogs)
- * - Programmatically creates routes and generates geometry via dynamic imports
+ * - Uses UI interactions (clicks, keyboard) instead of programmatic commands
+ * - Simple and reliable: click buttons, place points, generate routes
  * - Creates debug labels with full specifications for crisp visuals
  *
  * Output files are saved into docs/images/ with the exact names requested.
@@ -46,125 +46,112 @@ async function ensureCanvasInEssential(page: Page) {
   await page.waitForSelector('#viewport-essential >> canvas');
 }
 
-async function createRouteWithGeometryAndLabel(page: Page, type: 'electrical' | 'pipe' | 'cable_tray' | 'conduit') {
-  // Always operate from Essential layout where the SceneCanvas is mounted
+async function createRouteWithUIInteractions(page: Page, type: 'electrical' | 'pipe' | 'cable_tray' | 'conduit') {
+  // 1. Ensure in Essential mode (canvas is mounted)
   await ensureCanvasInEssential(page);
-
-  // Programmatic setup inside the app using dynamic imports (Vite dev)
-  const routeId = await page.evaluate(async (routeType) => {
-    // Dynamic imports of app modules
-    const { useRoutingStore } = await import('/src/ui/store/routingStore.ts');
-    const { SceneManager } = await import('/src/scene/SceneManager.ts');
-    const { CreateConnectionPointCommand } = await import('/src/routing/commands/CreateConnectionPointCommand.ts');
-    const { CreateRouteCommand } = await import('/src/routing/commands/CreateRouteCommand.ts');
-    const { GenerateRouteGeometryCommand } = await import('/src/routing/commands/GenerateRouteGeometryCommand.ts');
-    const { RouteOptimizer } = await import('/src/routing/pathfinding/RouteOptimizer.ts');
-    const { getDefaultConstraints, getObstacles } = await import('/src/routing/core/RoutingUtils.ts');
-    const { setGlobalDebugLabels, RouteDebugLabels, getGlobalDebugLabels } = await import('/src/routing/ui/RouteDebugLabels.ts');
-
-    // Exposed editor store for command manager
-    const editorStore = (window as any).useEditorStore;
-    if (!editorStore) throw new Error('useEditorStore not exposed on window');
-    const commandManager = editorStore.getState().commandManager;
-
-    // Ensure scene exists
-    const scene = SceneManager.getInstance().getScene();
-    if (!scene) throw new Error('Scene not initialized');
-
-    // Set current route type
-    useRoutingStore.getState().setCurrentRouteType(routeType);
-
-    // Create 2 connection points via command (positions are arbitrary but visible)
-    const cfgA = { type: routeType, position: { x: 0, y: 0, z: 0 }, direction: { x: 0, y: 0, z: 1 } } as const;
-    const cfgB = { type: routeType, position: { x: 1.2, y: 0.2, z: 0.4 }, direction: { x: 0, y: 0, z: 1 } } as const;
-    commandManager.execute(new CreateConnectionPointCommand(cfgA));
-    commandManager.execute(new CreateConnectionPointCommand(cfgB));
-
-    // Pick last two connection points from store
-    const cps = useRoutingStore.getState().connectionPoints;
-    if (cps.length < 2) throw new Error('Connection points not created');
-    const source = cps[cps.length - 2];
-    const dest = cps[cps.length - 1];
-
-    // Find optimal path
-    const optimizer = new RouteOptimizer();
-    const constraints = getDefaultConstraints(routeType);
-    const obstacles = getObstacles(scene);
-    const optimizationMode = useRoutingStore.getState().optimizationMode;
-    const route = optimizer.findOptimalPath(source, dest, constraints, obstacles, optimizationMode);
-    if (!route) throw new Error('Route not found');
-
-    // Create route via command (adds to store)
-    commandManager.execute(new CreateRouteCommand(route));
-
-    // Ensure debug labels system exists and visible (we’re in Essential)
-    let dl = getGlobalDebugLabels();
-    if (!dl) {
-      dl = new RouteDebugLabels(scene);
-      setGlobalDebugLabels(dl);
-    }
-    dl.setVisible(true);
-
-    // Generate geometry (also attaches a basic debug label)
-    const genCmd = new GenerateRouteGeometryCommand(route.getId());
-    commandManager.execute(genCmd);
-
-    // Enrich label with specifications for crisp UI per type
-    const mesh = scene.getMeshByName(`${route.type}_${route.getId()}`) as any;
-    if (mesh && dl) {
-      // Remove the basic label and add a detailed one
-      dl.removeLabel(route.getId());
-      switch (routeType) {
-        case 'electrical':
-          dl.createRouteLabel(route as any, mesh, {
-            voltage: 120,
-            current: 15,
-            coreCount: 3,
-            wireGauge: '14 AWG',
-            outerDiameter: 0.008,
-            connectorA: { type: 'NEMA-5-15', voltage: 125, current: 15 },
-            connectorB: { type: 'IEC-C13', voltage: 250, current: 10 }
-          });
-          break;
-        case 'pipe':
-          dl.createRouteLabel(route as any, mesh, {
-            nominalSize: '1/2"',
-            outerDiameter: 0.04,
-            innerDiameter: 0.016,
-            material: 'steel',
-            fluidType: 'water',
-            flowRate: 10,
-            pressureRating: 150,
-          });
-          break;
-        case 'cable_tray':
-          dl.createRouteLabel(route as any, mesh, {
-            width: 0.4,
-            height: 0.075,
-            trayType: 'ladder',
-            material: 'galvanized-steel',
-            loadRating: 50,
-            maxCables: 20,
-          });
-          break;
-        case 'conduit':
-          dl.createRouteLabel(route as any, mesh, {
-            nominalSize: '1/2"',
-            outerDiameter: 0.025,
-            conduitType: 'EMT',
-            maxWires: 6,
-            fillPercentage: 40,
-          });
-          break;
-      }
-    }
-
-    return route.getId();
-  }, type);
-
-  // Small delay to allow render loop to position label properly
+  
+  // 2. Navigate to Professional mode where routing toolbar is available
+  await switchToExpert(page);
+  await switchToProfessional(page);
+  
+  // 3. Wait for routing toolbar to be ready
+  await page.waitForSelector('[data-testid="routing-toolbar"]', { timeout: 5000 });
+  
+  // 4. Select route type from dropdown
+  await page.selectOption('[data-testid="route-type-select"]', type);
+  await pause(200);
+  
+  // 5. Get canvas for clicking
+  const canvas = page.locator('#viewport-essential >> canvas').first();
+  await canvas.waitFor({ state: 'visible', timeout: 10000 });
+  
+  // Get canvas bounds for clicking
+  const canvasBounds = await canvas.boundingBox();
+  if (!canvasBounds) throw new Error('Canvas not found');
+  
+  // Click "Add Connection Point" button
+  const addConnectorBtn = page.locator('[data-testid="add-connection-point-btn"]');
+  await addConnectorBtn.click();
+  await pause(200);
+  
+  // Click Point A (center-left of canvas)
+  const point1X = canvasBounds.width * 0.3;
+  const point1Y = canvasBounds.height * 0.4;
+  await canvas.click({
+    position: { x: point1X, y: point1Y },
+    force: true
+  });
+  await pause(400);
+  
+  // Click "Add Connection Point" button again for second point
+  await addConnectorBtn.click();
+  await pause(200);
+  
+  // Click Point B (center-right of canvas)
+  const point2X = canvasBounds.width * 0.7;
+  const point2Y = canvasBounds.height * 0.6;
+  await canvas.click({
+    position: { x: point2X, y: point2Y },
+    force: true
+  });
+  await pause(400);
+  
+  // 6. Click "Route Between Points" button
+  const routeBtn = page.locator('[data-testid="route-between-points-btn"]');
+  await routeBtn.click();
   await pause(300);
-  return routeId;
+  
+  // Click on first connection point (source)
+  await canvas.click({
+    position: { x: point1X, y: point1Y },
+    force: true
+  });
+  await pause(400);
+  
+  // Click on second connection point (destination) - this creates the route
+  await canvas.click({
+    position: { x: point2X, y: point2Y },
+    force: true
+  });
+  await pause(800); // Wait for route to be created
+  
+  // 7. Select the route to open Inspector (click near center of route)
+  const centerX = (point1X + point2X) / 2;
+  const centerY = (point1Y + point2Y) / 2;
+  await canvas.click({
+    position: { x: centerX, y: centerY },
+    force: true
+  });
+  await pause(400);
+  
+  // 8. Wait for "Generate Geometry" button to appear and click it
+  const generateBtn = page.locator('[data-testid="generate-geometry-btn"]');
+  await generateBtn.waitFor({ state: 'visible', timeout: 5000 });
+  await generateBtn.click();
+  await pause(600); // Wait for geometry to be generated
+  
+  // 9. Wait for route mesh to appear in scene
+  await page.waitForFunction((routeType) => {
+    const sceneManager = (window as any).sceneManager;
+    if (!sceneManager?.getScene) return false;
+    
+    const scene = sceneManager.getScene();
+    if (!scene) return false;
+    
+    // Check for mesh with route type in name
+    const meshes = scene.meshes || [];
+    return meshes.some((m: any) => 
+      m.name?.toLowerCase().includes(routeType.toLowerCase()) ||
+      m.id?.toLowerCase().includes(routeType.toLowerCase())
+    );
+  }, type, { timeout: 10000 });
+  
+  // 10. Press 'D' key to toggle debug labels ON
+  await page.keyboard.press('d');
+  await pause(500); // Wait for label to render
+  
+  // Additional pause to ensure everything is rendered
+  await pause(300);
 }
 
 test.describe('Routing Screenshot Suite', () => {
@@ -241,35 +228,35 @@ test.describe('Routing Screenshot Suite', () => {
 
   test('Geometry: Electrical with label', async ({ page }) => {
     await page.goto('http://localhost:5173');
-    await createRouteWithGeometryAndLabel(page, 'electrical');
+    await createRouteWithUIInteractions(page, 'electrical');
     await page.screenshot({ path: 'docs/images/routing-electrical-with-label.png' });
   });
 
   test('Geometry: Pipe with label', async ({ page }) => {
     await page.goto('http://localhost:5173');
-    await createRouteWithGeometryAndLabel(page, 'pipe');
+    await createRouteWithUIInteractions(page, 'pipe');
     await page.screenshot({ path: 'docs/images/routing-pipe-with-label.png' });
   });
 
   test('Geometry: Cable tray with label', async ({ page }) => {
     await page.goto('http://localhost:5173');
-    await createRouteWithGeometryAndLabel(page, 'cable_tray');
+    await createRouteWithUIInteractions(page, 'cable_tray');
     await page.screenshot({ path: 'docs/images/routing-cable-tray-with-label.png' });
   });
 
   test('Geometry: Conduit with label', async ({ page }) => {
     await page.goto('http://localhost:5173');
-    await createRouteWithGeometryAndLabel(page, 'conduit');
+    await createRouteWithUIInteractions(page, 'conduit');
     await page.screenshot({ path: 'docs/images/routing-conduit-with-label.png' });
   });
 
   test('Geometry: Mixed types with labels', async ({ page }) => {
     await page.goto('http://localhost:5173');
     // Create all four
-    await createRouteWithGeometryAndLabel(page, 'electrical');
-    await createRouteWithGeometryAndLabel(page, 'pipe');
-    await createRouteWithGeometryAndLabel(page, 'cable_tray');
-    await createRouteWithGeometryAndLabel(page, 'conduit');
+    await createRouteWithUIInteractions(page, 'electrical');
+    await createRouteWithUIInteractions(page, 'pipe');
+    await createRouteWithUIInteractions(page, 'cable_tray');
+    await createRouteWithUIInteractions(page, 'conduit');
     await page.screenshot({ path: 'docs/images/routing-mixed-with-labels.png' });
   });
 });

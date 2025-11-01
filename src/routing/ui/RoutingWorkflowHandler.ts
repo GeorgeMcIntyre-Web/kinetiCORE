@@ -34,6 +34,8 @@ export class RoutingWorkflowHandler {
       const routingMode = useRoutingStore.getState().routingMode;
       if (routingMode === 'placing_connector') {
         this.handlePlaceConnectionPoint(pointerInfo);
+      } else if (routingMode === 'placing_template') {
+        this.handlePlaceTemplate(pointerInfo);
       }
     });
   }
@@ -83,6 +85,28 @@ export class RoutingWorkflowHandler {
 
     // Exit placing mode
     useRoutingStore.getState().setRoutingMode('off');
+  }
+
+  /**
+   * Handle placing a template in the scene
+   */
+  private handlePlaceTemplate(pointerInfo: BABYLON.PointerInfo): void {
+    if (!pointerInfo.pickInfo?.pickedPoint || !this.scene) return;
+
+    const pickedPoint = pointerInfo.pickInfo.pickedPoint;
+    const babylonPos = new BABYLON.Vector3(pickedPoint.x, pickedPoint.y, pickedPoint.z);
+    const position = babylonToUser(babylonPos);
+
+    // Dispatch custom event for template placement
+    // The RouteTemplatesPanel will listen for this and handle placement
+    window.dispatchEvent(new CustomEvent('route-template-place', {
+      detail: { position }
+    }));
+
+    // Exit placing mode after a short delay to allow the event to be handled
+    setTimeout(() => {
+      useRoutingStore.getState().setRoutingMode('off');
+    }, 100);
   }
 
   /**

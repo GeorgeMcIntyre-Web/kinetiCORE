@@ -2,7 +2,7 @@
 // Owner: Routing System Team
 
 import React from 'react';
-import { Network, Zap, GitBranch, Wrench } from 'lucide-react';
+import { Network, Zap, GitBranch, Wrench, FileText } from 'lucide-react';
 import { useRoutingStore } from '../../ui/store/routingStore';
 
 interface RoutingToolbarProps {
@@ -10,6 +10,7 @@ interface RoutingToolbarProps {
   onRouteBetweenPoints?: () => void;
   onAutoRouteAll?: () => void;
   onEditRoute?: () => void;
+  onTemplatesClick?: () => void;
 }
 
 /**
@@ -21,6 +22,7 @@ export const RoutingToolbar: React.FC<RoutingToolbarProps> = ({
   onRouteBetweenPoints,
   onAutoRouteAll,
   onEditRoute,
+  onTemplatesClick,
 }) => {
   const currentRouteType = useRoutingStore((state) => state.currentRouteType);
   const setCurrentRouteType = useRoutingStore((state) => state.setCurrentRouteType);
@@ -47,12 +49,13 @@ export const RoutingToolbar: React.FC<RoutingToolbarProps> = ({
   };
 
   return (
-    <div className="routing-toolbar-container">
+    <div className="routing-toolbar-container" data-testid="routing-toolbar">
       <div className="routing-buttons-row">
         <button
           className={`ribbon-btn ${routingMode === 'placing_connector' ? 'active' : ''}`}
           onClick={handleAddConnector}
           title="Add Connection Point"
+          data-testid="add-connection-point-btn"
         >
           <Network size={32} />
         </button>
@@ -61,6 +64,7 @@ export const RoutingToolbar: React.FC<RoutingToolbarProps> = ({
           className={`ribbon-btn ${routingMode === 'selecting_source' || routingMode === 'selecting_dest' ? 'active' : ''}`}
           onClick={handleRouteBetweenPoints}
           title="Route Between Points"
+          data-testid="route-between-points-btn"
         >
           <GitBranch size={32} />
         </button>
@@ -81,6 +85,16 @@ export const RoutingToolbar: React.FC<RoutingToolbarProps> = ({
           <Wrench size={32} />
         </button>
 
+        <button
+          className={`ribbon-btn ${routingMode === 'placing_template' ? 'active' : ''}`}
+          onClick={() => {
+            if (onTemplatesClick) onTemplatesClick();
+          }}
+          title="Route Templates"
+        >
+          <FileText size={32} />
+        </button>
+
         <select
           className="ribbon-select"
           value={currentRouteType}
@@ -88,6 +102,7 @@ export const RoutingToolbar: React.FC<RoutingToolbarProps> = ({
             setCurrentRouteType(e.target.value as 'pipe' | 'electrical' | 'cable_tray' | 'conduit')
           }
           title="Route Type"
+          data-testid="route-type-select"
         >
           <option value="pipe">Pipe</option>
           <option value="electrical">Electrical</option>

@@ -28,6 +28,11 @@ export class SceneManager {
     this.engineService = EngineService.getInstance();
     this.lightingService = LightingService.getInstance();
     this.cameraService = CameraService.getInstance();
+    
+    // Expose for testing (only in dev mode)
+    if (typeof window !== 'undefined' && import.meta.env.DEV) {
+      (window as any).sceneManager = this;
+    }
   }
 
   static getInstance(): SceneManager {

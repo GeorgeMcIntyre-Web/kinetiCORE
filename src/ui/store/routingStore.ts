@@ -4,11 +4,12 @@
 import { create } from 'zustand';
 import { ConnectionPoint } from '../../routing/core/ConnectionPoint';
 import { Route } from '../../routing/core/Route';
+import { EnhancedValidationResult } from '../../routing/validation/RouteValidator';
 
 /**
  * Routing mode states
  */
-export type RoutingMode = 'off' | 'placing_connector' | 'selecting_source' | 'selecting_dest' | 'editing';
+export type RoutingMode = 'off' | 'placing_connector' | 'selecting_source' | 'selecting_dest' | 'editing' | 'placing_template';
 
 /**
  * Routing store state interface
@@ -48,6 +49,15 @@ interface RoutingState {
   addRoute: (route: Route) => void;
   removeRoute: (routeId: string) => void;
   clearRoutes: () => void;
+
+  // Selected route for editing
+  selectedRoute: Route | null;
+  selectRoute: (route: Route | null) => void;
+
+  // Validation results
+  validationResults: Map<string, EnhancedValidationResult>;
+  setValidationResult: (routeId: string, result: EnhancedValidationResult) => void;
+  clearValidationResults: () => void;
 }
 
 /**
@@ -140,5 +150,19 @@ export const useRoutingStore = create<RoutingState>((set, get) => ({
   clearRoutes: () => {
     set({ activeRoutes: [] });
   },
+
+  // Selected route for editing
+  selectedRoute: null,
+  selectRoute: (route) => set({ selectedRoute: route }),
+
+  // Validation results
+  validationResults: new Map<string, EnhancedValidationResult>(),
+  setValidationResult: (routeId, result) => {
+    const current = get().validationResults;
+    const updated = new Map(current);
+    updated.set(routeId, result);
+    set({ validationResults: updated });
+  },
+  clearValidationResults: () => set({ validationResults: new Map() }),
 }));
 
