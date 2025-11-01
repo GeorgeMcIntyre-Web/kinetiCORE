@@ -26,6 +26,8 @@ import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { DockableLayoutWrapper } from './DockableLayoutWrapper';
 import { MoveObjectDialog } from '../components/MoveObjectDialog';
+import { ExportDialog } from '../components/ExportDialog';
+import { MeasurementTools, MeasurementType } from '../components/MeasurementTools';
 import { SelectionIndicator } from '../components/SelectionIndicator';
 import './ProfessionalModeLayout.css';
 
@@ -50,6 +52,8 @@ export const ProfessionalModeLayout: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [savedLayout, setSavedLayout] = useState<any>(null);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [activeMeasurement, setActiveMeasurement] = useState<MeasurementType>(null);
 
   // Load saved panel layout on mount
   useEffect(() => {
@@ -74,8 +78,7 @@ export const ProfessionalModeLayout: React.FC = () => {
   };
 
   const handleExport = () => {
-    // TODO: Implement proper export dialog with format selection
-    saveWorld();
+    setShowExportDialog(true);
   };
 
   const handleTransformTool = (mode: 'translate' | 'rotate' | 'scale') => {
@@ -120,8 +123,11 @@ export const ProfessionalModeLayout: React.FC = () => {
   };
 
   const handleMeasurement = (type: 'distance' | 'angle' | 'volume') => {
-    // TODO: Implement measurement tools
-    console.log(`${type} measurement coming soon`);
+    setActiveMeasurement(type);
+  };
+
+  const handleCloseMeasurement = () => {
+    setActiveMeasurement(null);
   };
 
   return (
@@ -393,21 +399,21 @@ export const ProfessionalModeLayout: React.FC = () => {
           <div className="tool-buttons">
             <button
               className="tool-btn-small"
-              title="Distance (Coming Soon)"
+              title="Measure distance between two points"
               onClick={() => handleMeasurement('distance')}
             >
               Distance
             </button>
             <button
               className="tool-btn-small"
-              title="Angle (Coming Soon)"
+              title="Measure angle between three points"
               onClick={() => handleMeasurement('angle')}
             >
               Angle
             </button>
             <button
               className="tool-btn-small"
-              title="Volume (Coming Soon)"
+              title="Measure volume of selected objects"
               onClick={() => handleMeasurement('volume')}
             >
               Volume
@@ -445,6 +451,15 @@ export const ProfessionalModeLayout: React.FC = () => {
 
       {/* Move Object Dialog */}
       <MoveObjectDialog isOpen={showMoveDialog} onClose={() => setShowMoveDialog(false)} />
+
+      {/* Export Dialog */}
+      <ExportDialog isOpen={showExportDialog} onClose={() => setShowExportDialog(false)} />
+
+      {/* Measurement Tools */}
+      <MeasurementTools
+        measurementType={activeMeasurement}
+        onClose={handleCloseMeasurement}
+      />
     </div>
   );
 };

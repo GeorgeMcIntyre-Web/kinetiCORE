@@ -22,6 +22,7 @@ import {
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { DockableLayoutWrapper } from './DockableLayoutWrapper';
+import { ExportDialog } from '../components/ExportDialog';
 import { SelectionIndicator } from '../components/SelectionIndicator';
 import './ExpertModeLayout.css';
 
@@ -38,6 +39,7 @@ export const ExpertModeLayout: React.FC = () => {
   const [commandQuery, setCommandQuery] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [savedLayout, setSavedLayout] = useState<any>(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   // Load saved panel layout on mount
   useEffect(() => {
@@ -76,6 +78,7 @@ export const ExpertModeLayout: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [commandPaletteOpen]);
 
   return (
@@ -128,7 +131,7 @@ export const ExpertModeLayout: React.FC = () => {
           <button className="action-btn" title="Import" onClick={handleImport}>
             <Upload size={16} />
           </button>
-          <button className="action-btn" title="Export" onClick={saveWorld}>
+          <button className="action-btn" title="Export" onClick={() => setShowExportDialog(true)}>
             <Download size={16} />
           </button>
           <select
@@ -328,6 +331,9 @@ export const ExpertModeLayout: React.FC = () => {
         onChange={handleFileChange}
         style={{ display: 'none' }}
       />
+
+      {/* Export Dialog */}
+      <ExportDialog isOpen={showExportDialog} onClose={() => setShowExportDialog(false)} />
     </div>
   );
 };
