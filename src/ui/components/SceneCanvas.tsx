@@ -11,6 +11,7 @@ import { TransformGizmo } from '../../manipulation/TransformGizmo';
 import { useEditorStore } from '../store/editorStore';
 import { useUserLevel } from '../core/UserLevelContext';
 import { CoordinateFrame } from './CoordinateFrame';
+import { RoutingIntegration } from '../../routing/ui/RoutingIntegration';
 import { isZoomableObject, isSelectableObject } from '../../scene/SceneUtils';
 import { performanceMetrics } from '../../core/PerformanceMetrics';
 
@@ -619,6 +620,9 @@ export const SceneCanvas: React.FC = () => {
       {camera && showCoordinateOverlay && (
         <CoordinateFrame camera={camera as BABYLON.ArcRotateCamera} />
       )}
+
+      {/* Routing Integration - Professional+ only */}
+      {userLevel !== 'essential' && <RoutingIntegration />}
     </div>
   );
 };

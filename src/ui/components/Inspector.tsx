@@ -12,6 +12,9 @@ import { SceneManager } from '../../scene/SceneManager';
 import { EntityRegistry } from '../../entities/EntityRegistry';
 import type { ReferenceFrameType, CustomFrameFeatureType } from '../../core/types';
 import { XNumericInput, YNumericInput, ZNumericInput } from './NumericInput';
+import { RouteInspector } from '../../routing/ui/RouteInspector';
+import { useRoutingStore } from '../store/routingStore';
+import { ConstraintValidator } from '../../routing/pathfinding/ConstraintValidator';
 import './Inspector.css';
 
 export const Inspector: React.FC = () => {
@@ -624,7 +627,57 @@ export const Inspector: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Routing - Show route inspector if route is selected */}
+        <RouteInspectorSection selectedNodeId={selectedNodeId} />
       </div>
+    </div>
+  );
+};
+
+// Route Inspector Section Component
+const RouteInspectorSection: React.FC<{ selectedNodeId: string | null }> = ({ selectedNodeId }) => {
+  const activeRoutes = useRoutingStore((state) => state.activeRoutes);
+  const scene = SceneManager.getInstance().getScene();
+
+  // Check if selected node is a route (by checking node name or metadata)
+  const selectedRoute = activeRoutes.find((route) => {
+    if (!selectedNodeId) return false;
+    // Check if node ID matches route ID pattern
+    return selectedNodeId.includes(route.getId()) || selectedNodeId === `route_${route.getId()}`;
+  });
+
+  if (!selectedRoute || !scene) {
+    return null;
+  }
+
+  const validator = new ConstraintValidator();
+  const validation = validator.validateRoute(selectedRoute, []); // Pass obstacles if available
+
+  const handleGenerateGeometry = () => {
+    // Generate 3D geometry for the route using command for undo/redo
+    import('../../routing/commands/GenerateRouteGeometryCommand').then(({ GenerateRouteGeometryCommand }) => {
+      import('../../ui/store/editorStore').then(({ useEditorStore }) => {
+        const commandManager = useEditorStore.getState().commandManager;
+        const command = new GenerateRouteGeometryCommand(selectedRoute.getId());
+        commandManager.execute(command);
+      });
+    });
+  };
+
+  const handleEditSegments = () => {
+    // Switch to route editing mode
+    useRoutingStore.getState().setRoutingMode('editing');
+  };
+
+  return (
+    <div className="property-group">
+      <RouteInspector
+        route={selectedRoute}
+        validation={validation}
+        onGenerateGeometry={handleGenerateGeometry}
+        onEditSegments={handleEditSegments}
+      />
     </div>
   );
 };

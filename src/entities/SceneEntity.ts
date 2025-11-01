@@ -331,6 +331,62 @@ export class SceneEntity {
   }
 
   /**
+   * Connection point support for routing system
+   * Connection points are managed by ConnectionManager, we just store references here
+   */
+
+  /**
+   * Get connection point IDs associated with this entity
+   */
+  getConnectionPointIds(): string[] {
+    const connectionPoints = this.metadata.customProperties?.connectionPoints;
+    if (Array.isArray(connectionPoints)) {
+      return [...connectionPoints];
+    }
+    return [];
+  }
+
+  /**
+   * Add a connection point ID to this entity
+   */
+  addConnectionPointId(connectionPointId: string): void {
+    if (!this.metadata.customProperties) {
+      this.metadata.customProperties = {};
+    }
+    if (!this.metadata.customProperties.connectionPoints) {
+      this.metadata.customProperties.connectionPoints = [];
+    }
+    const connectionPoints = this.metadata.customProperties.connectionPoints as string[];
+    if (!connectionPoints.includes(connectionPointId)) {
+      connectionPoints.push(connectionPointId);
+    }
+  }
+
+  /**
+   * Remove a connection point ID from this entity
+   */
+  removeConnectionPointId(connectionPointId: string): boolean {
+    const connectionPoints = this.metadata.customProperties?.connectionPoints;
+    if (!Array.isArray(connectionPoints)) {
+      return false;
+    }
+    const index = connectionPoints.indexOf(connectionPointId);
+    if (index >= 0) {
+      connectionPoints.splice(index, 1);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Check if this entity has any connection points
+   */
+  hasConnectionPoints(): boolean {
+    const connectionPoints = this.metadata.customProperties?.connectionPoints;
+    return Array.isArray(connectionPoints) && connectionPoints.length > 0;
+  }
+
+  /**
    * Dispose entity and clean up resources
    */
   dispose(): void {

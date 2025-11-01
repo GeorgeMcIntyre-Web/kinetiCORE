@@ -32,6 +32,8 @@ import { loadOBJFile } from '../../loaders/obj/OBJLoader';
 import { SceneManager } from '../../scene/SceneManager';
 import { toast } from '../components/ToastNotifications';
 import { loading } from '../components/LoadingIndicator';
+import { RoutingToolbar } from '../../routing/ui/RoutingToolbar';
+import { useUserLevel } from '../core/UserLevelContext';
 
 // Custom Quick Move Icon - 3 horizontal lines behind a cube
 const QuickMoveIcon = ({ size = 32 }: { size?: number }) => (
@@ -155,6 +157,8 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onFrontViewClick,
   onIsoViewClick,
 }) => {
+  const { userLevel } = useUserLevel();
+  
   // Store connections
   const transformMode = useEditorStore((state) => state.transformMode);
   const setTransformMode = useEditorStore((state) => state.setTransformMode);
@@ -465,6 +469,14 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Routing Category - Professional+ only */}
+      {userLevel !== 'essential' && (
+        <div className="ribbon-category-excel">
+          <div className="ribbon-category-label">Routing</div>
+          <RoutingToolbar />
+        </div>
+      )}
 
       {/* Hidden file inputs */}
       <input

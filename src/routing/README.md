@@ -46,7 +46,7 @@ const connector = connectionManager.addConnectionPoint({
   type: 'pipe',
   position: new Vector3(0, 0, 0),
   direction: new Vector3(0, 1, 0),
-  specifications: { diameter: '3/4 inch' }
+  specifications: { size: '3/4 inch' }
 });
 
 // Find optimal route
