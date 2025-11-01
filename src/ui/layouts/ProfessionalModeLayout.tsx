@@ -275,7 +275,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               title="Box"
               onClick={() => createObject('box')}
             >
-              <Box size={20} />
+              <Box size={18} />
               <span>Box</span>
             </button>
             <button
@@ -283,7 +283,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               title="Sphere"
               onClick={() => createObject('sphere')}
             >
-              <Circle size={20} />
+              <Circle size={18} />
               <span>Sphere</span>
             </button>
             <button
@@ -291,7 +291,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               title="Cylinder"
               onClick={() => createObject('cylinder')}
             >
-              <Cylinder size={20} />
+              <Cylinder size={18} />
               <span>Cylinder</span>
             </button>
             <button
@@ -299,7 +299,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               title="Cone"
               onClick={() => createObject('cone')}
             >
-              <Cone size={20} />
+              <Cone size={18} />
               <span>Cone</span>
             </button>
             <button
@@ -307,7 +307,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               title="Torus"
               onClick={() => createObject('torus')}
             >
-              <Circle size={20} />
+              <Circle size={18} />
               <span>Torus</span>
             </button>
             <button
@@ -315,7 +315,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               title="Plane"
               onClick={() => createObject('plane')}
             >
-              <Square size={20} />
+              <Square size={18} />
               <span>Plane</span>
             </button>
             <button
@@ -323,7 +323,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               title="Ground"
               onClick={() => createObject('ground')}
             >
-              <Square size={20} />
+              <Square size={18} />
               <span>Ground</span>
             </button>
             <button
@@ -331,7 +331,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               title="Capsule"
               onClick={() => createObject('capsule')}
             >
-              <Pill size={20} />
+              <Pill size={18} />
               <span>Capsule</span>
             </button>
             <button
@@ -339,7 +339,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               title="Disc"
               onClick={() => createObject('disc')}
             >
-              <Disc size={20} />
+              <Disc size={18} />
               <span>Disc</span>
             </button>
             <button
@@ -347,7 +347,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               title="Torus Knot"
               onClick={() => createObject('torusknot')}
             >
-              <Circle size={20} />
+              <Circle size={18} />
               <span>TorusKnot</span>
             </button>
             <button
@@ -355,7 +355,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               title="Polyhedron"
               onClick={() => createObject('polyhedron')}
             >
-              <Diamond size={20} />
+              <Diamond size={18} />
               <span>Polyhedron</span>
             </button>
           </div>
@@ -373,7 +373,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               title={selectedNodeId ? "Move" : "Select an object first"}
               onClick={() => handleTransformTool('translate')}
             >
-              <Move size={20} />
+              <Move size={18} />
               <span>Move</span>
             </button>
             <button
@@ -382,7 +382,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               title={selectedNodeId ? "Rotate" : "Select an object first"}
               onClick={() => handleTransformTool('rotate')}
             >
-              <RotateCw size={20} />
+              <RotateCw size={18} />
               <span>Rotate</span>
             </button>
             <button
@@ -391,7 +391,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               title={selectedNodeId ? "Scale" : "Select an object first"}
               onClick={() => handleTransformTool('scale')}
             >
-              <Scale size={20} />
+              <Scale size={18} />
               <span>Scale</span>
             </button>
             <button
@@ -400,7 +400,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               title={selectedNodeId ? "Duplicate (Ctrl+D)" : "Select an object first"}
               onClick={handleCopy}
             >
-              <Copy size={20} />
+              <Copy size={18} />
               <span>Duplicate</span>
             </button>
             <button
@@ -409,7 +409,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               title={selectedNodeId ? "Quick Move Dialog (Relative/Absolute positioning)" : "Select an object first"}
               onClick={() => setShowMoveDialog(true)}
             >
-              <Navigation size={20} />
+              <Navigation size={18} />
               <span>Position</span>
             </button>
           </div>
@@ -489,7 +489,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               onClick={() => setShowDebugLabels(!showDebugLabels)}
               title="Toggle Route Debug Labels (D)"
             >
-              {showDebugLabels ? <Eye size={20} /> : <EyeOff size={20} />}
+              {showDebugLabels ? <Eye size={18} /> : <EyeOff size={18} />}
               <span className="tool-btn-label">Labels</span>
             </button>
             <button
@@ -497,7 +497,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               onClick={() => setShowTemplatesPanel(!showTemplatesPanel)}
               title="Open Route Templates Library"
             >
-              <LayoutTemplate size={20} />
+              <LayoutTemplate size={18} />
               <span className="tool-btn-label">Templates</span>
             </button>
 
@@ -556,7 +556,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               { id: 'routeStats-panel', type: 'routeStats' },
             ],
             mainContent: (
-              <main id="viewport-professional" className="professional-viewport">
+              <main id="viewport-professional" className="professional-viewport" style={{ width: '100%', height: '100%' }}>
                 <SceneCanvas />
               </main>
             ),

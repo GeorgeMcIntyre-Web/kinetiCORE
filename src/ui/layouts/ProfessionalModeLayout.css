@@ -127,13 +127,13 @@
 
 /* Ribbon Toolbar */
 .ribbon-toolbar {
-  height: 80px;
+  height: 64px;
   background: #2d3748;
   border-bottom: 1px solid #4a5568;
   display: flex;
   align-items: center;
-  padding: 0 16px;
-  gap: 16px;
+  padding: 0 12px;
+  gap: 12px;
   overflow-x: auto;
 }
 
@@ -160,16 +160,16 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
+  gap: 2px;
+  padding: 6px 10px;
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
   color: #e2e8f0;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 11px;
-  min-width: 60px;
+  font-size: 10px;
+  min-width: 56px;
 }
 
 .tool-btn:hover {
@@ -215,14 +215,14 @@
 }
 
 .tool-btn-small {
-  padding: 6px 12px;
+  padding: 5px 10px;
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
   color: #e2e8f0;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .tool-btn-small:not(:disabled):hover {
@@ -238,7 +238,7 @@
 
 .toolbar-separator {
   width: 1px;
-  height: 60px;
+  height: 48px;
   background: #4a5568;
 }
 

@@ -17,7 +17,9 @@
       "Bash(git push:*)",
       "Bash(git reset:*)",
       "Bash(npx eslint:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(npx playwright:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []
