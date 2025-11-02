@@ -135,7 +135,7 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <ThemeProvider defaultTheme="cyan">
-      <UserLevelProvider defaultLevel="essential">
+      <UserLevelProvider defaultLevel="professional">
         <AppContent />
       </UserLevelProvider>
     </ThemeProvider>
