@@ -13,7 +13,7 @@
 .dockview-theme-kineticore {
   width: 100%;
   height: 100%;
-  pointer-events: none;
+  pointer-events: auto;
   --dv-activegroup-visiblepanel-tab-background-color: #2d3748;
   --dv-activegroup-hiddenpanel-tab-background-color: #1a202c;
   --dv-group-view-background-color: #2d3748;
