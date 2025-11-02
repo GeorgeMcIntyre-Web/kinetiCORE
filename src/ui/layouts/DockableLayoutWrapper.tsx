@@ -21,7 +21,8 @@ export interface DockableLayoutConfig {
   leftPanels?: PanelDefinition[];
   rightPanels?: PanelDefinition[];
   bottomPanels?: PanelDefinition[];
-  mainContent?: React.ReactNode;
+  centerPanel?: PanelDefinition; // The main viewport/content area
+  mainContent?: React.ReactNode; // Deprecated: use centerPanel instead
 }
 
 interface DockableLayoutWrapperProps {
@@ -62,6 +63,17 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
   };
 
   const createDefaultLayout = (api: DockviewApi) => {
+    // Add center panel first (usually the viewport) - this will be the main content area
+    let centerPanelRef: any = null;
+    if (config.centerPanel) {
+      centerPanelRef = api.addPanel({
+        id: config.centerPanel.id,
+        component: config.centerPanel.type,
+        title: config.centerPanel.title || PANEL_REGISTRY[config.centerPanel.type].title,
+        params: {},
+      });
+    }
+
     // Add left panels as a group on the left side
     if (config.leftPanels && config.leftPanels.length > 0) {
       const [firstPanel, ...restPanels] = config.leftPanels;

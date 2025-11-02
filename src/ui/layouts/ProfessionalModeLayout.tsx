@@ -40,7 +40,8 @@ import { createPresetRoute, createMixedPreset } from '../../routing/ui/QuickRout
 import { RouteWarningsPanel } from '../../routing/ui/RouteWarningsPanel';
 import { useRoutingStore } from '../store/routingStore';
 import { SceneManager } from '../../scene/SceneManager';
-import { SceneCanvas } from '../components/SceneCanvas';
+import { KinematicExtractionPanel } from '../components/KinematicExtractionPanel';
+import { Scan } from 'lucide-react';
 import './ProfessionalModeLayout.css';
 
 export const ProfessionalModeLayout: React.FC = () => {
@@ -69,6 +70,7 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [showTemplatesPanel, setShowTemplatesPanel] = useState(false);
   const [activeMeasurement, setActiveMeasurement] = useState<MeasurementType>(null);
   const [showDebugLabels, setShowDebugLabels] = useState(false);
+  const [showKinematicExtractionPanel, setShowKinematicExtractionPanel] = useState(false);
   const debugLabelsRef = useRef<RouteDebugLabels | null>(null);
   const routeSelection = useRoutingStore((state) => state.selectedRoute);
 
@@ -500,6 +502,23 @@ export const ProfessionalModeLayout: React.FC = () => {
               <LayoutTemplate size={18} />
               <span className="tool-btn-label">Templates</span>
             </button>
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
+        {/* Kinematics Tools */}
+        <div className="tool-group">
+          <div className="group-label">Kinematics</div>
+          <div className="tool-buttons">
+            <button
+              className={`tool-btn ${showKinematicExtractionPanel ? 'active' : ''}`}
+              onClick={() => setShowKinematicExtractionPanel(!showKinematicExtractionPanel)}
+              title="Auto Kinematic Extraction - Hierarchical BBox Pairing"
+            >
+              <Scan size={18} />
+              <span className="tool-btn-label">Auto Extract</span>
+            </button>
 
             {/* Quick preset generators to speed up documentation screenshots */}
             <button
@@ -545,6 +564,11 @@ export const ProfessionalModeLayout: React.FC = () => {
       <div className="professional-content">
         <DockableLayoutWrapper
           config={{
+            centerPanel: {
+              id: 'viewport-panel',
+              type: 'viewport',
+              title: '3D Viewport',
+            },
             leftPanels: [
               { id: 'sceneTree-panel', type: 'sceneTree' },
               { id: 'toolPalette-panel', type: 'toolPalette' },
@@ -555,11 +579,6 @@ export const ProfessionalModeLayout: React.FC = () => {
             bottomPanels: [
               { id: 'routeStats-panel', type: 'routeStats' },
             ],
-            mainContent: (
-              <main id="viewport-professional" className="professional-viewport" style={{ width: '100%', height: '100%' }}>
-                <SceneCanvas />
-              </main>
-            ),
           }}
           onLayoutChange={savePanelLayout}
           savedLayout={savedLayout}
@@ -603,6 +622,13 @@ export const ProfessionalModeLayout: React.FC = () => {
           onClose={() => useRoutingStore.getState().selectRoute(null)}
         />
       )}
+
+      {/* Kinematic Extraction Panel - Floating overlay */}
+      <KinematicExtractionPanel
+        isVisible={showKinematicExtractionPanel}
+        onClose={() => setShowKinematicExtractionPanel(false)}
+        zIndex={1003}
+      />
     </div>
   );
 };
