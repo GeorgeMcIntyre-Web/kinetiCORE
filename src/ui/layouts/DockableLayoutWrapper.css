@@ -84,14 +84,9 @@
   background: #646cff;
 }
 
-/* Watermark (main content area) - keep fully transparent to show viewport */
+/* Watermark (main content area) - completely hide it since we use watermarkComponent={() => null} */
 .dockview-theme-kineticore .watermark {
-  display: block;
-  width: 100%;
-  height: 100%;
-  background: transparent !important;
-  position: relative;
-  pointer-events: none !important;
+  display: none !important;
 }
 
 /* Make the root dockview container transparent where there are no panels */
