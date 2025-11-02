@@ -524,32 +524,13 @@ export const SceneCanvas: React.FC = () => {
     };
   }, [selectedNodeIds, selectedMeshes]);
 
-  // Position canvas to overlay the active viewport div
+  // Handle canvas resize when container changes
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // Determine viewport ID based on user level
-    const viewportId = `viewport-${userLevel}`;
-
-    const updatePosition = () => {
-      const viewportElement = document.getElementById(viewportId);
-      if (!viewportElement) {
-        // Hide canvas if viewport not found
-        container.style.display = 'none';
-        return;
-      }
-
-      const rect = viewportElement.getBoundingClientRect();
-      container.style.display = 'block';
-      container.style.position = 'fixed';
-      container.style.top = `${rect.top}px`;
-      container.style.left = `${rect.left}px`;
-      container.style.width = `${rect.width}px`;
-      container.style.height = `${rect.height}px`;
-      container.style.pointerEvents = 'none';
-
-      // Trigger engine resize to match new dimensions
+    const updateSize = () => {
+      // Trigger engine resize to match container dimensions
       const sceneManager = SceneManager.getInstance();
       const engine = sceneManager.getEngine();
       if (engine) {
@@ -557,55 +538,32 @@ export const SceneCanvas: React.FC = () => {
       }
     };
 
-    // Initial positioning
-    updatePosition();
+    // Initial sizing
+    updateSize();
 
     // Watch for window resize
-    window.addEventListener('resize', updatePosition);
+    window.addEventListener('resize', updateSize);
 
-    // Use ResizeObserver to track viewport changes
-    const viewportElement = document.getElementById(viewportId);
-    let resizeObserver: ResizeObserver | null = null;
-
-    if (viewportElement) {
-      resizeObserver = new ResizeObserver(updatePosition);
-      resizeObserver.observe(viewportElement);
-    }
+    // Use ResizeObserver to track container changes
+    const resizeObserver = new ResizeObserver(updateSize);
+    resizeObserver.observe(container);
 
     // Cleanup
     return () => {
-      window.removeEventListener('resize', updatePosition);
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      }
-      
-      // Remove canvas from viewport on cleanup
-      const viewportId = userLevel === 'essential' ? 'viewport-essential' : 
-                        userLevel === 'professional' ? 'viewport-professional' : 
-                        'viewport-expert';
-      const viewportContainer = document.getElementById(viewportId);
-      if (viewportContainer && canvasRef.current) {
-        try {
-          viewportContainer.removeChild(canvasRef.current);
-        } catch (e) {
-          // Canvas might already be removed
-        }
-      }
+      window.removeEventListener('resize', updateSize);
+      resizeObserver.disconnect();
     };
-  }, [userLevel]);
+  }, []);
 
 
   return (
     <div
       ref={containerRef}
       style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 30,
-        pointerEvents: 'none',
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'auto',
       }}
     >
       <canvas
