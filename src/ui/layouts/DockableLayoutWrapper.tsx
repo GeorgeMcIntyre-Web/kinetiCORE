@@ -184,7 +184,6 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
         right: 0,
         bottom: 0,
         zIndex: 1,
-        pointerEvents: 'none',
       }}>
         <DockviewReact
           className="dockview-theme-kineticore"
@@ -192,6 +191,7 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
           onReady={onReady}
           disableFloatingGroups={false}
           defaultTabComponent={undefined}
+          watermarkComponent={() => null}
         />
       </div>
     </div>

@@ -13,7 +13,7 @@
 .dockview-theme-kineticore {
   width: 100%;
   height: 100%;
-  pointer-events: auto;
+  pointer-events: none;
   --dv-activegroup-visiblepanel-tab-background-color: #2d3748;
   --dv-activegroup-hiddenpanel-tab-background-color: #1a202c;
   --dv-group-view-background-color: #2d3748;
@@ -39,9 +39,16 @@
   color: #e2e8f0;
 }
 
-/* Ensure dockview groups are visible and have background */
+/* Ensure dockview groups render without blocking the viewport */
+/*
+  Important: Using a solid background on .dv-group causes the center
+  (watermark) area to cover the 3D viewport in Professional Mode. Make
+  groups themselves transparent and let panel containers provide their
+  own backgrounds. This preserves panel readability while keeping the
+  viewport visible behind empty areas.
+*/
 .dockview-theme-kineticore .dv-group {
-  background: #2d3748 !important;
+  background: transparent !important;
   opacity: 1 !important;
   pointer-events: auto !important;
 }
@@ -51,6 +58,7 @@
   pointer-events: auto !important;
 }
 
+/* Panel content container keeps the panel body readable */
 .dockview-theme-kineticore .content-container {
   background: #2d3748 !important;
 }
@@ -76,7 +84,7 @@
   background: #646cff;
 }
 
-/* Watermark (main content area) - make transparent to show viewport behind */
+/* Watermark (main content area) - keep fully transparent to show viewport */
 .dockview-theme-kineticore .watermark {
   display: block;
   width: 100%;
