@@ -19,10 +19,21 @@ export async function createPresetRoute(
   start: V3,
   end: V3
 ) {
-  const setType = useRoutingStore.getState().setCurrentRouteType;
-  setType(type);
+  try {
+    console.log(`[QuickRoutePresets] Creating ${type} route from`, start, 'to', end);
 
-  const cmdManager = useEditorStore.getState().commandManager;
+    const setType = useRoutingStore.getState().setCurrentRouteType;
+    if (!setType) {
+      console.error('[QuickRoutePresets] setCurrentRouteType not found in routingStore');
+      return;
+    }
+    setType(type);
+
+    const cmdManager = useEditorStore.getState().commandManager;
+    if (!cmdManager) {
+      console.error('[QuickRoutePresets] commandManager not found in editorStore');
+      return;
+    }
 
   // Minimal specs used for connection point compatibility
   const baseSpecs: any = (() => {
@@ -53,30 +64,49 @@ export async function createPresetRoute(
     specifications: baseSpecs,
   });
 
-  cmdManager.execute(cmdA);
-  cmdManager.execute(cmdB);
+    console.log('[QuickRoutePresets] Executing connection point commands...');
+    cmdManager.execute(cmdA);
+    cmdManager.execute(cmdB);
 
-  // Find the newly created connection points by nearest positions
-  const cm = ConnectionManager.getInstance();
-  const src = cm.findNearbyConnections(start, 0.05)[0];
-  const dst = cm.findNearbyConnections(end, 0.05)[0];
-  if (!src || !dst) return;
+    // Find the newly created connection points by nearest positions
+    const cm = ConnectionManager.getInstance();
+    const src = cm.findNearbyConnections(start, 0.05)[0];
+    const dst = cm.findNearbyConnections(end, 0.05)[0];
 
-  // Create route between them
-  RoutingWorkflowHandler.createRouteBetweenPoints(src.getId(), dst.getId());
+    if (!src || !dst) {
+      console.error('[QuickRoutePresets] Failed to find connection points. src:', src, 'dst:', dst);
+      return;
+    }
 
-  // Generate geometry for the last added route
-  const routes = useRoutingStore.getState().activeRoutes;
-  const created = [...routes].reverse().find((r) => r.source.getId() === src.getId() && r.destination.getId() === dst.getId());
-  if (!created) return;
+    console.log('[QuickRoutePresets] Found connection points, creating route...');
+    // Create route between them
+    RoutingWorkflowHandler.createRouteBetweenPoints(src.getId(), dst.getId());
 
-  const { GenerateRouteGeometryCommand } = await import('../commands/GenerateRouteGeometryCommand');
-  const genCmd = new GenerateRouteGeometryCommand(created.getId());
-  cmdManager.execute(genCmd);
+    // Generate geometry for the last added route
+    const routes = useRoutingStore.getState().activeRoutes;
+    const created = [...routes].reverse().find((r) => r.source.getId() === src.getId() && r.destination.getId() === dst.getId());
 
-  // Ensure labels are visible if available
-  const labels = getGlobalDebugLabels();
-  labels?.setVisible(true);
+    if (!created) {
+      console.error('[QuickRoutePresets] Failed to find created route in activeRoutes');
+      return;
+    }
+
+    console.log('[QuickRoutePresets] Generating geometry for route:', created.getId());
+    const { GenerateRouteGeometryCommand } = await import('../commands/GenerateRouteGeometryCommand');
+    const genCmd = new GenerateRouteGeometryCommand(created.getId());
+    cmdManager.execute(genCmd);
+
+    // Ensure labels are visible if available
+    const labels = getGlobalDebugLabels();
+    if (labels) {
+      labels.setVisible(true);
+      console.log('[QuickRoutePresets] Debug labels enabled');
+    }
+
+    console.log('[QuickRoutePresets] Route creation complete!');
+  } catch (error) {
+    console.error('[QuickRoutePresets] Error creating preset route:', error);
+  }
 }
 
 /**
