@@ -162,38 +162,28 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
 
   return (
     <div className="dockable-layout-wrapper">
-      {/* Render main content behind dockview */}
-      {config.mainContent && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          pointerEvents: 'none',
-          zIndex: 0
-        }}>
-          {config.mainContent}
-        </div>
-      )}
-
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 1,
-        pointerEvents: 'none'
-      }}>
-        <DockviewReact
-          className="dockview-theme-kineticore"
-          components={components}
-          onReady={onReady}
-          disableFloatingGroups={false}
-          defaultTabComponent={undefined}
-        />
-      </div>
+      {/* DockviewReact first - panels will overlay on top */}
+      <DockviewReact
+        className="dockview-theme-kineticore"
+        components={components}
+        onReady={onReady}
+        disableFloatingGroups={false}
+        defaultTabComponent={undefined}
+        watermarkComponent={() => (
+          config.mainContent ? (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              pointerEvents: 'auto'
+            }}>
+              {config.mainContent}
+            </div>
+          ) : null
+        )}
+      />
     </div>
   );
 };
