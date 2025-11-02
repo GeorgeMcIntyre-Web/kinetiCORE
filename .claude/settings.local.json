@@ -19,7 +19,8 @@
       "Bash(npx eslint:*)",
       "Bash(npm run lint:*)",
       "Bash(npx playwright:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(claude mcp list:*)"
     ],
     "deny": [],
     "ask": []

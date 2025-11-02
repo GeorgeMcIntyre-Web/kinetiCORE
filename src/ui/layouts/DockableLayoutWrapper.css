@@ -46,6 +46,11 @@
   pointer-events: auto !important;
 }
 
+/* Allow pointer events on all dockview UI elements */
+.dockview-theme-kineticore > * {
+  pointer-events: auto !important;
+}
+
 .dockview-theme-kineticore .content-container {
   background: #2d3748 !important;
 }
@@ -71,13 +76,23 @@
   background: #646cff;
 }
 
-/* Watermark (main content area) */
+/* Watermark (main content area) - make transparent to show viewport behind */
 .dockview-theme-kineticore .watermark {
   display: block;
   width: 100%;
   height: 100%;
-  background: transparent;
+  background: transparent !important;
   position: relative;
+  pointer-events: none !important;
+}
+
+/* Make the root dockview container transparent where there are no panels */
+.dockview-theme-kineticore .dv-paneview {
+  background: transparent !important;
+}
+
+.dockview-theme-kineticore .dv-splitview {
+  background: transparent !important;
 }
 
 /* Panel header icons */
