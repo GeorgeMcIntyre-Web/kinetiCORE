@@ -61,6 +61,7 @@ export const SceneCanvas: React.FC = () => {
   const hoveredMeshRef = useRef<BABYLON.AbstractMesh | null>(null);
   const hoverPointerStateRef = useRef<{ x: number; y: number }>({ x: Number.NEGATIVE_INFINITY, y: Number.NEGATIVE_INFINITY });
   const hoverRafRef = useRef<number | null>(null);
+  const lastHoverPickTimeRef = useRef<number>(0);
   const hoverHighlightLayerRef = useRef<BABYLON.HighlightLayer | null>(null);
   
   const clearHoverHighlight = useCallback(() => {
@@ -316,7 +317,8 @@ export const SceneCanvas: React.FC = () => {
           }
         };
 
-        const movementThresholdSq = 4; // 2px movement threshold
+        const movementThresholdSq = 196; // 14px movement threshold
+        const pickIntervalMs = 48; // limit to ~20 picks/sec
 
         const scheduleHoverPick = (pointerEvent: PointerEvent) => {
           const { x: lastX, y: lastY } = hoverPointerStateRef.current;
@@ -331,6 +333,12 @@ export const SceneCanvas: React.FC = () => {
           if (hoverRafRef.current !== null) {
             return;
           }
+
+          const now = performance.now();
+          if (now - lastHoverPickTimeRef.current < pickIntervalMs) {
+            return;
+          }
+          lastHoverPickTimeRef.current = now;
 
           hoverRafRef.current = window.requestAnimationFrame(() => {
             hoverRafRef.current = null;
