@@ -64,9 +64,8 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
 
   const createDefaultLayout = (api: DockviewApi) => {
     // Add center panel first (usually the viewport) - this will be the main content area
-    let centerPanelRef: any = null;
     if (config.centerPanel) {
-      centerPanelRef = api.addPanel({
+      api.addPanel({
         id: config.centerPanel.id,
         component: config.centerPanel.type,
         title: config.centerPanel.title || PANEL_REGISTRY[config.centerPanel.type].title,
