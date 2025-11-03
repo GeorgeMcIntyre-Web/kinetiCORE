@@ -20,7 +20,11 @@
       "Bash(npm run lint:*)",
       "Bash(npx playwright:*)",
       "Bash(npx tsc:*)",
-      "Bash(claude mcp list:*)"
+      "Bash(claude mcp list:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(move:*)",
+      "Bash(cmd /c \"move PROFESSIONAL_MODE_FINAL_SUMMARY.md docs\\PROFESSIONAL_MODE_FINAL_SUMMARY.md\")"
     ],
     "deny": [],
     "ask": []

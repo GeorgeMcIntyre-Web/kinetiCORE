@@ -15,16 +15,22 @@ export class PipeGenerator extends RouteGeometryGenerator {
    * Generate pipe geometry from route
    */
   generate(route: Route): BABYLON.Mesh {
+    console.log('[PipeGenerator] 🔧 Generating pipe for route:', route.getId());
+    console.log('[PipeGenerator] Segments:', route.segments.length, 'Supports:', route.supports.length);
+
     const meshes: BABYLON.Mesh[] = [];
 
     // Generate pipe segments
     for (const segment of route.segments) {
+      console.log('[PipeGenerator] Processing segment:', segment.segmentType, 'length:', segment.length);
       if (segment.segmentType === 'straight') {
         const tube = this.createTube(segment);
         meshes.push(tube);
+        console.log('[PipeGenerator] ✅ Created tube:', tube.name);
       } else if (segment.segmentType === 'bend') {
         const elbow = this.createElbow(segment, route.constraints.minBendRadius);
         meshes.push(elbow);
+        console.log('[PipeGenerator] ✅ Created elbow:', elbow.name);
       }
     }
 
@@ -32,6 +38,24 @@ export class PipeGenerator extends RouteGeometryGenerator {
     for (const support of route.supports) {
         const supportMesh = this.createSupport(support);
       meshes.push(supportMesh);
+      console.log('[PipeGenerator] ✅ Created support:', supportMesh.name);
+    }
+
+    console.log('[PipeGenerator] Total meshes created:', meshes.length);
+
+    // Handle empty meshes case
+    if (meshes.length === 0) {
+      console.error('[PipeGenerator] ❌ No meshes created! Creating fallback cylinder');
+      // Create a minimal fallback mesh to prevent errors
+      const fallback = BABYLON.MeshBuilder.CreateCylinder(
+        `pipe_fallback_${route.getId()}`,
+        { height: 1, diameter: 0.04 },
+        this.scene
+      );
+      fallback.isVisible = true;
+      const material = this.createMaterial(route.type, `pipe_mat_${route.getId()}`);
+      fallback.material = material;
+      return fallback;
     }
 
     // Combine all meshes
@@ -39,6 +63,7 @@ export class PipeGenerator extends RouteGeometryGenerator {
     const material = this.createMaterial(route.type, `pipe_mat_${route.getId()}`);
     combined.material = material;
 
+    console.log('[PipeGenerator] ✅ Combined mesh created:', combined.name);
     return combined;
   }
 

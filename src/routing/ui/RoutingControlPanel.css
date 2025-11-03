@@ -1,0 +1,368 @@
+/* Routing Control Panel Styles */
+
+.routing-control-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #1a202c;
+  color: #e2e8f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+}
+
+/* Header */
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #2d3748;
+  background: #2d3748;
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #00D9FF;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #a0aec0;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  color: #fff;
+}
+
+/* Section */
+.section {
+  border-bottom: 1px solid #2d3748;
+  padding: 12px 16px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.section-header h4 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #a0aec0;
+  letter-spacing: 0.5px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.count-badge {
+  background: #2d3748;
+  color: #00D9FF;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: #a0aec0;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.icon-btn:hover {
+  background: #2d3748;
+  color: #fff;
+}
+
+/* Compact Route Type Selector */
+.route-type-indicator {
+  font-size: 11px;
+  color: #00D9FF;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.route-type-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.type-btn {
+  flex: 1;
+  height: 36px;
+  background: #2d3748;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.type-btn:hover {
+  background: #374151;
+  border-color: #4a5568;
+}
+
+.type-btn.active {
+  background: rgba(0, 217, 255, 0.1);
+  border-color: #00D9FF;
+  color: #00D9FF;
+}
+
+/* Primary Action Button */
+.primary-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #00D9FF;
+  border: none;
+  border-radius: 8px;
+  color: #1a202c;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 217, 255, 0.3);
+}
+
+.primary-btn:hover {
+  background: #00C4E5;
+  box-shadow: 0 4px 12px rgba(0, 217, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.primary-btn.active {
+  background: #10B981;
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.hint-box {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(0, 217, 255, 0.1);
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  border-radius: 6px;
+  font-size: 11px;
+  color: #e2e8f0;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.clear-link {
+  background: none;
+  border: none;
+  color: #00D9FF;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.clear-link:hover {
+  color: #00C4E5;
+}
+
+/* Lists */
+.connector-list,
+.route-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.connector-item,
+.route-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #2d3748;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.connector-item:hover,
+.route-item:hover {
+  background: #374151;
+  border-color: #4a5568;
+}
+
+.connector-item.selected,
+.route-item.selected {
+  background: rgba(0, 217, 255, 0.1);
+  border-color: #00D9FF;
+}
+
+.connector-type-dot,
+.route-type-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.connector-type-dot.pipe,
+.route-type-dot.pipe {
+  background: #3182CE;
+}
+
+.connector-type-dot.electrical,
+.route-type-dot.electrical {
+  background: #F59E0B;
+}
+
+.connector-type-dot.cable_tray,
+.route-type-dot.cable_tray {
+  background: #10B981;
+}
+
+.connector-type-dot.conduit,
+.route-type-dot.conduit {
+  background: #8B5CF6;
+}
+
+.connector-info,
+.route-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.connector-name,
+.route-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.connector-pos,
+.route-details {
+  font-size: 10px;
+  color: #718096;
+}
+
+.selected-indicator {
+  color: #00D9FF;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.status-badge {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.error {
+  background: rgba(239, 68, 68, 0.2);
+  color: #F87171;
+}
+
+.status-badge.warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: #FBBF24;
+}
+
+.status-badge.valid {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34D399;
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  color: #718096;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.delete-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #F87171;
+}
+
+.empty-state {
+  padding: 24px 16px;
+  text-align: center;
+  color: #718096;
+  font-size: 12px;
+}
+
+/* Scrollbar styling */
+.connector-list::-webkit-scrollbar,
+.route-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.connector-list::-webkit-scrollbar-track,
+.route-list::-webkit-scrollbar-track {
+  background: #1a202c;
+}
+
+.connector-list::-webkit-scrollbar-thumb,
+.route-list::-webkit-scrollbar-thumb {
+  background: #4a5568;
+  border-radius: 3px;
+}
+
+.connector-list::-webkit-scrollbar-thumb:hover,
+.route-list::-webkit-scrollbar-thumb:hover {
+  background: #00D9FF;
+}

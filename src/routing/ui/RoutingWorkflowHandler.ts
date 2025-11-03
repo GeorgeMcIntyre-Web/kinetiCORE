@@ -7,6 +7,8 @@ import { useRoutingStore } from '../../ui/store/routingStore';
 import { CreateConnectionPointCommand } from '../commands/CreateConnectionPointCommand';
 import { useEditorStore } from '../../ui/store/editorStore';
 import { babylonToUser } from '../../core/CoordinateSystem';
+import { getDefaultConstraints, getObstacles } from '../core/RoutingUtils';
+import type { RouteType } from '../core/types';
 
 /**
  * RoutingWorkflowHandler manages the routing workflow interactions
@@ -130,66 +132,94 @@ export class RoutingWorkflowHandler {
   /**
    * Handle route creation between two points
    */
-  static createRouteBetweenPoints(sourceId: string, destId: string): void {
+  static async createRouteBetweenPoints(sourceId: string, destId: string): Promise<string | null> {
+    console.log('[RoutingWorkflowHandler] 🚀 Creating route between:', sourceId, 'and', destId);
+
     const connectionManager = ConnectionManager.getInstance();
     const source = connectionManager.getConnectionPoint(sourceId);
     const dest = connectionManager.getConnectionPoint(destId);
 
-    if (!source || !dest) return;
+    if (!source || !dest) {
+      console.error('[RoutingWorkflowHandler] ❌ Invalid connection points:', {
+        sourceId,
+        destId,
+        sourceFound: !!source,
+        destFound: !!dest
+      });
+      return null;
+    }
+    console.log('[RoutingWorkflowHandler] ✅ Connection points found');
 
     // Import routing modules dynamically
-    import('../pathfinding/RouteOptimizer').then(({ RouteOptimizer }) => {
-      import('../../scene/SceneManager').then(({ SceneManager }) => {
-        import('../commands/CreateRouteCommand').then(({ CreateRouteCommand }) => {
-          import('../../ui/store/editorStore').then(({ useEditorStore }) => {
-            const scene = SceneManager.getInstance().getScene();
-            if (!scene) return;
+    const { RouteOptimizer } = await import('../pathfinding/RouteOptimizer');
+    const { SceneManager } = await import('../../scene/SceneManager');
+    const { CreateRouteCommand } = await import('../commands/CreateRouteCommand');
+    const { useEditorStore } = await import('../../ui/store/editorStore');
 
-            const state = useRoutingStore.getState();
-            const optimizer = new RouteOptimizer();
-            const constraints = RoutingWorkflowHandler.getDefaultConstraints(state.currentRouteType);
-            const obstacles = RoutingWorkflowHandler.getObstacles(scene);
+    const scene = SceneManager.getInstance().getScene();
+    if (!scene) {
+      console.error('[RoutingWorkflowHandler] No scene available');
+      return null;
+    }
 
-            const route = optimizer.findOptimalPath(
-              source,
-              dest,
-              constraints,
-              obstacles,
-              state.optimizationMode
-            );
+    const state = useRoutingStore.getState();
+    const optimizer = new RouteOptimizer();
+    const constraints = RoutingWorkflowHandler.getDefaultConstraints(state.currentRouteType);
+    const obstacles = RoutingWorkflowHandler.getObstacles(scene);
 
-            if (route) {
-              state.addRoute(route);
-              connectionManager.createConnection(sourceId, destId, route.getId());
-
-              const commandManager = useEditorStore.getState().commandManager;
-              const command = new CreateRouteCommand(route);
-              commandManager.execute(command);
-            }
-          });
-        });
-      });
+    console.log('[RoutingWorkflowHandler] Finding path:', {
+      sourcePos: source.getPosition(),
+      destPos: dest.getPosition(),
+      constraints,
+      obstacleCount: obstacles.length,
+      optimizationMode: state.optimizationMode
     });
+
+    const route = optimizer.findOptimalPath(
+      source,
+      dest,
+      constraints,
+      obstacles,
+      state.optimizationMode
+    );
+
+    if (route) {
+      console.log('[RoutingWorkflowHandler] ✅ Route object created by optimizer:', route.getId());
+      console.log('[RoutingWorkflowHandler] Route has', route.segments.length, 'segments');
+
+      // Note: Route is already added to store by CreateRouteCommand
+      // Don't add it manually here to avoid duplicate addition
+      // state.addRoute(route);
+
+      // Connection will be created by CreateRouteCommand
+      // connectionManager.createConnection(sourceId, destId, route.getId());
+
+      // Execute command - this will add the route AND create the connection
+      const commandManager = useEditorStore.getState().commandManager;
+      const command = new CreateRouteCommand(route);
+      commandManager.execute(command);
+      console.log('[RoutingWorkflowHandler] ✅ CreateRouteCommand executed');
+
+      console.log('[RoutingWorkflowHandler] 🎉 Route created successfully:', route.getId());
+      return route.getId();
+    }
+
+    console.error('[RoutingWorkflowHandler] ❌ RouteOptimizer returned null - no path found');
+    return null;
   }
 
   /**
    * Get default constraints for route type
    */
   static getDefaultConstraints(routeType: string) {
-    // Import utilities dynamically to avoid circular dependencies
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { getDefaultConstraints: getDefaults } = require('../core/RoutingUtils');
-    return getDefaults(routeType as any);
+    return getDefaultConstraints(routeType as RouteType);
   }
 
   /**
    * Get obstacles from scene
    */
   static getObstacles(scene: BABYLON.Scene): BABYLON.Mesh[] {
-    // Import utilities dynamically to avoid circular dependencies
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { getObstacles: getObst } = require('../core/RoutingUtils');
-    return getObst(scene);
+    return getObstacles(scene);
   }
 }
 

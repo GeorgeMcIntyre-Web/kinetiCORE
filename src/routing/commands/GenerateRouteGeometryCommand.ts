@@ -37,16 +37,29 @@ export class GenerateRouteGeometryCommand extends Command {
   }
 
   execute(): void {
+    console.log('[GenerateRouteGeometryCommand] 🎬 Execute called for route:', this.routeId);
+
     const store = useRoutingStore.getState();
     const route = store.activeRoutes.find((r) => r.getId() === this.routeId);
-    if (!route) return;
+
+    if (!route) {
+      console.error('[GenerateRouteGeometryCommand] ❌ Route not found:', this.routeId);
+      console.log('[GenerateRouteGeometryCommand] Available routes:', store.activeRoutes.map(r => r.getId()));
+      return;
+    }
+    console.log('[GenerateRouteGeometryCommand] ✅ Route found:', route.getId());
 
     const scene = SceneManager.getInstance().getScene();
-    if (!scene) return;
+    if (!scene) {
+      console.error('[GenerateRouteGeometryCommand] ❌ Scene not available');
+      return;
+    }
+    console.log('[GenerateRouteGeometryCommand] ✅ Scene available');
 
     // Check if already generated
     if (route.generated) {
       // Already generated, just mark as executed
+      console.log('[GenerateRouteGeometryCommand] ⚠️ Route already generated, skipping');
       this.onExecuted();
       return;
     }
@@ -54,6 +67,7 @@ export class GenerateRouteGeometryCommand extends Command {
     this.wasGenerated = route.generated;
 
     // Validate route before generation
+    console.log('[GenerateRouteGeometryCommand] 🔍 Validating route...');
     const validator = new RouteValidator();
     const obstacles = getObstacles(scene);
     const validationResult = validator.validateRouteEnhanced(route, obstacles);
@@ -61,17 +75,34 @@ export class GenerateRouteGeometryCommand extends Command {
     // Check for critical errors - if there are errors, warn but allow generation
     // (UI can show blocking dialog if needed)
     const hasErrors = validationResult.violations.some((v) => v.severity === 'error');
+    console.log('[GenerateRouteGeometryCommand] Validation result:', {
+      hasErrors,
+      violationCount: validationResult.violations.length
+    });
 
     // Generate geometry
+    console.log('[GenerateRouteGeometryCommand] 🏗️ Generating geometry...');
     const mesh = GeometryGeneratorFactory.generateGeometry(route, scene);
-    
+    console.log('[GenerateRouteGeometryCommand] ✅ Geometry generated:', mesh.name);
+
+    // Ensure mesh is visible
+    mesh.isVisible = true;
+    mesh.setEnabled(true);
+    console.log('[GenerateRouteGeometryCommand] Visibility settings:', {
+      isVisible: mesh.isVisible,
+      isEnabled: mesh.isEnabled(),
+      renderingGroupId: mesh.renderingGroupId,
+      position: mesh.position.toString(),
+      material: mesh.material?.name || 'none'
+    });
+
     // Store route ID in mesh metadata for easy route identification
     if (!mesh.metadata) {
       mesh.metadata = {};
     }
     mesh.metadata.routeId = route.getId();
     mesh.metadata.isRoute = true;
-    
+
     route.markAsGenerated();
 
     // Create entity

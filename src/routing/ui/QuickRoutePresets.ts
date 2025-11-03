@@ -79,21 +79,17 @@ export async function createPresetRoute(
     }
 
     console.log('[QuickRoutePresets] Found connection points, creating route...');
-    // Create route between them
-    RoutingWorkflowHandler.createRouteBetweenPoints(src.getId(), dst.getId());
+    // Create route between them and wait for completion
+    const routeId = await RoutingWorkflowHandler.createRouteBetweenPoints(src.getId(), dst.getId());
 
-    // Generate geometry for the last added route
-    const routes = useRoutingStore.getState().activeRoutes;
-    const created = [...routes].reverse().find((r) => r.source.getId() === src.getId() && r.destination.getId() === dst.getId());
-
-    if (!created) {
-      console.error('[QuickRoutePresets] Failed to find created route in activeRoutes');
+    if (!routeId) {
+      console.error('[QuickRoutePresets] Failed to create route');
       return;
     }
 
-    console.log('[QuickRoutePresets] Generating geometry for route:', created.getId());
+    console.log('[QuickRoutePresets] Generating geometry for route:', routeId);
     const { GenerateRouteGeometryCommand } = await import('../commands/GenerateRouteGeometryCommand');
-    const genCmd = new GenerateRouteGeometryCommand(created.getId());
+    const genCmd = new GenerateRouteGeometryCommand(routeId);
     cmdManager.execute(genCmd);
 
     // Ensure labels are visible if available

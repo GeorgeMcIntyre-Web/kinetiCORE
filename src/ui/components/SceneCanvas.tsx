@@ -212,6 +212,74 @@ export const SceneCanvas: React.FC = () => {
             // Single-click selection logic
             if (pickResult.hit && pickResult.pickedMesh) {
               const mesh = pickResult.pickedMesh;
+              console.log('[SceneCanvas] 🎯 Mesh clicked:', mesh.name, 'metadata:', mesh.metadata);
+
+              // Check if this is a connection point sphere
+              if (mesh.metadata && mesh.metadata.isConnectionPoint && mesh.metadata.connectionPointId) {
+                console.log('[SceneCanvas] 🔵 Connection point clicked:', mesh.metadata.connectionPointId);
+
+                // Connection point click - handle route creation workflow
+                import('../../routing/ui/RoutingWorkflowHandler').then(({ RoutingWorkflowHandler }) => {
+                  import('../../routing/commands/GenerateRouteGeometryCommand').then(({ GenerateRouteGeometryCommand }) => {
+                    import('../../ui/store/routingStore').then(async ({ useRoutingStore }) => {
+                      const routingStore = useRoutingStore.getState();
+                      const connectorId = mesh.metadata.connectionPointId;
+
+                      // Get current routing mode
+                      const routingMode = routingStore.routingMode;
+                      console.log('[SceneCanvas] Current routing mode:', routingMode);
+
+                      // Only handle clicks if in placement mode or selecting
+                      if (routingMode === 'off') {
+                        // Auto-start selection mode
+                        routingStore.setRoutingMode('selecting_source');
+                        console.log('[SceneCanvas] Auto-started selection mode');
+                      }
+
+                      // Check if we have a source selected
+                      const selectedSource = routingStore.selectedSource;
+                      console.log('[SceneCanvas] Selected source:', selectedSource?.getId() || 'none');
+
+                      if (!selectedSource) {
+                        // First click - select as source
+                        const connectionManager = await import('../../routing/core/ConnectionManager').then(m => m.ConnectionManager.getInstance());
+                        const point = connectionManager.getAllConnectionPoints().find(p => p.getId() === connectorId);
+                        if (point) {
+                          routingStore.selectSource(point);
+                          console.log('[SceneCanvas] ✅ Selected source connection point:', connectorId);
+                        } else {
+                          console.error('[SceneCanvas] ❌ Could not find connection point:', connectorId);
+                        }
+                      } else if (selectedSource.getId() === connectorId) {
+                        // Clicking the same point - deselect
+                        routingStore.clearSelection();
+                        console.log('[SceneCanvas] ⚪ Deselected connection point');
+                      } else {
+                        // Second click - create route
+                        console.log('[SceneCanvas] 🚀 Creating route from', selectedSource.getId(), 'to', connectorId);
+
+                        const routeId = await RoutingWorkflowHandler.createRouteBetweenPoints(selectedSource.getId(), connectorId);
+                        console.log('[SceneCanvas] Route creation result:', routeId || 'FAILED');
+
+                        if (routeId) {
+                          console.log('[SceneCanvas] ⚙️ Generating geometry for route:', routeId);
+                          const cmdManager = useEditorStore.getState().commandManager;
+                          const genCmd = new GenerateRouteGeometryCommand(routeId);
+                          console.log('[SceneCanvas] Executing GenerateRouteGeometryCommand...');
+                          cmdManager.execute(genCmd);
+                          console.log('[SceneCanvas] ✅ Command executed');
+
+                          // Clear selection
+                          routingStore.clearSelection();
+                        } else {
+                          console.error('[SceneCanvas] ❌ Failed to create route');
+                        }
+                      }
+                    });
+                  });
+                });
+                return; // Don't process as regular selection
+              }
 
               // Check if this is a route mesh (has routeId in metadata)
               if (mesh.metadata && mesh.metadata.isRoute && mesh.metadata.routeId) {

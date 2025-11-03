@@ -283,7 +283,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   selectedCollectionNodeId: null,
   selectedCollectionTransformNode: null,
   transformMode: DEFAULT_TRANSFORM_MODE,
-  transformGizmoEnabled: false,
+  transformGizmoEnabled: true, // Enable by default so gizmo appears on selection
   setTransformGizmoEnabled: (enabled) => set({ transformGizmoEnabled: enabled }),
   camera: null,
   isPlaying: false,

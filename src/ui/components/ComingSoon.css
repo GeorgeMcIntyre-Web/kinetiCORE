@@ -1,0 +1,30 @@
+.coming-soon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e2e8f0;
+}
+
+.coming-soon.compact {
+  padding: 8px 10px;
+}
+
+.coming-soon.regular {
+  padding: 12px 16px;
+}
+
+.coming-soon-title {
+  font-size: 12px;
+  color: #a0aec0;
+}
+
+.coming-soon-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: #00D9FF;
+  background: rgba(0, 217, 255, 0.1);
+  border: 1px solid rgba(0, 217, 255, 0.35);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+

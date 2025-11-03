@@ -127,13 +127,13 @@
 
 /* Ribbon Toolbar */
 .ribbon-toolbar {
-  height: 64px;
+  height: 56px; /* more compact */
   background: #2d3748;
   border-bottom: 1px solid #4a5568;
   display: flex;
   align-items: center;
-  padding: 0 12px;
-  gap: 12px;
+  padding: 0 10px;
+  gap: 8px; /* tighter spacing */
   overflow-x: auto;
 }
 
@@ -153,7 +153,7 @@
 
 .tool-buttons {
   display: flex;
-  gap: 4px;
+  gap: 3px; /* tighter */
 }
 
 .tool-btn {
@@ -161,7 +161,7 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 6px 10px;
+  padding: 4px 8px; /* tighter */
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
@@ -169,7 +169,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 10px;
-  min-width: 56px;
+  min-width: 52px; /* narrower */
 }
 
 .tool-btn:hover {
@@ -197,6 +197,12 @@
   font-size: 11px;
   font-weight: 500;
   white-space: nowrap;
+}
+
+/* Normalize icon sizes inside buttons for consistency */
+.tool-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 .tool-btn svg {

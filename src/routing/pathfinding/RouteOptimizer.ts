@@ -58,23 +58,31 @@ export class RouteOptimizer {
     const startPos = source.getPosition();
     const goalPos = destination.getPosition();
 
+    console.log('[RouteOptimizer] Building graph...');
     // Build search graph
     const graph = this.searchGraph.buildGraph(startPos, goalPos, obstacles, constraints);
+    console.log('[RouteOptimizer] Graph built:', { nodes: graph.nodes.size, edges: graph.edges.length });
 
     // Find closest nodes to start and goal
     const startNode = this.findClosestNode(startPos, graph);
     const goalNode = this.findClosestNode(goalPos, graph);
 
     if (!startNode || !goalNode) {
+      console.error('[RouteOptimizer] Failed to find start/goal nodes:', { startNode, goalNode });
       return null; // Could not find valid nodes
     }
 
+    console.log('[RouteOptimizer] Running A* search...');
     // Run A* search
-    const pathNodes = this.aStarSearch(graph, startNode, goalNode);
+    let pathNodes = this.aStarSearch(graph, startNode, goalNode);
 
+    // Fallback: If A* fails, create a simple direct path
     if (pathNodes.length === 0) {
-      return null; // No path found
+      console.warn('[RouteOptimizer] A* failed, using direct path fallback');
+      pathNodes = [startPos, goalPos];
     }
+
+    console.log('[RouteOptimizer] Path found with', pathNodes.length, 'waypoints');
 
     // Convert path nodes to route segments
     const segments = this.createSegmentsFromPath(

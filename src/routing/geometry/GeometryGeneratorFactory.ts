@@ -37,8 +37,25 @@ export class GeometryGeneratorFactory {
    * Generate geometry for a route using the appropriate generator
    */
   static generateGeometry(route: Route, scene: BABYLON.Scene): BABYLON.Mesh {
+    console.log('[GeometryGeneratorFactory] 🏭 Creating generator for type:', route.type);
     const generator = this.createGenerator(route.type, scene);
-    return generator.generate(route);
+    console.log('[GeometryGeneratorFactory] Generator created:', generator.constructor.name);
+
+    console.log('[GeometryGeneratorFactory] Calling generate() with route segments:', route.segments?.length || 0);
+    const mesh = generator.generate(route);
+
+    console.log('[GeometryGeneratorFactory] ✅ Mesh generated:', {
+      name: mesh.name,
+      id: mesh.id,
+      uniqueId: mesh.uniqueId,
+      isVisible: mesh.isVisible,
+      isEnabled: mesh.isEnabled(),
+      position: mesh.position,
+      childMeshes: mesh.getChildMeshes().length,
+      totalVertices: mesh.getTotalVertices()
+    });
+
+    return mesh;
   }
 }
 

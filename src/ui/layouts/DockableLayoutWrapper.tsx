@@ -78,7 +78,7 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
     if (config.leftPanels && config.leftPanels.length > 0) {
       const [firstPanel, ...restPanels] = config.leftPanels;
 
-      // Add first panel to create the left group
+      // Add first panel to create the left group (240px - matching Essential Mode)
       const leftPanel = api.addPanel({
         id: firstPanel.id,
         component: firstPanel.type,
@@ -87,7 +87,12 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
         position: { direction: 'left' },
       });
 
-      // Add remaining left panels to the same group
+      // Set width to match Essential Mode (Scene Tree default - 240px)
+      if (leftPanel.api.width > 240) {
+        leftPanel.api.setSize({ width: 240 });
+      }
+
+      // Add remaining left panels to the same group (they will be inactive tabs)
       for (const panelDef of restPanels) {
         api.addPanel({
           id: panelDef.id,
@@ -97,13 +102,16 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
           position: { referencePanel: leftPanel.id },
         });
       }
+
+      // Ensure first panel (Scene Tree) is active
+      leftPanel.api.setActive();
     }
 
     // Add right panels as a group on the right side
     if (config.rightPanels && config.rightPanels.length > 0) {
       const [firstPanel, ...restPanels] = config.rightPanels;
 
-      // Add first panel to create the right group
+      // Add first panel to create the right group (wider - 480px for routing panels)
       const rightPanel = api.addPanel({
         id: firstPanel.id,
         component: firstPanel.type,
@@ -112,7 +120,12 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
         position: { direction: 'right' },
       });
 
-      // Add remaining right panels to the same group
+      // Set wider width for right panel group (480px - good for routing controls and inspector)
+      if (rightPanel.api.width > 480) {
+        rightPanel.api.setSize({ width: 480 });
+      }
+
+      // Add remaining right panels to the same group (they will be inactive tabs)
       for (const panelDef of restPanels) {
         api.addPanel({
           id: panelDef.id,
@@ -122,6 +135,9 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
           position: { referencePanel: rightPanel.id },
         });
       }
+
+      // Ensure first panel (Routing Control) is active
+      rightPanel.api.setActive();
     }
 
     // Add bottom panels as a group at the bottom

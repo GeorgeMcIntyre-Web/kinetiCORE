@@ -24,6 +24,7 @@ import {
   Eye,
   EyeOff,
   LayoutTemplate,
+  Grab,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
@@ -31,13 +32,13 @@ import { DockableLayoutWrapper } from './DockableLayoutWrapper';
 import { MoveObjectDialog } from '../components/MoveObjectDialog';
 import { ExportDialog } from '../components/ExportDialog';
 import { MeasurementTools, MeasurementType } from '../components/MeasurementTools';
-import { SelectionIndicator } from '../components/SelectionIndicator';
 import { RouteDebugLabels, setGlobalDebugLabels } from '../../routing/ui/RouteDebugLabels';
 import { RouteEditPanel } from '../../routing/ui/RouteEditPanel';
 import { RouteSelectionVisuals } from '../../routing/ui/RouteSelectionVisuals';
 import { RouteTemplatesPanel } from '../../routing/ui/RouteTemplatesPanel';
 import { createPresetRoute, createMixedPreset } from '../../routing/ui/QuickRoutePresets';
 import { RouteWarningsPanel } from '../../routing/ui/RouteWarningsPanel';
+import { ConnectionPointsRenderer } from '../../routing/ui/ConnectionPointsRenderer';
 import { useRoutingStore } from '../store/routingStore';
 import { SceneManager } from '../../scene/SceneManager';
 import { KinematicExtractionPanel } from '../components/KinematicExtractionPanel';
@@ -51,6 +52,8 @@ export const ProfessionalModeLayout: React.FC = () => {
   const saveWorld = useEditorStore((state) => state.saveWorld);
   const setTransformMode = useEditorStore((state) => state.setTransformMode);
   const transformMode = useEditorStore((state) => state.transformMode);
+  const transformGizmoEnabled = useEditorStore((state) => state.transformGizmoEnabled);
+  const setTransformGizmoEnabled = useEditorStore((state) => state.setTransformGizmoEnabled);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
   const duplicateNode = useEditorStore((state) => state.duplicateNode);
@@ -138,8 +141,18 @@ export const ProfessionalModeLayout: React.FC = () => {
   };
 
   const handleTransformTool = (mode: 'translate' | 'rotate' | 'scale') => {
-    if (selectedNodeId) {
-      setTransformMode(mode);
+    if (!selectedNodeId) return;
+
+    // If clicking the same mode, toggle gizmo visibility like Essential mode
+    if (transformMode === mode) {
+      setTransformGizmoEnabled(!transformGizmoEnabled);
+      return;
+    }
+
+    // Switching modes: ensure gizmo is enabled and set the new mode
+    setTransformMode(mode);
+    if (!transformGizmoEnabled) {
+      setTransformGizmoEnabled(true);
     }
   };
 
@@ -188,9 +201,6 @@ export const ProfessionalModeLayout: React.FC = () => {
 
   return (
     <div className="professional-layout">
-      {/* Selection Indicator - Always visible */}
-      <SelectionIndicator selectedNodeIds={selectedNodeIds} />
-
       {/* Route Warnings Panel - Top notification bar */}
       <RouteWarningsPanel />
 
@@ -370,7 +380,7 @@ export const ProfessionalModeLayout: React.FC = () => {
           <div className="group-label">Transform</div>
           <div className="tool-buttons">
             <button
-              className={`tool-btn ${transformMode === 'translate' ? 'active' : ''}`}
+              className={`tool-btn ${transformMode === 'translate' && transformGizmoEnabled ? 'active' : ''}`}
               disabled={!selectedNodeId}
               title={selectedNodeId ? "Move" : "Select an object first"}
               onClick={() => handleTransformTool('translate')}
@@ -379,7 +389,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               <span>Move</span>
             </button>
             <button
-              className={`tool-btn ${transformMode === 'rotate' ? 'active' : ''}`}
+              className={`tool-btn ${transformMode === 'rotate' && transformGizmoEnabled ? 'active' : ''}`}
               disabled={!selectedNodeId}
               title={selectedNodeId ? "Rotate" : "Select an object first"}
               onClick={() => handleTransformTool('rotate')}
@@ -388,13 +398,22 @@ export const ProfessionalModeLayout: React.FC = () => {
               <span>Rotate</span>
             </button>
             <button
-              className={`tool-btn ${transformMode === 'scale' ? 'active' : ''}`}
+              className={`tool-btn ${transformMode === 'scale' && transformGizmoEnabled ? 'active' : ''}`}
               disabled={!selectedNodeId}
               title={selectedNodeId ? "Scale" : "Select an object first"}
               onClick={() => handleTransformTool('scale')}
             >
               <Scale size={18} />
               <span>Scale</span>
+            </button>
+            <button
+              className={`tool-btn ${transformGizmoEnabled ? 'active' : ''}`}
+              disabled={!selectedNodeId}
+              title={selectedNodeId ? (transformGizmoEnabled ? "Disable Transform Gizmo" : "Enable Transform Gizmo") : "Select an object first"}
+              onClick={() => setTransformGizmoEnabled(!transformGizmoEnabled)}
+            >
+              <Grab size={18} />
+              <span>Gizmo</span>
             </button>
             <button
               className="tool-btn"
@@ -524,35 +543,35 @@ export const ProfessionalModeLayout: React.FC = () => {
             <button
               className="tool-btn-small"
               title="Quick Electrical preset"
-              onClick={() => createPresetRoute('electrical', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 })}
+              onClick={() => void createPresetRoute('electrical', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 })}
             >
               Electrical
             </button>
             <button
               className="tool-btn-small"
               title="Quick Pipe preset"
-              onClick={() => createPresetRoute('pipe', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 })}
+              onClick={() => void createPresetRoute('pipe', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 })}
             >
               Pipe
             </button>
             <button
               className="tool-btn-small"
               title="Quick Cable Tray preset"
-              onClick={() => createPresetRoute('cable_tray', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 })}
+              onClick={() => void createPresetRoute('cable_tray', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 })}
             >
               Tray
             </button>
             <button
               className="tool-btn-small"
               title="Quick Conduit preset"
-              onClick={() => createPresetRoute('conduit', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 })}
+              onClick={() => void createPresetRoute('conduit', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 })}
             >
               Conduit
             </button>
             <button
               className="tool-btn-small"
               title="Create all 4 (arranged)"
-              onClick={() => createMixedPreset()}
+              onClick={() => void createMixedPreset()}
             >
               Mixed
             </button>
@@ -574,11 +593,11 @@ export const ProfessionalModeLayout: React.FC = () => {
               { id: 'toolPalette-panel', type: 'toolPalette' },
             ],
             rightPanels: [
+              { id: 'routingControl-panel', type: 'routingControl' },
+              { id: 'routeStats-panel', type: 'routeStats' },
               { id: 'inspector-panel', type: 'inspector' },
             ],
-            bottomPanels: [
-              { id: 'routeStats-panel', type: 'routeStats' },
-            ],
+            bottomPanels: [],
           }}
           onLayoutChange={savePanelLayout}
           savedLayout={savedLayout}
@@ -614,6 +633,9 @@ export const ProfessionalModeLayout: React.FC = () => {
 
       {/* Route Selection Visuals - Cyan glow and connection handles */}
       <RouteSelectionVisuals />
+
+      {/* Connection Points Renderer - Shows sphere indicators */}
+      <ConnectionPointsRenderer />
 
       {/* Route Edit Panel - Right side panel */}
       {routeSelection && (

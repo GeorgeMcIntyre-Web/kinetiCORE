@@ -7,9 +7,13 @@ import { SceneTree } from '../components/SceneTree';
 import { Inspector } from '../components/Inspector';
 import { KinematicsPanel } from '../components/KinematicsPanel';
 import { RouteStatsPanel } from '../../routing/ui/RouteStatsPanel';
+import { RoutingControlPanel } from '../../routing/ui/RoutingControlPanel';
 import { SceneCanvas } from '../components/SceneCanvas';
+import { ComingSoon } from '../components/ComingSoon';
+import { SelectionIndicator } from '../components/SelectionIndicator';
+import { useEditorStore } from '../store/editorStore';
 
-export type PanelType = 'sceneTree' | 'inspector' | 'kinematics' | 'toolPalette' | 'routeStats' | 'viewport';
+export type PanelType = 'sceneTree' | 'inspector' | 'kinematics' | 'toolPalette' | 'routeStats' | 'routingControl' | 'viewport';
 
 export interface PanelConfig {
   id: PanelType;
@@ -36,7 +40,7 @@ const ToolPalettePanel: React.FC<IDockviewPanelProps> = () => {
   return (
     <div className="tool-palette-panel">
       <div className="panel-content">
-        <p>Tool Palette (Coming Soon)</p>
+        <ComingSoon title="Tool Palette" message="Coming Soon" size="compact" />
       </div>
     </div>
   );
@@ -46,10 +50,18 @@ const RouteStatsPanelWrapper: React.FC<IDockviewPanelProps> = () => {
   return <RouteStatsPanel />;
 };
 
+const RoutingControlPanelWrapper: React.FC<IDockviewPanelProps> = () => {
+  return <RoutingControlPanel />;
+};
+
 const ViewportPanel: React.FC<IDockviewPanelProps> = () => {
+  const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
+  
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <SceneCanvas />
+      {/* Selection Indicator - Positioned inside viewport */}
+      <SelectionIndicator selectedNodeIds={selectedNodeIds} />
     </div>
   );
 };
@@ -59,13 +71,13 @@ export const PANEL_REGISTRY: Record<PanelType, PanelConfig> = {
     id: 'sceneTree',
     title: 'Scene Tree',
     component: SceneTreePanel,
-    defaultWidth: 300,
+    defaultWidth: 240, // Match Essential Mode width
   },
   inspector: {
     id: 'inspector',
     title: 'Inspector',
     component: InspectorPanel,
-    defaultWidth: 320,
+    defaultWidth: 448, // 320 * 1.4 = 448px (40% wider)
   },
   kinematics: {
     id: 'kinematics',
@@ -77,14 +89,20 @@ export const PANEL_REGISTRY: Record<PanelType, PanelConfig> = {
     id: 'toolPalette',
     title: 'Tools',
     component: ToolPalettePanel,
-    defaultWidth: 250,
+    defaultWidth: 220,
   },
   routeStats: {
     id: 'routeStats',
     title: 'Route Statistics',
     component: RouteStatsPanelWrapper,
-    defaultWidth: 350,
-    defaultHeight: 400,
+    defaultWidth: 320,
+    defaultHeight: 240,
+  },
+  routingControl: {
+    id: 'routingControl',
+    title: 'Routing Control',
+    component: RoutingControlPanelWrapper,
+    defaultWidth: 320,
   },
   viewport: {
     id: 'viewport',
