@@ -1,0 +1,58 @@
+{
+  "sceneId": "simple-two-points",
+  "version": "1.0.0",
+  "description": "Minimal routing sandbox with two connectors positioned for straight-line validation.",
+  "metadata": {
+    "createdBy": "Agent 10",
+    "createdAt": "2025-11-03T00:00:00Z",
+    "useCases": [
+      "TC-A1",
+      "TC-C1",
+      "TC-UI1"
+    ]
+  },
+  "connectors": [
+    {
+      "id": "connector-A",
+      "type": "pipe",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "direction": [
+        1,
+        0,
+        0
+      ],
+      "specifications": {
+        "size": "4in",
+        "material": "carbon_steel"
+      }
+    },
+    {
+      "id": "connector-B",
+      "type": "pipe",
+      "position": [
+        10,
+        0,
+        0
+      ],
+      "direction": [
+        -1,
+        0,
+        0
+      ],
+      "specifications": {
+        "size": "4in",
+        "material": "carbon_steel"
+      }
+    }
+  ],
+  "obstacles": [],
+  "supports": [],
+  "routingHints": {
+    "preferredPlane": "floor",
+    "maxBendAngle": 45
+  }
+}

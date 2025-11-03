@@ -1,0 +1,189 @@
+{
+  "sceneId": "factory-slice",
+  "version": "1.0.0",
+  "description": "Representative manufacturing cell with mixed infrastructure for end-to-end workflow validation.",
+  "metadata": {
+    "createdBy": "Agent 10",
+    "createdAt": "2025-11-03T00:00:00Z",
+    "useCases": [
+      "TC-UI4",
+      "TC-P1",
+      "TC-S1",
+      "TC-BOM1"
+    ]
+  },
+  "connectors": [
+    {
+      "id": "machine-inlet",
+      "type": "pipe",
+      "position": [
+        5.0,
+        2.0,
+        0.5
+      ],
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "specifications": {
+        "size": "3in",
+        "material": "stainless_steel"
+      },
+      "parentObject": "mixing-tank"
+    },
+    {
+      "id": "machine-outlet",
+      "type": "pipe",
+      "position": [
+        5.0,
+        -2.5,
+        0.5
+      ],
+      "direction": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "specifications": {
+        "size": "3in",
+        "material": "stainless_steel"
+      },
+      "parentObject": "heat-exchanger"
+    },
+    {
+      "id": "control-panel-power",
+      "type": "electrical",
+      "position": [
+        -3.5,
+        1.5,
+        1.2
+      ],
+      "direction": [
+        0.0,
+        -1.0,
+        0.0
+      ],
+      "specifications": {
+        "voltage": 480,
+        "material": "copper"
+      },
+      "parentObject": "control-panel"
+    },
+    {
+      "id": "ceiling-tray-drop",
+      "type": "cable_tray",
+      "position": [
+        0.0,
+        0.0,
+        3.5
+      ],
+      "direction": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "specifications": {
+        "width": "24in",
+        "material": "aluminum"
+      },
+      "parentObject": "overhead-tray"
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "mixing-tank",
+      "type": "cylinder",
+      "radius": 1.2,
+      "height": 3.0,
+      "position": [
+        6.0,
+        2.0,
+        1.5
+      ]
+    },
+    {
+      "id": "heat-exchanger",
+      "type": "box",
+      "size": [
+        3.0,
+        1.5,
+        2.0
+      ],
+      "position": [
+        6.0,
+        -2.5,
+        1.0
+      ]
+    },
+    {
+      "id": "safety-rail",
+      "type": "polyline",
+      "points": [
+        [
+          -4.0,
+          -3.0,
+          0.0
+        ],
+        [
+          4.0,
+          -3.0,
+          0.0
+        ]
+      ],
+      "height": 1.1
+    },
+    {
+      "id": "ceiling-beam",
+      "type": "box",
+      "size": [
+        10.0,
+        0.5,
+        0.5
+      ],
+      "position": [
+        0.0,
+        0.0,
+        4.0
+      ]
+    }
+  ],
+  "supports": [
+    {
+      "id": "tray-hanger-1",
+      "type": "rod",
+      "position": [
+        -2.0,
+        0.0,
+        3.0
+      ],
+      "direction": [
+        0.0,
+        0.0,
+        -1.0
+      ]
+    },
+    {
+      "id": "tray-hanger-2",
+      "type": "rod",
+      "position": [
+        2.0,
+        0.0,
+        3.0
+      ],
+      "direction": [
+        0.0,
+        0.0,
+        -1.0
+      ]
+    }
+  ],
+  "routingHints": {
+    "preferredPlane": "ceiling",
+    "maxBendAngle": 45,
+    "keepoutZones": [
+      "mixing-tank",
+      "heat-exchanger"
+    ]
+  }
+}

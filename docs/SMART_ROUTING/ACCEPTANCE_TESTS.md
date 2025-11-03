@@ -27,6 +27,20 @@ This document contains the **definitive acceptance criteria** for the Smart Rout
 - Add **PR:** link to implementation
 - Add **Screenshot/Video:** link if applicable
 
+### Harness Overview
+- **Runner:** `tests/acceptance/SmartRoutingAcceptance.test.ts`
+- **Fixtures:**
+  - `scenes/demo/simple-two-points.json`
+  - `scenes/demo/boxes-300.json`
+  - `scenes/demo/factory-slice.json`
+- **Status:** 🟡 IN PROGRESS (fixture integrity + domain coverage checks automated)
+- **Automated Checks:**
+  - Demo fixture metadata/schema validation
+  - Obstacle volume coverage for `boxes-300`
+  - Multi-domain support + hardware presence in `factory-slice`
+- **Command:** `npm test -- tests/acceptance/SmartRoutingAcceptance.test.ts`
+- **Next Step:** Convert `test.todo` placeholders into full acceptance flows as upstream features land
+
 ---
 
 ## 🖥️ UI Stability Tests

@@ -35,6 +35,33 @@
 
 ## 📅 Daily Standups
 
+### 2025-11-05 - Daily Standup
+
+#### Agent 10 - QA, Perf, Release
+- **Yesterday:** Validated fixture scaffolds and perf CLI argument parsing
+- **Today:** Automating demo scene integrity checks, enabling perf harness baseline output
+- **Tomorrow:** Expand acceptance coverage once upstream routing + validation APIs stabilize
+- **Blockers:** Awaiting executable routing pipeline from Agents 1-7 for end-to-end acceptance
+- **PRs:** Local worktree updates (acceptance harness + perf baselines)
+
+### 2025-11-04 - Daily Standup
+
+#### Agent 10 - QA, Perf, Release
+- **Yesterday:** Continued onboarding, reviewed acceptance + perf documentation scope
+- **Today:** Verifying scaffolded harness against AGENT_ASSIGNMENTS.md deliverables, confirming outstanding TODOs
+- **Tomorrow:** Begin implementing first actionable acceptance specs once upstream features merge
+- **Blockers:** Awaiting upstream functional implementations (Agents 1-9)
+- **PRs:** Local-only scaffolding branch, not yet pushed to remote (pending completion of acceptance criteria)
+
+### 2025-11-03 - Daily Standup
+
+#### Agent 10 - QA, Perf, Release
+- **Yesterday:** N/A (Onboarding today)
+- **Today:** Drafted acceptance harness scaffold, created baseline demo scenes, authored performance harness plan
+- **Tomorrow:** Flesh out automated acceptance flows for TC-UI1/TC-A1 once upstream modules are available
+- **Blockers:** Awaiting upstream implementations from Agents 1-9 to exercise real workflows
+- **PRs:** None yet (initial scaffolding in progress)
+
 ### 2025-01-03 - Kickoff Day
 
 #### Agent 1 - Graph & Pathfinding
@@ -116,9 +143,9 @@
 ### Documentation Setup
 - [x] Create COLLABORATION.md (PM)
 - [x] Create TODO_BOARD.md (PM)
-- [ ] Create ACCEPTANCE_TESTS.md (Agent 10 + PM)
+- [x] Create ACCEPTANCE_TESTS.md (Agent 10 + PM)
 - [ ] Create TECH_SPEC.md (Agent 3)
-- [ ] Create PERF_HARNESS.md (Agent 10)
+- [x] Create PERF_HARNESS.md (Agent 10)
 
 ### Branch Setup
 - [ ] Create base branch `feature/smart-routing-system` (PM)
@@ -135,9 +162,9 @@
   - [ ] Agent 10: `feature/sr/agent-10-qa-perf`
 
 ### Demo Scenes
-- [ ] Create `scenes/demo/simple-two-points.json` (Agent 10)
-- [ ] Create `scenes/demo/boxes-300.json` (Agent 10)
-- [ ] Create `scenes/demo/factory-slice.json` (Agent 10)
+- [x] Create `scenes/demo/simple-two-points.json` (Agent 10)
+- [x] Create `scenes/demo/boxes-300.json` (Agent 10)
+- [x] Create `scenes/demo/factory-slice.json` (Agent 10)
 
 ### Baseline Tests
 - [ ] Run existing build and capture baseline (Agent 10)
