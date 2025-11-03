@@ -81,7 +81,7 @@ export class CableGenerator extends RouteGeometryGenerator {
     return {
       type: 'electrical',
       size: spec.wireGauge,
-      material: spec.insulationType,
+      material: route.material.name, // Use route material, not spec default
       totalLength,
       fittings,
       supports,

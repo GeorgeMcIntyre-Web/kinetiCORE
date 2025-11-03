@@ -289,8 +289,17 @@ export class ConduitGenerator extends RouteGeometryGenerator {
    * Estimate cost per meter based on spec
    */
   private getCostPerMeter(spec: ConduitSpec): number {
-    // Base prices per meter by type
-    const basePrices: Record<string, number> = {
+    // Base prices per meter by material (since we're using material name)
+    // Map material to typical conduit type for pricing
+    const materialPrices: Record<string, number> = {
+      'steel': 3.0,      // EMT typical
+      'aluminum': 4.0,
+      'PVC': 2.0,
+      'fiberglass': 5.0,
+    };
+    
+    // Also support conduit type if specified
+    const conduitTypePrices: Record<string, number> = {
       'EMT': 3.0,
       'IMC': 5.0,
       'rigid': 6.0,
@@ -299,7 +308,7 @@ export class ConduitGenerator extends RouteGeometryGenerator {
       'liquidtight': 5.0,
     };
 
-    const basePrice = basePrices[spec.conduitType] || 3.0;
+    const basePrice = materialPrices[spec.material] || conduitTypePrices[spec.conduitType] || 3.0;
     
     // Size multiplier (larger = more expensive)
     const diameterMM = spec.outerDiameter * 1000;

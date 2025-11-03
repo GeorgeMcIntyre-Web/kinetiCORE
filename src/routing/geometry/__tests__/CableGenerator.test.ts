@@ -5,11 +5,11 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as BABYLON from '@babylonjs/core';
-import { CableGenerator } from '../../src/routing/geometry/CableGenerator';
-import { Route } from '../../src/routing/core/Route';
-import { ConnectionPoint } from '../../src/routing/core/ConnectionPoint';
-import { Vector3 } from '../../src/core/types';
-import { generateId } from '../../src/routing/core/RoutingUtils';
+import { CableGenerator } from '../CableGenerator';
+import { Route } from '../../core/Route';
+import { ConnectionPoint } from '../../core/ConnectionPoint';
+import { Vector3 } from '../../../core/types';
+import { generateId } from '../../core/RoutingUtils';
 
 describe('Agent 6 - CableGenerator', () => {
   let scene: BABYLON.Scene;
