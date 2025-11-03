@@ -59,6 +59,8 @@ export const SceneCanvas: React.FC = () => {
   // const highlightLayerRef = useRef<BABYLON.HighlightLayer | null>(null); // Replaced with direct material color changes
   const originalMaterialsRef = useRef<Map<string, BABYLON.Material | null>>(new Map());
   const hoveredMeshRef = useRef<BABYLON.AbstractMesh | null>(null);
+  const hoverPointerStateRef = useRef<{ x: number; y: number }>({ x: Number.NEGATIVE_INFINITY, y: Number.NEGATIVE_INFINITY });
+  const hoverRafRef = useRef<number | null>(null);
   const hoverHighlightLayerRef = useRef<BABYLON.HighlightLayer | null>(null);
   
   const clearHoverHighlight = useCallback(() => {
@@ -76,6 +78,18 @@ export const SceneCanvas: React.FC = () => {
 
   const applyHoverHighlight = useCallback(
     (mesh: BABYLON.AbstractMesh, scene: BABYLON.Scene) => {
+      const state = useEditorStore.getState();
+      if (state.alignMode || state.customFrameSelectionMode !== 'none') {
+        return;
+      }
+
+      const alreadySelected = state.selectedMeshes.some(
+        (selectedMesh) => selectedMesh.uniqueId === mesh.uniqueId
+      );
+      if (alreadySelected) {
+        return;
+      }
+
       if (hoveredMeshRef.current && hoveredMeshRef.current.uniqueId === mesh.uniqueId) {
         return;
       }
@@ -91,15 +105,9 @@ export const SceneCanvas: React.FC = () => {
         hoverHighlightLayerRef.current = hoverLayer;
       }
 
-      const hoverColor = new BABYLON.Color3(1.0, 0.95, 0.65);
+      const hoverColor = new BABYLON.Color3(0.0, 1.0, 0.8);
       hoverHighlightLayerRef.current.addMesh(mesh as unknown as BABYLON.Mesh, hoverColor);
-      console.log(
-        '[SceneCanvas] Hover highlight applied:',
-        mesh.name,
-        '(id:',
-        mesh.uniqueId,
-        ')'
-      );
+      scene.hoverCursor = 'pointer';
       hoveredMeshRef.current = mesh;
     },
     [clearHoverHighlight]
@@ -308,50 +316,66 @@ export const SceneCanvas: React.FC = () => {
           }
         };
 
-        // Hover highlight interaction
-        const resetHover = () => {
-          clearHoverHighlight();
-          scene.hoverCursor = 'default';
+        const movementThresholdSq = 4; // 2px movement threshold
+
+        const scheduleHoverPick = (pointerEvent: PointerEvent) => {
+          const { x: lastX, y: lastY } = hoverPointerStateRef.current;
+          const dx = pointerEvent.clientX - lastX;
+          const dy = pointerEvent.clientY - lastY;
+          if (dx * dx + dy * dy < movementThresholdSq && hoverRafRef.current === null) {
+            return;
+          }
+
+          hoverPointerStateRef.current = { x: pointerEvent.clientX, y: pointerEvent.clientY };
+
+          if (hoverRafRef.current !== null) {
+            return;
+          }
+
+          hoverRafRef.current = window.requestAnimationFrame(() => {
+            hoverRafRef.current = null;
+
+            if (!scene.activeCamera) {
+              return;
+            }
+
+            const state = useEditorStore.getState();
+            if (state.alignMode || state.customFrameSelectionMode !== 'none') {
+              clearHoverHighlight();
+              scene.hoverCursor = 'default';
+              return;
+            }
+
+            if ((pointerEvent.buttons & 1) === 1) {
+              clearHoverHighlight();
+              scene.hoverCursor = 'default';
+              return;
+            }
+
+            const predicate = (mesh: BABYLON.AbstractMesh) => {
+              if (!isSelectableObject(mesh)) return false;
+              return !state.selectedMeshes.some((selectedMesh) => selectedMesh.uniqueId === mesh.uniqueId);
+            };
+
+            const pickInfo = scene.pick(
+              scene.pointerX,
+              scene.pointerY,
+              (mesh) => predicate(mesh as BABYLON.AbstractMesh)
+            );
+
+            if (pickInfo?.hit && pickInfo.pickedMesh instanceof BABYLON.AbstractMesh) {
+              applyHoverHighlight(pickInfo.pickedMesh, scene);
+              return;
+            }
+
+            clearHoverHighlight();
+            scene.hoverCursor = 'default';
+          });
         };
 
-        scene.onPointerMove = (evt, pickResult) => {
-          if (evt.buttons === 1) {
-            resetHover();
-            return;
-          }
-
-          const state = useEditorStore.getState();
-          if (state.alignMode || state.customFrameSelectionMode !== 'none') {
-            resetHover();
-            return;
-          }
-
-          if (!pickResult || !pickResult.hit) {
-            resetHover();
-            return;
-          }
-
-          const picked = pickResult.pickedMesh;
-          if (!picked || !(picked instanceof BABYLON.AbstractMesh)) {
-            resetHover();
-            return;
-          }
-
-          if (!isSelectableObject(picked)) {
-            resetHover();
-            return;
-          }
-
-          const meshIsSelected = state.selectedMeshes.some(
-            (selectedMesh) => selectedMesh.uniqueId === picked.uniqueId
-          );
-          if (meshIsSelected) {
-            resetHover();
-            return;
-          }
-
-          applyHoverHighlight(picked, scene);
-          scene.hoverCursor = 'pointer';
+        scene.onPointerMove = (evt) => {
+          const pointerEvt = evt as unknown as PointerEvent;
+          scheduleHoverPick(pointerEvt);
         };
 
         // Physics + metrics via scene observables (avoid a second runRenderLoop)
@@ -406,6 +430,14 @@ export const SceneCanvas: React.FC = () => {
         if (scene && obs) {
           if (obs.beforeRenderObserver) scene.onBeforeRenderObservable.remove(obs.beforeRenderObserver);
           if (obs.afterRenderObserver) scene.onAfterRenderObservable.remove(obs.afterRenderObserver);
+        }
+        if (scene) {
+          scene.onPointerMove = () => {};
+          scene.hoverCursor = 'default';
+        }
+        if (hoverRafRef.current !== null) {
+          window.cancelAnimationFrame(hoverRafRef.current);
+          hoverRafRef.current = null;
         }
       } catch {}
 
