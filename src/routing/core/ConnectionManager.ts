@@ -10,6 +10,8 @@ import {
   RouteType,
 } from './types';
 
+const DEFAULT_DUPLICATE_TOLERANCE = 0.01; // 1 cm tolerance
+
 /**
  * ConnectionManager manages all connection points in the scene
  * and maintains the graph of connections between them.
@@ -37,6 +39,22 @@ export class ConnectionManager {
    * Add a connection point to the manager
    */
   addConnectionPoint(config: ConnectionPointConfig): ConnectionPoint {
+    const duplicateId = this.findDuplicateAt(
+      config.position,
+      config.type,
+      DEFAULT_DUPLICATE_TOLERANCE
+    );
+
+    if (duplicateId) {
+      const existingPoint = this.connectionPoints.get(duplicateId);
+      if (existingPoint) {
+        console.warn(
+          `Connection point already exists at this location (ID: ${duplicateId}). Returning existing point.`
+        );
+        return existingPoint;
+      }
+    }
+
     const point = new ConnectionPoint(config);
     this.connectionPoints.set(point.getId(), point);
     this.connections.set(point.getId(), []);
@@ -240,6 +258,36 @@ export class ConnectionManager {
    */
   getConnectionPointsByType(type: RouteType): ConnectionPoint[] {
     return Array.from(this.connectionPoints.values()).filter((p) => p.getType() === type);
+  }
+
+  /**
+   * Find an existing connection point at the provided position and type within a tolerance
+   */
+  findDuplicateAt(
+    position: Vector3,
+    type: RouteType,
+    tolerance = DEFAULT_DUPLICATE_TOLERANCE
+  ): string | null {
+    const safeTolerance = tolerance < 0 ? DEFAULT_DUPLICATE_TOLERANCE : tolerance;
+    const toleranceSquared = safeTolerance * safeTolerance;
+
+    for (const point of this.connectionPoints.values()) {
+      if (point.getType() !== type) {
+        continue;
+      }
+
+      const existingPosition = point.getPosition();
+      const dx = existingPosition.x - position.x;
+      const dy = existingPosition.y - position.y;
+      const dz = existingPosition.z - position.z;
+      const distanceSquared = dx * dx + dy * dy + dz * dz;
+
+      if (distanceSquared <= toleranceSquared) {
+        return point.getId();
+      }
+    }
+
+    return null;
   }
 
   /**
