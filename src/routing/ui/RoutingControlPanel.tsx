@@ -143,7 +143,7 @@ export const RoutingControlPanel: React.FC<RoutingControlPanelProps> = ({ onClos
         </div>
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions */}\n        {selectedConnectorIds.length === 2 && (\n          <button className="secondary-btn" onClick={async () => {\n            const [a,b] = selectedConnectorIds;\n            const routeId = await RoutingWorkflowHandler.createRouteBetweenPoints(a,b);\n            if (routeId) {\n              const { GenerateRouteGeometryCommand } = await import("../commands/GenerateRouteGeometryCommand");\n              const { useEditorStore } = await import("../../ui/store/editorStore");\n              const cmdManager = useEditorStore.getState().commandManager;\n              cmdManager.execute(new GenerateRouteGeometryCommand(routeId));\n              setSelectedConnectorIds([]);\n            }\n          }}>Create Route from 2 Selected</button>\n        )}
       <div className="section">
         <button
           className={`primary-btn ${routingMode === 'placing_connector' ? 'active' : ''}`}
@@ -155,6 +155,11 @@ export const RoutingControlPanel: React.FC<RoutingControlPanelProps> = ({ onClos
         {routingMode === 'placing_connector' && (
           <div className="hint-box">
             👆 Click in 3D viewport to place connection points
+          </div>
+          <div style={{ marginTop: 8 }}>
+            <button className="secondary-btn" onClick={() => setRoutingMode("off")}>
+              Finish Placing
+            </button>
           </div>
         )}
         {selectedConnectorIds.length > 0 && (
@@ -269,4 +274,5 @@ export const RoutingControlPanel: React.FC<RoutingControlPanelProps> = ({ onClos
     </div>
   );
 };
+
 
