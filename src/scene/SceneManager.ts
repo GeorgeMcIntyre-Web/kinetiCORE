@@ -2,7 +2,7 @@
 // Owner: Cole
 
 import * as BABYLON from '@babylonjs/core';
-import '@babylonjs/inspector'; // Inspector for debugging
+// Note: @babylonjs/inspector is dynamically imported in toggleInspector() to avoid build issues
 import { GROUND_SIZE } from '../core/constants';
 import { FloorType } from '../core/types';
 import { FloorMaterialManager } from './FloorMaterialManager';
@@ -531,6 +531,15 @@ export class SceneManager {
   async toggleInspector(): Promise<void> {
     if (!this.scene) {
       console.warn('Scene not initialized');
+      return;
+    }
+
+    // Dynamically import inspector only when needed (avoids build issues)
+    try {
+      // @ts-ignore - Inspector is optional debug tool, may not be available in all builds
+      await import('@babylonjs/inspector');
+    } catch (error) {
+      console.warn('Inspector not available:', error);
       return;
     }
 

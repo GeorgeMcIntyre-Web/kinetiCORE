@@ -65,6 +65,13 @@ export default defineConfig({
       },
     },
     rollupOptions: {
+      external: (id) => {
+        // Mark inspector as external (optional debug tool, loaded dynamically)
+        if (id === '@babylonjs/inspector') {
+          return true;
+        }
+        return false;
+      },
       output: {
         // Optimize chunking strategy to reduce main bundle size
         manualChunks(id) {
