@@ -395,6 +395,37 @@ export const useEditorStore = create<EditorState>((set, get) => {
     let selectedCollectionNodeId: string | null = null;
     let selectedCollectionTransformNode: BABYLON.TransformNode | null = null;
 
+    const isDescendant = (candidateId: string, expectedAncestorId: string): boolean => {
+      let current = tree.getNode(candidateId);
+      while (current && current.parentId) {
+        if (current.parentId === expectedAncestorId) {
+          return true;
+        }
+        current = tree.getNode(current.parentId);
+      }
+      return candidateId === expectedAncestorId;
+    };
+
+    const registerMeshNode = (meshNodeId: string) => {
+      if (!isDescendant(meshNodeId, primaryNodeId)) {
+        return;
+      }
+      const meshNode = tree.getNode(meshNodeId);
+      if (!meshNode) {
+        return;
+      }
+
+      const meshUniqueId = parseUniqueId(meshNode.babylonMeshId);
+      if (meshUniqueId !== null) {
+        addMeshesFromNode(scene.getMeshByUniqueId(meshUniqueId));
+      }
+
+      const transformUniqueId = parseUniqueId(meshNode.babylonTransformNodeId);
+      if (transformUniqueId !== null) {
+        addMeshesFromNode(scene.getTransformNodeByUniqueId(transformUniqueId));
+      }
+    };
+
     const collectMeshes = (nodeId: string) => {
       const node = tree.getNode(nodeId);
       if (!node) return;
@@ -402,6 +433,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
       if (node.entityId) {
         const entity = registry.get(node.entityId);
         if (entity) {
+          const primaryMeshNode = tree.getNodeByEntityId?.(entity.getId?.() ?? '');
+          if (primaryMeshNode) {
+            registerMeshNode(primaryMeshNode.id);
+          }
           if (typeof entity.getMesh === 'function') {
             addMeshesFromNode(entity.getMesh());
           }
@@ -412,6 +447,12 @@ export const useEditorStore = create<EditorState>((set, get) => {
             try {
               const children = (entity as any).getChildren() as any[];
               children?.forEach((child) => {
+                if (child && typeof child.getSceneNodeId === 'function') {
+                  const sceneNodeId = child.getSceneNodeId();
+                  if (typeof sceneNodeId === 'string') {
+                    registerMeshNode(sceneNodeId);
+                  }
+                }
                 if (child && typeof child.getMesh === 'function') {
                   addMeshesFromNode(child.getMesh());
                 }
@@ -423,19 +464,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
         }
       }
 
-      const meshUniqueId = parseUniqueId(node.babylonMeshId);
-      if (meshUniqueId !== null) {
-        addMeshesFromNode(scene.getMeshByUniqueId(meshUniqueId));
-      }
-
-      const transformUniqueId = parseUniqueId(node.babylonTransformNodeId);
-      if (transformUniqueId !== null) {
-        addMeshesFromNode(scene.getTransformNodeByUniqueId(transformUniqueId));
-      } else if (!node.babylonMeshId) {
-        // Fallback: attempt lookup by name (helps with legacy nodes without IDs)
-        const transformCandidate = scene.transformNodes.find((tn) => tn.name === node.name);
-        addMeshesFromNode(transformCandidate);
-      }
+      registerMeshNode(nodeId);
 
       const children = tree.getChildren(nodeId);
       children.forEach((child) => collectMeshes(child.id));
