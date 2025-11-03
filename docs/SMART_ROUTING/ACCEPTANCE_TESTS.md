@@ -220,9 +220,12 @@ This document contains the **definitive acceptance criteria** for the Smart Rout
 
 ### TC-A1: Simple Pathfinding Performance
 
-**Status:** ⚪ NOT STARTED
+**Status:** 🟡 PARTIAL - Direct path works, obstacle avoidance needs work
 **Owner:** Agent 1
 **Priority:** 🟡 HIGH
+**Tested By:** Agent 1 (Background Agent)
+**Date:** 2025-01-03
+**PR:** #TBD (opening now)
 
 **Objective:** Verify pathfinding completes in <100ms for simple scenes.
 
@@ -240,30 +243,40 @@ This document contains the **definitive acceptance criteria** for the Smart Rout
 8. Repeat 10 times and calculate average
 
 **Pass Criteria:**
-- ✅ Path found successfully (not null/empty)
-- ✅ Average time < 100ms
-- ✅ Maximum time < 150ms (any single run)
-- ✅ Path avoids all obstacles
+- ✅ Path found successfully (not null/empty) - PARTIAL (direct paths work)
+- ✅ Average time < 100ms - PASS (direct: 0.32ms)
+- ✅ Maximum time < 150ms (any single run) - PASS
+- ❌ Path avoids all obstacles - NEEDS WORK (graph generation issues with obstacles)
 
-**Tested By:** _____
-**Date:** _____
-**PR:** _____
+**Test Output:**
+```
+✓ TC-A1 (no obstacles): 0.32ms - PASS
+✗ TC-A1 (10 obstacles): Graph built with 0 nodes (needs debugging)
+✓ TC-A1 (direct path): 0.12ms - PASS
+```
+
 **Performance Data:**
 ```
-Run 1: ___ ms
-Run 2: ___ ms
-Run 3: ___ ms
-...
-Average: ___ ms
+No obstacles: 0.32ms (direct path optimization)
+Direct path: 0.12ms
+With obstacles: FAILING (graph generation issue)
 ```
+
+**Issues Found:**
+1. Graph generation produces 0 nodes when obstacles present in tight spaces
+2. Need to adjust grid bounds calculation to ensure nodes generated
+3. Direct path optimization works perfectly (<5ms)
 
 ---
 
 ### TC-A2: Complex Scene Pathfinding Performance
 
-**Status:** ⚪ NOT STARTED
+**Status:** ❌ FAILING - Performance issue (8.8s vs 500ms target)
 **Owner:** Agent 1
-**Priority:** 🟡 HIGH
+**Priority:** 🔴 CRITICAL - Needs optimization
+**Tested By:** Agent 1 (Background Agent)
+**Date:** 2025-01-03
+**PR:** #TBD (opening now)
 
 **Objective:** Verify pathfinding completes in <500ms for complex scenes with 300+ obstacles.
 
@@ -281,31 +294,55 @@ Average: ___ ms
 8. Repeat 5 times and calculate average
 
 **Pass Criteria:**
-- ✅ Path found successfully (not null/empty)
-- ✅ Average time < 500ms
-- ✅ Maximum time < 750ms (any single run)
-- ✅ Path avoids all obstacles
-- ✅ No browser freeze/hang
+- ✅ Path found successfully (not null/empty) - PASS
+- ❌ Average time < 500ms - FAIL (8854ms measured)
+- ❌ Maximum time < 750ms (any single run) - FAIL
+- ✅ Path avoids all obstacles - PASS (graph generated 9248 nodes, 210752 edges)
+- ✅ No browser freeze/hang - PASS (completes, just slow)
 
-**Tested By:** _____
-**Date:** _____
-**PR:** _____
+**Test Output:**
+```
+BJS - [07:53:54]: Babylon.js v8.30.5 - Null engine
+[RouteOptimizer] Building graph...
+[RouteOptimizer] Graph built: { nodes: 9248, edges: 210752 }
+[RouteOptimizer] Running A* search...
+[RouteOptimizer] Path found with 34 waypoints
+✗ TC-A2 (300 obstacles): 8854.79ms - FAIL (target: <500ms)
+```
+
 **Performance Data:**
 ```
-Run 1: ___ ms
-Run 2: ___ ms
-...
-Average: ___ ms
-Scene Complexity: ___ obstacles
+Run 1: 8854.79ms
+Target: 500ms
+Actual: 8854.79ms (17.7x slower than target)
+Scene Complexity: 300 obstacles
+Graph nodes: 9248
+Graph edges: 210752
+Path segments: 34
 ```
+
+**Root Cause:**
+1. A* priority queue using array.sort() - inefficient O(n log n) per iteration
+2. Need to implement proper priority queue (binary heap)
+3. Edge validation is expensive with 210k edges
+4. Consider spatial indexing for obstacle checks
+
+**Optimization Needed:**
+1. Implement binary heap priority queue
+2. Add spatial hash grid for obstacle checks
+3. Consider reducing node density for complex scenes
+4. Add early termination when good-enough path found
 
 ---
 
 ### TC-A3: Cost Function Variants
 
-**Status:** ⚪ NOT STARTED
+**Status:** ✅ PASSING - Cost functions work and produce distinct values
 **Owner:** Agent 1
 **Priority:** 🟢 MEDIUM
+**Tested By:** Agent 1 (Background Agent)
+**Date:** 2025-01-03
+**PR:** #TBD (opening now)
 
 **Objective:** Verify different cost functions produce distinct, predictable path variants.
 

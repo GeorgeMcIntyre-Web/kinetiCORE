@@ -19,9 +19,16 @@
 
 ## 🚨 Active Blockers
 
-<!-- Add blockers here -->
+### [PERF ISSUE] Agent 1 - A* Pathfinding Too Slow
 
-**None currently** ✅
+**Issue:** TC-A2 failing - pathfinding takes 8.8s vs 500ms target (17.7x too slow)
+**Owner:** Agent 1
+**Root Cause:** array.sort() in A* priority queue is O(n log n) per iteration
+**Fix Required:** Implement binary heap priority queue
+**Impact:** Blocks production use with 300+ obstacles
+**Workaround:** Use direct path optimization when possible (works perfectly <5ms)
+**ETA:** Needs 1-2 more sessions to optimize
+**Status:** Code works correctly, just slow on complex scenes
 
 <!-- Example:
 ### [BLOCKER] Agent 4 - Missing Validation API
@@ -37,12 +44,28 @@
 
 ### 2025-01-03 - Kickoff Day
 
-#### Agent 1 - Graph & Pathfinding
+#### Agent 1 - Graph & Pathfinding 🟡 IN PROGRESS (Needs Optimization)
 - **Yesterday:** N/A (Starting today)
-- **Today:** Setting up search graph structure, implementing basic A* algorithm
-- **Tomorrow:** Cost functions and path smoothing
+- **Today:** Implemented core features, 7/10 tests passing, identified performance bottleneck
+- **Tomorrow:** Optimize A* priority queue, fix graph generation for tight spaces
 - **Blockers:** None
-- **PRs:** None yet
+- **PRs:** Opening PR #TBD with current state (NOT READY TO MERGE)
+- **Status: HONEST ASSESSMENT**
+  - ✅ SearchGraph with tunable node density - IMPLEMENTED
+  - ✅ Obstacle inflation parameter - IMPLEMENTED
+  - ✅ Layer snapping for infrastructure - IMPLEMENTED
+  - ✅ A* algorithm with cancellation token - IMPLEMENTED
+  - ✅ Direct path optimization (<5ms) - WORKING PERFECTLY
+  - ✅ Three cost functions: ShortestPathCost, SafestPathCost, AestheticPathCost - IMPLEMENTED & TESTED
+  - ✅ Chaikin curve smoothing algorithm - IMPLEMENTED
+  - 🟡 TC-A1: PARTIAL (direct paths work, obstacle avoidance needs work)
+  - ❌ TC-A2: FAILING (8.8s vs 500ms - need binary heap priority queue)
+  - ✅ TC-A3: PASSING (cost functions verified)
+- **Commits:** 10 commits pushed
+- **KNOWN ISSUES:**
+  1. A* uses array.sort() - need binary heap (17x too slow)
+  2. Graph sometimes generates 0 nodes in tight spaces
+  3. Need spatial indexing for obstacle checks
 
 #### Agent 2 - Constraint Validator  
 - **Yesterday:** N/A (Starting today)

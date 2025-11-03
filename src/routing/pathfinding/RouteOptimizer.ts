@@ -29,6 +29,26 @@ interface AStarNode {
 }
 
 /**
+ * Cancellation token for async pathfinding
+ */
+export interface CancellationToken {
+  isCancelled: boolean;
+  cancel(): void;
+}
+
+/**
+ * Create a new cancellation token
+ */
+export function createCancellationToken(): CancellationToken {
+  return {
+    isCancelled: false,
+    cancel() {
+      this.isCancelled = true;
+    }
+  };
+}
+
+/**
  * RouteOptimizer finds optimal paths between connection points using A* algorithm
  */
 export class RouteOptimizer {
@@ -41,7 +61,7 @@ export class RouteOptimizer {
   }
 
   /**
-   * Find optimal path between two connection points
+   * Find optimal path between two connection points (synchronous)
    * @param source Source connection point
    * @param destination Destination connection point
    * @param constraints Route constraints
@@ -53,14 +73,64 @@ export class RouteOptimizer {
     destination: ConnectionPoint,
     constraints: RouteConstraints,
     obstacles: BABYLON.Mesh[],
-    _optimizationMode: OptimizationMode = 'shortest'
+    optimizationMode: OptimizationMode = 'shortest'
+  ): Route | null {
+    return this.findOptimalPathAsync(
+      source, 
+      destination, 
+      constraints, 
+      obstacles, 
+      optimizationMode,
+      undefined
+    );
+  }
+
+  /**
+   * Find optimal path between two connection points (async with cancellation)
+   * @param source Source connection point
+   * @param destination Destination connection point
+   * @param constraints Route constraints
+   * @param obstacles Array of meshes that act as obstacles
+   * @param optimizationMode Optimization mode (shortest, safest, aesthetic)
+   * @param cancellationToken Optional token to cancel pathfinding
+   */
+  findOptimalPathAsync(
+    source: ConnectionPoint,
+    destination: ConnectionPoint,
+    constraints: RouteConstraints,
+    obstacles: BABYLON.Mesh[],
+    _optimizationMode: OptimizationMode = 'shortest',
+    cancellationToken?: CancellationToken
   ): Route | null {
     const startPos = source.getPosition();
     const goalPos = destination.getPosition();
 
+    // Check for cancellation
+    if (cancellationToken?.isCancelled) {
+      return null;
+    }
+
+    // Fast path: Check if direct line of sight exists
+    if (this.hasDirectPath(startPos, goalPos, obstacles, constraints)) {
+      console.log('[RouteOptimizer] Direct path available, skipping A*');
+      return this.createDirectRoute(source, destination, constraints);
+    }
+
     console.log('[RouteOptimizer] Building graph...');
-    // Build search graph
-    const graph = this.searchGraph.buildGraph(startPos, goalPos, obstacles, constraints);
+    // Build search graph with tunable parameters
+    const nodeDensity = 5; // Default 5 nodes per cubic meter
+    const obstacleInflation = 0; // No inflation by default
+    const layerSnapping = false; // No layer snapping by default
+    
+    const graph = this.searchGraph.buildGraph(
+      startPos, 
+      goalPos, 
+      obstacles, 
+      constraints,
+      nodeDensity,
+      obstacleInflation,
+      layerSnapping
+    );
     console.log('[RouteOptimizer] Graph built:', { nodes: graph.nodes.size, edges: graph.edges.length });
 
     // Find closest nodes to start and goal
@@ -72,9 +142,14 @@ export class RouteOptimizer {
       return null; // Could not find valid nodes
     }
 
+    // Check for cancellation
+    if (cancellationToken?.isCancelled) {
+      return null;
+    }
+
     console.log('[RouteOptimizer] Running A* search...');
-    // Run A* search
-    let pathNodes = this.aStarSearch(graph, startNode, goalNode);
+    // Run A* search with cancellation support
+    let pathNodes = this.aStarSearch(graph, startNode, goalNode, cancellationToken);
 
     // Fallback: If A* fails, create a simple direct path
     if (pathNodes.length === 0) {
@@ -113,12 +188,82 @@ export class RouteOptimizer {
   }
 
   /**
-   * A* pathfinding algorithm
+   * Check if a direct path exists between two points (no obstacles)
+   * @returns true if direct path is clear
+   */
+  hasDirectPath(
+    start: Vector3,
+    goal: Vector3,
+    obstacles: BABYLON.Mesh[],
+    constraints: RouteConstraints
+  ): boolean {
+    const requiredClearance = constraints.clearance.otherInfrastructure;
+    const numSamples = 10; // Check 10 points along the line
+    
+    for (let i = 0; i <= numSamples; i++) {
+      const t = i / numSamples;
+      const point: Vector3 = {
+        x: start.x + (goal.x - start.x) * t,
+        y: start.y + (goal.y - start.y) * t,
+        z: start.z + (goal.z - start.z) * t
+      };
+      
+      // Check clearance from all obstacles
+      for (const obstacle of obstacles) {
+        const boundingInfo = obstacle.getBoundingInfo();
+        const boundingBox = boundingInfo.boundingBox;
+        const min = boundingBox.minimumWorld;
+        const max = boundingBox.maximumWorld;
+        
+        const closestPoint = {
+          x: Math.max(min.x, Math.min(point.x, max.x)),
+          y: Math.max(min.y, Math.min(point.y, max.y)),
+          z: Math.max(min.z, Math.min(point.z, max.z))
+        };
+        
+        const dx = point.x - closestPoint.x;
+        const dy = point.y - closestPoint.y;
+        const dz = point.z - closestPoint.z;
+        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        
+        if (distance < requiredClearance) {
+          return false; // Obstacle too close
+        }
+      }
+    }
+    
+    return true; // Clear path
+  }
+
+  /**
+   * Create a direct route (straight line)
+   */
+  private createDirectRoute(
+    source: ConnectionPoint,
+    destination: ConnectionPoint,
+    constraints: RouteConstraints
+  ): Route {
+    const startPos = source.getPosition();
+    const goalPos = destination.getPosition();
+    
+    const segment = this.createSegment(startPos, goalPos, 'straight');
+    const material: MaterialSpec = {
+      name: this.getDefaultMaterial(source.getType()),
+      properties: {},
+    };
+    
+    return new Route(source, destination, [segment], material, constraints);
+  }
+
+  /**
+   * A* pathfinding algorithm with cancellation support
+   * @param cancellationToken Optional token to cancel the search
    */
   private aStarSearch(
     graph: Graph,
     start: GraphNode,
-    goal: GraphNode
+    goal: GraphNode,
+    cancellationToken?: CancellationToken
   ): Vector3[] {
     const openSet: AStarNode[] = [];
     const closedSet = new Set<string>();
@@ -135,6 +280,11 @@ export class RouteOptimizer {
     openSet.push(startNode);
 
     while (openSet.length > 0) {
+      // Check for cancellation
+      if (cancellationToken?.isCancelled) {
+        return []; // Return empty path if cancelled
+      }
+
       // Get node with lowest f score
       openSet.sort((a, b) => a.f - b.f);
       const current = openSet.shift()!;
@@ -315,42 +465,119 @@ export class RouteOptimizer {
   }
 
   /**
-   * Smooth path to reduce sharp turns
+   * Smooth path to reduce sharp turns using Chaikin's algorithm
+   * @param segments Original route segments
+   * @param iterations Number of smoothing iterations (default 2)
+   * @returns Smoothed segments
    */
-  private smoothPath(segments: RouteSegment[]): RouteSegment[] {
-    // Simple smoothing: remove waypoints that don't significantly change direction
-    // Full implementation would use more sophisticated smoothing algorithms
-
+  private smoothPath(segments: RouteSegment[], iterations: number = 2): RouteSegment[] {
     if (segments.length <= 2) return segments;
 
-    const smoothed: RouteSegment[] = [segments[0]];
+    // Extract waypoints from segments
+    const waypoints: Vector3[] = [segments[0].startPoint];
+    for (const segment of segments) {
+      waypoints.push(segment.endPoint);
+    }
 
-    for (let i = 1; i < segments.length - 1; i++) {
-      const prev = segments[i - 1];
-      const curr = segments[i];
-      const next = segments[i + 1];
+    // Apply Chaikin smoothing
+    let smoothedPoints = this.chaikinSmoothing(waypoints, iterations);
 
-      const v1 = this.vectorSubtract(curr.startPoint, prev.endPoint);
-      const v2 = this.vectorSubtract(next.startPoint, curr.endPoint);
+    // Remove nearly collinear points to simplify path
+    smoothedPoints = this.removeCollinearPoints(smoothedPoints, 0.1); // 0.1 radian tolerance
+
+    // Convert back to segments
+    const smoothedSegments: RouteSegment[] = [];
+    for (let i = 0; i < smoothedPoints.length - 1; i++) {
+      smoothedSegments.push(
+        this.createSegment(smoothedPoints[i], smoothedPoints[i + 1], 'straight')
+      );
+    }
+
+    // Mark bends in the smoothed path
+    this.markBends(smoothedSegments);
+
+    return smoothedSegments;
+  }
+
+  /**
+   * Chaikin's corner-cutting algorithm for curve smoothing
+   * Each iteration replaces each line segment with two smaller segments
+   * @param points Original waypoints
+   * @param iterations Number of smoothing iterations
+   * @returns Smoothed waypoints
+   */
+  private chaikinSmoothing(points: Vector3[], iterations: number): Vector3[] {
+    if (points.length < 3) return points;
+
+    let currentPoints = points;
+
+    for (let iter = 0; iter < iterations; iter++) {
+      const newPoints: Vector3[] = [];
+      
+      // Keep first point
+      newPoints.push({ ...currentPoints[0] });
+
+      // Apply corner cutting to interior segments
+      for (let i = 0; i < currentPoints.length - 1; i++) {
+        const p1 = currentPoints[i];
+        const p2 = currentPoints[i + 1];
+
+        // Create two new points at 1/4 and 3/4 along the segment
+        const q: Vector3 = {
+          x: 0.75 * p1.x + 0.25 * p2.x,
+          y: 0.75 * p1.y + 0.25 * p2.y,
+          z: 0.75 * p1.z + 0.25 * p2.z
+        };
+
+        const r: Vector3 = {
+          x: 0.25 * p1.x + 0.75 * p2.x,
+          y: 0.25 * p1.y + 0.75 * p2.y,
+          z: 0.25 * p1.z + 0.75 * p2.z
+        };
+
+        newPoints.push(q, r);
+      }
+
+      // Keep last point
+      newPoints.push({ ...currentPoints[currentPoints.length - 1] });
+
+      currentPoints = newPoints;
+    }
+
+    return currentPoints;
+  }
+
+  /**
+   * Remove nearly collinear points to simplify the path
+   * @param points Waypoints
+   * @param angleTolerance Maximum angle deviation in radians to consider collinear
+   * @returns Simplified waypoints
+   */
+  private removeCollinearPoints(points: Vector3[], angleTolerance: number): Vector3[] {
+    if (points.length <= 2) return points;
+
+    const simplified: Vector3[] = [points[0]];
+
+    for (let i = 1; i < points.length - 1; i++) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      const next = points[i + 1];
+
+      const v1 = this.vectorSubtract(curr, prev);
+      const v2 = this.vectorSubtract(next, curr);
 
       const angle = this.angleBetweenVectors(v1, v2);
 
-      // If angle is close to 180 degrees (straight), merge segments
-      if (Math.abs(Math.PI - angle) < 0.2) {
-        // Merge prev and next, skipping curr
-        smoothed.pop();
-        smoothed.push(this.createSegment(prev.startPoint, next.endPoint, 'straight'));
-        i++; // Skip next segment as it's been merged
-      } else {
-        smoothed.push(curr);
+      // If angle is NOT close to 180 degrees, keep this point
+      if (Math.abs(Math.PI - angle) > angleTolerance) {
+        simplified.push(curr);
       }
     }
 
-    if (smoothed[smoothed.length - 1].endPoint !== segments[segments.length - 1].endPoint) {
-      smoothed.push(segments[segments.length - 1]);
-    }
+    // Always keep last point
+    simplified.push(points[points.length - 1]);
 
-    return smoothed;
+    return simplified;
   }
 
   /**
