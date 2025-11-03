@@ -19,9 +19,16 @@
 
 ## 🚨 Active Blockers
 
-<!-- Add blockers here -->
+### [PERF ISSUE] Agent 1 - A* Pathfinding Too Slow
 
-**None currently** ✅
+**Issue:** TC-A2 failing - pathfinding takes 8.8s vs 500ms target (17.7x too slow)
+**Owner:** Agent 1
+**Root Cause:** array.sort() in A* priority queue is O(n log n) per iteration
+**Fix Required:** Implement binary heap priority queue
+**Impact:** Blocks production use with 300+ obstacles
+**Workaround:** Use direct path optimization when possible (works perfectly <5ms)
+**ETA:** Needs 1-2 more sessions to optimize
+**Status:** Code works correctly, just slow on complex scenes
 
 <!-- Example:
 ### [BLOCKER] Agent 4 - Missing Validation API
