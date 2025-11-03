@@ -4,15 +4,15 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as BABYLON from '@babylonjs/core';
-import { ConstraintValidator } from '../../src/routing/validation/ConstraintValidator';
+import { ConstraintValidator } from '../ConstraintValidator';
 import {
   ValidationResult,
   EnhancedValidationResult,
   BatchValidationResult,
-} from '../../src/routing/validation/ValidationResult';
-import { Route } from '../../src/routing/core/Route';
-import type { RouteSegment, RouteConstraints } from '../../src/routing/core/types';
-import { Vector3 } from '../../src/core/types';
+} from '../ValidationResult';
+import { Route } from '../../core/Route';
+import type { RouteSegment, RouteConstraints } from '../../core/types';
+import { Vector3 } from '../../../core/types';
 
 describe('ConstraintValidator', () => {
   let validator: ConstraintValidator;
