@@ -28,7 +28,8 @@
       "Bash(gh pr list:*)",
       "Bash(git fetch:*)",
       "Bash(git merge:*)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(git pull:*)"
     ],
     "deny": [],
     "ask": []

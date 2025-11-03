@@ -1,5 +1,5 @@
 import * as BABYLON from '@babylonjs/core';
-import { GLTF2Export } from '@babylonjs/serializers/glTF/2.0/glTFExporter';
+import { GLTF2Export } from '@babylonjs/serializers';
 
 export interface MaterialExportMetadata {
   id: string;
@@ -95,7 +95,7 @@ export class GLBExporter {
     const { fileName = 'scene', includeEnvironment = true, embedMaterialMetadata = true } = options;
 
     const exportData = await GLTF2Export.GLBAsync(scene, fileName, {
-      shouldExportNode: (node) => !(node.metadata?.skipExport),
+      shouldExportNode: (node: BABYLON.Node) => !(node.metadata?.skipExport),
     });
 
     const glbKey = `${fileName}.glb`;
