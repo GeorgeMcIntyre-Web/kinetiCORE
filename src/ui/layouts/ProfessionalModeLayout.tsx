@@ -29,7 +29,8 @@ import {
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { DockableLayoutWrapper } from './DockableLayoutWrapper';
-import { useTreeAutoResize } from '../hooks/useTreeAutoResize';
+import { SceneTreeManager } from '../../scene/SceneTreeManager';
+
 import { MoveObjectDialog } from '../components/MoveObjectDialog';
 import { ExportDialog } from '../components/ExportDialog';
 import { MeasurementTools, MeasurementType } from '../components/MeasurementTools';
@@ -77,6 +78,48 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [showKinematicExtractionPanel, setShowKinematicExtractionPanel] = useState(false);
   const debugLabelsRef = useRef<RouteDebugLabels | null>(null);
   const routeSelection = useRoutingStore((state) => state.selectedRoute);
+  // Auto size the left scene tree based on content (inline to avoid nested hook issues)
+  const [leftTreeWidth, setLeftTreeWidth] = useState<number>(240);
+  useEffect(() => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (ctx) ctx.font = `13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
+
+    const getTextWidth = (t: string) => (ctx ? ctx.measureText(t).width : Math.max(120, t.length * 7));
+    const PADDING = 16, ICON = 16, ARROW = 14, BADGES = 40, INDENT = 16; const MAX = 800, MIN = 240;
+
+    const calcNodeWidth = (id: string, level = 0): number => {
+      const tree = SceneTreeManager.getInstance();
+      const node = tree.getNode(id);
+      if (!node) return 0;
+      const base = level * INDENT + ARROW + ICON + getTextWidth(node.name) + BADGES + PADDING;
+      let maxChild = 0;
+      if (node.expanded) {
+        for (const c of SceneTreeManager.getInstance().getChildren(id)) {
+          if (c.showInTree === false) continue;
+          maxChild = Math.max(maxChild, calcNodeWidth(c.id, level + 1));
+        }
+      }
+      return Math.max(base, maxChild);
+    };
+
+    const recalc = () => {
+      const tree = SceneTreeManager.getInstance();
+      const root = tree.getRootNode();
+      if (!root) return;
+      const w = Math.max(MIN, Math.min(MAX, calcNodeWidth(root.id)));
+      setLeftTreeWidth(w);
+    };
+
+    recalc();
+    const onTree = () => setTimeout(recalc, 80);
+    window.addEventListener('scenetree-update', onTree);
+    window.addEventListener('model-import-complete', onTree);
+    return () => {
+      window.removeEventListener('scenetree-update', onTree);
+      window.removeEventListener('model-import-complete', onTree);
+    };
+  }, []);
 
   // Load saved panel layout on mount
   useEffect(() => {
@@ -600,7 +643,7 @@ export const ProfessionalModeLayout: React.FC = () => {
             ],
             bottomPanels: [],
           }}
-          leftGroupWidth={optimalWidth}
+          leftGroupWidth={leftTreeWidth}
           onLayoutChange={savePanelLayout}
           savedLayout={savedLayout}
         />
@@ -656,13 +699,5 @@ export const ProfessionalModeLayout: React.FC = () => {
     </div>
   );
 };
-  // Auto size the left scene tree based on content
-  const { optimalWidth } = useTreeAutoResize({
-    minWidth: 240,
-    maxWidth: 800,
-    padding: 16,
-    fontSize: 13,
-    iconWidth: 16,
-    arrowWidth: 14,
-    badgeWidth: 40,
-  });
+    // Auto size the left scene tree based on content (inline to avoid nested hook issues)
+
