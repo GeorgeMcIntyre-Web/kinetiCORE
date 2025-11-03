@@ -337,9 +337,12 @@ Path segments: 34
 
 ### TC-A3: Cost Function Variants
 
-**Status:** ⚪ NOT STARTED
+**Status:** ✅ PASSING - Cost functions work and produce distinct values
 **Owner:** Agent 1
 **Priority:** 🟢 MEDIUM
+**Tested By:** Agent 1 (Background Agent)
+**Date:** 2025-01-03
+**PR:** #TBD (opening now)
 
 **Objective:** Verify different cost functions produce distinct, predictable path variants.
 
