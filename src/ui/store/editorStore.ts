@@ -275,7 +275,117 @@ interface EditorState {
   loadURDFWithMeshes: (urdfFile: File, meshFiles: File[], scene: BABYLON.Scene, tree: any, assetsNode: any, registry: any) => Promise<void>;
 }
 
-export const useEditorStore = create<EditorState>((set, get) => ({
+export const useEditorStore = create<EditorState>((set, get) => {
+  const normalizeNodeId = (nodeId: string): string => {
+    const tree = SceneTreeManager.getInstance();
+    const node = tree.getNode(nodeId);
+
+    if (node && node.type === 'mesh' && node.name.endsWith('_device_root') && node.parentId) {
+      const parentNode = tree.getNode(node.parentId);
+      if (parentNode && parentNode.type === 'collection') {
+        return parentNode.id;
+      }
+    }
+
+    return nodeId;
+  };
+
+  const updateSelectionVisuals = (nodeIds: string[]): void => {
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    const tree = SceneTreeManager.getInstance();
+    const registry = EntityRegistry.getInstance();
+    const state = get();
+    const coordinateFrameWidget = state.coordinateFrameWidget;
+
+    if (nodeIds.length === 0 || !scene) {
+      set({
+        selectedMeshes: [],
+        selectedCollectionNodeId: null,
+        selectedCollectionTransformNode: null,
+      });
+
+      if (coordinateFrameWidget && !state.customFrame) {
+        coordinateFrameWidget.hide();
+      }
+
+      if (nodeIds.length === 0) {
+        sceneManager.resetClippingPlanes();
+      }
+      return;
+    }
+
+    const primaryNodeId = nodeIds[nodeIds.length - 1];
+    const orderedNodeIds = [primaryNodeId, ...nodeIds.filter((id) => id !== primaryNodeId)];
+
+    const meshes: BABYLON.Mesh[] = [];
+    const seenMeshIds = new Set<number>();
+
+    let selectedCollectionNodeId: string | null = null;
+    let selectedCollectionTransformNode: BABYLON.TransformNode | null = null;
+
+    const collectMeshes = (nodeId: string) => {
+      const node = tree.getNode(nodeId);
+      if (!node) return;
+
+      if (node.entityId) {
+        const entity = registry.get(node.entityId);
+        if (entity && typeof entity.getMesh === 'function') {
+          const mesh = entity.getMesh();
+          if (mesh && mesh instanceof BABYLON.Mesh && !seenMeshIds.has(mesh.uniqueId)) {
+            meshes.push(mesh);
+            seenMeshIds.add(mesh.uniqueId);
+          }
+        }
+      } else if (node.babylonMeshId) {
+        const uniqueId = parseInt(node.babylonMeshId, 10);
+        const mesh = scene.getMeshByUniqueId(uniqueId);
+        if (mesh && mesh instanceof BABYLON.Mesh && !seenMeshIds.has(mesh.uniqueId)) {
+          meshes.push(mesh);
+          seenMeshIds.add(mesh.uniqueId);
+        }
+      }
+
+      const children = tree.getChildren(nodeId);
+      children.forEach((child) => collectMeshes(child.id));
+    };
+
+    orderedNodeIds.forEach((id) => {
+      collectMeshes(id);
+
+      if (id === primaryNodeId) {
+        const node = tree.getNode(id);
+        if (node && node.type === 'collection' && nodeIds.length === 1) {
+          let transformNode: BABYLON.TransformNode | undefined;
+          if (node.babylonTransformNodeId) {
+            const uniqueId = parseInt(node.babylonTransformNodeId, 10);
+            transformNode = scene.getTransformNodeByUniqueId(uniqueId) || undefined;
+          }
+
+          if (!transformNode) {
+            transformNode = scene.transformNodes.find((tn) => tn.name === node.name);
+          }
+
+          if (transformNode) {
+            selectedCollectionNodeId = node.id;
+            selectedCollectionTransformNode = transformNode;
+          }
+        }
+      }
+    });
+
+    set({
+      selectedMeshes: meshes,
+      selectedCollectionNodeId,
+      selectedCollectionTransformNode,
+    });
+
+    if ((nodeIds.length > 1 || !selectedCollectionNodeId) && coordinateFrameWidget && !state.customFrame) {
+      coordinateFrameWidget.hide();
+    }
+  };
+
+  return {
   // Initial state
   selectedMeshes: [],
   selectedNodeId: null,
@@ -444,172 +554,63 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   selectNode: (nodeId) => {
-    set({ selectedNodeId: nodeId, selectedNodeIds: [nodeId] });
-
+    const normalizedId = normalizeNodeId(nodeId);
     const tree = SceneTreeManager.getInstance();
-    const node = tree.getNode(nodeId);
-    const sceneManager = SceneManager.getInstance();
-    const scene = sceneManager.getScene();
-    const { coordinateFrameWidget } = get();
 
-    // Check if this is a device root mesh node (ending in _device_root)
-    if (node && node.name.endsWith('_device_root') && node.type === 'mesh') {
-      // Redirect to parent collection node instead
-      if (node.parentId) {
-        const parentNode = tree.getNode(node.parentId);
-        if (parentNode && parentNode.type === 'collection') {
-          // Recursively call selectNode with the parent collection ID
-          get().selectNode(parentNode.id);
-          return; // Exit early
-        }
-      }
-    }
+    set({ selectedNodeId: normalizedId, selectedNodeIds: [normalizedId] });
 
-    // Auto-expand tree to show selected node
-    tree.expandToNode(nodeId);
+    tree.expandToNode(normalizedId);
     window.dispatchEvent(new Event('scenetree-update'));
 
-    // If it's a collection/TransformNode, show coordinate frame at its origin
-    if (node && node.type === 'collection' && scene) {
-      let transformNode: BABYLON.TransformNode | undefined;
-      
-      // Use uniqueId lookup first for reliability, fallback to name lookup
-      if (node.babylonTransformNodeId) {
-        const uniqueId = parseInt(node.babylonTransformNodeId, 10);
-        const foundNode = scene.getTransformNodeByUniqueId(uniqueId);
-        transformNode = foundNode ? foundNode : undefined;
-      } else {
-        // Fallback to name lookup (legacy support for nodes without unique ID)
-        transformNode = scene.transformNodes.find(tn => tn.name === node.name);
-      }
-      
-      if (transformNode) {
-        // For collection nodes, we need to trigger gizmo activation
-        // by setting a special flag that SceneCanvas can detect
-        // Clear any existing mesh selection to avoid conflicts
-        // Collect all descendant meshes for highlight
-        const meshes: BABYLON.Mesh[] = [];
-        const registry = EntityRegistry.getInstance();
-        const collectMeshes = (nid: string) => {
-          const n = tree.getNode(nid);
-          if (!n) return;
-          // Prefer entity mesh if available
-          if (n.entityId) {
-            const ent = registry.get(n.entityId);
-            if (ent && typeof ent.getMesh === 'function') {
-              const m = ent.getMesh();
-              if (m && m instanceof BABYLON.Mesh && m.isVisible) meshes.push(m);
-            }
-          } else if (n.babylonMeshId) {
-            const m = scene.getMeshByUniqueId(parseInt(n.babylonMeshId, 10));
-            if (m && m instanceof BABYLON.Mesh && m.isVisible) meshes.push(m);
-          }
-          // Recurse children
-          tree.getChildren(nid).forEach(child => collectMeshes(child.id));
-        };
-        collectMeshes(nodeId);
-
-        set({ 
-          selectedMeshes: meshes,
-          selectedCollectionNodeId: nodeId,
-          selectedCollectionTransformNode: transformNode 
-        });
-
-      }
-    } else {
-      // For non-collection nodes, collect the node's mesh AND all descendant meshes
-      if (node && scene) {
-        const meshes: BABYLON.Mesh[] = [];
-        const registry = EntityRegistry.getInstance();
-
-        // Helper to collect meshes recursively
-        const collectMeshes = (nid: string) => {
-          const n = tree.getNode(nid);
-          if (!n) return;
-
-          console.log(`[EditorStore] Collecting meshes for node: ${n.name} (type: ${n.type}, entityId: ${n.entityId}, babylonMeshId: ${n.babylonMeshId})`);
-
-          // Prefer entity mesh if available
-          if (n.entityId) {
-            const ent = registry.get(n.entityId);
-            if (ent && typeof ent.getMesh === 'function') {
-              const m = ent.getMesh();
-              if (m && m instanceof BABYLON.Mesh) {
-                console.log(`[EditorStore] ✓ Found entity mesh: ${m.name}, visible: ${m.isVisible}, enabled: ${m.isEnabled()}`);
-                // Include ALL meshes regardless of visibility - user wants the entire hierarchy
-                meshes.push(m);
-              } else {
-                console.log(`[EditorStore] ✗ Entity has no mesh or not a Mesh instance`);
-              }
-            } else {
-              console.log(`[EditorStore] ✗ Entity not found or no getMesh() for entityId: ${n.entityId}`);
-            }
-          } else if (n.babylonMeshId) {
-            const m = scene.getMeshByUniqueId(parseInt(n.babylonMeshId, 10));
-            if (m && m instanceof BABYLON.Mesh) {
-              console.log(`[EditorStore] ✓ Found babylon mesh: ${m.name}, visible: ${m.isVisible}, enabled: ${m.isEnabled()}`);
-              // Include ALL meshes regardless of visibility - user wants the entire hierarchy
-              meshes.push(m);
-            } else {
-              console.log(`[EditorStore] ✗ Babylon mesh not found or not a Mesh instance for babylonMeshId: ${n.babylonMeshId}`);
-            }
-          } else {
-            console.log(`[EditorStore] ○ Node has no mesh (likely collection/group): ${n.name}`);
-          }
-
-          // Recurse through all children
-          const children = tree.getChildren(nid);
-          console.log(`[EditorStore] Node ${n.name} has ${children.length} children`);
-          children.forEach(child => collectMeshes(child.id));
-        };
-
-        // Collect meshes starting from selected node
-        console.log(`[EditorStore] Starting mesh collection from node: ${node.name} (id: ${nodeId})`);
-        collectMeshes(nodeId);
-        console.log(`[EditorStore] Collected ${meshes.length} total meshes for highlighting`);
-
-        if (meshes.length > 0) {
-          set({
-            selectedMeshes: meshes,
-            selectedCollectionNodeId: null,
-            selectedCollectionTransformNode: null,
-          });
-        }
-      }
-
-      // Hide coordinate frame widget if not a collection
-      if (coordinateFrameWidget && !get().customFrame) {
-        coordinateFrameWidget.hide();
-      }
-    }
+    updateSelectionVisuals([normalizedId]);
   },
 
   addToSelection: (nodeId: string) => {
+    const normalizedId = normalizeNodeId(nodeId);
+    const tree = SceneTreeManager.getInstance();
     const { selectedNodeIds } = get();
-    if (!selectedNodeIds.includes(nodeId)) {
-      const newSelection = [...selectedNodeIds, nodeId];
-      set({
-        selectedNodeIds: newSelection,
-        selectedNodeId: newSelection[newSelection.length - 1] // Last selected is primary
-      });
+
+    const alreadySelected = selectedNodeIds.includes(normalizedId);
+    const newSelection = alreadySelected ? selectedNodeIds : [...selectedNodeIds, normalizedId];
+
+    set({
+      selectedNodeIds: newSelection,
+      selectedNodeId: newSelection[newSelection.length - 1] || null,
+    });
+
+    if (!alreadySelected) {
+      tree.expandToNode(normalizedId);
+      window.dispatchEvent(new Event('scenetree-update'));
     }
+
+    updateSelectionVisuals(newSelection);
   },
 
   removeFromSelection: (nodeId: string) => {
+    const normalizedId = normalizeNodeId(nodeId);
     const { selectedNodeIds } = get();
-    const newSelection = selectedNodeIds.filter(id => id !== nodeId);
+    const newSelection = selectedNodeIds.filter((id) => id !== normalizedId);
+
+    if (newSelection.length === 0) {
+      get().clearSelection();
+      return;
+    }
+
     set({
       selectedNodeIds: newSelection,
-      selectedNodeId: newSelection.length > 0 ? newSelection[newSelection.length - 1] : null
+      selectedNodeId: newSelection[newSelection.length - 1],
     });
+
+    updateSelectionVisuals(newSelection);
   },
 
   toggleNodeSelection: (nodeId: string) => {
+    const normalizedId = normalizeNodeId(nodeId);
     const { selectedNodeIds } = get();
-    if (selectedNodeIds.includes(nodeId)) {
-      get().removeFromSelection(nodeId);
+    if (selectedNodeIds.includes(normalizedId)) {
+      get().removeFromSelection(normalizedId);
     } else {
-      get().addToSelection(nodeId);
+      get().addToSelection(normalizedId);
     }
   },
 
@@ -3247,4 +3248,5 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       throw error;
     }
   },
-}));
+  };
+});
