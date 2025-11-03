@@ -25,12 +25,11 @@
 
 ## 📢 Shared File Edit Announcements
 
-### Agent 6 - Planning to Edit types.ts
+### Agent 6 - COMPLETED: types.ts Edit
 **File:** `src/routing/core/types.ts`
-**Reason:** Need to add BOMData, FittingCount, and SupportCount interfaces for computeBOM() methods
-**ETA:** Now (2025-11-03)
-**Affects:** Agent 9 (will need these types for BOM export)
-**Waiting:** 30 minutes for objections before proceeding
+**Status:** ✅ COMPLETE - Added BOMData, FittingCount, and SupportCount interfaces
+**Commit:** 328aa8b
+**Next:** Agent 9 can now use these types for BOM export
 
 <!-- Example:
 ### [BLOCKER] Agent 4 - Missing Validation API
@@ -83,10 +82,10 @@
 
 #### Agent 6 - Wiring & Conduit Geometry
 - **Yesterday:** N/A (Starting today)
-- **Today:** ✅ Branch setup complete, ✅ Reviewed existing code and specs, Now: Refactoring CableGenerator to use specs
-- **Tomorrow:** Complete CableGenerator with BOM, start ConduitGenerator refactor
-- **Blockers:** None - specs already available in RouteSpecifications.ts!
-- **PRs:** None yet
+- **Today:** ✅ Branch setup, ✅ Added BOM types to types.ts, ✅ Refactored CableGenerator with spec-driven sizing + BOM, ✅ Refactored ConduitGenerator with bending rules + BOM, ✅ Created comprehensive tests
+- **Tomorrow:** Open PR for review, monitor for issues
+- **Blockers:** None
+- **PRs:** Ready to open (commit 328aa8b)
 
 #### Agent 7 - Connection Manager
 - **Yesterday:** N/A (Starting today)
@@ -386,35 +385,53 @@
 ### Agent 6 - Wiring & Conduit Geometry Tasks
 
 #### Cable Bundle Geometry
-- [ ] Create CableGenerator reading from WIRING_SPECS
-- [ ] Generate cable bundle geometry (multiple conductors)
-- [ ] Apply color coding by voltage/type
-- [ ] Handle diameter from specifications
-- [ ] Write unit tests for cable generation
-- **PR:** TBD [DEPENDS: Agent 3]
+- [x] Create CableGenerator reading from WIRING_SPECS
+- [x] Generate cable bundle geometry (multiple conductors)
+- [x] Apply color coding by voltage/type
+- [x] Handle diameter from specifications
+- [x] Write unit tests for cable generation
+- **PR:** Commit 328aa8b (ready to open)
 
 #### Cable BOM
-- [ ] Implement `computeBOM()` for cables
-- [ ] Calculate total cable length
-- [ ] Add voltage and type metadata
-- **PR:** TBD [UNBLOCKS: Agent 9]
+- [x] Implement `computeBOM()` for cables
+- [x] Calculate total cable length
+- [x] Add voltage and type metadata
+- **PR:** Commit 328aa8b [UNBLOCKS: Agent 9]
 
 #### Conduit Geometry
-- [ ] Create ConduitGenerator reading from CONDUIT_SIZES
-- [ ] Generate conduit tube geometry
-- [ ] Handle bending rules (EMT vs rigid)
-- [ ] Add junction boxes at branch points
-- [ ] Write unit tests for conduit generation
-- **PR:** TBD [DEPENDS: Agent 3]
+- [x] Create ConduitGenerator reading from CONDUIT_SIZES
+- [x] Generate conduit tube geometry
+- [x] Handle bending rules (EMT vs rigid)
+- [x] Add junction boxes at branch points
+- [x] Write unit tests for conduit generation
+- **PR:** Commit 328aa8b
 
 #### Conduit BOM
-- [ ] Implement `computeBOM()` for conduits
-- [ ] Calculate total conduit length
-- [ ] Count junction boxes
-- [ ] Add material and size metadata
-- **PR:** TBD [UNBLOCKS: Agent 9]
+- [x] Implement `computeBOM()` for conduits
+- [x] Calculate total conduit length
+- [x] Count junction boxes
+- [x] Add material and size metadata
+- **PR:** Commit 328aa8b [UNBLOCKS: Agent 9]
 
-**Acceptance Tests:** TC-WIRE1, TC-COND1
+**Acceptance Tests:** TC-WIRE1 ✅, TC-COND1 ✅ (tests created and passing)
+
+---
+
+### [HANDOFF] Agent 6 → Agent 9
+**Completed:** CableGenerator and ConduitGenerator with computeBOM() implementations
+**Commit:** 328aa8b
+**Branch:** feature/sr/agent-6-wire-conduit-geo
+**Next Agent:** Agent 9 can now implement BOMExporter using BOMData interface
+**Documentation:** 
+- BOM types: `src/routing/core/types.ts` (BOMData, FittingCount, SupportCount)
+- Cable BOM: `CableGenerator.computeBOM(route: Route): BOMData`
+- Conduit BOM: `ConduitGenerator.computeBOM(route: Route): BOMData`
+**Example Usage:**
+```typescript
+const generator = new CableGenerator(scene);
+const bom = generator.computeBOM(route);
+// bom.totalLength, bom.fittings, bom.supports, bom.estimatedCost
+```
 
 ---
 
