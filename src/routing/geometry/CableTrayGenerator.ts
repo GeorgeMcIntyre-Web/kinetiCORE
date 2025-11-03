@@ -122,18 +122,18 @@ export class CableTrayGenerator extends RouteGeometryGenerator {
    */
   private getCableTraySpec(route: Route): CableTraySpec {
     // Try to get spec from route source specifications
-    const sourceSpec = route.source.specifications;
+    const sourceSpec = route.source.specifications as Partial<CableTraySpec>;
 
     // Build spec from available data or use defaults
     const spec: CableTraySpec = {
-      width: sourceSpec.width || DEFAULT_CABLE_TRAY_SPEC.width,
-      height: sourceSpec.height || DEFAULT_CABLE_TRAY_SPEC.height,
+      width: (sourceSpec.width as number) || DEFAULT_CABLE_TRAY_SPEC.width,
+      height: (sourceSpec.height as number) || DEFAULT_CABLE_TRAY_SPEC.height,
       trayType: sourceSpec.trayType || DEFAULT_CABLE_TRAY_SPEC.trayType,
-      rungSpacing: sourceSpec.rungSpacing || DEFAULT_CABLE_TRAY_SPEC.rungSpacing,
-      material: sourceSpec.material || DEFAULT_CABLE_TRAY_SPEC.material,
+      rungSpacing: (sourceSpec.rungSpacing as number) || DEFAULT_CABLE_TRAY_SPEC.rungSpacing,
+      material: (sourceSpec.material as typeof DEFAULT_CABLE_TRAY_SPEC.material) || DEFAULT_CABLE_TRAY_SPEC.material,
       finish: sourceSpec.finish || DEFAULT_CABLE_TRAY_SPEC.finish,
-      loadRating: sourceSpec.loadRating || DEFAULT_CABLE_TRAY_SPEC.loadRating,
-      maxCables: sourceSpec.maxCables || DEFAULT_CABLE_TRAY_SPEC.maxCables,
+      loadRating: (sourceSpec.loadRating as number) || DEFAULT_CABLE_TRAY_SPEC.loadRating,
+      maxCables: (sourceSpec.maxCables as number) || DEFAULT_CABLE_TRAY_SPEC.maxCables,
       color: sourceSpec.color || DEFAULT_CABLE_TRAY_SPEC.color,
     };
 
@@ -332,12 +332,12 @@ export class CableTrayGenerator extends RouteGeometryGenerator {
   private createWireMeshTray(
     segmentId: string,
     width: number,
-    depth: number,
+    _depth: number,
     length: number
   ): BABYLON.Mesh[] {
     const meshes: BABYLON.Mesh[] = [];
     const wireThickness = 0.005; // 5mm wire
-    const meshSpacing = 0.05; // 50mm mesh spacing
+    // const meshSpacing = 0.05; // 50mm mesh spacing (for future mesh grid implementation)
 
     // Create wire frame outline
     // Simplified: just create the outer frame
@@ -380,8 +380,8 @@ export class CableTrayGenerator extends RouteGeometryGenerator {
     const end = this.toBabylonVector(segment.endPoint);
     const midPoint = start.add(end).scale(0.5);
 
-    const angle = this.calculateBendAngle(segment);
-    const isNinetyDegree = angle > 60; // Consider > 60? as 90?
+    // const angle = this.calculateBendAngle(segment);
+    // const isNinetyDegree = angle > 60; // Consider > 60? as 90? (for future bend optimization)
 
     // Create elbow as a bent channel
     const width = spec.width;
@@ -433,7 +433,7 @@ export class CableTrayGenerator extends RouteGeometryGenerator {
   /**
    * Calculate bend angle from segment
    */
-  private calculateBendAngle(segment: any): number {
+  private calculateBendAngle(_segment: any): number {
     // Simplified: return default 90? for now
     // In production, would calculate actual angle from adjacent segments
     return 90;
@@ -485,7 +485,7 @@ export class CableTrayGenerator extends RouteGeometryGenerator {
   /**
    * Create tray support (bracket/hanger)
    */
-  private createTraySupport(position: Vector3, spec: CableTraySpec): BABYLON.Mesh {
+  private createTraySupport(position: Vector3, _spec: CableTraySpec): BABYLON.Mesh {
     const pos = this.toBabylonVector(position);
 
     // Create support bracket

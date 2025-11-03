@@ -132,7 +132,7 @@ export const VOLTAGE_COLOR_CODING: Record<string, string> = {
 export function calculateCableDiameter(
   gauge: string,
   coreCount: number,
-  insulationType: WireInsulationType
+  _insulationType: WireInsulationType
 ): number {
   // Look up wire diameter
   const wireSpec = AWG_TO_METRIC[gauge];

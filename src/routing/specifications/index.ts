@@ -1,12 +1,33 @@
 // Specifications Index - Main API exports for all route specifications
 // Owner: Agent 3 (Specifications & Technical Spec Lead)
 
-// Re-export all specification modules
+// Re-export specification modules (avoiding duplicate exports)
 export * from './PipeSpecifications';
 export * from './CableTraySpecifications';
 export * from './WiringSpecifications';
 export * from './ConduitSpecifications';
-export * from './RouteSpecifications';
+// RouteSpecifications has duplicates with the above, so selectively export
+export type {
+  ConnectorType,
+  ConnectorSpec,
+  ElectricalSpec,
+  PipeSpec,
+  CableTraySpec,
+  ConduitSpec,
+  FluidProperties,
+} from './RouteSpecifications';
+export {
+  DEFAULT_CONNECTOR_NEMA_5_15,
+  DEFAULT_CONNECTOR_IEC_C13,
+  CONNECTOR_DATABASE,
+  DEFAULT_ELECTRICAL_SPEC,
+  DEFAULT_PIPE_SPEC,
+  DEFAULT_CABLE_TRAY_SPEC,
+  DEFAULT_CONDUIT_SPEC,
+  FLUID_PROPERTIES,
+  calculateFlowVelocity,
+  validatePipeSize,
+} from './RouteSpecifications';
 
 // Import constraint rule functions
 import { getPipeConstraintRules } from './PipeSpecifications';

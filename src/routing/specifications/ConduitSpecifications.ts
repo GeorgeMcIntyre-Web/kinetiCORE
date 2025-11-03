@@ -264,7 +264,7 @@ export const MAX_RUN_LENGTH_BEFORE_JUNCTION = 30.48; // 100 feet
 export function getConduitConstraintRules(
   size: string,
   conduitType: ConduitType,
-  material: ConduitMaterial
+  _material: ConduitMaterial
 ): RouteConstraints {
   // Look up conduit dimensions
   const conduitSize = CONDUIT_SIZES[size];

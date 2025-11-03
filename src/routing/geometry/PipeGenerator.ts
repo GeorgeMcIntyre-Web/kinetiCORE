@@ -3,40 +3,9 @@
 
 import * as BABYLON from '@babylonjs/core';
 import { Route } from '../core/Route';
-import { RouteSegment, SupportPoint, RouteType } from '../core/types';
+import { RouteSegment, SupportPoint, BOMData, FittingCount, SupportCount } from '../core/types';
 import { RouteGeometryGenerator } from './RouteGeometryGenerator';
 import { PIPE_SIZES } from '../specifications/RouteSpecifications';
-
-/**
- * BOM (Bill of Materials) data for a route
- */
-export interface BOMData {
-  type: RouteType;
-  size: string;
-  material: string;
-  totalLength: number;
-  fittings: FittingCount[];
-  supports: SupportCount[];
-  estimatedCost?: number;
-}
-
-/**
- * Fitting count by type
- */
-export interface FittingCount {
-  type: 'elbow' | 'tee' | 'reducer' | 'coupling';
-  angle?: number;
-  count: number;
-}
-
-/**
- * Support count by type
- */
-export interface SupportCount {
-  type: 'hanger' | 'clamp' | 'bracket';
-  spec: string;
-  count: number;
-}
 
 /**
  * PipeGenerator creates 3D pipe geometry (cylinders) along route paths
@@ -313,7 +282,7 @@ export class PipeGenerator extends RouteGeometryGenerator {
   /**
    * Create support/hanger geometry
    */
-  private createSupport(support: SupportPoint, route?: Route): BABYLON.Mesh {
+  private createSupport(support: SupportPoint, _route?: Route): BABYLON.Mesh {
     const position = this.toBabylonVector(support.position);
 
     let supportMesh: BABYLON.Mesh;

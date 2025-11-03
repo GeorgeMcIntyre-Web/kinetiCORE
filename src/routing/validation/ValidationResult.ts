@@ -3,7 +3,7 @@
 // Purpose: Detailed validation results with violation tracking
 
 import { Vector3 } from '../../core/types';
-import type { RouteSegment } from '../core/types';
+// import type { RouteSegment } from '../core/types'; // Unused for now
 
 /**
  * Constraint violation types

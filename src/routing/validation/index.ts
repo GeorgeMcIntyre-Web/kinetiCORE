@@ -2,7 +2,7 @@
 // Owner: Agent 2 - Constraint Validator
 
 export { ConstraintValidator } from './ConstraintValidator';
-export {
+export type {
   ValidationResult,
   ConstraintViolation,
   EnhancedValidationResult,
@@ -11,6 +11,8 @@ export {
   ValidationStatistics,
   ViolationType,
   ViolationSeverity,
+} from './ValidationResult';
+export {
   createViolationId,
   calculateStatistics,
   formatViolationMessage,

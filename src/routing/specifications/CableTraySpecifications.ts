@@ -173,7 +173,7 @@ export const CABLE_TRAY_CLEARANCE: ClearanceRequirements = {
 export function getCableTrayConstraintRules(
   size: string,
   material: CableTrayMaterial,
-  trayType: CableTrayType
+  _trayType: CableTrayType
 ): RouteConstraints {
   // Look up tray dimensions
   const traySize = CABLE_TRAY_SIZES[size];

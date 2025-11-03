@@ -8,7 +8,7 @@ import { Route } from '../core/Route';
 import type {
   RouteSegment,
   RouteConstraints,
-  ClearanceRequirements,
+  // ClearanceRequirements, // Unused for now
 } from '../core/types';
 import {
   ValidationResult,
