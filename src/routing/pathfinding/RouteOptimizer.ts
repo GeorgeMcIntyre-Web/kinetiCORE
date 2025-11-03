@@ -465,42 +465,119 @@ export class RouteOptimizer {
   }
 
   /**
-   * Smooth path to reduce sharp turns
+   * Smooth path to reduce sharp turns using Chaikin's algorithm
+   * @param segments Original route segments
+   * @param iterations Number of smoothing iterations (default 2)
+   * @returns Smoothed segments
    */
-  private smoothPath(segments: RouteSegment[]): RouteSegment[] {
-    // Simple smoothing: remove waypoints that don't significantly change direction
-    // Full implementation would use more sophisticated smoothing algorithms
-
+  private smoothPath(segments: RouteSegment[], iterations: number = 2): RouteSegment[] {
     if (segments.length <= 2) return segments;
 
-    const smoothed: RouteSegment[] = [segments[0]];
+    // Extract waypoints from segments
+    const waypoints: Vector3[] = [segments[0].startPoint];
+    for (const segment of segments) {
+      waypoints.push(segment.endPoint);
+    }
 
-    for (let i = 1; i < segments.length - 1; i++) {
-      const prev = segments[i - 1];
-      const curr = segments[i];
-      const next = segments[i + 1];
+    // Apply Chaikin smoothing
+    let smoothedPoints = this.chaikinSmoothing(waypoints, iterations);
 
-      const v1 = this.vectorSubtract(curr.startPoint, prev.endPoint);
-      const v2 = this.vectorSubtract(next.startPoint, curr.endPoint);
+    // Remove nearly collinear points to simplify path
+    smoothedPoints = this.removeCollinearPoints(smoothedPoints, 0.1); // 0.1 radian tolerance
+
+    // Convert back to segments
+    const smoothedSegments: RouteSegment[] = [];
+    for (let i = 0; i < smoothedPoints.length - 1; i++) {
+      smoothedSegments.push(
+        this.createSegment(smoothedPoints[i], smoothedPoints[i + 1], 'straight')
+      );
+    }
+
+    // Mark bends in the smoothed path
+    this.markBends(smoothedSegments);
+
+    return smoothedSegments;
+  }
+
+  /**
+   * Chaikin's corner-cutting algorithm for curve smoothing
+   * Each iteration replaces each line segment with two smaller segments
+   * @param points Original waypoints
+   * @param iterations Number of smoothing iterations
+   * @returns Smoothed waypoints
+   */
+  private chaikinSmoothing(points: Vector3[], iterations: number): Vector3[] {
+    if (points.length < 3) return points;
+
+    let currentPoints = points;
+
+    for (let iter = 0; iter < iterations; iter++) {
+      const newPoints: Vector3[] = [];
+      
+      // Keep first point
+      newPoints.push({ ...currentPoints[0] });
+
+      // Apply corner cutting to interior segments
+      for (let i = 0; i < currentPoints.length - 1; i++) {
+        const p1 = currentPoints[i];
+        const p2 = currentPoints[i + 1];
+
+        // Create two new points at 1/4 and 3/4 along the segment
+        const q: Vector3 = {
+          x: 0.75 * p1.x + 0.25 * p2.x,
+          y: 0.75 * p1.y + 0.25 * p2.y,
+          z: 0.75 * p1.z + 0.25 * p2.z
+        };
+
+        const r: Vector3 = {
+          x: 0.25 * p1.x + 0.75 * p2.x,
+          y: 0.25 * p1.y + 0.75 * p2.y,
+          z: 0.25 * p1.z + 0.75 * p2.z
+        };
+
+        newPoints.push(q, r);
+      }
+
+      // Keep last point
+      newPoints.push({ ...currentPoints[currentPoints.length - 1] });
+
+      currentPoints = newPoints;
+    }
+
+    return currentPoints;
+  }
+
+  /**
+   * Remove nearly collinear points to simplify the path
+   * @param points Waypoints
+   * @param angleTolerance Maximum angle deviation in radians to consider collinear
+   * @returns Simplified waypoints
+   */
+  private removeCollinearPoints(points: Vector3[], angleTolerance: number): Vector3[] {
+    if (points.length <= 2) return points;
+
+    const simplified: Vector3[] = [points[0]];
+
+    for (let i = 1; i < points.length - 1; i++) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      const next = points[i + 1];
+
+      const v1 = this.vectorSubtract(curr, prev);
+      const v2 = this.vectorSubtract(next, curr);
 
       const angle = this.angleBetweenVectors(v1, v2);
 
-      // If angle is close to 180 degrees (straight), merge segments
-      if (Math.abs(Math.PI - angle) < 0.2) {
-        // Merge prev and next, skipping curr
-        smoothed.pop();
-        smoothed.push(this.createSegment(prev.startPoint, next.endPoint, 'straight'));
-        i++; // Skip next segment as it's been merged
-      } else {
-        smoothed.push(curr);
+      // If angle is NOT close to 180 degrees, keep this point
+      if (Math.abs(Math.PI - angle) > angleTolerance) {
+        simplified.push(curr);
       }
     }
 
-    if (smoothed[smoothed.length - 1].endPoint !== segments[segments.length - 1].endPoint) {
-      smoothed.push(segments[segments.length - 1]);
-    }
+    // Always keep last point
+    simplified.push(points[points.length - 1]);
 
-    return smoothed;
+    return simplified;
   }
 
   /**
