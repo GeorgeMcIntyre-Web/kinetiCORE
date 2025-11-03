@@ -12,6 +12,7 @@ import { analyzeUnitStructure } from './dev/analyzeUnitStructure';
 import { testHierarchicalAnalyzer } from './dev/testHierarchicalAnalyzer';
 import { extractJointTransforms } from './dev/extractJointTransforms';
 import { visualizeJoints, clearJointVisualizations } from './dev/visualizeJoints';
+import { debugTools } from './dev/globalDebugTools';
 import * as BABYLON from '@babylonjs/core';
 
 // Expose debug tools to window for console access
@@ -28,6 +29,7 @@ if (typeof window !== 'undefined') {
   (window as any).extractJointTransforms = extractJointTransforms; // NEW: Extract joint 3D transforms
   (window as any).visualizeJoints = visualizeJoints; // NEW: Visualize joints with gizmos
   (window as any).clearJointVisualizations = clearJointVisualizations; // NEW: Clear joint gizmos
+  (window as any).debugTools = debugTools; // NEW: Unified debug tools API
 
   console.log('[DEV] Auto Kinematics test exposed: window.testAutoKinematics()');
   console.log('[DEV] GLB Analysis tools:');

@@ -62,6 +62,12 @@ export class SceneManager {
     this.scene.clearColor = new BABYLON.Color4(0.12, 0.12, 0.14, 1);
     console.log('🎨 Scene initialized with dark background:', this.scene.clearColor);
 
+    // Set scene for debug tools
+    if (typeof window !== 'undefined' && (window as any).debugTools) {
+      (window as any).debugTools.setScene(this.scene);
+      console.log('🔧 Debug tools initialized. Type window.debugTools.help() in console.');
+    }
+
     // Initialize lighting service
     this.lightingService.initialize(this.scene);
 
