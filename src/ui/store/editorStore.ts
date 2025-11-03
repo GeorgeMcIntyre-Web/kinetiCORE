@@ -316,10 +316,81 @@ export const useEditorStore = create<EditorState>((set, get) => {
     }
 
     const primaryNodeId = nodeIds[nodeIds.length - 1];
+    const primaryNode = tree.getNode(primaryNodeId);
+
+    if (primaryNode && primaryNode.name.toLowerCase() === 'assets') {
+      set({
+        selectedMeshes: [],
+        selectedCollectionNodeId: null,
+        selectedCollectionTransformNode: null,
+      });
+
+      if (coordinateFrameWidget && !state.customFrame) {
+        coordinateFrameWidget.hide();
+      }
+
+      sceneManager.resetClippingPlanes();
+      return;
+    }
     const orderedNodeIds = [primaryNodeId, ...nodeIds.filter((id) => id !== primaryNodeId)];
 
     const meshes: BABYLON.Mesh[] = [];
     const seenMeshIds = new Set<number>();
+
+    const parseUniqueId = (value?: string): number | null => {
+      if (!value) return null;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const addMeshIfValid = (candidate: BABYLON.AbstractMesh | null | undefined) => {
+      if (!candidate) return;
+
+      const baseMesh =
+        candidate instanceof BABYLON.InstancedMesh ? candidate.sourceMesh : candidate;
+
+      if (!baseMesh || !(baseMesh instanceof BABYLON.Mesh)) {
+        return;
+      }
+
+      if (seenMeshIds.has(baseMesh.uniqueId)) {
+        return;
+      }
+
+      meshes.push(baseMesh);
+      seenMeshIds.add(baseMesh.uniqueId);
+    };
+
+    const addMeshesFromNode = (node: BABYLON.Node | null | undefined) => {
+      if (!node) return;
+
+      if (node instanceof BABYLON.AbstractMesh) {
+        addMeshIfValid(node);
+      }
+
+      // Prefer getChildMeshes when available (TransformNodes/AbstractMesh implement it)
+      if ('getChildMeshes' in node && typeof (node as any).getChildMeshes === 'function') {
+        try {
+          const childMeshes: BABYLON.AbstractMesh[] = (node as any).getChildMeshes(false);
+          childMeshes.forEach(addMeshIfValid);
+          return;
+        } catch (error) {
+          console.warn('[EditorStore] Failed to get child meshes from node:', node.name, error);
+        }
+      }
+
+      // Fallback: traverse descendants
+      try {
+        const descendants = node.getDescendants(false);
+        descendants.forEach((descendant) => {
+          if (descendant instanceof BABYLON.AbstractMesh) {
+            addMeshIfValid(descendant);
+          }
+        });
+      } catch (error) {
+        console.warn('[EditorStore] Failed to traverse descendants for node:', node.name, error);
+      }
+    };
 
     let selectedCollectionNodeId: string | null = null;
     let selectedCollectionTransformNode: BABYLON.TransformNode | null = null;
@@ -330,20 +401,40 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
       if (node.entityId) {
         const entity = registry.get(node.entityId);
-        if (entity && typeof entity.getMesh === 'function') {
-          const mesh = entity.getMesh();
-          if (mesh && mesh instanceof BABYLON.Mesh && !seenMeshIds.has(mesh.uniqueId)) {
-            meshes.push(mesh);
-            seenMeshIds.add(mesh.uniqueId);
+        if (entity) {
+          if (typeof entity.getMesh === 'function') {
+            addMeshesFromNode(entity.getMesh());
+          }
+          if (typeof (entity as any).getRootTransformNode === 'function') {
+            addMeshesFromNode((entity as any).getRootTransformNode());
+          }
+          if (typeof (entity as any).getChildren === 'function') {
+            try {
+              const children = (entity as any).getChildren() as any[];
+              children?.forEach((child) => {
+                if (child && typeof child.getMesh === 'function') {
+                  addMeshesFromNode(child.getMesh());
+                }
+              });
+            } catch (error) {
+              console.warn('[EditorStore] Failed to collect meshes from entity children:', error);
+            }
           }
         }
-      } else if (node.babylonMeshId) {
-        const uniqueId = parseInt(node.babylonMeshId, 10);
-        const mesh = scene.getMeshByUniqueId(uniqueId);
-        if (mesh && mesh instanceof BABYLON.Mesh && !seenMeshIds.has(mesh.uniqueId)) {
-          meshes.push(mesh);
-          seenMeshIds.add(mesh.uniqueId);
-        }
+      }
+
+      const meshUniqueId = parseUniqueId(node.babylonMeshId);
+      if (meshUniqueId !== null) {
+        addMeshesFromNode(scene.getMeshByUniqueId(meshUniqueId));
+      }
+
+      const transformUniqueId = parseUniqueId(node.babylonTransformNodeId);
+      if (transformUniqueId !== null) {
+        addMeshesFromNode(scene.getTransformNodeByUniqueId(transformUniqueId));
+      } else if (!node.babylonMeshId) {
+        // Fallback: attempt lookup by name (helps with legacy nodes without IDs)
+        const transformCandidate = scene.transformNodes.find((tn) => tn.name === node.name);
+        addMeshesFromNode(transformCandidate);
       }
 
       const children = tree.getChildren(nodeId);

@@ -207,7 +207,7 @@ function nodeMatchesSearch(node: SceneNode, searchTerm: string): boolean {
   }
 
   // Check tags
-  if (node.tags?.some(tag => tag.toLowerCase().includes(lowerSearch))) {
+  if (node.tags?.some((tag) => tag.toLowerCase().includes(lowerSearch))) {
     return true;
   }
 
@@ -233,7 +233,7 @@ function nodeOrChildrenMatchSearch(
 
   // Check children
   const children = tree.getChildren(node.id);
-  return children.some(child => nodeOrChildrenMatchSearch(child, searchTerm, tree, visited));
+  return children.some((child) => nodeOrChildrenMatchSearch(child, searchTerm, tree, visited));
 }
 
 /**
@@ -247,7 +247,13 @@ interface TreeNodeProps {
   visitedIds?: Set<string>; // Cycle protection
 }
 
-const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth = 50, visitedIds }) => {
+const TreeNode: React.FC<TreeNodeProps> = ({
+  node,
+  level,
+  searchTerm,
+  maxDepth = 50,
+  visitedIds,
+}) => {
   const tree = SceneTreeManager.getInstance();
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
@@ -271,7 +277,10 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
     const set = new Set<string>(visitedIds || []);
     // Check if this node was already visited (circular reference detected)
     if (set.has(node.id)) {
-      console.error(`[SceneTree] CRITICAL: Circular reference detected! Node ${node.id} (${node.name}) is already in the visited set.`, Array.from(set));
+      console.error(
+        `[SceneTree] CRITICAL: Circular reference detected! Node ${node.id} (${node.name}) is already in the visited set.`,
+        Array.from(set)
+      );
     }
     set.add(node.id);
     return set;
@@ -279,16 +288,17 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
 
   const children = tree.getChildren(node.id).filter((child) => {
     if (localVisited.has(child.id)) {
-      console.error(`[SceneTree] Cycle detected: skipping child ${child.id} (${child.name}) of parent ${node.id} (${node.name}). Visited path:`, Array.from(localVisited));
+      console.error(
+        `[SceneTree] Cycle detected: skipping child ${child.id} (${child.name}) of parent ${node.id} (${node.name}). Visited path:`,
+        Array.from(localVisited)
+      );
       return false;
     }
     return true;
   });
   const hasChildren = children.length > 0;
   const isSelected = selectedNodeId === node.id || selectedNodeIds.includes(node.id);
-  const canDelete = node.type !== 'world' &&
-                    node.type !== 'scene' &&
-                    node.type !== 'system';
+  const canDelete = node.type !== 'world' && node.type !== 'scene' && node.type !== 'system';
 
   // Get effective visibility (considering parent visibility)
   const effectiveVisibility = tree.getEffectiveVisibility(node.id);
@@ -303,7 +313,9 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
   // Don't render if filtered out by search or if we've exceeded max depth
   if (!shouldShow || level > maxDepth) {
     if (level > maxDepth) {
-      console.error(`[SceneTree] Maximum depth exceeded for node ${node.id} (${node.name}) at level ${level}`);
+      console.error(
+        `[SceneTree] Maximum depth exceeded for node ${node.id} (${node.name}) at level ${level}`
+      );
     }
     return null;
   }
@@ -318,6 +330,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
       clearSelection();
     } else {
       selectNode(node.id);
+      console.log('Selected --------------------> ', node);
     }
   };
 
@@ -442,11 +455,23 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
 
         if (tnode.babylonTransformNodeId) {
           const tn = scene.getTransformNodeByUniqueId(parseInt(tnode.babylonTransformNodeId, 10));
-          if (tn) { allowed.add(tn.uniqueId); if (!seen.has(tn.uniqueId)) { roots.push(tn); seen.add(tn.uniqueId); } }
+          if (tn) {
+            allowed.add(tn.uniqueId);
+            if (!seen.has(tn.uniqueId)) {
+              roots.push(tn);
+              seen.add(tn.uniqueId);
+            }
+          }
         }
         if (tnode.babylonMeshId) {
           const m = scene.getMeshByUniqueId(parseInt(tnode.babylonMeshId, 10));
-          if (m) { allowed.add(m.uniqueId); if (!seen.has(m.uniqueId)) { roots.push(m); seen.add(m.uniqueId); } }
+          if (m) {
+            allowed.add(m.uniqueId);
+            if (!seen.has(m.uniqueId)) {
+              roots.push(m);
+              seen.add(m.uniqueId);
+            }
+          }
         }
         const children = tree.getChildren(treeNodeId);
         for (const c of children) collect(c.id);
@@ -512,25 +537,20 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
     setContextMenu({ x: e.clientX, y: e.clientY });
   };
 
-  const menuItems = contextMenu ? getNodeMenuItems(
-    node.id,
-    node.name,
-    node.type,
-    node.visible,
-    node.locked,
-    canDelete,
-    {
-      onRename: () => setIsRenaming(true),
-      onDuplicate: () => {}, // TODO: Implement duplicate
-      onDelete: () => handleDelete({} as React.MouseEvent),
-      onToggleVisibility: () => handleToggleVisibility({} as React.MouseEvent),
-      onToggleLock: () => handleToggleLock({} as React.MouseEvent),
-      onZoom: () => zoomToNode(node.id),
-      onSaveToLibrary: handleSaveToLibrary,
-      onExportGLB: () => { handleExportGLB(); },
-    }
-  ) : [];
-
+  const menuItems = contextMenu
+    ? getNodeMenuItems(node.id, node.name, node.type, node.visible, node.locked, canDelete, {
+        onRename: () => setIsRenaming(true),
+        onDuplicate: () => {}, // TODO: Implement duplicate
+        onDelete: () => handleDelete({} as React.MouseEvent),
+        onToggleVisibility: () => handleToggleVisibility({} as React.MouseEvent),
+        onToggleLock: () => handleToggleLock({} as React.MouseEvent),
+        onZoom: () => zoomToNode(node.id),
+        onSaveToLibrary: handleSaveToLibrary,
+        onExportGLB: () => {
+          handleExportGLB();
+        },
+      })
+    : [];
 
   return (
     <div className="tree-node">
@@ -594,11 +614,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
             <>
               {node.name}
               {hasChildren && <span className="tree-node-count">({children.length})</span>}
-              {statusBadges.length > 0 && (
-                <div className="tree-node-badges">
-                  {statusBadges}
-                </div>
-              )}
+              {statusBadges.length > 0 && <div className="tree-node-badges">{statusBadges}</div>}
             </>
           )}
         </div>
@@ -609,13 +625,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
           <button
             className={`tree-node-action ${!effectiveVisibility ? 'disabled' : ''}`}
             onClick={handleToggleVisibility}
-            title={
-              !effectiveVisibility 
-                ? 'Hidden by parent' 
-                : node.visible 
-                  ? 'Hide' 
-                  : 'Show'
-            }
+            title={!effectiveVisibility ? 'Hidden by parent' : node.visible ? 'Hide' : 'Show'}
             disabled={!effectiveVisibility && node.visible}
           >
             {effectiveVisibility ? <Eye size={14} /> : <EyeOff size={14} />}
@@ -633,22 +643,14 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
 
           {/* Rename button */}
           {canDelete && !isRenaming && (
-            <button
-              className="tree-node-action"
-              onClick={handleRenameStart}
-              title="Rename"
-            >
+            <button className="tree-node-action" onClick={handleRenameStart} title="Rename">
               <Edit3 size={14} />
             </button>
           )}
 
           {/* Delete button */}
           {canDelete && (
-            <button
-              className="tree-node-action"
-              onClick={handleDelete}
-              title="Delete"
-            >
+            <button className="tree-node-action" onClick={handleDelete} title="Delete">
               <Trash2 size={14} />
             </button>
           )}
@@ -659,7 +661,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, searchTerm, maxDepth =
       {hasChildren && node.expanded && (
         <div className="tree-node-children">
           {children
-            .filter(child => child.showInTree !== false) // Hide technical nodes (default: show)
+            .filter((child) => child.showInTree !== false) // Hide technical nodes (default: show)
             .map((child) => (
               <TreeNode
                 key={child.id}
@@ -749,11 +751,9 @@ export const SceneTree: React.FC = () => {
 
   const handleDeleteSelected = () => {
     if (selectedNodes.length > 0) {
-      const confirmed = window.confirm(
-        `Delete ${selectedNodes.length} selected items?`
-      );
+      const confirmed = window.confirm(`Delete ${selectedNodes.length} selected items?`);
       if (confirmed) {
-        selectedNodes.forEach(nodeId => deleteNode(nodeId));
+        selectedNodes.forEach((nodeId) => deleteNode(nodeId));
         setSelectedNodes([]);
       }
     }
@@ -813,11 +813,7 @@ export const SceneTree: React.FC = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
         />
         {searchTerm && (
-          <button
-            className="clear-search"
-            onClick={handleClearSearch}
-            title="Clear search"
-          >
+          <button className="clear-search" onClick={handleClearSearch} title="Clear search">
             <X size={16} />
           </button>
         )}
@@ -825,5 +821,3 @@ export const SceneTree: React.FC = () => {
     </div>
   );
 };
-
-
