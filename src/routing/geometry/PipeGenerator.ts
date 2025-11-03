@@ -3,14 +3,137 @@
 
 import * as BABYLON from '@babylonjs/core';
 import { Route } from '../core/Route';
-import { RouteSegment, SupportPoint } from '../core/types';
+import { RouteSegment, SupportPoint, RouteType } from '../core/types';
 import { RouteGeometryGenerator } from './RouteGeometryGenerator';
+import { PIPE_SIZES } from '../specifications/RouteSpecifications';
+
+/**
+ * BOM (Bill of Materials) data for a route
+ */
+export interface BOMData {
+  type: RouteType;
+  size: string;
+  material: string;
+  totalLength: number;
+  fittings: FittingCount[];
+  supports: SupportCount[];
+  estimatedCost?: number;
+}
+
+/**
+ * Fitting count by type
+ */
+export interface FittingCount {
+  type: 'elbow' | 'tee' | 'reducer' | 'coupling';
+  angle?: number;
+  count: number;
+}
+
+/**
+ * Support count by type
+ */
+export interface SupportCount {
+  type: 'hanger' | 'clamp' | 'bracket';
+  spec: string;
+  count: number;
+}
 
 /**
  * PipeGenerator creates 3D pipe geometry (cylinders) along route paths
  * Includes elbows at bends and supports/hangers
  */
 export class PipeGenerator extends RouteGeometryGenerator {
+  /**
+   * Get pipe diameter from specifications
+   * @param route - Route with size specification
+   * @returns Object with outer diameter (od) and inner diameter (id) in meters
+   */
+  private getPipeDiameter(route: Route): { od: number; id: number } {
+    const size = route.source.specifications.size || '1/2"';
+    const pipeSpec = PIPE_SIZES[size];
+    
+    if (!pipeSpec) {
+      console.warn(`[PipeGenerator] Unknown pipe size: ${size}, using default 1/2"`);
+      return PIPE_SIZES['1/2"'];
+    }
+    
+    return pipeSpec;
+  }
+
+  /**
+   * Compute bill of materials for this route
+   * @param route - Route to compute BOM for
+   * @returns BOM data with lengths, fittings, and materials
+   */
+  computeBOM(route: Route): BOMData {
+    const size = route.source.specifications.size || '1/2"';
+    const material = route.material.name || 'steel';
+    const totalLength = route.getTotalLength();
+    
+    // Count elbows (bend segments)
+    const elbowCount = route.segments.filter(s => s.segmentType === 'bend').length;
+    
+    // Count supports
+    const supportCount = route.supports.length;
+    
+    const fittings: FittingCount[] = [];
+    if (elbowCount > 0) {
+      fittings.push({
+        type: 'elbow',
+        angle: 90,
+        count: elbowCount
+      });
+    }
+    
+    const supports: SupportCount[] = [];
+    if (supportCount > 0) {
+      supports.push({
+        type: 'hanger',
+        spec: `Pipe Hanger ${size}`,
+        count: supportCount
+      });
+    }
+    
+    return {
+      type: 'pipe',
+      size,
+      material,
+      totalLength,
+      fittings,
+      supports,
+      estimatedCost: this.estimateCost(totalLength, material, elbowCount, supportCount)
+    };
+  }
+
+  /**
+   * Estimate cost for pipe route
+   * @private
+   */
+  private estimateCost(
+    length: number,
+    material: string,
+    elbowCount: number,
+    supportCount: number
+  ): number {
+    // Rough cost estimates (in USD)
+    const costPerMeter: Record<string, number> = {
+      steel: 15,
+      stainless: 30,
+      copper: 25,
+      PVC: 8,
+      aluminum: 20
+    };
+    
+    const elbowCost = 12; // per elbow
+    const supportCost = 8; // per support
+    
+    const materialCostPerMeter = costPerMeter[material] || costPerMeter['steel'];
+    const pipeCost = length * materialCostPerMeter;
+    const fittingsCost = elbowCount * elbowCost;
+    const supportsCost = supportCount * supportCost;
+    
+    return pipeCost + fittingsCost + supportsCost;
+  }
   /**
    * Generate pipe geometry from route
    */
@@ -24,11 +147,11 @@ export class PipeGenerator extends RouteGeometryGenerator {
     for (const segment of route.segments) {
       console.log('[PipeGenerator] Processing segment:', segment.segmentType, 'length:', segment.length);
       if (segment.segmentType === 'straight') {
-        const tube = this.createTube(segment);
+        const tube = this.createTube(segment, route);
         meshes.push(tube);
         console.log('[PipeGenerator] ✅ Created tube:', tube.name);
       } else if (segment.segmentType === 'bend') {
-        const elbow = this.createElbow(segment, route.constraints.minBendRadius);
+        const elbow = this.createElbow(segment, route.constraints.minBendRadius, route);
         meshes.push(elbow);
         console.log('[PipeGenerator] ✅ Created elbow:', elbow.name);
       }
@@ -36,7 +159,7 @@ export class PipeGenerator extends RouteGeometryGenerator {
 
     // Generate supports
     for (const support of route.supports) {
-        const supportMesh = this.createSupport(support);
+        const supportMesh = this.createSupport(support, route);
       meshes.push(supportMesh);
       console.log('[PipeGenerator] ✅ Created support:', supportMesh.name);
     }
@@ -60,7 +183,7 @@ export class PipeGenerator extends RouteGeometryGenerator {
 
     // Combine all meshes
     const combined = this.combineMeshes(meshes, `pipe_${route.getId()}`);
-    const material = this.createMaterial(route.type, `pipe_mat_${route.getId()}`);
+    const material = this.createPipeMaterial(route, `pipe_mat_${route.getId()}`);
     combined.material = material;
 
     console.log('[PipeGenerator] ✅ Combined mesh created:', combined.name);
@@ -68,9 +191,42 @@ export class PipeGenerator extends RouteGeometryGenerator {
   }
 
   /**
+   * Create material for pipe based on material specification
+   * Overrides base createMaterial to support material-specific colors
+   */
+  private createPipeMaterial(route: Route, name: string): BABYLON.StandardMaterial {
+    const material = new BABYLON.StandardMaterial(name, this.scene);
+    const materialName = (route.material.name || 'steel').toLowerCase();
+
+    // Material-specific colors
+    const materialColors: Record<string, BABYLON.Color3> = {
+      steel: BABYLON.Color3.Gray(),
+      stainless: BABYLON.Color3.FromHexString('#C0C0C0'), // Silver
+      pvc: BABYLON.Color3.White(),
+      copper: BABYLON.Color3.FromHexString('#B87333'), // Copper color
+      aluminum: BABYLON.Color3.FromHexString('#A8A9AD'), // Light gray
+    };
+
+    const color = materialColors[materialName] || materialColors['steel'];
+    material.diffuseColor = color;
+
+    // Metallic materials have more specular reflection
+    if (['steel', 'stainless', 'aluminum', 'copper'].includes(materialName)) {
+      material.specularColor = new BABYLON.Color3(0.8, 0.8, 0.8);
+      material.specularPower = 64;
+    } else {
+      // PVC and other plastics
+      material.specularColor = new BABYLON.Color3(0.3, 0.3, 0.3);
+      material.specularPower = 32;
+    }
+
+    return material;
+  }
+
+  /**
    * Create a tube (cylinder) along a straight segment
    */
-  private createTube(segment: RouteSegment): BABYLON.Mesh {
+  private createTube(segment: RouteSegment, route?: Route): BABYLON.Mesh {
     const start = this.toBabylonVector(segment.startPoint);
     const end = this.toBabylonVector(segment.endPoint);
 
@@ -79,8 +235,9 @@ export class PipeGenerator extends RouteGeometryGenerator {
     const length = direction.length();
     direction.normalize();
 
-    // Default diameter: 40mm (could come from specifications)
-    const diameter = 0.04; // 40mm (0.025m radius = 50mm diameter for larger pipes)
+    // Get diameter from specifications (route is passed as parameter)
+    const { od } = route ? this.getPipeDiameter(route) : { od: 0.04 };
+    const diameter = od;
 
     // Create cylinder with proper tessellation for smooth appearance
     const cylinder = BABYLON.MeshBuilder.CreateCylinder(
@@ -114,16 +271,16 @@ export class PipeGenerator extends RouteGeometryGenerator {
   /**
    * Create an elbow (bend fitting) at a bend segment
    */
-  private createElbow(segment: RouteSegment, minBendRadius: number): BABYLON.Mesh {
+  private createElbow(segment: RouteSegment, minBendRadius: number, route?: Route): BABYLON.Mesh {
     const start = this.toBabylonVector(segment.startPoint);
     const end = this.toBabylonVector(segment.endPoint);
 
     // Use bend radius from segment or default to minBendRadius
     const bendRadius = segment.bendRadius || minBendRadius;
 
-    // For MVP, create a simple curved tube
-    // Full implementation would create a proper 90-degree elbow mesh
-    const diameter = 0.04; // 40mm diameter matching pipe
+    // Get diameter from specifications (route is passed as parameter)
+    const { od } = route ? this.getPipeDiameter(route) : { od: 0.04 };
+    const diameter = od;
 
     // Create a torus segment to represent the elbow
     const elbow = BABYLON.MeshBuilder.CreateTorus(
@@ -156,7 +313,7 @@ export class PipeGenerator extends RouteGeometryGenerator {
   /**
    * Create support/hanger geometry
    */
-  private createSupport(support: SupportPoint): BABYLON.Mesh {
+  private createSupport(support: SupportPoint, route?: Route): BABYLON.Mesh {
     const position = this.toBabylonVector(support.position);
 
     let supportMesh: BABYLON.Mesh;
