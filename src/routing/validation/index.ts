@@ -1,7 +1,19 @@
-// Route Validation Module - Exports
-// Owner: Routing System Team (Agent 3)
+// Validation module exports
+// Owner: Agent 2 - Constraint Validator
 
+export { ConstraintValidator } from './ConstraintValidator';
+export {
+  ValidationResult,
+  ConstraintViolation,
+  EnhancedValidationResult,
+  BatchValidationResult,
+  ValidationOptions,
+  ValidationStatistics,
+  ViolationType,
+  ViolationSeverity,
+  createViolationId,
+  calculateStatistics,
+  formatViolationMessage,
+} from './ValidationResult';
 export { RouteValidator } from './RouteValidator';
-export type { EnhancedValidationResult } from './RouteValidator';
 export { RouteVisualWarnings } from './RouteVisualWarnings';
-
