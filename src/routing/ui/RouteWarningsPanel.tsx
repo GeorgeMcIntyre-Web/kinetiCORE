@@ -33,11 +33,23 @@ export const RouteWarningsPanel: React.FC = () => {
     });
   });
 
-  const errorCount = allViolations.filter((v) => v.violation.severity === 'error').length;
-  const warningCount = allViolations.filter((v) => v.violation.severity === 'warning').length;
+  // Deduplicate violations by creating unique key: routeId + message
+  // This prevents showing "Clearance 0.00" 4 times for the same route
+  const seenKeys = new Set<string>();
+  const uniqueViolations = allViolations.filter((item) => {
+    const key = `${item.routeId}:${item.violation.message}`;
+    if (seenKeys.has(key)) {
+      return false; // Skip duplicate
+    }
+    seenKeys.add(key);
+    return true;
+  });
+
+  const errorCount = uniqueViolations.filter((v) => v.violation.severity === 'error').length;
+  const warningCount = uniqueViolations.filter((v) => v.violation.severity === 'warning').length;
 
   // Don't show panel if there are no issues
-  if (allViolations.length === 0) {
+  if (uniqueViolations.length === 0) {
     return null;
   }
 
@@ -65,7 +77,7 @@ export const RouteWarningsPanel: React.FC = () => {
       {expanded && (
         <div className="warnings-content">
           <div className="warnings-list">
-            {allViolations.map((item, index) => (
+            {uniqueViolations.map((item, index) => (
               <div
                 key={`${item.routeId}-${index}`}
                 className={`violation-item ${item.violation.severity}`}
@@ -87,7 +99,7 @@ export const RouteWarningsPanel: React.FC = () => {
                 className="fix-route-btn"
                 onClick={() => {
                   // Could implement auto-fix suggestions
-                  console.log('Fix route suggestions:', allViolations);
+                  console.log('Fix route suggestions:', uniqueViolations);
                 }}
               >
                 Show Fix Suggestions

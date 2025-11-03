@@ -36,6 +36,10 @@ export class Route implements IRoute {
   ) {
     this.id = generateId();
     this.type = source.getType();
+    console.log(`[Route constructor] 🏗️ Creating route ${this.id}`);
+    console.log(`[Route constructor]   Source type: ${source.getType()}`);
+    console.log(`[Route constructor]   Dest type: ${destination.getType()}`);
+    console.log(`[Route constructor]   Route type set to: ${this.type}`);
     this.source = source;
     this.destination = destination;
     this.segments = [...segments];

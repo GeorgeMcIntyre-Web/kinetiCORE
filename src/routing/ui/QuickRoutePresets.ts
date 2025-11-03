@@ -20,7 +20,8 @@ export async function createPresetRoute(
   end: V3
 ) {
   try {
-    console.log(`[QuickRoutePresets] Creating ${type} route from`, start, 'to', end);
+    console.log(`[QuickRoutePresets] 🎯 Creating ${type} route from`, start, 'to', end);
+    console.log(`[QuickRoutePresets] Type parameter received:`, type);
 
     const setType = useRoutingStore.getState().setCurrentRouteType;
     if (!setType) {
@@ -28,6 +29,7 @@ export async function createPresetRoute(
       return;
     }
     setType(type);
+    console.log(`[QuickRoutePresets] Current route type set to:`, useRoutingStore.getState().currentRouteType);
 
     const cmdManager = useEditorStore.getState().commandManager;
     if (!cmdManager) {
@@ -64,9 +66,12 @@ export async function createPresetRoute(
     specifications: baseSpecs,
   });
 
-    console.log('[QuickRoutePresets] Executing connection point commands...');
+    console.log('[QuickRoutePresets] 📍 Creating connection points with type:', type);
+    console.log('[QuickRoutePresets] Point A specs:', baseSpecs);
+    console.log('[QuickRoutePresets] Point B specs:', baseSpecs);
     cmdManager.execute(cmdA);
     cmdManager.execute(cmdB);
+    console.log('[QuickRoutePresets] ✅ Connection points created');
 
     // Find the newly created connection points by nearest positions
     const cm = ConnectionManager.getInstance();
@@ -74,11 +79,14 @@ export async function createPresetRoute(
     const dst = cm.findNearbyConnections(end, 0.05)[0];
 
     if (!src || !dst) {
-      console.error('[QuickRoutePresets] Failed to find connection points. src:', src, 'dst:', dst);
+      console.error('[QuickRoutePresets] ❌ Failed to find connection points. src:', src, 'dst:', dst);
       return;
     }
 
-    console.log('[QuickRoutePresets] Found connection points, creating route...');
+    console.log('[QuickRoutePresets] ✅ Found connection points:');
+    console.log('[QuickRoutePresets]   Source:', src.getId(), 'Type:', src.getType());
+    console.log('[QuickRoutePresets]   Dest:', dst.getId(), 'Type:', dst.getType());
+    console.log('[QuickRoutePresets] 🔗 Creating route between points...');
     // Create route between them and wait for completion
     const routeId = await RoutingWorkflowHandler.createRouteBetweenPoints(src.getId(), dst.getId());
 

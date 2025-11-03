@@ -29,8 +29,17 @@ export class CreateConnectionPointCommand extends Command {
   }
 
   execute(): void {
+    console.log(`[CreateConnectionPointCommand] 📍 Creating connection point with type: ${this.config.type}`);
+    console.log(`[CreateConnectionPointCommand]   Position:`, this.config.position);
+    console.log(`[CreateConnectionPointCommand]   Specifications:`, this.config.specifications);
+
     const connectionManager = ConnectionManager.getInstance();
     this.connectionPoint = connectionManager.addConnectionPoint(this.config);
+
+    if (this.connectionPoint) {
+      console.log(`[CreateConnectionPointCommand] ✅ Connection point created:`, this.connectionPoint.getId());
+      console.log(`[CreateConnectionPointCommand]   Stored type: ${this.connectionPoint.getType()}`);
+    }
 
     // Add to entity if specified
     if (this.entityId && this.connectionPoint) {
