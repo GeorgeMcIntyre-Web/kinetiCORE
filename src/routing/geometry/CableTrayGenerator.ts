@@ -404,6 +404,33 @@ export class CableTrayGenerator extends RouteGeometryGenerator {
   }
 
   /**
+   * Create tee fitting at branch point
+   * Note: Currently routes don't support branching (Phase 2 feature)
+   * This method is provided for future integration
+   */
+  createTeeFitting(position: Vector3, spec: CableTraySpec): BABYLON.Mesh {
+    const pos = this.toBabylonVector(position);
+
+    const width = spec.width;
+    const depth = spec.height;
+    const teeLength = width * 2;
+
+    // Simplified tee: three-way junction
+    const tee = BABYLON.MeshBuilder.CreateBox(
+      `tray_tee_${Date.now()}`,
+      {
+        width: width,
+        height: depth,
+        depth: teeLength,
+      },
+      this.scene
+    );
+    tee.position = pos;
+
+    return tee;
+  }
+
+  /**
    * Calculate bend angle from segment
    */
   private calculateBendAngle(segment: any): number {
