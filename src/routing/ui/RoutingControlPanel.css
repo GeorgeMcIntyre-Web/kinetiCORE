@@ -366,3 +366,22 @@
 .route-list::-webkit-scrollbar-thumb:hover {
   background: #00D9FF;
 }
+
+/* Warehouse Controls Wrapper */
+.warehouse-controls-wrapper {
+  margin-top: 8px;
+}
+
+.warehouse-controls-wrapper .warehouse-controls {
+  border: none;
+  background: transparent;
+  min-width: auto;
+}
+
+.warehouse-controls-wrapper .warehouse-controls-header {
+  display: none; /* Hide duplicate header when nested */
+}
+
+.warehouse-controls-wrapper .warehouse-controls-body {
+  padding: 0;
+}

@@ -2,11 +2,12 @@
 // Owner: Routing System Team
 
 import React, { useState } from 'react';
-import { Network, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Network, Trash2, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { useEditorStore } from '../../ui/store/editorStore';
 import { useRoutingStore } from '../../ui/store/routingStore';
 import { ConnectionManager } from '../core/ConnectionManager';
 import { RoutingWorkflowHandler } from './RoutingWorkflowHandler';
+import { WarehouseControls } from './WarehouseControls';
 import './RoutingControlPanel.css';
 
 interface RoutingControlPanelProps {
@@ -33,6 +34,7 @@ export const RoutingControlPanel: React.FC<RoutingControlPanelProps> = ({ onClos
 
   const [selectedConnectorIds, setSelectedConnectorIds] = useState<string[]>([]);
   const [showRoutes, setShowRoutes] = useState(true);
+  const [showWarehouseControls, setShowWarehouseControls] = useState(true);
 
   // Get all connection points
   const connectionManager = ConnectionManager.getInstance();
@@ -102,6 +104,25 @@ export const RoutingControlPanel: React.FC<RoutingControlPanelProps> = ({ onClos
           <button className="close-btn" onClick={onClose}>
             ×
           </button>
+        )}
+      </div>
+
+      {/* Warehouse Controls Section */}
+      <div className="section">
+        <div className="section-header">
+          <h4>Warehouse</h4>
+          <button
+            className="icon-btn"
+            onClick={() => setShowWarehouseControls(!showWarehouseControls)}
+            title={showWarehouseControls ? 'Hide warehouse controls' : 'Show warehouse controls'}
+          >
+            {showWarehouseControls ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+        </div>
+        {showWarehouseControls && (
+          <div className="warehouse-controls-wrapper">
+            <WarehouseControls />
+          </div>
         )}
       </div>
 
