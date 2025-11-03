@@ -252,3 +252,48 @@ export interface Graph {
   edges: GraphEdge[];
 }
 
+/**
+ * Bill of Materials (BOM) data for a route
+ * Used by geometry generators to compute material quantities
+ */
+export interface BOMData {
+  /** Type of route infrastructure */
+  type: RouteType;
+  /** Size specification */
+  size: string;
+  /** Material name */
+  material: string;
+  /** Total length in meters */
+  totalLength: number;
+  /** Fittings used in the route */
+  fittings: FittingCount[];
+  /** Supports used in the route */
+  supports: SupportCount[];
+  /** Estimated cost in USD (optional) */
+  estimatedCost?: number;
+}
+
+/**
+ * Count of fittings by type
+ */
+export interface FittingCount {
+  /** Type of fitting */
+  type: 'elbow' | 'tee' | 'reducer' | 'coupling' | 'junction-box';
+  /** Angle for elbows (e.g., 90, 45) */
+  angle?: number;
+  /** Number of fittings */
+  count: number;
+}
+
+/**
+ * Count of supports by type
+ */
+export interface SupportCount {
+  /** Type of support */
+  type: 'hanger' | 'clamp' | 'bracket';
+  /** Specification string (e.g., "Pipe Hanger 3/4\"") */
+  spec: string;
+  /** Number of supports */
+  count: number;
+}
+

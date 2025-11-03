@@ -23,6 +23,15 @@
 
 **None currently** ✅
 
+## 📢 Shared File Edit Announcements
+
+### Agent 6 - Planning to Edit types.ts
+**File:** `src/routing/core/types.ts`
+**Reason:** Need to add BOMData, FittingCount, and SupportCount interfaces for computeBOM() methods
+**ETA:** Now (2025-11-03)
+**Affects:** Agent 9 (will need these types for BOM export)
+**Waiting:** 30 minutes for objections before proceeding
+
 <!-- Example:
 ### [BLOCKER] Agent 4 - Missing Validation API
 **Issue:** PipeGenerator needs `ValidationResult` type from Agent 2
@@ -74,9 +83,9 @@
 
 #### Agent 6 - Wiring & Conduit Geometry
 - **Yesterday:** N/A (Starting today)
-- **Today:** Analyzing existing cable/conduit code, planning improvements
-- **Tomorrow:** Implementing spec-driven cable bundles
-- **Blockers:** [DEPENDS: Agent 3] Need WIRING_SPECS and CONDUIT_SIZES tables
+- **Today:** ✅ Branch setup complete, ✅ Reviewed existing code and specs, Now: Refactoring CableGenerator to use specs
+- **Tomorrow:** Complete CableGenerator with BOM, start ConduitGenerator refactor
+- **Blockers:** None - specs already available in RouteSpecifications.ts!
 - **PRs:** None yet
 
 #### Agent 7 - Connection Manager
