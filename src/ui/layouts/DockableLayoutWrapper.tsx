@@ -29,14 +29,19 @@ interface DockableLayoutWrapperProps {
   config: DockableLayoutConfig;
   onLayoutChange?: (layout: any) => void;
   savedLayout?: any;
+  // Optional initial width for the left dock group (e.g., Scene Tree). If provided,
+  // the first left panel is sized to this width and updated when the prop changes.
+  leftGroupWidth?: number;
 }
 
 export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
   config,
   onLayoutChange,
   savedLayout,
+  leftGroupWidth,
 }) => {
   const apiRef = useRef<DockviewApi | null>(null);
+  const leftPanelApiRef = useRef<any | null>(null);
 
   const components = Object.fromEntries(
     Object.entries(PANEL_REGISTRY).map(([key, panelConfig]) => [
@@ -85,9 +90,12 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
         params: {},
         position: { direction: 'left' },
       });
-
-      // Set width to match Essential Mode (Scene Tree default - 240px)
-      if (leftPanel.api.width > 240) {
+      // Remember API handle for later updates
+      leftPanelApiRef.current = leftPanel.api;
+      // Apply initial width if provided, otherwise fall back to compact default
+      if (typeof leftGroupWidth === 'number' && isFinite(leftGroupWidth) && leftGroupWidth > 0) {
+        leftPanel.api.setSize({ width: leftGroupWidth });
+      } else if (leftPanel.api.width > 240) {
         leftPanel.api.setSize({ width: 240 });
       }
 
@@ -164,6 +172,17 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
       }
     }
   };
+
+  // React to leftGroupWidth updates after layout is ready
+  useEffect(() => {
+    if (leftPanelApiRef.current && typeof leftGroupWidth === 'number' && isFinite(leftGroupWidth) && leftGroupWidth > 0) {
+      try {
+        leftPanelApiRef.current.setSize({ width: leftGroupWidth });
+      } catch (e) {
+        console.warn('[DockableLayoutWrapper] Failed to update left group width:', e);
+      }
+    }
+  }, [leftGroupWidth]);
 
   useEffect(() => {
     if (!apiRef.current) return;

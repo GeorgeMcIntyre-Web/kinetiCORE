@@ -150,7 +150,7 @@ export const RoutingControlPanel: React.FC<RoutingControlPanelProps> = ({ onClos
           onClick={handlePlaceConnector}
         >
           <Network size={18} />
-          <span>{routingMode === 'placing_connector' ? 'Placing... (Click Scene)' : 'Place Connectors'}</span>
+          <span>{routingMode === 'placing_connector' ? 'Stop Placing (click to finish)' : 'Place Connectors'}</span>
         </button>
         {routingMode === 'placing_connector' && (
           <div className="hint-box">
@@ -269,3 +269,4 @@ export const RoutingControlPanel: React.FC<RoutingControlPanelProps> = ({ onClos
     </div>
   );
 };
+

@@ -86,7 +86,7 @@ export class RoutingWorkflowHandler {
     commandManager.execute(command);
 
     // Exit placing mode
-    useRoutingStore.getState().setRoutingMode('off');
+    // keep placing active; exit via UI toggle
   }
 
   /**
@@ -107,7 +107,7 @@ export class RoutingWorkflowHandler {
 
     // Exit placing mode after a short delay to allow the event to be handled
     setTimeout(() => {
-      useRoutingStore.getState().setRoutingMode('off');
+      // keep placing active; exit via UI toggle
     }, 100);
   }
 
@@ -222,4 +222,5 @@ export class RoutingWorkflowHandler {
     return getObstacles(scene);
   }
 }
+
 

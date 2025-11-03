@@ -29,6 +29,7 @@ import {
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { DockableLayoutWrapper } from './DockableLayoutWrapper';
+import { useTreeAutoResize } from '../hooks/useTreeAutoResize';
 import { MoveObjectDialog } from '../components/MoveObjectDialog';
 import { ExportDialog } from '../components/ExportDialog';
 import { MeasurementTools, MeasurementType } from '../components/MeasurementTools';
@@ -599,6 +600,7 @@ export const ProfessionalModeLayout: React.FC = () => {
             ],
             bottomPanels: [],
           }}
+          leftGroupWidth={optimalWidth}
           onLayoutChange={savePanelLayout}
           savedLayout={savedLayout}
         />
@@ -654,3 +656,13 @@ export const ProfessionalModeLayout: React.FC = () => {
     </div>
   );
 };
+  // Auto size the left scene tree based on content
+  const { optimalWidth } = useTreeAutoResize({
+    minWidth: 240,
+    maxWidth: 800,
+    padding: 16,
+    fontSize: 13,
+    iconWidth: 16,
+    arrowWidth: 14,
+    badgeWidth: 40,
+  });

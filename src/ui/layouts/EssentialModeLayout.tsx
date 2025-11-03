@@ -89,7 +89,7 @@ export const EssentialModeLayout: React.FC = () => {
   // Auto-resize hook for optimal tree width
   const { optimalWidth } = useTreeAutoResize({
     minWidth: minSidebarWidth,
-    maxWidth: maxSidebarWidth,
+    maxWidth: Math.max(maxSidebarWidth, 800),
     padding: 16,
     fontSize: 13,
     iconWidth: 16,
@@ -99,12 +99,13 @@ export const EssentialModeLayout: React.FC = () => {
 
   // Update sidebar width when optimal width changes
   useEffect(() => {
-    if (!isResizing && optimalWidth > sidebarWidth) {
-      console.log(`🔄 Auto-expanding sidebar from ${sidebarWidth}px to ${optimalWidth}px`);
-      setSidebarWidth(optimalWidth);
+    if (!isResizing && optimalWidth && Number.isFinite(optimalWidth)) {
+      if (Math.abs(sidebarWidth - optimalWidth) > 2) {
+        console.log(`Auto-sizing sidebar to ${optimalWidth}px (from ${sidebarWidth}px)`);
+        setSidebarWidth(optimalWidth);
+      }
     }
   }, [optimalWidth, isResizing, sidebarWidth]);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -808,4 +809,7 @@ export const EssentialModeLayout: React.FC = () => {
     </div>
   );
 };
+
+
+
 
