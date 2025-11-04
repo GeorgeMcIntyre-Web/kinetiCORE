@@ -230,10 +230,25 @@ export class WarehouseModel {
 
     // Ensure root node is enabled and visible
     this.rootNode.setEnabled(true);
-    
+
     // Add interior lighting for better visibility
     this.addInteriorLighting();
-    
+
+    // PROMPT #1: Defensive visibility assertions to prevent grey-out
+    if (!this.rootNode.isEnabled()) {
+      console.error('[WarehouseModel] ❌ Root node failed to enable!');
+      this.rootNode.setEnabled(true);
+    }
+
+    const invisibleMeshes = this.meshes.filter(m => !m.isVisible);
+    if (invisibleMeshes.length > 0) {
+      console.warn(`[WarehouseModel] ⚠️ Found ${invisibleMeshes.length} invisible meshes, forcing visible`);
+      invisibleMeshes.forEach(m => {
+        m.isVisible = true;
+        m.setEnabled(true);
+      });
+    }
+
     console.log(`[WarehouseModel] ✅ Built warehouse: ${widthM}m × ${depthM}m × ${heightM}m`);
     console.log(`[WarehouseModel] Created ${this.meshes.length} meshes (walls, roof, columns, beams)`);
     console.log(`[WarehouseModel] Root node enabled: ${this.rootNode.isEnabled()}`);
@@ -632,30 +647,52 @@ export class WarehouseModel {
 
   /**
    * Set up atmospheric effects: skybox, environment texture, fog, and rendering pipeline
+   * PROMPT #1: Wrapped in try-catch to prevent grey-out on atmosphere failures
    */
   private setupAtmosphere(): void {
-    console.log('[WarehouseModel] 🌫️ Setting up atmospheric effects...');
+    try {
+      console.log('[WarehouseModel] 🌫️ Setting up atmospheric effects...');
 
-    // Create procedural environment texture for PBR materials
-    const envTexture = this.createEnvironmentTexture();
-    if (envTexture) {
-      this.scene.environmentTexture = envTexture;
-      console.log('[WarehouseModel] ✅ Environment texture set for PBR reflections');
-    }
+      // Create procedural environment texture for PBR materials
+      try {
+        const envTexture = this.createEnvironmentTexture();
+        if (envTexture) {
+          this.scene.environmentTexture = envTexture;
+          console.log('[WarehouseModel] ✅ Environment texture set for PBR reflections');
+        }
+      } catch (envError) {
+        console.warn('[WarehouseModel] ⚠️ Failed to create environment texture, continuing:', envError);
+      }
 
-    // Create skybox if enabled
-    if (this.config.enableSkybox) {
-      this.createSkybox();
-    }
+      // Create skybox if enabled
+      if (this.config.enableSkybox) {
+        try {
+          this.createSkybox();
+        } catch (skyboxError) {
+          console.warn('[WarehouseModel] ⚠️ Failed to create skybox, continuing:', skyboxError);
+        }
+      }
 
-    // Set up atmospheric fog if enabled
-    if (this.config.enableFog) {
-      this.setupFog();
-    }
+      // Set up atmospheric fog if enabled
+      if (this.config.enableFog) {
+        try {
+          this.setupFog();
+        } catch (fogError) {
+          console.warn('[WarehouseModel] ⚠️ Failed to setup fog, continuing:', fogError);
+        }
+      }
 
-    // Set up Default Rendering Pipeline if enabled
-    if (this.config.enableBloom) {
-      this.setupRenderingPipeline();
+      // Set up Default Rendering Pipeline if enabled
+      if (this.config.enableBloom) {
+        try {
+          this.setupRenderingPipeline();
+        } catch (pipelineError) {
+          console.warn('[WarehouseModel] ⚠️ Failed to setup rendering pipeline, continuing:', pipelineError);
+        }
+      }
+    } catch (error) {
+      console.error('[WarehouseModel] ❌ setupAtmosphere failed:', error);
+      console.log('[WarehouseModel] Continuing without atmospheric effects');
     }
   }
 
@@ -870,10 +907,29 @@ export class WarehouseModel {
 
   /**
    * Update warehouse size
+   * PROMPT #1: Added camera safety after resize
    */
   updateSize(config: Partial<WarehouseConfig>): void {
     this.config = { ...this.config, ...config };
     this.build();
+
+    // PROMPT #1: Update camera clipping planes for new size to prevent grey-out
+    const camera = this.scene.activeCamera;
+    if (camera && camera instanceof BABYLON.ArcRotateCamera) {
+      const widthM = this.config.width / 1000;
+      const depthM = this.config.depth / 1000;
+      const heightM = this.config.height / 1000;
+
+      camera.minZ = 0.25;
+      camera.maxZ = Math.max(widthM, depthM, heightM) * 3;
+
+      // Re-target to safe position
+      camera.target = new BABYLON.Vector3(0, 1.7, 0);
+      camera.radius = Math.min(widthM, depthM) * 0.25;
+      camera.setTarget(camera.target);
+
+      console.log(`[WarehouseModel] ✅ Updated camera clipping planes: minZ=${camera.minZ}, maxZ=${camera.maxZ.toFixed(1)}m`);
+    }
 
     // Rebuild atmospheric effects if size changed
     if (config.width !== undefined || config.depth !== undefined || config.height !== undefined) {
