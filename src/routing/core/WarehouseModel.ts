@@ -109,7 +109,7 @@ export class WarehouseModel {
     // Create materials
     const wallMaterial = this.createWallMaterial();
     this.createFloorMaterial(); // Material created but not used yet (floor is handled by SceneManager)
-    const roofMaterial = this.createRoofMaterial();
+    // const roofMaterial = this.createRoofMaterial(); // Disabled - no roof to see sky
     const columnMaterial = this.createColumnMaterial();
 
     // Create walls (Babylon space: Y-up, X-right, Z-forward)
@@ -163,25 +163,27 @@ export class WarehouseModel {
     westWall.rotation.y = Math.PI / 2;
     console.log(`[WarehouseModel] ✅ Created west wall at X=${(-widthM / 2 + wallThickness / 2).toFixed(2)}m, size: ${(depthM - wallThickness).toFixed(2)}m × ${heightM.toFixed(2)}m`);
 
-    // Roof (plane facing down so visible from inside) - CRITICAL: Use CreatePlane, not CreateGround!
+    // Roof - DISABLED TO SEE SKY
+    // Instead of a solid roof, leave it open so users can see the skybox
+    // If you want a roof, uncomment the code below:
+    /*
     const roof = BABYLON.MeshBuilder.CreatePlane(
       'warehouse_roof',
       { width: widthM, height: depthM },
       this.scene
     );
-    // Position at ceiling height, rotate to face downward (visible from inside)
     roof.position = new BABYLON.Vector3(0, heightM, 0);
-    roof.rotation.x = Math.PI; // Rotate 180° to face downward (visible from inside)
+    roof.rotation.x = Math.PI;
     roof.material = roofMaterial;
     roof.receiveShadows = true;
     roof.isVisible = true;
     roof.isPickable = false;
     roof.infiniteDistance = false;
-    // Make double-sided for visibility
     roof.material.backFaceCulling = false;
     this.meshes.push(roof);
     roof.parent = this.rootNode;
-    console.log(`[WarehouseModel] ✅ Created roof at Y=${heightM.toFixed(2)}m, size: ${widthM.toFixed(2)}m × ${depthM.toFixed(2)}m (facing down)`);
+    */
+    console.log(`[WarehouseModel] ✅ Created open-air warehouse (no roof - see sky)`);
 
     // Add structural columns for realism (spaced every 10m)
     const columnSpacing = 10; // 10 meters
@@ -492,8 +494,11 @@ export class WarehouseModel {
 
   /**
    * Create roof material (metal/industrial) - DARK realistic ceiling
+   * Currently disabled - warehouse has no roof to see sky
+   * Kept for future use
    */
-  private createRoofMaterial(): BABYLON.PBRMetallicRoughnessMaterial {
+  // @ts-expect-error - Method kept for future use when roof is re-enabled
+  private _createRoofMaterial(): BABYLON.PBRMetallicRoughnessMaterial {
     const material = new BABYLON.PBRMetallicRoughnessMaterial('warehouse_roof_mat', this.scene);
 
     // DARK corrugated metal ceiling - realistic industrial
@@ -505,7 +510,7 @@ export class WarehouseModel {
     material.emissiveColor = new BABYLON.Color3(0, 0, 0);
 
     // Create procedural metal/ceiling texture
-    const texture = this.createCeilingTexture(1024, 1024);
+    const texture = this._createCeilingTexture(1024, 1024);
     texture.uScale = 6;
     texture.vScale = 6;
     material.baseTexture = texture;
@@ -519,8 +524,9 @@ export class WarehouseModel {
 
   /**
    * Create DARK realistic corrugated metal ceiling texture
+   * Currently disabled - warehouse has no roof to see sky
    */
-  private createCeilingTexture(width: number, height: number): BABYLON.Texture {
+  private _createCeilingTexture(width: number, height: number): BABYLON.Texture {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
@@ -835,7 +841,9 @@ export class WarehouseModel {
       const widthM = this.config.width / 1000;
       const depthM = this.config.depth / 1000;
       const heightM = this.config.height / 1000;
-      const skyboxSize = Math.max(widthM, depthM, heightM) * 2;
+
+      // CRITICAL FIX: Make skybox HUGE (1000x warehouse size) so it appears infinite
+      const skyboxSize = Math.max(widthM, depthM, heightM) * 1000;
 
       // Dispose existing skybox if present
       if (this.skybox) {
@@ -858,6 +866,7 @@ export class WarehouseModel {
       const skyboxMaterial = new BABYLON.StandardMaterial('warehouse_skybox_mat', this.scene);
       skyboxMaterial.backFaceCulling = false;
       skyboxMaterial.disableLighting = true;
+      skyboxMaterial.disableDepthWrite = true; // CRITICAL: Don't write to depth buffer
 
       // Generate skybox texture based on selected source
       const skyboxSource = this.config.skyboxSource || 'industrial';
@@ -880,9 +889,11 @@ export class WarehouseModel {
 
       this.skybox.material = skyboxMaterial;
       this.skybox.infiniteDistance = true;
+      this.skybox.renderingGroupId = 0; // CRITICAL: Render skybox first (background)
+      this.skybox.isPickable = false;
 
       // Don't add to meshes array since we manage disposal separately
-      console.log(`[WarehouseModel] ✅ Created skybox with source: ${skyboxSource}`);
+      console.log(`[WarehouseModel] ✅ Created skybox with source: ${skyboxSource}, size: ${skyboxSize}m`);
     } catch (error) {
       console.warn('[WarehouseModel] ⚠️ Failed to create skybox:', error);
     }
