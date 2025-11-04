@@ -8,4 +8,5 @@ export * from './RouteInspector';
 export * from './ConnectionManagerPanel';
 export * from './RouteEditor';
 export * from './RoutingIntegration';
+export * from './WarehouseControls';
 
