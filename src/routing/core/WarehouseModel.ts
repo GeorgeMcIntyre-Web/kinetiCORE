@@ -38,13 +38,19 @@ export class WarehouseModel {
   }
 
   /**
-   * Hide the default ground plane created by SceneManager
+   * Hide the default ground plane and grid overlay created by SceneManager
    */
   private hideGroundPlane(): void {
     const groundMesh = this.scene.getMeshByName('ground');
     if (groundMesh) {
       groundMesh.setEnabled(false);
       console.log('[WarehouseModel] ✅ Disabled ground plane');
+    }
+
+    const gridOverlay = this.scene.getMeshByName('gridOverlay');
+    if (gridOverlay) {
+      gridOverlay.setEnabled(false);
+      console.log('[WarehouseModel] ✅ Disabled grid overlay');
     }
   }
 
