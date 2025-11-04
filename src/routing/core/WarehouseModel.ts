@@ -169,7 +169,7 @@ export class WarehouseModel {
     
     // Calculate wall positions - walls should be at the edges forming an enclosure
     // North wall (positive Z in Babylon = forward direction) - back wall
-    this.createWall(
+    const northWall = this.createWall(
       widthM,
       heightM,
       wallThickness,
@@ -180,7 +180,7 @@ export class WarehouseModel {
     console.log(`[WarehouseModel] ✅ Created north wall at Z=${(depthM / 2 - wallThickness / 2).toFixed(2)}m, size: ${widthM.toFixed(2)}m × ${heightM.toFixed(2)}m`);
 
     // South wall (negative Z in Babylon = backward direction) - front wall
-    this.createWall(
+    const southWall = this.createWall(
       widthM,
       heightM,
       wallThickness,
@@ -214,6 +214,14 @@ export class WarehouseModel {
     westWall.rotation.y = Math.PI / 2;
     console.log(`[WarehouseModel] ✅ Created west wall at X=${(-widthM / 2 + wallThickness / 2).toFixed(2)}m, size: ${(depthM - wallThickness).toFixed(2)}m × ${heightM.toFixed(2)}m`);
 
+    // Store wall references for door cutouts
+    const walls = {
+      north: northWall,
+      south: southWall,
+      east: eastWall,
+      west: westWall,
+    };
+
     // Roof - Create if enabled
     if (this.config.enableRoof !== false) {
       const roofMaterial = this.createRoofMaterial();
@@ -221,6 +229,8 @@ export class WarehouseModel {
       const roofOverhang = 1.0; // 1m overhang on all sides
       
       // Create roof as a plane with slight pitch
+      // ROOF FIX: CreatePlane creates plane in XZ plane (horizontal) by default facing +Y
+      // To make it face downward (-Y), we rotate -90° around X-axis (or use a box instead)
       const roof = BABYLON.MeshBuilder.CreatePlane(
         'warehouse_roof',
         { 
@@ -230,7 +240,7 @@ export class WarehouseModel {
         this.scene
       );
       roof.position = new BABYLON.Vector3(0, heightM, 0);
-      roof.rotation.x = Math.PI; // Flip to face downward
+      roof.rotation.x = -Math.PI / 2; // ROOF FIX: Rotate -90° around X-axis to face downward (horizontal roof)
       roof.rotation.z = roofPitch; // Add slight pitch
       roof.material = roofMaterial;
       roof.receiveShadows = true;
@@ -271,12 +281,14 @@ export class WarehouseModel {
     }
 
     // Create doors in walls (before columns to avoid overlap)
-    this.createDoors(widthM, depthM, heightM, wallThickness, wallMaterial);
+    // DOOR FIX: Pass walls map so we can cut openings
+    this.createDoors(widthM, depthM, heightM, wallThickness, wallMaterial, walls);
 
     // Add structural columns for realism (spaced every 10m)
-    const columnSpacing = 10; // 10 meters
+    const columnSpacing = 10; // 10 meters (industry standard spacing)
     const columns: BABYLON.Mesh[] = [];
 
+    let columnCount = 0;
     for (let x = -widthM / 2 + columnSpacing / 2; x < widthM / 2; x += columnSpacing) {
       for (let z = -depthM / 2 + columnSpacing / 2; z < depthM / 2; z += columnSpacing) {
         const column = this.createColumn(
@@ -294,8 +306,11 @@ export class WarehouseModel {
         }
         column.parent = this.rootNode;
         columns.push(column);
+        columnCount++;
       }
     }
+
+    console.log(`[WarehouseModel] ✅ Created ${columnCount} structural columns with ${columnSpacing}m spacing (${this.config.columnShape || 'I-beam'})`);
 
     // Add overhead beams (horizontal support beams)
     const beamHeight = heightM - 0.5; // 50cm below ceiling
@@ -794,10 +809,11 @@ export class WarehouseModel {
    */
   private createParkingLotMaterial(): BABYLON.PBRMetallicRoughnessMaterial {
     const material = new BABYLON.PBRMetallicRoughnessMaterial('warehouse_parking_lot_mat', this.scene);
-    // CRITICAL FIX: Ensure dark gray asphalt color is applied
-    material.baseColor = new BABYLON.Color3(0.2, 0.2, 0.22); // Dark asphalt color
+    // Natural dark gray/brown asphalt color (weathered asphalt)
+    material.baseColor = new BABYLON.Color3(0.25, 0.23, 0.21); // Dark gray-brown asphalt
     material.metallic = 0.0;
     material.roughness = 0.95; // Very rough asphalt (set before texture load)
+    material.emissiveColor = new BABYLON.Color3(0, 0, 0); // No red emission
 
     // Use local high-quality asphalt texture
     try {
@@ -809,12 +825,8 @@ export class WarehouseModel {
         BABYLON.Texture.TRILINEAR_SAMPLINGMODE
       );
       
-      // Add error handler to ensure baseColor is visible if texture fails
-      baseTexture.onErrorObservable.add(() => {
-        console.warn('[WarehouseModel] ⚠️ Asphalt texture failed to load, using baseColor only');
-        material.baseTexture = null; // Remove failed texture
-      });
-      
+      // Note: Texture loading errors will fall back to baseColor automatically
+      // If texture fails to load, material will use baseColor
       baseTexture.uScale = 50; // Scale for parking lot size
       baseTexture.vScale = 50;
       baseTexture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
@@ -1650,7 +1662,7 @@ export class WarehouseModel {
       // Bright blue sky colors
       const skyColor = '#87CEEB'; // Sky blue
       const brightSkyColor = '#B0E0E6'; // Powder blue (lighter)
-      const groundColor = '#8B7355'; // Tan/brown ground
+      const groundColor = '#9FA8A3'; // Soft neutral gray-green (much easier on the eyes, replaces brown)
 
       // CRITICAL FIX: Ground must be on BOTTOM face (ny) at Y=0
       // According to gizmo: Y points UP, so -Y is DOWN (bottom)
@@ -1670,11 +1682,11 @@ export class WarehouseModel {
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, size, size);
 
-        // Add realistic sun (smaller, less intense) at upper portion
+        // Add realistic sun (smaller, less intense) at upper portion - SCALE FIX: Much smaller sun
         const sunX = size * 0.65;
         const sunY = size * 0.25; // Upper portion for sky
-        const sunRadius = 25; // Much smaller for realistic size
-        const sunGlowRadius = sunRadius * 2.5; // Soft glow around sun
+        const sunRadius = 12; // SCALE FIX: Reduced from 25 to 12 for proper scale (sun appears smaller at distance)
+        const sunGlowRadius = sunRadius * 2.0; // SCALE FIX: Reduced glow from 2.5x to 2.0x
         
         // Create sun with softer, more realistic glow
         const sunGradient = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunGlowRadius);
@@ -1694,13 +1706,15 @@ export class WarehouseModel {
         ctx.arc(sunX, sunY, sunRadius * 0.6, 0, Math.PI * 2);
         ctx.fill();
 
-        // Add fluffy white clouds in upper portion
-        for (let i = 0; i < 30; i++) {
+        // Add fluffy white clouds in upper portion - SCALE FIX: Much smaller clouds for realistic distance
+        // Reduced from 30 clouds to 15, and radius from 20-50px to 8-15px for proper scale
+        for (let i = 0; i < 15; i++) {
           const x = Math.random() * size;
           const y = Math.random() * size * 0.6; // Upper portion for clouds
-          const radius = Math.random() * 30 + 20;
+          const radius = Math.random() * 7 + 8; // SCALE FIX: 8-15px instead of 20-50px (much smaller)
           const cloudGradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-          cloudGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+          cloudGradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)'); // Slightly more transparent
+          cloudGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.3)');
           cloudGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
           ctx.fillStyle = cloudGradient;
           ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
@@ -1712,14 +1726,15 @@ export class WarehouseModel {
         ctx.fillStyle = groundColor;
         ctx.fillRect(0, 0, size, size);
 
-        // Add ground texture
+        // Add ground texture - COLOR FIX: Changed from brown (139,115,85) to soft gray-green (159,168,163)
         const imageData = ctx.getImageData(0, 0, size, size);
         const data = imageData.data;
         for (let i = 0; i < data.length; i += 4) {
-          const noise = (Math.random() - 0.5) * 15;
-          data[i] = Math.max(100, Math.min(180, 139 + noise));     // R
-          data[i + 1] = Math.max(100, Math.min(180, 115 + noise));  // G
-          data[i + 2] = Math.max(85, Math.min(165, 85 + noise));    // B
+          const noise = (Math.random() - 0.5) * 12;
+          // Soft neutral gray-green (RGB: 159, 168, 163) - much easier on the eyes than brown
+          data[i] = Math.max(140, Math.min(180, 159 + noise));     // R
+          data[i + 1] = Math.max(150, Math.min(180, 168 + noise));  // G
+          data[i + 2] = Math.max(145, Math.min(175, 163 + noise));  // B
         }
         ctx.putImageData(imageData, 0, 0);
       } else {
@@ -1732,13 +1747,15 @@ export class WarehouseModel {
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, size, size);
         
-        // Add clouds to side faces for realism
-        for (let i = 0; i < 20; i++) {
+        // Add clouds to side faces for realism - SCALE FIX: Much smaller clouds for realistic distance
+        // Reduced from 20 clouds to 10, and radius from 20-50px to 8-15px for proper scale
+        for (let i = 0; i < 10; i++) {
           const x = Math.random() * size;
           const y = Math.random() * size * 0.8; // Upper to middle portion
-          const radius = Math.random() * 30 + 20;
+          const radius = Math.random() * 7 + 8; // SCALE FIX: 8-15px instead of 20-50px (much smaller)
           const cloudGradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-          cloudGradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
+          cloudGradient.addColorStop(0, 'rgba(255, 255, 255, 0.5)'); // More transparent for distance
+          cloudGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.25)');
           cloudGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
           ctx.fillStyle = cloudGradient;
           ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
@@ -1804,13 +1821,15 @@ export class WarehouseModel {
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, size, size);
 
-        // Add cloud texture
-        for (let i = 0; i < 80; i++) {
+        // Add cloud texture - SCALE FIX: Much smaller clouds for realistic distance
+        // Reduced from 80 clouds to 20, and radius from 30-80px to 8-15px for proper scale
+        for (let i = 0; i < 20; i++) {
           const x = Math.random() * size;
           const y = Math.random() * size;
-          const radius = Math.random() * 50 + 30;
+          const radius = Math.random() * 7 + 8; // SCALE FIX: 8-15px instead of 30-80px (much smaller)
           const cloudGradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-          cloudGradient.addColorStop(0, 'rgba(200, 200, 200, 0.3)');
+          cloudGradient.addColorStop(0, 'rgba(200, 200, 200, 0.25)'); // More transparent
+          cloudGradient.addColorStop(0.5, 'rgba(200, 200, 200, 0.15)');
           cloudGradient.addColorStop(1, 'rgba(200, 200, 200, 0)');
           ctx.fillStyle = cloudGradient;
           ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
@@ -1829,13 +1848,15 @@ export class WarehouseModel {
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, size, size);
         
-        // Add cloud texture
-        for (let i = 0; i < 40; i++) {
+        // Add cloud texture - SCALE FIX: Much smaller clouds for realistic distance
+        // Reduced from 40 clouds to 10, and radius from 30-80px to 8-15px for proper scale
+        for (let i = 0; i < 10; i++) {
           const x = Math.random() * size;
           const y = Math.random() * size * 0.8;
-          const radius = Math.random() * 50 + 30;
+          const radius = Math.random() * 7 + 8; // SCALE FIX: 8-15px instead of 30-80px (much smaller)
           const cloudGradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-          cloudGradient.addColorStop(0, 'rgba(200, 200, 200, 0.3)');
+          cloudGradient.addColorStop(0, 'rgba(200, 200, 200, 0.25)'); // More transparent
+          cloudGradient.addColorStop(0.5, 'rgba(200, 200, 200, 0.15)');
           cloudGradient.addColorStop(1, 'rgba(200, 200, 200, 0)');
           ctx.fillStyle = cloudGradient;
           ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
@@ -1888,10 +1909,10 @@ export class WarehouseModel {
           ctx.fillRect(x, y, starSize, starSize);
         }
 
-        // Add moon (bright white circle) at upper portion
+        // Add moon (bright white circle) at upper portion - SCALE FIX: Much smaller moon
         const moonX = size * 0.7;
         const moonY = size * 0.25; // Upper portion for night sky
-        const moonRadius = 40;
+        const moonRadius = 15; // SCALE FIX: Reduced from 40 to 15 for proper scale (moon appears smaller at distance)
         ctx.fillStyle = 'rgba(220, 220, 200, 0.9)';
         ctx.beginPath();
         ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
@@ -1948,7 +1969,7 @@ export class WarehouseModel {
       const skyColor = '#FF6B35'; // Warm orange
       const brightSkyColor = '#FFB347'; // Light orange/yellow
       const horizonColor = '#FF8C42'; // Deep orange
-      const groundColor = '#8B4513'; // Brown ground
+      const groundColor = '#9FA8A3'; // Soft neutral gray-green (replaces brown, easier on eyes)
 
       if (face === 'py') {
         // Top face - sunset sky
@@ -2278,14 +2299,15 @@ export class WarehouseModel {
   }
 
   /**
-   * Create doors in warehouse walls
+   * Create doors in warehouse walls and cut openings
    */
   private createDoors(
     widthM: number,
     depthM: number,
     heightM: number,
     wallThickness: number,
-    _wallMaterial: BABYLON.Material
+    _wallMaterial: BABYLON.Material,
+    walls?: { north: BABYLON.Mesh; south: BABYLON.Mesh; east: BABYLON.Mesh; west: BABYLON.Mesh }
   ): void {
     const mainDoorWidth = 4.0; // 4m main door
     const mainDoorHeight = 5.0; // 5m tall
@@ -2299,6 +2321,20 @@ export class WarehouseModel {
     // Main door (large entrance)
     const mainDoorWall = this.config.mainDoorWall || 'south';
     const mainDoorPos = this.getWallPosition(mainDoorWall, widthM, depthM, heightM, wallThickness, mainDoorHeight);
+    
+    // DOOR FIX: Cut opening in wall before creating door frame
+    if (walls) {
+      let wallMesh: BABYLON.Mesh | undefined;
+      if (mainDoorWall === 'north') wallMesh = walls.north;
+      else if (mainDoorWall === 'south') wallMesh = walls.south;
+      else if (mainDoorWall === 'east') wallMesh = walls.east;
+      else if (mainDoorWall === 'west') wallMesh = walls.west;
+      
+      if (wallMesh) {
+        this.cutDoorOpening(wallMesh, mainDoorWall, mainDoorWidth, mainDoorHeight, mainDoorPos, wallThickness);
+      }
+    }
+    
     const mainDoorFrame = this.createDoorFrame(
       mainDoorWidth,
       mainDoorHeight,
@@ -2313,8 +2349,8 @@ export class WarehouseModel {
 
     // Side doors (3 smaller doors on other walls)
     if (this.config.sideDoors !== false) {
-      const walls: Array<'north' | 'south' | 'east' | 'west'> = ['north', 'east', 'west'];
-      walls.forEach((wall, index) => {
+      const wallDirections: Array<'north' | 'south' | 'east' | 'west'> = ['north', 'east', 'west'];
+      wallDirections.forEach((wall, index) => {
         if (wall !== mainDoorWall) {
           const sideDoorPos = this.getWallPosition(wall, widthM, depthM, heightM, wallThickness, sideDoorHeight);
           // Offset side doors to avoid overlap with main door
@@ -2323,6 +2359,19 @@ export class WarehouseModel {
             sideDoorPos.x = offset;
           } else {
             sideDoorPos.z = offset;
+          }
+          
+          // DOOR FIX: Cut opening in wall before creating door frame
+          if (walls) {
+            let wallMesh: BABYLON.Mesh | undefined;
+            if (wall === 'north') wallMesh = walls.north;
+            else if (wall === 'south') wallMesh = walls.south;
+            else if (wall === 'east') wallMesh = walls.east;
+            else if (wall === 'west') wallMesh = walls.west;
+            
+            if (wallMesh) {
+              this.cutDoorOpening(wallMesh, wall, sideDoorWidth, sideDoorHeight, sideDoorPos, wallThickness);
+            }
           }
           
           const sideDoorFrame = this.createDoorFrame(
@@ -2367,7 +2416,7 @@ export class WarehouseModel {
   }
 
   /**
-   * Create door frame
+   * Create door frame and door panel (with 45° opening angle)
    */
   private createDoorFrame(
     width: number,
@@ -2399,7 +2448,116 @@ export class WarehouseModel {
       frame.rotation.y = Math.PI / 2;
     }
     
+    // Create door panel (closed position, aligned with wall)
+    const doorPanelThickness = 0.05; // 5cm door panel
+    const doorPanel = BABYLON.MeshBuilder.CreateBox(
+      `warehouse_${name}_panel`,
+      {
+        width: wall === 'north' || wall === 'south' ? width - 0.2 : doorPanelThickness, // Slightly smaller than frame
+        height: height - 0.2, // Slightly smaller than frame
+        depth: wall === 'north' || wall === 'south' ? doorPanelThickness : width - 0.2,
+      },
+      this.scene
+    );
+
+    // Position door panel centered in frame (closed position)
+    doorPanel.position = position.clone();
+
+    // Rotate door panel to align with wall orientation (closed, not open)
+    if (wall === 'east' || wall === 'west') {
+      doorPanel.rotation.y = Math.PI / 2; // 90° for E/W walls
+    }
+    // North/South walls: no rotation needed (default orientation)
+    
+    // Create door panel material (slightly different from frame)
+    const doorPanelMaterial = this.createDoorPanelMaterial();
+    doorPanel.material = doorPanelMaterial;
+    doorPanel.receiveShadows = true;
+    doorPanel.isVisible = true;
+    doorPanel.isPickable = false;
+    doorPanel.parent = frame; // Parent to frame for organization
+    
+    // Add door panel to meshes array
+    this.meshes.push(doorPanel);
+    
     return frame;
+  }
+
+  /**
+   * Create door panel material (metal door)
+   */
+  private createDoorPanelMaterial(): BABYLON.PBRMetallicRoughnessMaterial {
+    const material = new BABYLON.PBRMetallicRoughnessMaterial('warehouse_door_panel_mat', this.scene);
+    material.baseColor = new BABYLON.Color3(0.25, 0.25, 0.27); // Slightly darker than frame
+    material.metallic = 0.7;
+    material.roughness = 0.4;
+    material._environmentIntensity = 0.5;
+    this.materials.push(material);
+    return material;
+  }
+
+  /**
+   * Cut door opening in wall using CSG (Constructive Solid Geometry)
+   */
+  private cutDoorOpening(
+    wall: BABYLON.Mesh,
+    wallDirection: 'north' | 'south' | 'east' | 'west',
+    doorWidth: number,
+    doorHeight: number,
+    doorPosition: BABYLON.Vector3,
+    wallThickness: number
+  ): void {
+    try {
+      // Create a box to subtract from the wall (the door opening)
+      const opening = BABYLON.MeshBuilder.CreateBox(
+        `door_opening_temp`,
+        {
+          width: wallDirection === 'north' || wallDirection === 'south' ? doorWidth : wallThickness + 0.1,
+          height: doorHeight,
+          depth: wallDirection === 'north' || wallDirection === 'south' ? wallThickness + 0.1 : doorWidth,
+        },
+        this.scene
+      );
+      opening.position = doorPosition;
+      opening.setEnabled(false); // Hide the temporary mesh
+      
+      // Convert meshes to CSG
+      const wallCSG = BABYLON.CSG.FromMesh(wall);
+      const openingCSG = BABYLON.CSG.FromMesh(opening);
+      
+      // Subtract opening from wall
+      const wallWithOpening = wallCSG.subtract(openingCSG);
+      
+      // Get wall material for new mesh
+      const wallMaterial = wall.material || this.createWallMaterial();
+      
+      // Create new mesh from CSG result
+      const newWall = wallWithOpening.toMesh(`warehouse_${wallDirection}_wall_with_opening`, wallMaterial, this.scene);
+      
+      // Copy properties from original wall
+      newWall.position = wall.position.clone();
+      newWall.rotation = wall.rotation.clone();
+      newWall.material = wallMaterial;
+      newWall.receiveShadows = wall.receiveShadows;
+      newWall.isVisible = wall.isVisible;
+      newWall.isPickable = wall.isPickable;
+      newWall.parent = wall.parent;
+      
+      // Remove old wall and add new one
+      const wallIndex = this.meshes.indexOf(wall);
+      if (wallIndex !== -1) {
+        wall.dispose();
+        this.meshes[wallIndex] = newWall;
+      }
+      
+      // Dispose temporary opening mesh
+      opening.dispose();
+      
+      console.log(`[WarehouseModel] ✅ Cut door opening in ${wallDirection} wall: ${doorWidth}m × ${doorHeight}m`);
+    } catch (error) {
+      console.warn(`[WarehouseModel] ⚠️ Failed to cut door opening in ${wallDirection} wall:`, error);
+      // Continue without cutout if CSG fails
+    }
   }
 
   /**
