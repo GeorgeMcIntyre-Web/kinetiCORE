@@ -2,7 +2,6 @@
 // Owner: Routing System Team
 
 import * as BABYLON from '@babylonjs/core';
-import { userToBabylon } from '../../core/CoordinateSystem';
 
 export interface WarehouseConfig {
   width: number;  // X-axis dimension (mm)
@@ -48,7 +47,7 @@ export class WarehouseModel {
 
     // Create materials
     const wallMaterial = this.createWallMaterial();
-    const floorMaterial = this.createFloorMaterial();
+    this.createFloorMaterial(); // Material created but not used yet (floor is handled by SceneManager)
     const roofMaterial = this.createRoofMaterial();
     const columnMaterial = this.createColumnMaterial();
 
@@ -59,7 +58,7 @@ export class WarehouseModel {
     const wallThickness = 0.3; // 30cm = 300mm walls
     
     // North wall (positive Z direction in user space = positive Y in Babylon)
-    const northWall = this.createWall(
+    this.createWall(
       widthM,
       heightM,
       wallThickness,
@@ -69,7 +68,7 @@ export class WarehouseModel {
     );
 
     // South wall
-    const southWall = this.createWall(
+    this.createWall(
       widthM,
       heightM,
       wallThickness,
