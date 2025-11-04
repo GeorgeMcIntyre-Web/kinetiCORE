@@ -85,17 +85,17 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
       camera.maxZ = Math.max(widthM, depthM, heightM) * 2000; // Far: must see skybox (1000x warehouse size)
       
       // Position camera INSIDE, centered, at eye level
-      // Target is center of warehouse floor
-      camera.target = new BABYLON.Vector3(0, eyeHeight, 0);
-      
+      // Target is a point ABOVE eye level to look up at sky
+      camera.target = new BABYLON.Vector3(0, heightM * 0.7, 0); // Look up towards ceiling/sky
+
       // Position camera INSIDE looking forward (not outside looking in)
       // Use a small radius so camera is close to center, inside the warehouse
       const interiorRadius = Math.min(widthM, depthM) * 0.2; // 20% of smallest dimension - INSIDE
       camera.radius = interiorRadius;
-      
-      // Set camera angle to look forward horizontally (beta = 90° = horizontal, alpha = 0 = forward)
+
+      // Set camera angle to look UP at an angle (to see sky)
       camera.alpha = 0; // Look forward along +Z
-      camera.beta = Math.PI / 2; // Horizontal (90° from vertical = looking forward)
+      camera.beta = Math.PI / 3; // 60° from vertical = looking UP to see sky
       
       // Update camera immediately
       camera.setTarget(camera.target);
