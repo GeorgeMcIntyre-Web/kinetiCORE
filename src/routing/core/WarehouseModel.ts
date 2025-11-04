@@ -316,7 +316,7 @@ export class WarehouseModel {
   }
 
   /**
-   * Create procedural concrete texture
+   * Create realistic procedural concrete texture with proper material detail
    */
   private createConcreteTexture(width: number, height: number): BABYLON.Texture {
     const canvas = document.createElement('canvas');
@@ -324,19 +324,64 @@ export class WarehouseModel {
     canvas.height = height;
     const ctx = canvas.getContext('2d')!;
     
-    // Base color (light gray/beige)
+    // Base concrete color (light gray/beige)
     ctx.fillStyle = '#e6e4e0';
     ctx.fillRect(0, 0, width, height);
     
-    // Add noise/grain for texture
+    // Add multi-layer noise for realistic concrete texture
     const imageData = ctx.getImageData(0, 0, width, height);
     const data = imageData.data;
     
-    for (let i = 0; i < data.length; i += 4) {
-      const noise = (Math.random() - 0.5) * 30; // Random variation
-      data[i] = Math.max(0, Math.min(255, data[i] + noise));     // R
-      data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise)); // G
-      data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise)); // B
+    // Create multiple noise layers for realistic texture
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4;
+        
+        // Base noise (fine grain)
+        const noise1 = (Math.random() - 0.5) * 25;
+        
+        // Medium scale variation (aggregate pattern)
+        const noise2 = (Math.sin(x * 0.1) * Math.cos(y * 0.1) + Math.random() - 0.5) * 20;
+        
+        // Large scale variation (concrete pours)
+        const noise3 = (Math.sin(x * 0.02) * Math.sin(y * 0.02) + Math.random() - 0.5) * 15;
+        
+        // Combined noise
+        const totalNoise = noise1 + noise2 + noise3;
+        
+        // Apply with slight color variation (warmer/cooler tones)
+        const rVariation = totalNoise + (Math.random() - 0.5) * 5;
+        const gVariation = totalNoise + (Math.random() - 0.5) * 5;
+        const bVariation = totalNoise + (Math.random() - 0.5) * 5;
+        
+        data[idx] = Math.max(200, Math.min(255, 230 + rVariation));     // R (keep bright)
+        data[idx + 1] = Math.max(200, Math.min(255, 228 + gVariation)); // G (keep bright)
+        data[idx + 2] = Math.max(195, Math.min(255, 224 + bVariation));  // B (keep bright)
+        data[idx + 3] = 255; // Alpha
+      }
+    }
+    
+    // Add subtle aggregate spots (dark specks like concrete aggregate)
+    for (let i = 0; i < 200; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      const size = Math.random() * 3 + 1;
+      const darkness = Math.random() * 30 + 20;
+      
+      ctx.fillStyle = `rgba(${200 - darkness}, ${200 - darkness}, ${195 - darkness}, 0.8)`;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // Add subtle cracks/seams (vertical lines from formwork)
+    ctx.strokeStyle = 'rgba(180, 180, 175, 0.3)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < width; x += 64) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
     }
     
     ctx.putImageData(imageData, 0, 0);
@@ -393,7 +438,7 @@ export class WarehouseModel {
   }
 
   /**
-   * Create procedural ceiling texture
+   * Create realistic procedural ceiling texture (acoustic tiles/metal panels)
    */
   private createCeilingTexture(width: number, height: number): BABYLON.Texture {
     const canvas = document.createElement('canvas');
@@ -401,21 +446,123 @@ export class WarehouseModel {
     canvas.height = height;
     const ctx = canvas.getContext('2d')!;
     
-    // Base color (very light gray/white)
-    ctx.fillStyle = '#f2f0ed';
+    // Base color (very light gray/white - bright ceiling)
+    ctx.fillStyle = '#f5f3f0';
     ctx.fillRect(0, 0, width, height);
     
-    // Add subtle grid pattern (like ceiling tiles)
-    ctx.strokeStyle = 'rgba(200, 200, 195, 0.3)';
-    ctx.lineWidth = 1;
-    const tileSize = 32;
-    for (let x = 0; x < width; x += tileSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-      ctx.stroke();
-    }
+    // Create tile pattern (like acoustic ceiling tiles)
+    const tileSize = 48;
+    const tileGap = 2;
+    
     for (let y = 0; y < height; y += tileSize) {
+      for (let x = 0; x < width; x += tileSize) {
+        // Tile base
+        ctx.fillStyle = '#f8f6f3';
+        ctx.fillRect(x + tileGap, y + tileGap, tileSize - tileGap * 2, tileSize - tileGap * 2);
+        
+        // Add subtle texture to each tile
+        const imageData = ctx.getImageData(x + tileGap, y + tileGap, tileSize - tileGap * 2, tileSize - tileGap * 2);
+        const data = imageData.data;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          // Subtle noise for texture
+          const noise = (Math.random() - 0.5) * 8;
+          data[i] = Math.max(245, Math.min(255, 248 + noise));     // R
+          data[i + 1] = Math.max(243, Math.min(255, 246 + noise)); // G
+          data[i + 2] = Math.max(240, Math.min(255, 243 + noise));  // B
+        }
+        
+        ctx.putImageData(imageData, x + tileGap, y + tileGap);
+        
+        // Add subtle grid lines (tile edges)
+        ctx.strokeStyle = 'rgba(220, 220, 215, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x + tileGap, y + tileGap, tileSize - tileGap * 2, tileSize - tileGap * 2);
+      }
+    }
+    
+    // Add subtle perforation pattern (acoustic tile holes)
+    ctx.fillStyle = 'rgba(200, 200, 195, 0.15)';
+    const holeSpacing = 8;
+    const holeSize = 1;
+    for (let y = tileGap + 10; y < height - tileGap; y += holeSpacing) {
+      for (let x = tileGap + 10; x < width - tileGap; x += holeSpacing) {
+        ctx.beginPath();
+        ctx.arc(x, y, holeSize, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    
+    return new BABYLON.Texture(canvas.toDataURL(), this.scene);
+  }
+
+  /**
+   * Create column material (steel/concrete) - Highly visible with texture
+   */
+  private createColumnMaterial(): BABYLON.PBRMetallicRoughnessMaterial {
+    const material = new BABYLON.PBRMetallicRoughnessMaterial('warehouse_column_mat', this.scene);
+    
+    // Bright, visible steel gray
+    material.baseColor = new BABYLON.Color3(0.75, 0.75, 0.73); // Light gray - visible
+    material.metallic = 0.4; // More metallic for steel columns
+    material.roughness = 0.5; // Slightly reflective
+    
+    // Create steel texture
+    const texture = this.createSteelTexture(256, 256);
+    texture.uScale = 4;
+    texture.vScale = 4;
+    material.baseTexture = texture;
+    
+    // Emissive for visibility
+    material.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+    
+    material._environmentIntensity = 0.9; // High for visibility
+    this.materials.push(material);
+    return material;
+  }
+
+  /**
+   * Create realistic steel texture for columns and beams
+   */
+  private createSteelTexture(width: number, height: number): BABYLON.Texture {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d')!;
+    
+    // Base steel color (light gray)
+    ctx.fillStyle = '#bfbfbd';
+    ctx.fillRect(0, 0, width, height);
+    
+    // Add subtle metallic grain pattern
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4;
+        
+        // Grain pattern (vertical streaks like rolled steel)
+        const grain = Math.sin(y * 0.3) * 5 + (Math.random() - 0.5) * 8;
+        
+        // Subtle variations
+        const variation = (Math.random() - 0.5) * 10;
+        
+        const total = grain + variation;
+        
+        data[idx] = Math.max(185, Math.min(200, 191 + total));     // R
+        data[idx + 1] = Math.max(185, Math.min(200, 191 + total)); // G
+        data[idx + 2] = Math.max(180, Math.min(195, 189 + total));  // B
+        data[idx + 3] = 255;
+      }
+    }
+    
+    ctx.putImageData(imageData, 0, 0);
+    
+    // Add subtle weld lines/join patterns (horizontal lines)
+    ctx.strokeStyle = 'rgba(160, 160, 155, 0.2)';
+    ctx.lineWidth = 1;
+    for (let y = 0; y < height; y += 32) {
       ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(width, y);
@@ -423,25 +570,6 @@ export class WarehouseModel {
     }
     
     return new BABYLON.Texture(canvas.toDataURL(), this.scene);
-  }
-
-  /**
-   * Create column material (steel/concrete) - Highly visible
-   */
-  private createColumnMaterial(): BABYLON.PBRMetallicRoughnessMaterial {
-    const material = new BABYLON.PBRMetallicRoughnessMaterial('warehouse_column_mat', this.scene);
-    
-    // Bright, visible steel gray
-    material.baseColor = new BABYLON.Color3(0.7, 0.7, 0.68); // Light gray - visible
-    material.metallic = 0.3; // Metallic for steel columns
-    material.roughness = 0.6;
-    
-    // Emissive for visibility
-    material.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-    
-    material._environmentIntensity = 0.8; // High for visibility
-    this.materials.push(material);
-    return material;
   }
 
   /**
