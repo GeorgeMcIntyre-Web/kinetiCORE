@@ -56,14 +56,14 @@
 .warehouse-controls-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px;
+  gap: 8px;
+  padding: 8px 10px;
 }
 
 .size-control-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .size-label {
@@ -77,19 +77,19 @@
 .size-control {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: #2d3748;
-  padding: 6px 8px;
+  padding: 4px 6px;
   border-radius: 6px;
 }
 
 .size-value {
   flex: 1;
   text-align: center;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: #e2e8f0;
-  min-width: 60px;
+  min-width: 52px;
 }
 
 .icon-btn-compact {
@@ -97,14 +97,14 @@
   border: none;
   color: #a0aec0;
   cursor: pointer;
-  padding: 4px 6px;
+  padding: 3px 5px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 4px;
   transition: all 0.2s;
-  min-width: 24px;
-  height: 24px;
+  min-width: 22px;
+  height: 22px;
 }
 
 .icon-btn-compact:hover {
@@ -130,7 +130,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 12px;
+  padding: 6px 8px;
   background: #2d3748;
   border: 1px solid #374151;
   border-radius: 6px;
@@ -145,4 +145,22 @@
   background: #374151;
   border-color: #00D9FF;
   color: #00D9FF;
+}
+
+/* New compact grid for dimensions */
+.size-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.size-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Hide legacy preset row (moved to header icons) */
+.presets-group {
+  display: none;
 }

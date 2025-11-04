@@ -8,18 +8,106 @@
 ## 🔧 Setup
 
 ### Prerequisites
-- ✅ MCP Chrome DevTools installed and connected
-- ✅ Dev server running: `npm run dev`
-- ✅ Browser open at http://localhost:5173
+- Node.js 20.19 or newer
+- Chrome Browser (latest stable version)
+- npm package manager
+- Cursor IDE with MCP support
+
+### Step 1: Configure MCP Server in Cursor
+
+Add the Chrome DevTools MCP server configuration to your Cursor settings:
+
+**Windows:** `%APPDATA%\Cursor\User\settings.json`  
+**macOS:** `~/Library/Application Support/Cursor/User/settings.json`  
+**Linux:** `~/.config/Cursor/User/settings.json`
+
+Add this configuration:
+
+```json
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["chrome-devtools-mcp@latest"]
+    }
+  }
+}
+```
+
+**Alternative:** You can also configure this through Cursor's Settings UI:
+1. Open Cursor Settings
+2. Search for "MCP Servers"
+3. Add a new server with:
+   - Name: `chrome-devtools`
+   - Command: `npx`
+   - Args: `["chrome-devtools-mcp@latest"]`
+
+### Step 2: Start Chrome with Remote Debugging
+
+Launch Chrome with remote debugging enabled on port 9222:
+
+**Windows:**
+```bash
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="%TEMP%\chrome-profile-stable"
+```
+
+**macOS:**
+```bash
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-profile-stable
+```
+
+**Linux:**
+```bash
+/usr/bin/google-chrome --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-profile-stable
+```
+
+> **Security Note:** Enabling remote debugging opens a debugging interface. Ensure you're not browsing sensitive websites while the debugging port is open, as any application on your machine can connect to this port.
+
+### Step 3: Start Dev Server
+
+```bash
+npm run dev
+```
+
+The application will be available at `http://localhost:5173`
+
+### Step 4: Verify Setup
+
+1. Open Cursor in this repository
+2. Open a chat with the AI assistant
+3. The MCP Chrome DevTools commands should be available
 
 ### MCP Commands Available
-Use MCP to interact with Chrome DevTools directly from this conversation:
+
+Once configured, you can use these commands in Cursor chat:
 
 ```
 mcp__chrome-devtools__console - Run JavaScript in browser console
 mcp__chrome-devtools__screenshot - Capture screenshots
 mcp__chrome-devtools__network - Monitor network requests
 mcp__chrome-devtools__performance - Profile performance
+```
+
+### Additional Configuration Options
+
+You can customize the Chrome DevTools MCP server with these options in the `args` array:
+
+- `--browserUrl`, `-u`: Connect to a running Chrome instance using port forwarding
+- `--headless`: Run Chrome in headless mode
+- `--executablePath`, `-e`: Specify a custom Chrome executable path
+- `--isolated`: Use a temporary user data directory that is cleaned up after the browser is closed
+- `--channel`: Specify a different Chrome channel (e.g., stable, canary, beta, dev)
+
+Example with custom options:
+```json
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["chrome-devtools-mcp@latest", "--headless", "--channel", "canary"]
+    }
+  }
+}
 ```
 
 ---

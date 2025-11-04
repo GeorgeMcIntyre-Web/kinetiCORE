@@ -33,7 +33,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     depth: 50000,  // 50m
     height: 20000,  // 20m
     // Atmosphere settings
-    enableFog: true,
+    enableFog: false, // Disable fog by default to see skybox clearly
     enableSkybox: true,
     // PROMPT #3: Sun defaults
     enableSun: true,
@@ -41,7 +41,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     sunElevation: 35,
     sunIntensity: 1.0,
     // PROMPT #4: Skybox source default
-    skyboxSource: 'industrial',
+    skyboxSource: 'sunny', // Blue sky with clouds
   });
   const [isVisible, setIsVisible] = useState(true);
 
@@ -64,45 +64,62 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
   }, []);
 
   const initializeWarehouse = (scene: BABYLON.Scene) => {
+    // CRITICAL: Set background to transparent BEFORE creating warehouse
+    // This ensures skybox is visible (per Babylon.js official docs)
+    SceneManager.getInstance().setBackgroundTransparent(true);
+
     // Create warehouse model
     const warehouseModel = new WarehouseModel(scene, config);
     setWarehouse(warehouseModel);
 
-    // Resize floor to match warehouse
-    SceneManager.getInstance().resizeFloor(config.width / 1000, config.depth / 1000);
+    // Hide the default ground plane - we use warehouse's parking lot and grass instead
+    const ground = SceneManager.getInstance().getGround();
+    if (ground) {
+      ground.setEnabled(false);
+      ground.isVisible = false;
+    }
 
-    // Configure camera for INTERIOR view - position INSIDE the warehouse
+    // Configure camera for EXTERIOR view - position OUTSIDE the warehouse
     const camera = CameraService.getInstance().getCamera();
     if (camera && camera instanceof BABYLON.ArcRotateCamera) {
-      // Position camera INSIDE the warehouse at eye level (1.7m = 170cm typical eye height)
-      const eyeHeight = 1.7; // 1.7 meters above floor
       const widthM = config.width / 1000;
       const depthM = config.depth / 1000;
       const heightM = config.height / 1000;
       
-      // Set clipping planes for interior feel + skybox visibility
+      // Set clipping planes for exterior view + skybox visibility
       camera.minZ = 0.1; // Near: 10cm
-      camera.maxZ = Math.max(widthM, depthM, heightM) * 2000; // Far: must see skybox (1000x warehouse size)
+      // CRITICAL: maxZ must be HUGE to see the skybox (which is 1000x warehouse size)
+      const maxDimension = Math.max(widthM, depthM, heightM);
+      camera.maxZ = maxDimension * 2000; // Far: must see skybox (2000x warehouse size)
       
-      // Position camera INSIDE, centered, at eye level
-      // Target is a point ABOVE eye level to look up at sky
-      camera.target = new BABYLON.Vector3(0, heightM * 0.7, 0); // Look up towards ceiling/sky
+      // Position camera OUTSIDE the warehouse, looking at it from an angle
+      // Target the center of the warehouse at mid-height
+      camera.target = new BABYLON.Vector3(0, heightM * 0.5, 0); // Center of warehouse at half height
 
-      // Position camera INSIDE looking forward (not outside looking in)
-      // Use a small radius so camera is close to center, inside the warehouse
-      const interiorRadius = Math.min(widthM, depthM) * 0.2; // 20% of smallest dimension - INSIDE
-      camera.radius = interiorRadius;
+      // Position camera OUTSIDE looking at the warehouse
+      // Place camera just outside the warehouse, at a good viewing distance
+      // Position it diagonally outside (further than the warehouse dimensions)
+      const maxHorizontalDimension = Math.max(widthM, depthM);
+      const exteriorDistance = maxHorizontalDimension * 1.5; // 1.5x the largest dimension - just outside
+      const cameraHeight = heightM * 0.6; // 60% of warehouse height - good viewing angle
+      
+      camera.radius = Math.sqrt(
+        Math.pow(exteriorDistance, 2) + 
+        Math.pow(exteriorDistance, 2) + 
+        Math.pow(cameraHeight, 2)
+      ); // Distance from target
 
-      // Set camera angle to look UP at an angle (to see sky)
-      camera.alpha = 0; // Look forward along +Z
-      camera.beta = Math.PI / 3; // 60° from vertical = looking UP to see sky
+      // Set camera angle to look at warehouse from outside (isometric-like view)
+      camera.alpha = Math.PI / 4; // 45° around - diagonal view
+      camera.beta = Math.PI / 3; // 60° from vertical - slightly elevated to see sky
       
       // Update camera immediately
       camera.setTarget(camera.target);
       
-      console.log(`[WarehouseControls] 📷 Camera positioned INSIDE warehouse at eye level (${eyeHeight}m)`);
-      console.log(`[WarehouseControls] Camera target: (${camera.target.x}, ${camera.target.y}, ${camera.target.z})`);
-      console.log(`[WarehouseControls] Camera radius: ${interiorRadius}m (inside warehouse)`);
+      console.log(`[WarehouseControls] 📷 Camera positioned OUTSIDE warehouse`);
+      console.log(`[WarehouseControls] Camera target: (${camera.target.x.toFixed(1)}, ${camera.target.y.toFixed(1)}, ${camera.target.z.toFixed(1)})`);
+      console.log(`[WarehouseControls] Camera radius: ${camera.radius.toFixed(1)}m (outside warehouse)`);
+      console.log(`[WarehouseControls] Camera position: (${camera.position.x.toFixed(1)}, ${camera.position.y.toFixed(1)}, ${camera.position.z.toFixed(1)})`);
     }
 
     return () => {
@@ -119,21 +136,33 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     // Update floor size
     SceneManager.getInstance().resizeFloor(config.width / 1000, config.depth / 1000);
 
-    // Update camera for new warehouse size - keep camera INSIDE
+    // Update camera for new warehouse size - keep camera OUTSIDE
     const camera = CameraService.getInstance().getCamera();
     if (camera && camera instanceof BABYLON.ArcRotateCamera) {
-      const eyeHeight = 1.7; // Keep at eye level
       const widthM = config.width / 1000;
       const depthM = config.depth / 1000;
       const heightM = config.height / 1000;
       
       camera.minZ = 0.1;
       camera.maxZ = Math.max(widthM, depthM, heightM) * 2000; // Must see skybox
-      camera.target = new BABYLON.Vector3(0, eyeHeight, 0);
-
-      // Keep camera inside with small radius
-      const interiorRadius = Math.min(widthM, depthM) * 0.2;
-      camera.radius = interiorRadius;
+      
+      // Position camera OUTSIDE the warehouse
+      camera.target = new BABYLON.Vector3(0, heightM * 0.5, 0); // Center of warehouse at half height
+      
+      // Keep camera outside with appropriate distance
+      const maxDimension = Math.max(widthM, depthM);
+      const exteriorDistance = maxDimension * 1.5; // 1.5x the largest dimension - just outside
+      const cameraHeight = heightM * 0.6; // 60% of warehouse height
+      
+      camera.radius = Math.sqrt(
+        Math.pow(exteriorDistance, 2) + 
+        Math.pow(exteriorDistance, 2) + 
+        Math.pow(cameraHeight, 2)
+      );
+      
+      camera.alpha = Math.PI / 4; // 45° around - diagonal view
+      camera.beta = Math.PI / 3; // 60° from vertical
+      
       camera.setTarget(camera.target);
     }
   }, [config, warehouse]);
@@ -168,30 +197,36 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
   const resetCameraToInterior = () => {
     const camera = CameraService.getInstance().getCamera();
     if (camera && camera instanceof BABYLON.ArcRotateCamera) {
-      const eyeHeight = 1.7; // 1.7 meters above floor
       const widthM = config.width / 1000;
       const depthM = config.depth / 1000;
       const heightM = config.height / 1000;
       
-      // Set clipping planes for interior feel + skybox visibility
+      // Set clipping planes for exterior view + skybox visibility
       camera.minZ = 0.1;
       camera.maxZ = Math.max(widthM, depthM, heightM) * 2000; // Must see skybox
 
-      // Position camera INSIDE, centered, at eye level
-      camera.target = new BABYLON.Vector3(0, eyeHeight, 0);
+      // Position camera OUTSIDE the warehouse, looking at it
+      camera.target = new BABYLON.Vector3(0, heightM * 0.5, 0); // Center of warehouse at half height
       
-      // Position camera INSIDE with small radius
-      const interiorRadius = Math.min(widthM, depthM) * 0.2;
-      camera.radius = interiorRadius;
+      // Position camera OUTSIDE with appropriate distance
+      const maxDimension = Math.max(widthM, depthM);
+      const exteriorDistance = maxDimension * 1.5; // 1.5x the largest dimension - just outside
+      const cameraHeight = heightM * 0.6; // 60% of warehouse height
       
-      // Set camera angle to look forward horizontally
-      camera.alpha = 0; // Look forward along +Z
-      camera.beta = Math.PI / 2; // Horizontal
+      camera.radius = Math.sqrt(
+        Math.pow(exteriorDistance, 2) + 
+        Math.pow(exteriorDistance, 2) + 
+        Math.pow(cameraHeight, 2)
+      );
+      
+      // Set camera angle to look at warehouse from outside (isometric-like view)
+      camera.alpha = Math.PI / 4; // 45° around - diagonal view
+      camera.beta = Math.PI / 3; // 60° from vertical - slightly elevated to see sky
       
       // Update camera immediately
       camera.setTarget(camera.target);
       
-      console.log(`[WarehouseControls] 📷 Camera reset to interior view`);
+      console.log(`[WarehouseControls] 📷 Camera reset to exterior view (outside warehouse)`);
     }
   };
 
@@ -214,6 +249,12 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
           <span>Warehouse</span>
         </div>
         <div className="header-actions">
+          <button className="icon-btn-small" onClick={resetSize} title="Reset size">
+            <Maximize2 size={14} />
+          </button>
+          <button className="icon-btn-small" onClick={resetCameraToInterior} title="Reset camera">
+            <Camera size={14} />
+          </button>
           <button
             className="icon-btn-small"
             onClick={toggleVisibility}
@@ -230,73 +271,51 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
       </div>
 
       <div className="warehouse-controls-body">
-        {/* Width Control */}
-        <div className="size-control-group">
-          <label className="size-label">Width (X)</label>
-          <div className="size-control">
-            <button
-              className="icon-btn-compact"
-              onClick={() => adjustSize('width', -5000)}
-              title="Decrease width by 5m"
-            >
-              <Minus size={12} />
-            </button>
-            <span className="size-value">{formatSize(config.width)}</span>
-            <button
-              className="icon-btn-compact"
-              onClick={() => adjustSize('width', 5000)}
-              title="Increase width by 5m"
-            >
-              <Plus size={12} />
-            </button>
+        {/* Dimensions presented in one compact grid */}
+        <div className="size-grid">
+          <div className="size-item">
+            <label className="size-label">Width (X)</label>
+            <div className="size-control">
+              <button className="icon-btn-compact" onClick={() => adjustSize('width', -5000)} title="-5m">
+                <Minus size={12} />
+              </button>
+              <span className="size-value">{formatSize(config.width)}</span>
+              <button className="icon-btn-compact" onClick={() => adjustSize('width', 5000)} title="+5m">
+                <Plus size={12} />
+              </button>
+            </div>
+          </div>
+          <div className="size-item">
+            <label className="size-label">Depth (Y)</label>
+            <div className="size-control">
+              <button className="icon-btn-compact" onClick={() => adjustSize('depth', -5000)} title="-5m">
+                <Minus size={12} />
+              </button>
+              <span className="size-value">{formatSize(config.depth)}</span>
+              <button className="icon-btn-compact" onClick={() => adjustSize('depth', 5000)} title="+5m">
+                <Plus size={12} />
+              </button>
+            </div>
+          </div>
+          <div className="size-item">
+            <label className="size-label">Height (Z)</label>
+            <div className="size-control">
+              <button className="icon-btn-compact" onClick={() => adjustSize('height', -1000)} title="-1m">
+                <Minus size={12} />
+              </button>
+              <span className="size-value">{formatSize(config.height)}</span>
+              <button className="icon-btn-compact" onClick={() => adjustSize('height', 1000)} title="+1m">
+                <Plus size={12} />
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Depth Control */}
-        <div className="size-control-group">
-          <label className="size-label">Depth (Y)</label>
-          <div className="size-control">
-            <button
-              className="icon-btn-compact"
-              onClick={() => adjustSize('depth', -5000)}
-              title="Decrease depth by 5m"
-            >
-              <Minus size={12} />
-            </button>
-            <span className="size-value">{formatSize(config.depth)}</span>
-            <button
-              className="icon-btn-compact"
-              onClick={() => adjustSize('depth', 5000)}
-              title="Increase depth by 5m"
-            >
-              <Plus size={12} />
-            </button>
-          </div>
-        </div>
+        
 
-        {/* Height Control */}
-        <div className="size-control-group">
-          <label className="size-label">Height (Z)</label>
-          <div className="size-control">
-            <button
-              className="icon-btn-compact"
-              onClick={() => adjustSize('height', -1000)}
-              title="Decrease height by 1m"
-            >
-              <Minus size={12} />
-            </button>
-            <span className="size-value">{formatSize(config.height)}</span>
-            <button
-              className="icon-btn-compact"
-              onClick={() => adjustSize('height', 1000)}
-              title="Increase height by 1m"
-            >
-              <Plus size={12} />
-            </button>
-          </div>
-        </div>
+        
 
-        {/* Quick Presets */}
+        
         <div className="presets-group">
           <button className="preset-btn" onClick={resetSize} title="Reset to 50m × 50m × 20m">
             <Maximize2 size={12} />
@@ -309,7 +328,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
         </div>
 
         {/* Atmosphere Controls */}
-        <div className="size-control-group" style={{ marginTop: 12 }}>
+        <div className="size-control-group" style={{ marginTop: 6 }}>
           <label className="size-label">
             <input
               type="checkbox"
@@ -327,7 +346,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
         </div>
 
         {/* PROMPT #3: Sun Controls */}
-        <div className="size-control-group" style={{ marginTop: 12 }}>
+        <div className="size-control-group" style={{ marginTop: 6 }}>
           <label className="size-label">
             <input
               type="checkbox"
@@ -415,34 +434,51 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
         </div>
 
         {/* PROMPT #4: Skybox Source Controls */}
-        <div className="size-control-group" style={{ marginTop: 12 }}>
-          <label className="size-label">Skybox Environment</label>
-          <select
-            value={config.skyboxSource || 'industrial'}
-            onChange={(e) => {
-              const source = e.target.value as SkyboxSource;
-              setConfig((p) => ({ ...p, skyboxSource: source }));
-              if (warehouse) {
-                warehouse.updateSize({ skyboxSource: source });
-              }
-            }}
-            style={{
-              width: '100%',
-              padding: '4px 8px',
-              fontSize: '12px',
-              borderRadius: '4px',
-              border: '1px solid #444',
-              backgroundColor: '#2a2a2a',
-              color: '#fff',
-              cursor: 'pointer',
-            }}
-          >
-            <option value="industrial">Industrial (Default)</option>
-            <option value="sunny">Sunny Day</option>
-            <option value="overcast">Overcast</option>
-            <option value="night">Night Sky</option>
-            <option value="sunset">Sunset</option>
-          </select>
+        <div className="size-control-group" style={{ marginTop: 6 }}>
+          <label className="size-label">
+            <input
+              type="checkbox"
+              checked={!!config.enableSkybox}
+              onChange={() => {
+                const next = !config.enableSkybox;
+                setConfig((p) => ({ ...p, enableSkybox: next }));
+                if (warehouse) {
+                  warehouse.updateSize({ enableSkybox: next });
+                }
+              }}
+            />
+            Enable Skybox
+          </label>
+          
+          {config.enableSkybox && (
+            <select
+              value={config.skyboxSource || 'industrial'}
+              onChange={(e) => {
+                const source = e.target.value as SkyboxSource;
+                setConfig((p) => ({ ...p, skyboxSource: source }));
+                if (warehouse) {
+                  warehouse.updateSize({ skyboxSource: source });
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '4px 8px',
+                fontSize: '12px',
+                borderRadius: '4px',
+                border: '1px solid #444',
+                backgroundColor: '#2a2a2a',
+                color: '#fff',
+                cursor: 'pointer',
+                marginTop: '6px',
+              }}
+            >
+              <option value="industrial">Industrial (Default)</option>
+              <option value="sunny">Sunny Day</option>
+              <option value="overcast">Overcast</option>
+              <option value="night">Night Sky</option>
+              <option value="sunset">Sunset</option>
+            </select>
+          )}
         </div>
       </div>
     </div>
