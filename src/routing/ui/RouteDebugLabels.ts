@@ -113,7 +113,7 @@ export class RouteDebugLabels {
 
     // Add geometry info
     const length = this.createTextBlock(
-      `Length: ${route.getTotalLength().toFixed(2)} m`,
+      `Length: ${(route.getTotalLength() / 1000).toFixed(2)} m`,
       '13px',
       'normal',
       '#e0e0e0'
@@ -537,7 +537,7 @@ export class RouteDebugLabels {
     stackPanel.addControl(title);
 
     const length = this.createTextBlock(
-      `${route.getTotalLength().toFixed(2)} m`,
+      `${(route.getTotalLength() / 1000).toFixed(2)} m`,
       '11px',
       'normal',
       '#ccc'

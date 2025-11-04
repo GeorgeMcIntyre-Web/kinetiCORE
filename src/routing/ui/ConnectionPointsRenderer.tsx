@@ -51,7 +51,7 @@ export const ConnectionPointsRenderer = () => {
         const sphere = BABYLON.MeshBuilder.CreateSphere(
           `conn_indicator_${id}`,
           {
-            diameter: 1.0, // Much larger for easy clicking (1 meter)
+            diameter: 0.05, // 50mm - proportional to pipes, still easily clickable
             segments: 16,
           },
           scene

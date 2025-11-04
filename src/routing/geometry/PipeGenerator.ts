@@ -18,11 +18,21 @@ export class PipeGenerator extends RouteGeometryGenerator {
    * @returns Object with outer diameter (od) and inner diameter (id) in meters
    */
   private getPipeDiameter(route: Route): { od: number; id: number } {
-    const size = route.source.specifications.size || '1/2"';
+    let size = route.source.specifications.size || '1/2"';
+    
+    // Normalize size string to match PIPE_SIZES table format
+    // Handles: "3/4 inch", "3/4\"", "3/4inch", etc. → "3/4""
+    size = size.replace(/\s*inch(es)?\s*/i, '"'); // "3/4 inch" → "3/4""
+    size = size.replace(/\s+/g, ''); // Remove all spaces
+    if (!size.endsWith('"') && !size.match(/^\d+$/)) {
+      // If it doesn't end with quote and isn't just a number, try to add quote
+      size = size + '"';
+    }
+    
     const pipeSpec = PIPE_SIZES[size];
     
     if (!pipeSpec) {
-      console.warn(`[PipeGenerator] Unknown pipe size: ${size}, using default 1/2"`);
+      console.warn(`[PipeGenerator] Unknown pipe size: "${size}" (original: "${route.source.specifications.size}"), using default 1/2"`);
       return PIPE_SIZES['1/2"'];
     }
     
@@ -141,7 +151,8 @@ export class PipeGenerator extends RouteGeometryGenerator {
       // Create a minimal fallback mesh to prevent errors
       const fallback = BABYLON.MeshBuilder.CreateCylinder(
         `pipe_fallback_${route.getId()}`,
-        { height: 1, diameter: 0.04 },
+        // Ensure fallback is also visible with min 50mm diameter
+        { height: 1, diameter: 0.05 },
         this.scene
       );
       fallback.isVisible = true;
@@ -206,7 +217,9 @@ export class PipeGenerator extends RouteGeometryGenerator {
 
     // Get diameter from specifications (route is passed as parameter)
     const { od } = route ? this.getPipeDiameter(route) : { od: 0.04 };
-    const diameter = od;
+    // Scale up for visibility - real pipes are small, make them visible in 3D
+    // Use 3x actual size or minimum 50mm, whichever is larger
+    const diameter = Math.max(od * 3, 0.05);
 
     // Create cylinder with proper tessellation for smooth appearance
     const cylinder = BABYLON.MeshBuilder.CreateCylinder(
@@ -249,7 +262,8 @@ export class PipeGenerator extends RouteGeometryGenerator {
 
     // Get diameter from specifications (route is passed as parameter)
     const { od } = route ? this.getPipeDiameter(route) : { od: 0.04 };
-    const diameter = od;
+    // Match straight tube visibility scaling: 3× OD with 50mm minimum
+    const diameter = Math.max(od * 3, 0.05);
 
     // Create a torus segment to represent the elbow
     const elbow = BABYLON.MeshBuilder.CreateTorus(

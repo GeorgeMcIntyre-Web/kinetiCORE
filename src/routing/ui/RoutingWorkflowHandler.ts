@@ -117,7 +117,7 @@ export class RoutingWorkflowHandler {
   private static getDefaultSpecifications(routeType: string) {
     switch (routeType) {
       case 'pipe':
-        return { size: '3/4 inch', material: 'steel' };
+        return { size: '3/4"', material: 'steel' }; // Use format matching PIPE_SIZES table
       case 'electrical':
         return { voltage: 480, material: 'copper' };
       case 'cable_tray':

@@ -110,8 +110,8 @@ export const RouteStatsPanel: React.FC<RouteStatsPanelProps> = ({ className }) =
       // Update counts
       stats.routesByType[type]++;
 
-      // Update lengths
-      stats.totalLengthByType[type] += length;
+      // Update lengths (convert mm to meters)
+      stats.totalLengthByType[type] += length / 1000;
 
       // Validate route
       const validation = validator.validateRoute(route, []); // Pass obstacles if available
@@ -211,7 +211,7 @@ export const RouteStatsPanel: React.FC<RouteStatsPanelProps> = ({ className }) =
           ? 'Error'
           : 'Warning';
       rows.push(
-        `${route.getId()},${ROUTE_TYPE_NAMES[route.type]},${route.getTotalLength().toFixed(2)},${status},${route.source.getId()},${route.destination.getId()}`
+        `${route.getId()},${ROUTE_TYPE_NAMES[route.type]},${(route.getTotalLength() / 1000).toFixed(2)},${status},${route.source.getId()},${route.destination.getId()}`
       );
     });
 
@@ -387,7 +387,7 @@ export const RouteStatsPanel: React.FC<RouteStatsPanelProps> = ({ className }) =
                           backgroundColor: ROUTE_TYPE_COLORS[data.type],
                         }}
                       >
-                        <span className="route-bar-value">{data.value.toFixed(2)}m</span>
+                        <span className="route-bar-value">{(data.value / 1000).toFixed(2)}m</span>
                       </div>
                     </div>
                   </div>
@@ -487,7 +487,7 @@ export const RouteStatsPanel: React.FC<RouteStatsPanelProps> = ({ className }) =
                   {statistics.longestRoutes.map((item) => (
                     <div key={item.route.getId()} className="route-list-item">
                       <span className="route-list-id">{item.route.getId().slice(0, 8)}...</span>
-                      <span className="route-list-length">{item.length.toFixed(2)}m</span>
+                      <span className="route-list-length">{(item.length / 1000).toFixed(2)}m</span>
                     </div>
                   ))}
                 </div>
@@ -502,7 +502,7 @@ export const RouteStatsPanel: React.FC<RouteStatsPanelProps> = ({ className }) =
                   {statistics.shortestRoutes.map((item) => (
                     <div key={item.route.getId()} className="route-list-item">
                       <span className="route-list-id">{item.route.getId().slice(0, 8)}...</span>
-                      <span className="route-list-length">{item.length.toFixed(2)}m</span>
+                      <span className="route-list-length">{(item.length / 1000).toFixed(2)}m</span>
                     </div>
                   ))}
                 </div>

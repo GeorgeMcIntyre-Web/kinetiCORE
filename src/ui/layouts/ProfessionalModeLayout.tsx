@@ -587,35 +587,92 @@ export const ProfessionalModeLayout: React.FC = () => {
             <button
               className="tool-btn-small"
               title="Quick Electrical preset"
-              onClick={() => void createPresetRoute('electrical', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 })}
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[ProfessionalModeLayout] 🔌 Electrical preset button clicked');
+                // Ensure routing mode is off so viewport clicks don't interfere
+                useRoutingStore.getState().setRoutingMode('off');
+                try {
+                  await createPresetRoute('electrical', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 });
+                  console.log('[ProfessionalModeLayout] ✅ Electrical preset complete');
+                } catch (error) {
+                  console.error('[ProfessionalModeLayout] ❌ Electrical preset failed:', error);
+                }
+              }}
             >
               Electrical
             </button>
             <button
               className="tool-btn-small"
               title="Quick Pipe preset"
-              onClick={() => void createPresetRoute('pipe', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 })}
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[ProfessionalModeLayout] 🔧 Pipe preset button clicked');
+                // Ensure routing mode is off so viewport clicks don't interfere
+                useRoutingStore.getState().setRoutingMode('off');
+                try {
+                  await createPresetRoute('pipe', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 });
+                  console.log('[ProfessionalModeLayout] ✅ Pipe preset complete');
+                } catch (error) {
+                  console.error('[ProfessionalModeLayout] ❌ Pipe preset failed:', error);
+                }
+              }}
             >
               Pipe
             </button>
             <button
               className="tool-btn-small"
               title="Quick Cable Tray preset"
-              onClick={() => void createPresetRoute('cable_tray', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 })}
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[ProfessionalModeLayout] 🪜 Cable Tray preset button clicked');
+                useRoutingStore.getState().setRoutingMode('off');
+                try {
+                  await createPresetRoute('cable_tray', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 });
+                  console.log('[ProfessionalModeLayout] ✅ Cable Tray preset complete');
+                } catch (error) {
+                  console.error('[ProfessionalModeLayout] ❌ Cable Tray preset failed:', error);
+                }
+              }}
             >
               Tray
             </button>
             <button
               className="tool-btn-small"
               title="Quick Conduit preset"
-              onClick={() => void createPresetRoute('conduit', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 })}
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[ProfessionalModeLayout] 🔌 Conduit preset button clicked');
+                useRoutingStore.getState().setRoutingMode('off');
+                try {
+                  await createPresetRoute('conduit', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 });
+                  console.log('[ProfessionalModeLayout] ✅ Conduit preset complete');
+                } catch (error) {
+                  console.error('[ProfessionalModeLayout] ❌ Conduit preset failed:', error);
+                }
+              }}
             >
               Conduit
             </button>
             <button
               className="tool-btn-small"
               title="Create all 4 (arranged)"
-              onClick={() => void createMixedPreset()}
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[ProfessionalModeLayout] 🎨 Mixed preset button clicked');
+                useRoutingStore.getState().setRoutingMode('off');
+                try {
+                  await createMixedPreset();
+                  console.log('[ProfessionalModeLayout] ✅ Mixed preset complete');
+                } catch (error) {
+                  console.error('[ProfessionalModeLayout] ❌ Mixed preset failed:', error);
+                }
+              }}
             >
               Mixed
             </button>

@@ -288,7 +288,7 @@ export const RouteEditPanel: React.FC<RouteEditPanelProps> = ({ route, onClose }
         <div className="route-edit-info">
           <div className="route-edit-info-item">
             <span>Total Length:</span>
-            <span>{route.getTotalLength().toFixed(2)} units</span>
+            <span>{(route.getTotalLength() / 1000).toFixed(2)}m</span>
           </div>
           <div className="route-edit-info-item">
             <span>Segments:</span>

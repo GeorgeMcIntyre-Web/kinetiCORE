@@ -56,7 +56,7 @@ export const RouteInspector: React.FC<RouteInspectorProps> = ({
 
       <div className="route-inspector-section">
         <label>Total Length:</label>
-        <span>{route.getTotalLength().toFixed(2)} units</span>
+        <span>{(route.getTotalLength() / 1000).toFixed(2)}m</span>
       </div>
 
       <div className="route-inspector-section">

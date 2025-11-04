@@ -12,14 +12,18 @@
 
 /* Header */
 .professional-header {
+  position: sticky;
+  top: 0;
   height: 48px;
+  min-height: 48px;
+  flex-shrink: 0;
   background: #2d3748;
   border-bottom: 1px solid #4a5568;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  z-index: 100;
+  z-index: 200; /* Above warning panel */
 }
 
 .header-left {
@@ -127,7 +131,12 @@
 
 /* Ribbon Toolbar */
 .ribbon-toolbar {
-  height: 56px; /* more compact */
+  position: sticky;
+  top: 48px; /* Below header */
+  height: 56px; /* Fixed height - don't let it shrink */
+  min-height: 56px; /* Ensure minimum height */
+  max-height: 56px; /* Prevent growing */
+  flex-shrink: 0; /* Don't shrink in flex container */
   background: #2d3748;
   border-bottom: 1px solid #4a5568;
   display: flex;
@@ -135,6 +144,7 @@
   padding: 0 10px;
   gap: 8px; /* tighter spacing */
   overflow-x: auto;
+  z-index: 199; /* Below header, above content */
 }
 
 .tool-group {

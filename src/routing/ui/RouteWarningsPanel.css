@@ -2,12 +2,24 @@
 /* Owner: Routing System Team (Agent 3) */
 
 .route-warnings-panel {
+  position: fixed;
+  top: 104px; /* Below header (48px) + ribbon (56px) */
+  left: 0;
+  right: 0;
+  z-index: 198; /* Below header/ribbon, above content */
   background: rgba(26, 26, 26, 0.95);
   backdrop-filter: blur(10px);
   border-bottom: 2px solid rgba(255, 193, 7, 0.5);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   color: #e0e0e0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  /* Ensure it doesn't affect document flow - overlay only */
+  pointer-events: auto;
+  /* Prevent affecting layout calculations */
+  margin: 0;
+  padding: 0;
+  /* Remove from document flow completely */
+  position: fixed !important;
 }
 
 .warnings-header {

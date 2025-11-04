@@ -161,9 +161,10 @@ export const RoutingControlPanel: React.FC<RoutingControlPanelProps> = ({ onClos
         <button
           className={`primary-btn ${routingMode === 'placing_connector' ? 'active' : ''}`}
           onClick={handlePlaceConnector}
+          title={routingMode === 'placing_connector' ? 'Stop Placing Connectors (Esc)' : 'Place Connectors - Click geometry in 3D viewport'}
         >
           <Network size={18} />
-          <span>{routingMode === 'placing_connector' ? 'Stop Placing (click to finish)' : 'Place Connectors'}</span>
+          {routingMode === 'placing_connector' && <span>Stop</span>}
         </button>
         {routingMode === 'placing_connector' && (
           <>
@@ -267,7 +268,7 @@ export const RoutingControlPanel: React.FC<RoutingControlPanelProps> = ({ onClos
                       )}
                     </div>
                     <div className="route-details">
-                      {route.segments.length} segments, {route.getTotalLength().toFixed(2)}m
+                      {route.segments.length} segments, {(route.getTotalLength() / 1000).toFixed(2)}m
                     </div>
                   </div>
                   <button

@@ -54,7 +54,7 @@ export const RouteWarningsPanel: React.FC = () => {
   }
 
   return (
-    <div className="route-warnings-panel" style={{ position: 'fixed', top: 48, left: 0, right: 0, zIndex: 1000 }}>
+    <div className="route-warnings-panel">
       <div
         className={`warnings-header ${errorCount > 0 ? 'error' : 'warning'}`}
         onClick={() => setExpanded(!expanded)}

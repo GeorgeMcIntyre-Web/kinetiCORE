@@ -320,7 +320,8 @@ export class AssetLoader {
       case 'sphere':
         mesh = BABYLON.MeshBuilder.CreateSphere(
           name,
-          { diameter: 1 },
+          // Reduce default primitive sphere size from 1.0m to 0.05m
+          { diameter: 0.05 },
           this.scene
         );
         break;
