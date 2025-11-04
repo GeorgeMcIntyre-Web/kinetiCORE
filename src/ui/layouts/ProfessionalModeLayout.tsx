@@ -171,9 +171,11 @@ export const ProfessionalModeLayout: React.FC = () => {
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && importModel) {
-      await importModel(file);
+    const files = event.target.files;
+    if (files && files.length > 0 && importModel) {
+      for (let i = 0; i < files.length; i++) {
+        await importModel(files[i]);
+      }
     }
     if (event.target) {
       event.target.value = '';
@@ -279,7 +281,7 @@ export const ProfessionalModeLayout: React.FC = () => {
             <button className="action-btn" title="Save" onClick={saveWorld}>
               <Save size={18} />
             </button>
-            <button className="action-btn" title="Import" onClick={handleImport}>
+            <button className="action-btn" title="Import Model" onClick={handleImport}>
               <Upload size={18} />
             </button>
             <button className="action-btn" title="Export" onClick={handleExport}>
@@ -322,6 +324,22 @@ export const ProfessionalModeLayout: React.FC = () => {
 
       {/* Ribbon Toolbar */}
       <div className="ribbon-toolbar">
+        {/* Import Tools (parity with Essential ribbon) */}
+        <div className="tool-group">
+          <div className="group-label">Import</div>
+          <div className="tool-buttons">
+            <button
+              className="tool-btn"
+              title="Import Model (URDF, GLTF, USD, OBJ, etc.)"
+              onClick={handleImport}
+            >
+              <Upload size={18} />
+              <span>Import</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
         {/* Creation Tools */}
         <div className="tool-group">
           <div className="group-label">Creation</div>
@@ -710,7 +728,8 @@ export const ProfessionalModeLayout: React.FC = () => {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".urdf,.stl,.obj,.dxf,.dwg,.jt,.catpart,.catproduct,.catdrawing,.zip"
+        accept=".urdf,.stl,.obj,.dae,.gltf,.glb,.dxf,.dwg,.jt,.xml,.usd,.usdz,.zip"
+        multiple
         onChange={handleFileChange}
         style={{ display: 'none' }}
       />

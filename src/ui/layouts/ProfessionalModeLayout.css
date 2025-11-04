@@ -133,37 +133,42 @@
 .ribbon-toolbar {
   position: sticky;
   top: 48px; /* Below header */
-  height: 56px; /* Fixed height - don't let it shrink */
-  min-height: 56px; /* Ensure minimum height */
-  max-height: 56px; /* Prevent growing */
+  height: 64px; /* Increased to prevent label clipping */
+  min-height: 64px;
+  max-height: 64px;
   flex-shrink: 0; /* Don't shrink in flex container */
   background: #2d3748;
   border-bottom: 1px solid #4a5568;
   display: flex;
   align-items: center;
-  padding: 0 10px;
+  /* Provide breathing space so group labels aren't cut by top border */
+  padding: 6px 10px 6px 10px;
   gap: 8px; /* tighter spacing */
   overflow-x: auto;
+  overflow-y: visible; /* allow labels to render cleanly */
   z-index: 199; /* Below header, above content */
 }
 
 .tool-group {
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
   gap: 4px;
 }
 
 .group-label {
   font-size: 11px;
+  line-height: 14px; /* avoid top cropping */
   color: #718096;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 0 8px;
+  white-space: nowrap; /* keep labels on one line */
 }
 
 .tool-buttons {
   display: flex;
-  gap: 3px; /* tighter */
+  gap: 4px; /* consistent spacing */
 }
 
 .tool-btn {
@@ -171,7 +176,7 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 4px 8px; /* tighter */
+  padding: 2px 8px; /* slightly tighter to fit label+icons */
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
@@ -179,7 +184,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 10px;
-  min-width: 52px; /* narrower */
+  min-width: 52px; /* narrow but readable */
 }
 
 .tool-btn:hover {
@@ -207,6 +212,7 @@
   font-size: 11px;
   font-weight: 500;
   white-space: nowrap;
+  line-height: 14px; /* ensure full glyph height */
 }
 
 /* Normalize icon sizes inside buttons for consistency */
@@ -228,6 +234,7 @@
   font-weight: 500;
   white-space: nowrap;
   margin-top: 4px;
+  line-height: 14px; /* ensure full glyph height */
 }
 
 .tool-btn-small {
@@ -254,7 +261,7 @@
 
 .toolbar-separator {
   width: 1px;
-  height: 48px;
+  height: 100%; /* fill ribbon height */
   background: #4a5568;
 }
 

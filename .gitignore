@@ -205,3 +205,7 @@ test.jt
 
 # Wrangler debug files
 wrangler-debug.toml
+
+# Large texture files (exceed GitHub 100MB limit - use Git LFS if needed)
+public/assets/textures/grass/*.png
+public/assets/textures/asphalt/*.jpg
