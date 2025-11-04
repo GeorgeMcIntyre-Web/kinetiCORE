@@ -1371,15 +1371,16 @@ export class WarehouseModel {
       const depthM = this.config.depth / 1000;
       const heightM = this.config.height / 1000;
 
-      camera.minZ = 0.25;
-      camera.maxZ = Math.max(widthM, depthM, heightM) * 3;
+      camera.minZ = 0.1; // Very close
+      // CRITICAL: maxZ must be larger than skybox (1000x warehouse) to see sky!
+      camera.maxZ = Math.max(widthM, depthM, heightM) * 2000; // 2x skybox size
 
       // Re-target to safe position
       camera.target = new BABYLON.Vector3(0, 1.7, 0);
       camera.radius = Math.min(widthM, depthM) * 0.25;
       camera.setTarget(camera.target);
 
-      console.log(`[WarehouseModel] ✅ Updated camera clipping planes: minZ=${camera.minZ}, maxZ=${camera.maxZ.toFixed(1)}m`);
+      console.log(`[WarehouseModel] ✅ Updated camera clipping planes: minZ=${camera.minZ}, maxZ=${camera.maxZ.toFixed(1)}m (can see skybox)`);
     }
   }
 

@@ -32,6 +32,9 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     width: 50000,  // 50m
     depth: 50000,  // 50m
     height: 20000,  // 20m
+    // Atmosphere settings
+    enableFog: true,
+    enableSkybox: true,
     // PROMPT #3: Sun defaults
     enableSun: true,
     sunAzimuth: -45,
@@ -77,9 +80,9 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
       const depthM = config.depth / 1000;
       const heightM = config.height / 1000;
       
-      // Set clipping planes for interior feel
+      // Set clipping planes for interior feel + skybox visibility
       camera.minZ = 0.1; // Near: 10cm
-      camera.maxZ = Math.max(widthM, depthM, heightM) * 3; // Far: 3x max dimension to see walls
+      camera.maxZ = Math.max(widthM, depthM, heightM) * 2000; // Far: must see skybox (1000x warehouse size)
       
       // Position camera INSIDE, centered, at eye level
       // Target is center of warehouse floor
@@ -125,9 +128,9 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
       const heightM = config.height / 1000;
       
       camera.minZ = 0.1;
-      camera.maxZ = Math.max(widthM, depthM, heightM) * 3;
+      camera.maxZ = Math.max(widthM, depthM, heightM) * 2000; // Must see skybox
       camera.target = new BABYLON.Vector3(0, eyeHeight, 0);
-      
+
       // Keep camera inside with small radius
       const interiorRadius = Math.min(widthM, depthM) * 0.2;
       camera.radius = interiorRadius;
@@ -170,10 +173,10 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
       const depthM = config.depth / 1000;
       const heightM = config.height / 1000;
       
-      // Set clipping planes for interior feel
+      // Set clipping planes for interior feel + skybox visibility
       camera.minZ = 0.1;
-      camera.maxZ = Math.max(widthM, depthM, heightM) * 3;
-      
+      camera.maxZ = Math.max(widthM, depthM, heightM) * 2000; // Must see skybox
+
       // Position camera INSIDE, centered, at eye level
       camera.target = new BABYLON.Vector3(0, eyeHeight, 0);
       
@@ -303,6 +306,24 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
             <Camera size={12} />
             <span>Reset Camera</span>
           </button>
+        </div>
+
+        {/* Atmosphere Controls */}
+        <div className="size-control-group" style={{ marginTop: 12 }}>
+          <label className="size-label">
+            <input
+              type="checkbox"
+              checked={!!config.enableFog}
+              onChange={() => {
+                const next = !config.enableFog;
+                setConfig((p) => ({ ...p, enableFog: next }));
+                if (warehouse) {
+                  warehouse.updateSize({ enableFog: next });
+                }
+              }}
+            />
+            Fog
+          </label>
         </div>
 
         {/* PROMPT #3: Sun Controls */}
