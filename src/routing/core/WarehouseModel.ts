@@ -2,17 +2,24 @@
 // Owner: Routing System Team
 
 import * as BABYLON from '@babylonjs/core';
+import '@babylonjs/core/Rendering/depthRendererSceneComponent';
 
 export interface WarehouseConfig {
   width: number;  // X-axis dimension (mm)
   depth: number;  // Y-axis dimension (mm)
   height: number; // Z-axis dimension (mm) - warehouse ceiling height
+  enableFog?: boolean; // Enable atmospheric fog
+  enableBloom?: boolean; // Enable bloom/glow effects
+  enableSkybox?: boolean; // Enable skybox environment
 }
 
 const DEFAULT_CONFIG: WarehouseConfig = {
   width: 50000,  // 50m = 50,000mm
   depth: 50000,  // 50m = 50,000mm
   height: 20000,  // 20m = 20,000mm (warehouse height)
+  enableFog: true, // Enable atmospheric fog by default
+  enableBloom: true, // Enable bloom effects by default
+  enableSkybox: true, // Enable skybox by default
 };
 
 /**
@@ -23,9 +30,11 @@ export class WarehouseModel {
   private scene: BABYLON.Scene;
   private rootNode: BABYLON.TransformNode;
   private config: WarehouseConfig;
-  
+
   private meshes: BABYLON.Mesh[] = [];
   private materials: BABYLON.Material[] = [];
+  private skybox: BABYLON.Mesh | null = null;
+  private renderingPipeline: BABYLON.DefaultRenderingPipeline | null = null;
 
   constructor(scene: BABYLON.Scene, config?: Partial<WarehouseConfig>) {
     this.scene = scene;
@@ -35,6 +44,9 @@ export class WarehouseModel {
 
     // Hide the default ground plane when warehouse is visible
     this.hideGroundPlane();
+
+    // Set up atmospheric effects
+    this.setupAtmosphere();
   }
 
   /**
@@ -619,11 +631,255 @@ export class WarehouseModel {
   }
 
   /**
+   * Set up atmospheric effects: skybox, environment texture, fog, and rendering pipeline
+   */
+  private setupAtmosphere(): void {
+    console.log('[WarehouseModel] 🌫️ Setting up atmospheric effects...');
+
+    // Create procedural environment texture for PBR materials
+    const envTexture = this.createEnvironmentTexture();
+    if (envTexture) {
+      this.scene.environmentTexture = envTexture;
+      console.log('[WarehouseModel] ✅ Environment texture set for PBR reflections');
+    }
+
+    // Create skybox if enabled
+    if (this.config.enableSkybox) {
+      this.createSkybox();
+    }
+
+    // Set up atmospheric fog if enabled
+    if (this.config.enableFog) {
+      this.setupFog();
+    }
+
+    // Set up Default Rendering Pipeline if enabled
+    if (this.config.enableBloom) {
+      this.setupRenderingPipeline();
+    }
+  }
+
+  /**
+   * Create procedural environment texture (CubeTexture) for realistic PBR reflections
+   * Generates industrial warehouse environment with sky, ground, and walls
+   */
+  private createEnvironmentTexture(): BABYLON.CubeTexture | null {
+    try {
+      // Create 6 canvas elements for cube faces (+X, -X, +Y, -Y, +Z, -Z)
+      const size = 512;
+      const faces = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
+      const canvases: Record<string, HTMLCanvasElement> = {};
+
+      faces.forEach(face => {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d')!;
+
+        // Sky color (top) - overcast industrial sky
+        const skyColor = '#7a8a9e';
+        // Horizon color - lighter
+        const horizonColor = '#9aa8b8';
+        // Ground color (bottom) - darker
+        const groundColor = '#4a5258';
+
+        if (face === 'py') {
+          // +Y face (top/sky) - overcast sky with subtle clouds
+          const gradient = ctx.createLinearGradient(0, 0, 0, size);
+          gradient.addColorStop(0, '#8a9aae');
+          gradient.addColorStop(1, skyColor);
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, size, size);
+
+          // Add subtle cloud texture
+          for (let i = 0; i < 50; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const radius = Math.random() * 40 + 20;
+            const cloudGradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+            cloudGradient.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
+            cloudGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = cloudGradient;
+            ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+          }
+        } else if (face === 'ny') {
+          // -Y face (bottom/ground) - concrete ground
+          ctx.fillStyle = groundColor;
+          ctx.fillRect(0, 0, size, size);
+
+          // Add ground texture noise
+          const imageData = ctx.getImageData(0, 0, size, size);
+          const data = imageData.data;
+          for (let i = 0; i < data.length; i += 4) {
+            const noise = (Math.random() - 0.5) * 20;
+            data[i] = Math.max(0, Math.min(255, 74 + noise));
+            data[i + 1] = Math.max(0, Math.min(255, 82 + noise));
+            data[i + 2] = Math.max(0, Math.min(255, 88 + noise));
+          }
+          ctx.putImageData(imageData, 0, 0);
+        } else {
+          // Side faces (horizon) - gradient from sky to ground
+          const gradient = ctx.createLinearGradient(0, 0, 0, size);
+          gradient.addColorStop(0, skyColor);
+          gradient.addColorStop(0.5, horizonColor);
+          gradient.addColorStop(1, groundColor);
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, size, size);
+
+          // Add distant building silhouettes for industrial feel
+          ctx.fillStyle = 'rgba(40, 45, 50, 0.3)';
+          for (let i = 0; i < 5; i++) {
+            const buildingX = Math.random() * size;
+            const buildingWidth = Math.random() * 60 + 40;
+            const buildingHeight = Math.random() * 150 + 100;
+            ctx.fillRect(buildingX, size - buildingHeight, buildingWidth, buildingHeight);
+          }
+        }
+
+        canvases[face] = canvas;
+      });
+
+      // Create CubeTexture from canvas data URLs
+      const urls = faces.map(face => canvases[face].toDataURL());
+
+      // Use CubeTexture.CreateFromImages to create from data URLs
+      const cubeTexture = BABYLON.CubeTexture.CreateFromImages(urls, this.scene, false);
+
+      console.log('[WarehouseModel] ✅ Created procedural environment texture');
+      return cubeTexture;
+    } catch (error) {
+      console.warn('[WarehouseModel] ⚠️ Failed to create environment texture:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Create skybox with procedural industrial environment
+   */
+  private createSkybox(): void {
+    try {
+      const widthM = this.config.width / 1000;
+      const depthM = this.config.depth / 1000;
+      const heightM = this.config.height / 1000;
+      const skyboxSize = Math.max(widthM, depthM, heightM) * 2;
+
+      // Create skybox mesh
+      this.skybox = BABYLON.MeshBuilder.CreateBox(
+        'warehouse_skybox',
+        { size: skyboxSize },
+        this.scene
+      );
+
+      // Create skybox material
+      const skyboxMaterial = new BABYLON.StandardMaterial('warehouse_skybox_mat', this.scene);
+      skyboxMaterial.backFaceCulling = false;
+      skyboxMaterial.disableLighting = true;
+
+      // Use environment texture for skybox if available
+      if (this.scene.environmentTexture) {
+        skyboxMaterial.reflectionTexture = this.scene.environmentTexture;
+        if (skyboxMaterial.reflectionTexture) {
+          skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+        }
+      }
+
+      this.skybox.material = skyboxMaterial;
+      this.skybox.infiniteDistance = true;
+
+      // Don't add to meshes array since we manage disposal separately
+      console.log('[WarehouseModel] ✅ Created skybox');
+    } catch (error) {
+      console.warn('[WarehouseModel] ⚠️ Failed to create skybox:', error);
+    }
+  }
+
+  /**
+   * Set up atmospheric fog for depth perception
+   */
+  private setupFog(): void {
+    try {
+      const widthM = this.config.width / 1000;
+      const depthM = this.config.depth / 1000;
+      const maxDim = Math.max(widthM, depthM);
+
+      // Use linear fog mode for warehouse
+      this.scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
+
+      // Fog color - match overcast sky
+      this.scene.fogColor = new BABYLON.Color3(0.58, 0.62, 0.66); // Cool gray fog
+
+      // Fog starts at 20% of max dimension, ends at 80%
+      this.scene.fogStart = maxDim * 0.2;
+      this.scene.fogEnd = maxDim * 0.8;
+
+      console.log('[WarehouseModel] ✅ Set up atmospheric fog (start: ${this.scene.fogStart.toFixed(1)}m, end: ${this.scene.fogEnd.toFixed(1)}m)');
+    } catch (error) {
+      console.warn('[WarehouseModel] ⚠️ Failed to set up fog:', error);
+    }
+  }
+
+  /**
+   * Set up Default Rendering Pipeline with bloom, grain, and other effects
+   */
+  private setupRenderingPipeline(): void {
+    try {
+      const camera = this.scene.activeCamera;
+      if (!camera) {
+        console.warn('[WarehouseModel] ⚠️ No active camera, skipping rendering pipeline');
+        return;
+      }
+
+      // Create Default Rendering Pipeline with HDR support
+      this.renderingPipeline = new BABYLON.DefaultRenderingPipeline(
+        'warehouse_pipeline',
+        true, // HDR enabled
+        this.scene,
+        [camera]
+      );
+
+      // Enable and configure bloom (subtle industrial glow on lights)
+      this.renderingPipeline.bloomEnabled = true;
+      this.renderingPipeline.bloomThreshold = 0.8; // Only bright areas glow
+      this.renderingPipeline.bloomWeight = 0.3; // Subtle bloom
+      this.renderingPipeline.bloomKernel = 64; // Medium quality
+      this.renderingPipeline.bloomScale = 0.5;
+
+      // Enable FXAA antialiasing for crisp edges
+      this.renderingPipeline.fxaaEnabled = true;
+
+      // Add subtle film grain for industrial realism
+      this.renderingPipeline.grainEnabled = true;
+      this.renderingPipeline.grain.intensity = 10; // Very subtle
+      this.renderingPipeline.grain.animated = true;
+
+      // Enable image processing
+      this.renderingPipeline.imageProcessingEnabled = true;
+      this.renderingPipeline.imageProcessing.contrast = 1.1; // Slight contrast boost
+      this.renderingPipeline.imageProcessing.exposure = 1.0; // Normal exposure
+
+      // Add subtle vignette for focus
+      this.renderingPipeline.imageProcessing.vignetteEnabled = true;
+      this.renderingPipeline.imageProcessing.vignetteWeight = 1.5;
+      this.renderingPipeline.imageProcessing.vignetteCameraFov = 0.8;
+
+      console.log('[WarehouseModel] ✅ Set up Default Rendering Pipeline with bloom, grain, and effects');
+    } catch (error) {
+      console.warn('[WarehouseModel] ⚠️ Failed to set up rendering pipeline:', error);
+    }
+  }
+
+  /**
    * Update warehouse size
    */
   updateSize(config: Partial<WarehouseConfig>): void {
     this.config = { ...this.config, ...config };
     this.build();
+
+    // Rebuild atmospheric effects if size changed
+    if (config.width !== undefined || config.depth !== undefined || config.height !== undefined) {
+      this.disposeAtmosphere();
+      this.setupAtmosphere();
+    }
   }
 
   /**
@@ -641,6 +897,28 @@ export class WarehouseModel {
   }
 
   /**
+   * Dispose atmospheric effects (skybox, rendering pipeline)
+   */
+  private disposeAtmosphere(): void {
+    // Dispose skybox
+    if (this.skybox) {
+      this.skybox.dispose();
+      this.skybox = null;
+    }
+
+    // Dispose rendering pipeline
+    if (this.renderingPipeline) {
+      this.renderingPipeline.dispose();
+      this.renderingPipeline = null;
+    }
+
+    // Clear scene fog
+    this.scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
+
+    // Note: Environment texture is managed by scene, don't dispose manually
+  }
+
+  /**
    * Dispose all meshes and materials
    */
   dispose(): void {
@@ -648,5 +926,8 @@ export class WarehouseModel {
     this.meshes = [];
     this.materials.forEach(material => material.dispose());
     this.materials = [];
+
+    // Dispose atmospheric effects
+    this.disposeAtmosphere();
   }
 }
