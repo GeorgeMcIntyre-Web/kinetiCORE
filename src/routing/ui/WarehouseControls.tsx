@@ -32,6 +32,11 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     width: 50000,  // 50m
     depth: 50000,  // 50m
     height: 20000,  // 20m
+    // PROMPT #3: Sun defaults
+    enableSun: true,
+    sunAzimuth: -45,
+    sunElevation: 35,
+    sunIntensity: 1.0,
   });
   const [isVisible, setIsVisible] = useState(true);
 
@@ -296,6 +301,94 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
             <Camera size={12} />
             <span>Reset Camera</span>
           </button>
+        </div>
+
+        {/* PROMPT #3: Sun Controls */}
+        <div className="size-control-group" style={{ marginTop: 12 }}>
+          <label className="size-label">
+            <input
+              type="checkbox"
+              checked={!!config.enableSun}
+              onChange={() => {
+                const next = !config.enableSun;
+                setConfig((p) => ({ ...p, enableSun: next }));
+                if (warehouse) {
+                  warehouse.updateSize({ enableSun: next });
+                }
+              }}
+            />
+            Sun Light
+          </label>
+
+          {config.enableSun && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                <span style={{ width: 70, fontSize: '11px' }}>Azimuth</span>
+                <input
+                  type="range"
+                  min={-180}
+                  max={180}
+                  step={5}
+                  value={config.sunAzimuth ?? -45}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    setConfig((p) => ({ ...p, sunAzimuth: v }));
+                    if (warehouse) {
+                      warehouse.updateSize({ sunAzimuth: v });
+                    }
+                  }}
+                  style={{ flex: 1 }}
+                />
+                <span className="size-value" style={{ width: 40 }}>
+                  {(config.sunAzimuth ?? -45).toFixed(0)}°
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 70, fontSize: '11px' }}>Elevation</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={90}
+                  step={5}
+                  value={config.sunElevation ?? 35}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    setConfig((p) => ({ ...p, sunElevation: v }));
+                    if (warehouse) {
+                      warehouse.updateSize({ sunElevation: v });
+                    }
+                  }}
+                  style={{ flex: 1 }}
+                />
+                <span className="size-value" style={{ width: 40 }}>
+                  {(config.sunElevation ?? 35).toFixed(0)}°
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 70, fontSize: '11px' }}>Intensity</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={3}
+                  step={0.1}
+                  value={config.sunIntensity ?? 1.0}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    setConfig((p) => ({ ...p, sunIntensity: v }));
+                    if (warehouse) {
+                      warehouse.updateSize({ sunIntensity: v });
+                    }
+                  }}
+                  style={{ flex: 1 }}
+                />
+                <span className="size-value" style={{ width: 40 }}>
+                  {(config.sunIntensity ?? 1.0).toFixed(1)}
+                </span>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
