@@ -698,12 +698,15 @@ export class WarehouseModel {
       }
 
       // Create skybox if enabled
+      console.log(`[WarehouseModel] 🔍 enableSkybox = ${this.config.enableSkybox}`);
       if (this.config.enableSkybox) {
         try {
           this.createSkybox();
         } catch (skyboxError) {
           console.warn('[WarehouseModel] ⚠️ Failed to create skybox, continuing:', skyboxError);
         }
+      } else {
+        console.warn('[WarehouseModel] ⚠️ Skybox is DISABLED in config!');
       }
 
       // Set up atmospheric fog if enabled
@@ -891,9 +894,31 @@ export class WarehouseModel {
       this.skybox.infiniteDistance = true;
       this.skybox.renderingGroupId = 0; // CRITICAL: Render skybox first (background)
       this.skybox.isPickable = false;
+      this.skybox.setEnabled(true);
+      this.skybox.isVisible = true;
+
+      // DEBUGGING: Log everything about the skybox
+      console.log(`[WarehouseModel] ✅ Created skybox with source: ${skyboxSource}, size: ${skyboxSize}m`);
+      console.log(`[WarehouseModel] 🔍 Skybox DEBUG:`);
+      console.log(`  - Enabled: ${this.skybox.isEnabled()}`);
+      console.log(`  - Visible: ${this.skybox.isVisible}`);
+      console.log(`  - Position: (${this.skybox.position.x}, ${this.skybox.position.y}, ${this.skybox.position.z})`);
+      console.log(`  - RenderingGroupId: ${this.skybox.renderingGroupId}`);
+      console.log(`  - InfiniteDistance: ${this.skybox.infiniteDistance}`);
+      console.log(`  - Material: ${this.skybox.material ? 'YES' : 'NO'}`);
+      console.log(`  - Texture: ${skyboxMaterial.reflectionTexture ? 'YES' : 'NO'}`);
+
+      // DEBUGGING: Log camera settings
+      const camera = this.scene.activeCamera;
+      if (camera instanceof BABYLON.ArcRotateCamera) {
+        console.log(`[WarehouseModel] 📷 Camera DEBUG:`);
+        console.log(`  - minZ: ${camera.minZ}`);
+        console.log(`  - maxZ: ${camera.maxZ}`);
+        console.log(`  - Position: (${camera.position.x.toFixed(1)}, ${camera.position.y.toFixed(1)}, ${camera.position.z.toFixed(1)})`);
+        console.log(`  - Target: (${camera.target.x.toFixed(1)}, ${camera.target.y.toFixed(1)}, ${camera.target.z.toFixed(1)})`);
+      }
 
       // Don't add to meshes array since we manage disposal separately
-      console.log(`[WarehouseModel] ✅ Created skybox with source: ${skyboxSource}, size: ${skyboxSize}m`);
     } catch (error) {
       console.warn('[WarehouseModel] ⚠️ Failed to create skybox:', error);
     }
