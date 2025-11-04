@@ -32,6 +32,20 @@ export class WarehouseModel {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.rootNode = new BABYLON.TransformNode('warehouse_root', scene);
     this.build();
+
+    // Hide the default ground plane when warehouse is visible
+    this.hideGroundPlane();
+  }
+
+  /**
+   * Hide the default ground plane created by SceneManager
+   */
+  private hideGroundPlane(): void {
+    const groundMesh = this.scene.getMeshByName('ground');
+    if (groundMesh) {
+      groundMesh.setEnabled(false);
+      console.log('[WarehouseModel] ✅ Disabled ground plane');
+    }
   }
 
   /**
@@ -323,57 +337,59 @@ export class WarehouseModel {
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d')!;
-    
+
     // Base concrete color (light gray/beige)
     ctx.fillStyle = '#e6e4e0';
     ctx.fillRect(0, 0, width, height);
-    
+
     // Add multi-layer noise for realistic concrete texture
     const imageData = ctx.getImageData(0, 0, width, height);
     const data = imageData.data;
-    
+
     // Create multiple noise layers for realistic texture
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
-        
+
         // Base noise (fine grain)
         const noise1 = (Math.random() - 0.5) * 25;
-        
+
         // Medium scale variation (aggregate pattern)
         const noise2 = (Math.sin(x * 0.1) * Math.cos(y * 0.1) + Math.random() - 0.5) * 20;
-        
+
         // Large scale variation (concrete pours)
         const noise3 = (Math.sin(x * 0.02) * Math.sin(y * 0.02) + Math.random() - 0.5) * 15;
-        
+
         // Combined noise
         const totalNoise = noise1 + noise2 + noise3;
-        
+
         // Apply with slight color variation (warmer/cooler tones)
         const rVariation = totalNoise + (Math.random() - 0.5) * 5;
         const gVariation = totalNoise + (Math.random() - 0.5) * 5;
         const bVariation = totalNoise + (Math.random() - 0.5) * 5;
-        
+
         data[idx] = Math.max(200, Math.min(255, 230 + rVariation));     // R (keep bright)
         data[idx + 1] = Math.max(200, Math.min(255, 228 + gVariation)); // G (keep bright)
         data[idx + 2] = Math.max(195, Math.min(255, 224 + bVariation));  // B (keep bright)
         data[idx + 3] = 255; // Alpha
       }
     }
-    
+
+    ctx.putImageData(imageData, 0, 0);
+
     // Add subtle aggregate spots (dark specks like concrete aggregate)
     for (let i = 0; i < 200; i++) {
       const x = Math.random() * width;
       const y = Math.random() * height;
       const size = Math.random() * 3 + 1;
       const darkness = Math.random() * 30 + 20;
-      
+
       ctx.fillStyle = `rgba(${200 - darkness}, ${200 - darkness}, ${195 - darkness}, 0.8)`;
       ctx.beginPath();
       ctx.arc(x, y, size, 0, Math.PI * 2);
       ctx.fill();
     }
-    
+
     // Add subtle cracks/seams (vertical lines from formwork)
     ctx.strokeStyle = 'rgba(180, 180, 175, 0.3)';
     ctx.lineWidth = 1;
@@ -383,10 +399,16 @@ export class WarehouseModel {
       ctx.lineTo(x, height);
       ctx.stroke();
     }
-    
-    ctx.putImageData(imageData, 0, 0);
-    
-    return new BABYLON.Texture(canvas.toDataURL(), this.scene);
+
+    // Create texture from data URL and configure properly
+    const texture = new BABYLON.Texture(canvas.toDataURL(), this.scene, false, true);
+    texture.hasAlpha = false;
+    texture.getAlphaFromRGB = false;
+    texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+    texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+
+    console.log('[WarehouseModel] ✅ Created concrete texture');
+    return texture;
   }
 
   /**
@@ -445,25 +467,25 @@ export class WarehouseModel {
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d')!;
-    
+
     // Base color (very light gray/white - bright ceiling)
     ctx.fillStyle = '#f5f3f0';
     ctx.fillRect(0, 0, width, height);
-    
+
     // Create tile pattern (like acoustic ceiling tiles)
     const tileSize = 48;
     const tileGap = 2;
-    
+
     for (let y = 0; y < height; y += tileSize) {
       for (let x = 0; x < width; x += tileSize) {
         // Tile base
         ctx.fillStyle = '#f8f6f3';
         ctx.fillRect(x + tileGap, y + tileGap, tileSize - tileGap * 2, tileSize - tileGap * 2);
-        
+
         // Add subtle texture to each tile
         const imageData = ctx.getImageData(x + tileGap, y + tileGap, tileSize - tileGap * 2, tileSize - tileGap * 2);
         const data = imageData.data;
-        
+
         for (let i = 0; i < data.length; i += 4) {
           // Subtle noise for texture
           const noise = (Math.random() - 0.5) * 8;
@@ -471,16 +493,16 @@ export class WarehouseModel {
           data[i + 1] = Math.max(243, Math.min(255, 246 + noise)); // G
           data[i + 2] = Math.max(240, Math.min(255, 243 + noise));  // B
         }
-        
+
         ctx.putImageData(imageData, x + tileGap, y + tileGap);
-        
+
         // Add subtle grid lines (tile edges)
         ctx.strokeStyle = 'rgba(220, 220, 215, 0.4)';
         ctx.lineWidth = 1;
         ctx.strokeRect(x + tileGap, y + tileGap, tileSize - tileGap * 2, tileSize - tileGap * 2);
       }
     }
-    
+
     // Add subtle perforation pattern (acoustic tile holes)
     ctx.fillStyle = 'rgba(200, 200, 195, 0.15)';
     const holeSpacing = 8;
@@ -492,8 +514,16 @@ export class WarehouseModel {
         ctx.fill();
       }
     }
-    
-    return new BABYLON.Texture(canvas.toDataURL(), this.scene);
+
+    // Create texture from data URL and configure properly
+    const texture = new BABYLON.Texture(canvas.toDataURL(), this.scene, false, true);
+    texture.hasAlpha = false;
+    texture.getAlphaFromRGB = false;
+    texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+    texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+
+    console.log('[WarehouseModel] ✅ Created ceiling texture');
+    return texture;
   }
 
   /**
@@ -529,36 +559,36 @@ export class WarehouseModel {
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d')!;
-    
+
     // Base steel color (light gray)
     ctx.fillStyle = '#bfbfbd';
     ctx.fillRect(0, 0, width, height);
-    
+
     // Add subtle metallic grain pattern
     const imageData = ctx.getImageData(0, 0, width, height);
     const data = imageData.data;
-    
+
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
-        
+
         // Grain pattern (vertical streaks like rolled steel)
         const grain = Math.sin(y * 0.3) * 5 + (Math.random() - 0.5) * 8;
-        
+
         // Subtle variations
         const variation = (Math.random() - 0.5) * 10;
-        
+
         const total = grain + variation;
-        
+
         data[idx] = Math.max(185, Math.min(200, 191 + total));     // R
         data[idx + 1] = Math.max(185, Math.min(200, 191 + total)); // G
         data[idx + 2] = Math.max(180, Math.min(195, 189 + total));  // B
         data[idx + 3] = 255;
       }
     }
-    
+
     ctx.putImageData(imageData, 0, 0);
-    
+
     // Add subtle weld lines/join patterns (horizontal lines)
     ctx.strokeStyle = 'rgba(160, 160, 155, 0.2)';
     ctx.lineWidth = 1;
@@ -568,8 +598,16 @@ export class WarehouseModel {
       ctx.lineTo(width, y);
       ctx.stroke();
     }
-    
-    return new BABYLON.Texture(canvas.toDataURL(), this.scene);
+
+    // Create texture from data URL and configure properly
+    const texture = new BABYLON.Texture(canvas.toDataURL(), this.scene, false, true);
+    texture.hasAlpha = false;
+    texture.getAlphaFromRGB = false;
+    texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+    texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+
+    console.log('[WarehouseModel] ✅ Created steel texture');
+    return texture;
   }
 
   /**
