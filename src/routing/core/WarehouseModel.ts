@@ -444,13 +444,18 @@ export class WarehouseModel {
     const depthM = this.config.depth / 1000;
     const heightM = this.config.height / 1000;
     
-    // Add bright interior lights at ceiling level
-    const lightCount = 4; // 2x2 grid of lights
-    const spacing = Math.min(widthM, depthM) / 3;
+    // CRITICAL FIX: Add more bright interior lights for better visibility
+    // Use a denser grid based on warehouse size
+    const gridSize = Math.max(3, Math.ceil(Math.max(widthM, depthM) / 20)); // 1 light per 20m
+    const lightCount = gridSize * gridSize;
+    const spacingX = widthM / (gridSize + 1);
+    const spacingZ = depthM / (gridSize + 1);
     
     for (let i = 0; i < lightCount; i++) {
-      const x = (i % 2) * spacing - spacing / 2;
-      const z = Math.floor(i / 2) * spacing - spacing / 2;
+      const row = Math.floor(i / gridSize);
+      const col = i % gridSize;
+      const x = (col + 1) * spacingX - widthM / 2;
+      const z = (row + 1) * spacingZ - depthM / 2;
       
       // Point light at ceiling level
       const light = new BABYLON.PointLight(
@@ -458,19 +463,27 @@ export class WarehouseModel {
         new BABYLON.Vector3(x, heightM - 0.5, z), // Just below ceiling
         this.scene
       );
-      light.intensity = 2.0; // Bright interior lighting
+      light.intensity = 4.0; // CRITICAL FIX: Increased from 2.0 to 4.0 for brighter interior
       light.diffuse = new BABYLON.Color3(1, 1, 0.95); // Slight warm white
-      light.range = Math.max(widthM, depthM) * 1.5; // Cover entire warehouse
+      light.range = Math.max(spacingX, spacingZ) * 2.5; // Cover area with overlap
       
       console.log(`[WarehouseModel] ✅ Added interior light at (${x.toFixed(2)}, ${(heightM - 0.5).toFixed(2)}, ${z.toFixed(2)})`);
     }
     
-    // Also increase ambient light for interior
+    // CRITICAL FIX: Significantly increase ambient light for interior visibility
     const existingLights = this.scene.lights;
-    const hemisphericLight = existingLights.find(l => l instanceof BABYLON.HemisphericLight) as BABYLON.HemisphericLight;
-    if (hemisphericLight) {
-      hemisphericLight.intensity = 1.0; // Increase ambient for interior
+    let hemisphericLight = existingLights.find(l => l instanceof BABYLON.HemisphericLight) as BABYLON.HemisphericLight;
+    if (!hemisphericLight) {
+      // Create hemispheric light if it doesn't exist
+      hemisphericLight = new BABYLON.HemisphericLight(
+        'warehouse_hemispheric_light',
+        new BABYLON.Vector3(0, 1, 0),
+        this.scene
+      );
     }
+    hemisphericLight.intensity = 2.0; // CRITICAL FIX: Increased from 1.0 to 2.0 for much brighter ambient
+    hemisphericLight.diffuse = new BABYLON.Color3(1, 1, 1); // Pure white for maximum visibility
+    console.log(`[WarehouseModel] ✅ Set hemispheric light intensity to ${hemisphericLight.intensity} for bright interior`);
   }
 
   /**
@@ -781,15 +794,27 @@ export class WarehouseModel {
    */
   private createParkingLotMaterial(): BABYLON.PBRMetallicRoughnessMaterial {
     const material = new BABYLON.PBRMetallicRoughnessMaterial('warehouse_parking_lot_mat', this.scene);
+    // CRITICAL FIX: Ensure dark gray asphalt color is applied
     material.baseColor = new BABYLON.Color3(0.2, 0.2, 0.22); // Dark asphalt color
     material.metallic = 0.0;
+    material.roughness = 0.95; // Very rough asphalt (set before texture load)
 
     // Use local high-quality asphalt texture
     try {
       const baseTexture = new BABYLON.Texture(
         '/assets/textures/asphalt/asphalt_02_diff_4k.jpg',
-        this.scene
+        this.scene,
+        false, // noMipmap
+        false, // invertY
+        BABYLON.Texture.TRILINEAR_SAMPLINGMODE
       );
+      
+      // Add error handler to ensure baseColor is visible if texture fails
+      baseTexture.onErrorObservable.add(() => {
+        console.warn('[WarehouseModel] ⚠️ Asphalt texture failed to load, using baseColor only');
+        material.baseTexture = null; // Remove failed texture
+      });
+      
       baseTexture.uScale = 50; // Scale for parking lot size
       baseTexture.vScale = 50;
       baseTexture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
@@ -807,22 +832,17 @@ export class WarehouseModel {
         material.metallicRoughnessTexture = roughTexture;
       } catch (e) {
         console.warn('[WarehouseModel] ⚠️ Could not load asphalt roughness texture, using default roughness:', e);
-        material.roughness = 0.95; // Very rough asphalt
+        // roughness already set above
       }
     } catch (e) {
-      console.warn('[WarehouseModel] ⚠️ Could not load local asphalt texture, falling back to default:', e);
-      // Fallback to default texture
-      const texture = new BABYLON.Texture(
-        'https://www.babylonjs-playground.com/textures/rock.png',
-        this.scene
-      );
-      texture.uScale = 50;
-      texture.vScale = 50;
-      texture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
-      material.baseTexture = texture;
+      console.warn('[WarehouseModel] ⚠️ Could not load local asphalt texture, using baseColor only:', e);
+      // Don't use fallback texture - just use baseColor to ensure dark gray appearance
+      material.baseTexture = null;
       material.roughness = 0.95;
     }
 
+    // CRITICAL: Ensure baseColor is always visible (not tinted away by texture)
+    // In PBR materials, baseColor tints the texture, so dark gray will keep it dark
     material._environmentIntensity = 0.1;
     this.materials.push(material);
     return material;

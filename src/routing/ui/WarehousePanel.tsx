@@ -139,23 +139,31 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
 
       camera.minZ = 0.1;
       const maxDimension = Math.max(widthM, depthM, heightM);
-      camera.maxZ = maxDimension * 2000;
+      // CRITICAL FIX: Ensure maxZ is large enough to see skybox (10km = 10000 units)
+      // Skybox is 10km, so we need at least 15000 to see it clearly
+      camera.maxZ = Math.max(maxDimension * 2000, 15000);
 
       camera.target = new BABYLON.Vector3(0, heightM * 0.5, 0);
 
+      // CRITICAL FIX: Position camera OUTSIDE warehouse looking at it from isometric angle
       const maxHorizontalDimension = Math.max(widthM, depthM);
-      const exteriorDistance = maxHorizontalDimension * 1.5;
-      const cameraHeight = heightM * 0.6;
+      // Position camera further away to ensure it's outside the warehouse
+      const exteriorDistance = maxHorizontalDimension * 2.5; // Increased from 1.5 to 2.5
+      const cameraHeight = heightM * 0.8; // Slightly higher for better isometric view
 
+      // Calculate radius for isometric viewing angle
       camera.radius = Math.sqrt(
         Math.pow(exteriorDistance, 2) +
         Math.pow(exteriorDistance, 2) +
         Math.pow(cameraHeight, 2)
       );
 
-      camera.alpha = Math.PI / 4;
-      camera.beta = Math.PI / 3;
+      // Isometric angle: 45° horizontal rotation, 30° elevation for good overview
+      camera.alpha = Math.PI / 4; // 45 degrees
+      camera.beta = Math.PI / 6; // 30 degrees (was PI/3 = 60°, too steep)
       camera.setTarget(camera.target);
+      
+      console.log(`[WarehousePanel] ✅ Camera positioned outside warehouse: radius=${camera.radius.toFixed(2)}, alpha=${(camera.alpha * 180 / Math.PI).toFixed(1)}°, beta=${(camera.beta * 180 / Math.PI).toFixed(1)}°`);
     }
 
     return () => {
@@ -176,22 +184,28 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
       const heightM = config.height / 1000;
 
       camera.minZ = 0.1;
-      camera.maxZ = Math.max(widthM, depthM, heightM) * 2000;
+      const maxDimension = Math.max(widthM, depthM, heightM);
+      // CRITICAL FIX: Ensure maxZ is large enough to see skybox (10km = 10000 units)
+      camera.maxZ = Math.max(maxDimension * 2000, 15000);
 
       camera.target = new BABYLON.Vector3(0, heightM * 0.5, 0);
 
-      const maxDimension = Math.max(widthM, depthM);
-      const exteriorDistance = maxDimension * 1.5;
-      const cameraHeight = heightM * 0.6;
+      // CRITICAL FIX: Position camera OUTSIDE warehouse looking at it from isometric angle
+      const maxHorizontalDimension = Math.max(widthM, depthM);
+      // Position camera further away to ensure it's outside the warehouse
+      const exteriorDistance = maxHorizontalDimension * 2.5; // Increased from 1.5 to 2.5
+      const cameraHeight = heightM * 0.8; // Slightly higher for better isometric view
 
+      // Calculate radius for isometric viewing angle
       camera.radius = Math.sqrt(
         Math.pow(exteriorDistance, 2) +
         Math.pow(exteriorDistance, 2) +
         Math.pow(cameraHeight, 2)
       );
 
-      camera.alpha = Math.PI / 4;
-      camera.beta = Math.PI / 3;
+      // Isometric angle: 45° horizontal rotation, 30° elevation for good overview
+      camera.alpha = Math.PI / 4; // 45 degrees
+      camera.beta = Math.PI / 6; // 30 degrees (was PI/3 = 60°, too steep)
       camera.setTarget(camera.target);
     }
   }, [config, warehouse]);
@@ -267,22 +281,28 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
       const heightM = config.height / 1000;
 
       camera.minZ = 0.1;
-      camera.maxZ = Math.max(widthM, depthM, heightM) * 2000;
+      const maxDimension = Math.max(widthM, depthM, heightM);
+      // CRITICAL FIX: Ensure maxZ is large enough to see skybox (10km = 10000 units)
+      camera.maxZ = Math.max(maxDimension * 2000, 15000);
 
       camera.target = new BABYLON.Vector3(0, heightM * 0.5, 0);
 
-      const maxDimension = Math.max(widthM, depthM);
-      const exteriorDistance = maxDimension * 1.5;
-      const cameraHeight = heightM * 0.6;
+      // CRITICAL FIX: Position camera OUTSIDE warehouse looking at it from isometric angle
+      const maxHorizontalDimension = Math.max(widthM, depthM);
+      // Position camera further away to ensure it's outside the warehouse
+      const exteriorDistance = maxHorizontalDimension * 2.5; // Increased from 1.5 to 2.5
+      const cameraHeight = heightM * 0.8; // Slightly higher for better isometric view
 
+      // Calculate radius for isometric viewing angle
       camera.radius = Math.sqrt(
         Math.pow(exteriorDistance, 2) +
         Math.pow(exteriorDistance, 2) +
         Math.pow(cameraHeight, 2)
       );
 
-      camera.alpha = Math.PI / 4;
-      camera.beta = Math.PI / 3;
+      // Isometric angle: 45° horizontal rotation, 30° elevation for good overview
+      camera.alpha = Math.PI / 4; // 45 degrees
+      camera.beta = Math.PI / 6; // 30 degrees (was PI/3 = 60°, too steep)
       camera.setTarget(camera.target);
     }
   };

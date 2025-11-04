@@ -32,7 +32,9 @@
       "Bash(git pull:*)",
       "Bash(git checkout:*)",
       "Bash(gh pr create:*)",
-      "Bash(git remote:*)"
+      "Bash(git remote:*)",
+      "Bash(dir:*)",
+      "Bash(npm run dev:ui:*)"
     ],
     "deny": [],
     "ask": []
