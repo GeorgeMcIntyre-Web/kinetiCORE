@@ -14,7 +14,7 @@ import {
   Camera
 } from 'lucide-react';
 import { SceneManager } from '../../scene/SceneManager';
-import { WarehouseModel, WarehouseConfig } from '../core/WarehouseModel';
+import { WarehouseModel, WarehouseConfig, SkyboxSource } from '../core/WarehouseModel';
 import { CameraService } from '../../scene/services/CameraService';
 import './WarehouseControls.css';
 
@@ -37,6 +37,8 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     sunAzimuth: -45,
     sunElevation: 35,
     sunIntensity: 1.0,
+    // PROMPT #4: Skybox source default
+    skyboxSource: 'industrial',
   });
   const [isVisible, setIsVisible] = useState(true);
 
@@ -389,6 +391,37 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
               </div>
             </>
           )}
+        </div>
+
+        {/* PROMPT #4: Skybox Source Controls */}
+        <div className="size-control-group" style={{ marginTop: 12 }}>
+          <label className="size-label">Skybox Environment</label>
+          <select
+            value={config.skyboxSource || 'industrial'}
+            onChange={(e) => {
+              const source = e.target.value as SkyboxSource;
+              setConfig((p) => ({ ...p, skyboxSource: source }));
+              if (warehouse) {
+                warehouse.updateSize({ skyboxSource: source });
+              }
+            }}
+            style={{
+              width: '100%',
+              padding: '4px 8px',
+              fontSize: '12px',
+              borderRadius: '4px',
+              border: '1px solid #444',
+              backgroundColor: '#2a2a2a',
+              color: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="industrial">Industrial (Default)</option>
+            <option value="sunny">Sunny Day</option>
+            <option value="overcast">Overcast</option>
+            <option value="night">Night Sky</option>
+            <option value="sunset">Sunset</option>
+          </select>
         </div>
       </div>
     </div>

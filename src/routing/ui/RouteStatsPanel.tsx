@@ -139,7 +139,8 @@ export const RouteStatsPanel: React.FC<RouteStatsPanelProps> = ({ className }) =
         cable_tray: 40, // $40/m for cable tray
         conduit: 20, // $20/m for conduit
       };
-      stats.totalCost += length * costPerMeter[type];
+      // length returned from route is in millimeters; convert to meters for cost
+      stats.totalCost += (length / 1000) * costPerMeter[type];
 
       return { route, length, validation };
     });
@@ -387,7 +388,7 @@ export const RouteStatsPanel: React.FC<RouteStatsPanelProps> = ({ className }) =
                           backgroundColor: ROUTE_TYPE_COLORS[data.type],
                         }}
                       >
-                        <span className="route-bar-value">{(data.value / 1000).toFixed(2)}m</span>
+                        <span className="route-bar-value">{data.value.toFixed(2)}m</span>
                       </div>
                     </div>
                   </div>
@@ -487,7 +488,7 @@ export const RouteStatsPanel: React.FC<RouteStatsPanelProps> = ({ className }) =
                   {statistics.longestRoutes.map((item) => (
                     <div key={item.route.getId()} className="route-list-item">
                       <span className="route-list-id">{item.route.getId().slice(0, 8)}...</span>
-                      <span className="route-list-length">{(item.length / 1000).toFixed(2)}m</span>
+                      <span className="route-list-length">{item.length.toFixed(2)}m</span>
                     </div>
                   ))}
                 </div>
@@ -502,7 +503,7 @@ export const RouteStatsPanel: React.FC<RouteStatsPanelProps> = ({ className }) =
                   {statistics.shortestRoutes.map((item) => (
                     <div key={item.route.getId()} className="route-list-item">
                       <span className="route-list-id">{item.route.getId().slice(0, 8)}...</span>
-                      <span className="route-list-length">{(item.length / 1000).toFixed(2)}m</span>
+                      <span className="route-list-length">{item.length.toFixed(2)}m</span>
                     </div>
                   ))}
                 </div>

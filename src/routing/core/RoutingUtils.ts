@@ -19,7 +19,7 @@ export function getDefaultConstraints(routeType: RouteType): RouteConstraints {
         walls: 0.10, // 100mm (4 inches)
         ceiling: 0.15,
         floor: 0.10,
-        otherInfrastructure: 0.10,
+        otherInfrastructure: 0.05,
       },
     },
     electrical: {

@@ -4,6 +4,17 @@
 import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/core/Rendering/depthRendererSceneComponent';
 
+/**
+ * Skybox source options for different environment types
+ * PROMPT #4: Skybox source selection
+ */
+export type SkyboxSource =
+  | 'industrial'  // Default: Overcast industrial sky with buildings
+  | 'sunny'       // Bright sunny day with clear blue sky
+  | 'overcast'    // Cloudy overcast sky (similar to industrial but lighter)
+  | 'night'       // Dark night sky with stars
+  | 'sunset';     // Warm sunset with orange/red tones
+
 export interface WarehouseConfig {
   width: number;  // X-axis dimension (mm)
   depth: number;  // Y-axis dimension (mm)
@@ -11,6 +22,7 @@ export interface WarehouseConfig {
   enableFog?: boolean; // Enable atmospheric fog
   enableBloom?: boolean; // Enable bloom/glow effects
   enableSkybox?: boolean; // Enable skybox environment
+  skyboxSource?: SkyboxSource; // PROMPT #4: Skybox source selection (default: 'industrial')
   // PROMPT #2: Sun + shadows configuration
   enableSun?: boolean; // Enable directional sun light
   sunAzimuth?: number;   // degrees (-180..180)
@@ -25,6 +37,7 @@ const DEFAULT_CONFIG: WarehouseConfig = {
   enableFog: true, // Enable atmospheric fog by default
   enableBloom: true, // Enable bloom effects by default
   enableSkybox: true, // Enable skybox by default
+  skyboxSource: 'industrial', // PROMPT #4: Default skybox source
   // PROMPT #2: Sun defaults
   enableSun: true,
   sunAzimuth: -45,
@@ -44,6 +57,7 @@ export class WarehouseModel {
   private meshes: BABYLON.Mesh[] = [];
   private materials: BABYLON.Material[] = [];
   private skybox: BABYLON.Mesh | null = null;
+  private skyboxTexture: BABYLON.CubeTexture | null = null; // PROMPT #4: Store skybox texture for disposal
   private renderingPipeline: BABYLON.DefaultRenderingPipeline | null = null;
   // PROMPT #2: Sun and shadows
   private sun: BABYLON.DirectionalLight | null = null;
@@ -813,7 +827,8 @@ export class WarehouseModel {
   }
 
   /**
-   * Create skybox with procedural industrial environment
+   * Create skybox with selected source
+   * PROMPT #4: Skybox source selection
    */
   private createSkybox(): void {
     try {
@@ -821,6 +836,16 @@ export class WarehouseModel {
       const depthM = this.config.depth / 1000;
       const heightM = this.config.height / 1000;
       const skyboxSize = Math.max(widthM, depthM, heightM) * 2;
+
+      // Dispose existing skybox if present
+      if (this.skybox) {
+        this.skybox.dispose();
+        this.skybox = null;
+      }
+      if (this.skyboxTexture) {
+        this.skyboxTexture.dispose();
+        this.skyboxTexture = null;
+      }
 
       // Create skybox mesh
       this.skybox = BABYLON.MeshBuilder.CreateBox(
@@ -834,8 +859,19 @@ export class WarehouseModel {
       skyboxMaterial.backFaceCulling = false;
       skyboxMaterial.disableLighting = true;
 
-      // Use environment texture for skybox if available
-      if (this.scene.environmentTexture) {
+      // Generate skybox texture based on selected source
+      const skyboxSource = this.config.skyboxSource || 'industrial';
+      const skyboxEnvTexture = this.createSkyboxTexture(skyboxSource);
+
+      if (skyboxEnvTexture) {
+        this.skyboxTexture = skyboxEnvTexture;
+        skyboxMaterial.reflectionTexture = skyboxEnvTexture;
+        skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+
+        // Also update scene environment texture for PBR reflections
+        this.scene.environmentTexture = skyboxEnvTexture;
+      } else if (this.scene.environmentTexture) {
+        // Fallback to existing environment texture
         skyboxMaterial.reflectionTexture = this.scene.environmentTexture;
         if (skyboxMaterial.reflectionTexture) {
           skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
@@ -846,10 +882,335 @@ export class WarehouseModel {
       this.skybox.infiniteDistance = true;
 
       // Don't add to meshes array since we manage disposal separately
-      console.log('[WarehouseModel] ✅ Created skybox');
+      console.log(`[WarehouseModel] ✅ Created skybox with source: ${skyboxSource}`);
     } catch (error) {
       console.warn('[WarehouseModel] ⚠️ Failed to create skybox:', error);
     }
+  }
+
+  /**
+   * Create skybox texture based on selected source
+   * PROMPT #4: Skybox source router
+   */
+  private createSkyboxTexture(source: SkyboxSource): BABYLON.CubeTexture | null {
+    try {
+      switch (source) {
+        case 'industrial':
+          return this.createIndustrialSkybox();
+        case 'sunny':
+          return this.createSunnySkybox();
+        case 'overcast':
+          return this.createOvercastSkybox();
+        case 'night':
+          return this.createNightSkybox();
+        case 'sunset':
+          return this.createSunsetSkybox();
+        default:
+          return this.createIndustrialSkybox();
+      }
+    } catch (error) {
+      console.warn(`[WarehouseModel] ⚠️ Failed to create skybox texture for source "${source}":`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Create industrial skybox (default: overcast with buildings)
+   * PROMPT #4: Industrial skybox generation
+   */
+  private createIndustrialSkybox(): BABYLON.CubeTexture {
+    return this.createEnvironmentTexture() || this.createOvercastSkybox();
+  }
+
+  /**
+   * Create sunny skybox with bright blue sky
+   * PROMPT #4: Sunny skybox generation
+   */
+  private createSunnySkybox(): BABYLON.CubeTexture {
+    const size = 512;
+    const faces = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
+    const canvases: Record<string, HTMLCanvasElement> = {};
+
+    faces.forEach(face => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d')!;
+
+      // Bright blue sky colors
+      const skyColor = '#87CEEB'; // Sky blue
+      const brightSkyColor = '#B0E0E6'; // Powder blue (lighter)
+      const horizonColor = '#E0F6FF'; // Very light blue
+      const groundColor = '#8B7355'; // Tan/brown ground
+
+      if (face === 'py') {
+        // Top face - bright sunny sky
+        const gradient = ctx.createLinearGradient(0, 0, 0, size);
+        gradient.addColorStop(0, brightSkyColor);
+        gradient.addColorStop(1, skyColor);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size, size);
+
+        // Add sun (bright white/yellow circle)
+        const sunX = size * 0.6;
+        const sunY = size * 0.3;
+        const sunRadius = 60;
+        const sunGradient = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunRadius);
+        sunGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+        sunGradient.addColorStop(0.5, 'rgba(255, 255, 200, 0.6)');
+        sunGradient.addColorStop(1, 'rgba(255, 255, 200, 0)');
+        ctx.fillStyle = sunGradient;
+        ctx.fillRect(sunX - sunRadius, sunY - sunRadius, sunRadius * 2, sunRadius * 2);
+
+        // Add fluffy white clouds
+        for (let i = 0; i < 30; i++) {
+          const x = Math.random() * size;
+          const y = Math.random() * size * 0.6; // Upper portion
+          const radius = Math.random() * 30 + 20;
+          const cloudGradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+          cloudGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+          cloudGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+          ctx.fillStyle = cloudGradient;
+          ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+        }
+      } else if (face === 'ny') {
+        // Bottom face - ground
+        ctx.fillStyle = groundColor;
+        ctx.fillRect(0, 0, size, size);
+
+        // Add ground texture
+        const imageData = ctx.getImageData(0, 0, size, size);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const noise = (Math.random() - 0.5) * 15;
+          data[i] = Math.max(100, Math.min(180, 139 + noise));     // R
+          data[i + 1] = Math.max(100, Math.min(180, 115 + noise));  // G
+          data[i + 2] = Math.max(85, Math.min(165, 85 + noise));    // B
+        }
+        ctx.putImageData(imageData, 0, 0);
+      } else {
+        // Side faces - gradient from bright sky to ground
+        const gradient = ctx.createLinearGradient(0, 0, 0, size);
+        gradient.addColorStop(0, skyColor);
+        gradient.addColorStop(0.3, brightSkyColor);
+        gradient.addColorStop(0.5, horizonColor);
+        gradient.addColorStop(1, groundColor);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size, size);
+      }
+
+      canvases[face] = canvas;
+    });
+
+    const urls = faces.map(face => canvases[face].toDataURL());
+    return BABYLON.CubeTexture.CreateFromImages(urls, this.scene, false);
+  }
+
+  /**
+   * Create overcast skybox (cloudy gray sky)
+   * PROMPT #4: Overcast skybox generation
+   */
+  private createOvercastSkybox(): BABYLON.CubeTexture {
+    const size = 512;
+    const faces = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
+    const canvases: Record<string, HTMLCanvasElement> = {};
+
+    faces.forEach(face => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d')!;
+
+      // Overcast gray colors
+      const skyColor = '#9aa8b8'; // Light gray
+      const horizonColor = '#b8c5d0'; // Lighter gray
+      const groundColor = '#6a7378'; // Dark gray ground
+
+      if (face === 'py') {
+        // Top face - overcast sky
+        const gradient = ctx.createLinearGradient(0, 0, 0, size);
+        gradient.addColorStop(0, '#b0bcc8');
+        gradient.addColorStop(1, skyColor);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size, size);
+
+        // Add cloud texture
+        for (let i = 0; i < 80; i++) {
+          const x = Math.random() * size;
+          const y = Math.random() * size;
+          const radius = Math.random() * 50 + 30;
+          const cloudGradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+          cloudGradient.addColorStop(0, 'rgba(200, 200, 200, 0.3)');
+          cloudGradient.addColorStop(1, 'rgba(200, 200, 200, 0)');
+          ctx.fillStyle = cloudGradient;
+          ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+        }
+      } else if (face === 'ny') {
+        // Bottom face - ground
+        ctx.fillStyle = groundColor;
+        ctx.fillRect(0, 0, size, size);
+      } else {
+        // Side faces - gradient
+        const gradient = ctx.createLinearGradient(0, 0, 0, size);
+        gradient.addColorStop(0, skyColor);
+        gradient.addColorStop(0.5, horizonColor);
+        gradient.addColorStop(1, groundColor);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size, size);
+      }
+
+      canvases[face] = canvas;
+    });
+
+    const urls = faces.map(face => canvases[face].toDataURL());
+    return BABYLON.CubeTexture.CreateFromImages(urls, this.scene, false);
+  }
+
+  /**
+   * Create night skybox with stars
+   * PROMPT #4: Night skybox generation
+   */
+  private createNightSkybox(): BABYLON.CubeTexture {
+    const size = 512;
+    const faces = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
+    const canvases: Record<string, HTMLCanvasElement> = {};
+
+    faces.forEach(face => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d')!;
+
+      // Night sky colors
+      const skyColor = '#0a0e1a'; // Very dark blue
+      const horizonColor = '#1a1f2e'; // Slightly lighter
+      const groundColor = '#050608'; // Almost black
+
+      if (face === 'py') {
+        // Top face - night sky with stars
+        ctx.fillStyle = skyColor;
+        ctx.fillRect(0, 0, size, size);
+
+        // Add stars
+        for (let i = 0; i < 500; i++) {
+          const x = Math.random() * size;
+          const y = Math.random() * size;
+          const brightness = Math.random();
+          const starSize = brightness > 0.8 ? 2 : 1;
+          ctx.fillStyle = brightness > 0.9
+            ? 'rgba(255, 255, 255, 1)'
+            : `rgba(255, 255, 255, ${brightness * 0.8})`;
+          ctx.fillRect(x, y, starSize, starSize);
+        }
+
+        // Add moon (bright white circle)
+        const moonX = size * 0.7;
+        const moonY = size * 0.25;
+        const moonRadius = 40;
+        ctx.fillStyle = 'rgba(220, 220, 200, 0.9)';
+        ctx.beginPath();
+        ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (face === 'ny') {
+        // Bottom face - dark ground
+        ctx.fillStyle = groundColor;
+        ctx.fillRect(0, 0, size, size);
+      } else {
+        // Side faces - dark gradient with stars
+        const gradient = ctx.createLinearGradient(0, 0, 0, size);
+        gradient.addColorStop(0, skyColor);
+        gradient.addColorStop(0.5, horizonColor);
+        gradient.addColorStop(1, groundColor);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size, size);
+
+        // Add stars on side faces
+        for (let i = 0; i < 200; i++) {
+          const x = Math.random() * size;
+          const y = Math.random() * size * 0.6; // Upper portion
+          const brightness = Math.random();
+          ctx.fillStyle = `rgba(255, 255, 255, ${brightness * 0.6})`;
+          ctx.fillRect(x, y, 1, 1);
+        }
+      }
+
+      canvases[face] = canvas;
+    });
+
+    const urls = faces.map(face => canvases[face].toDataURL());
+    return BABYLON.CubeTexture.CreateFromImages(urls, this.scene, false);
+  }
+
+  /**
+   * Create sunset skybox with warm orange/red tones
+   * PROMPT #4: Sunset skybox generation
+   */
+  private createSunsetSkybox(): BABYLON.CubeTexture {
+    const size = 512;
+    const faces = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
+    const canvases: Record<string, HTMLCanvasElement> = {};
+
+    faces.forEach(face => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d')!;
+
+      // Sunset colors
+      const skyColor = '#FF6B35'; // Warm orange
+      const brightSkyColor = '#FFB347'; // Light orange/yellow
+      const horizonColor = '#FF8C42'; // Deep orange
+      const groundColor = '#8B4513'; // Brown ground
+
+      if (face === 'py') {
+        // Top face - sunset sky
+        const gradient = ctx.createLinearGradient(0, 0, 0, size);
+        gradient.addColorStop(0, brightSkyColor);
+        gradient.addColorStop(0.5, skyColor);
+        gradient.addColorStop(1, '#FF4500'); // Deep orange-red
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size, size);
+
+        // Add sun (bright orange/yellow circle)
+        const sunX = size * 0.5;
+        const sunY = size * 0.4;
+        const sunRadius = 80;
+        const sunGradient = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunRadius);
+        sunGradient.addColorStop(0, 'rgba(255, 255, 200, 1)');
+        sunGradient.addColorStop(0.5, 'rgba(255, 200, 100, 0.8)');
+        sunGradient.addColorStop(1, 'rgba(255, 150, 50, 0)');
+        ctx.fillStyle = sunGradient;
+        ctx.fillRect(sunX - sunRadius, sunY - sunRadius, sunRadius * 2, sunRadius * 2);
+      } else if (face === 'ny') {
+        // Bottom face - dark ground
+        ctx.fillStyle = groundColor;
+        ctx.fillRect(0, 0, size, size);
+      } else {
+        // Side faces - sunset gradient
+        const gradient = ctx.createLinearGradient(0, 0, 0, size);
+        gradient.addColorStop(0, brightSkyColor);
+        gradient.addColorStop(0.3, skyColor);
+        gradient.addColorStop(0.5, horizonColor);
+        gradient.addColorStop(1, groundColor);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size, size);
+
+        // Add cloud silhouettes
+        ctx.fillStyle = 'rgba(200, 100, 50, 0.4)';
+        for (let i = 0; i < 10; i++) {
+          const x = Math.random() * size;
+          const y = size * 0.3 + Math.random() * size * 0.2;
+          const width = Math.random() * 80 + 40;
+          const height = Math.random() * 30 + 20;
+          ctx.fillRect(x, y, width, height);
+        }
+      }
+
+      canvases[face] = canvas;
+    });
+
+    const urls = faces.map(face => canvases[face].toDataURL());
+    return BABYLON.CubeTexture.CreateFromImages(urls, this.scene, false);
   }
 
   /**
@@ -979,10 +1340,18 @@ export class WarehouseModel {
   /**
    * Update warehouse size
    * PROMPT #1: Added camera safety after resize
+   * PROMPT #4: Added skybox source change detection
    */
   updateSize(config: Partial<WarehouseConfig>): void {
+    const skyboxSourceChanged = config.skyboxSource !== undefined && config.skyboxSource !== this.config.skyboxSource;
     this.config = { ...this.config, ...config };
     this.build();
+
+    // Rebuild atmospheric effects if size or skybox source changed
+    if (config.width !== undefined || config.depth !== undefined || config.height !== undefined || skyboxSourceChanged) {
+      this.disposeAtmosphere();
+      this.setupAtmosphere();
+    }
 
     // PROMPT #1: Update camera clipping planes for new size to prevent grey-out
     const camera = this.scene.activeCamera;
@@ -1000,12 +1369,6 @@ export class WarehouseModel {
       camera.setTarget(camera.target);
 
       console.log(`[WarehouseModel] ✅ Updated camera clipping planes: minZ=${camera.minZ}, maxZ=${camera.maxZ.toFixed(1)}m`);
-    }
-
-    // Rebuild atmospheric effects if size changed
-    if (config.width !== undefined || config.depth !== undefined || config.height !== undefined) {
-      this.disposeAtmosphere();
-      this.setupAtmosphere();
     }
   }
 
@@ -1026,12 +1389,19 @@ export class WarehouseModel {
   /**
    * Dispose atmospheric effects (skybox, rendering pipeline)
    * PROMPT #2: Added sun and CSM disposal
+   * PROMPT #4: Added skybox texture disposal
    */
   private disposeAtmosphere(): void {
     // Dispose skybox
     if (this.skybox) {
       this.skybox.dispose();
       this.skybox = null;
+    }
+
+    // PROMPT #4: Dispose skybox texture
+    if (this.skyboxTexture) {
+      this.skyboxTexture.dispose();
+      this.skyboxTexture = null;
     }
 
     // PROMPT #2: Dispose sun and CSM
@@ -1054,6 +1424,22 @@ export class WarehouseModel {
     this.scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
 
     // Note: Environment texture is managed by scene, don't dispose manually
+  }
+
+  /**
+   * Update skybox source dynamically
+   * PROMPT #4: Skybox source update method
+   */
+  updateSkyboxSource(source: SkyboxSource): void {
+    this.config.skyboxSource = source;
+
+    // Rebuild skybox with new source
+    if (this.config.enableSkybox) {
+      this.disposeAtmosphere();
+      this.setupAtmosphere();
+    }
+
+    console.log(`[WarehouseModel] ✅ Updated skybox source to: ${source}`);
   }
 
   /**

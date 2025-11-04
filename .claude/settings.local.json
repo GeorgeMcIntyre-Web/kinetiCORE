@@ -29,7 +29,10 @@
       "Bash(git fetch:*)",
       "Bash(git merge:*)",
       "Bash(npm test:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(git checkout:*)",
+      "Bash(gh pr create:*)",
+      "Bash(git remote:*)"
     ],
     "deny": [],
     "ask": []
