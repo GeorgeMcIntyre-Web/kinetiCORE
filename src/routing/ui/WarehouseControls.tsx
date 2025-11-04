@@ -10,7 +10,8 @@ import {
   Building2,
   X,
   Eye,
-  EyeOff
+  EyeOff,
+  Camera
 } from 'lucide-react';
 import { SceneManager } from '../../scene/SceneManager';
 import { WarehouseModel, WarehouseConfig } from '../core/WarehouseModel';
@@ -30,7 +31,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
   const [config, setConfig] = useState<WarehouseConfig>({
     width: 50000,  // 50m
     depth: 50000,  // 50m
-    height: 6000,  // 6m
+    height: 20000,  // 20m
   });
   const [isVisible, setIsVisible] = useState(true);
 
@@ -60,17 +61,38 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     // Resize floor to match warehouse
     SceneManager.getInstance().resizeFloor(config.width / 1000, config.depth / 1000);
 
-    // Configure camera for interior view
+    // Configure camera for INTERIOR view - position INSIDE the warehouse
     const camera = CameraService.getInstance().getCamera();
-    if (camera) {
-      // Set clipping planes for interior feel
-      // Near: 10cm, Far: warehouse size * 2 for seeing inside
-      camera.minZ = 0.1;
-      camera.maxZ = (Math.max(config.width, config.depth) / 1000) * 2;
+    if (camera && camera instanceof BABYLON.ArcRotateCamera) {
+      // Position camera INSIDE the warehouse at eye level (1.7m = 170cm typical eye height)
+      const eyeHeight = 1.7; // 1.7 meters above floor
+      const widthM = config.width / 1000;
+      const depthM = config.depth / 1000;
+      const heightM = config.height / 1000;
       
-      // Adjust camera to center on warehouse
-      camera.target = BABYLON.Vector3.Zero();
-      camera.radius = Math.max(config.width, config.depth) / 1000 * 0.8; // 80% of max dimension
+      // Set clipping planes for interior feel
+      camera.minZ = 0.1; // Near: 10cm
+      camera.maxZ = Math.max(widthM, depthM, heightM) * 3; // Far: 3x max dimension to see walls
+      
+      // Position camera INSIDE, centered, at eye level
+      // Target is center of warehouse floor
+      camera.target = new BABYLON.Vector3(0, eyeHeight, 0);
+      
+      // Position camera INSIDE looking forward (not outside looking in)
+      // Use a small radius so camera is close to center, inside the warehouse
+      const interiorRadius = Math.min(widthM, depthM) * 0.2; // 20% of smallest dimension - INSIDE
+      camera.radius = interiorRadius;
+      
+      // Set camera angle to look forward horizontally (beta = 90° = horizontal, alpha = 0 = forward)
+      camera.alpha = 0; // Look forward along +Z
+      camera.beta = Math.PI / 2; // Horizontal (90° from vertical = looking forward)
+      
+      // Update camera immediately
+      camera.setTarget(camera.target);
+      
+      console.log(`[WarehouseControls] 📷 Camera positioned INSIDE warehouse at eye level (${eyeHeight}m)`);
+      console.log(`[WarehouseControls] Camera target: (${camera.target.x}, ${camera.target.y}, ${camera.target.z})`);
+      console.log(`[WarehouseControls] Camera radius: ${interiorRadius}m (inside warehouse)`);
     }
 
     return () => {
@@ -87,11 +109,22 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     // Update floor size
     SceneManager.getInstance().resizeFloor(config.width / 1000, config.depth / 1000);
 
-    // Update camera clipping
+    // Update camera for new warehouse size - keep camera INSIDE
     const camera = CameraService.getInstance().getCamera();
-    if (camera) {
-      camera.maxZ = (Math.max(config.width, config.depth) / 1000) * 2;
-      camera.radius = Math.max(config.width, config.depth) / 1000 * 0.8;
+    if (camera && camera instanceof BABYLON.ArcRotateCamera) {
+      const eyeHeight = 1.7; // Keep at eye level
+      const widthM = config.width / 1000;
+      const depthM = config.depth / 1000;
+      const heightM = config.height / 1000;
+      
+      camera.minZ = 0.1;
+      camera.maxZ = Math.max(widthM, depthM, heightM) * 3;
+      camera.target = new BABYLON.Vector3(0, eyeHeight, 0);
+      
+      // Keep camera inside with small radius
+      const interiorRadius = Math.min(widthM, depthM) * 0.2;
+      camera.radius = interiorRadius;
+      camera.setTarget(camera.target);
     }
   }, [config, warehouse]);
 
@@ -109,7 +142,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     setConfig({
       width: 50000,
       depth: 50000,
-      height: 6000,
+      height: 20000,
     });
   };
 
@@ -119,6 +152,36 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     if (warehouse) {
       const rootNode = warehouse.getRootNode();
       rootNode.setEnabled(newVisible);
+    }
+  };
+
+  const resetCameraToInterior = () => {
+    const camera = CameraService.getInstance().getCamera();
+    if (camera && camera instanceof BABYLON.ArcRotateCamera) {
+      const eyeHeight = 1.7; // 1.7 meters above floor
+      const widthM = config.width / 1000;
+      const depthM = config.depth / 1000;
+      const heightM = config.height / 1000;
+      
+      // Set clipping planes for interior feel
+      camera.minZ = 0.1;
+      camera.maxZ = Math.max(widthM, depthM, heightM) * 3;
+      
+      // Position camera INSIDE, centered, at eye level
+      camera.target = new BABYLON.Vector3(0, eyeHeight, 0);
+      
+      // Position camera INSIDE with small radius
+      const interiorRadius = Math.min(widthM, depthM) * 0.2;
+      camera.radius = interiorRadius;
+      
+      // Set camera angle to look forward horizontally
+      camera.alpha = 0; // Look forward along +Z
+      camera.beta = Math.PI / 2; // Horizontal
+      
+      // Update camera immediately
+      camera.setTarget(camera.target);
+      
+      console.log(`[WarehouseControls] 📷 Camera reset to interior view`);
     }
   };
 
@@ -225,9 +288,13 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
 
         {/* Quick Presets */}
         <div className="presets-group">
-          <button className="preset-btn" onClick={resetSize} title="Reset to 50m × 50m × 6m">
+          <button className="preset-btn" onClick={resetSize} title="Reset to 50m × 50m × 20m">
             <Maximize2 size={12} />
-            <span>Reset</span>
+            <span>Reset Size</span>
+          </button>
+          <button className="preset-btn" onClick={resetCameraToInterior} title="Reset camera to interior view">
+            <Camera size={12} />
+            <span>Reset Camera</span>
           </button>
         </div>
       </div>
