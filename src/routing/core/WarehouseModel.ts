@@ -11,6 +11,11 @@ export interface WarehouseConfig {
   enableFog?: boolean; // Enable atmospheric fog
   enableBloom?: boolean; // Enable bloom/glow effects
   enableSkybox?: boolean; // Enable skybox environment
+  // PROMPT #2: Sun + shadows configuration
+  enableSun?: boolean; // Enable directional sun light
+  sunAzimuth?: number;   // degrees (-180..180)
+  sunElevation?: number; // degrees (0..90)
+  sunIntensity?: number; // 0..3
 }
 
 const DEFAULT_CONFIG: WarehouseConfig = {
@@ -20,6 +25,11 @@ const DEFAULT_CONFIG: WarehouseConfig = {
   enableFog: true, // Enable atmospheric fog by default
   enableBloom: true, // Enable bloom effects by default
   enableSkybox: true, // Enable skybox by default
+  // PROMPT #2: Sun defaults
+  enableSun: true,
+  sunAzimuth: -45,
+  sunElevation: 35,
+  sunIntensity: 1.0,
 };
 
 /**
@@ -35,6 +45,9 @@ export class WarehouseModel {
   private materials: BABYLON.Material[] = [];
   private skybox: BABYLON.Mesh | null = null;
   private renderingPipeline: BABYLON.DefaultRenderingPipeline | null = null;
+  // PROMPT #2: Sun and shadows
+  private sun: BABYLON.DirectionalLight | null = null;
+  private csm: BABYLON.CascadedShadowGenerator | null = null;
 
   constructor(scene: BABYLON.Scene, config?: Partial<WarehouseConfig>) {
     this.scene = scene;
@@ -690,6 +703,15 @@ export class WarehouseModel {
           console.warn('[WarehouseModel] ⚠️ Failed to setup rendering pipeline, continuing:', pipelineError);
         }
       }
+
+      // PROMPT #2: Create sun + cascaded shadows if enabled
+      if (this.config.enableSun !== false) {
+        try {
+          this.createSun();
+        } catch (sunError) {
+          console.warn('[WarehouseModel] ⚠️ Failed to create sun, continuing:', sunError);
+        }
+      }
     } catch (error) {
       console.error('[WarehouseModel] ❌ setupAtmosphere failed:', error);
       console.log('[WarehouseModel] Continuing without atmospheric effects');
@@ -906,6 +928,55 @@ export class WarehouseModel {
   }
 
   /**
+   * PROMPT #2: Create directional sun light with cascaded shadow maps
+   */
+  private createSun(): void {
+    try {
+      // Dispose existing sun if any
+      if (this.sun) {
+        this.sun.dispose();
+        this.sun = null;
+      }
+      if (this.csm) {
+        this.csm.dispose();
+        this.csm = null;
+      }
+
+      const azimuth = (this.config.sunAzimuth ?? -45) * Math.PI / 180;
+      const elevation = (this.config.sunElevation ?? 35) * Math.PI / 180;
+
+      // Convert azimuth/elevation to direction vector
+      const dir = new BABYLON.Vector3(
+        Math.cos(elevation) * Math.cos(azimuth),
+        -Math.sin(elevation),
+        Math.cos(elevation) * Math.sin(azimuth)
+      );
+
+      this.sun = new BABYLON.DirectionalLight('warehouse_sun', dir, this.scene);
+      this.sun.intensity = this.config.sunIntensity ?? 1.0;
+      this.sun.shadowMinZ = -300;
+      this.sun.shadowMaxZ = 900;
+
+      // Create cascaded shadow generator (medium quality for performance)
+      this.csm = new BABYLON.CascadedShadowGenerator(1024, this.sun);
+      this.csm.usePercentageCloserFiltering = true;
+      this.csm.filteringQuality = BABYLON.ShadowGenerator.QUALITY_MEDIUM;
+      this.csm.bias = 0.003;
+      this.csm.normalBias = 0.01;
+
+      // Add all warehouse meshes as shadow casters
+      this.meshes.forEach(mesh => {
+        this.csm!.addShadowCaster(mesh);
+        mesh.receiveShadows = true;
+      });
+
+      console.log(`[WarehouseModel] ✅ Created sun (az: ${this.config.sunAzimuth}°, el: ${this.config.sunElevation}°, intensity: ${this.sun.intensity})`);
+    } catch (error) {
+      console.warn('[WarehouseModel] ⚠️ Failed to create sun:', error);
+    }
+  }
+
+  /**
    * Update warehouse size
    * PROMPT #1: Added camera safety after resize
    */
@@ -954,12 +1025,23 @@ export class WarehouseModel {
 
   /**
    * Dispose atmospheric effects (skybox, rendering pipeline)
+   * PROMPT #2: Added sun and CSM disposal
    */
   private disposeAtmosphere(): void {
     // Dispose skybox
     if (this.skybox) {
       this.skybox.dispose();
       this.skybox = null;
+    }
+
+    // PROMPT #2: Dispose sun and CSM
+    if (this.csm) {
+      this.csm.dispose();
+      this.csm = null;
+    }
+    if (this.sun) {
+      this.sun.dispose();
+      this.sun = null;
     }
 
     // Dispose rendering pipeline
