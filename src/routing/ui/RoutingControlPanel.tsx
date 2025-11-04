@@ -2,12 +2,12 @@
 // Owner: Routing System Team
 
 import React, { useState } from 'react';
-import { Network, Trash2, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react';
+import { Network, Trash2, Eye, EyeOff, Building2 } from 'lucide-react';
 import { useEditorStore } from '../../ui/store/editorStore';
 import { useRoutingStore } from '../../ui/store/routingStore';
 import { ConnectionManager } from '../core/ConnectionManager';
 import { RoutingWorkflowHandler } from './RoutingWorkflowHandler';
-import { WarehouseControls } from './WarehouseControls';
+import { WarehousePanel } from './WarehousePanel';
 import './RoutingControlPanel.css';
 
 interface RoutingControlPanelProps {
@@ -34,7 +34,7 @@ export const RoutingControlPanel: React.FC<RoutingControlPanelProps> = ({ onClos
 
   const [selectedConnectorIds, setSelectedConnectorIds] = useState<string[]>([]);
   const [showRoutes, setShowRoutes] = useState(true);
-  const [showWarehouseControls, setShowWarehouseControls] = useState(true);
+  const [showWarehousePanel, setShowWarehousePanel] = useState(false);
 
   // Get all connection points
   const connectionManager = ConnectionManager.getInstance();
@@ -107,24 +107,27 @@ export const RoutingControlPanel: React.FC<RoutingControlPanelProps> = ({ onClos
         )}
       </div>
 
-      {/* Warehouse Controls Section */}
+      {/* Warehouse Panel Button */}
       <div className="section">
-        <div className="section-header">
-          <h4>Warehouse</h4>
-          <button
-            className="icon-btn"
-            onClick={() => setShowWarehouseControls(!showWarehouseControls)}
-            title={showWarehouseControls ? 'Hide warehouse controls' : 'Show warehouse controls'}
-          >
-            {showWarehouseControls ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-        </div>
-        {showWarehouseControls && (
-          <div className="warehouse-controls-wrapper">
-            <WarehouseControls />
-          </div>
-        )}
+        <button
+          className="primary-btn"
+          onClick={() => setShowWarehousePanel(true)}
+          title="Open warehouse configuration panel"
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+        >
+          <Building2 size={16} />
+          <span>Configure Warehouse</span>
+        </button>
       </div>
+
+      {/* Warehouse Panel (floating) */}
+      {showWarehousePanel && (
+        <WarehousePanel
+          isVisible={showWarehousePanel}
+          onClose={() => setShowWarehousePanel(false)}
+          zIndex={1003}
+        />
+      )}
 
       {/* Route Type Selector - Compact */}
       <div className="section">

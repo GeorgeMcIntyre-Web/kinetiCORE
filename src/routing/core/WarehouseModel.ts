@@ -15,6 +15,10 @@ export type SkyboxSource =
   | 'night'       // Dark night sky with stars
   | 'sunset';     // Warm sunset with orange/red tones
 
+export type ColumnShape = 'I-beam' | 'H-beam' | 'box';
+export type FloorType = 'concrete' | 'epoxy' | 'tile';
+export type MezzanineType = 'grid' | 'solid';
+
 export interface WarehouseConfig {
   width: number;  // X-axis dimension (mm)
   depth: number;  // Y-axis dimension (mm)
@@ -28,6 +32,19 @@ export interface WarehouseConfig {
   sunAzimuth?: number;   // degrees (-180..180)
   sunElevation?: number; // degrees (0..90)
   sunIntensity?: number; // 0..3
+  // Roof configuration
+  enableRoof?: boolean; // Enable roof (default: true)
+  // Doors configuration
+  mainDoorWall?: 'north' | 'south' | 'east' | 'west'; // Main door wall (default: 'south')
+  sideDoors?: boolean; // Enable side doors (default: true)
+  // Mezzanine configuration
+  mezzanineEnabled?: boolean; // Enable mezzanine floor (default: false)
+  mezzanineHeight?: number; // Mezzanine height in mm (default: 8000 = 8m)
+  mezzanineType?: MezzanineType; // Mezzanine floor type (default: 'grid')
+  // Column configuration
+  columnShape?: ColumnShape; // Column shape (default: 'I-beam')
+  // Floor configuration
+  floorType?: FloorType; // Floor material type (default: 'concrete')
 }
 
 const DEFAULT_CONFIG: WarehouseConfig = {
@@ -43,6 +60,19 @@ const DEFAULT_CONFIG: WarehouseConfig = {
   sunAzimuth: -45,
   sunElevation: 35,
   sunIntensity: 1.0,
+  // Roof defaults
+  enableRoof: true, // Enable roof by default
+  // Doors defaults
+  mainDoorWall: 'south', // Main door on south wall
+  sideDoors: true, // Enable side doors by default
+  // Mezzanine defaults
+  mezzanineEnabled: false, // Disabled by default
+  mezzanineHeight: 8000, // 8m = 40% of 20m height
+  mezzanineType: 'grid', // Grid floor by default
+  // Column defaults
+  columnShape: 'I-beam', // I-beam columns by default
+  // Floor defaults
+  floorType: 'concrete', // Concrete floor by default
 };
 
 /**
@@ -130,8 +160,7 @@ export class WarehouseModel {
 
     // Create materials
     const wallMaterial = this.createWallMaterial();
-    const floorMaterial = this.createFloorMaterial(); // Material for warehouse interior floor
-    // const roofMaterial = this.createRoofMaterial(); // Disabled - no roof to see sky
+    const floorMaterial = this.createFloorMaterial(this.config.floorType || 'concrete'); // Material for warehouse interior floor
     const columnMaterial = this.createColumnMaterial();
 
     // Create walls (Babylon space: Y-up, X-right, Z-forward)
@@ -185,50 +214,84 @@ export class WarehouseModel {
     westWall.rotation.y = Math.PI / 2;
     console.log(`[WarehouseModel] ✅ Created west wall at X=${(-widthM / 2 + wallThickness / 2).toFixed(2)}m, size: ${(depthM - wallThickness).toFixed(2)}m × ${heightM.toFixed(2)}m`);
 
-    // Roof - DISABLED TO SEE SKY
-    // Instead of a solid roof, leave it open so users can see the skybox
-    // If you want a roof, uncomment the code below:
-    /*
-    const roof = BABYLON.MeshBuilder.CreatePlane(
-      'warehouse_roof',
-      { width: widthM, height: depthM },
-      this.scene
-    );
-    roof.position = new BABYLON.Vector3(0, heightM, 0);
-    roof.rotation.x = Math.PI;
-    roof.material = roofMaterial;
-    roof.receiveShadows = true;
-    roof.isVisible = true;
-    roof.isPickable = false;
-    roof.infiniteDistance = false;
-    roof.material.backFaceCulling = false;
-    this.meshes.push(roof);
-    roof.parent = this.rootNode;
-    */
-    console.log(`[WarehouseModel] ✅ Created open-air warehouse (no roof - see sky)`);
+    // Roof - Create if enabled
+    if (this.config.enableRoof !== false) {
+      const roofMaterial = this.createRoofMaterial();
+      const roofPitch = 0.02; // 2% pitch (2° slope)
+      const roofOverhang = 1.0; // 1m overhang on all sides
+      
+      // Create roof as a plane with slight pitch
+      const roof = BABYLON.MeshBuilder.CreatePlane(
+        'warehouse_roof',
+        { 
+          width: widthM + roofOverhang * 2,
+          height: depthM + roofOverhang * 2
+        },
+        this.scene
+      );
+      roof.position = new BABYLON.Vector3(0, heightM, 0);
+      roof.rotation.x = Math.PI; // Flip to face downward
+      roof.rotation.z = roofPitch; // Add slight pitch
+      roof.material = roofMaterial;
+      roof.receiveShadows = true;
+      roof.isVisible = true;
+      roof.isPickable = false;
+      roof.infiniteDistance = false;
+      if (roofMaterial instanceof BABYLON.PBRMetallicRoughnessMaterial) {
+        roofMaterial.backFaceCulling = false;
+      }
+      this.meshes.push(roof);
+      roof.parent = this.rootNode;
+      
+      // Add roof trusses visible from inside (optional visual detail)
+      const trussHeight = 0.3; // 30cm truss depth
+      const trussSpacing = 10; // Every 10m
+      for (let x = -widthM / 2 + trussSpacing / 2; x < widthM / 2; x += trussSpacing) {
+        const truss = BABYLON.MeshBuilder.CreateBox(
+          `warehouse_truss_${x}`,
+          {
+            width: 0.2, // 20cm wide
+            height: trussHeight,
+            depth: depthM,
+          },
+          this.scene
+        );
+        truss.position = new BABYLON.Vector3(x, heightM - trussHeight / 2, 0);
+        truss.material = columnMaterial;
+        truss.receiveShadows = true;
+        truss.isVisible = true;
+        truss.isPickable = false;
+        this.meshes.push(truss);
+        truss.parent = this.rootNode;
+      }
+      
+      console.log(`[WarehouseModel] ✅ Created roof with pitch and trusses`);
+    } else {
+      console.log(`[WarehouseModel] ✅ Created open-air warehouse (no roof - see sky)`);
+    }
+
+    // Create doors in walls (before columns to avoid overlap)
+    this.createDoors(widthM, depthM, heightM, wallThickness, wallMaterial);
 
     // Add structural columns for realism (spaced every 10m)
     const columnSpacing = 10; // 10 meters
-    const columnSize = 0.4; // 40cm columns
     const columns: BABYLON.Mesh[] = [];
 
     for (let x = -widthM / 2 + columnSpacing / 2; x < widthM / 2; x += columnSpacing) {
       for (let z = -depthM / 2 + columnSpacing / 2; z < depthM / 2; z += columnSpacing) {
-        const column = BABYLON.MeshBuilder.CreateBox(
-          `warehouse_column_${columns.length}`,
-          {
-            width: columnSize,
-            height: heightM,
-            depth: columnSize,
-          },
-          this.scene
+        const column = this.createColumn(
+          x,
+          z,
+          heightM,
+          this.config.columnShape || 'I-beam',
+          columnMaterial
         );
-        column.position = new BABYLON.Vector3(x, heightM / 2, z);
-        column.material = columnMaterial;
-        column.receiveShadows = true;
-        column.isVisible = true;
-        column.isPickable = false;
-        this.meshes.push(column);
+        // For I-beam and H-beam, child meshes are already added in createColumn()
+        // For box columns, add the single mesh here
+        const columnShape = this.config.columnShape || 'I-beam';
+        if (columnShape === 'box') {
+          this.meshes.push(column);
+        }
         column.parent = this.rootNode;
         columns.push(column);
       }
@@ -296,6 +359,11 @@ export class WarehouseModel {
     this.meshes.push(floorMesh);
     floorMesh.parent = this.rootNode;
     console.log(`[WarehouseModel] ✅ Created warehouse interior floor: ${(widthM - wallThickness * 2).toFixed(2)}m × ${(depthM - wallThickness * 2).toFixed(2)}m`);
+
+    // Create mezzanine floor if enabled
+    if (this.config.mezzanineEnabled) {
+      this.createMezzanine(widthM, depthM, heightM, wallThickness, columnMaterial);
+    }
 
     // Create parking lot (20m asphalt around warehouse)
     const parkingLotSize = 20; // 20 meters around warehouse
@@ -559,27 +627,153 @@ export class WarehouseModel {
   }
 
   /**
-   * Create floor material (industrial concrete)
+   * Create floor material (industrial concrete, epoxy, or tile)
    */
-  private createFloorMaterial(): BABYLON.PBRMetallicRoughnessMaterial {
-    const material = new BABYLON.PBRMetallicRoughnessMaterial('warehouse_floor_mat', this.scene);
-    material.baseColor = new BABYLON.Color3(0.5, 0.5, 0.48);
-    material.metallic = 0.0;
-    material.roughness = 0.75;
-
-    const texture = new BABYLON.Texture(
-      'https://www.babylonjs-playground.com/textures/floor.png',
-      this.scene
-    );
-    texture.uScale = 10;
-    texture.vScale = 10;
-    // Enable mipmaps for proper distance rendering
-    texture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
-    material.baseTexture = texture;
+  private createFloorMaterial(floorType: FloorType = 'concrete'): BABYLON.PBRMetallicRoughnessMaterial {
+    const material = new BABYLON.PBRMetallicRoughnessMaterial(`warehouse_floor_mat_${floorType}`, this.scene);
+    
+    switch (floorType) {
+      case 'concrete':
+        material.baseColor = new BABYLON.Color3(0.5, 0.5, 0.48);
+        material.metallic = 0.0;
+        material.roughness = 0.75;
+        // Use procedural concrete texture (similar to walls but lighter)
+        const concreteTexture = this.createConcreteTexture(1024, 1024);
+        concreteTexture.uScale = 10;
+        concreteTexture.vScale = 10;
+        concreteTexture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
+        material.baseTexture = concreteTexture;
+        break;
+        
+      case 'epoxy':
+        // Epoxy floor - smoother, slightly reflective
+        material.baseColor = new BABYLON.Color3(0.4, 0.4, 0.42);
+        material.metallic = 0.1;
+        material.roughness = 0.3;
+        // Create procedural epoxy texture (smooth with slight variation)
+        const epoxyTexture = this.createEpoxyTexture(1024, 1024);
+        epoxyTexture.uScale = 10;
+        epoxyTexture.vScale = 10;
+        epoxyTexture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
+        material.baseTexture = epoxyTexture;
+        break;
+        
+      case 'tile':
+        // Industrial tile floor
+        material.baseColor = new BABYLON.Color3(0.45, 0.45, 0.47);
+        material.metallic = 0.0;
+        material.roughness = 0.6;
+        // Create procedural tile texture
+        const tileTexture = this.createTileTexture(1024, 1024);
+        tileTexture.uScale = 10;
+        tileTexture.vScale = 10;
+        tileTexture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
+        material.baseTexture = tileTexture;
+        break;
+    }
 
     material._environmentIntensity = 0.4;
     this.materials.push(material);
     return material;
+  }
+
+  /**
+   * Create epoxy floor texture (smooth, slightly reflective)
+   */
+  private createEpoxyTexture(width: number, height: number): BABYLON.Texture {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d')!;
+
+    // Smooth epoxy base
+    ctx.fillStyle = '#666666';
+    ctx.fillRect(0, 0, width, height);
+
+    // Add subtle variation
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const noise = (Math.random() - 0.5) * 10;
+      data[i] = Math.max(90, Math.min(110, 100 + noise));
+      data[i + 1] = Math.max(90, Math.min(110, 100 + noise));
+      data[i + 2] = Math.max(92, Math.min(112, 102 + noise));
+      data[i + 3] = 255;
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+
+    const texture = new BABYLON.Texture(canvas.toDataURL(), this.scene, false, true);
+    texture.hasAlpha = false;
+    texture.getAlphaFromRGB = false;
+    texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+    texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+    texture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
+    return texture;
+  }
+
+  /**
+   * Create industrial tile floor texture
+   */
+  private createTileTexture(width: number, height: number): BABYLON.Texture {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d')!;
+
+    // Tile base
+    ctx.fillStyle = '#737373';
+    ctx.fillRect(0, 0, width, height);
+
+    // Add tile grid pattern
+    const tileSize = 50; // 50px tiles
+    ctx.strokeStyle = '#5a5a5a';
+    ctx.lineWidth = 2;
+    
+    for (let x = 0; x < width; x += tileSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
+    }
+    
+    for (let y = 0; y < height; y += tileSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+
+    // Add subtle variation per tile
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+
+    for (let y = 0; y < height; y += tileSize) {
+      for (let x = 0; x < width; x += tileSize) {
+        const variation = (Math.random() - 0.5) * 15;
+        for (let ty = 0; ty < tileSize && y + ty < height; ty++) {
+          for (let tx = 0; tx < tileSize && x + tx < width; tx++) {
+            const idx = ((y + ty) * width + (x + tx)) * 4;
+            if (idx < data.length) {
+              data[idx] = Math.max(100, Math.min(130, 115 + variation));
+              data[idx + 1] = Math.max(100, Math.min(130, 115 + variation));
+              data[idx + 2] = Math.max(102, Math.min(132, 117 + variation));
+            }
+          }
+        }
+      }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+
+    const texture = new BABYLON.Texture(canvas.toDataURL(), this.scene, false, true);
+    texture.hasAlpha = false;
+    texture.getAlphaFromRGB = false;
+    texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+    texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+    texture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
+    return texture;
   }
 
   /**
@@ -702,11 +896,8 @@ export class WarehouseModel {
 
   /**
    * Create roof material (metal/industrial) - DARK realistic ceiling
-   * Currently disabled - warehouse has no roof to see sky
-   * Kept for future use
    */
-  // @ts-expect-error - Method kept for future use when roof is re-enabled
-  private _createRoofMaterial(): BABYLON.PBRMetallicRoughnessMaterial {
+  private createRoofMaterial(): BABYLON.PBRMetallicRoughnessMaterial {
     const material = new BABYLON.PBRMetallicRoughnessMaterial('warehouse_roof_mat', this.scene);
 
     // DARK corrugated metal ceiling - realistic industrial
@@ -718,7 +909,7 @@ export class WarehouseModel {
     material.emissiveColor = new BABYLON.Color3(0, 0, 0);
 
     // Create procedural metal/ceiling texture
-    const texture = this._createCeilingTexture(1024, 1024);
+    const texture = this.createCeilingTexture(1024, 1024);
     texture.uScale = 6;
     texture.vScale = 6;
     material.baseTexture = texture;
@@ -732,9 +923,8 @@ export class WarehouseModel {
 
   /**
    * Create DARK realistic corrugated metal ceiling texture
-   * Currently disabled - warehouse has no roof to see sky
    */
-  private _createCeilingTexture(width: number, height: number): BABYLON.Texture {
+  private createCeilingTexture(width: number, height: number): BABYLON.Texture {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
@@ -1923,41 +2113,63 @@ export class WarehouseModel {
   }
 
   /**
-   * Update warehouse size
+   * Update warehouse configuration
    * PROMPT #1: Added camera safety after resize
    * PROMPT #4: Added skybox source change detection
+   * FIX: Now handles all config changes (roof, doors, mezzanine, columns, floors)
    */
   updateSize(config: Partial<WarehouseConfig>): void {
+    // Detect what changed
     const skyboxSourceChanged = config.skyboxSource !== undefined && config.skyboxSource !== this.config.skyboxSource;
     const skyboxEnabledChanged = config.enableSkybox !== undefined && config.enableSkybox !== this.config.enableSkybox;
     const fogChanged = config.enableFog !== undefined && config.enableFog !== this.config.enableFog;
     const sunChanged = config.enableSun !== undefined && config.enableSun !== this.config.enableSun;
-    this.config = { ...this.config, ...config };
-    this.build();
+    const sunParamsChanged = config.sunAzimuth !== undefined || config.sunElevation !== undefined || config.sunIntensity !== undefined;
 
-    // Rebuild atmospheric effects if size, skybox enabled/disabled, skybox source, fog, or sun changed
-    if (config.width !== undefined || config.depth !== undefined || config.height !== undefined || skyboxEnabledChanged || skyboxSourceChanged || fogChanged || sunChanged) {
+    // Structural changes that require full rebuild
+    const dimensionsChanged = config.width !== undefined || config.depth !== undefined || config.height !== undefined;
+    const roofChanged = config.enableRoof !== undefined && config.enableRoof !== this.config.enableRoof;
+    const doorsChanged = config.mainDoorWall !== undefined || config.sideDoors !== undefined;
+    const mezzanineChanged = config.mezzanineEnabled !== undefined || config.mezzanineHeight !== undefined || config.mezzanineType !== undefined;
+    const columnShapeChanged = config.columnShape !== undefined && config.columnShape !== this.config.columnShape;
+    const floorTypeChanged = config.floorType !== undefined && config.floorType !== this.config.floorType;
+
+    const needsRebuild = dimensionsChanged || roofChanged || doorsChanged || mezzanineChanged || columnShapeChanged || floorTypeChanged;
+
+    // Update config
+    this.config = { ...this.config, ...config };
+
+    // Full rebuild if structural changes
+    if (needsRebuild) {
+      console.log(`[WarehouseModel] 🔄 Rebuilding warehouse (structural changes detected)`);
+      this.build();
+    }
+
+    // Rebuild atmospheric effects if needed
+    if (needsRebuild || skyboxEnabledChanged || skyboxSourceChanged || fogChanged || sunChanged || sunParamsChanged) {
       this.disposeAtmosphere();
       this.setupAtmosphere();
     }
 
     // PROMPT #1: Update camera clipping planes for new size to prevent grey-out
-    const camera = this.scene.activeCamera;
-    if (camera && camera instanceof BABYLON.ArcRotateCamera) {
-      const widthM = this.config.width / 1000;
-      const depthM = this.config.depth / 1000;
-      const heightM = this.config.height / 1000;
+    if (dimensionsChanged) {
+      const camera = this.scene.activeCamera;
+      if (camera && camera instanceof BABYLON.ArcRotateCamera) {
+        const widthM = this.config.width / 1000;
+        const depthM = this.config.depth / 1000;
+        const heightM = this.config.height / 1000;
 
-      camera.minZ = 0.1; // Very close
-      // CRITICAL: maxZ must be larger than skybox (1000x warehouse) to see sky!
-      camera.maxZ = Math.max(widthM, depthM, heightM) * 2000; // 2x skybox size
+        camera.minZ = 0.1; // Very close
+        // CRITICAL: maxZ must be larger than skybox (1000x warehouse) to see sky!
+        camera.maxZ = Math.max(widthM, depthM, heightM) * 2000; // 2x skybox size
 
-      // Re-target to safe position
-      camera.target = new BABYLON.Vector3(0, 1.7, 0);
-      camera.radius = Math.min(widthM, depthM) * 0.25;
-      camera.setTarget(camera.target);
+        // Re-target to safe position
+        camera.target = new BABYLON.Vector3(0, 1.7, 0);
+        camera.radius = Math.min(widthM, depthM) * 0.25;
+        camera.setTarget(camera.target);
 
-      console.log(`[WarehouseModel] ✅ Updated camera clipping planes: minZ=${camera.minZ}, maxZ=${camera.maxZ.toFixed(1)}m (can see skybox)`);
+        console.log(`[WarehouseModel] ✅ Updated camera clipping planes: minZ=${camera.minZ}, maxZ=${camera.maxZ.toFixed(1)}m (can see skybox)`);
+      }
     }
   }
 
@@ -2043,6 +2255,500 @@ export class WarehouseModel {
     }
 
     console.log(`[WarehouseModel] ✅ Updated skybox source to: ${source}`);
+  }
+
+  /**
+   * Create doors in warehouse walls
+   */
+  private createDoors(
+    widthM: number,
+    depthM: number,
+    heightM: number,
+    wallThickness: number,
+    _wallMaterial: BABYLON.Material
+  ): void {
+    const mainDoorWidth = 4.0; // 4m main door
+    const mainDoorHeight = 5.0; // 5m tall
+    const sideDoorWidth = 2.0; // 2m side doors
+    const sideDoorHeight = 3.0; // 3m tall
+    const doorFrameThickness = 0.1; // 10cm frame
+
+    // Create door frame material (steel/aluminum)
+    const doorFrameMaterial = this.createDoorFrameMaterial();
+
+    // Main door (large entrance)
+    const mainDoorWall = this.config.mainDoorWall || 'south';
+    const mainDoorPos = this.getWallPosition(mainDoorWall, widthM, depthM, heightM, wallThickness, mainDoorHeight);
+    const mainDoorFrame = this.createDoorFrame(
+      mainDoorWidth,
+      mainDoorHeight,
+      doorFrameThickness,
+      mainDoorPos,
+      mainDoorWall,
+      'main_door',
+      doorFrameMaterial
+    );
+    this.meshes.push(mainDoorFrame);
+    mainDoorFrame.parent = this.rootNode;
+
+    // Side doors (3 smaller doors on other walls)
+    if (this.config.sideDoors !== false) {
+      const walls: Array<'north' | 'south' | 'east' | 'west'> = ['north', 'east', 'west'];
+      walls.forEach((wall, index) => {
+        if (wall !== mainDoorWall) {
+          const sideDoorPos = this.getWallPosition(wall, widthM, depthM, heightM, wallThickness, sideDoorHeight);
+          // Offset side doors to avoid overlap with main door
+          const offset = (index % 2 === 0 ? -1 : 1) * (widthM / 4);
+          if (wall === 'north' || wall === 'south') {
+            sideDoorPos.x = offset;
+          } else {
+            sideDoorPos.z = offset;
+          }
+          
+          const sideDoorFrame = this.createDoorFrame(
+            sideDoorWidth,
+            sideDoorHeight,
+            doorFrameThickness,
+            sideDoorPos,
+            wall,
+            `side_door_${wall}`,
+            doorFrameMaterial
+          );
+          this.meshes.push(sideDoorFrame);
+          sideDoorFrame.parent = this.rootNode;
+        }
+      });
+    }
+
+    console.log(`[WarehouseModel] ✅ Created doors: main door on ${mainDoorWall} wall, ${this.config.sideDoors !== false ? '3' : '0'} side doors`);
+  }
+
+  /**
+   * Get wall position for door placement
+   */
+  private getWallPosition(
+    wall: 'north' | 'south' | 'east' | 'west',
+    widthM: number,
+    depthM: number,
+    _heightM: number,
+    wallThickness: number,
+    doorHeight: number = 5.0
+  ): BABYLON.Vector3 {
+    switch (wall) {
+      case 'north':
+        return new BABYLON.Vector3(0, doorHeight / 2, depthM / 2 - wallThickness / 2);
+      case 'south':
+        return new BABYLON.Vector3(0, doorHeight / 2, -depthM / 2 + wallThickness / 2);
+      case 'east':
+        return new BABYLON.Vector3(widthM / 2 - wallThickness / 2, doorHeight / 2, 0);
+      case 'west':
+        return new BABYLON.Vector3(-widthM / 2 + wallThickness / 2, doorHeight / 2, 0);
+    }
+  }
+
+  /**
+   * Create door frame
+   */
+  private createDoorFrame(
+    width: number,
+    height: number,
+    thickness: number,
+    position: BABYLON.Vector3,
+    wall: 'north' | 'south' | 'east' | 'west',
+    name: string,
+    material: BABYLON.Material
+  ): BABYLON.Mesh {
+    // Create frame as a box (simplified - full frame would be more complex)
+    const frame = BABYLON.MeshBuilder.CreateBox(
+      `warehouse_${name}_frame`,
+      {
+        width: wall === 'north' || wall === 'south' ? width : thickness,
+        height: height,
+        depth: wall === 'north' || wall === 'south' ? thickness : width,
+      },
+      this.scene
+    );
+    frame.position = position;
+    frame.material = material;
+    frame.receiveShadows = true;
+    frame.isVisible = true;
+    frame.isPickable = false;
+    
+    // Rotate if needed for east/west walls
+    if (wall === 'east' || wall === 'west') {
+      frame.rotation.y = Math.PI / 2;
+    }
+    
+    return frame;
+  }
+
+  /**
+   * Create door frame material (steel/aluminum)
+   */
+  private createDoorFrameMaterial(): BABYLON.PBRMetallicRoughnessMaterial {
+    const material = new BABYLON.PBRMetallicRoughnessMaterial('warehouse_door_frame_mat', this.scene);
+    material.baseColor = new BABYLON.Color3(0.3, 0.3, 0.32); // Dark gray metal
+    material.metallic = 0.8;
+    material.roughness = 0.3;
+    material._environmentIntensity = 0.5;
+    this.materials.push(material);
+    return material;
+  }
+
+  /**
+   * Create column with configurable shape (I-beam, H-beam, or box)
+   */
+  private createColumn(
+    x: number,
+    z: number,
+    heightM: number,
+    shape: ColumnShape,
+    material: BABYLON.Material
+  ): BABYLON.Mesh {
+    let column: BABYLON.Mesh;
+
+    switch (shape) {
+      case 'I-beam':
+        // I-beam: wide flanges (top/bottom), narrow web (center)
+        const iBeamFlangeWidth = 0.4; // 40cm wide flanges
+        const iBeamWebWidth = 0.15; // 15cm web
+        const iBeamDepth = 0.4; // 40cm depth
+        
+        // Create I-beam using multiple boxes
+        const iBeamGroup = new BABYLON.TransformNode(`warehouse_column_${x}_${z}`, this.scene);
+        
+        // Top flange
+        const topFlange = BABYLON.MeshBuilder.CreateBox(
+          `warehouse_column_${x}_${z}_top`,
+          { width: iBeamFlangeWidth, height: 0.1, depth: iBeamDepth },
+          this.scene
+        );
+        topFlange.position = new BABYLON.Vector3(0, heightM / 2 - 0.05, 0);
+        topFlange.material = material;
+        topFlange.parent = iBeamGroup;
+        
+        // Bottom flange
+        const bottomFlange = BABYLON.MeshBuilder.CreateBox(
+          `warehouse_column_${x}_${z}_bottom`,
+          { width: iBeamFlangeWidth, height: 0.1, depth: iBeamDepth },
+          this.scene
+        );
+        bottomFlange.position = new BABYLON.Vector3(0, -heightM / 2 + 0.05, 0);
+        bottomFlange.material = material;
+        bottomFlange.parent = iBeamGroup;
+        
+        // Web (center)
+        const web = BABYLON.MeshBuilder.CreateBox(
+          `warehouse_column_${x}_${z}_web`,
+          { width: iBeamWebWidth, height: heightM - 0.2, depth: iBeamDepth },
+          this.scene
+        );
+        web.position = new BABYLON.Vector3(0, 0, 0);
+        web.material = material;
+        web.parent = iBeamGroup;
+        
+        iBeamGroup.position = new BABYLON.Vector3(x, heightM / 2, z);
+        iBeamGroup.getChildMeshes().forEach(m => {
+          m.receiveShadows = true;
+          m.isVisible = true;
+          m.isPickable = false;
+          this.meshes.push(m as BABYLON.Mesh); // Add child meshes to tracking array
+        });
+
+        // Return the TransformNode as a Mesh for positioning/hierarchy
+        // Note: Individual child meshes are added to this.meshes above
+        column = iBeamGroup as any as BABYLON.Mesh;
+        break;
+
+      case 'H-beam':
+        // H-beam: wider flanges than I-beam, thicker web
+        const hBeamFlangeWidth = 0.5; // 50cm wide flanges
+        const hBeamWebWidth = 0.2; // 20cm web
+        const hBeamDepth = 0.5; // 50cm depth
+        
+        const hBeamGroup = new BABYLON.TransformNode(`warehouse_column_${x}_${z}`, this.scene);
+        
+        // Top flange
+        const hTopFlange = BABYLON.MeshBuilder.CreateBox(
+          `warehouse_column_${x}_${z}_htop`,
+          { width: hBeamFlangeWidth, height: 0.12, depth: hBeamDepth },
+          this.scene
+        );
+        hTopFlange.position = new BABYLON.Vector3(0, heightM / 2 - 0.06, 0);
+        hTopFlange.material = material;
+        hTopFlange.parent = hBeamGroup;
+        
+        // Bottom flange
+        const hBottomFlange = BABYLON.MeshBuilder.CreateBox(
+          `warehouse_column_${x}_${z}_hbottom`,
+          { width: hBeamFlangeWidth, height: 0.12, depth: hBeamDepth },
+          this.scene
+        );
+        hBottomFlange.position = new BABYLON.Vector3(0, -heightM / 2 + 0.06, 0);
+        hBottomFlange.material = material;
+        hBottomFlange.parent = hBeamGroup;
+        
+        // Web
+        const hWeb = BABYLON.MeshBuilder.CreateBox(
+          `warehouse_column_${x}_${z}_hweb`,
+          { width: hBeamWebWidth, height: heightM - 0.24, depth: hBeamDepth },
+          this.scene
+        );
+        hWeb.position = new BABYLON.Vector3(0, 0, 0);
+        hWeb.material = material;
+        hWeb.parent = hBeamGroup;
+        
+        hBeamGroup.position = new BABYLON.Vector3(x, heightM / 2, z);
+        hBeamGroup.getChildMeshes().forEach(m => {
+          m.receiveShadows = true;
+          m.isVisible = true;
+          m.isPickable = false;
+          this.meshes.push(m as BABYLON.Mesh); // Add child meshes to tracking array
+        });
+
+        // Return the TransformNode as a Mesh for positioning/hierarchy
+        // Note: Individual child meshes are added to this.meshes above
+        column = hBeamGroup as any as BABYLON.Mesh;
+        break;
+
+      case 'box':
+      default:
+        // Simple box column (original)
+        column = BABYLON.MeshBuilder.CreateBox(
+          `warehouse_column_${x}_${z}`,
+          { width: 0.4, height: heightM, depth: 0.4 },
+          this.scene
+        );
+        column.position = new BABYLON.Vector3(x, heightM / 2, z);
+        column.material = material;
+        column.receiveShadows = true;
+        column.isVisible = true;
+        column.isPickable = false;
+        break;
+    }
+
+    return column;
+  }
+
+  /**
+   * Create mezzanine floor
+   */
+  private createMezzanine(
+    widthM: number,
+    depthM: number,
+    _heightM: number,
+    wallThickness: number,
+    columnMaterial: BABYLON.Material
+  ): void {
+    const mezzanineHeightM = (this.config.mezzanineHeight || 8000) / 1000; // Convert mm to meters
+    const mezzanineType = this.config.mezzanineType || 'grid';
+    
+    // Create mezzanine floor
+    const floorMesh = BABYLON.MeshBuilder.CreateGround(
+      'warehouse_mezzanine_floor',
+      {
+        width: widthM - wallThickness * 2 - 1, // Slightly smaller than main floor
+        height: depthM - wallThickness * 2 - 1,
+        subdivisions: mezzanineType === 'grid' ? 20 : 1 // More subdivisions for grid pattern
+      },
+      this.scene
+    );
+    floorMesh.position = new BABYLON.Vector3(0, mezzanineHeightM, 0);
+    
+    // Create mezzanine material
+    const mezzanineMaterial = this.createMezzanineMaterial(mezzanineType);
+    floorMesh.material = mezzanineMaterial;
+    floorMesh.receiveShadows = true;
+    floorMesh.isVisible = true;
+    floorMesh.isPickable = false;
+    this.meshes.push(floorMesh);
+    floorMesh.parent = this.rootNode;
+
+    // Add railings around edges
+    const railingHeight = 1.0; // 1m tall railings
+    const railingThickness = 0.05; // 5cm thick
+    
+    // North railing
+    const northRailing = BABYLON.MeshBuilder.CreateBox(
+      'warehouse_mezzanine_railing_north',
+      {
+        width: widthM - wallThickness * 2 - 1,
+        height: railingHeight,
+        depth: railingThickness
+      },
+      this.scene
+    );
+    northRailing.position = new BABYLON.Vector3(0, mezzanineHeightM + railingHeight / 2, (depthM - wallThickness * 2 - 1) / 2);
+    northRailing.material = columnMaterial;
+    northRailing.receiveShadows = true;
+    northRailing.isVisible = true;
+    northRailing.isPickable = false;
+    this.meshes.push(northRailing);
+    northRailing.parent = this.rootNode;
+
+    // South railing
+    const southRailing = BABYLON.MeshBuilder.CreateBox(
+      'warehouse_mezzanine_railing_south',
+      {
+        width: widthM - wallThickness * 2 - 1,
+        height: railingHeight,
+        depth: railingThickness
+      },
+      this.scene
+    );
+    southRailing.position = new BABYLON.Vector3(0, mezzanineHeightM + railingHeight / 2, -(depthM - wallThickness * 2 - 1) / 2);
+    southRailing.material = columnMaterial;
+    southRailing.receiveShadows = true;
+    southRailing.isVisible = true;
+    southRailing.isPickable = false;
+    this.meshes.push(southRailing);
+    southRailing.parent = this.rootNode;
+
+    // East railing
+    const eastRailing = BABYLON.MeshBuilder.CreateBox(
+      'warehouse_mezzanine_railing_east',
+      {
+        width: railingThickness,
+        height: railingHeight,
+        depth: depthM - wallThickness * 2 - 1
+      },
+      this.scene
+    );
+    eastRailing.position = new BABYLON.Vector3((widthM - wallThickness * 2 - 1) / 2, mezzanineHeightM + railingHeight / 2, 0);
+    eastRailing.material = columnMaterial;
+    eastRailing.receiveShadows = true;
+    eastRailing.isVisible = true;
+    eastRailing.isPickable = false;
+    this.meshes.push(eastRailing);
+    eastRailing.parent = this.rootNode;
+
+    // West railing
+    const westRailing = BABYLON.MeshBuilder.CreateBox(
+      'warehouse_mezzanine_railing_west',
+      {
+        width: railingThickness,
+        height: railingHeight,
+        depth: depthM - wallThickness * 2 - 1
+      },
+      this.scene
+    );
+    westRailing.position = new BABYLON.Vector3(-(widthM - wallThickness * 2 - 1) / 2, mezzanineHeightM + railingHeight / 2, 0);
+    westRailing.material = columnMaterial;
+    westRailing.receiveShadows = true;
+    westRailing.isVisible = true;
+    westRailing.isPickable = false;
+    this.meshes.push(westRailing);
+    westRailing.parent = this.rootNode;
+
+    // Add support columns from floor to mezzanine (industry standard)
+    // Spacing: 4m typical for mezzanine support columns
+    const supportColumnSpacing = 4.0; // 4 meters
+    const supportColumnDiameter = 0.15; // 15cm diameter steel columns
+    const mezzanineWidth = widthM - wallThickness * 2 - 1;
+    const mezzanineDepth = depthM - wallThickness * 2 - 1;
+
+    let supportColumnCount = 0;
+    for (let x = -mezzanineWidth / 2 + supportColumnSpacing; x < mezzanineWidth / 2; x += supportColumnSpacing) {
+      for (let z = -mezzanineDepth / 2 + supportColumnSpacing; z < mezzanineDepth / 2; z += supportColumnSpacing) {
+        const supportColumn = BABYLON.MeshBuilder.CreateCylinder(
+          `warehouse_mezzanine_support_${x}_${z}`,
+          {
+            diameter: supportColumnDiameter,
+            height: mezzanineHeightM,
+            tessellation: 16
+          },
+          this.scene
+        );
+        // Position: floor to mezzanine (y from 0 to mezzanineHeightM)
+        supportColumn.position = new BABYLON.Vector3(x, mezzanineHeightM / 2, z);
+        supportColumn.material = columnMaterial;
+        supportColumn.receiveShadows = true;
+        supportColumn.isVisible = true;
+        supportColumn.isPickable = false;
+        this.meshes.push(supportColumn);
+        supportColumn.parent = this.rootNode;
+        supportColumnCount++;
+      }
+    }
+
+    console.log(`[WarehouseModel] ✅ Created mezzanine floor at ${mezzanineHeightM.toFixed(2)}m height (${mezzanineType} type)`);
+    console.log(`[WarehouseModel] ✅ Added ${supportColumnCount} support columns from floor to mezzanine (industry standard)`);
+  }
+
+  /**
+   * Create mezzanine floor material (grid or solid)
+   */
+  private createMezzanineMaterial(type: MezzanineType): BABYLON.PBRMetallicRoughnessMaterial {
+    const material = new BABYLON.PBRMetallicRoughnessMaterial(`warehouse_mezzanine_mat_${type}`, this.scene);
+    
+    if (type === 'grid') {
+      // Steel grating - semi-transparent with grid pattern
+      material.baseColor = new BABYLON.Color3(0.35, 0.35, 0.37);
+      material.metallic = 0.7;
+      material.roughness = 0.4;
+      material.alpha = 0.7; // Semi-transparent for grid effect
+      material.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHABLEND;
+      
+      // Create grid texture
+      const gridTexture = this.createGridTexture(512, 512);
+      gridTexture.uScale = 10;
+      gridTexture.vScale = 10;
+      material.baseTexture = gridTexture;
+      material.baseTexture.hasAlpha = true;
+    } else {
+      // Solid floor
+      material.baseColor = new BABYLON.Color3(0.4, 0.4, 0.42);
+      material.metallic = 0.3;
+      material.roughness = 0.6;
+      const solidTexture = this.createEpoxyTexture(1024, 1024);
+      solidTexture.uScale = 10;
+      solidTexture.vScale = 10;
+      material.baseTexture = solidTexture;
+    }
+
+    material._environmentIntensity = 0.4;
+    this.materials.push(material);
+    return material;
+  }
+
+  /**
+   * Create grid texture for mezzanine
+   */
+  private createGridTexture(width: number, height: number): BABYLON.Texture {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d')!;
+
+    // Transparent background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+    ctx.fillRect(0, 0, width, height);
+
+    // Grid pattern
+    const gridSize = 20;
+    ctx.strokeStyle = 'rgba(100, 100, 100, 0.8)';
+    ctx.lineWidth = 2;
+    
+    for (let x = 0; x < width; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
+    }
+    
+    for (let y = 0; y < height; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+
+    const texture = new BABYLON.Texture(canvas.toDataURL(), this.scene, false, true);
+    texture.hasAlpha = true;
+    texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+    texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+    texture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
+    return texture;
   }
 
   /**

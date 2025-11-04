@@ -1,7 +1,7 @@
 // Warehouse Controls - Compact UI for adjusting warehouse model
 // Owner: Routing System Team
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import { 
   Minus, 
@@ -43,7 +43,15 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     // PROMPT #4: Skybox source default
     skyboxSource: 'sunny', // Blue sky with clouds
   });
-  const [isVisible, setIsVisible] = useState(true);
+  // Load persisted visibility state from localStorage
+  const [isVisible, setIsVisible] = useState(() => {
+    try {
+      const saved = localStorage.getItem('warehouse_visible');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
     // Wait for scene to be ready with retry
@@ -62,6 +70,51 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
 
     return initializeWarehouse(scene);
   }, []);
+
+  const toggleVisibility = useCallback(() => {
+    const newVisible = !isVisible;
+    setIsVisible(newVisible);
+    
+    // Persist visibility state
+    try {
+      localStorage.setItem('warehouse_visible', String(newVisible));
+    } catch (error) {
+      console.warn('[WarehouseControls] Failed to persist visibility state:', error);
+    }
+    
+    if (warehouse) {
+      const rootNode = warehouse.getRootNode();
+      rootNode.setEnabled(newVisible);
+      
+      // Also control skybox visibility when warehouse is off
+      const scene = SceneManager.getInstance().getScene();
+      if (scene && warehouse) {
+        const skybox = scene.getMeshByName('warehouse_skybox');
+        if (skybox) {
+          skybox.setEnabled(newVisible);
+        }
+      }
+    }
+  }, [isVisible, warehouse]);
+
+  // Keyboard shortcut for warehouse toggle (W key)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if typing in input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || (e.target as HTMLElement).isContentEditable) {
+        return;
+      }
+
+      // W key to toggle warehouse
+      if (e.key.toLowerCase() === 'w' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+        e.preventDefault();
+        toggleVisibility();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleVisibility]);
 
   const initializeWarehouse = (scene: BABYLON.Scene) => {
     // CRITICAL: Set background to transparent BEFORE creating warehouse
@@ -178,21 +231,14 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
   };
 
   const resetSize = () => {
-    setConfig({
+    setConfig(prev => ({
+      ...prev, // Preserve other settings (fog, skybox, sun, doors, mezzanine, etc.)
       width: 50000,
       depth: 50000,
       height: 20000,
-    });
+    }));
   };
 
-  const toggleVisibility = () => {
-    const newVisible = !isVisible;
-    setIsVisible(newVisible);
-    if (warehouse) {
-      const rootNode = warehouse.getRootNode();
-      rootNode.setEnabled(newVisible);
-    }
-  };
 
   const resetCameraToInterior = () => {
     const camera = CameraService.getInstance().getCamera();
