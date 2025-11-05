@@ -2,7 +2,7 @@
 // Owner: George
 // All tools visible horizontally organized by category
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Settings,
   CornerDownRight,
@@ -27,6 +27,9 @@ import {
   Rocket,
   Scan,
   TestTube,
+  Building2,
+  Eye,
+  Camera,
 } from 'lucide-react';
 import { loadOBJFile } from '../../loaders/obj/OBJLoader';
 import { SceneManager } from '../../scene/SceneManager';
@@ -34,6 +37,7 @@ import { toast } from '../components/ToastNotifications';
 import { loading } from '../components/LoadingIndicator';
 import { RoutingToolbar } from '../../routing/ui/RoutingToolbar';
 import { useUserLevel } from '../core/UserLevelContext';
+import { WarehousePanel } from '../../routing/ui/WarehousePanel';
 
 // Custom Quick Move Icon - 3 horizontal lines behind a cube
 const QuickMoveIcon = ({ size = 32 }: { size?: number }) => (
@@ -133,6 +137,9 @@ export interface RibbonToolbarProps {
   onRightViewClick?: () => void;
   onFrontViewClick?: () => void;
   onIsoViewClick?: () => void;
+  onWarehouseConfigClick?: () => void;
+  onWarehouseToggleClick?: () => void;
+  onWarehouseResetCameraClick?: () => void;
 }
 
 export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
@@ -156,8 +163,12 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onRightViewClick,
   onFrontViewClick,
   onIsoViewClick,
+  onWarehouseConfigClick,
+  onWarehouseToggleClick,
+  onWarehouseResetCameraClick,
 }) => {
   const { userLevel } = useUserLevel();
+  const [showWarehousePanel, setShowWarehousePanel] = useState(false);
   
   // Store connections
   const transformMode = useEditorStore((state) => state.transformMode);
@@ -285,6 +296,13 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           </button>
           <button className="ribbon-btn" onClick={onAssetLibraryClick} title="Asset Library">
             <Package size={32} />
+          </button>
+          <button 
+            className={`ribbon-btn ${showWarehousePanel ? 'active' : ''}`}
+            onClick={() => setShowWarehousePanel(!showWarehousePanel)}
+            title="Configure Warehouse"
+          >
+            <Building2 size={32} />
           </button>
         </div>
       </div>
@@ -481,6 +499,36 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
         </div>
       )}
 
+      {/* Warehouse Category - Professional+ only */}
+      {userLevel !== 'essential' && (
+        <div className="ribbon-category-excel">
+          <div className="ribbon-category-label">Warehouse</div>
+          <div className="ribbon-buttons-row">
+            <button 
+              className="ribbon-btn" 
+              onClick={onWarehouseConfigClick}
+              title="Configure Warehouse (W)"
+            >
+              <Building2 size={32} />
+            </button>
+            <button 
+              className="ribbon-btn" 
+              onClick={onWarehouseToggleClick}
+              title="Toggle Warehouse Visibility"
+            >
+              <Eye size={32} />
+            </button>
+            <button 
+              className="ribbon-btn" 
+              onClick={onWarehouseResetCameraClick}
+              title="Reset Warehouse Camera"
+            >
+              <Camera size={32} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Hidden file inputs */}
       <input
         ref={fileInputRef}
@@ -514,6 +562,15 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
         onChange={handleOBJFileChange}
         style={{ display: 'none' }}
       />
+
+      {/* Warehouse Panel */}
+      {showWarehousePanel && (
+        <WarehousePanel
+          isVisible={showWarehousePanel}
+          onClose={() => setShowWarehousePanel(false)}
+          zIndex={1003}
+        />
+      )}
     </div>
   );
 };

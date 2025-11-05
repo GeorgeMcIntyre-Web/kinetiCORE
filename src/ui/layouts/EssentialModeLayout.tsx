@@ -23,6 +23,7 @@ import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
 import { MoveObjectDialog } from '../components/MoveObjectDialog';
 import { ProjectManagerPanelV2 } from '../components/ProjectManager/ProjectManagerPanelV2';
 import { ProjectSaveDialog } from '../components/ProjectSaveDialog';
+import { WarehousePanel } from '../../routing/ui/WarehousePanel';
 import { useProjectManagerStore } from '../store/projectManagerStore';
 import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
@@ -79,6 +80,7 @@ export const EssentialModeLayout: React.FC = () => {
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [showWarehousePanel, setShowWarehousePanel] = useState(false);
 
   // Resizable sidebar state
   const [sidebarWidth, setSidebarWidth] = useState(256); // Default 256px (w-64)
@@ -566,6 +568,15 @@ export const EssentialModeLayout: React.FC = () => {
             onRightViewClick: handleRightView,
             onFrontViewClick: handleFrontView,
             onIsoViewClick: handleIsoView,
+            onWarehouseConfigClick: () => setShowWarehousePanel(!showWarehousePanel),
+            onWarehouseToggleClick: () => {
+              // Dispatch event to toggle warehouse visibility (handled by WarehousePanel's 'W' key handler)
+              window.dispatchEvent(new KeyboardEvent('keydown', { key: 'w', bubbles: true }));
+            },
+            onWarehouseResetCameraClick: () => {
+              // Dispatch custom event that WarehousePanel can listen to
+              window.dispatchEvent(new CustomEvent('warehouse-reset-camera'));
+            },
           }}
         />
 
@@ -691,6 +702,12 @@ export const EssentialModeLayout: React.FC = () => {
         isVisible={showSettingsPanel}
         onClose={() => setShowSettingsPanel(false)}
         zIndex={1009}
+      />
+
+      <WarehousePanel
+        isVisible={showWarehousePanel}
+        onClose={() => setShowWarehousePanel(false)}
+        zIndex={1010}
       />
 
       {/* Transform Display - Bottom-right corner */}

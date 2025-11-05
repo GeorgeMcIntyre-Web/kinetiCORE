@@ -25,6 +25,7 @@ import {
   EyeOff,
   LayoutTemplate,
   Grab,
+  Building2,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
@@ -44,6 +45,7 @@ import { ConnectionPointsRenderer } from '../../routing/ui/ConnectionPointsRende
 import { useRoutingStore } from '../store/routingStore';
 import { SceneManager } from '../../scene/SceneManager';
 import { KinematicExtractionPanel } from '../components/KinematicExtractionPanel';
+import { WarehousePanel } from '../../routing/ui/WarehousePanel';
 import { Scan } from 'lucide-react';
 import './ProfessionalModeLayout.css';
 
@@ -76,6 +78,7 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [activeMeasurement, setActiveMeasurement] = useState<MeasurementType>(null);
   const [showDebugLabels, setShowDebugLabels] = useState(false);
   const [showKinematicExtractionPanel, setShowKinematicExtractionPanel] = useState(false);
+  const [showWarehousePanel, setShowWarehousePanel] = useState(false);
   const debugLabelsRef = useRef<RouteDebugLabels | null>(null);
   const routeSelection = useRoutingStore((state) => state.selectedRoute);
   // Auto size the left scene tree based on content (inline to avoid nested hook issues)
@@ -588,6 +591,23 @@ export const ProfessionalModeLayout: React.FC = () => {
 
         <div className="toolbar-separator"></div>
 
+        {/* Warehouse Tools */}
+        <div className="tool-group">
+          <div className="group-label">Warehouse</div>
+          <div className="tool-buttons">
+            <button
+              className={`tool-btn ${showWarehousePanel ? 'active' : ''}`}
+              onClick={() => setShowWarehousePanel(!showWarehousePanel)}
+              title="Configure Warehouse"
+            >
+              <Building2 size={18} />
+              <span className="tool-btn-label">Configure</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
         {/* Kinematics Tools */}
         <div className="tool-group">
           <div className="group-label">Kinematics</div>
@@ -750,6 +770,13 @@ export const ProfessionalModeLayout: React.FC = () => {
       <MeasurementTools
         measurementType={activeMeasurement}
         onClose={handleCloseMeasurement}
+      />
+
+      {/* Warehouse Panel */}
+      <WarehousePanel
+        isVisible={showWarehousePanel}
+        onClose={() => setShowWarehousePanel(false)}
+        zIndex={1003}
       />
 
       {/* Route Selection Visuals - Cyan glow and connection handles */}
