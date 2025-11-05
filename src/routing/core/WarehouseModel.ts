@@ -381,30 +381,12 @@ export class WarehouseModel {
       this.createMezzanine(widthM, depthM, heightM, wallThickness, columnMaterial);
     }
 
-    // Create parking lot (20m asphalt around warehouse)
-    const parkingLotSize = 20; // 20 meters around warehouse
-    const parkingLotWidth = widthM + parkingLotSize * 2;
-    const parkingLotDepth = depthM + parkingLotSize * 2;
-    const parkingLotMesh = BABYLON.MeshBuilder.CreateGround(
-      'warehouse_parking_lot',
-      {
-        width: parkingLotWidth,
-        height: parkingLotDepth
-      },
-      this.scene
-    );
-    parkingLotMesh.position = new BABYLON.Vector3(0, 0, 0); // At ground level
-    parkingLotMesh.material = this.createParkingLotMaterial();
-    parkingLotMesh.receiveShadows = true;
-    parkingLotMesh.isVisible = true;
-    parkingLotMesh.isPickable = false;
-    this.meshes.push(parkingLotMesh);
-    parkingLotMesh.parent = this.rootNode;
-    console.log(`[WarehouseModel] ✅ Created parking lot: ${parkingLotWidth.toFixed(2)}m × ${parkingLotDepth.toFixed(2)}m (20m around warehouse)`);
+    // REMOVED: Parking lot - using skybox bottom face for ground instead
+    // Skybox bottom provides seamless sand ground that extends to horizon
 
-    // Create finite grass floor (large but not infinite so skybox shows at edges)
-    // Use a reasonable size that's large enough but allows skybox visibility
-    const grassSize = 500; // 500m - large enough but allows skybox to show at horizon
+    // Create finite grass floor (reduced size for better performance)
+    // Skybox bottom provides infinite ground beyond this
+    const grassSize = 200; // 200m - reduced from 500m for performance
     const grassMesh = BABYLON.MeshBuilder.CreateGround(
       'warehouse_grass',
       {
@@ -805,32 +787,7 @@ export class WarehouseModel {
     return texture;
   }
 
-  /**
-   * Create parking lot material (sand) - natural tan/beige color
-   */
-  private createParkingLotMaterial(): BABYLON.PBRMetallicRoughnessMaterial {
-    const material = new BABYLON.PBRMetallicRoughnessMaterial('warehouse_parking_lot_mat', this.scene);
-
-    // SAND COLOR: Natural tan/beige sand for parking lot surround
-    material.baseColor = new BABYLON.Color3(0.76, 0.70, 0.50); // Natural sand tan/beige
-    material.metallic = 0.0;
-    material.roughness = 0.95; // Very rough sand surface
-    material.emissiveColor = new BABYLON.Color3(0, 0, 0); // No emission
-
-    // Explicitly disable all textures
-    material.baseTexture = null;
-    material.metallicRoughnessTexture = null;
-    material.normalTexture = null;
-    material.emissiveTexture = null;
-
-    console.log('[WarehouseModel] ✅ Created parking lot material: natural sand tan/beige');
-
-    // CRITICAL: Ensure baseColor is always visible (not tinted away by texture)
-    // In PBR materials, baseColor tints the texture, so dark gray will keep it dark
-    material._environmentIntensity = 0.1;
-    this.materials.push(material);
-    return material;
-  }
+  // REMOVED: Parking lot material - no longer needed, using skybox bottom for ground
 
   /**
    * Create grass material (for infinite ground) - using local high-quality textures
@@ -1280,8 +1237,8 @@ export class WarehouseModel {
 
         // Sky color (top) - overcast industrial sky
         const skyColor = '#7a8a9e';
-        // Ground color (bottom) - darker
-        const groundColor = '#4a5258';
+        // Ground color (bottom) - SAND to match parking lot
+        const groundColor = '#c2b280'; // Natural sand tan/beige
 
         if (face === 'py') {
           // +Y face (top/sky) - overcast sky with subtle clouds
@@ -1367,9 +1324,9 @@ export class WarehouseModel {
    */
   private createSkybox(): void {
     try {
-      // CRITICAL FIX: Make skybox INFINITE like the grass (10km = effectively infinite)
-      // Use the same approach as grass - make it huge so it appears infinite
-      const skyboxSize = 10000; // 10km - same as grass, effectively infinite
+      // CRITICAL FIX: Make skybox MASSIVE to prevent corner visibility
+      // User reported seeing skybox corners - increase from 10km to 50km
+      const skyboxSize = 50000; // 50km - large enough that corners are never visible
 
       // Dispose existing skybox if present
       if (this.skybox) {
@@ -1634,7 +1591,7 @@ export class WarehouseModel {
       // Bright blue sky colors
       const skyColor = '#87CEEB'; // Sky blue
       const brightSkyColor = '#B0E0E6'; // Powder blue (lighter)
-      const groundColor = '#9FA8A3'; // Soft neutral gray-green (much easier on the eyes, replaces brown)
+      const groundColor = '#c2b280'; // Natural sand tan/beige
 
       // CRITICAL FIX: Ground must be on BOTTOM face (ny) at Y=0
       // According to gizmo: Y points UP, so -Y is DOWN (bottom)
@@ -1782,7 +1739,7 @@ export class WarehouseModel {
 
       // Overcast gray colors
       const skyColor = '#9aa8b8'; // Light gray
-      const groundColor = '#6a7378'; // Dark gray ground
+      const groundColor = '#c2b280'; // Natural sand tan/beige
 
       if (face === 'py') {
         // Top face - overcast sky
@@ -1862,7 +1819,7 @@ export class WarehouseModel {
       // Night sky colors
       const skyColor = '#0a0e1a'; // Very dark blue
       const horizonColor = '#1a1f2e'; // Slightly lighter
-      const groundColor = '#050608'; // Almost black
+      const groundColor = '#c2b280'; // Natural sand tan/beige
 
       if (face === 'py') {
         // Top face - night sky with stars
@@ -1941,7 +1898,7 @@ export class WarehouseModel {
       const skyColor = '#FF6B35'; // Warm orange
       const brightSkyColor = '#FFB347'; // Light orange/yellow
       const horizonColor = '#FF8C42'; // Deep orange
-      const groundColor = '#9FA8A3'; // Soft neutral gray-green (replaces brown, easier on eyes)
+      const groundColor = '#c2b280'; // Natural sand tan/beige
 
       if (face === 'py') {
         // Top face - sunset sky
