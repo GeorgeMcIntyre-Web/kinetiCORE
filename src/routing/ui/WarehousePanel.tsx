@@ -185,8 +185,9 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
 
       camera.minZ = 0.1;
       const maxDimension = Math.max(widthM, depthM, heightM);
-      // CRITICAL FIX: Ensure maxZ is large enough to see skybox (10km = 10000 units)
-      camera.maxZ = Math.max(maxDimension * 2000, 15000);
+      // CRITICAL FIX: Ensure maxZ is large enough to see skybox (50km = 50000 units)
+      // Skybox is 50km, so we need at least 75000 to see it clearly
+      camera.maxZ = Math.max(maxDimension * 2000, 75000);
 
       camera.target = new BABYLON.Vector3(0, heightM * 0.5, 0);
 
@@ -282,8 +283,9 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
 
       camera.minZ = 0.1;
       const maxDimension = Math.max(widthM, depthM, heightM);
-      // CRITICAL FIX: Ensure maxZ is large enough to see skybox (10km = 10000 units)
-      camera.maxZ = Math.max(maxDimension * 2000, 15000);
+      // CRITICAL FIX: Ensure maxZ is large enough to see skybox (50km = 50000 units)
+      // Skybox is 50km, so we need at least 75000 to see it clearly
+      camera.maxZ = Math.max(maxDimension * 2000, 75000);
 
       camera.target = new BABYLON.Vector3(0, heightM * 0.5, 0);
 

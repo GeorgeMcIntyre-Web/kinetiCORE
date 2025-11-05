@@ -124,16 +124,36 @@ export class WarehouseModel {
    * Hide the default ground plane and grid overlay created by SceneManager
    */
   private hideGroundPlane(): void {
+    // Hide ground by name
     const groundMesh = this.scene.getMeshByName('ground');
     if (groundMesh) {
       groundMesh.setEnabled(false);
+      groundMesh.isVisible = false;
       console.log('[WarehouseModel] ✅ Disabled ground plane');
     }
 
+    // Hide grid overlay
     const gridOverlay = this.scene.getMeshByName('gridOverlay');
     if (gridOverlay) {
       gridOverlay.setEnabled(false);
+      gridOverlay.isVisible = false;
       console.log('[WarehouseModel] ✅ Disabled grid overlay');
+    }
+
+    // Find and hide any other ground-like meshes (case insensitive search)
+    const allMeshes = this.scene.meshes;
+    for (const mesh of allMeshes) {
+      const meshName = mesh.name.toLowerCase();
+      // Hide any mesh with "ground", "floor", "plane", or "parking" in the name that's not part of warehouse
+      if (!meshName.includes('warehouse') &&
+          (meshName.includes('ground') ||
+           meshName.includes('floor') ||
+           meshName.includes('plane') ||
+           meshName.includes('parking'))) {
+        mesh.setEnabled(false);
+        mesh.isVisible = false;
+        console.log(`[WarehouseModel] ✅ Disabled extra ground mesh: "${mesh.name}"`);
+      }
     }
   }
 
@@ -1504,8 +1524,8 @@ export class WarehouseModel {
         console.log(`  - Target: (${camera.target.x.toFixed(1)}, ${camera.target.y.toFixed(1)}, ${camera.target.z.toFixed(1)})`);
       }
       
-      // CRITICAL: Hide default SceneManager ground plane to avoid grey area at bottom
-      // The warehouse creates its own ground (parking lot + grass), so hide the default one
+      // CRITICAL: Hide default SceneManager ground plane to avoid grey/red area at bottom
+      // The warehouse creates its own ground (grass + skybox bottom), so hide the default one
       // Use a render observer to ensure it stays hidden even if other code tries to show it
       try {
         const defaultGround = this.scene.meshes.find(m => m.name === 'ground' && !m.name.includes('warehouse'));
