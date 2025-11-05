@@ -187,6 +187,57 @@ export function makeStone(scene: Scene): BABYLON.PBRMaterial {
   return m;
 }
 
+/* ------------ 5) Patchy Cement (PBR, weathered concrete) -------------- */
+/** Weathered patchy cement with varied surface texture.
+ *  Expected texture files from Unity texture pack:
+ *  - patchy_cement1_AlbedoTransparency.png (or patchy_cement1_Albedo.png)
+ *  - patchy_cement1_Normal.png
+ *  - patchy_cement1_MetallicSmoothness.png (or separate Metallic/Roughness)
+ *  - patchy_cement1_AO.png (Ambient Occlusion)
+ *  - patchy_cement1_Height.png (optional, for displacement)
+ */
+export function makePatchyCement(scene: Scene, uvScale: number = 10): BABYLON.PBRMaterial {
+  const m = new BABYLON.PBRMaterial("patchy_cement", scene);
+  m.metallic = 0.0;  // Cement is non-metallic
+  m.roughness = 0.85; // Rough weathered surface
+  
+  // Try Unity naming convention first
+  const albedoPath = "/assets/patchy_cement/patchy_cement1_AlbedoTransparency.png";
+  const normalPath = "/assets/patchy_cement/patchy_cement1_Normal.png";
+  const aoPath = "/assets/patchy_cement/patchy_cement1_AO.png";
+  const metallicPath = "/assets/patchy_cement/patchy_cement1_MetallicSmoothness.png";
+  
+  // Albedo (base color)
+  m.albedoTexture = T(scene, albedoPath);
+  setUVScale(m.albedoTexture, uvScale);
+  
+  // Normal map
+  m.bumpTexture = T(scene, normalPath);
+  setUVScale(m.bumpTexture, uvScale);
+  
+  // Ambient occlusion
+  m.ambientTexture = T(scene, aoPath);
+  setUVScale(m.ambientTexture, uvScale);
+  
+  // Metallic/Smoothness (Unity packed format: R=metallic, A=smoothness, where smoothness = 1-roughness)
+  // Babylon.js uses roughness directly, so we'll extract roughness from smoothness
+  try {
+    const metallicTex = T(scene, metallicPath);
+    m.metallicTexture = metallicTex;
+    m.useRoughnessFromMetallicTextureAlpha = true; // Use alpha channel for roughness (smoothness inverted)
+    m.useMetallnessFromMetallicTextureBlue = true;  // Use blue channel for metallic (or set manually)
+    // Note: Unity MetallicSmoothness uses R for metallic, but Babylon.js expects B channel
+    // For now, we set metallic manually above (0.0) since cement is non-metallic
+    setUVScale(metallicTex, uvScale);
+  } catch (error) {
+    // Fallback if texture not found - use default values
+    console.warn("[patchy_cement] MetallicSmoothness texture not found, using defaults");
+  }
+  
+  (m as any)._kind = "patchyCement";
+  return m;
+}
+
 /* ------------------------- Quick usage examples ------------------------ */
 // Floor (sealed concrete):
 export function addSealedConcreteFloor(scene: Scene, size = 160): BABYLON.Mesh {
