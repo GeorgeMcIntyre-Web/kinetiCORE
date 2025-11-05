@@ -86,10 +86,7 @@ export interface LoadedRobot {
 /**
  * Load robot from OBJ file with kinematic metadata
  */
-export async function loadRobotOBJ(
-  objFile: File,
-  scene: BABYLON.Scene
-): Promise<LoadedRobot> {
+export async function loadRobotOBJ(objFile: File, scene: BABYLON.Scene): Promise<LoadedRobot> {
   console.log('[RobotOBJLoader] Loading robot:', objFile.name);
 
   // Load OBJ geometry
@@ -152,7 +149,9 @@ export async function loadRobotOBJWithKinematics(
 
   const kinematics: RobotKinematicData = await response.json();
 
-  console.log(`[RobotOBJLoader] Loaded ${objResult.meshes.length} meshes with ${kinematics.dof} DOF`);
+  console.log(
+    `[RobotOBJLoader] Loaded ${objResult.meshes.length} meshes with ${kinematics.dof} DOF`
+  );
 
   return buildRobotWithKinematics(objResult, kinematics, scene);
 }
@@ -165,11 +164,7 @@ async function tryLoadKinematicData(objFile: File): Promise<RobotKinematicData |
   const baseName = objFile.name.replace(/\.obj$/i, '');
 
   // Try different naming conventions
-  const possibleNames = [
-    `${baseName}.kinematics.json`,
-    `${baseName}.json`,
-    'kinematics.json'
-  ];
+  const possibleNames = [`${baseName}.kinematics.json`, `${baseName}.json`, 'kinematics.json'];
 
   // In browser, we can't directly access sibling files
   // User must provide both files or we return null
@@ -197,17 +192,18 @@ function buildRobotWithKinematics(
     robotType: kinematics.robotType,
     manufacturer: kinematics.manufacturer,
     model: kinematics.model,
-    dof: kinematics.dof
+    dof: kinematics.dof,
   };
 
   // Map link names to meshes
   const linkMeshMap = new Map<number, BABYLON.Mesh>();
 
-  kinematics.links.forEach(link => {
+  kinematics.links.forEach((link) => {
     // Find mesh by name (fuzzy match)
-    const mesh = result.meshes.find(m =>
-      m.name.toLowerCase().includes(link.meshName.toLowerCase()) ||
-      link.meshName.toLowerCase().includes(m.name.toLowerCase())
+    const mesh = result.meshes.find(
+      (m) =>
+        m.name.toLowerCase().includes(link.meshName.toLowerCase()) ||
+        link.meshName.toLowerCase().includes(m.name.toLowerCase())
     );
 
     if (mesh) {
@@ -218,7 +214,7 @@ function buildRobotWithKinematics(
       mesh.metadata = {
         linkIndex: link.index,
         linkName: link.name,
-        mass: link.mass
+        mass: link.mass,
       };
     } else {
       console.warn(`  ✗ Could not find mesh for link ${link.index} "${link.name}"`);
@@ -250,7 +246,7 @@ function buildRobotWithKinematics(
         jointLimits: joint.limits,
         jointVelocity: joint.velocity,
         dhParameters: joint.dhParameters,
-        currentAngle: 0 // Initial angle
+        currentAngle: 0, // Initial angle
       };
 
       jointMeshes.set(jointIndex, childMesh);
@@ -260,7 +256,7 @@ function buildRobotWithKinematics(
   });
 
   // Parent all unparented meshes to root
-  result.meshes.forEach(mesh => {
+  result.meshes.forEach((mesh) => {
     if (!mesh.parent && mesh !== rootMesh) {
       mesh.parent = rootMesh;
     }
@@ -272,7 +268,7 @@ function buildRobotWithKinematics(
     rootMesh,
     meshes: result.meshes,
     kinematics,
-    jointMeshes
+    jointMeshes,
   };
 }
 
@@ -291,20 +287,16 @@ function buildStaticRobot(result: ISceneLoaderAsyncResult): LoadedRobot {
       robotType: 'static',
       dof: 0,
       joints: [],
-      links: []
+      links: [],
     },
-    jointMeshes: new Map()
+    jointMeshes: new Map(),
   };
 }
 
 /**
  * Set joint angle (in degrees)
  */
-export function setJointAngle(
-  robot: LoadedRobot,
-  jointIndex: number,
-  angleDegrees: number
-): void {
+export function setJointAngle(robot: LoadedRobot, jointIndex: number, angleDegrees: number): void {
   const mesh = robot.jointMeshes.get(jointIndex);
   if (!mesh || !mesh.metadata) {
     console.warn(`[RobotOBJLoader] Joint ${jointIndex} not found`);
@@ -341,7 +333,7 @@ export function setJointAngle(
  * Move robot to named pose (e.g., "HOME", "PARK")
  */
 export function moveToPose(robot: LoadedRobot, poseName: string): void {
-  const pose = robot.kinematics.poses?.find(p => p.name === poseName);
+  const pose = robot.kinematics.poses?.find((p) => p.name === poseName);
 
   if (!pose) {
     console.warn(`[RobotOBJLoader] Pose "${poseName}" not found`);
@@ -395,20 +387,29 @@ export function isRobotOBJ(fileName: string): boolean {
   const lower = fileName.toLowerCase();
 
   // Check for robot manufacturer names
-  const manufacturers = ['kuka', 'fanuc', 'abb', 'kawasaki', 'ur', 'universal', 'yaskawa', 'motoman'];
-  const hasManufacturer = manufacturers.some(m => lower.includes(m));
+  const manufacturers = [
+    'kuka',
+    'fanuc',
+    'abb',
+    'kawasaki',
+    'ur',
+    'universal',
+    'yaskawa',
+    'motoman',
+  ];
+  const hasManufacturer = manufacturers.some((m) => lower.includes(m));
 
   // Check for robot model patterns
   const robotPatterns = [
-    /kr\d+/i,      // KUKA: kr5, kr270, etc.
-    /m\d+ia/i,     // FANUC: m10ia, m20ia, etc.
-    /r\d+ic/i,     // FANUC: r2000ic, etc.
-    /irb\d+/i,     // ABB: irb120, irb6700, etc.
-    /rs\d+/i,      // Kawasaki: rs003n, etc.
-    /ur\d+/i       // Universal Robots: ur5, ur10, etc.
+    /kr\d+/i, // KUKA: kr5, kr270, etc.
+    /m\d+ia/i, // FANUC: m10ia, m20ia, etc.
+    /r\d+ic/i, // FANUC: r2000ic, etc.
+    /irb\d+/i, // ABB: irb120, irb6700, etc.
+    /rs\d+/i, // Kawasaki: rs003n, etc.
+    /ur\d+/i, // Universal Robots: ur5, ur10, etc.
   ];
 
-  const hasRobotPattern = robotPatterns.some(pattern => pattern.test(lower));
+  const hasRobotPattern = robotPatterns.some((pattern) => pattern.test(lower));
 
   return hasManufacturer || hasRobotPattern;
 }

@@ -18,6 +18,7 @@ export class SceneManager {
   private gridOverlay: BABYLON.Mesh | null = null;
   private currentFloorType: FloorType = 'grid-only';
   private isInitialized: boolean = false;
+  private inspectorModulesPromise: Promise<void> | null = null;
 
   // Service dependencies
   private engineService: EngineService;
@@ -57,6 +58,11 @@ export class SceneManager {
 
     // Initialize engine service
     await this.engineService.initialize(canvas);
+
+    // Ensure Babylon namespace is accessible for tools like the inspector
+    if (typeof window !== 'undefined' && !(window as any).BABYLON) {
+      (window as any).BABYLON = BABYLON;
+    }
 
     // Create scene
     this.scene = new BABYLON.Scene(this.engineService.getEngine()!);
@@ -531,34 +537,81 @@ export class SceneManager {
   }
 
   /**
+   * Lazily load Babylon's debug layer and inspector bundles
+   * We cache the promise so multiple concurrent toggle requests don't race.
+   */
+  private async ensureInspectorModulesLoaded(): Promise<void> {
+    if (!this.inspectorModulesPromise) {
+      console.log('[SceneManager] Loading debug layer and inspector modules...');
+      this.inspectorModulesPromise = Promise.all([
+        import('@babylonjs/core/Debug/debugLayer.js'),
+        import('@babylonjs/inspector'),
+      ])
+        .then(() => {
+          console.log('[SceneManager] Inspector modules ready');
+        })
+        .catch((error) => {
+          this.inspectorModulesPromise = null;
+          throw error;
+        });
+    }
+    return this.inspectorModulesPromise;
+  }
+
+  /**
    * Toggle Babylon.js inspector (opens in pop-out window)
    */
   async toggleInspector(): Promise<void> {
+    console.log('[SceneManager] toggleInspector called');
     if (!this.scene) {
-      console.warn('Scene not initialized');
-      return;
+      console.warn('[SceneManager] Scene not initialized');
+      throw new Error('Scene not initialized');
     }
 
     // Dynamically import inspector only when needed (avoids build issues)
     try {
-      // @ts-ignore - Inspector is optional debug tool, may not be available in all builds
-      await import('@babylonjs/inspector');
+      await this.ensureInspectorModulesLoaded();
     } catch (error) {
-      console.warn('Inspector not available:', error);
-      return;
+      console.error('[SceneManager] Inspector not available:', error);
+      throw error;
     }
 
     if (this.scene.debugLayer.isVisible()) {
       this.scene.debugLayer.hide();
-    } else {
-      // Show the debug layer first
-      const debugLayer = await this.scene.debugLayer.show({
+      console.log('[SceneManager] Inspector hidden');
+      return;
+    }
+
+    console.log('[SceneManager] Showing debug layer...');
+    const debugLayer = await this.scene.debugLayer
+      .show({
         embedMode: false,
+        overlay: true,
+        handleResize: true,
+      })
+      .catch((err) => {
+        console.error('[SceneManager] Failed to show debug layer:', err);
+        throw err;
       });
 
-      // Then pop out both the Scene Explorer and Inspector panes into separate windows
-      debugLayer.popupSceneExplorer();
-      debugLayer.popupInspector();
+    console.log('[SceneManager] Debug layer visible:', this.scene.debugLayer.isVisible());
+
+    if (debugLayer && typeof debugLayer.popupSceneExplorer === 'function') {
+      try {
+        debugLayer.popupSceneExplorer();
+        console.log('[SceneManager] Scene explorer popped out');
+      } catch (err) {
+        console.warn('[SceneManager] Failed to detach scene explorer:', err);
+      }
+    }
+
+    if (debugLayer && typeof debugLayer.popupInspector === 'function') {
+      try {
+        debugLayer.popupInspector();
+        console.log('[SceneManager] Inspector popped out');
+      } catch (err) {
+        console.warn('[SceneManager] Failed to detach inspector:', err);
+      }
     }
   }
 
