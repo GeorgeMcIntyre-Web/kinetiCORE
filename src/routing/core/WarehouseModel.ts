@@ -806,53 +806,24 @@ export class WarehouseModel {
   }
 
   /**
-   * Create parking lot material (asphalt) - using local high-quality textures
+   * Create parking lot material (grass) - natural green color
    */
   private createParkingLotMaterial(): BABYLON.PBRMetallicRoughnessMaterial {
     const material = new BABYLON.PBRMetallicRoughnessMaterial('warehouse_parking_lot_mat', this.scene);
-    // Natural dark gray/brown asphalt color (weathered asphalt)
-    material.baseColor = new BABYLON.Color3(0.25, 0.23, 0.21); // Dark gray-brown asphalt
+
+    // GRASS COLOR: Natural green grass for parking lot surround
+    material.baseColor = new BABYLON.Color3(0.25, 0.45, 0.25); // Natural grass green
     material.metallic = 0.0;
-    material.roughness = 0.95; // Very rough asphalt (set before texture load)
-    material.emissiveColor = new BABYLON.Color3(0, 0, 0); // No red emission
+    material.roughness = 0.9; // Rough grass surface
+    material.emissiveColor = new BABYLON.Color3(0, 0, 0); // No emission
 
-    // Use local high-quality asphalt texture
-    try {
-      const baseTexture = new BABYLON.Texture(
-        '/assets/textures/asphalt/asphalt_02_diff_4k.jpg',
-        this.scene,
-        false, // noMipmap
-        false, // invertY
-        BABYLON.Texture.TRILINEAR_SAMPLINGMODE
-      );
-      
-      // Note: Texture loading errors will fall back to baseColor automatically
-      // If texture fails to load, material will use baseColor
-      baseTexture.uScale = 50; // Scale for parking lot size
-      baseTexture.vScale = 50;
-      baseTexture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
-      material.baseTexture = baseTexture;
+    // Explicitly disable all textures
+    material.baseTexture = null;
+    material.metallicRoughnessTexture = null;
+    material.normalTexture = null;
+    material.emissiveTexture = null;
 
-      // Use roughness map if available
-      try {
-        const roughTexture = new BABYLON.Texture(
-          '/assets/textures/asphalt/asphalt_02_rough_4k.jpg',
-          this.scene
-        );
-        roughTexture.uScale = 50;
-        roughTexture.vScale = 50;
-        roughTexture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
-        material.metallicRoughnessTexture = roughTexture;
-      } catch (e) {
-        console.warn('[WarehouseModel] ⚠️ Could not load asphalt roughness texture, using default roughness:', e);
-        // roughness already set above
-      }
-    } catch (e) {
-      console.warn('[WarehouseModel] ⚠️ Could not load local asphalt texture, using baseColor only:', e);
-      // Don't use fallback texture - just use baseColor to ensure dark gray appearance
-      material.baseTexture = null;
-      material.roughness = 0.95;
-    }
+    console.log('[WarehouseModel] ✅ Created parking lot material: natural grass green');
 
     // CRITICAL: Ensure baseColor is always visible (not tinted away by texture)
     // In PBR materials, baseColor tints the texture, so dark gray will keep it dark
@@ -2417,7 +2388,7 @@ export class WarehouseModel {
   }
 
   /**
-   * Create door frame and door panel (with 45° opening angle)
+   * Create door frame and door panel (open 45° from hinge)
    */
   private createDoorFrame(
     width: number,
@@ -2443,33 +2414,50 @@ export class WarehouseModel {
     frame.receiveShadows = true;
     frame.isVisible = true;
     frame.isPickable = false;
-    
+
     // Rotate if needed for east/west walls
     if (wall === 'east' || wall === 'west') {
       frame.rotation.y = Math.PI / 2;
     }
-    
-    // Create door panel (closed position, aligned with wall)
+
+    // Create door panel (open 45° from hinge point, not center)
     const doorPanelThickness = 0.05; // 5cm door panel
     const doorPanel = BABYLON.MeshBuilder.CreateBox(
       `warehouse_${name}_panel`,
       {
-        width: wall === 'north' || wall === 'south' ? width - 0.2 : doorPanelThickness, // Slightly smaller than frame
-        height: height - 0.2, // Slightly smaller than frame
+        width: wall === 'north' || wall === 'south' ? width - 0.2 : doorPanelThickness,
+        height: height - 0.2,
         depth: wall === 'north' || wall === 'south' ? doorPanelThickness : width - 0.2,
       },
       this.scene
     );
 
-    // Position door panel centered in frame (closed position)
-    doorPanel.position = position.clone();
+    // Calculate hinge position (left side of door opening when looking from outside)
+    // Door rotates 45° from hinge, so we need to position it at the hinge, rotate, then offset
+    const hingeOffset = width / 2; // Hinge is at left edge of door
 
-    // Rotate door panel to align with wall orientation (closed, not open)
-    if (wall === 'east' || wall === 'west') {
-      doorPanel.rotation.y = Math.PI / 2; // 90° for E/W walls
+    // Set pivot point to hinge (left edge)
+    if (wall === 'north' || wall === 'south') {
+      doorPanel.setPivotPoint(new BABYLON.Vector3(-hingeOffset, 0, 0));
+    } else {
+      doorPanel.setPivotPoint(new BABYLON.Vector3(0, 0, -hingeOffset));
     }
-    // North/South walls: no rotation needed (default orientation)
-    
+
+    // Position door at hinge location (offset from frame center to left edge)
+    if (wall === 'north') {
+      doorPanel.position = new BABYLON.Vector3(position.x - hingeOffset, position.y, position.z);
+      doorPanel.rotation.y = Math.PI / 4; // 45° open (counterclockwise from hinge)
+    } else if (wall === 'south') {
+      doorPanel.position = new BABYLON.Vector3(position.x - hingeOffset, position.y, position.z);
+      doorPanel.rotation.y = -Math.PI / 4; // 45° open (clockwise from hinge)
+    } else if (wall === 'east') {
+      doorPanel.position = new BABYLON.Vector3(position.x, position.y, position.z - hingeOffset);
+      doorPanel.rotation.y = Math.PI / 2 + Math.PI / 4; // 90° (wall alignment) + 45° open
+    } else { // west
+      doorPanel.position = new BABYLON.Vector3(position.x, position.y, position.z - hingeOffset);
+      doorPanel.rotation.y = Math.PI / 2 - Math.PI / 4; // 90° (wall alignment) - 45° open
+    }
+
     // Create door panel material (slightly different from frame)
     const doorPanelMaterial = this.createDoorPanelMaterial();
     doorPanel.material = doorPanelMaterial;
@@ -2477,10 +2465,10 @@ export class WarehouseModel {
     doorPanel.isVisible = true;
     doorPanel.isPickable = false;
     doorPanel.parent = frame; // Parent to frame for organization
-    
+
     // Add door panel to meshes array
     this.meshes.push(doorPanel);
-    
+
     return frame;
   }
 
