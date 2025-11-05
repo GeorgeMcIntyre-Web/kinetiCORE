@@ -238,6 +238,35 @@ export function makePatchyCement(scene: Scene, uvScale: number = 10): BABYLON.PB
   return m;
 }
 
+/* ------------ 6) Grainy Concrete (PBR, textured concrete) -------------- */
+/** Grainy concrete texture with fine surface detail.
+ *  Textures from: C:\Users\George\source\repos\kinetiCORE_DATA\Textures\grainy-concrete-unity
+ *  Note: metallic.psd needs to be converted to PNG for full PBR support */
+export function makeGrainyConcrete(scene: Scene, uvScale: number = 10): BABYLON.PBRMaterial {
+  const m = new BABYLON.PBRMaterial("grainy_concrete", scene);
+  m.metallic = 0.0;  // Concrete is non-metallic
+  m.roughness = 0.82; // Slightly rough concrete surface
+  
+  // Base color (albedo)
+  m.albedoTexture = T(scene, "/assets/grainy_concrete/grainy-concrete_albedo.png");
+  setUVScale(m.albedoTexture, uvScale);
+  
+  // Normal map (OpenGL format)
+  m.bumpTexture = T(scene, "/assets/grainy_concrete/grainy-concrete_normal-ogl.png");
+  setUVScale(m.bumpTexture, uvScale);
+  
+  // Ambient occlusion
+  m.ambientTexture = T(scene, "/assets/grainy_concrete/grainy-concrete_ao.png");
+  setUVScale(m.ambientTexture, uvScale);
+  
+  // Height map (available but not used by default - can be added for parallax/displacement)
+  // Note: Height map available at /assets/grainy_concrete/grainy-concrete_height.png
+  // TODO: Convert grainy-concrete_metallic.psd to PNG format for proper metallic/roughness mapping
+  
+  (m as any)._kind = "grainyConcrete";
+  return m;
+}
+
 /* ------------------------- Quick usage examples ------------------------ */
 // Floor (sealed concrete):
 export function addSealedConcreteFloor(scene: Scene, size = 160): BABYLON.Mesh {
@@ -256,7 +285,7 @@ export function addTriplanarFloor(scene: Scene, size = 160): BABYLON.Mesh {
 }
 
 /* --------------------- Robust Factory Pattern ------------------------ */
-export type FloorKind = "sealedConcrete" | "epoxy" | "stone" | "triplanarConcrete" | "patchyCement";
+export type FloorKind = "sealedConcrete" | "epoxy" | "stone" | "triplanarConcrete" | "patchyCement" | "grainyConcrete";
 
 export function makeFloor(scene: Scene, kind: FloorKind): BABYLON.Material {
   switch (kind) {
@@ -284,6 +313,11 @@ export function makeFloor(scene: Scene, kind: FloorKind): BABYLON.Material {
     }
     case "patchyCement": {
       const m = makePatchyCement(scene);
+      (m as any)._kind = kind;
+      return m;
+    }
+    case "grainyConcrete": {
+      const m = makeGrainyConcrete(scene);
       (m as any)._kind = kind;
       return m;
     }
