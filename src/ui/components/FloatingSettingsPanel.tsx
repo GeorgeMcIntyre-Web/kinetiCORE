@@ -18,11 +18,13 @@ import {
   Target,
   Sliders,
   Database,
+  Cloud,
 } from 'lucide-react';
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { useEditorStore } from '../store/editorStore';
 import { useUserLevel } from '../core/UserLevelContext';
 import { AdminPanel } from './Admin/AdminPanel';
+import { SkyboxSettingsPanel } from './SkyboxSettingsPanel';
 import './FloatingSettingsPanel.css';
 
 interface FloatingSettingsPanelProps {
@@ -485,6 +487,7 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
 
   const tabs: SettingsTab[] = [
     { id: 'general', label: 'General', icon: <User size={16} />, component: <GeneralSettings /> },
+    { id: 'skybox', label: 'Skybox', icon: <Cloud size={16} />, component: <SkyboxSettingsPanel /> },
     { id: 'transform', label: 'Transform', icon: <Move size={16} />, component: <TransformSettings /> },
     { id: 'snap', label: 'Snap', icon: <Crosshair size={16} />, component: <SnapSettings /> },
     { id: 'physics', label: 'Physics', icon: <Zap size={16} />, component: <PhysicsSettings /> },

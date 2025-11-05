@@ -3,6 +3,7 @@
 
 import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/core/Rendering/depthRendererSceneComponent';
+import { SkyboxManager } from '../../scene/services/SkyboxManager';
 
 /**
  * Skybox source options for different environment types
@@ -98,6 +99,18 @@ export class WarehouseModel {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.rootNode = new BABYLON.TransformNode('warehouse_root', scene);
     
+    // CRITICAL: Check if skybox is ready before building warehouse
+    // Skybox must be created and ready before warehouse is built
+    const skyboxManager = SkyboxManager.getInstance();
+    
+    if (!skyboxManager.isReady()) {
+      console.warn('[WarehouseModel] ⚠️ Skybox is not ready. Warehouse will not be created until skybox is ready.');
+      // Don't build warehouse if skybox isn't ready
+      return;
+    }
+    
+    console.log('[WarehouseModel] ✅ Skybox is ready, building warehouse...');
+    
     // CRITICAL: Set clearColor to transparent IMMEDIATELY before building
     // This ensures skybox will be visible even if other code tries to reset it
     this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
@@ -107,16 +120,14 @@ export class WarehouseModel {
     // Hide the default ground plane when warehouse is visible
     this.hideGroundPlane();
 
-    // Set up atmospheric effects (creates skybox)
+    // Set up atmospheric effects (sun, fog, etc. - but NOT skybox, that's handled by SkyboxManager)
     this.setupAtmosphere();
     
     // CRITICAL: Enforce transparent background AFTER skybox is created
     // Use setTimeout to ensure this runs after any other initialization
     setTimeout(() => {
-      if (this.config.enableSkybox && this.skybox) {
-        this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
-        console.log('[WarehouseModel] ✅ Final enforcement: clearColor set to transparent after initialization');
-      }
+      this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
+      console.log('[WarehouseModel] ✅ Final enforcement: clearColor set to transparent after initialization');
     }, 100);
   }
 
@@ -135,8 +146,8 @@ export class WarehouseModel {
     for (const mesh of allMeshes) {
       const meshName = mesh.name.toLowerCase();
 
-      // Skip warehouse meshes - we want to keep those
-      if (meshName.includes('warehouse')) {
+      // Skip warehouse meshes AND skybox meshes - we want to keep those
+      if (meshName.includes('warehouse') || meshName.includes('skybox')) {
         continue;
       }
 
@@ -411,28 +422,9 @@ export class WarehouseModel {
       this.createMezzanine(widthM, depthM, heightM, wallThickness, columnMaterial);
     }
 
-    // REMOVED: Parking lot - using skybox bottom face for ground instead
-    // Skybox bottom provides seamless sand ground that extends to horizon
-
-    // Create finite grass floor (reduced size for better performance)
-    // Skybox bottom provides infinite sand beyond this grass area
-    const grassSize = 200; // 200m - reduced from 500m for performance
-    const grassMesh = BABYLON.MeshBuilder.CreateGround(
-      'warehouse_grass',
-      {
-        width: grassSize,
-        height: grassSize
-      },
-      this.scene
-    );
-    grassMesh.position = new BABYLON.Vector3(0, 0.0, 0); // AT Y=0 (ground level, skybox sand below)
-    grassMesh.material = this.createGrassMaterial();
-    grassMesh.receiveShadows = true;
-    grassMesh.isVisible = true;
-    grassMesh.isPickable = false;
-    this.meshes.push(grassMesh);
-    grassMesh.parent = this.rootNode;
-    console.log(`[WarehouseModel] ✅ Created finite grass floor: ${grassSize.toFixed(0)}m × ${grassSize.toFixed(0)}m (allows skybox visibility at horizon)`);
+    // REMOVED: Grass floor - using SkyboxManager's grid floor instead
+    // The grid floor from SkyboxManager extends to horizon and provides the ground plane
+    console.log('[WarehouseModel] ✅ Using SkyboxManager grid floor (extends to horizon)');
 
     // Add interior lighting for better visibility
     this.addInteriorLighting();
@@ -819,23 +811,9 @@ export class WarehouseModel {
 
   // REMOVED: Parking lot material - no longer needed, using skybox bottom for ground
 
-  /**
-   * Create grass material (for ground around warehouse)
-   * Using StandardMaterial to avoid PBR lighting washing out the color
-   */
-  private createGrassMaterial(): BABYLON.StandardMaterial {
-    const material = new BABYLON.StandardMaterial('warehouse_grass_mat', this.scene);
-
-    // Dark natural grass green - using diffuseColor for consistent appearance
-    material.diffuseColor = new BABYLON.Color3(0.2, 0.4, 0.15); // Dark grass green
-    material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low specularity
-    material.ambientColor = new BABYLON.Color3(0.2, 0.4, 0.15); // Match diffuse
-    material.alpha = 1.0;
-
-    console.log('[WarehouseModel] ✅ Created grass material: DARK GREEN StandardMaterial (RGB: 0.2, 0.4, 0.15)');
-    this.materials.push(material);
-    return material;
-  }
+  // REMOVED: Grass material - no longer needed
+  // Ground is now handled by SkyboxManager's gray grid floor
+  // Skybox bottom is dark gray to match the grid floor
 
   /**
    * Create roof material (metal/industrial) - DARK realistic ceiling
@@ -1042,61 +1020,10 @@ export class WarehouseModel {
         console.warn('[WarehouseModel] ⚠️ Failed to create environment texture, continuing:', envError);
       }
 
-      // Create skybox if enabled
-      console.log(`[WarehouseModel] 🔍 enableSkybox = ${this.config.enableSkybox}`);
-      if (this.config.enableSkybox) {
-        try {
-          this.createSkybox();
-          // CRITICAL FIX: Set scene background to transparent so skybox is visible
-          // Babylon.js renders clearColor AFTER the skybox, so alpha=1 covers it completely
-          // This MUST be set to transparent for skybox to be visible
-          this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
-          
-          // CRITICAL: Also ensure SceneManager knows background is transparent
-          // This prevents other code from resetting clearColor to opaque
-          import('../../scene/SceneManager').then(({ SceneManager }) => {
-            SceneManager.getInstance().setBackgroundTransparent(true);
-            console.log('[WarehouseModel] ✅ SceneManager.setBackgroundTransparent called');
-          }).catch(() => {
-            console.warn('[WarehouseModel] ⚠️ Could not update SceneManager background state');
-          });
-          
-          // CRITICAL: Monitor and enforce transparent background in render loop
-          // This ensures clearColor stays transparent even if other code tries to reset it
-          let renderObserver: BABYLON.Observer<BABYLON.Scene> | null = null;
-          renderObserver = this.scene.onBeforeRenderObservable.add(() => {
-            if (this.config.enableSkybox && this.skybox && this.scene.clearColor.a !== 0) {
-              // Only log the first time to avoid spam
-              if (!(this as any)._clearColorWarningLogged) {
-                console.warn('[WarehouseModel] ⚠️ clearColor was reset to opaque, fixing...');
-                (this as any)._clearColorWarningLogged = true;
-              }
-              this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
-            }
-          });
-          
-          // Store observer for cleanup
-          (this as any)._renderObserver = renderObserver;
-          
-          console.log('[WarehouseModel] ✅ Set scene clearColor to transparent for skybox visibility');
-        } catch (skyboxError) {
-          console.warn('[WarehouseModel] ⚠️ Failed to create skybox, continuing:', skyboxError);
-        }
-      } else {
-        // Skybox is disabled - dispose existing skybox if present
-        console.warn('[WarehouseModel] ⚠️ Skybox is DISABLED in config - disposing existing skybox');
-        if (this.skybox) {
-          this.skybox.dispose();
-          this.skybox = null;
-        }
-        if (this.skyboxTexture) {
-          this.skyboxTexture.dispose();
-          this.skyboxTexture = null;
-        }
-        // Reset background to default when skybox is disabled
-        this.scene.clearColor = new BABYLON.Color4(0.12, 0.12, 0.14, 1);
-        console.log('[WarehouseModel] ✅ Skybox disabled and disposed');
-      }
+      // SKYBOX REMOVED: Skybox is now managed by SkyboxManager
+      // The skybox is created independently and must be ready before warehouse is built
+      // This prevents overwrite bugs and ensures proper initialization order
+      console.log('[WarehouseModel] ✅ Skybox is managed by SkyboxManager (created separately)');
 
       // Set up atmospheric fog if enabled
       if (this.config.enableFog) {
@@ -1299,643 +1226,10 @@ export class WarehouseModel {
     }
   }
 
-  /**
-   * Create skybox with selected source
-   * PROMPT #4: Skybox source selection
-   * FIXED: Using BackgroundMaterial for proper skybox rendering
-   */
-  private createSkybox(): void {
-    try {
-      // CRITICAL FIX: Make skybox MASSIVE to prevent corner visibility
-      // User reported seeing skybox corners - increase from 10km to 50km
-      const skyboxSize = 50000; // 50km - large enough that corners are never visible
+  // REMOVED: createSkybox() method (~215 lines)
+  // Skybox creation is now handled by SkyboxManager
+  // All createXXXSkybox() methods (industrial, sunny, overcast, night, sunset) are also obsolete
 
-      // Dispose existing skybox if present
-      if (this.skybox) {
-        this.skybox.dispose();
-        this.skybox = null;
-      }
-      if (this.skyboxTexture) {
-        this.skyboxTexture.dispose();
-        this.skyboxTexture = null;
-      }
-
-      // CRITICAL FIX: Use BOX with BACKSIDE orientation (per Babylon.js official docs)
-      // Official docs: https://doc.babylonjs.com/features/featuresDeepDive/environment/skybox
-      // Using sideOrientation: BACKSIDE prevents need to alter backFaceCulling
-      this.skybox = BABYLON.MeshBuilder.CreateBox(
-        'warehouse_skybox',
-        {
-          size: skyboxSize,
-          sideOrientation: BABYLON.Mesh.BACKSIDE // CRITICAL: See faces from inside (per official docs)
-        },
-        this.scene
-      );
-      
-      // CRITICAL FIX: Rotate skybox 90° around Y-axis to fix coordinate mapping
-      // Ground (ny) appears on LEFT instead of BOTTOM, indicating coordinate system rotation
-      // Rotating the mesh should align ny (bottom) with the actual bottom (Y=0)
-      this.skybox.rotation.y = Math.PI / 2; // 90° rotation around Y-axis
-
-      // Generate skybox texture based on selected source
-      const skyboxSource = this.config.skyboxSource || 'industrial';
-      const skyboxEnvTexture = this.createSkyboxTexture(skyboxSource);
-
-      // CRITICAL FIX: Use BackgroundMaterial when bloom is enabled to avoid WebGPU cube texture sampling errors
-      // BackgroundMaterial uses reflectionTexture directly for display and may avoid the highlights pass issue
-      // When bloom is disabled, use StandardMaterial with diffuseTexture for better visual quality
-      let skyboxMaterial: BABYLON.Material;
-      
-      if (this.config.enableBloom && skyboxEnvTexture) {
-        // Use BackgroundMaterial for bloom-enabled scenarios (avoids WebGPU cube texture sampling issues)
-        skyboxMaterial = new BABYLON.BackgroundMaterial('warehouse_skybox_mat', this.scene);
-        const bgMaterial = skyboxMaterial as BABYLON.BackgroundMaterial;
-        
-        // BackgroundMaterial uses reflectionTexture for the visible skybox
-        bgMaterial.reflectionTexture = skyboxEnvTexture;
-        bgMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-        bgMaterial.reflectionBlur = 0; // No blur for sharp skybox
-        bgMaterial.disableDepthWrite = true; // Don't write to depth buffer
-        
-        this.skyboxTexture = skyboxEnvTexture;
-        this.scene.environmentTexture = skyboxEnvTexture;
-        
-        console.log('[WarehouseModel] ⚠️ Bloom enabled: Using BackgroundMaterial to avoid WebGPU cube texture errors');
-      } else {
-        // Use StandardMaterial when bloom is disabled (better visual quality)
-        const stdMaterial = new BABYLON.StandardMaterial('warehouse_skybox_mat', this.scene);
-        skyboxMaterial = stdMaterial;
-        
-        // CRITICAL: Configure StandardMaterial for proper skybox rendering
-        stdMaterial.backFaceCulling = false; // Render both sides
-        stdMaterial.disableLighting = true; // Skybox doesn't need lighting
-        stdMaterial.disableDepthWrite = true; // Don't write to depth buffer (skybox is always "behind")
-        stdMaterial.sideOrientation = BABYLON.Mesh.BACKSIDE; // Render inside faces
-        
-        // CRITICAL: Clear emissive texture to prevent WebGPU issues
-        stdMaterial.emissiveTexture = null;
-        stdMaterial.emissiveColor = new BABYLON.Color3(0, 0, 0); // No emissive contribution
-
-        if (skyboxEnvTexture) {
-          this.skyboxTexture = skyboxEnvTexture;
-          
-          // Use diffuseTexture for visible skybox (provides realistic texture)
-          stdMaterial.diffuseTexture = skyboxEnvTexture;
-          stdMaterial.diffuseTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-          
-          // Also set as reflectionTexture for environment reflections on other objects
-          stdMaterial.reflectionTexture = skyboxEnvTexture;
-          stdMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-          
-          // Also update scene environment texture for PBR reflections
-          this.scene.environmentTexture = skyboxEnvTexture;
-        } else if (this.scene.environmentTexture) {
-          // Fallback to existing environment texture
-          stdMaterial.diffuseTexture = this.scene.environmentTexture;
-          if (stdMaterial.diffuseTexture) {
-            stdMaterial.diffuseTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-          }
-          stdMaterial.reflectionTexture = this.scene.environmentTexture;
-          if (stdMaterial.reflectionTexture) {
-            stdMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-          }
-        }
-      }
-
-      // Apply material to skybox
-      this.skybox.material = skyboxMaterial;
-
-      // CRITICAL: Set infiniteDistance so skybox follows camera (per official docs)
-      this.skybox.infiniteDistance = true;
-
-      // CRITICAL: Set renderingGroupId to 0 so skybox renders behind everything (per official docs)
-      this.skybox.renderingGroupId = 0;
-
-      // CRITICAL FIX: Disable fog on skybox so it's always visible (per Babylon.js docs)
-      // Fog obscures the skybox if applyFog is true
-      this.skybox.applyFog = false;
-
-      this.skybox.isPickable = false;
-      this.skybox.setEnabled(true);
-      this.skybox.isVisible = true;
-
-      // Position skybox at origin so it surrounds everything
-      this.skybox.position = new BABYLON.Vector3(0, 0, 0);
-
-      // CRITICAL FIX: Set scene background to transparent so skybox is visible
-      // Babylon.js renders clearColor AFTER rendering groups, so alpha=1 covers the skybox
-      // This MUST be set to transparent for skybox to be visible
-      // Note: This is also set in setupAtmosphere, but we ensure it here too for safety
-      if (this.scene.clearColor.a !== 0) {
-        this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
-        console.log('[WarehouseModel] ✅ Enforced scene clearColor to transparent in createSkybox');
-      }
-
-      // CRITICAL: Force skybox to render by ensuring it's in the correct rendering order
-      // Make sure skybox renders before everything else
-      this.skybox.doNotSerialize = true; // Don't serialize skybox
-
-      // DEBUGGING: Log everything about the skybox
-      const materialType = skyboxMaterial instanceof BABYLON.BackgroundMaterial ? 'BackgroundMaterial' : 'StandardMaterial';
-      const textureInfo = skyboxMaterial instanceof BABYLON.BackgroundMaterial 
-        ? 'reflectionTexture (BackgroundMaterial)' 
-        : 'diffuseTexture + reflectionTexture (StandardMaterial)';
-      console.log(`[WarehouseModel] ✅ Created skybox with ${materialType} + ${textureInfo}, source: ${skyboxSource}, size: ${skyboxSize}m`);
-      console.log(`[WarehouseModel] 🔍 Skybox DEBUG:`);
-      console.log(`  - Material Type: ${materialType}`);
-      console.log(`  - Enabled: ${this.skybox.isEnabled()}`);
-      console.log(`  - Visible: ${this.skybox.isVisible}`);
-      console.log(`  - Position: (${this.skybox.position.x}, ${this.skybox.position.y}, ${this.skybox.position.z})`);
-      console.log(`  - RenderingGroupId: ${this.skybox.renderingGroupId}`);
-      console.log(`  - LayerMask: 0x${this.skybox.layerMask.toString(16)} (excluded from highlights when bloom enabled)`);
-      console.log(`  - InfiniteDistance: ${this.skybox.infiniteDistance}`);
-      console.log(`  - Material: ${this.skybox.material ? 'YES' : 'NO'}`);
-      if (skyboxMaterial instanceof BABYLON.BackgroundMaterial) {
-        console.log(`  - ReflectionTexture: ${skyboxMaterial.reflectionTexture ? 'YES' : 'NO'} (BackgroundMaterial uses reflectionTexture for display)`);
-      } else {
-        const stdMaterial = skyboxMaterial as BABYLON.StandardMaterial;
-        console.log(`  - DiffuseTexture: ${stdMaterial.diffuseTexture ? 'YES' : 'NO'}`);
-        console.log(`  - ReflectionTexture: ${stdMaterial.reflectionTexture ? 'YES' : 'NO'}`);
-        console.log(`  - EmissiveTexture: ${stdMaterial.emissiveTexture ? 'YES' : 'NO'} (cleared to prevent WebGPU errors)`);
-      }
-      console.log(`  - Scene clearColor: (${this.scene.clearColor.r}, ${this.scene.clearColor.g}, ${this.scene.clearColor.b}, ${this.scene.clearColor.a})`);
-      console.log(`  - Scene clearColor alpha: ${this.scene.clearColor.a} (MUST be 0 for skybox visibility!)`);
-
-      // CRITICAL: Ensure camera maxZ is large enough to see the skybox
-      // Also ensure minZ is small enough to avoid clipping issues
-      const camera = this.scene.activeCamera;
-      if (camera instanceof BABYLON.ArcRotateCamera) {
-        // Skybox is 10km, so camera needs to see at least that far
-        const requiredMaxZ = skyboxSize * 1.5; // 1.5x skybox size for safety
-        const previousMaxZ = camera.maxZ;
-        if (camera.maxZ < requiredMaxZ) {
-          camera.maxZ = requiredMaxZ;
-          console.log(`[WarehouseModel] ⚠️ Adjusted camera maxZ from ${previousMaxZ.toFixed(1)} to ${requiredMaxZ.toFixed(1)} to see skybox`);
-        }
-        
-        // CRITICAL: Ensure minZ is small enough to avoid clipping the ground or showing grey area
-        if (camera.minZ > 0.001) {
-          camera.minZ = 0.001; // Very close near plane to avoid clipping issues
-          console.log(`[WarehouseModel] ⚠️ Adjusted camera minZ to ${camera.minZ} to avoid clipping issues`);
-        }
-        
-        console.log(`[WarehouseModel] 📷 Camera DEBUG:`);
-        console.log(`  - minZ: ${camera.minZ}`);
-        console.log(`  - maxZ: ${camera.maxZ.toFixed(1)} (can see skybox: ${camera.maxZ >= requiredMaxZ ? 'YES' : 'NO'})`);
-        console.log(`  - Position: (${camera.position.x.toFixed(1)}, ${camera.position.y.toFixed(1)}, ${camera.position.z.toFixed(1)})`);
-        console.log(`  - Target: (${camera.target.x.toFixed(1)}, ${camera.target.y.toFixed(1)}, ${camera.target.z.toFixed(1)})`);
-      }
-      
-      // CRITICAL: Hide default SceneManager ground plane to avoid grey/red area at bottom
-      // The warehouse creates its own ground (grass + skybox bottom), so hide the default one
-      // Use a render observer to ensure it stays hidden even if other code tries to show it
-      try {
-        const defaultGround = this.scene.meshes.find(m => m.name === 'ground' && !m.name.includes('warehouse'));
-        if (defaultGround) {
-          defaultGround.setEnabled(false);
-          defaultGround.isVisible = false;
-          defaultGround.visibility = 0; // Force invisible
-          
-          // Store reference and monitor to keep it hidden
-          (this as any)._defaultGround = defaultGround;
-          
-          // Add observer to keep it hidden
-          const groundObserver = this.scene.onBeforeRenderObservable.add(() => {
-            if (defaultGround && (defaultGround.isVisible || defaultGround.isEnabled())) {
-              defaultGround.setEnabled(false);
-              defaultGround.isVisible = false;
-              defaultGround.visibility = 0;
-            }
-          });
-          (this as any)._groundObserver = groundObserver;
-          
-          console.log('[WarehouseModel] ✅ Hidden default SceneManager ground plane to prevent grey area');
-        }
-      } catch (error) {
-        console.warn('[WarehouseModel] ⚠️ Could not hide default ground plane:', error);
-      }
-
-      // Don't add to meshes array since we manage disposal separately
-    } catch (error) {
-      console.warn('[WarehouseModel] ⚠️ Failed to create skybox:', error);
-    }
-  }
-
-  /**
-   * Create skybox texture based on selected source
-   * PROMPT #4: Skybox source router
-   */
-  private createSkyboxTexture(source: SkyboxSource): BABYLON.CubeTexture | null {
-    try {
-      switch (source) {
-        case 'industrial':
-          return this.createIndustrialSkybox();
-        case 'sunny':
-          return this.createSunnySkybox();
-        case 'overcast':
-          return this.createOvercastSkybox();
-        case 'night':
-          return this.createNightSkybox();
-        case 'sunset':
-          return this.createSunsetSkybox();
-        default:
-          return this.createIndustrialSkybox();
-      }
-    } catch (error) {
-      console.warn(`[WarehouseModel] ⚠️ Failed to create skybox texture for source "${source}":`, error);
-      return null;
-    }
-  }
-
-  /**
-   * Create industrial skybox (default: overcast with buildings)
-   * PROMPT #4: Industrial skybox generation
-   */
-  private createIndustrialSkybox(): BABYLON.CubeTexture {
-    return this.createEnvironmentTexture() || this.createOvercastSkybox();
-  }
-
-  /**
-   * Create sunny skybox with bright blue sky
-   * PROMPT #4: Sunny skybox generation
-   */
-  private createSunnySkybox(): BABYLON.CubeTexture {
-    const size = 512;
-    const faces = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
-    const canvases: Record<string, HTMLCanvasElement> = {};
-
-    faces.forEach(face => {
-      const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext('2d')!;
-
-      // Bright blue sky colors
-      const skyColor = '#87CEEB'; // Sky blue
-      const brightSkyColor = '#B0E0E6'; // Powder blue (lighter)
-      const groundColor = '#c2b280'; // Natural sand tan/beige
-
-      // CRITICAL FIX: Ground must be on BOTTOM face (ny) at Y=0
-      // According to gizmo: Y points UP, so -Y is DOWN (bottom)
-      // Standard Babylon.js cube texture order: [px, nx, py, ny, pz, nz]
-      // - py = top (+Y) = sky
-      // - ny = bottom (-Y) = ground at Y=0
-      // - px = right (+X)
-      // - nx = left (-X)
-      // 
-      // If ground appears on LEFT instead of BOTTOM, the cube texture coordinate system
-      // may be rotated. We need to ensure ground content is on ny (bottom) face.
-      if (face === 'py') {
-        // Top face (+Y) - bright sunny sky
-        const gradient = ctx.createLinearGradient(0, 0, 0, size);
-        gradient.addColorStop(0, brightSkyColor); // Top of sky (zenith)
-        gradient.addColorStop(1, skyColor); // Bottom of sky (toward horizon)
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, size, size);
-
-        // Add realistic sun (smaller, less intense) at upper portion - SCALE FIX: Much smaller sun
-        const sunX = size * 0.65;
-        const sunY = size * 0.25; // Upper portion for sky
-        const sunRadius = 12; // SCALE FIX: Reduced from 25 to 12 for proper scale (sun appears smaller at distance)
-        const sunGlowRadius = sunRadius * 2.0; // SCALE FIX: Reduced glow from 2.5x to 2.0x
-        
-        // Create sun with softer, more realistic glow
-        const sunGradient = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunGlowRadius);
-        sunGradient.addColorStop(0, 'rgba(255, 255, 220, 0.95)'); // Warm white center
-        sunGradient.addColorStop(0.3, 'rgba(255, 255, 200, 0.4)'); // Yellow glow
-        sunGradient.addColorStop(0.6, 'rgba(255, 255, 180, 0.15)'); // Soft yellow
-        sunGradient.addColorStop(1, 'rgba(255, 255, 200, 0)'); // Fade to transparent
-        ctx.fillStyle = sunGradient;
-        ctx.fillRect(sunX - sunGlowRadius, sunY - sunGlowRadius, sunGlowRadius * 2, sunGlowRadius * 2);
-        
-        // Add small bright core for realistic sun
-        const coreGradient = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunRadius * 0.6);
-        coreGradient.addColorStop(0, 'rgba(255, 255, 240, 1.0)'); // Bright center
-        coreGradient.addColorStop(1, 'rgba(255, 255, 220, 0.8)'); // Warm white
-        ctx.fillStyle = coreGradient;
-        ctx.beginPath();
-        ctx.arc(sunX, sunY, sunRadius * 0.6, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Add fluffy white clouds in upper portion - SCALE FIX: Much smaller clouds for realistic distance
-        // Reduced from 30 clouds to 15, and radius from 20-50px to 8-15px for proper scale
-        for (let i = 0; i < 15; i++) {
-          const x = Math.random() * size;
-          const y = Math.random() * size * 0.6; // Upper portion for clouds
-          const radius = Math.random() * 7 + 8; // SCALE FIX: 8-15px instead of 20-50px (much smaller)
-          const cloudGradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-          cloudGradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)'); // Slightly more transparent
-          cloudGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.3)');
-          cloudGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-          ctx.fillStyle = cloudGradient;
-          ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-        }
-      } else if (face === 'ny') {
-        // CRITICAL FIX: Bottom face (-Y) = ground at Y=0
-        // This is where the brown ground should be according to the coordinate system
-        // The gizmo shows Y points UP, so -Y is DOWN (bottom)
-        ctx.fillStyle = groundColor;
-        ctx.fillRect(0, 0, size, size);
-
-        // Add ground texture - COLOR FIX: Changed from brown (139,115,85) to soft gray-green (159,168,163)
-        const imageData = ctx.getImageData(0, 0, size, size);
-        const data = imageData.data;
-        for (let i = 0; i < data.length; i += 4) {
-          const noise = (Math.random() - 0.5) * 12;
-          // Soft neutral gray-green (RGB: 159, 168, 163) - much easier on the eyes than brown
-          data[i] = Math.max(140, Math.min(180, 159 + noise));     // R
-          data[i + 1] = Math.max(150, Math.min(180, 168 + noise));  // G
-          data[i + 2] = Math.max(145, Math.min(175, 163 + noise));  // B
-        }
-        ctx.putImageData(imageData, 0, 0);
-      } else {
-        // Side faces (px, nx, pz, nz) - ALL SKY (no ground gradient)
-        // User requirement: All sides must be sky, only bottom (ny) is ground
-        const gradient = ctx.createLinearGradient(0, 0, 0, size);
-        gradient.addColorStop(0, brightSkyColor); // Top (sky zenith)
-        gradient.addColorStop(0.5, skyColor); // Middle (sky)
-        gradient.addColorStop(1, skyColor); // Bottom (still sky, no ground)
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, size, size);
-        
-        // Add clouds to side faces for realism - SCALE FIX: Much smaller clouds for realistic distance
-        // Reduced from 20 clouds to 10, and radius from 20-50px to 8-15px for proper scale
-        for (let i = 0; i < 10; i++) {
-          const x = Math.random() * size;
-          const y = Math.random() * size * 0.8; // Upper to middle portion
-          const radius = Math.random() * 7 + 8; // SCALE FIX: 8-15px instead of 20-50px (much smaller)
-          const cloudGradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-          cloudGradient.addColorStop(0, 'rgba(255, 255, 255, 0.5)'); // More transparent for distance
-          cloudGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.25)');
-          cloudGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-          ctx.fillStyle = cloudGradient;
-          ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-        }
-      }
-
-      canvases[face] = canvas;
-    });
-
-    // CRITICAL FIX: Ground (ny canvas) appears on LEFT (nx visual position) instead of BOTTOM (ny visual position)
-    // This means the cube texture coordinate system is rotated
-    //
-    // Standard Babylon.js order: [px, nx, py, ny, pz, nz] = [right, left, top, bottom, forward, back]
-    // If ny (bottom) appears where nx (left) should be, the coordinate system is rotated 90° around Y
-    //
-    // To fix: rotate the face order so ny content appears on bottom
-    // If ny appears as nx, then: ny→nx, so we put ny canvas in nx array position
-    // But we want ny to appear as ny, so we need the opposite rotation
-    //
-    // Try rotating 90° counter-clockwise around Y: [pz, nz, py, ny, nx, px]
-    // This rotates X↔Z: px→pz, nx→nz, pz→nx, nz→px, keeping py and ny the same
-    // But this might not be right either
-    //
-    // Actually, if ny (bottom) appears on LEFT (nx), maybe we need: [pz, ny, py, nz, nx, px]
-    // This puts ny in the nx position (index 1) so it appears on left... wait, that's wrong
-    //
-    // Let me think differently: if we want ny (ground) to appear on BOTTOM, and currently it appears on LEFT,
-    // we need to rotate the order so ny canvas is mapped to the bottom visual position
-    // The bottom visual position is index 3 in standard order [px, nx, py, ny, pz, nz]
-    // So we need ny canvas at index 3, which it already is!
-    //
-    // This means the issue is NOT the face order, but maybe the skybox mesh orientation or BackgroundMaterial interpretation
-    // For now, use standard order and ensure ground content is on ny canvas (which it is)
-    const urls = faces.map(face => canvases[face].toDataURL());
-    return BABYLON.CubeTexture.CreateFromImages(urls, this.scene, false);
-  }
-
-  /**
-   * Create overcast skybox (cloudy gray sky)
-   * PROMPT #4: Overcast skybox generation
-   */
-  private createOvercastSkybox(): BABYLON.CubeTexture {
-    const size = 512;
-    const faces = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
-    const canvases: Record<string, HTMLCanvasElement> = {};
-
-    faces.forEach(face => {
-      const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext('2d')!;
-
-      // Overcast gray colors
-      const skyColor = '#9aa8b8'; // Light gray
-      const groundColor = '#c2b280'; // Natural sand tan/beige
-
-      if (face === 'py') {
-        // Top face - overcast sky
-        // FIXED: Correct gradient direction for default orientation
-        const gradient = ctx.createLinearGradient(0, 0, 0, size);
-        gradient.addColorStop(0, '#b0bcc8'); // Top of sky (zenith)
-        gradient.addColorStop(1, skyColor); // Bottom of sky (toward horizon)
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, size, size);
-
-        // Add cloud texture - SCALE FIX: Much smaller clouds for realistic distance
-        // Reduced from 80 clouds to 20, and radius from 30-80px to 8-15px for proper scale
-        for (let i = 0; i < 20; i++) {
-          const x = Math.random() * size;
-          const y = Math.random() * size;
-          const radius = Math.random() * 7 + 8; // SCALE FIX: 8-15px instead of 30-80px (much smaller)
-          const cloudGradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-          cloudGradient.addColorStop(0, 'rgba(200, 200, 200, 0.25)'); // More transparent
-          cloudGradient.addColorStop(0.5, 'rgba(200, 200, 200, 0.15)');
-          cloudGradient.addColorStop(1, 'rgba(200, 200, 200, 0)');
-          ctx.fillStyle = cloudGradient;
-          ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-        }
-      } else if (face === 'ny') {
-        // Bottom face - ground
-        ctx.fillStyle = groundColor;
-        ctx.fillRect(0, 0, size, size);
-      } else {
-        // Side faces (px, nx, pz, nz) - ALL SKY (no ground gradient)
-        // User requirement: All sides must be sky, only bottom (ny) is ground
-        const gradient = ctx.createLinearGradient(0, 0, 0, size);
-        gradient.addColorStop(0, '#b0bcc8'); // Top (sky zenith)
-        gradient.addColorStop(0.5, skyColor); // Middle (sky)
-        gradient.addColorStop(1, skyColor); // Bottom (still sky, no ground)
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, size, size);
-        
-        // Add cloud texture - SCALE FIX: Much smaller clouds for realistic distance
-        // Reduced from 40 clouds to 10, and radius from 30-80px to 8-15px for proper scale
-        for (let i = 0; i < 10; i++) {
-          const x = Math.random() * size;
-          const y = Math.random() * size * 0.8;
-          const radius = Math.random() * 7 + 8; // SCALE FIX: 8-15px instead of 30-80px (much smaller)
-          const cloudGradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-          cloudGradient.addColorStop(0, 'rgba(200, 200, 200, 0.25)'); // More transparent
-          cloudGradient.addColorStop(0.5, 'rgba(200, 200, 200, 0.15)');
-          cloudGradient.addColorStop(1, 'rgba(200, 200, 200, 0)');
-          ctx.fillStyle = cloudGradient;
-          ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-        }
-      }
-
-      canvases[face] = canvas;
-    });
-
-    // FIXED: Reorder faces to fix coordinate system - swap nx ↔ ny
-    const reorderedFaces = ['px', 'ny', 'py', 'nx', 'pz', 'nz']; // Swap nx ↔ ny
-    const urls = reorderedFaces.map(face => canvases[face].toDataURL());
-    return BABYLON.CubeTexture.CreateFromImages(urls, this.scene, false);
-  }
-
-  /**
-   * Create night skybox with stars
-   * PROMPT #4: Night skybox generation
-   */
-  private createNightSkybox(): BABYLON.CubeTexture {
-    const size = 512;
-    const faces = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
-    const canvases: Record<string, HTMLCanvasElement> = {};
-
-    faces.forEach(face => {
-      const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext('2d')!;
-
-      // Night sky colors
-      const skyColor = '#0a0e1a'; // Very dark blue
-      const horizonColor = '#1a1f2e'; // Slightly lighter
-      const groundColor = '#c2b280'; // Natural sand tan/beige
-
-      if (face === 'py') {
-        // Top face - night sky with stars
-        ctx.fillStyle = skyColor;
-        ctx.fillRect(0, 0, size, size);
-
-        // Add stars
-        for (let i = 0; i < 500; i++) {
-          const x = Math.random() * size;
-          const y = Math.random() * size;
-          const brightness = Math.random();
-          const starSize = brightness > 0.8 ? 2 : 1;
-          ctx.fillStyle = brightness > 0.9
-            ? 'rgba(255, 255, 255, 1)'
-            : `rgba(255, 255, 255, ${brightness * 0.8})`;
-          ctx.fillRect(x, y, starSize, starSize);
-        }
-
-        // Add moon (bright white circle) at upper portion - SCALE FIX: Much smaller moon
-        const moonX = size * 0.7;
-        const moonY = size * 0.25; // Upper portion for night sky
-        const moonRadius = 15; // SCALE FIX: Reduced from 40 to 15 for proper scale (moon appears smaller at distance)
-        ctx.fillStyle = 'rgba(220, 220, 200, 0.9)';
-        ctx.beginPath();
-        ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (face === 'ny') {
-        // Bottom face - dark ground
-        ctx.fillStyle = groundColor;
-        ctx.fillRect(0, 0, size, size);
-      } else {
-        // Side faces (px, nx, pz, nz) - ALL SKY (no ground gradient)
-        // User requirement: All sides must be sky, only bottom (ny) is ground
-        const gradient = ctx.createLinearGradient(0, 0, 0, size);
-        gradient.addColorStop(0, skyColor); // Top (night sky)
-        gradient.addColorStop(0.5, horizonColor);
-        gradient.addColorStop(1, skyColor); // Bottom (still sky, no ground)
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, size, size);
-
-        // Add stars on side faces
-        for (let i = 0; i < 200; i++) {
-          const x = Math.random() * size;
-          const y = Math.random() * size * 0.8; // Upper to middle portion
-          const brightness = Math.random();
-          ctx.fillStyle = `rgba(255, 255, 255, ${brightness * 0.6})`;
-          ctx.fillRect(x, y, 1, 1);
-        }
-      }
-
-      canvases[face] = canvas;
-    });
-
-    // FIXED: Reorder faces to fix coordinate system - swap nx ↔ ny
-    const reorderedFaces = ['px', 'ny', 'py', 'nx', 'pz', 'nz']; // Swap nx ↔ ny
-    const urls = reorderedFaces.map(face => canvases[face].toDataURL());
-    return BABYLON.CubeTexture.CreateFromImages(urls, this.scene, false);
-  }
-
-  /**
-   * Create sunset skybox with warm orange/red tones
-   * PROMPT #4: Sunset skybox generation
-   */
-  private createSunsetSkybox(): BABYLON.CubeTexture {
-    const size = 512;
-    const faces = ['px', 'nx', 'py', 'ny', 'pz', 'nz'];
-    const canvases: Record<string, HTMLCanvasElement> = {};
-
-    faces.forEach(face => {
-      const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext('2d')!;
-
-      // Sunset colors
-      const skyColor = '#FF6B35'; // Warm orange
-      const brightSkyColor = '#FFB347'; // Light orange/yellow
-      const horizonColor = '#FF8C42'; // Deep orange
-      const groundColor = '#c2b280'; // Natural sand tan/beige
-
-      if (face === 'py') {
-        // Top face - sunset sky
-        // FIXED: Correct gradient direction for default orientation
-        const gradient = ctx.createLinearGradient(0, 0, 0, size);
-        gradient.addColorStop(0, brightSkyColor); // Top of sky (zenith)
-        gradient.addColorStop(0.5, skyColor);
-        gradient.addColorStop(1, '#FF4500'); // Bottom of sky (toward horizon - deep orange-red)
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, size, size);
-
-        // Add sun (bright orange/yellow circle) at horizon level
-        const sunX = size * 0.5;
-        const sunY = size * 0.7; // Lower portion for sunset horizon
-        const sunRadius = 80;
-        const sunGradient = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunRadius);
-        sunGradient.addColorStop(0, 'rgba(255, 255, 200, 1)');
-        sunGradient.addColorStop(0.5, 'rgba(255, 200, 100, 0.8)');
-        sunGradient.addColorStop(1, 'rgba(255, 150, 50, 0)');
-        ctx.fillStyle = sunGradient;
-        ctx.fillRect(sunX - sunRadius, sunY - sunRadius, sunRadius * 2, sunRadius * 2);
-      } else if (face === 'ny') {
-        // Bottom face - dark ground
-        ctx.fillStyle = groundColor;
-        ctx.fillRect(0, 0, size, size);
-      } else {
-        // Side faces (px, nx, pz, nz) - ALL SKY (no ground gradient)
-        // User requirement: All sides must be sky, only bottom (ny) is ground
-        const gradient = ctx.createLinearGradient(0, 0, 0, size);
-        gradient.addColorStop(0, brightSkyColor); // Top (sky zenith)
-        gradient.addColorStop(0.5, skyColor); // Middle (sky)
-        gradient.addColorStop(0.7, horizonColor); // Horizon (deep orange)
-        gradient.addColorStop(1, skyColor); // Bottom (still sky, no ground)
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, size, size);
-
-        // Add cloud silhouettes
-        ctx.fillStyle = 'rgba(200, 100, 50, 0.4)';
-        for (let i = 0; i < 10; i++) {
-          const x = Math.random() * size;
-          const y = Math.random() * size * 0.7; // Upper to middle portion
-          const width = Math.random() * 80 + 40;
-          const height = Math.random() * 30 + 20;
-          ctx.fillRect(x, y, width, height);
-        }
-      }
-
-      canvases[face] = canvas;
-    });
-
-    // FIXED: Reorder faces to fix coordinate system - swap nx ↔ ny
-    const reorderedFaces = ['px', 'ny', 'py', 'nx', 'pz', 'nz']; // Swap nx ↔ ny
-    const urls = reorderedFaces.map(face => canvases[face].toDataURL());
-    return BABYLON.CubeTexture.CreateFromImages(urls, this.scene, false);
-  }
 
   /**
    * Set up atmospheric fog for depth perception

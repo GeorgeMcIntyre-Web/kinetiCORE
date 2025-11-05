@@ -1,0 +1,162 @@
+.skybox-settings-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+  background: var(--panel-bg, #1e1e1e);
+  color: var(--panel-text, #ffffff);
+}
+
+.skybox-settings-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+.skybox-settings-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.skybox-settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.skybox-setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skybox-setting-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--label-color, rgba(255, 255, 255, 0.9));
+}
+
+.skybox-setting-value {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--value-color, rgba(255, 255, 255, 0.6));
+  font-weight: 400;
+}
+
+.skybox-toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.skybox-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.skybox-toggle-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  transition: background-color 0.3s;
+}
+
+.skybox-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.3s;
+}
+
+.skybox-toggle input:checked + .skybox-toggle-slider {
+  background-color: #4CAF50;
+}
+
+.skybox-toggle input:checked + .skybox-toggle-slider:before {
+  transform: translateX(20px);
+}
+
+.skybox-toggle input:disabled + .skybox-toggle-slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.skybox-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.2);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.skybox-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4CAF50;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.skybox-slider::-webkit-slider-thumb:hover {
+  background: #45a049;
+}
+
+.skybox-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4CAF50;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+}
+
+.skybox-slider::-moz-range-thumb:hover {
+  background: #45a049;
+}
+
+.skybox-slider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.skybox-info {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+.skybox-info p {
+  margin: 0;
+}
+

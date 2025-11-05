@@ -24,6 +24,7 @@ import { FloatingPanel } from '../../ui/components/FloatingPanel/FloatingPanel';
 import { SceneManager } from '../../scene/SceneManager';
 import { WarehouseModel, WarehouseConfig, SkyboxSource, ColumnShape, FloorType, MezzanineType } from '../core/WarehouseModel';
 import { CameraService } from '../../scene/services/CameraService';
+import { SkyboxManager } from '../../scene/services/SkyboxManager';
 import './WarehousePanel.css';
 
 interface WarehousePanelProps {
@@ -121,6 +122,25 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
 
   const initializeWarehouse = (scene: BABYLON.Scene) => {
     SceneManager.getInstance().setBackgroundTransparent(true);
+
+    // CRITICAL: Check if skybox is ready before creating warehouse
+    const skyboxManager = SkyboxManager.getInstance();
+    skyboxManager.initialize(scene);
+
+    // Only create warehouse if skybox is ready and warehouse is visible
+    if (!warehouseVisible || !skyboxManager.isReady()) {
+      if (!skyboxManager.isReady()) {
+        console.warn('[WarehousePanel] ⚠️ Skybox is not ready. Waiting for skybox...');
+        // Retry after a short delay
+        setTimeout(() => {
+          if (skyboxManager.isReady() && warehouseVisible) {
+            const warehouseModel = new WarehouseModel(scene, config);
+            setWarehouse(warehouseModel);
+          }
+        }, 500);
+      }
+      return;
+    }
 
     const warehouseModel = new WarehouseModel(scene, config);
     setWarehouse(warehouseModel);
