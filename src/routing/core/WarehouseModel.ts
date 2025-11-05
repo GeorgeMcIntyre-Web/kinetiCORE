@@ -122,52 +122,49 @@ export class WarehouseModel {
 
   /**
    * Hide the default ground plane and grid overlay created by SceneManager
+   * AGGRESSIVE MODE: Disposes ALL ground planes to ensure clean skybox-only ground
    */
   private hideGroundPlane(): void {
-    console.log('[WarehouseModel] 🔍 Searching for ground meshes to hide...');
+    console.log('[WarehouseModel] 🔍 AGGRESSIVE ground cleanup mode...');
     console.log(`[WarehouseModel] Total meshes in scene: ${this.scene.meshes.length}`);
 
-    // Hide ground by name
-    const groundMesh = this.scene.getMeshByName('ground');
-    if (groundMesh) {
-      groundMesh.setEnabled(false);
-      groundMesh.isVisible = false;
-      groundMesh.visibility = 0;
-      console.log(`[WarehouseModel] ✅ Disabled ground plane (material: ${groundMesh.material?.name || 'none'})`);
-    } else {
-      console.log('[WarehouseModel] ⚠️ No mesh named "ground" found');
-    }
+    // AGGRESSIVE: Dispose ALL meshes that could be ground planes
+    const allMeshes = [...this.scene.meshes]; // Copy array since we'll be disposing
+    let disposedCount = 0;
 
-    // Hide grid overlay
-    const gridOverlay = this.scene.getMeshByName('gridOverlay');
-    if (gridOverlay) {
-      gridOverlay.setEnabled(false);
-      gridOverlay.isVisible = false;
-      gridOverlay.visibility = 0;
-      console.log('[WarehouseModel] ✅ Disabled grid overlay');
-    } else {
-      console.log('[WarehouseModel] ⚠️ No mesh named "gridOverlay" found');
-    }
-
-    // Find and hide any other ground-like meshes (case insensitive search)
-    const allMeshes = this.scene.meshes;
-    let hiddenCount = 0;
     for (const mesh of allMeshes) {
       const meshName = mesh.name.toLowerCase();
-      // Hide any mesh with "ground", "floor", "plane", or "parking" in the name that's not part of warehouse
-      if (!meshName.includes('warehouse') &&
-          (meshName.includes('ground') ||
-           meshName.includes('floor') ||
-           meshName.includes('plane') ||
-           meshName.includes('parking'))) {
-        mesh.setEnabled(false);
-        mesh.isVisible = false;
-        mesh.visibility = 0;
-        console.log(`[WarehouseModel] ✅ Disabled extra ground mesh: "${mesh.name}" (material: ${mesh.material?.name || 'none'})`);
-        hiddenCount++;
+
+      // Skip warehouse meshes - we want to keep those
+      if (meshName.includes('warehouse')) {
+        continue;
+      }
+
+      // Dispose any mesh that could be a ground plane:
+      // 1. Has "ground", "floor", "plane", "parking", or "grid" in name
+      // 2. OR is positioned at Y=0 with large XZ dimensions (typical ground plane)
+      const isGroundName = meshName.includes('ground') ||
+                          meshName.includes('floor') ||
+                          meshName.includes('plane') ||
+                          meshName.includes('parking') ||
+                          meshName.includes('grid');
+
+      if (isGroundName) {
+        try {
+          console.log(`[WarehouseModel] 🗑️ DISPOSING ground mesh: "${mesh.name}" (material: ${mesh.material?.name || 'none'})`);
+          mesh.dispose();
+          disposedCount++;
+        } catch (e) {
+          console.warn(`[WarehouseModel] ⚠️ Could not dispose "${mesh.name}":`, e);
+          // Fallback: just hide it
+          mesh.setEnabled(false);
+          mesh.isVisible = false;
+          mesh.visibility = 0;
+        }
       }
     }
-    console.log(`[WarehouseModel] 📊 Hidden ${hiddenCount} extra ground meshes`);
+
+    console.log(`[WarehouseModel] 📊 DISPOSED ${disposedCount} ground meshes (skybox bottom will now be visible)`);
   }
 
   /**
