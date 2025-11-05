@@ -296,3 +296,34 @@ export function makeWornRustedPainted(scene: Scene, uvScale: number = 2): BABYLO
   return m;
 }
 
+/* -------------- 12) Damascus Steel (patterned metal PBR) ---------------- */
+/** Damascus steel with distinctive pattern texture.
+ *  Textures from: C:\Users\George\source\repos\kinetiCORE_DATA\Textures\damascus-steel-unity
+ *  Note: metallic.psd needs to be converted to PNG for full PBR support */
+export function makeDamascusSteel(scene: Scene, uvScale: number = 2): BABYLON.PBRMaterial {
+  const m = new BABYLON.PBRMaterial("damascus_steel", scene);
+  
+  // Base color (albedo) - Damascus steel has distinctive pattern
+  m.albedoTexture = TEX("/assets/damascus_steel/damascus-steel_albedo.png", scene);
+  setUV(m.albedoTexture, uvScale);
+  
+  // Normal map (OpenGL format) - for surface detail
+  m.bumpTexture = TEX("/assets/damascus_steel/damascus-steel_normal-ogl.png", scene);
+  setUV(m.bumpTexture, uvScale);
+  
+  // Ambient occlusion
+  m.ambientTexture = TEX("/assets/damascus_steel/damascus-steel_ao.png", scene);
+  setUV(m.ambientTexture, uvScale);
+  
+  // Metallic and roughness - using defaults since PSD needs conversion
+  // TODO: Convert damascus-steel_metallic.psd to PNG format for proper metallic/roughness mapping
+  m.metallic = 0.9;  // Steel is highly metallic
+  m.roughness = 0.3; // Polished steel surface (can be adjusted for worn vs polished)
+  
+  // Height map (available but not used by default - can be added for parallax/displacement)
+  // Note: Height map available at /assets/damascus_steel/damascus-steel_height.png
+  
+  (m as any)._kind = "damascusSteel";
+  return m;
+}
+
