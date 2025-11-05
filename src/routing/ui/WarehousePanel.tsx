@@ -99,18 +99,29 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
   const [warehouseVisible, setWarehouseVisible] = useState(() => {
     try {
       const saved = localStorage.getItem('warehouse_visible');
-      return saved !== null ? saved === 'true' : true;
+      return saved !== null ? saved === 'true' : false; // Default to false - don't create at startup
     } catch {
-      return true;
+      return false; // Default to false - don't create at startup
     }
   });
 
+  // Only initialize warehouse when panel is visible AND warehouse is enabled
   useEffect(() => {
+    // Don't create warehouse at startup - only when panel is opened and user enables it
+    if (!panelVisible || !warehouseVisible) {
+      // If warehouse is disabled, dispose it
+      if (warehouse) {
+        warehouse.dispose();
+        setWarehouse(null);
+      }
+      return;
+    }
+
     let scene = SceneManager.getInstance().getScene();
     if (!scene) {
       const retryTimeout = setTimeout(() => {
         scene = SceneManager.getInstance().getScene();
-        if (scene) {
+        if (scene && panelVisible && warehouseVisible) {
           initializeWarehouse(scene);
         }
       }, 500);
@@ -118,32 +129,38 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
     }
 
     return initializeWarehouse(scene);
-  }, []);
+  }, [panelVisible, warehouseVisible, warehouse]); // Only run when panel is visible and warehouse is enabled
 
   const initializeWarehouse = (scene: BABYLON.Scene) => {
+    // Skybox is already initialized at startup in SceneManager
+    // Just ensure background is transparent
     SceneManager.getInstance().setBackgroundTransparent(true);
 
     // CRITICAL: Check if skybox is ready before creating warehouse
     const skyboxManager = SkyboxManager.getInstance();
-    skyboxManager.initialize(scene);
+    // Only initialize if not already initialized (skybox is created at startup)
+    if (!skyboxManager.isReady()) {
+      skyboxManager.initialize(scene);
+    }
 
-    // Only create warehouse if skybox is ready and warehouse is visible
-    if (!warehouseVisible || !skyboxManager.isReady()) {
-      if (!skyboxManager.isReady()) {
-        console.warn('[WarehousePanel] ⚠️ Skybox is not ready. Waiting for skybox...');
-        // Retry after a short delay
-        setTimeout(() => {
-          if (skyboxManager.isReady() && warehouseVisible) {
-            const warehouseModel = new WarehouseModel(scene, config);
-            setWarehouse(warehouseModel);
-          }
-        }, 500);
-      }
+    // Only create warehouse if skybox is ready
+    if (!skyboxManager.isReady()) {
+      console.warn('[WarehousePanel] ⚠️ Skybox is not ready. Waiting for skybox...');
+      // Retry after a short delay
+      setTimeout(() => {
+        if (skyboxManager.isReady() && warehouseVisible) {
+          const warehouseModel = new WarehouseModel(scene, config);
+          setWarehouse(warehouseModel);
+        }
+      }, 500);
       return;
     }
 
-    const warehouseModel = new WarehouseModel(scene, config);
-    setWarehouse(warehouseModel);
+    // Create warehouse only if not already created
+    if (!warehouse) {
+      const warehouseModel = new WarehouseModel(scene, config);
+      setWarehouse(warehouseModel);
+    }
 
     const ground = SceneManager.getInstance().getGround();
     if (ground) {
@@ -187,7 +204,9 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
     }
 
     return () => {
-      warehouseModel.dispose();
+      if (warehouse) {
+        warehouse.dispose();
+      }
     };
   };
 

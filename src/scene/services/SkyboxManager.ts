@@ -4,7 +4,8 @@
 
 import * as BABYLON from '@babylonjs/core';
 import { GridMaterial } from '@babylonjs/materials/grid/gridMaterial';
-import { createTriplanarFloor, TriplanarFloorOptions } from './TriplanarFloorShader';
+import { createTriplanarFloor } from './TriplanarFloorShader';
+import { setFloorMaterial, FloorKind, logMat } from '../materials/materials';
 
 export type FloorMaterialType = 'grid' | 'stone' | 'concrete' | 'epoxy';
 
@@ -96,6 +97,9 @@ const DEFAULT_CONFIG: SkyboxConfig = {
   floor: { ...DEFAULT_FLOOR_CONFIG },
 };
 
+// Singleton reference to prevent multiple skyboxes
+let skyboxOnce: BABYLON.Mesh | null = null;
+
 export class SkyboxManager {
   private static instance: SkyboxManager | null = null;
   private scene: BABYLON.Scene | null = null;
@@ -124,10 +128,19 @@ export class SkyboxManager {
   /**
    * Create skybox with cloudy blue sky
    * All faces are the same cloudy blue sky
+   * Guarded to prevent overwrites
    */
   createSkybox(): void {
     if (!this.scene) {
       console.warn('[SkyboxManager] ⚠️ Scene not initialized');
+      return;
+    }
+
+    // Guard: check if skybox already exists and is valid
+    const existingSkybox = this.scene.getMeshByName("skybox");
+    if (existingSkybox && existingSkybox === skyboxOnce && !existingSkybox.isDisposed()) {
+      console.log('[SkyboxManager] Skybox already exists, skipping recreation');
+      this.skybox = existingSkybox as BABYLON.Mesh;
       return;
     }
 
@@ -172,9 +185,15 @@ export class SkyboxManager {
 
       // Set scene environment texture for PBR reflections
       this.scene.environmentTexture = this.skyboxTexture;
+      
+      // Set environment intensity for better material separation
+      this.scene.environmentIntensity = 1.2;
 
       // CRITICAL: Set scene background to transparent
       this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
+
+      // Register singleton
+      skyboxOnce = this.skybox;
 
       // Apply config
       this.updateSkyboxConfig();
@@ -505,7 +524,7 @@ export class SkyboxManager {
       {
         width: groundSize,
         height: groundSize,
-        subdivisions: groundSize === 'infinite' || groundSize >= 100000 ? 200 : Math.max(50, Math.floor(groundSize / 500)),
+        subdivisions: groundSize >= 100000 ? 200 : Math.max(50, Math.floor(groundSize / 500)),
       },
       this.scene!
     );
@@ -590,7 +609,7 @@ export class SkyboxManager {
       }
     }
 
-    // Fallback: simple PBR material
+    // Fallback: use material factory functions
     this.groundGrid = BABYLON.MeshBuilder.CreateGround(
       'skybox_material_floor',
       {
@@ -601,32 +620,43 @@ export class SkyboxManager {
       this.scene!
     );
 
-    const material = new BABYLON.PBRMetallicRoughnessMaterial(`floor_${materialType}`, this.scene!);
-    
+    // Use robust factory pattern with proper material mapping
+    let floorKind: FloorKind;
     switch (materialType) {
       case 'stone':
-        material.baseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
-        material.metallicFactor = 0.0;
-        material.roughnessFactor = 0.8;
+        floorKind = 'stone';
         break;
       case 'concrete':
-        material.baseColor = new BABYLON.Color3(0.7, 0.7, 0.7);
-        material.metallicFactor = 0.0;
-        material.roughnessFactor = 0.9;
+        // Try triplanar first if textures available, otherwise sealed concrete
+        if (textureUrls.baseColorUrl && textureUrls.normalUrl && 
+            textureUrls.roughAoUrl && textureUrls.microNormalUrl && textureUrls.noiseUrl) {
+          floorKind = 'triplanarConcrete';
+        } else {
+          floorKind = 'sealedConcrete';
+        }
         break;
       case 'epoxy':
-        material.baseColor = new BABYLON.Color3(0.3, 0.3, 0.3);
-        material.metallicFactor = 0.1;
-        material.roughnessFactor = 0.2;
+        floorKind = 'epoxy';
+        break;
+      default:
+        floorKind = 'sealedConcrete';
         break;
     }
 
-    this.groundGrid.material = material;
+    // Use robust setter with proper disposal
+    setFloorMaterial(this.scene!, this.groundGrid, floorKind);
+    
     this.groundGrid.position = new BABYLON.Vector3(0, 0, 0);
     this.groundGrid.receiveShadows = true;
     this.groundGrid.isPickable = false;
 
-    console.log(`[SkyboxManager] ✅ Created ${materialType} floor (simple PBR fallback)`);
+    // Set scene environment intensity for better specular separation
+    if (this.scene!.environmentTexture) {
+      this.scene!.environmentIntensity = 1.2;
+    }
+
+    console.log(`[SkyboxManager] ✅ Created ${materialType} floor (kind: ${floorKind})`);
+    logMat(this.groundGrid.material);
   }
 
   /**
@@ -761,8 +791,12 @@ export class SkyboxManager {
    */
   private disposeSkybox(): void {
     if (this.skybox) {
+      const wasSingleton = skyboxOnce === this.skybox;
       this.skybox.dispose();
       this.skybox = null;
+      if (wasSingleton) {
+        skyboxOnce = null;
+      }
     }
     if (this.skyboxTexture) {
       this.skyboxTexture.dispose();

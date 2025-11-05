@@ -3,9 +3,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Box,
   Circle,
-  Cylinder,
   Cone,
   Square,
   Pill,
@@ -46,7 +44,9 @@ import { useRoutingStore } from '../store/routingStore';
 import { SceneManager } from '../../scene/SceneManager';
 import { KinematicExtractionPanel } from '../components/KinematicExtractionPanel';
 import { WarehousePanel } from '../../routing/ui/WarehousePanel';
-import { Scan } from 'lucide-react';
+import { Scan, Settings } from 'lucide-react';
+import { CreateDropdown } from '../components/CreateDropdown';
+import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
 import './ProfessionalModeLayout.css';
 
 export const ProfessionalModeLayout: React.FC = () => {
@@ -79,6 +79,7 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [showDebugLabels, setShowDebugLabels] = useState(false);
   const [showKinematicExtractionPanel, setShowKinematicExtractionPanel] = useState(false);
   const [showWarehousePanel, setShowWarehousePanel] = useState(false);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const debugLabelsRef = useRef<RouteDebugLabels | null>(null);
   const routeSelection = useRoutingStore((state) => state.selectedRoute);
   // Auto size the left scene tree based on content (inline to avoid nested hook issues)
@@ -307,6 +308,14 @@ export const ProfessionalModeLayout: React.FC = () => {
             >
               <Redo size={18} />
             </button>
+            <div className="separator"></div>
+            <button
+              className="action-btn"
+              title="Settings"
+              onClick={() => setShowSettingsPanel(!showSettingsPanel)}
+            >
+              <Settings size={18} />
+            </button>
           </div>
           <select
             value={userLevel}
@@ -347,30 +356,11 @@ export const ProfessionalModeLayout: React.FC = () => {
         <div className="tool-group">
           <div className="group-label">Creation</div>
           <div className="tool-buttons">
-            <button
-              className="tool-btn"
-              title="Box"
-              onClick={() => createObject('box')}
-            >
-              <Box size={18} />
-              <span>Box</span>
-            </button>
-            <button
-              className="tool-btn"
-              title="Sphere"
-              onClick={() => createObject('sphere')}
-            >
-              <Circle size={18} />
-              <span>Sphere</span>
-            </button>
-            <button
-              className="tool-btn"
-              title="Cylinder"
-              onClick={() => createObject('cylinder')}
-            >
-              <Cylinder size={18} />
-              <span>Cylinder</span>
-            </button>
+            <CreateDropdown
+              onCreateBox={() => createObject('box')}
+              onCreateSphere={() => createObject('sphere')}
+              onCreateCylinder={() => createObject('cylinder')}
+            />
             <button
               className="tool-btn"
               title="Cone"
@@ -799,8 +789,14 @@ export const ProfessionalModeLayout: React.FC = () => {
         onClose={() => setShowKinematicExtractionPanel(false)}
         zIndex={1003}
       />
+
+      {/* Floating Settings Panel - Contains Skybox tab */}
+      <FloatingSettingsPanel
+        isVisible={showSettingsPanel}
+        onClose={() => setShowSettingsPanel(false)}
+        zIndex={1010}
+      />
     </div>
   );
 };
-    // Auto size the left scene tree based on content (inline to avoid nested hook issues)
 

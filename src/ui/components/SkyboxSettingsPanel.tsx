@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import { Cloud, RotateCw, Eye, Zap, Grid3x3, Palette, Sun, Moon, Sunset, Sunrise } from 'lucide-react';
-import { SkyboxManager, SkyboxConfig, SkyPreset } from '../../scene/services/SkyboxManager';
+import { SkyboxManager, SkyboxConfig, FloorMaterialType } from '../../scene/services/SkyboxManager';
 import { SceneManager } from '../../scene/SceneManager';
 import './SkyboxSettingsPanel.css';
 
@@ -218,7 +218,13 @@ export const SkyboxSettingsPanel: React.FC<SkyboxSettingsPanelProps> = ({ onClos
           </label>
           <select
             value={config.floor.materialType}
-            onChange={(e) => updateConfig({ floor: { ...config.floor, materialType: e.target.value as any } })}
+            onChange={(e) => {
+              const newMaterialType = e.target.value as FloorMaterialType;
+              if (config.floor.materialType !== newMaterialType) {
+                console.log(`[SkyboxSettingsPanel] Material type changed: ${config.floor.materialType} -> ${newMaterialType}`);
+                updateConfig({ floor: { ...config.floor, materialType: newMaterialType } });
+              }
+            }}
             className="skybox-select"
             disabled={!config.enabled || !config.floor.enabled}
             style={{
