@@ -124,12 +124,18 @@ export class WarehouseModel {
    * Hide the default ground plane and grid overlay created by SceneManager
    */
   private hideGroundPlane(): void {
+    console.log('[WarehouseModel] 🔍 Searching for ground meshes to hide...');
+    console.log(`[WarehouseModel] Total meshes in scene: ${this.scene.meshes.length}`);
+
     // Hide ground by name
     const groundMesh = this.scene.getMeshByName('ground');
     if (groundMesh) {
       groundMesh.setEnabled(false);
       groundMesh.isVisible = false;
-      console.log('[WarehouseModel] ✅ Disabled ground plane');
+      groundMesh.visibility = 0;
+      console.log(`[WarehouseModel] ✅ Disabled ground plane (material: ${groundMesh.material?.name || 'none'})`);
+    } else {
+      console.log('[WarehouseModel] ⚠️ No mesh named "ground" found');
     }
 
     // Hide grid overlay
@@ -137,11 +143,15 @@ export class WarehouseModel {
     if (gridOverlay) {
       gridOverlay.setEnabled(false);
       gridOverlay.isVisible = false;
+      gridOverlay.visibility = 0;
       console.log('[WarehouseModel] ✅ Disabled grid overlay');
+    } else {
+      console.log('[WarehouseModel] ⚠️ No mesh named "gridOverlay" found');
     }
 
     // Find and hide any other ground-like meshes (case insensitive search)
     const allMeshes = this.scene.meshes;
+    let hiddenCount = 0;
     for (const mesh of allMeshes) {
       const meshName = mesh.name.toLowerCase();
       // Hide any mesh with "ground", "floor", "plane", or "parking" in the name that's not part of warehouse
@@ -152,9 +162,12 @@ export class WarehouseModel {
            meshName.includes('parking'))) {
         mesh.setEnabled(false);
         mesh.isVisible = false;
-        console.log(`[WarehouseModel] ✅ Disabled extra ground mesh: "${mesh.name}"`);
+        mesh.visibility = 0;
+        console.log(`[WarehouseModel] ✅ Disabled extra ground mesh: "${mesh.name}" (material: ${mesh.material?.name || 'none'})`);
+        hiddenCount++;
       }
     }
+    console.log(`[WarehouseModel] 📊 Hidden ${hiddenCount} extra ground meshes`);
   }
 
   /**
@@ -814,63 +827,14 @@ export class WarehouseModel {
    */
   private createGrassMaterial(): BABYLON.PBRMetallicRoughnessMaterial {
     const material = new BABYLON.PBRMetallicRoughnessMaterial('warehouse_grass_mat', this.scene);
-    material.baseColor = new BABYLON.Color3(0.2, 0.4, 0.2); // Green grass color
+
+    // Natural grass green color (no textures - simple solid color to avoid red missing texture)
+    material.baseColor = new BABYLON.Color3(0.35, 0.55, 0.3); // Realistic grass green
     material.metallic = 0.0;
+    material.roughness = 0.9; // Rough grass surface
+    material.alpha = 1.0;
 
-    // Use local high-quality grass texture
-    try {
-      const baseTexture = new BABYLON.Texture(
-        '/assets/textures/grass/Grass004_8K-PNG_Color.png',
-        this.scene
-      );
-      baseTexture.uScale = 1000; // Large scale for infinite feel
-      baseTexture.vScale = 1000;
-      baseTexture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
-      material.baseTexture = baseTexture;
-
-      // Use roughness map if available
-      try {
-        const roughTexture = new BABYLON.Texture(
-          '/assets/textures/grass/Grass004_8K-PNG_Roughness.png',
-          this.scene
-        );
-        roughTexture.uScale = 1000;
-        roughTexture.vScale = 1000;
-        roughTexture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
-        material.metallicRoughnessTexture = roughTexture;
-      } catch (e) {
-        console.warn('[WarehouseModel] ⚠️ Could not load grass roughness texture, using default roughness:', e);
-        material.roughness = 0.9; // Rough grass surface
-      }
-
-      // Use normal map for better detail
-      try {
-        const normalTexture = new BABYLON.Texture(
-          '/assets/textures/grass/Grass004_8K-PNG_NormalGL.png',
-          this.scene
-        );
-        normalTexture.uScale = 1000;
-        normalTexture.vScale = 1000;
-        normalTexture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
-        material.normalTexture = normalTexture;
-      } catch (e) {
-        console.warn('[WarehouseModel] ⚠️ Could not load grass normal texture:', e);
-      }
-    } catch (e) {
-      console.warn('[WarehouseModel] ⚠️ Could not load local grass texture, falling back to default:', e);
-      // Fallback to default texture
-      const texture = new BABYLON.Texture(
-        'https://www.babylonjs-playground.com/textures/floor.png',
-        this.scene
-      );
-      texture.uScale = 1000;
-      texture.vScale = 1000;
-      texture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
-      material.baseTexture = texture;
-      material.roughness = 0.9;
-    }
-
-    material._environmentIntensity = 0.3;
+    console.log('[WarehouseModel] ✅ Created grass material with solid green color (no textures)');
     this.materials.push(material);
     return material;
   }
