@@ -284,8 +284,9 @@ export class WarehouseModel {
     // DOOR FIX: Pass walls map so we can cut openings
     this.createDoors(widthM, depthM, heightM, wallThickness, wallMaterial, walls);
 
-    // Add structural columns for realism (spaced every 10m)
-    const columnSpacing = 10; // 10 meters (industry standard spacing)
+    // Add structural columns for realism
+    // Default 20m spacing for cleaner look (10m is industry standard but creates too many for visualization)
+    const columnSpacing = 20; // 20 meters (adjustable, industry standard is 10m)
     const columns: BABYLON.Mesh[] = [];
 
     let columnCount = 0;
@@ -2818,12 +2819,15 @@ export class WarehouseModel {
     this.meshes.push(westRailing);
     westRailing.parent = this.rootNode;
 
-    // Add support columns from floor to mezzanine (industry standard)
+    // Add support columns HANGING from roof to mezzanine (roof-suspended)
     // Spacing: 4m typical for mezzanine support columns
     const supportColumnSpacing = 4.0; // 4 meters
-    const supportColumnDiameter = 0.15; // 15cm diameter steel columns
+    const supportColumnDiameter = 0.15; // 15cm diameter steel rods/cables
     const mezzanineWidth = widthM - wallThickness * 2 - 1;
     const mezzanineDepth = depthM - wallThickness * 2 - 1;
+
+    // Calculate support height: from mezzanine UP to roof (not floor to mezzanine)
+    const supportHeight = _heightM - mezzanineHeightM; // Distance from mezzanine to roof
 
     let supportColumnCount = 0;
     for (let x = -mezzanineWidth / 2 + supportColumnSpacing; x < mezzanineWidth / 2; x += supportColumnSpacing) {
@@ -2832,13 +2836,15 @@ export class WarehouseModel {
           `warehouse_mezzanine_support_${x}_${z}`,
           {
             diameter: supportColumnDiameter,
-            height: mezzanineHeightM,
+            height: supportHeight, // Roof to mezzanine height
             tessellation: 16
           },
           this.scene
         );
-        // Position: floor to mezzanine (y from 0 to mezzanineHeightM)
-        supportColumn.position = new BABYLON.Vector3(x, mezzanineHeightM / 2, z);
+        // Position: HANGING from roof down to mezzanine
+        // Y position: midpoint between mezzanine and roof
+        const yPosition = mezzanineHeightM + (supportHeight / 2);
+        supportColumn.position = new BABYLON.Vector3(x, yPosition, z);
         supportColumn.material = columnMaterial;
         supportColumn.receiveShadows = true;
         supportColumn.isVisible = true;
@@ -2850,7 +2856,7 @@ export class WarehouseModel {
     }
 
     console.log(`[WarehouseModel] ✅ Created mezzanine floor at ${mezzanineHeightM.toFixed(2)}m height (${mezzanineType} type)`);
-    console.log(`[WarehouseModel] ✅ Added ${supportColumnCount} support columns from floor to mezzanine (industry standard)`);
+    console.log(`[WarehouseModel] ✅ Added ${supportColumnCount} support columns HANGING from roof (${supportHeight.toFixed(2)}m drop to mezzanine)`);
   }
 
   /**
