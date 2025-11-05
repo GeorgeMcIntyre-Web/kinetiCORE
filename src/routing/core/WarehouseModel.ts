@@ -806,15 +806,15 @@ export class WarehouseModel {
   }
 
   /**
-   * Create parking lot material (grass) - natural green color
+   * Create parking lot material (sand) - natural tan/beige color
    */
   private createParkingLotMaterial(): BABYLON.PBRMetallicRoughnessMaterial {
     const material = new BABYLON.PBRMetallicRoughnessMaterial('warehouse_parking_lot_mat', this.scene);
 
-    // GRASS COLOR: Natural green grass for parking lot surround
-    material.baseColor = new BABYLON.Color3(0.25, 0.45, 0.25); // Natural grass green
+    // SAND COLOR: Natural tan/beige sand for parking lot surround
+    material.baseColor = new BABYLON.Color3(0.76, 0.70, 0.50); // Natural sand tan/beige
     material.metallic = 0.0;
-    material.roughness = 0.9; // Rough grass surface
+    material.roughness = 0.95; // Very rough sand surface
     material.emissiveColor = new BABYLON.Color3(0, 0, 0); // No emission
 
     // Explicitly disable all textures
@@ -823,7 +823,7 @@ export class WarehouseModel {
     material.normalTexture = null;
     material.emissiveTexture = null;
 
-    console.log('[WarehouseModel] ✅ Created parking lot material: natural grass green');
+    console.log('[WarehouseModel] ✅ Created parking lot material: natural sand tan/beige');
 
     // CRITICAL: Ensure baseColor is always visible (not tinted away by texture)
     // In PBR materials, baseColor tints the texture, so dark gray will keep it dark
@@ -2420,7 +2420,7 @@ export class WarehouseModel {
       frame.rotation.y = Math.PI / 2;
     }
 
-    // Create door panel (open 45° from hinge point, not center)
+    // Create door panel - CLOSED position flush with wall
     const doorPanelThickness = 0.05; // 5cm door panel
     const doorPanel = BABYLON.MeshBuilder.CreateBox(
       `warehouse_${name}_panel`,
@@ -2432,31 +2432,14 @@ export class WarehouseModel {
       this.scene
     );
 
-    // Calculate hinge position (left side of door opening when looking from outside)
-    // Door rotates 45° from hinge, so we need to position it at the hinge, rotate, then offset
-    const hingeOffset = width / 2; // Hinge is at left edge of door
+    // Position door panel EXACTLY at frame position (closed, flush with wall)
+    doorPanel.position = position.clone();
 
-    // Set pivot point to hinge (left edge)
-    if (wall === 'north' || wall === 'south') {
-      doorPanel.setPivotPoint(new BABYLON.Vector3(-hingeOffset, 0, 0));
-    } else {
-      doorPanel.setPivotPoint(new BABYLON.Vector3(0, 0, -hingeOffset));
+    // Rotate door panel to match wall orientation
+    if (wall === 'east' || wall === 'west') {
+      doorPanel.rotation.y = Math.PI / 2; // 90° for E/W walls
     }
-
-    // Position door at hinge location (offset from frame center to left edge)
-    if (wall === 'north') {
-      doorPanel.position = new BABYLON.Vector3(position.x - hingeOffset, position.y, position.z);
-      doorPanel.rotation.y = Math.PI / 4; // 45° open (counterclockwise from hinge)
-    } else if (wall === 'south') {
-      doorPanel.position = new BABYLON.Vector3(position.x - hingeOffset, position.y, position.z);
-      doorPanel.rotation.y = -Math.PI / 4; // 45° open (clockwise from hinge)
-    } else if (wall === 'east') {
-      doorPanel.position = new BABYLON.Vector3(position.x, position.y, position.z - hingeOffset);
-      doorPanel.rotation.y = Math.PI / 2 + Math.PI / 4; // 90° (wall alignment) + 45° open
-    } else { // west
-      doorPanel.position = new BABYLON.Vector3(position.x, position.y, position.z - hingeOffset);
-      doorPanel.rotation.y = Math.PI / 2 - Math.PI / 4; // 90° (wall alignment) - 45° open
-    }
+    // North/South walls: no rotation needed
 
     // Create door panel material (slightly different from frame)
     const doorPanelMaterial = this.createDoorPanelMaterial();
