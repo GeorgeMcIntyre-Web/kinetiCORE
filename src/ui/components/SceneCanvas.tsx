@@ -561,10 +561,17 @@ export const SceneCanvas: React.FC = () => {
     // Helper function to restore original material
     const restoreMaterial = (mesh: BABYLON.AbstractMesh) => {
       const meshId = mesh.uniqueId.toString();
+      const meshWithMeta = mesh as BABYLON.AbstractMesh & { __kcOriginalMaterial?: BABYLON.Material | null };
+      const storedMaterial = originalMaterials.has(meshId)
+        ? originalMaterials.get(meshId) ?? null
+        : meshWithMeta.__kcOriginalMaterial ?? null;
       if (originalMaterials.has(meshId)) {
-        mesh.material = originalMaterials.get(meshId) || null;
         originalMaterials.delete(meshId);
       }
+      if (meshWithMeta.__kcOriginalMaterial !== undefined) {
+        delete meshWithMeta.__kcOriginalMaterial;
+      }
+      mesh.material = storedMaterial;
     };
 
     if (hoveredMeshRef.current) {
@@ -584,6 +591,8 @@ export const SceneCanvas: React.FC = () => {
       // Store original material if not already stored
       if (!originalMaterials.has(meshId)) {
         originalMaterials.set(meshId, mesh.material);
+        (mesh as BABYLON.AbstractMesh & { __kcOriginalMaterial?: BABYLON.Material | null }).__kcOriginalMaterial =
+          mesh.material ?? null;
       }
 
       // Create temporary highlight material
