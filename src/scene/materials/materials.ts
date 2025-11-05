@@ -205,7 +205,7 @@ export function addTriplanarFloor(scene: Scene, size = 160): BABYLON.Mesh {
 }
 
 /* --------------------- Robust Factory Pattern ------------------------ */
-export type FloorKind = "sealedConcrete" | "epoxy" | "stone" | "triplanarConcrete";
+export type FloorKind = "sealedConcrete" | "epoxy" | "stone" | "triplanarConcrete" | "patchyCement";
 
 export function makeFloor(scene: Scene, kind: FloorKind): BABYLON.Material {
   switch (kind) {
@@ -228,6 +228,11 @@ export function makeFloor(scene: Scene, kind: FloorKind): BABYLON.Material {
     }
     case "stone": {
       const m = makeStone(scene);
+      (m as any)._kind = kind;
+      return m;
+    }
+    case "patchyCement": {
+      const m = makePatchyCement(scene);
       (m as any)._kind = kind;
       return m;
     }
