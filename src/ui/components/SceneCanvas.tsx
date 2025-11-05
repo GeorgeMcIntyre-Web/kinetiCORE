@@ -3,7 +3,6 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import * as BABYLON from '@babylonjs/core';
-import { SceneManager } from '../../scene/SceneManager';
 import { RapierPhysicsEngine } from '../../physics/RapierPhysicsEngine';
 import { EntityRegistry } from '../../entities/EntityRegistry';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
@@ -13,6 +12,7 @@ import { useUserLevel } from '../core/UserLevelContext';
 import { CoordinateFrame } from './CoordinateFrame';
 import { isZoomableObject, isSelectableObject } from '../../scene/SceneUtils';
 import { performanceMetrics } from '../../core/PerformanceMetrics';
+import { SceneManager } from '../../scene/SceneManager';
 
 export const SceneCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -113,6 +113,31 @@ export const SceneCanvas: React.FC = () => {
     },
     [clearHoverHighlight]
   );
+
+  // Capture Ctrl/Cmd + Shift + I to toggle Babylon inspector before the browser opens devtools
+  useEffect(() => {
+    const handleInspectorHotkey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || !e.shiftKey || e.key.toLowerCase() !== 'i') {
+        return;
+      }
+
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof e.stopImmediatePropagation === 'function') {
+        e.stopImmediatePropagation();
+      }
+
+      SceneManager.getInstance().toggleInspector();
+    };
+
+    window.addEventListener('keydown', handleInspectorHotkey, true);
+    return () => window.removeEventListener('keydown', handleInspectorHotkey, true);
+  }, []);
 
 
   useEffect(() => {

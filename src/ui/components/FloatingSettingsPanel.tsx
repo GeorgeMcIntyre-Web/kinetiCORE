@@ -82,7 +82,21 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
     setSnapToNormal,
     setGridSize,
     setSnapDistance,
+    toggleInspector,
   } = useEditorStore();
+  const handleInspectorToggle = () => {
+    console.log('[Settings] Toggle Babylon.js inspector requested');
+    try {
+      const maybePromise = toggleInspector();
+      if (maybePromise && typeof (maybePromise as Promise<void>).catch === 'function') {
+        (maybePromise as Promise<void>).catch((err) => {
+          console.error('[Settings] Inspector toggle failed:', err);
+        });
+      }
+    } catch (err) {
+      console.error('[Settings] Inspector toggle threw:', err);
+    }
+  };
 
   // General Settings Component
   const GeneralSettings = () => (
@@ -179,6 +193,7 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
           </select>
         </div>
       </div>
+
     </div>
   );
 
@@ -513,6 +528,12 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
             <option value="stl">STL</option>
             <option value="usd">USD</option>
           </select>
+        </div>
+        <div className="settings-option">
+          <button className="settings-button" onClick={handleInspectorToggle}>
+            Toggle Babylon.js Inspector
+          </button>
+          <p className="settings-helper-text">Shortcut: Ctrl + Shift + I</p>
         </div>
       </div>
     </div>
