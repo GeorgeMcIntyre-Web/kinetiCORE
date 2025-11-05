@@ -534,3 +534,52 @@ export function getAllChildren(node: BABYLON.TransformNode): BABYLON.TransformNo
   // Filter out duplicates: keep only nodes whose direct parent is the current node
   return allChildren.filter(child => child.parent === node);
 }
+
+/**
+ * CRITICAL FIX: Convert CAD content from Z-up to Y-up, then zero transforms
+ * This is a one-time canonical converter that bakes transforms into vertices
+ * and removes all parent rotations so nothing upstream ever rotates the world.
+ * 
+ * @param meshes - Array of meshes to convert
+ * @param scene - Babylon.js scene
+ * @returns Array of converted meshes with zero transforms
+ */
+export function convertCADToYUp(
+  meshes: BABYLON.AbstractMesh[],
+  scene: BABYLON.Scene
+): BABYLON.AbstractMesh[] {
+  // One canonical converter for Z-up CAD → Y-up Babylon
+  const cadRoot = new BABYLON.TransformNode('cadRoot', scene);
+  cadRoot.rotationQuaternion = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.X, -Math.PI / 2);
+
+  // When you import/load meshes: parent them under cadRoot first
+  meshes.forEach(m => {
+    if (m instanceof BABYLON.Mesh) {
+      m.setParent(cadRoot);
+    }
+  });
+
+  // Bake & zero so nothing upstream ever rotates the world
+  const convertedMeshes: BABYLON.AbstractMesh[] = [];
+  cadRoot.getChildMeshes().forEach(m => {
+    if (m.isAnInstance) return; // Skip instances
+
+    // Bake transform into vertices (only for Mesh, not TransformNode)
+    if (m instanceof BABYLON.Mesh) {
+      m.bakeCurrentTransformIntoVertices();
+    }
+
+    // Remove from parent and zero transforms
+    m.setParent(null);
+    m.position.set(0, 0, 0);
+    m.rotation.set(0, 0, 0);
+    m.scaling.set(1, 1, 1);
+
+    convertedMeshes.push(m);
+  });
+
+  // Dispose the temporary root
+  cadRoot.dispose();
+
+  return convertedMeshes;
+}

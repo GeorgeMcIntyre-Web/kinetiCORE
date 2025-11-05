@@ -1,9 +1,11 @@
 // Routing Toolbar - Toolbar buttons for routing workflow
 // Owner: Routing System Team
 
-import React from 'react';
-import { Network, Zap, GitBranch, Wrench, FileText } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Network, Zap, GitBranch, Wrench, FileText, Cylinder, Box, GitCommit } from 'lucide-react';
 import { useRoutingStore } from '../../ui/store/routingStore';
+import { useQuickRoutePrimitives } from './QuickRoutePrimitives';
+import { getQuickRouteCreator } from './QuickRouteCreator';
 
 interface RoutingToolbarProps {
   onAddConnector?: () => void;
@@ -28,6 +30,9 @@ export const RoutingToolbar: React.FC<RoutingToolbarProps> = ({
   const setCurrentRouteType = useRoutingStore((state) => state.setCurrentRouteType);
   const routingMode = useRoutingStore((state) => state.routingMode);
   const setRoutingMode = useRoutingStore((state) => state.setRoutingMode);
+  
+  // Quick modeling hooks
+  const { startCreation: startPrimitive, cancelCreation: cancelPrimitive, isActive: isPrimitiveActive, activeType } = useQuickRoutePrimitives();
 
   const handleAddConnector = () => {
     setRoutingMode('placing_connector');
@@ -47,6 +52,45 @@ export const RoutingToolbar: React.FC<RoutingToolbarProps> = ({
     setRoutingMode('editing');
     if (onEditRoute) onEditRoute();
   };
+
+  // Quick primitive creation handlers
+  const handleQuickPrimitive = (type: 'pipe' | 'cable_tray' | 'wire' | 'conduit') => {
+    setRoutingMode('off'); // Disable other routing modes
+    startPrimitive(type);
+  };
+
+  // Quick route creation handlers (direct route creation)
+  const handleQuickRoute = () => {
+    setRoutingMode('off'); // Disable other routing modes
+    const creator = getQuickRouteCreator();
+    if (creator) {
+      creator.startQuickRoute(currentRouteType);
+    } else {
+      console.warn('[RoutingToolbar] Scene not ready for quick route creation');
+    }
+  };
+
+  // Cancel quick modeling on ESC or when mode changes
+  useEffect(() => {
+    if (routingMode !== 'off') {
+      if (isPrimitiveActive) {
+        cancelPrimitive();
+      }
+      const creator = getQuickRouteCreator();
+      if (creator && creator.isActive()) {
+        creator.cancelQuickRoute();
+      }
+    }
+  }, [routingMode, isPrimitiveActive, cancelPrimitive]);
+
+  const isQuickRouteActive = (() => {
+    try {
+      const creator = getQuickRouteCreator();
+      return creator ? creator.isActive() : false;
+    } catch {
+      return false;
+    }
+  })();
 
   return (
     <div className="routing-toolbar-container" data-testid="routing-toolbar">
@@ -94,6 +138,31 @@ export const RoutingToolbar: React.FC<RoutingToolbarProps> = ({
         >
           <FileText size={32} />
         </button>
+
+        {/* Quick Modeling Tools */}
+        <div style={{ borderLeft: '1px solid #444', marginLeft: '8px', paddingLeft: '8px', display: 'flex', gap: '4px' }}>
+          <button
+            className={`ribbon-btn ${isPrimitiveActive && activeType === 'pipe' ? 'active' : ''}`}
+            onClick={() => handleQuickPrimitive('pipe')}
+            title="Quick Pipe (Primitive)"
+          >
+            <Cylinder size={32} />
+          </button>
+          <button
+            className={`ribbon-btn ${isPrimitiveActive && activeType === 'cable_tray' ? 'active' : ''}`}
+            onClick={() => handleQuickPrimitive('cable_tray')}
+            title="Quick Cable Tray (Primitive)"
+          >
+            <Box size={32} />
+          </button>
+          <button
+            className={`ribbon-btn ${isQuickRouteActive ? 'active' : ''}`}
+            onClick={handleQuickRoute}
+            title="Quick Route (Direct - Click 2 points)"
+          >
+            <GitCommit size={32} />
+          </button>
+        </div>
 
         <select
           className="ribbon-select"

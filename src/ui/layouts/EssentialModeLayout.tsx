@@ -23,6 +23,10 @@ import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
 import { MoveObjectDialog } from '../components/MoveObjectDialog';
 import { ProjectManagerPanelV2 } from '../components/ProjectManager/ProjectManagerPanelV2';
 import { ProjectSaveDialog } from '../components/ProjectSaveDialog';
+import { Inspector } from '../components/Inspector';
+import { FloatingPanel } from '../components/FloatingPanel/FloatingPanel';
+import { AssetLibraryDarkPanel } from '../components/FloatingPanel/AssetLibraryDarkPanel';
+import { Info } from 'lucide-react';
 import { useProjectManagerStore } from '../store/projectManagerStore';
 import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
@@ -79,6 +83,7 @@ export const EssentialModeLayout: React.FC = () => {
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [showInspectorPanel, setShowInspectorPanel] = useState(true); // Inspector panel visible by default
 
   // Resizable sidebar state
   const [sidebarWidth, setSidebarWidth] = useState(256); // Default 256px (w-64)
@@ -566,6 +571,7 @@ export const EssentialModeLayout: React.FC = () => {
             onRightViewClick: handleRightView,
             onFrontViewClick: handleFrontView,
             onIsoViewClick: handleIsoView,
+            onInspectorClick: () => setShowInspectorPanel(!showInspectorPanel),
           }}
         />
 
@@ -692,6 +698,23 @@ export const EssentialModeLayout: React.FC = () => {
         onClose={() => setShowSettingsPanel(false)}
         zIndex={1009}
       />
+
+      {/* Inspector Panel - Right side floating panel */}
+      <FloatingPanel
+        title="Inspector"
+        icon={<Info size={16} />}
+        isVisible={showInspectorPanel}
+        onClose={() => setShowInspectorPanel(false)}
+        zIndex={1010}
+        defaultSize={{ width: 350, height: 600 }}
+        minWidth={300}
+        minHeight={200}
+        defaultDockPosition="right"
+      >
+        <AssetLibraryDarkPanel title="" onClose={undefined}>
+          <Inspector />
+        </AssetLibraryDarkPanel>
+      </FloatingPanel>
 
       {/* Transform Display - Bottom-right corner */}
       {transform && (

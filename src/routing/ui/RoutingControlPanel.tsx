@@ -2,12 +2,13 @@
 // Owner: Routing System Team
 
 import React, { useState } from 'react';
-import { Network, Trash2, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react';
+import { Network, Trash2, Eye, EyeOff, Cylinder, Box, GitCommit } from 'lucide-react';
 import { useEditorStore } from '../../ui/store/editorStore';
 import { useRoutingStore } from '../../ui/store/routingStore';
 import { ConnectionManager } from '../core/ConnectionManager';
 import { RoutingWorkflowHandler } from './RoutingWorkflowHandler';
-import { WarehouseControls } from './WarehouseControls';
+import { useQuickRoutePrimitives } from './QuickRoutePrimitives';
+import { getQuickRouteCreator } from './QuickRouteCreator';
 import './RoutingControlPanel.css';
 
 interface RoutingControlPanelProps {
@@ -34,11 +35,40 @@ export const RoutingControlPanel: React.FC<RoutingControlPanelProps> = ({ onClos
 
   const [selectedConnectorIds, setSelectedConnectorIds] = useState<string[]>([]);
   const [showRoutes, setShowRoutes] = useState(true);
-  const [showWarehouseControls, setShowWarehouseControls] = useState(true);
+  const [showQuickModeling, setShowQuickModeling] = useState(true);
+
+  // Quick modeling hooks
+  const { startCreation: startPrimitive, isActive: isPrimitiveActive, activeType } = useQuickRoutePrimitives();
+  
+  // Lazy check for quick route creator (scene may not be ready)
+  const isQuickRouteActive = (() => {
+    try {
+      const creator = getQuickRouteCreator();
+      return creator ? creator.isActive() : false;
+    } catch {
+      return false;
+    }
+  })();
 
   // Get all connection points
   const connectionManager = ConnectionManager.getInstance();
   const allConnectors = connectionManager.getAllConnectionPoints();
+
+  // Quick modeling handlers
+  const handleQuickPrimitive = (type: 'pipe' | 'cable_tray' | 'wire' | 'conduit') => {
+    setRoutingMode('off');
+    startPrimitive(type);
+  };
+
+  const handleQuickRoute = () => {
+    setRoutingMode('off');
+    const creator = getQuickRouteCreator();
+    if (creator) {
+      creator.startQuickRoute(currentRouteType);
+    } else {
+      console.warn('[RoutingControlPanel] Scene not ready for quick route creation');
+    }
+  };
 
   // Handle placing connector mode
   const handlePlaceConnector = () => {
@@ -107,21 +137,63 @@ export const RoutingControlPanel: React.FC<RoutingControlPanelProps> = ({ onClos
         )}
       </div>
 
-      {/* Warehouse Controls Section */}
+      {/* Quick Modeling Section */}
       <div className="section">
         <div className="section-header">
-          <h4>Warehouse</h4>
+          <h4>Quick Modeling</h4>
           <button
             className="icon-btn"
-            onClick={() => setShowWarehouseControls(!showWarehouseControls)}
-            title={showWarehouseControls ? 'Hide warehouse controls' : 'Show warehouse controls'}
+            onClick={() => setShowQuickModeling(!showQuickModeling)}
+            title={showQuickModeling ? 'Hide quick modeling' : 'Show quick modeling'}
           >
-            {showWarehouseControls ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            {showQuickModeling ? '−' : '+'}
           </button>
         </div>
-        {showWarehouseControls && (
-          <div className="warehouse-controls-wrapper">
-            <WarehouseControls />
+        {showQuickModeling && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ fontSize: '11px', color: '#718096', marginBottom: '4px' }}>
+              Option A: Create primitives (can convert to routes later)
+            </div>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              <button
+                className={`secondary-btn ${isPrimitiveActive && activeType === 'pipe' ? 'active' : ''}`}
+                onClick={() => handleQuickPrimitive('pipe')}
+                title="Quick Pipe (Primitive)"
+                style={{ flex: 1, minWidth: '80px' }}
+              >
+                <Cylinder size={14} />
+                <span>Pipe</span>
+              </button>
+              <button
+                className={`secondary-btn ${isPrimitiveActive && activeType === 'cable_tray' ? 'active' : ''}`}
+                onClick={() => handleQuickPrimitive('cable_tray')}
+                title="Quick Cable Tray (Primitive)"
+                style={{ flex: 1, minWidth: '80px' }}
+              >
+                <Box size={14} />
+                <span>Tray</span>
+              </button>
+            </div>
+            <div style={{ fontSize: '11px', color: '#718096', marginTop: '8px', marginBottom: '4px' }}>
+              Option B: Direct route creation (click 2 points)
+            </div>
+            <button
+              className={`primary-btn ${isQuickRouteActive ? 'active' : ''}`}
+              onClick={handleQuickRoute}
+              title={`Quick Route - Click start point, then end point (${currentRouteType === 'pipe' ? '40mm pipe' : currentRouteType === 'cable_tray' ? '400mm tray' : currentRouteType === 'conduit' ? '50mm conduit' : 'electrical'})`}
+              style={{ width: '100%' }}
+            >
+              <GitCommit size={16} />
+              <span>Quick Route</span>
+              <span style={{ fontSize: '10px', opacity: 0.7, marginLeft: '4px' }}>
+                {currentRouteType === 'pipe' ? '(40mm)' : currentRouteType === 'cable_tray' ? '(400mm)' : currentRouteType === 'conduit' ? '(50mm)' : ''}
+              </span>
+            </button>
+            {(isPrimitiveActive || isQuickRouteActive) && (
+              <div className="hint-box">
+                {isPrimitiveActive ? `Click in viewport to place ${activeType} (ESC to cancel)` : 'Click start point, then end point (ESC to cancel)'}
+              </div>
+            )}
           </div>
         )}
       </div>

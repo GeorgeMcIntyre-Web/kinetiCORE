@@ -95,7 +95,9 @@ export class SkeletonLinkRenderer {
     // Ensure the node has an up-to-date world matrix before anyone queries it
     try {
       babylonNode.computeWorldMatrix(true);
-    } catch {}
+    } catch {
+      // Silently ignore matrix computation errors
+    }
     console.log(`[SkeletonLinkRenderer] Found robot model root: ${babylonNode.name} (uniqueId: ${babylonNode.uniqueId})`);
     return babylonNode;
   }

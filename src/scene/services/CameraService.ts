@@ -25,6 +25,7 @@ export class CameraService {
   private static instance: CameraService | null = null;
   private camera: BABYLON.ArcRotateCamera | null = null;
   private engine: BABYLON.Engine | BABYLON.WebGPUEngine | null = null;
+  private scene: BABYLON.Scene | null = null;
 
   private constructor() {}
 
@@ -40,6 +41,7 @@ export class CameraService {
    */
   initialize(scene: BABYLON.Scene, canvas: HTMLCanvasElement, engine: BABYLON.Engine | BABYLON.WebGPUEngine): void {
     this.engine = engine;
+    this.scene = scene;
 
     // Create default camera (Y-up Babylon native)
     // Note: User sees Z-up via CoordinateSystem.ts conversions
@@ -325,12 +327,25 @@ export class CameraService {
    */
   adjustClippingPlanesForObject(mesh: BABYLON.AbstractMesh | null): void {
     if (!this.camera) return;
+    const scene = this.camera.getScene();
+    if (!scene) return;
 
     if (!mesh) {
       // Reset to default clipping planes when no object selected
+      // CRITICAL: Preserve skybox maxZ if skybox exists
       this.camera.minZ = CAMERA_MIN_Z;
-      this.camera.maxZ = CAMERA_MAX_Z;
-      console.log('[CameraService] Reset clipping planes to defaults:', { minZ: CAMERA_MIN_Z, maxZ: CAMERA_MAX_Z });
+      
+      const skybox = scene.getMeshByName('skybox');
+      const skyboxSize = 1_000_000; // Skybox is 1,000km
+      const requiredMaxZ = skyboxSize * 1.5; // 1.5x skybox size (1,500,000)
+      
+      if (skybox && skybox.isVisible) {
+        this.camera.maxZ = Math.max(requiredMaxZ, CAMERA_MAX_Z);
+        console.log('[CameraService] Reset clipping planes - preserved skybox maxZ:', this.camera.maxZ);
+      } else {
+        this.camera.maxZ = CAMERA_MAX_Z;
+        console.log('[CameraService] Reset clipping planes to defaults:', { minZ: CAMERA_MIN_Z, maxZ: CAMERA_MAX_Z });
+      }
       return;
     }
 
@@ -345,7 +360,16 @@ export class CameraService {
     const nearClip = Math.max(maxDimension * 0.01, 0.0001);
 
     // Far plane: 100x object size (ensures we can see the whole object from any angle)
-    const farClip = Math.min(maxDimension * 100, CAMERA_MAX_Z);
+    // CRITICAL: But must be at least skybox size if skybox exists
+    const skybox = this.scene.getMeshByName('skybox');
+    const skyboxSize = 1_000_000; // Skybox is 1,000km
+    const requiredMaxZ = skyboxSize * 1.5; // 1.5x skybox size (1,500,000)
+    
+    let farClip = Math.min(maxDimension * 100, CAMERA_MAX_Z);
+    // If skybox exists, ensure farClip is large enough to see it
+    if (skybox && skybox.isVisible) {
+      farClip = Math.max(farClip, requiredMaxZ);
+    }
 
     // Apply new clipping planes
     this.camera.minZ = nearClip;
@@ -354,18 +378,36 @@ export class CameraService {
     console.log('[CameraService] Adjusted clipping planes for object:', {
       objectSize: maxDimension.toFixed(3),
       minZ: nearClip.toFixed(6),
-      maxZ: farClip.toFixed(1)
+      maxZ: farClip.toFixed(1),
+      skyboxPreserved: skybox && skybox.isVisible ? 'YES' : 'NO'
     });
   }
 
   /**
    * Reset clipping planes to defaults
+   * CRITICAL: Preserve maxZ if skybox exists (skybox is 1,000,000 units)
    */
   resetClippingPlanes(): void {
     if (!this.camera) return;
+    const scene = this.camera.getScene();
+    if (!scene) return;
+    
     this.camera.minZ = CAMERA_MIN_Z;
-    this.camera.maxZ = CAMERA_MAX_Z;
-    console.log('[CameraService] Reset clipping planes to defaults');
+    
+    // CRITICAL: Check if skybox exists - if so, maxZ must be at least 1,500,000 to see it
+    const skybox = scene.getMeshByName('skybox');
+    const skyboxSize = 1_000_000; // Skybox is 1,000km
+    const requiredMaxZ = skyboxSize * 1.5; // 1.5x skybox size (1,500,000)
+    
+    if (skybox && skybox.isVisible) {
+      // Skybox exists - ensure maxZ is large enough to see it
+      this.camera.maxZ = Math.max(requiredMaxZ, CAMERA_MAX_Z);
+      console.log('[CameraService] Reset clipping planes - preserved skybox maxZ:', this.camera.maxZ);
+    } else {
+      // No skybox - use default
+      this.camera.maxZ = CAMERA_MAX_Z;
+      console.log('[CameraService] Reset clipping planes to defaults');
+    }
   }
 
   getCamera(): BABYLON.ArcRotateCamera | null {

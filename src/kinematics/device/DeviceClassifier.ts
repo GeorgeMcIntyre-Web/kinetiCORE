@@ -546,13 +546,15 @@ export class DeviceClassifier {
     const lowerName = deviceName.toLowerCase();
     
     switch (detectedType) {
-      case 'robot':
+      case 'robot': {
         const robotKeywords = ['robot', 'arm', 'manipulator', 'ur', 'kuka', 'abb', 'fanuc'];
         return robotKeywords.some(keyword => lowerName.includes(keyword)) ? 0.1 : 0;
+      }
         
-      case 'gripper':
+      case 'gripper': {
         const gripperKeywords = ['gripper', 'hand', 'jaw', 'clamp', 'robotiq', 'schunk'];
         return gripperKeywords.some(keyword => lowerName.includes(keyword)) ? 0.1 : 0;
+      }
         
       case 'fixture':
         const fixtureKeywords = ['fixture', 'mount', 'clamp', 'holder', 'base'];

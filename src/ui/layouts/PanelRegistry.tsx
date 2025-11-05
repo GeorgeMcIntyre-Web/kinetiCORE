@@ -8,12 +8,13 @@ import { Inspector } from '../components/Inspector';
 import { KinematicsPanel } from '../components/KinematicsPanel';
 import { RouteStatsPanel } from '../../routing/ui/RouteStatsPanel';
 import { RoutingControlPanel } from '../../routing/ui/RoutingControlPanel';
+import { WarehousePanel } from '../../routing/ui/WarehousePanel';
 import { SceneCanvas } from '../components/SceneCanvas';
 import { ComingSoon } from '../components/ComingSoon';
 import { SelectionIndicator } from '../components/SelectionIndicator';
 import { useEditorStore } from '../store/editorStore';
 
-export type PanelType = 'sceneTree' | 'inspector' | 'kinematics' | 'toolPalette' | 'routeStats' | 'routingControl' | 'viewport';
+export type PanelType = 'sceneTree' | 'inspector' | 'kinematics' | 'toolPalette' | 'routeStats' | 'routingControl' | 'warehouse' | 'viewport';
 
 export interface PanelConfig {
   id: PanelType;
@@ -52,6 +53,10 @@ const RouteStatsPanelWrapper: React.FC<IDockviewPanelProps> = () => {
 
 const RoutingControlPanelWrapper: React.FC<IDockviewPanelProps> = () => {
   return <RoutingControlPanel />;
+};
+
+const WarehousePanelWrapper: React.FC<IDockviewPanelProps> = () => {
+  return <WarehousePanel />;
 };
 
 const ViewportPanel: React.FC<IDockviewPanelProps> = () => {
@@ -103,6 +108,12 @@ export const PANEL_REGISTRY: Record<PanelType, PanelConfig> = {
     title: 'Routing Control',
     component: RoutingControlPanelWrapper,
     defaultWidth: 320,
+  },
+  warehouse: {
+    id: 'warehouse',
+    title: 'Warehouse',
+    component: WarehousePanelWrapper,
+    defaultWidth: 240, // Reduced from 320 for more compact layout
   },
   viewport: {
     id: 'viewport',

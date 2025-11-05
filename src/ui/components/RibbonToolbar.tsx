@@ -10,8 +10,6 @@ import {
   Square,
   Crosshair,
   Package,
-  FileUp,
-  FolderUp,
   FolderOpen,
   Move,
   Calculator,
@@ -27,6 +25,7 @@ import {
   Rocket,
   Scan,
   TestTube,
+  Info,
 } from 'lucide-react';
 import { loadOBJFile } from '../../loaders/obj/OBJLoader';
 import { SceneManager } from '../../scene/SceneManager';
@@ -133,6 +132,7 @@ export interface RibbonToolbarProps {
   onRightViewClick?: () => void;
   onFrontViewClick?: () => void;
   onIsoViewClick?: () => void;
+  onInspectorClick?: () => void; // Toggle Inspector panel
 }
 
 export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
@@ -156,6 +156,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onRightViewClick,
   onFrontViewClick,
   onIsoViewClick,
+  onInspectorClick,
 }) => {
   const { userLevel } = useUserLevel();
   
@@ -173,18 +174,16 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   const loadWorld = useEditorStore((state) => state.loadWorld);
   const currentView = useEditorStore((state) => state.currentView);
   const setCurrentView = useEditorStore((state) => state.setCurrentView);
+  const toggleInspector = useEditorStore((state) => state.toggleInspector); // Babylon.js debug inspector
 
-  // File input refs
+  // File input refs (still used for hidden file inputs)
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const worldLoadInputRef = useRef<HTMLInputElement>(null);
   const objInputRef = useRef<HTMLInputElement>(null);
 
   // Handlers
-  const handleImportFile = () => fileInputRef.current?.click();
-  const handleImportFolder = () => folderInputRef.current?.click();
   const handleLoadWorld = () => worldLoadInputRef.current?.click();
-  const handleImportOBJ = () => objInputRef.current?.click();
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     console.log('[RibbonToolbar] ❌ GENERIC FILE LOADER - WRONG BUTTON! Use the Robot icon for OBJ files');
@@ -289,30 +288,22 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
         </div>
       </div>
 
-      {/* Import Category */}
-      <div className="ribbon-category-excel">
-        <div className="ribbon-category-label">Import</div>
-        <div className="ribbon-buttons-row">
-          <button className="ribbon-btn" onClick={handleImportFile} title="Import Model (URDF, GLTF, USD, etc.)">
-            <FileUp size={32} />
-          </button>
-          <button className="ribbon-btn" onClick={handleImportFolder} title="Import Folder">
-            <FolderUp size={32} />
-          </button>
-          <button className="ribbon-btn" onClick={handleImportOBJ} title="Import OBJ Mesh">
-            <Package size={32} />
-          </button>
-        </div>
-      </div>
-
       {/* Create Category */}
       <div className="ribbon-category-excel">
-        <div className="ribbon-category-label">Create</div>
+        <div className="ribbon-category-label">Creation</div>
         <div className="ribbon-buttons-row">
           <CreateDropdown
             onCreateBox={() => createObject('box')}
             onCreateSphere={() => createObject('sphere')}
             onCreateCylinder={() => createObject('cylinder')}
+            onCreateCone={() => createObject('cone')}
+            onCreateTorus={() => createObject('torus')}
+            onCreatePlane={() => createObject('plane')}
+            onCreateGround={() => createObject('ground')}
+            onCreateCapsule={() => createObject('capsule')}
+            onCreateDisc={() => createObject('disc')}
+            onCreateTorusKnot={() => createObject('torusknot')}
+            onCreatePolyhedron={() => createObject('polyhedron')}
           />
           <button className="ribbon-btn" onClick={() => createCollection()} title="Collection">
             <Package size={32} />
@@ -378,6 +369,22 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
             onIsoViewClick={handleIsoViewClick}
             currentView={currentView}
           />
+          <button 
+            className="ribbon-btn" 
+            onClick={() => {
+              onInspectorClick?.(); // Toggle Inspector panel
+            }} 
+            title="Toggle Inspector Panel"
+          >
+            <Info size={32} />
+          </button>
+          <button 
+            className="ribbon-btn" 
+            onClick={() => toggleInspector()} 
+            title="Toggle Babylon.js Debug Inspector (Ctrl+Shift+I)"
+          >
+            <Settings size={32} />
+          </button>
         </div>
       </div>
 

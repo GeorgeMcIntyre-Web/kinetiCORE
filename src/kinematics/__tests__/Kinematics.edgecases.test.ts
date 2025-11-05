@@ -21,9 +21,11 @@ import type { IKTarget } from '../InverseKinematicsSolver';
 
 describe('Kinematics - Edge Cases and Robustness', () => {
   let engine: BABYLON.Engine | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let scene: BABYLON.Scene | null = null;
   let fkSolver: ForwardKinematicsSolver;
   let ikSolver: InverseKinematicsSolver;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let kinematicsManager: KinematicsManager;
   let canRunTests = false;
 

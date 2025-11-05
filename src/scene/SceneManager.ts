@@ -16,7 +16,7 @@ export class SceneManager {
   private ground: BABYLON.Mesh | null = null;
   private floorMaterialManager: FloorMaterialManager | null = null;
   private gridOverlay: BABYLON.Mesh | null = null;
-  private currentFloorType: FloorType = 'grid-only';
+  private currentFloorType: FloorType = 'concrete-polished';
   private isInitialized: boolean = false;
 
   // Service dependencies
@@ -61,12 +61,13 @@ export class SceneManager {
     // Create scene
     this.scene = new BABYLON.Scene(this.engineService.getEngine()!);
 
-    // Configure for right-handed coordinate system (matches CAD standards)
-    this.scene.useRightHandedSystem = true;
+    // CRITICAL FIX: Keep Babylon default (left-handed, Y-up) for stable coordinate system
+    // CAD content will be converted to Y-up during import, not at scene level
+    this.scene.useRightHandedSystem = false;
 
-    // Set dark background for better contrast with floor and grid
-    this.scene.clearColor = new BABYLON.Color4(0.12, 0.12, 0.14, 1);
-    console.log('🎨 Scene initialized with dark background:', this.scene.clearColor);
+    // Cloudy sky background - soft blue-grey overcast color
+    this.scene.clearColor = new BABYLON.Color4(0.71, 0.78, 0.82, 1.0); // Cloudy sky (#B5C7D1)
+    console.log('🎨 Scene initialized with cloudy sky background:', this.scene.clearColor);
 
     // Initialize lighting service
     this.lightingService.initialize(this.scene);
@@ -86,14 +87,12 @@ export class SceneManager {
     this.ground.material = floorMaterial;
     this.ground.receiveShadows = true;
 
-    // Create grid overlay for spatial reference
-    // Enable grid by default for grid-only floor type, disable for others
-    const gridInitiallyVisible = this.currentFloorType === 'grid-only';
+    // Create grid overlay for spatial reference - always visible by default
     this.gridOverlay = this.floorMaterialManager.createGridOverlay(
       this.ground,
-      gridInitiallyVisible
+      true // Always show grid by default
     );
-    console.log('🔲 Grid overlay created with enabled:', this.gridOverlay?.isEnabled());
+    console.log('🔲 Grid overlay created and enabled:', this.gridOverlay?.isEnabled());
 
     // Defensive check: Ensure floor and grid are visible (floor should always be visible, grid depends on type)
     // This addresses potential issues where floor might not render due to visibility state
@@ -117,6 +116,13 @@ export class SceneManager {
 
     // Start render loop
     this.cameraService.startRenderLoop(this.scene);
+
+    // CRITICAL FIX: Expose scene to browser console for debugging
+    // Dev convenience for the browser console
+    if (typeof window !== 'undefined' && import.meta.env.DEV) {
+      (window as any).scene = this.scene;
+      console.log('🔧 Scene exposed to window.scene for debugging');
+    }
 
     // Initialize CSG2 for Boolean operations
     try {
@@ -340,11 +346,13 @@ export class SceneManager {
 
     if (transparent) {
       this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
-      // Hide grid overlay when background is transparent
+      // Keep grid overlay visible even when background is transparent (for spatial reference)
       if (this.gridOverlay) {
-        this.gridOverlay.setEnabled(false);
+        this.gridOverlay.setEnabled(true);
+        this.gridOverlay.isVisible = true;
+        this.gridOverlay.visibility = 1.0;
       }
-      console.log('✅ Background set to transparent (grid overlay hidden)');
+      console.log('✅ Background set to transparent (grid overlay visible)');
     } else {
       // Use a default dark background
       this.scene.clearColor = new BABYLON.Color4(0.2, 0.2, 0.25, 1);

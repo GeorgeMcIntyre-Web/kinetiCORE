@@ -20,13 +20,15 @@ export const CoordinateFrame: React.FC<CoordinateFrameProps> = ({ camera }) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const size = 90; // Canvas size - balanced for labels
-    const center = size / 2;
+    const frameSize = 90; // Size for each frame
+    const canvasWidth = 200; // Width for two frames side by side
+    const canvasHeight = 110; // Height to accommodate frames and labels
     const axisLength = 25; // Axis length - shorter to fit labels
+    const frameSpacing = 10; // Space between frames
 
     const drawFrame = () => {
       // Clear canvas
-      ctx.clearRect(0, 0, size, size);
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
       if (!(camera instanceof BABYLON.ArcRotateCamera)) return;
 
@@ -47,26 +49,75 @@ export const CoordinateFrame: React.FC<CoordinateFrameProps> = ({ camera }) => {
       // Recalculate up to ensure orthogonal (in case of drift)
       const trueUp = BABYLON.Vector3.Cross(forward, right).normalize();
 
-      // Define world axes in USER coordinate system (Z-up CAD convention)
+      // Define CAD frame axes (Z-up CAD convention)
       // User space: X=right, Y=forward, Z=up
       // Babylon space: X=right, Y=up, Z=forward
-      // Compass shows USER axes, so we map Babylon vectors to USER labels correctly
-      const worldAxes = [
+      const cadAxes = [
         { dir: new BABYLON.Vector3(1, 0, 0), color: '#FF4444', label: 'X' }, // X = right (same in both)
         { dir: new BABYLON.Vector3(0, 0, 1), color: '#44FF44', label: 'Y' }, // Y = forward (Babylon +Z)
         { dir: new BABYLON.Vector3(0, 1, 0), color: '#4444FF', label: 'Z' }, // Z = up (Babylon +Y)
       ];
 
+      // Define Babylon frame axes (Y-up native Babylon convention)
+      // Babylon space: X=right, Y=up, Z=forward
+      const babylonAxes = [
+        { dir: new BABYLON.Vector3(1, 0, 0), color: '#FF4444', label: 'X' }, // X = right
+        { dir: new BABYLON.Vector3(0, 1, 0), color: '#44FF44', label: 'Y' }, // Y = up
+        { dir: new BABYLON.Vector3(0, 0, 1), color: '#4444FF', label: 'Z' }, // Z = forward
+      ];
+
+      // Draw CAD frame (left side)
+      const cadCenterX = frameSize / 2;
+      const cadCenterY = frameSize / 2;
+      drawCoordinateFrame(ctx, cadAxes, cadCenterX, cadCenterY, right, trueUp, forward, axisLength);
+
+      // Draw Babylon frame (right side)
+      const babylonCenterX = frameSize + frameSpacing + frameSize / 2;
+      const babylonCenterY = frameSize / 2;
+      drawCoordinateFrame(ctx, babylonAxes, babylonCenterX, babylonCenterY, right, trueUp, forward, axisLength);
+
+      // Draw labels below frames with better visibility
+      ctx.font = 'bold 12px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      
+      // Draw text with stroke for better visibility
+      const labelY = frameSize + 8;
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 3;
+      ctx.lineJoin = 'round';
+      ctx.miterLimit = 2;
+      
+      // Draw CAD label
+      ctx.strokeText('CAD(Zup)', cadCenterX, labelY);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText('CAD(Zup)', cadCenterX, labelY);
+      
+      // Draw Babylon label
+      ctx.strokeText('Babylon(Yup)', babylonCenterX, labelY);
+      ctx.fillText('Babylon(Yup)', babylonCenterX, labelY);
+    };
+
+    const drawCoordinateFrame = (
+      ctx: CanvasRenderingContext2D,
+      axes: Array<{ dir: BABYLON.Vector3; color: string; label: string }>,
+      centerX: number,
+      centerY: number,
+      right: BABYLON.Vector3,
+      trueUp: BABYLON.Vector3,
+      forward: BABYLON.Vector3,
+      axisLength: number
+    ) => {
       // Project each axis to camera space
-      const projectedAxes = worldAxes.map(axis => {
+      const projectedAxes = axes.map(axis => {
         // Project world axis onto camera basis vectors
         const camX = BABYLON.Vector3.Dot(axis.dir, right);
         const camY = BABYLON.Vector3.Dot(axis.dir, trueUp);
         const camZ = BABYLON.Vector3.Dot(axis.dir, forward);
 
         // Convert to screen coordinates
-        const screenX = center + camX * axisLength;
-        const screenY = center - camY * axisLength; // Flip Y for screen coordinates
+        const screenX = centerX + camX * axisLength;
+        const screenY = centerY - camY * axisLength; // Flip Y for screen coordinates
 
         return {
           x: screenX,
@@ -82,7 +133,7 @@ export const CoordinateFrame: React.FC<CoordinateFrameProps> = ({ camera }) => {
 
       // Draw each axis
       projectedAxes.forEach(axis => {
-        drawAxis(ctx, center, center, axis.x, axis.y, axis.color, axis.label);
+        drawAxis(ctx, centerX, centerY, axis.x, axis.y, axis.color, axis.label);
       });
     };
 
@@ -163,7 +214,7 @@ export const CoordinateFrame: React.FC<CoordinateFrameProps> = ({ camera }) => {
 
   return (
     <div className="coordinate-frame">
-      <canvas ref={canvasRef} width={90} height={90} />
+      <canvas ref={canvasRef} width={200} height={110} />
     </div>
   );
 };

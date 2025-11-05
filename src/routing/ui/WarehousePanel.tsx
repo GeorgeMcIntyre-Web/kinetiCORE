@@ -1,14 +1,13 @@
-// Warehouse Controls - Compact UI for adjusting warehouse model
+// Warehouse Panel - Standalone docking panel for warehouse controls
 // Owner: Routing System Team
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import { 
   Minus, 
   Plus, 
   Maximize2,
   Building2,
-  X,
   Eye,
   EyeOff,
   Camera
@@ -18,15 +17,11 @@ import { WarehouseModel, WarehouseConfig, SkyboxSource } from '../core/Warehouse
 import { CameraService } from '../../scene/services/CameraService';
 import './WarehouseControls.css';
 
-interface WarehouseControlsProps {
-  onClose?: () => void;
-}
-
 /**
- * Compact warehouse controls panel with icon buttons
- * Allows adjusting warehouse size and configuring interior view
+ * Standalone warehouse controls panel for docking system
+ * Extracted from WarehouseControls.tsx for use as a dockable panel
  */
-export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose }) => {
+export const WarehousePanel: React.FC = () => {
   const [warehouse, setWarehouse] = useState<WarehouseModel | null>(null);
   const [config, setConfig] = useState<WarehouseConfig>({
     width: 50000,  // 50m
@@ -35,56 +30,30 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     // Atmosphere settings
     enableFog: false,
     enableSkybox: false, // DISABLED: Causes rendering issues
-    // PROMPT #3: Sun defaults
+    // Sun defaults
     enableSun: true,
     sunAzimuth: -45,
     sunElevation: 35,
     sunIntensity: 1.0,
-    // PROMPT #4: Skybox source default
+    // Skybox source default
     skyboxSource: 'sunny',
   });
   const [isVisible, setIsVisible] = useState(false); // DEBUG: Hidden by default for skybox/floor debugging
 
-  useEffect(() => {
-    // Only create warehouse when visibility is enabled
-    if (!isVisible) {
-      return;
-    }
+  const createSkyboxOnly = useCallback((scene: BABYLON.Scene) => {
+    // DISABLED: Skybox causes rendering issues
+    // Just create warehouse without skybox
+    const noSkyboxConfig = { ...config, skipBuilding: true, enableSkybox: false };
+    const warehouse = new WarehouseModel(scene, noSkyboxConfig);
+    (warehouse as any).isSkyboxOnly = true;
+    setWarehouse(warehouse);
+    console.log('[WarehousePanel] ✅ Created warehouse (no skybox)');
+  }, [config]);
 
-    // Wait for scene to be ready with retry
-    let scene = SceneManager.getInstance().getScene();
-    if (!scene) {
-      const retryTimeout = setTimeout(() => {
-        scene = SceneManager.getInstance().getScene();
-        if (scene && isVisible) {
-          initializeWarehouse(scene);
-        } else {
-          console.warn('[WarehouseControls] Scene not available after retry');
-        }
-      }, 500);
-      return () => clearTimeout(retryTimeout);
-    }
-
-    if (isVisible && !warehouse) {
-      initializeWarehouse(scene);
-    }
-
-    // Cleanup: dispose warehouse when visibility becomes false or component unmounts
-    return () => {
-      if (warehouse) {
-        warehouse.dispose();
-        setWarehouse(null);
-      }
-    };
-  }, [isVisible, warehouse]);
-
-  const initializeWarehouse = (scene: BABYLON.Scene) => {
-    // CRITICAL: Set background to transparent BEFORE creating warehouse
-    // This ensures skybox is visible (per Babylon.js official docs)
-    SceneManager.getInstance().setBackgroundTransparent(true);
-
-    // Create warehouse model
-    const warehouseModel = new WarehouseModel(scene, config);
+  const initializeWarehouse = useCallback((scene: BABYLON.Scene) => {
+    // Don't modify scene background - keep the default cloudy sky
+    // Create warehouse model without skybox
+    const warehouseModel = new WarehouseModel(scene, { ...config, enableSkybox: false });
     setWarehouse(warehouseModel);
 
     // Keep the default ground plane visible (warehouse floor replaces it, but grid overlay stays)
@@ -99,7 +68,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
       
       // Set clipping planes for exterior view + skybox visibility
       camera.minZ = 0.1; // Near: 10cm
-      // CRITICAL: maxZ must be HUGE to see the skybox (which is 1,000,000 units)
+      // CRITICAL: maxZ must be HUGE to see the skybox (which is 1000x warehouse size)
       const skyboxSize = 1_000_000; // Skybox is 1,000km
       const maxDimension = Math.max(widthM, depthM, heightM);
       camera.maxZ = Math.max(skyboxSize * 1.5, maxDimension * 2000); // At least 1.5x skybox size (1,500,000)
@@ -128,16 +97,61 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
       // Update camera immediately
       camera.setTarget(camera.target);
       
-      console.log(`[WarehouseControls] 📷 Camera positioned OUTSIDE warehouse`);
-      console.log(`[WarehouseControls] Camera target: (${camera.target.x.toFixed(1)}, ${camera.target.y.toFixed(1)}, ${camera.target.z.toFixed(1)})`);
-      console.log(`[WarehouseControls] Camera radius: ${camera.radius.toFixed(1)}m (outside warehouse)`);
-      console.log(`[WarehouseControls] Camera position: (${camera.position.x.toFixed(1)}, ${camera.position.y.toFixed(1)}, ${camera.position.z.toFixed(1)})`);
+      console.log(`[WarehousePanel] 📷 Camera positioned OUTSIDE warehouse`);
+      console.log(`[WarehousePanel] Camera target: (${camera.target.x.toFixed(1)}, ${camera.target.y.toFixed(1)}, ${camera.target.z.toFixed(1)})`);
+      console.log(`[WarehousePanel] Camera radius: ${camera.radius.toFixed(1)}m (outside warehouse)`);
+      console.log(`[WarehousePanel] Camera position: (${camera.position.x.toFixed(1)}, ${camera.position.y.toFixed(1)}, ${camera.position.z.toFixed(1)})`);
+    }
+  }, [config]);
+
+  // Create skybox-only warehouse immediately (for skybox visibility)
+  useEffect(() => {
+    let scene = SceneManager.getInstance().getScene();
+    if (!scene) {
+      const retryTimeout = setTimeout(() => {
+        scene = SceneManager.getInstance().getScene();
+        if (scene && !warehouse) {
+          createSkyboxOnly(scene);
+        }
+      }, 500);
+      return () => clearTimeout(retryTimeout);
     }
 
+    // Create skybox-only warehouse if it doesn't exist
+    if (!warehouse && scene) {
+      createSkyboxOnly(scene);
+    }
+
+    // Cleanup: dispose warehouse when component unmounts
     return () => {
-      warehouseModel.dispose();
+      if (warehouse) {
+        warehouse.dispose();
+        setWarehouse(null);
+      }
     };
-  };
+  }, [createSkyboxOnly]); // Run once on mount
+
+  // Handle visibility toggle - switch between skybox-only and full warehouse
+  useEffect(() => {
+    if (!warehouse) return;
+
+    const scene = SceneManager.getInstance().getScene();
+    if (!scene) return;
+
+    const isSkyboxOnly = (warehouse as any).isSkyboxOnly;
+
+    if (isVisible && isSkyboxOnly) {
+      // Switch from skybox-only to full warehouse
+      warehouse.dispose();
+      setWarehouse(null);
+      initializeWarehouse(scene);
+    } else if (!isVisible && !isSkyboxOnly) {
+      // Switch from full warehouse to skybox-only
+      warehouse.dispose();
+      setWarehouse(null);
+      createSkyboxOnly(scene);
+    }
+  }, [isVisible, warehouse, createSkyboxOnly, initializeWarehouse]);
 
   // Update warehouse when config changes
   useEffect(() => {
@@ -190,11 +204,12 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
   };
 
   const resetSize = () => {
-    setConfig({
+    setConfig(prev => ({
+      ...prev,
       width: 50000,
       depth: 50000,
       height: 20000,
-    });
+    }));
   };
 
   const toggleVisibility = () => {
@@ -204,7 +219,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     // No need to manually enable/disable rootNode - warehouse will be created/destroyed
   };
 
-  const resetCameraToInterior = () => {
+  const resetCamera = () => {
     const camera = CameraService.getInstance().getCamera();
     if (camera && camera instanceof BABYLON.ArcRotateCamera) {
       const widthM = config.width / 1000;
@@ -213,7 +228,9 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
       
       // Set clipping planes for exterior view + skybox visibility
       camera.minZ = 0.1;
-      camera.maxZ = Math.max(widthM, depthM, heightM) * 2000; // Must see skybox
+      // CRITICAL: maxZ must be larger than skybox (1,000,000 units) to see sky!
+      const skyboxSize = 1_000_000; // Skybox is 1,000km
+      camera.maxZ = Math.max(skyboxSize * 1.5, Math.max(widthM, depthM, heightM) * 2000); // At least 1.5x skybox size
 
       // Position camera OUTSIDE the warehouse, looking at it
       camera.target = new BABYLON.Vector3(0, heightM * 0.5, 0); // Center of warehouse at half height
@@ -236,7 +253,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
       // Update camera immediately
       camera.setTarget(camera.target);
       
-      console.log(`[WarehouseControls] 📷 Camera reset to exterior view (outside warehouse)`);
+      console.log(`[WarehousePanel] 📷 Camera reset to exterior view (outside warehouse)`);
     }
   };
 
@@ -247,12 +264,17 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     return `${mm.toFixed(0)}mm`;
   };
 
-  if (!warehouse) {
-    return null;
-  }
+  // Show full UI even when warehouse is not created - user can click to create it
+  // if (!warehouse) {
+  //   return (
+  //     <div style={{ padding: '20px', color: '#a0aec0', textAlign: 'center' }}>
+  //       <div>Initializing warehouse...</div>
+  //     </div>
+  //   );
+  // }
 
   return (
-    <div className="warehouse-controls">
+    <div className="warehouse-controls" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div className="warehouse-controls-header">
         <div className="header-left">
           <Building2 size={16} />
@@ -262,84 +284,83 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
           <button className="icon-btn-small" onClick={resetSize} title="Reset size">
             <Maximize2 size={14} />
           </button>
-          <button className="icon-btn-small" onClick={resetCameraToInterior} title="Reset camera">
+          <button className="icon-btn-small" onClick={resetCamera} title="Reset camera">
             <Camera size={14} />
           </button>
           <button
             className="icon-btn-small"
             onClick={toggleVisibility}
             title={isVisible ? 'Hide warehouse' : 'Show warehouse'}
+            disabled={!warehouse || (warehouse as any).isSkyboxOnly}
           >
             {isVisible ? <EyeOff size={14} /> : <Eye size={14} />}
           </button>
-          {onClose && (
-            <button className="icon-btn-small" onClick={onClose} title="Close">
-              <X size={14} />
+          {(!warehouse || (warehouse as any).isSkyboxOnly) && (
+            <button
+              className="icon-btn-small"
+              onClick={() => {
+                const scene = SceneManager.getInstance().getScene();
+                if (scene) {
+                  if (warehouse) {
+                    warehouse.dispose();
+                  }
+                  initializeWarehouse(scene);
+                  setIsVisible(true);
+                }
+              }}
+              title="Create warehouse"
+              style={{ marginLeft: '8px', padding: '4px 8px', fontSize: '11px', background: '#4a90e2', color: 'white' }}
+            >
+              Create Warehouse
             </button>
           )}
         </div>
       </div>
 
-      <div className="warehouse-controls-body">
+      <div className="warehouse-controls-body" style={{ flex: 1, overflowY: 'auto' }}>
         {/* Dimensions presented in one compact grid */}
         <div className="size-grid">
           <div className="size-item">
-            <label className="size-label" title="Warehouse width along X-axis (10m to 200m)">Width (X)</label>
+            <label className="size-label">Width (X)</label>
             <div className="size-control">
-              <button className="icon-btn-compact" onClick={() => adjustSize('width', -5000)} title="Decrease width by 5m">
+              <button className="icon-btn-compact" onClick={() => adjustSize('width', -5000)} title="-5m">
                 <Minus size={12} />
               </button>
               <span className="size-value">{formatSize(config.width)}</span>
-              <button className="icon-btn-compact" onClick={() => adjustSize('width', 5000)} title="Increase width by 5m">
+              <button className="icon-btn-compact" onClick={() => adjustSize('width', 5000)} title="+5m">
                 <Plus size={12} />
               </button>
             </div>
           </div>
           <div className="size-item">
-            <label className="size-label" title="Warehouse depth along Y-axis (10m to 200m)">Depth (Y)</label>
+            <label className="size-label">Depth (Y)</label>
             <div className="size-control">
-              <button className="icon-btn-compact" onClick={() => adjustSize('depth', -5000)} title="Decrease depth by 5m">
+              <button className="icon-btn-compact" onClick={() => adjustSize('depth', -5000)} title="-5m">
                 <Minus size={12} />
               </button>
               <span className="size-value">{formatSize(config.depth)}</span>
-              <button className="icon-btn-compact" onClick={() => adjustSize('depth', 5000)} title="Increase depth by 5m">
+              <button className="icon-btn-compact" onClick={() => adjustSize('depth', 5000)} title="+5m">
                 <Plus size={12} />
               </button>
             </div>
           </div>
           <div className="size-item">
-            <label className="size-label" title="Warehouse ceiling height along Z-axis (10m to 200m)">Height (Z)</label>
+            <label className="size-label">Height (Z)</label>
             <div className="size-control">
-              <button className="icon-btn-compact" onClick={() => adjustSize('height', -1000)} title="Decrease height by 1m">
+              <button className="icon-btn-compact" onClick={() => adjustSize('height', -1000)} title="-1m">
                 <Minus size={12} />
               </button>
               <span className="size-value">{formatSize(config.height)}</span>
-              <button className="icon-btn-compact" onClick={() => adjustSize('height', 1000)} title="Increase height by 1m">
+              <button className="icon-btn-compact" onClick={() => adjustSize('height', 1000)} title="+1m">
                 <Plus size={12} />
               </button>
             </div>
           </div>
         </div>
 
-        
-
-        
-
-        
-        <div className="presets-group">
-          <button className="preset-btn" onClick={resetSize} title="Reset to 50m × 50m × 20m">
-            <Maximize2 size={12} />
-            <span>Reset Size</span>
-          </button>
-          <button className="preset-btn" onClick={resetCameraToInterior} title="Reset camera to interior view">
-            <Camera size={12} />
-            <span>Reset Camera</span>
-          </button>
-        </div>
-
         {/* Atmosphere Controls */}
-        <div className="size-control-group" style={{ marginTop: 6 }}>
-          <label className="size-label" title="Enable atmospheric fog for depth perception. Creates a subtle distance fade effect.">
+        <div className="size-control-group" style={{ marginTop: 12 }}>
+          <label className="size-label">
             <input
               type="checkbox"
               checked={!!config.enableFog}
@@ -355,9 +376,9 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
           </label>
         </div>
 
-        {/* PROMPT #3: Sun Controls */}
+        {/* Sun Controls */}
         <div className="size-control-group" style={{ marginTop: 6 }}>
-          <label className="size-label" title="Enable directional sun light with cascaded shadow maps. Creates realistic shadows and lighting.">
+          <label className="size-label">
             <input
               type="checkbox"
               checked={!!config.enableSun}
@@ -375,7 +396,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
           {config.enableSun && (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
-                <span style={{ width: 70, fontSize: '11px' }} title="Horizontal angle of the sun (compass direction): -180° (West) to 180° (East). 0° = North, -90° = West, 90° = East.">Azimuth</span>
+                <span style={{ width: 70, fontSize: '11px' }}>Azimuth</span>
                 <input
                   type="range"
                   min={-180}
@@ -390,7 +411,6 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
                     }
                   }}
                   style={{ flex: 1 }}
-                  title="Horizontal angle of the sun (compass direction)"
                 />
                 <span className="size-value" style={{ width: 40 }}>
                   {(config.sunAzimuth ?? -45).toFixed(0)}°
@@ -398,7 +418,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 70, fontSize: '11px' }} title="Vertical angle of the sun (how high in the sky): 0° (horizon) to 90° (directly overhead).">Elevation</span>
+                <span style={{ width: 70, fontSize: '11px' }}>Elevation</span>
                 <input
                   type="range"
                   min={0}
@@ -413,7 +433,6 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
                     }
                   }}
                   style={{ flex: 1 }}
-                  title="Vertical angle of the sun (how high in the sky)"
                 />
                 <span className="size-value" style={{ width: 40 }}>
                   {(config.sunElevation ?? 35).toFixed(0)}°
@@ -421,7 +440,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 70, fontSize: '11px' }} title="Brightness/strength of the sun light: 0.0 (off) to 3.0 (very bright). Default: 1.0">Intensity</span>
+                <span style={{ width: 70, fontSize: '11px' }}>Intensity</span>
                 <input
                   type="range"
                   min={0}
@@ -436,7 +455,6 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
                     }
                   }}
                   style={{ flex: 1 }}
-                  title="Brightness/strength of the sun light"
                 />
                 <span className="size-value" style={{ width: 40 }}>
                   {(config.sunIntensity ?? 1.0).toFixed(1)}
@@ -446,9 +464,9 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
           )}
         </div>
 
-        {/* PROMPT #4: Skybox Source Controls */}
+        {/* Skybox Source Controls */}
         <div className="size-control-group" style={{ marginTop: 6 }}>
-          <label className="size-label" title="Enable skybox environment texture. Creates a distant sky/background around the warehouse.">
+          <label className="size-label">
             <input
               type="checkbox"
               checked={!!config.enableSkybox}
@@ -465,7 +483,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
           
           {config.enableSkybox && (
             <select
-              value={config.skyboxSource || 'industrial'}
+              value={config.skyboxSource || 'sunny'}
               onChange={(e) => {
                 const source = e.target.value as SkyboxSource;
                 setConfig((p) => ({ ...p, skyboxSource: source }));
@@ -484,7 +502,6 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
                 cursor: 'pointer',
                 marginTop: '6px',
               }}
-              title="Select skybox type: Industrial (gray), Sunny Day (blue with clouds), Overcast (cloudy), Night Sky (dark with stars), Sunset (warm orange/red)"
             >
               <option value="industrial">Industrial (Default)</option>
               <option value="sunny">Sunny Day</option>
@@ -498,3 +515,5 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     </div>
   );
 };
+
+
