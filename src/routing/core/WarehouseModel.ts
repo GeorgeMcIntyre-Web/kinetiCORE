@@ -415,7 +415,7 @@ export class WarehouseModel {
     // Skybox bottom provides seamless sand ground that extends to horizon
 
     // Create finite grass floor (reduced size for better performance)
-    // Skybox bottom provides infinite ground beyond this
+    // Skybox bottom provides infinite sand beyond this grass area
     const grassSize = 200; // 200m - reduced from 500m for performance
     const grassMesh = BABYLON.MeshBuilder.CreateGround(
       'warehouse_grass',
@@ -425,7 +425,7 @@ export class WarehouseModel {
       },
       this.scene
     );
-    grassMesh.position = new BABYLON.Vector3(0, -0.001, 0); // Slightly below parking lot to avoid z-fighting
+    grassMesh.position = new BABYLON.Vector3(0, 0.0, 0); // AT Y=0 (ground level, skybox sand below)
     grassMesh.material = this.createGrassMaterial();
     grassMesh.receiveShadows = true;
     grassMesh.isVisible = true;
