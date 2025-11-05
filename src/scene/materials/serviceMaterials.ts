@@ -261,3 +261,38 @@ export function makeJunctionBox(
   return m;
 }
 
+/* -------------- 11) Worn Rusted Painted Metal (industrial PBR) ------------ */
+/** Weathered industrial metal with rust and paint wear.
+ *  Textures from: C:\Users\George\source\repos\kinetiCORE_DATA\Textures\worn-rusted-painted-unity
+ *  Note: metallic.psd needs to be converted to PNG for full PBR support */
+export function makeWornRustedPainted(scene: Scene, uvScale: number = 2): BABYLON.PBRMaterial {
+  const m = new BABYLON.PBRMaterial("worn_rusted_painted", scene);
+  
+  // Base color (albedo)
+  m.albedoTexture = TEX("/assets/worn_rusted/worn-rusted-painted_albedo.png", scene);
+  setUV(m.albedoTexture, uvScale);
+  
+  // Normal map (OpenGL format)
+  m.bumpTexture = TEX("/assets/worn_rusted/worn-rusted-painted_normal-ogl.png", scene);
+  setUV(m.bumpTexture, uvScale);
+  
+  // Ambient occlusion
+  m.ambientTexture = TEX("/assets/worn_rusted/worn-rusted-painted_ao.png", scene);
+  setUV(m.ambientTexture, uvScale);
+  
+  // Height map (can be used for parallax or displacement if needed)
+  // Note: Height map available but not used by default - can be added for advanced effects
+  
+  // Metallic and roughness - using defaults since PSD needs conversion
+  // TODO: Convert worn-rusted-painted_metallic.psd to PNG format for proper metallic/roughness mapping
+  m.metallic = 0.7;  // Rusted metal has moderate metallic properties
+  m.roughness = 0.85; // Weathered surface is quite rough
+  
+  // Optional: Add height map for parallax mapping if needed
+  // m.parallaxScaleBias = 0.05;
+  // m.parallaxTexture = TEX("/assets/worn_rusted/worn-rusted-painted_height.png", scene);
+  
+  (m as any)._kind = "wornRustedPainted";
+  return m;
+}
+
