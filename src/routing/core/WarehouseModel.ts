@@ -820,18 +820,19 @@ export class WarehouseModel {
   // REMOVED: Parking lot material - no longer needed, using skybox bottom for ground
 
   /**
-   * Create grass material (for infinite ground) - using local high-quality textures
+   * Create grass material (for ground around warehouse)
+   * Using StandardMaterial to avoid PBR lighting washing out the color
    */
-  private createGrassMaterial(): BABYLON.PBRMetallicRoughnessMaterial {
-    const material = new BABYLON.PBRMetallicRoughnessMaterial('warehouse_grass_mat', this.scene);
+  private createGrassMaterial(): BABYLON.StandardMaterial {
+    const material = new BABYLON.StandardMaterial('warehouse_grass_mat', this.scene);
 
-    // Natural grass green color (no textures - simple solid color to avoid red missing texture)
-    material.baseColor = new BABYLON.Color3(0.35, 0.55, 0.3); // Realistic grass green
-    material.metallic = 0.0;
-    material.roughness = 0.9; // Rough grass surface
+    // Dark natural grass green - using diffuseColor for consistent appearance
+    material.diffuseColor = new BABYLON.Color3(0.2, 0.4, 0.15); // Dark grass green
+    material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1); // Low specularity
+    material.ambientColor = new BABYLON.Color3(0.2, 0.4, 0.15); // Match diffuse
     material.alpha = 1.0;
 
-    console.log('[WarehouseModel] ✅ Created grass material with solid green color (no textures)');
+    console.log('[WarehouseModel] ✅ Created grass material: DARK GREEN StandardMaterial (RGB: 0.2, 0.4, 0.15)');
     this.materials.push(material);
     return material;
   }
