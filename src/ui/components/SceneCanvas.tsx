@@ -339,8 +339,7 @@ export const SceneCanvas: React.FC = () => {
                 // Get current selection level from store
                 const currentSelectionLevel = useEditorStore.getState().selectionLevel;
 
-                // Check if this mesh belongs to a device entity
-                const deviceEntity = registry.getDeviceByMesh(mesh);
+                console.log('[Selection] Level:', currentSelectionLevel, 'Mesh:', mesh.name);
 
                 // Alt+Click overrides selection level to select individual link/mesh
                 const selectIndividualLink = evt.altKey;
@@ -358,12 +357,52 @@ export const SceneCanvas: React.FC = () => {
                   if (selectIndividualLink) {
                     // Alt+Click always selects the individual mesh (override)
                     selectMesh(mesh);
-                  } else if (currentSelectionLevel === 'object' && deviceEntity) {
-                    // Object level: Select the entire device/object root
-                    const deviceMesh = deviceEntity.getMesh();
-                    selectMesh(deviceMesh);
-                  } else if (currentSelectionLevel === 'component' && deviceEntity) {
-                    // Component level: Select the clicked component/link
+                  } else if (currentSelectionLevel === 'object') {
+                    // Object level: Find and select the topmost parent (collection/device root)
+                    const tree = SceneTreeManager.getInstance();
+                    const node = tree.getNodeByBabylonMeshId(mesh.uniqueId.toString());
+
+                    console.log('[Selection] Found node:', node?.name, 'type:', node?.type);
+
+                    if (node) {
+                      // Traverse up to find the topmost selectable parent
+                      let currentNode = node;
+                      let parentNode = tree.getParent(currentNode.id);
+
+                      // Keep going up until we hit a collection or the scene/assets node
+                      while (parentNode &&
+                             parentNode.type !== 'collection' &&
+                             parentNode.name !== 'Scene' &&
+                             parentNode.name !== 'Assets') {
+                        currentNode = parentNode;
+                        parentNode = tree.getParent(currentNode.id);
+                      }
+
+                      // If we found a collection parent, select it
+                      if (parentNode && parentNode.type === 'collection') {
+                        console.log('[Selection] Selecting collection:', parentNode.name);
+                        const { selectNode } = useEditorStore.getState();
+                        selectNode(parentNode.id);
+                      } else {
+                        // Otherwise check if it's a device root
+                        const deviceEntity = registry.getDeviceByMesh(mesh);
+                        if (deviceEntity) {
+                          console.log('[Selection] Selecting device root');
+                          const deviceMesh = deviceEntity.getMesh();
+                          selectMesh(deviceMesh);
+                        } else {
+                          // Fallback: select the topmost mesh we found
+                          console.log('[Selection] Selecting topmost mesh:', currentNode.name);
+                          const { selectNode } = useEditorStore.getState();
+                          selectNode(currentNode.id);
+                        }
+                      }
+                    } else {
+                      // No tree node found, just select the mesh
+                      selectMesh(mesh);
+                    }
+                  } else if (currentSelectionLevel === 'component') {
+                    // Component level: Select the clicked component/mesh
                     selectMesh(mesh);
                   } else if (currentSelectionLevel === 'mesh') {
                     // Mesh level: Always select the individual mesh
