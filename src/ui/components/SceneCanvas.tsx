@@ -358,47 +358,38 @@ export const SceneCanvas: React.FC = () => {
                     // Alt+Click always selects the individual mesh (override)
                     selectMesh(mesh);
                   } else if (currentSelectionLevel === 'object') {
-                    // Object level: Find and select the topmost parent (collection/device root)
-                    const tree = SceneTreeManager.getInstance();
-                    const node = tree.getNodeByBabylonMeshId(mesh.uniqueId.toString());
+                    // Object level: Traverse Babylon hierarchy to find root
+                    let rootNode: BABYLON.Node = mesh;
 
-                    console.log('[Selection] Found node:', node?.name, 'type:', node?.type);
+                    console.log('[Selection] Starting from mesh:', mesh.name);
 
-                    if (node) {
-                      // Traverse up to find the topmost selectable parent
-                      let currentNode = node;
-                      let parentNode = tree.getParent(currentNode.id);
+                    // Traverse up the Babylon parent hierarchy until we find the root
+                    while (rootNode.parent) {
+                      console.log('[Selection] Current:', rootNode.name, '-> Parent:', rootNode.parent.name);
+                      rootNode = rootNode.parent;
+                    }
 
-                      // Keep going up until we hit a collection or the scene/assets node
-                      while (parentNode &&
-                             parentNode.type !== 'collection' &&
-                             parentNode.name !== 'Scene' &&
-                             parentNode.name !== 'Assets') {
-                        currentNode = parentNode;
-                        parentNode = tree.getParent(currentNode.id);
-                      }
+                    console.log('[Selection] Root found:', rootNode.name);
 
-                      // If we found a collection parent, select it
-                      if (parentNode && parentNode.type === 'collection') {
-                        console.log('[Selection] Selecting collection:', parentNode.name);
+                    // Select the root node
+                    if (rootNode instanceof BABYLON.Mesh) {
+                      console.log('[Selection] Selecting root mesh:', rootNode.name);
+                      selectMesh(rootNode);
+                    } else if (rootNode instanceof BABYLON.TransformNode) {
+                      console.log('[Selection] Selecting root TransformNode:', rootNode.name);
+                      // Find the corresponding scene tree node and select it
+                      const tree = SceneTreeManager.getInstance();
+                      const treeNode = tree.getNodeByBabylonTransformNodeId(rootNode.uniqueId.toString());
+                      if (treeNode) {
                         const { selectNode } = useEditorStore.getState();
-                        selectNode(parentNode.id);
+                        selectNode(treeNode.id);
                       } else {
-                        // Otherwise check if it's a device root
-                        const deviceEntity = registry.getDeviceByMesh(mesh);
-                        if (deviceEntity) {
-                          console.log('[Selection] Selecting device root');
-                          const deviceMesh = deviceEntity.getMesh();
-                          selectMesh(deviceMesh);
-                        } else {
-                          // Fallback: select the topmost mesh we found
-                          console.log('[Selection] Selecting topmost mesh:', currentNode.name);
-                          const { selectNode } = useEditorStore.getState();
-                          selectNode(currentNode.id);
-                        }
+                        // Fallback to selecting the clicked mesh
+                        selectMesh(mesh);
                       }
                     } else {
-                      // No tree node found, just select the mesh
+                      // Fallback to selecting the clicked mesh
+                      console.log('[Selection] Root is not a mesh or TransformNode, selecting clicked mesh');
                       selectMesh(mesh);
                     }
                   } else if (currentSelectionLevel === 'component') {
