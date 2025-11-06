@@ -1011,6 +1011,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return;
     }
 
+    // Trigger Inspector refresh manually (backup in case observables don't fire)
+    // The Inspector service should also listen to observables, but this ensures it updates
+    setTimeout(() => {
+      const host = document.querySelector('.babylon-inspector-host') as HTMLElement | null;
+      if (host && (host as any)._inspectorRefresh) {
+        (host as any)._inspectorRefresh();
+      } else {
+        // Fallback: try to trigger refresh via window event
+        window.dispatchEvent(new CustomEvent('inspector-refresh-requested'));
+      }
+    }, 100);
+
     // Position slightly above ground (user space: 1000mm high = 1m in Z-up)
     // Converts to Babylon space (Y-up, meters)
     mesh.position = userToBabylon({ x: 0, y: 0, z: 1000 });

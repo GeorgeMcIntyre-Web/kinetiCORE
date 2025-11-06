@@ -87,67 +87,126 @@
   position: relative;
 }
 
-/* Hide text only in right panel tabs (icon-only) */
+/* Hide text only in right panel tabs (icon-only) - but keep element for layout */
 .dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab > span:not([class*="close"]) {
-  font-size: 0;
-  line-height: 0;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-  opacity: 0;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
+  visibility: hidden !important;
 }
 
-/* Add icons via ::before for specific tabs - using nth-child as fallback */
-/* This will be enhanced with JavaScript to add data attributes */
+/* Ensure ::before pseudo-element is visible for icons */
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab {
+  position: relative !important;
+  padding-left: 24px !important; /* Make room for icon */
+  min-width: 40px !important;
+}
+
+/* Base ::before for ALL right panel tabs - MUST have content and display */
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab::before {
+  content: "" !important;
+  display: block !important;
+  width: 16px !important;
+  height: 16px !important;
+  position: absolute !important;
+  left: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: contain !important;
+  z-index: 10 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: none !important;
+}
+
+/* Add icons via ::before using data-icon-type attribute */
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab[data-icon-type="warehouse"]::before {
+  background-image: url("/icons/Warehouse.png") !important;
+}
+
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab[data-icon-type="routingControl"]::before {
+  background-image: url("/icons/RoutingControl.png") !important;
+}
+
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab[data-icon-type="routeStats"]::before {
+  background-image: url("/icons/Route Statistics.png") !important;
+}
+
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab[data-icon-type="inspector"]::before {
+  background-image: url("/icons/inspector.png") !important;
+}
+
+/* Fallback: Match by title attribute if data-icon-type not set */
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab[title*="Warehouse"]::before {
+  background-image: url("/icons/Warehouse.png") !important;
+}
+
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab[title*="Routing Control"]::before {
+  background-image: url("/icons/RoutingControl.png") !important;
+}
+
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab[title*="Route Statistics"]::before {
+  background-image: url("/icons/Route Statistics.png") !important;
+}
+
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab[title*="Inspector"]:not([title*="Babylon"])::before {
+  background-image: url("/icons/inspector.png") !important;
+}
+
+/* Ultimate fallback: Use nth-child for right panel tabs (order: Warehouse, Routing Control, Route Statistics, Inspector) */
+/* This MUST come after the base ::before rule to override it */
+/* Target tabs container directly */
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-tabs-container .dv-default-tab:nth-of-type(1)::before,
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-tabs-container .dv-default-tab:nth-child(1)::before,
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab:nth-of-type(1)::before,
 .dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab:nth-child(1)::before {
-  content: "";
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 8h14M5 8a2 2 0 1 0 0 4h14a2 2 0 1 0 0-4M5 8V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2'/%3E%3Cpath d='M5 12v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
+  background-image: url("/icons/Warehouse.png") !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  content: "" !important;
 }
 
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-tabs-container .dv-default-tab:nth-of-type(2)::before,
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-tabs-container .dv-default-tab:nth-child(2)::before,
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab:nth-of-type(2)::before,
 .dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab:nth-child(2)::before {
-  content: "";
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
+  background-image: url("/icons/RoutingControl.png") !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  content: "" !important;
 }
 
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-tabs-container .dv-default-tab:nth-of-type(3)::before,
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-tabs-container .dv-default-tab:nth-child(3)::before,
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab:nth-of-type(3)::before,
 .dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab:nth-child(3)::before {
-  content: "";
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='12' x2='12' y1='20' y2='10'/%3E%3Cline x1='18' x2='18' y1='20' y2='4'/%3E%3Cline x1='6' x2='6' y1='20' y2='16'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
+  background-image: url("/icons/Route Statistics.png") !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  content: "" !important;
 }
 
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-tabs-container .dv-default-tab:nth-of-type(4)::before,
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-tabs-container .dv-default-tab:nth-child(4)::before,
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab:nth-of-type(4)::before,
 .dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab:nth-child(4)::before {
-  content: "";
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Z'/%3E%3Cpath d='M12 8v4M12 16h.01'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
+  background-image: url("/icons/inspector.png") !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  content: "" !important;
 }
 
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab:nth-child(5)::before {
-  content: "";
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cline x1='16' x2='8' y1='13' y2='13'/%3E%3Cline x1='16' x2='8' y1='17' y2='17'/%3E%3Cpolyline points='10 9 9 9 8 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
-}
 
 .dockview-theme-kineticore .dv-default-tab:hover {
   background-color: #2d2d2d;

@@ -2,7 +2,6 @@ import React from 'react';
 import type { IDockviewPanelProps } from 'dockview-react';
 
 export default function BabylonInspectorPanel(_props: IDockviewPanelProps) {
-  const hostRef = React.useRef<HTMLDivElement | null>(null);
   const mountedRef = React.useRef(false);
 
   React.useEffect(() => {
@@ -13,25 +12,14 @@ export default function BabylonInspectorPanel(_props: IDockviewPanelProps) {
     let retryCount = 0;
     const maxRetries = 50; // ~5 seconds at 100ms intervals
 
-    const tryMount = async () => {
+    const tryShowInspector = async () => {
       if (disposed) return;
-
-      const el = hostRef.current;
-      if (!el) {
-        if (retryCount < maxRetries) {
-          retryCount++;
-          setTimeout(tryMount, 100);
-        } else {
-          console.warn('[BabylonInspectorPanel] Host element not found after retries');
-        }
-        return;
-      }
 
       const scene = (window as any).sceneManager?.getScene?.() || (window as any).scene;
       if (!scene) {
         if (retryCount < maxRetries) {
           retryCount++;
-          setTimeout(tryMount, 100);
+          setTimeout(tryShowInspector, 100);
         } else {
           console.warn('[BabylonInspectorPanel] Scene not available after retries');
         }
@@ -39,17 +27,29 @@ export default function BabylonInspectorPanel(_props: IDockviewPanelProps) {
       }
 
       try {
-        console.log('[BabylonInspectorPanel] Mounting Inspector...');
-        const { showEmbeddedInspector } = await import('@/services/inspector/InspectorService');
-        await showEmbeddedInspector({ scene, host: el });
-        console.log('[BabylonInspectorPanel] Inspector mounted successfully');
+        console.log('[BabylonInspectorPanel] Opening Inspector in overlay mode...');
+        
+        // Ensure Inspector bundle is loaded
+        await import('@/services/inspector/ensureInspector').then(m => m.ensureInspector());
+        
+        // Show Inspector in overlay mode (default) - this works "by default" with auto-refresh
+        if (!scene.debugLayer.isVisible()) {
+          await scene.debugLayer.show({
+            embedMode: false,
+            overlay: true,
+            handleResize: true,
+          });
+          console.log('[BabylonInspectorPanel] ✅ Inspector opened in overlay mode');
+        } else {
+          console.log('[BabylonInspectorPanel] Inspector already visible');
+        }
       } catch (err) {
-        console.error('[BabylonInspectorPanel] Failed to mount Inspector:', err);
+        console.error('[BabylonInspectorPanel] Failed to open Inspector:', err);
       }
     };
 
-    // Start trying to mount
-    tryMount();
+    // Start trying to show Inspector
+    tryShowInspector();
 
     return () => {
       disposed = true;
@@ -58,8 +58,15 @@ export default function BabylonInspectorPanel(_props: IDockviewPanelProps) {
   }, []);
 
   return (
-    <div className="inspector-pane">
-      <div ref={hostRef} className="babylon-inspector-host" />
+    <div className="inspector-pane" style={{ padding: '20px', textAlign: 'center' }}>
+      <p style={{ color: '#ccc', marginTop: '40px' }}>
+        Inspector opened in overlay mode (default location).
+        <br />
+        It should appear as a floating window and will auto-refresh when objects are added.
+      </p>
+      <p style={{ color: '#888', fontSize: '0.9em', marginTop: '20px' }}>
+        If the Inspector window is not visible, check if it's behind other windows or use Alt+I to toggle it.
+      </p>
     </div>
   );
 }

@@ -30,9 +30,15 @@ export async function showEmbeddedInspector(
 
   try {
     console.log('[showEmbeddedInspector] Calling debugLayer.show()...');
+    // CRITICAL: Pass the host as rootElement so Inspector attaches directly
+    // This should make it work "by default" without needing to move DOM elements
     await args.scene.debugLayer.show({
-      embedMode: true, overlay: false, enablePopup: false,
-      rootElement: args.host, parentElement: args.host, globalRoot: args.host
+      embedMode: true,
+      overlay: false,
+      enablePopup: false,
+      rootElement: args.host,
+      parentElement: args.host,
+      globalRoot: args.host
     } as any);
     console.log('[showEmbeddedInspector] debugLayer.show() completed');
   } catch (err) {
@@ -44,6 +50,14 @@ export async function showEmbeddedInspector(
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
   const host = args.host; // host is guaranteed non-null after guard above
+  
+  // Check if Inspector attached directly to host (it should if rootElement worked)
+  const root = host.querySelector(Q) as HTMLElement | null;
+  if (root && host.contains(root)) {
+    console.log('[showEmbeddedInspector] ✅ Inspector attached directly to host - should work by default');
+  } else {
+    console.warn('[showEmbeddedInspector] ⚠️ Inspector NOT in host - will need to adopt (this may break auto-refresh)');
+  }
   
   // CRITICAL: Force the entire ancestor chain to flex immediately
   // Walk up from host to find all Dockview containers and force them to flex
@@ -137,8 +151,8 @@ export async function showEmbeddedInspector(
     }
   });
 
-      adopt(host);
-      
+  adopt(host);
+
       // Immediately fix positioning after adoption to prevent initial offset
       const rootAfterAdopt = host.querySelector(Q) as HTMLElement | null;
       if (rootAfterAdopt) {
@@ -182,9 +196,9 @@ export async function showEmbeddedInspector(
         }
       }, 500);
 
-      // Verify Inspector root was created
-      const root = host.querySelector(Q) as HTMLElement | null;
-  if (!root) {
+      // Verify Inspector root was created (reuse root from earlier check)
+      const rootForVerification = host.querySelector(Q) as HTMLElement | null;
+  if (!rootForVerification) {
     console.warn('[showEmbeddedInspector] Inspector root element not found after show()');
     // Retry adoption after a delay
     setTimeout(() => {
@@ -195,18 +209,18 @@ export async function showEmbeddedInspector(
     console.log('[showEmbeddedInspector] Inspector root found, setting up observers');
     
     // Force visibility and size
-    root.style.setProperty('display', 'grid', 'important');
-    root.style.setProperty('visibility', 'visible', 'important');
-    root.style.setProperty('opacity', '1', 'important');
-    root.style.setProperty('width', '100%', 'important');
-    root.style.setProperty('height', '100%', 'important');
-    root.style.setProperty('min-width', '1px', 'important');
-    root.style.setProperty('min-height', '1px', 'important');
+    rootForVerification.style.setProperty('display', 'grid', 'important');
+    rootForVerification.style.setProperty('visibility', 'visible', 'important');
+    rootForVerification.style.setProperty('opacity', '1', 'important');
+    rootForVerification.style.setProperty('width', '100%', 'important');
+    rootForVerification.style.setProperty('height', '100%', 'important');
+    rootForVerification.style.setProperty('min-width', '1px', 'important');
+    rootForVerification.style.setProperty('min-height', '1px', 'important');
     
     // DEBUG: Check what's actually in the root
     setTimeout(() => {
-      const computed = window.getComputedStyle(root);
-      const children = Array.from(root.children);
+      const computed = window.getComputedStyle(rootForVerification);
+      const children = Array.from(rootForVerification.children);
       
       console.log('[showEmbeddedInspector] DEBUG - Root basic info:');
       console.log('  - Display:', computed.display);
@@ -264,8 +278,8 @@ export async function showEmbeddedInspector(
           // Force child to fill if it's not
           if (child.clientWidth === 0 || child.clientHeight === 0) {
             console.warn(`[showEmbeddedInspector] Child [${i}] has zero size! Forcing...`);
-            const rootWidth = root.clientWidth;
-            const rootHeight = root.clientHeight;
+            const rootWidth = rootForVerification.clientWidth;
+            const rootHeight = rootForVerification.clientHeight;
             if (i === 0) {
               // First child (tree) - 450px width
               child.style.setProperty('width', '450px', 'important');
@@ -286,8 +300,8 @@ export async function showEmbeddedInspector(
         // Force all children to be visible and fill
         children.forEach((c, idx) => {
           const child = c as HTMLElement;
-          const rootWidth = root.clientWidth;
-          const rootHeight = root.clientHeight;
+          const rootWidth = rootForVerification.clientWidth;
+          const rootHeight = rootForVerification.clientHeight;
           
           child.style.setProperty('display', 'block', 'important');
           child.style.setProperty('visibility', 'visible', 'important');
@@ -378,8 +392,8 @@ export async function showEmbeddedInspector(
         });
       } else {
         console.error('[showEmbeddedInspector] ❌ Root has NO CHILDREN - Inspector content not rendered!');
-        console.log('[showEmbeddedInspector] Root innerHTML length:', root.innerHTML.length);
-        console.log('[showEmbeddedInspector] Root textContent length:', root.textContent?.length || 0);
+        console.log('[showEmbeddedInspector] Root innerHTML length:', rootForVerification.innerHTML.length);
+        console.log('[showEmbeddedInspector] Root textContent length:', rootForVerification.textContent?.length || 0);
       }
       
       // Check if root is actually visible
@@ -390,9 +404,9 @@ export async function showEmbeddedInspector(
       }
       
       // Check if root is correctly positioned relative to host (not viewport - we don't care about viewport for embedded mode)
-      const rect = root.getBoundingClientRect();
+      const rect = rootForVerification.getBoundingClientRect();
       const hostRect = host.getBoundingClientRect();
-      const rootInHost = host.contains(root);
+      const rootInHost = host.contains(rootForVerification);
       const positionOffset = Math.abs(rect.top - hostRect.top) + Math.abs(rect.left - hostRect.left);
       const isCorrectlyPositioned = rootInHost && positionOffset < 5; // Allow 5px tolerance for floating-point precision
       
@@ -409,26 +423,26 @@ export async function showEmbeddedInspector(
         console.warn('[showEmbeddedInspector] ⚠️ Root is not correctly positioned relative to host!');
         
         // Force root to be positioned relative to host
-        if (!host.contains(root)) {
+        if (!host.contains(rootForVerification)) {
           console.error('[showEmbeddedInspector] Root is NOT in host! Re-adopting...');
           adopt(host);
         }
         
         // Reset positioning to be relative to host
-        root.style.setProperty('position', 'absolute', 'important');
-        root.style.setProperty('top', '0', 'important');
-        root.style.setProperty('left', '0', 'important');
-        root.style.setProperty('right', 'auto', 'important');
-        root.style.setProperty('bottom', 'auto', 'important');
-        root.style.setProperty('margin', '0', 'important');
-        root.style.setProperty('padding', '0', 'important');
+        rootForVerification.style.setProperty('position', 'absolute', 'important');
+        rootForVerification.style.setProperty('top', '0', 'important');
+        rootForVerification.style.setProperty('left', '0', 'important');
+        rootForVerification.style.setProperty('right', 'auto', 'important');
+        rootForVerification.style.setProperty('bottom', 'auto', 'important');
+        rootForVerification.style.setProperty('margin', '0', 'important');
+        rootForVerification.style.setProperty('padding', '0', 'important');
       } else {
         console.log('[showEmbeddedInspector] ✅ Root is correctly positioned relative to host');
       }
       
       // Force a reflow/repaint to ensure rendering
-      root.offsetHeight; // Trigger reflow
-      root.style.setProperty('transform', 'translateZ(0)', 'important'); // Force GPU acceleration
+      rootForVerification.offsetHeight; // Trigger reflow
+      rootForVerification.style.setProperty('transform', 'translateZ(0)', 'important'); // Force GPU acceleration
     }, 1000);
   }
 
@@ -553,36 +567,243 @@ export async function showEmbeddedInspector(
   const cleanupInterval = setInterval(cleanupOverlays, 5000); // Every 5 seconds instead of 1
   
   // Listen for scene changes to refresh Inspector
+  // NOTE: Embedded mode does NOT auto-refresh by default (confirmed via Babylon.js docs/forum)
+  // This is a known limitation - embedded mode doesn't subscribe to scene observables like overlay mode
+  // We must manually refresh when objects are added. Official methods: debugLayer.refresh() or setAsActiveScene()
   if (args.scene) {
-    // Refresh Inspector when new meshes are added
-    const onNewMeshAdded = () => {
-      // Force Inspector to refresh by triggering a re-render
-      // Use a debounced refresh to avoid too many updates
+    // Function to refresh the Inspector tree view
+    const refreshInspectorTree = () => {
+      const root = host.querySelector(Q) as HTMLElement | null;
+      if (!root || !args.scene!.debugLayer.isVisible()) {
+        console.warn('[refreshInspectorTree] Inspector root not found or not visible');
+        return;
+      }
+
+      console.log('[refreshInspectorTree] Attempting to refresh Inspector tree...');
+
+      // Method 1: Use the official debugLayer.refresh() method (recommended by Babylon.js docs)
+      // This is the proper way to refresh the Inspector in embedded mode
+      try {
+        const debugLayer = args.scene!.debugLayer;
+        if (debugLayer && typeof (debugLayer as any).refresh === 'function') {
+          (debugLayer as any).refresh();
+          console.log('[refreshInspectorTree] ✅ Called debugLayer.refresh() (official method)');
+          return;
+        }
+      } catch (err) {
+        console.warn('[refreshInspectorTree] debugLayer.refresh() not available:', err);
+      }
+
+      // Method 2: Try setAsActiveScene() - another official method mentioned in docs
+      try {
+        const debugLayer = args.scene!.debugLayer;
+        if (debugLayer && typeof (debugLayer as any).setAsActiveScene === 'function') {
+          (debugLayer as any).setAsActiveScene();
+          console.log('[refreshInspectorTree] ✅ Called debugLayer.setAsActiveScene()');
+          return;
+        }
+      } catch (err) {
+        console.warn('[refreshInspectorTree] debugLayer.setAsActiveScene() not available:', err);
+      }
+
+      // Method 3: Try to access Inspector's internal API (fallback)
+      try {
+        const winB = (window as any).BABYLON;
+        const debugLayer = args.scene!.debugLayer as any;
+        
+        // Try to get Inspector instance from various possible locations
+        let inspector = debugLayer._inspector;
+        if (!inspector && winB?.Inspector) {
+          inspector = (args.scene as any)._babylonjsInspector;
+        }
+        
+        if (inspector) {
+          console.log('[refreshInspectorTree] Found Inspector instance, trying internal methods...');
+          
+          if (typeof inspector.refresh === 'function') {
+            inspector.refresh();
+            console.log('[refreshInspectorTree] ✅ Called Inspector.refresh()');
+            return;
+          }
+          
+          if (inspector._treeView && typeof inspector._treeView.refresh === 'function') {
+            inspector._treeView.refresh();
+            console.log('[refreshInspectorTree] ✅ Called Inspector._treeView.refresh()');
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('[refreshInspectorTree] Error accessing Inspector internal API:', err);
+      }
+
+      // Method 2: Find and click the Scene node to force refresh
+      const treePanel = root.querySelector('#tree') as HTMLElement | null;
+      if (treePanel) {
+        // Try multiple selectors to find the Scene node
+        let sceneNode = treePanel.querySelector('[data-name="Scene"]') as HTMLElement | null;
+        if (!sceneNode) {
+          // Try finding by text content - be more specific
+          const allNodes = treePanel.querySelectorAll('div, span, li, a');
+          for (const node of Array.from(allNodes)) {
+            const text = node.textContent?.trim() || '';
+            if (text === 'Scene' || (text.includes('Scene') && text.length < 20)) {
+              // Check if it's clickable (has click handler or is a button/link)
+              sceneNode = node as HTMLElement;
+              console.log('[refreshInspectorTree] Found Scene node by text:', text);
+              break;
+            }
+          }
+        }
+        
+        if (sceneNode) {
+          // Try clicking multiple times to ensure it expands
+          const clickEvent = new MouseEvent('click', { bubbles: true, cancelable: true });
+          sceneNode.click(); // Use .click() instead of dispatchEvent for better compatibility
+          setTimeout(() => {
+            sceneNode!.click();
+            console.log('[refreshInspectorTree] ✅ Triggered Scene node click to refresh');
+          }, 100);
+          setTimeout(() => {
+            sceneNode!.click();
+          }, 300);
+        } else {
+          console.warn('[refreshInspectorTree] Could not find Scene node in tree');
+        }
+      } else {
+        console.warn('[refreshInspectorTree] Tree panel (#tree) not found');
+      }
+
+      // Method 3: Try to find and click the refresh button if it exists
+      const refreshButton = root.querySelector('[title*="refresh" i], [aria-label*="refresh" i], .refresh-button, button[class*="refresh"], [class*="refresh-icon"]') as HTMLElement | null;
+      if (refreshButton) {
+        refreshButton.click();
+        console.log('[refreshInspectorTree] ✅ Clicked refresh button');
+        return;
+      }
+
+      // Method 4: Last resort - Force rebuild by hiding and re-showing the Inspector
+      // Only do this if we haven't done it recently (prevent flickering)
+      const lastRebuild = (host as any)._lastInspectorRebuild || 0;
+      const now = Date.now();
+      if (now - lastRebuild > 5000) { // Only rebuild if last rebuild was > 5 seconds ago
+        try {
+          console.log('[refreshInspectorTree] Last resort: Attempting to force rebuild by hiding/re-showing...');
+          (host as any)._lastInspectorRebuild = now;
+          const debugLayer = args.scene!.debugLayer;
+          
+          // Hide and re-show to force rebuild
+          debugLayer.hide().then(() => {
+            setTimeout(async () => {
+              try {
+                await debugLayer.show({
+                  embedMode: true,
+                  overlay: false,
+                  enablePopup: false,
+                  rootElement: host,
+                  parentElement: host,
+                  globalRoot: host
+                } as any);
+                
+                // Re-apply styles after re-show
+                setTimeout(() => {
+                  adopt(host);
+                  harden(host);
+                  console.log('[refreshInspectorTree] ✅ Inspector rebuilt by hide/show');
+                }, 500);
+              } catch (err) {
+                console.error('[refreshInspectorTree] Error re-showing Inspector:', err);
+              }
+            }, 100);
+          }).catch((err: any) => {
+            console.warn('[refreshInspectorTree] Error hiding Inspector for rebuild:', err);
+          });
+        } catch (err) {
+          console.warn('[refreshInspectorTree] Could not force rebuild:', err);
+        }
+      } else {
+        console.log('[refreshInspectorTree] Skipping rebuild (too recent)');
+      }
+
+      console.warn('[refreshInspectorTree] ⚠️ All refresh methods attempted - Inspector may not update automatically');
+    };
+
+    // Also ensure the "Nodes" section is expanded when objects are added
+    // This helps visibility - if Nodes is collapsed, new objects won't be visible
+    const ensureNodesExpanded = () => {
+      const root = host.querySelector(Q) as HTMLElement | null;
+      if (!root) return;
+      
+      const treePanel = root.querySelector('#tree') as HTMLElement | null;
+      if (!treePanel) return;
+      
+      // Find the "Nodes" expandable item
+      const allNodes = treePanel.querySelectorAll('div, span, li');
+      for (const node of Array.from(allNodes)) {
+        const text = node.textContent?.trim() || '';
+        if (text === 'Nodes' || text.startsWith('Nodes')) {
+          // Check if it's collapsed (has a + icon or collapsed class)
+          const isCollapsed = node.querySelector('.fa-plus, .expand-icon, [class*="collapsed"]') !== null;
+          if (isCollapsed) {
+            // Click to expand
+            (node as HTMLElement).click();
+            console.log('[InspectorService] Expanded Nodes section');
+          }
+          break;
+        }
+      }
+    };
+    
+    // Enhanced refresh that also ensures Nodes is expanded
+    const enhancedRefresh = () => {
+      ensureNodesExpanded();
+      refreshInspectorTree();
+    };
+    
+    // Enhanced debounced refresh
+    const enhancedDebouncedRefresh = () => {
       if ((host as any)._refreshTimeout) {
         clearTimeout((host as any)._refreshTimeout);
       }
       (host as any)._refreshTimeout = setTimeout(() => {
-        const root = host.querySelector(Q) as HTMLElement | null;
-        if (root && args.scene!.debugLayer.isVisible()) {
-          // Try to trigger Inspector's internal refresh
-          // The Inspector should auto-update, but we can force it by clicking or refreshing the tree
-          const treePanel = root.querySelector('#tree') as HTMLElement | null;
-          if (treePanel) {
-            // Force a re-render by triggering a click event on the scene node
-            const sceneNode = treePanel.querySelector('[data-name="Scene"]') as HTMLElement | null;
-            if (sceneNode) {
-              // Collapse and expand to force refresh
-              const clickEvent = new MouseEvent('click', { bubbles: true });
-              sceneNode.dispatchEvent(clickEvent);
-              setTimeout(() => sceneNode.dispatchEvent(clickEvent), 100);
-            }
-          }
-        }
-      }, 500); // Debounce to 500ms
+        enhancedRefresh();
+      }, 300);
     };
     
     // Listen for new mesh additions
+    const onNewMeshAdded = () => {
+      console.log('[InspectorService] New mesh added, refreshing Inspector tree...');
+      enhancedDebouncedRefresh();
+    };
+
+    // Listen for new transform node additions (boxes might be added as TransformNodes)
+    const onNewTransformNodeAdded = () => {
+      console.log('[InspectorService] New transform node added, refreshing Inspector tree...');
+      enhancedDebouncedRefresh();
+    };
+
+    // Listen for both observables
     args.scene.onNewMeshAddedObservable.add(onNewMeshAdded);
+    args.scene.onNewTransformNodeAddedObservable.add(onNewTransformNodeAdded);
+    
+    // Expose refresh function on host element for manual triggering
+    (host as any)._inspectorRefresh = () => {
+      console.log('[InspectorService] Manual refresh triggered');
+      enhancedDebouncedRefresh();
+    };
+    
+    // Listen for custom refresh events (from editor store or other sources)
+    const onRefreshRequested = () => {
+      console.log('[InspectorService] Refresh requested via custom event');
+      enhancedDebouncedRefresh();
+    };
+    window.addEventListener('inspector-refresh-requested', onRefreshRequested);
+    
+    // Initial refresh to show existing objects in the scene
+    // Wait a bit for the Inspector to fully render before refreshing
+    setTimeout(() => {
+      console.log('[InspectorService] Performing initial Inspector refresh for existing scene objects...');
+      enhancedRefresh();
+    }, 2000); // 2 seconds after mount to ensure Inspector is fully rendered
     
     // Store cleanup function for potential future use
     (host as any)._inspectorCleanup = () => {
@@ -591,8 +812,11 @@ export async function showEmbeddedInspector(
       clearInterval(cleanupInterval);
       if (cleanupTimeout) clearTimeout(cleanupTimeout);
       if ((host as any)._refreshTimeout) clearTimeout((host as any)._refreshTimeout);
+      window.removeEventListener('inspector-refresh-requested', onRefreshRequested);
+      delete (host as any)._inspectorRefresh;
       if (args.scene) {
         args.scene.onNewMeshAddedObservable.removeCallback(onNewMeshAdded);
+        args.scene.onNewTransformNodeAddedObservable.removeCallback(onNewTransformNodeAdded);
       }
     };
   } else {

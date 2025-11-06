@@ -127,33 +127,63 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
         position: { direction: 'right' },
       });
 
-      // Add icon class for CSS styling
-      if (PANEL_REGISTRY[firstPanel.type].titleIcon) {
-        rightPanel.api.updateParameters({ iconType: firstPanel.type });
-      }
+      // Set data attribute for icon CSS styling (for all panels that need icons)
+      rightPanel.api.updateParameters({ iconType: firstPanel.type });
+      // Set data attribute on the tab element for CSS targeting - more aggressive approach
+      const setIconAttribute = () => {
+        requestAnimationFrame(() => {
+          const title = PANEL_REGISTRY[firstPanel.type]?.title || '';
+          // Try multiple selectors to find the tab
+          let tabElement: HTMLElement | null = null;
+          
+          // Method 1: Find by panel ID
+          const panelElement = document.querySelector(`[data-panel-id="${firstPanel.id}"]`);
+          if (panelElement) {
+            tabElement = panelElement.closest('.dv-default-tab') as HTMLElement;
+          }
+          
+          // Method 2: Find by title text in right group
+          if (!tabElement) {
+            const rightGroup = document.querySelector('.dv-group[data-direction="right"]');
+            if (rightGroup) {
+              const allTabs = Array.from(rightGroup.querySelectorAll('.dv-default-tab'));
+              tabElement = allTabs.find(tab => {
+                const text = tab.textContent || '';
+                return text.includes(title) && text.trim().length < 50; // Avoid matching too broadly
+              }) as HTMLElement || null;
+            }
+          }
+          
+          // Method 3: Use index if we know the order
+          if (!tabElement && config.rightPanels) {
+            const index = config.rightPanels.findIndex(p => p.id === firstPanel.id);
+            if (index >= 0) {
+              const rightGroup = document.querySelector('.dv-group[data-direction="right"]');
+              if (rightGroup) {
+                const allTabs = Array.from(rightGroup.querySelectorAll('.dv-default-tab'));
+                tabElement = allTabs[index] as HTMLElement || null;
+              }
+            }
+          }
+          
+          if (tabElement) {
+            tabElement.setAttribute('data-icon-type', firstPanel.type);
+            tabElement.setAttribute('title', title);
+            console.log(`[DockableLayoutWrapper] ✅ Set icon for ${firstPanel.type}: ${title}`);
+          } else {
+            console.warn(`[DockableLayoutWrapper] ⚠️ Could not find tab for ${firstPanel.type}: ${title}`);
+          }
+        });
+      };
+      // Multiple retries with increasing delays
+      setTimeout(setIconAttribute, 50);
+      setTimeout(setIconAttribute, 200);
+      setTimeout(setIconAttribute, 500);
+      setTimeout(setIconAttribute, 1000);
+      setTimeout(setIconAttribute, 2000);
 
-      // Calculate width based on icon-only tabs (much narrower)
-      // Icon size: 16px + padding: 8px left/right = 16px per tab
-      // Close button: ~20px per tab
-      // Tab separator: ~2px between tabs
-      const ICON_SIZE = 16;
-      const TAB_PADDING = 16; // 8px left + 8px right (reduced for icons)
-      const CLOSE_BUTTON = 20;
-      const TAB_SEPARATOR = 2;
-      const MIN_TAB_WIDTH = 40; // Reduced for icon-only
-      const MIN_GROUP_WIDTH = 120; // Reduced minimum
-
-      let totalTabWidth = 0;
-      for (let i = 0; i < config.rightPanels.length; i++) {
-        const tabWidth = Math.max(MIN_TAB_WIDTH, ICON_SIZE + TAB_PADDING + CLOSE_BUTTON);
-        totalTabWidth += tabWidth + TAB_SEPARATOR;
-      }
-
-      // Reduce width by 0.5 (50%)
-      const calculatedWidth = Math.max(MIN_GROUP_WIDTH, totalTabWidth * 0.5);
-      if (rightPanel.api.width < calculatedWidth) {
-        rightPanel.api.setSize({ width: calculatedWidth });
-      }
+      // Set right panel width to 120px as requested
+      rightPanel.api.setSize({ width: 120 });
 
       // Add remaining right panels to the same group (they will be inactive tabs)
       for (const panelDef of restPanels) {
@@ -165,10 +195,60 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
           position: { referencePanel: rightPanel.id },
         });
 
-        // Add icon class for CSS styling
-        if (PANEL_REGISTRY[panelDef.type].titleIcon) {
-          panel.api.updateParameters({ iconType: panelDef.type });
-        }
+        // Set data attribute for icon CSS styling (for all panels that need icons)
+        panel.api.updateParameters({ iconType: panelDef.type });
+        // Set data attribute on the tab element for CSS targeting - more aggressive approach
+        const setIconAttribute = () => {
+          requestAnimationFrame(() => {
+            const title = PANEL_REGISTRY[panelDef.type]?.title || '';
+            // Try multiple selectors to find the tab
+            let tabElement: HTMLElement | null = null;
+            
+            // Method 1: Find by panel ID
+            const panelElement = document.querySelector(`[data-panel-id="${panelDef.id}"]`);
+            if (panelElement) {
+              tabElement = panelElement.closest('.dv-default-tab') as HTMLElement;
+            }
+            
+            // Method 2: Find by title text in right group
+            if (!tabElement) {
+              const rightGroup = document.querySelector('.dv-group[data-direction="right"]');
+              if (rightGroup) {
+                const allTabs = Array.from(rightGroup.querySelectorAll('.dv-default-tab'));
+                tabElement = allTabs.find(tab => {
+                  const text = tab.textContent || '';
+                  return text.includes(title) && text.trim().length < 50; // Avoid matching too broadly
+                }) as HTMLElement || null;
+              }
+            }
+            
+            // Method 3: Use index if we know the order
+            if (!tabElement && config.rightPanels) {
+              const index = config.rightPanels.findIndex(p => p.id === panelDef.id);
+              if (index >= 0) {
+                const rightGroup = document.querySelector('.dv-group[data-direction="right"]');
+                if (rightGroup) {
+                  const allTabs = Array.from(rightGroup.querySelectorAll('.dv-default-tab'));
+                  tabElement = allTabs[index] as HTMLElement || null;
+                }
+              }
+            }
+            
+            if (tabElement) {
+              tabElement.setAttribute('data-icon-type', panelDef.type);
+              tabElement.setAttribute('title', title);
+              console.log(`[DockableLayoutWrapper] ✅ Set icon for ${panelDef.type}: ${title}`);
+            } else {
+              console.warn(`[DockableLayoutWrapper] ⚠️ Could not find tab for ${panelDef.type}: ${title}`);
+            }
+          });
+        };
+        // Multiple retries with increasing delays
+        setTimeout(setIconAttribute, 50);
+        setTimeout(setIconAttribute, 200);
+        setTimeout(setIconAttribute, 500);
+        setTimeout(setIconAttribute, 1000);
+        setTimeout(setIconAttribute, 2000);
       }
 
       // Ensure first panel (Warehouse) is active by default
@@ -225,14 +305,90 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
     // Listen for layout changes
     const disposables = [
       apiRef.current.onDidLayoutChange(handleLayoutChange),
-      apiRef.current.onDidAddPanel(handleLayoutChange),
+      apiRef.current.onDidAddPanel((event) => {
+        handleLayoutChange();
+        // Set icon attributes when panels are added
+        const panelType = config.rightPanels?.find(p => p.id === event.id)?.type ||
+                         config.leftPanels?.find(p => p.id === event.id)?.type;
+        if (panelType && PANEL_REGISTRY[panelType]) {
+          setTimeout(() => {
+            const tabElement = Array.from(document.querySelectorAll('.dv-default-tab')).find(tab => 
+              tab.textContent?.includes(PANEL_REGISTRY[panelType].title)
+            );
+            if (tabElement) {
+              (tabElement as HTMLElement).setAttribute('data-icon-type', panelType);
+            }
+          }, 100);
+        }
+      }),
       apiRef.current.onDidRemovePanel(handleLayoutChange),
     ];
 
+    // Also use MutationObserver to catch tabs as they're created
+    const observer = new MutationObserver(() => {
+      // Set icon attributes on all right panel tabs
+      if (config.rightPanels) {
+        config.rightPanels.forEach(panelDef => {
+          const title = PANEL_REGISTRY[panelDef.type]?.title || '';
+          if (!title) return;
+          
+          // Find tabs in right panel group
+          const rightGroup = document.querySelector('.dv-group[data-direction="right"]');
+          if (!rightGroup) return;
+          
+          const allTabs = Array.from(rightGroup.querySelectorAll('.dv-default-tab'));
+          const tabElement = allTabs.find(tab => {
+            const text = tab.textContent || '';
+            const hasIcon = (tab as HTMLElement).hasAttribute('data-icon-type');
+            return text.includes(title) && text.trim().length < 50 && !hasIcon;
+          }) as HTMLElement | undefined;
+          
+          if (tabElement) {
+            tabElement.setAttribute('data-icon-type', panelDef.type);
+            tabElement.setAttribute('title', title);
+            console.log(`[DockableLayoutWrapper] MutationObserver set icon for ${panelDef.type}: ${title}`);
+          }
+        });
+      }
+    });
+    
+    observer.observe(document.body, { childList: true, subtree: true });
+    
+    // Initial pass to set icons - multiple retries
+    const setIconsInitial = () => {
+      if (config.rightPanels) {
+        config.rightPanels.forEach(panelDef => {
+          const title = PANEL_REGISTRY[panelDef.type]?.title || '';
+          if (!title) return;
+          
+          const rightGroup = document.querySelector('.dv-group[data-direction="right"]');
+          if (!rightGroup) return;
+          
+          const allTabs = Array.from(rightGroup.querySelectorAll('.dv-default-tab'));
+          const tabElement = allTabs.find(tab => {
+            const text = tab.textContent || '';
+            return text.includes(title) && text.trim().length < 50;
+          }) as HTMLElement | undefined;
+          
+          if (tabElement) {
+            tabElement.setAttribute('data-icon-type', panelDef.type);
+            tabElement.setAttribute('title', title);
+            console.log(`[DockableLayoutWrapper] Initial set icon for ${panelDef.type}: ${title}`);
+          }
+        });
+      }
+    };
+    
+    setTimeout(setIconsInitial, 100);
+    setTimeout(setIconsInitial, 500);
+    setTimeout(setIconsInitial, 1000);
+    setTimeout(setIconsInitial, 2000);
+
     return () => {
       disposables.forEach((d) => d.dispose());
+      observer.disconnect();
     };
-  }, [onLayoutChange]);
+  }, [onLayoutChange, config]);
 
   return (
     <div className="dockable-layout-wrapper">

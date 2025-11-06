@@ -533,7 +533,6 @@ export const ProfessionalModeLayout: React.FC = () => {
               { id: 'warehouse-panel', type: 'warehouse' },
               { id: 'routingControl-panel', type: 'routingControl' },
               { id: 'routeStats-panel', type: 'routeStats' },
-              { id: 'babylonInspector-panel', type: 'babylonInspector' },
               { id: 'inspector-panel', type: 'inspector' },
             ],
             bottomPanels: [],

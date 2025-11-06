@@ -134,27 +134,30 @@ export class SceneManager {
       console.log('🔧 Scene exposed to window.scene for debugging');
     }
 
-    // Dev hotkey: Alt+I to force Inspector embed (diagnostic)
+    // Dev hotkey: Alt+I to toggle Inspector (overlay mode)
     if (typeof window !== 'undefined' && import.meta.env.DEV && this.scene) {
       const hotkeyHandler = (e: KeyboardEvent) => {
         if (e.altKey && e.key.toLowerCase() === 'i') {
-          const host = document.querySelector('.babylon-inspector-host') as HTMLElement;
-          if (!host || !this.scene) return;
+          if (!this.scene) return;
           try {
-            this.scene.debugLayer.hide();
-            this.scene.debugLayer.show({
-              embedMode: true,
-              overlay: false,
-              enablePopup: false,
-              rootElement: host,
-              parentElement: host,
-              globalRoot: host,
-            } as any);
-          } catch {}
+            if (this.scene.debugLayer.isVisible()) {
+              this.scene.debugLayer.hide();
+              console.log('🔧 Inspector hidden (Alt+I)');
+            } else {
+              this.scene.debugLayer.show({
+                embedMode: false,
+                overlay: true,
+                handleResize: true,
+              });
+              console.log('🔧 Inspector shown (Alt+I)');
+            }
+          } catch (err) {
+            console.error('🔧 Failed to toggle Inspector:', err);
+          }
         }
       };
       window.addEventListener('keydown', hotkeyHandler);
-      console.log('🔧 Inspector hotkey: Alt+I to force embed');
+      console.log('🔧 Inspector hotkey: Alt+I to toggle');
     }
 
     // Initialize CSG2 for Boolean operations

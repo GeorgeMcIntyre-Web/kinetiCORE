@@ -3,10 +3,8 @@
 
 import React from 'react';
 import { IDockviewPanelProps } from 'dockview-react';
-import { Warehouse, Gauge, BarChart3, Bug, FileText } from 'lucide-react';
 import { SceneTree } from '../components/SceneTree';
 import { Inspector } from '../components/Inspector';
-import BabylonInspectorPanel from '../components/BabylonInspectorPanel';
 import { KinematicsPanel } from '../components/KinematicsPanel';
 import { RouteStatsPanel } from '../../routing/ui/RouteStatsPanel';
 import { RoutingControlPanel } from '../../routing/ui/RoutingControlPanel';
@@ -16,7 +14,7 @@ import { ComingSoon } from '../components/ComingSoon';
 import { SelectionIndicator } from '../components/SelectionIndicator';
 import { useEditorStore } from '../store/editorStore';
 
-export type PanelType = 'sceneTree' | 'inspector' | 'babylonInspector' | 'kinematics' | 'toolPalette' | 'routeStats' | 'routingControl' | 'warehouse' | 'viewport';
+export type PanelType = 'sceneTree' | 'inspector' | 'kinematics' | 'toolPalette' | 'routeStats' | 'routingControl' | 'warehouse' | 'viewport';
 
 export interface PanelConfig {
   id: PanelType;
@@ -34,10 +32,6 @@ const SceneTreePanel: React.FC<IDockviewPanelProps> = () => {
 
 const InspectorPanel: React.FC<IDockviewPanelProps> = () => {
   return <Inspector />;
-};
-
-const BabylonInspectorPanelWrapper: React.FC<IDockviewPanelProps> = (props) => {
-  return <BabylonInspectorPanel {...props} />;
 };
 
 const KinematicsControlPanel: React.FC<IDockviewPanelProps> = () => {
@@ -89,16 +83,9 @@ export const PANEL_REGISTRY: Record<PanelType, PanelConfig> = {
   inspector: {
     id: 'inspector',
     title: 'Inspector',
-    titleIcon: <FileText size={16} />,
+    titleIcon: null, // Icon set via CSS using data-icon-type
     component: InspectorPanel,
     defaultWidth: 448, // 320 * 1.4 = 448px (40% wider)
-  },
-  babylonInspector: {
-    id: 'babylonInspector',
-    title: 'Babylon Inspector',
-    titleIcon: <Bug size={16} />,
-    component: BabylonInspectorPanelWrapper,
-    defaultWidth: 448,
   },
   kinematics: {
     id: 'kinematics',
@@ -115,7 +102,7 @@ export const PANEL_REGISTRY: Record<PanelType, PanelConfig> = {
   routeStats: {
     id: 'routeStats',
     title: 'Route Statistics',
-    titleIcon: <BarChart3 size={16} />,
+    titleIcon: null, // Icon set via CSS using data-icon-type
     component: RouteStatsPanelWrapper,
     defaultWidth: 320,
     defaultHeight: 240,
@@ -123,14 +110,14 @@ export const PANEL_REGISTRY: Record<PanelType, PanelConfig> = {
   routingControl: {
     id: 'routingControl',
     title: 'Routing Control',
-    titleIcon: <Gauge size={16} />,
+    titleIcon: null, // Icon set via CSS using data-icon-type
     component: RoutingControlPanelWrapper,
     defaultWidth: 320,
   },
   warehouse: {
     id: 'warehouse',
     title: 'Warehouse',
-    titleIcon: <Warehouse size={16} />,
+    titleIcon: null, // Icon set via CSS using data-icon-type
     component: WarehousePanelWrapper,
     defaultWidth: 240, // Reduced from 320 for more compact layout
   },
