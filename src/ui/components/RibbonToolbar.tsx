@@ -2,7 +2,7 @@
 // Owner: George
 // All tools visible horizontally organized by category
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Settings,
   CornerDownRight,
@@ -10,6 +10,8 @@ import {
   Square,
   Crosshair,
   Package,
+  FileUp,
+  FolderUp,
   FolderOpen,
   Move,
   Calculator,
@@ -25,7 +27,9 @@ import {
   Rocket,
   Scan,
   TestTube,
-  Info,
+  Building2,
+  Eye,
+  Camera,
 } from 'lucide-react';
 import { loadOBJFile } from '../../loaders/obj/OBJLoader';
 import { SceneManager } from '../../scene/SceneManager';
@@ -33,6 +37,7 @@ import { toast } from '../components/ToastNotifications';
 import { loading } from '../components/LoadingIndicator';
 import { RoutingToolbar } from '../../routing/ui/RoutingToolbar';
 import { useUserLevel } from '../core/UserLevelContext';
+import { WarehousePanel } from '../../routing/ui/WarehousePanel';
 
 // Custom Quick Move Icon - 3 horizontal lines behind a cube
 const QuickMoveIcon = ({ size = 32 }: { size?: number }) => (
@@ -132,7 +137,9 @@ export interface RibbonToolbarProps {
   onRightViewClick?: () => void;
   onFrontViewClick?: () => void;
   onIsoViewClick?: () => void;
-  onInspectorClick?: () => void; // Toggle Inspector panel
+  onWarehouseConfigClick?: () => void;
+  onWarehouseToggleClick?: () => void;
+  onWarehouseResetCameraClick?: () => void;
 }
 
 export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
@@ -156,9 +163,12 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onRightViewClick,
   onFrontViewClick,
   onIsoViewClick,
-  onInspectorClick,
+  onWarehouseConfigClick,
+  onWarehouseToggleClick,
+  onWarehouseResetCameraClick,
 }) => {
   const { userLevel } = useUserLevel();
+  const [showWarehousePanel, setShowWarehousePanel] = useState(false);
   
   // Store connections
   const transformMode = useEditorStore((state) => state.transformMode);
@@ -174,16 +184,18 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   const loadWorld = useEditorStore((state) => state.loadWorld);
   const currentView = useEditorStore((state) => state.currentView);
   const setCurrentView = useEditorStore((state) => state.setCurrentView);
-  const toggleInspector = useEditorStore((state) => state.toggleInspector); // Babylon.js debug inspector
 
-  // File input refs (still used for hidden file inputs)
+  // File input refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const worldLoadInputRef = useRef<HTMLInputElement>(null);
   const objInputRef = useRef<HTMLInputElement>(null);
 
   // Handlers
+  const handleImportFile = () => fileInputRef.current?.click();
+  const handleImportFolder = () => folderInputRef.current?.click();
   const handleLoadWorld = () => worldLoadInputRef.current?.click();
+  const handleImportOBJ = () => objInputRef.current?.click();
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     console.log('[RibbonToolbar] ❌ GENERIC FILE LOADER - WRONG BUTTON! Use the Robot icon for OBJ files');
@@ -285,25 +297,40 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           <button className="ribbon-btn" onClick={onAssetLibraryClick} title="Asset Library">
             <Package size={32} />
           </button>
+          <button 
+            className={`ribbon-btn ${showWarehousePanel ? 'active' : ''}`}
+            onClick={() => setShowWarehousePanel(!showWarehousePanel)}
+            title="Configure Warehouse"
+          >
+            <Building2 size={32} />
+          </button>
+        </div>
+      </div>
+
+      {/* Import Category */}
+      <div className="ribbon-category-excel">
+        <div className="ribbon-category-label">Import</div>
+        <div className="ribbon-buttons-row">
+          <button className="ribbon-btn" onClick={handleImportFile} title="Import Model (URDF, GLTF, USD, etc.)">
+            <FileUp size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={handleImportFolder} title="Import Folder">
+            <FolderUp size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={handleImportOBJ} title="Import OBJ Mesh">
+            <Package size={32} />
+          </button>
         </div>
       </div>
 
       {/* Create Category */}
       <div className="ribbon-category-excel">
-        <div className="ribbon-category-label">Creation</div>
+        <div className="ribbon-category-label">Create</div>
         <div className="ribbon-buttons-row">
           <CreateDropdown
             onCreateBox={() => createObject('box')}
             onCreateSphere={() => createObject('sphere')}
             onCreateCylinder={() => createObject('cylinder')}
-            onCreateCone={() => createObject('cone')}
-            onCreateTorus={() => createObject('torus')}
-            onCreatePlane={() => createObject('plane')}
-            onCreateGround={() => createObject('ground')}
-            onCreateCapsule={() => createObject('capsule')}
-            onCreateDisc={() => createObject('disc')}
-            onCreateTorusKnot={() => createObject('torusknot')}
-            onCreatePolyhedron={() => createObject('polyhedron')}
           />
           <button className="ribbon-btn" onClick={() => createCollection()} title="Collection">
             <Package size={32} />
@@ -369,22 +396,6 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
             onIsoViewClick={handleIsoViewClick}
             currentView={currentView}
           />
-          <button 
-            className="ribbon-btn" 
-            onClick={() => {
-              onInspectorClick?.(); // Toggle Inspector panel
-            }} 
-            title="Toggle Inspector Panel"
-          >
-            <Info size={32} />
-          </button>
-          <button 
-            className="ribbon-btn" 
-            onClick={() => toggleInspector()} 
-            title="Toggle Babylon.js Debug Inspector (Ctrl+Shift+I)"
-          >
-            <Settings size={32} />
-          </button>
         </div>
       </div>
 
@@ -488,6 +499,36 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
         </div>
       )}
 
+      {/* Warehouse Category - Professional+ only */}
+      {userLevel !== 'essential' && (
+        <div className="ribbon-category-excel">
+          <div className="ribbon-category-label">Warehouse</div>
+          <div className="ribbon-buttons-row">
+            <button 
+              className="ribbon-btn" 
+              onClick={onWarehouseConfigClick}
+              title="Configure Warehouse (W)"
+            >
+              <Building2 size={32} />
+            </button>
+            <button 
+              className="ribbon-btn" 
+              onClick={onWarehouseToggleClick}
+              title="Toggle Warehouse Visibility"
+            >
+              <Eye size={32} />
+            </button>
+            <button 
+              className="ribbon-btn" 
+              onClick={onWarehouseResetCameraClick}
+              title="Reset Warehouse Camera"
+            >
+              <Camera size={32} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Hidden file inputs */}
       <input
         ref={fileInputRef}
@@ -521,6 +562,15 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
         onChange={handleOBJFileChange}
         style={{ display: 'none' }}
       />
+
+      {/* Warehouse Panel */}
+      {showWarehousePanel && (
+        <WarehousePanel
+          isVisible={showWarehousePanel}
+          onClose={() => setShowWarehousePanel(false)}
+          zIndex={1003}
+        />
+      )}
     </div>
   );
 };

@@ -9,12 +9,18 @@ import * as BABYLON from '@babylonjs/core';
 // mutating the source mesh's material reference. If clone fails, keep original.
 function cloneMaterialOnto(dst: BABYLON.Mesh, src: BABYLON.Mesh) {
   try {
-    const mat = src.material as BABYLON.Material | null;
-    if (!mat) return;
+    const currentMaterial = src.material as BABYLON.Material | null;
+    const meshWithOriginal = src as BABYLON.Mesh & { __kcOriginalMaterial?: BABYLON.Material | null };
+    const hasStoredOriginal = Object.prototype.hasOwnProperty.call(meshWithOriginal, '__kcOriginalMaterial');
+    const baseMaterial = hasStoredOriginal ? meshWithOriginal.__kcOriginalMaterial ?? null : currentMaterial;
+    if (!baseMaterial) {
+      dst.material = null;
+      return;
+    }
 
     // MultiMaterial handling
-    if ((BABYLON as any).MultiMaterial && mat instanceof (BABYLON as any).MultiMaterial) {
-      const multi = mat.clone(`${mat.name || 'multi'}__exp`) as any;
+    if ((BABYLON as any).MultiMaterial && baseMaterial instanceof (BABYLON as any).MultiMaterial) {
+      const multi = baseMaterial.clone(`${baseMaterial.name || 'multi'}__exp`) as any;
       if (multi) {
         // Ensure subMaterials are cloned to decouple from originals
         if (Array.isArray(multi.subMaterials)) {
@@ -27,7 +33,7 @@ function cloneMaterialOnto(dst: BABYLON.Mesh, src: BABYLON.Mesh) {
       }
     }
 
-    const cloned = mat.clone(`${mat.name || 'mat'}__exp`);
+    const cloned = baseMaterial.clone(`${baseMaterial.name || 'mat'}__exp`);
     if (cloned) dst.material = cloned;
   } catch {
     // No-op: on any failure keep the inherited material reference
@@ -255,7 +261,6 @@ export class GLBExportService {
     URL.revokeObjectURL(url);
   }
 }
-
 
 
 

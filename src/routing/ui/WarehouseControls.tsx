@@ -1,7 +1,7 @@
 // Warehouse Controls - Compact UI for adjusting warehouse model
 // Owner: Routing System Team
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import { 
   Minus, 
@@ -33,30 +33,33 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     depth: 50000,  // 50m
     height: 20000,  // 20m
     // Atmosphere settings
-    enableFog: false,
-    enableSkybox: false, // DISABLED: Causes rendering issues
+    enableFog: false, // Disable fog by default to see skybox clearly
+    enableSkybox: true,
     // PROMPT #3: Sun defaults
     enableSun: true,
     sunAzimuth: -45,
     sunElevation: 35,
     sunIntensity: 1.0,
     // PROMPT #4: Skybox source default
-    skyboxSource: 'sunny',
+    skyboxSource: 'sunny', // Blue sky with clouds
   });
-  const [isVisible, setIsVisible] = useState(false); // DEBUG: Hidden by default for skybox/floor debugging
+  // Load persisted visibility state from localStorage
+  const [isVisible, setIsVisible] = useState(() => {
+    try {
+      const saved = localStorage.getItem('warehouse_visible');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
-    // Only create warehouse when visibility is enabled
-    if (!isVisible) {
-      return;
-    }
-
     // Wait for scene to be ready with retry
     let scene = SceneManager.getInstance().getScene();
     if (!scene) {
       const retryTimeout = setTimeout(() => {
         scene = SceneManager.getInstance().getScene();
-        if (scene && isVisible) {
+        if (scene) {
           initializeWarehouse(scene);
         } else {
           console.warn('[WarehouseControls] Scene not available after retry');
@@ -65,18 +68,53 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
       return () => clearTimeout(retryTimeout);
     }
 
-    if (isVisible && !warehouse) {
-      initializeWarehouse(scene);
-    }
+    return initializeWarehouse(scene);
+  }, []);
 
-    // Cleanup: dispose warehouse when visibility becomes false or component unmounts
-    return () => {
-      if (warehouse) {
-        warehouse.dispose();
-        setWarehouse(null);
+  const toggleVisibility = useCallback(() => {
+    const newVisible = !isVisible;
+    setIsVisible(newVisible);
+    
+    // Persist visibility state
+    try {
+      localStorage.setItem('warehouse_visible', String(newVisible));
+    } catch (error) {
+      console.warn('[WarehouseControls] Failed to persist visibility state:', error);
+    }
+    
+    if (warehouse) {
+      const rootNode = warehouse.getRootNode();
+      rootNode.setEnabled(newVisible);
+      
+      // Also control skybox visibility when warehouse is off
+      const scene = SceneManager.getInstance().getScene();
+      if (scene && warehouse) {
+        const skybox = scene.getMeshByName('warehouse_skybox');
+        if (skybox) {
+          skybox.setEnabled(newVisible);
+        }
+      }
+    }
+  }, [isVisible, warehouse]);
+
+  // Keyboard shortcut for warehouse toggle (W key)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if typing in input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || (e.target as HTMLElement).isContentEditable) {
+        return;
+      }
+
+      // W key to toggle warehouse
+      if (e.key.toLowerCase() === 'w' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+        e.preventDefault();
+        toggleVisibility();
       }
     };
-  }, [isVisible, warehouse]);
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleVisibility]);
 
   const initializeWarehouse = (scene: BABYLON.Scene) => {
     // CRITICAL: Set background to transparent BEFORE creating warehouse
@@ -87,8 +125,12 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     const warehouseModel = new WarehouseModel(scene, config);
     setWarehouse(warehouseModel);
 
-    // Keep the default ground plane visible (warehouse floor replaces it, but grid overlay stays)
-    // Don't hide ground - let warehouse handle its own floor
+    // Hide the default ground plane - we use warehouse's parking lot and grass instead
+    const ground = SceneManager.getInstance().getGround();
+    if (ground) {
+      ground.setEnabled(false);
+      ground.isVisible = false;
+    }
 
     // Configure camera for EXTERIOR view - position OUTSIDE the warehouse
     const camera = CameraService.getInstance().getCamera();
@@ -99,10 +141,9 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
       
       // Set clipping planes for exterior view + skybox visibility
       camera.minZ = 0.1; // Near: 10cm
-      // CRITICAL: maxZ must be HUGE to see the skybox (which is 1,000,000 units)
-      const skyboxSize = 1_000_000; // Skybox is 1,000km
+      // CRITICAL: maxZ must be HUGE to see the skybox (which is 1000x warehouse size)
       const maxDimension = Math.max(widthM, depthM, heightM);
-      camera.maxZ = Math.max(skyboxSize * 1.5, maxDimension * 2000); // At least 1.5x skybox size (1,500,000)
+      camera.maxZ = maxDimension * 2000; // Far: must see skybox (2000x warehouse size)
       
       // Position camera OUTSIDE the warehouse, looking at it from an angle
       // Target the center of the warehouse at mid-height
@@ -190,19 +231,14 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
   };
 
   const resetSize = () => {
-    setConfig({
+    setConfig(prev => ({
+      ...prev, // Preserve other settings (fog, skybox, sun, doors, mezzanine, etc.)
       width: 50000,
       depth: 50000,
       height: 20000,
-    });
+    }));
   };
 
-  const toggleVisibility = () => {
-    const newVisible = !isVisible;
-    setIsVisible(newVisible);
-    // Warehouse creation/disposal is handled by useEffect based on isVisible
-    // No need to manually enable/disable rootNode - warehouse will be created/destroyed
-  };
 
   const resetCameraToInterior = () => {
     const camera = CameraService.getInstance().getCamera();
@@ -284,37 +320,37 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
         {/* Dimensions presented in one compact grid */}
         <div className="size-grid">
           <div className="size-item">
-            <label className="size-label" title="Warehouse width along X-axis (10m to 200m)">Width (X)</label>
+            <label className="size-label">Width (X)</label>
             <div className="size-control">
-              <button className="icon-btn-compact" onClick={() => adjustSize('width', -5000)} title="Decrease width by 5m">
+              <button className="icon-btn-compact" onClick={() => adjustSize('width', -5000)} title="-5m">
                 <Minus size={12} />
               </button>
               <span className="size-value">{formatSize(config.width)}</span>
-              <button className="icon-btn-compact" onClick={() => adjustSize('width', 5000)} title="Increase width by 5m">
+              <button className="icon-btn-compact" onClick={() => adjustSize('width', 5000)} title="+5m">
                 <Plus size={12} />
               </button>
             </div>
           </div>
           <div className="size-item">
-            <label className="size-label" title="Warehouse depth along Y-axis (10m to 200m)">Depth (Y)</label>
+            <label className="size-label">Depth (Y)</label>
             <div className="size-control">
-              <button className="icon-btn-compact" onClick={() => adjustSize('depth', -5000)} title="Decrease depth by 5m">
+              <button className="icon-btn-compact" onClick={() => adjustSize('depth', -5000)} title="-5m">
                 <Minus size={12} />
               </button>
               <span className="size-value">{formatSize(config.depth)}</span>
-              <button className="icon-btn-compact" onClick={() => adjustSize('depth', 5000)} title="Increase depth by 5m">
+              <button className="icon-btn-compact" onClick={() => adjustSize('depth', 5000)} title="+5m">
                 <Plus size={12} />
               </button>
             </div>
           </div>
           <div className="size-item">
-            <label className="size-label" title="Warehouse ceiling height along Z-axis (10m to 200m)">Height (Z)</label>
+            <label className="size-label">Height (Z)</label>
             <div className="size-control">
-              <button className="icon-btn-compact" onClick={() => adjustSize('height', -1000)} title="Decrease height by 1m">
+              <button className="icon-btn-compact" onClick={() => adjustSize('height', -1000)} title="-1m">
                 <Minus size={12} />
               </button>
               <span className="size-value">{formatSize(config.height)}</span>
-              <button className="icon-btn-compact" onClick={() => adjustSize('height', 1000)} title="Increase height by 1m">
+              <button className="icon-btn-compact" onClick={() => adjustSize('height', 1000)} title="+1m">
                 <Plus size={12} />
               </button>
             </div>
@@ -339,7 +375,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
 
         {/* Atmosphere Controls */}
         <div className="size-control-group" style={{ marginTop: 6 }}>
-          <label className="size-label" title="Enable atmospheric fog for depth perception. Creates a subtle distance fade effect.">
+          <label className="size-label">
             <input
               type="checkbox"
               checked={!!config.enableFog}
@@ -357,7 +393,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
 
         {/* PROMPT #3: Sun Controls */}
         <div className="size-control-group" style={{ marginTop: 6 }}>
-          <label className="size-label" title="Enable directional sun light with cascaded shadow maps. Creates realistic shadows and lighting.">
+          <label className="size-label">
             <input
               type="checkbox"
               checked={!!config.enableSun}
@@ -375,7 +411,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
           {config.enableSun && (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
-                <span style={{ width: 70, fontSize: '11px' }} title="Horizontal angle of the sun (compass direction): -180° (West) to 180° (East). 0° = North, -90° = West, 90° = East.">Azimuth</span>
+                <span style={{ width: 70, fontSize: '11px' }}>Azimuth</span>
                 <input
                   type="range"
                   min={-180}
@@ -390,7 +426,6 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
                     }
                   }}
                   style={{ flex: 1 }}
-                  title="Horizontal angle of the sun (compass direction)"
                 />
                 <span className="size-value" style={{ width: 40 }}>
                   {(config.sunAzimuth ?? -45).toFixed(0)}°
@@ -398,7 +433,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 70, fontSize: '11px' }} title="Vertical angle of the sun (how high in the sky): 0° (horizon) to 90° (directly overhead).">Elevation</span>
+                <span style={{ width: 70, fontSize: '11px' }}>Elevation</span>
                 <input
                   type="range"
                   min={0}
@@ -413,7 +448,6 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
                     }
                   }}
                   style={{ flex: 1 }}
-                  title="Vertical angle of the sun (how high in the sky)"
                 />
                 <span className="size-value" style={{ width: 40 }}>
                   {(config.sunElevation ?? 35).toFixed(0)}°
@@ -421,7 +455,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 70, fontSize: '11px' }} title="Brightness/strength of the sun light: 0.0 (off) to 3.0 (very bright). Default: 1.0">Intensity</span>
+                <span style={{ width: 70, fontSize: '11px' }}>Intensity</span>
                 <input
                   type="range"
                   min={0}
@@ -436,7 +470,6 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
                     }
                   }}
                   style={{ flex: 1 }}
-                  title="Brightness/strength of the sun light"
                 />
                 <span className="size-value" style={{ width: 40 }}>
                   {(config.sunIntensity ?? 1.0).toFixed(1)}
@@ -448,7 +481,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
 
         {/* PROMPT #4: Skybox Source Controls */}
         <div className="size-control-group" style={{ marginTop: 6 }}>
-          <label className="size-label" title="Enable skybox environment texture. Creates a distant sky/background around the warehouse.">
+          <label className="size-label">
             <input
               type="checkbox"
               checked={!!config.enableSkybox}
@@ -484,7 +517,6 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
                 cursor: 'pointer',
                 marginTop: '6px',
               }}
-              title="Select skybox type: Industrial (gray), Sunny Day (blue with clouds), Overcast (cloudy), Night Sky (dark with stars), Sunset (warm orange/red)"
             >
               <option value="industrial">Industrial (Default)</option>
               <option value="sunny">Sunny Day</option>

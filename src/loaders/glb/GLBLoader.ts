@@ -10,7 +10,12 @@ import '@babylonjs/loaders';
 import { TransformNode, Scene, AbstractMesh } from '@babylonjs/core';
 
 // Import up-axis detection utilities
-import { autoFixUpAxis, UpAxisDetectionResult, clearUpAxisCache, normalizeYawOnGroundPlane } from './upAxis';
+import {
+  autoFixUpAxis,
+  UpAxisDetectionResult,
+  clearUpAxisCache,
+  normalizeYawOnGroundPlane,
+} from './upAxis';
 
 /**
  * Create a canonical file key for stable sibling cache
@@ -18,12 +23,12 @@ import { autoFixUpAxis, UpAxisDetectionResult, clearUpAxisCache, normalizeYawOnG
  */
 function makeCanonicalFileKey(name: string): string {
   // remove extension (case-insensitive)
-  const base = name.replace(/\.[^.]+$/i, "");
+  const base = name.replace(/\.[^.]+$/i, '');
   // collapse all non-alphanum, drop trailing underscores/dashes, lower-case
   return base
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "")   // remove punctuation/underscores/spaces
-    .replace(/[_-]+$/g, "");      // just in case
+    .replace(/[^a-z0-9]+/g, '') // remove punctuation/underscores/spaces
+    .replace(/[_-]+$/g, ''); // just in case
 }
 
 /**
@@ -34,9 +39,9 @@ export interface GLBLoadResult {
   success: boolean;
   rootNodes: TransformNode[];
   meshes: AbstractMesh[];
-  joints: any[];           // Empty for GLB files
-  actuators: any[];        // Empty for GLB files
-  sensors: any[];          // Empty for GLB files
+  joints: any[]; // Empty for GLB files
+  actuators: any[]; // Empty for GLB files
+  sensors: any[]; // Empty for GLB files
   errors: string[];
   warnings: string[];
   bounds: BABYLON.BoundingBox | null;
@@ -93,17 +98,17 @@ export class GLBLoader {
   ): Promise<GLBLoadResult> {
     // Guard rail 0: Determine input type
     const isUrl = typeof fileOrUrl === 'string';
-    
+
     const startTime = performance.now();
     const defaultOptions: GLBLoadOptions = {
       enableProgressCallback: true,
       enableBoundsCalculation: true,
       enableMetadataExtraction: true,
       fallbackToBasicLoader: true,
-      enableUpAxisDetection: false,  // GLB files are Y-up by spec (glTF 2.0), use presentation layer conversion
+      enableUpAxisDetection: false, // GLB files are Y-up by spec (glTF 2.0), use presentation layer conversion
       upAxisBake: false,
-      upAxisVerbose: false,  // Disable verbose logging since detection is off
-      ...options
+      upAxisVerbose: false, // Disable verbose logging since detection is off
+      ...options,
     };
 
     // Initialize result with safe defaults
@@ -122,12 +127,12 @@ export class GLBLoader {
         loadTime: 0,
         meshCount: 0,
         hasAnimations: false,
-        hasMaterials: false
-      }
+        hasMaterials: false,
+      },
     };
 
     // Guard rail 1: Validate input
-    
+
     try {
       if (!isUrl && !this.validateFile(fileOrUrl as File)) {
         result.errors.push('Invalid GLB file: File validation failed');
@@ -148,7 +153,7 @@ export class GLBLoader {
 
       // Guard rail 4: Load GLB with fallback mechanism
       const loadResult = await this.loadGLBWithFallback(fileOrUrl, scene, defaultOptions);
-      
+
       if (!loadResult.success) {
         result.errors.push(...loadResult.errors);
         return result;
@@ -174,15 +179,20 @@ export class GLBLoader {
         result.rootNodes.forEach((root, i) => {
           const pos = root.getAbsolutePosition();
           const isSignificant = pos.length() > 0.1;
-          console.log(`  Root ${i}: position (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}) ${isSignificant ? '✅ SIGNIFICANT' : '❌ AT ORIGIN'}`);
+          console.log(
+            `  Root ${i}: position (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}) ${isSignificant ? '✅ SIGNIFICANT' : '❌ AT ORIGIN'}`
+          );
         });
         console.log('Bounds:', result.bounds);
         console.log('Bounds center:', result.bounds?.center.toString());
         console.groupEnd();
 
         // Create a single file container for all root nodes to ensure consistent orientation
-        const fileContainer = new TransformNode(isUrl ? (fileOrUrl as string) : (fileOrUrl as File).name, scene);
-        
+        const fileContainer = new TransformNode(
+          isUrl ? (fileOrUrl as string) : (fileOrUrl as File).name,
+          scene
+        );
+
         // ALWAYS use bounds center as canonical CAD position - this is the true model position
         let modelWorldPos = new BABYLON.Vector3(0, 0, 0);
         if (result.bounds) {
@@ -190,7 +200,7 @@ export class GLBLoader {
           console.log(`[GLB] Bounds center: ${modelWorldPos.toString()}`);
         } else {
           // Calculate bounds if not provided
-          const meshes = result.rootNodes.flatMap(r => r.getChildMeshes(false));
+          const meshes = result.rootNodes.flatMap((r) => r.getChildMeshes(false));
           if (meshes.length > 0) {
             const tempBounds = this.calculateBounds(meshes);
             modelWorldPos = tempBounds ? tempBounds.center.clone() : new BABYLON.Vector3(0, 0, 0);
@@ -200,17 +210,17 @@ export class GLBLoader {
         // Store original CAD position before any transformations
         fileContainer.metadata = { originalCADPosition: modelWorldPos.clone() };
         fileContainer.position.copyFrom(modelWorldPos);
-        
+
         console.log(`[GLB] Container positioned at CAD coordinates: ${modelWorldPos.toString()}`);
 
         // Parent GLB roots under the container, calculating local offsets
         for (const root of result.rootNodes) {
           const worldPos = root.getAbsolutePosition().clone();
           const worldRot = root.absoluteRotationQuaternion?.clone();
-          
+
           // Parent to container
           root.setParent(fileContainer);
-          
+
           // Calculate local offset from container position
           root.position = worldPos.subtract(modelWorldPos);
           if (worldRot) {
@@ -218,11 +228,15 @@ export class GLBLoader {
           }
         }
 
-        console.log(`[GLB Loader] Starting up-axis detection for: ${isUrl ? (fileOrUrl as string) : (fileOrUrl as File).name}`);
+        console.log(
+          `[GLB Loader] Starting up-axis detection for: ${isUrl ? (fileOrUrl as string) : (fileOrUrl as File).name}`
+        );
         console.log(`[GLB Loader] Model positioned at original CAD coordinates`);
 
         // Generate file key for sibling consistency
-        const fileKey = makeCanonicalFileKey((isUrl ? (fileOrUrl as string) : (fileOrUrl as File).name));
+        const fileKey = makeCanonicalFileKey(
+          isUrl ? (fileOrUrl as string) : (fileOrUrl as File).name
+        );
 
         // Apply up-axis correction (creates wrapper if needed)
         const upAxisResult = autoFixUpAxis(fileContainer, {
@@ -237,14 +251,16 @@ export class GLBLoader {
 
         // CRITICAL: Restore CAD position after up-axis correction
         // The wrapper may have changed the effective position
-        const finalRoot = upAxisResult.applied 
-          ? (fileContainer.parent as TransformNode) 
+        const finalRoot = upAxisResult.applied
+          ? (fileContainer.parent as TransformNode)
           : fileContainer;
 
         if (upAxisResult.applied && finalRoot !== fileContainer) {
           // Wrapper was created - set wrapper position to original CAD position
           finalRoot.position.copyFrom(modelWorldPos);
-          console.log(`[GLB] Position restored after up-axis correction: ${finalRoot.position.toString()}`);
+          console.log(
+            `[GLB] Position restored after up-axis correction: ${finalRoot.position.toString()}`
+          );
         }
 
         // Apply yaw normalization (reuses wrapper)
@@ -253,17 +269,20 @@ export class GLBLoader {
         // Update result.rootNodes to return the final root (wrapper or container)
         result.rootNodes = [finalRoot];
 
-        console.log(`[GLB Loader] Up-axis result for ${(isUrl ? (fileOrUrl as string) : (fileOrUrl as File).name)}:`, {
-          detected: upAxisResult.detected,
-          confidence: upAxisResult.confidence,
-          method: upAxisResult.method,
-          applied: upAxisResult.applied,
-          fileKey: fileKey
-        });
+        console.log(
+          `[GLB Loader] Up-axis result for ${isUrl ? (fileOrUrl as string) : (fileOrUrl as File).name}:`,
+          {
+            detected: upAxisResult.detected,
+            confidence: upAxisResult.confidence,
+            method: upAxisResult.method,
+            applied: upAxisResult.applied,
+            fileKey: fileKey,
+          }
+        );
 
         if (yaw.applied) {
           result.warnings.push(
-            `Yaw normalized: rotated ${(yaw.angle * 180 / Math.PI).toFixed(0)}° around Y for consistent orientation`
+            `Yaw normalized: rotated ${((yaw.angle * 180) / Math.PI).toFixed(0)}° around Y for consistent orientation`
           );
         }
 
@@ -310,11 +329,7 @@ export class GLBLoader {
           const tree = SceneTreeManager.getInstance();
           const assetsNode = tree.getAssetsNode();
 
-          const modelCollection = tree.createNode(
-            'collection',
-            modelName,
-            assetsNode?.id || null
-          );
+          const modelCollection = tree.createNode('collection', modelName, assetsNode?.id || null);
 
           const isSyntheticRoot = (n: TransformNode): boolean => {
             const nm = n.name || '';
@@ -338,17 +353,25 @@ export class GLBLoader {
 
           const visitedTransformIds = new Set<number>();
 
-          const addNodeRecursively = (node: TransformNode, parentTreeNodeId: string, depth: number = 0): void => {
+          const addNodeRecursively = (
+            node: TransformNode,
+            parentTreeNodeId: string,
+            depth: number = 0
+          ): void => {
             // Guard rail 1: Prevent stack overflow with depth limit
             if (depth > 100) {
-              console.warn(`[GLB Loader] Maximum recursion depth (100) exceeded for node "${node.name}"`);
+              console.warn(
+                `[GLB Loader] Maximum recursion depth (100) exceeded for node "${node.name}"`
+              );
               return;
             }
 
             // Guard rail 2: Avoid processing same TransformNode multiple times (cycle detection)
             if (typeof node.uniqueId === 'number') {
               if (visitedTransformIds.has(node.uniqueId)) {
-                console.log(`[GLB Loader] Skipping already visited node "${node.name}" (uniqueId: ${node.uniqueId})`);
+                console.log(
+                  `[GLB Loader] Skipping already visited node "${node.name}" (uniqueId: ${node.uniqueId})`
+                );
                 return;
               }
               visitedTransformIds.add(node.uniqueId);
@@ -357,7 +380,9 @@ export class GLBLoader {
             // Skip synthetic containers and duplicate filename nodes
             if (isSyntheticRoot(node)) {
               const children = node.getChildren();
-              console.log(`[GLB Loader] Skipping synthetic root "${node.name}", processing ${children.length} children`);
+              console.log(
+                `[GLB Loader] Skipping synthetic root "${node.name}", processing ${children.length} children`
+              );
               children.forEach((c) => {
                 if (c instanceof BABYLON.TransformNode) {
                   addNodeRecursively(c, parentTreeNodeId, depth + 1);
@@ -393,7 +418,9 @@ export class GLBLoader {
 
           // Build tree from root nodes only
           // After up-axis correction, result.rootNodes contains the final hierarchy root(s)
-          console.log(`[GLB Loader] Building scene tree from ${result.rootNodes.length} root node(s)`);
+          console.log(
+            `[GLB Loader] Building scene tree from ${result.rootNodes.length} root node(s)`
+          );
 
           if (result.rootNodes.length === 0) {
             console.warn('[GLB Loader] No root nodes found - tree will be empty');
@@ -404,7 +431,7 @@ export class GLBLoader {
             console.log(`[GLB Loader] Processing root: "${r.name}" (uniqueId: ${r.uniqueId})`, {
               isWrapper: metadata.__axisWrapper === true,
               isContainer: !!metadata.originalCADPosition,
-              childCount: r.getChildren().length
+              childCount: r.getChildren().length,
             });
             addNodeRecursively(r, modelCollection.id);
           });
@@ -421,12 +448,14 @@ export class GLBLoader {
 
       // Progress callback
       defaultOptions.onProgress?.(100, 'GLB file loaded successfully');
-
     } catch (error) {
       // Guard rail 6: Comprehensive error handling
-      const errorMessage = this.handleError(error, isUrl ? (fileOrUrl as string) : (fileOrUrl as File).name);
+      const errorMessage = this.handleError(
+        error,
+        isUrl ? (fileOrUrl as string) : (fileOrUrl as File).name
+      );
       result.errors.push(errorMessage);
-      
+
       // Try fallback loader if enabled
       if (defaultOptions.fallbackToBasicLoader) {
         try {
@@ -501,9 +530,15 @@ export class GLBLoader {
    */
   private async loadGLBWithFallback(
     fileOrUrl: File | string,
-    scene: Scene, 
+    scene: Scene,
     options: GLBLoadOptions
-  ): Promise<{ success: boolean; meshes?: AbstractMesh[]; rootNodes?: TransformNode[]; bounds?: BABYLON.BoundingBox | null; errors: string[] }> {
+  ): Promise<{
+    success: boolean;
+    meshes?: AbstractMesh[];
+    rootNodes?: TransformNode[];
+    bounds?: BABYLON.BoundingBox | null;
+    errors: string[];
+  }> {
     const errors: string[] = [];
 
     try {
@@ -525,7 +560,6 @@ export class GLBLoader {
       errors.push(...result2.errors);
 
       return { success: false, errors };
-
     } catch (error) {
       errors.push(`GLB loading failed: ${error}`);
       return { success: false, errors };
@@ -537,24 +571,36 @@ export class GLBLoader {
    */
   private async loadWithSceneLoader(
     fileOrUrl: File | string,
-    scene: Scene, 
+    scene: Scene,
     options: GLBLoadOptions
-  ): Promise<{ success: boolean; meshes?: AbstractMesh[]; rootNodes?: TransformNode[]; bounds?: BABYLON.BoundingBox | null; errors: string[] }> {
+  ): Promise<{
+    success: boolean;
+    meshes?: AbstractMesh[];
+    rootNodes?: TransformNode[];
+    bounds?: BABYLON.BoundingBox | null;
+    errors: string[];
+  }> {
     try {
       const isUrl = typeof fileOrUrl === 'string';
       const url = isUrl ? (fileOrUrl as string) : URL.createObjectURL(fileOrUrl as File);
-      
+
       // Debug: Check available plugins
-      console.log('[GLB Loader] Available plugins:', BABYLON.SceneLoader.GetPluginForExtension('.glb'));
-      console.log('[GLB Loader] GLTF plugin available:', BABYLON.SceneLoader.GetPluginForExtension('.gltf'));
-      
+      console.log(
+        '[GLB Loader] Available plugins:',
+        BABYLON.SceneLoader.GetPluginForExtension('.glb')
+      );
+      console.log(
+        '[GLB Loader] GLTF plugin available:',
+        BABYLON.SceneLoader.GetPluginForExtension('.gltf')
+      );
+
       const result = await BABYLON.SceneLoader.ImportMeshAsync(
         '',
         '',
         url,
         scene,
         undefined,
-        '.glb'  // Explicitly specify GLB extension
+        '.glb' // Explicitly specify GLB extension
       );
 
       if (!isUrl) URL.revokeObjectURL(url);
@@ -572,7 +618,7 @@ export class GLBLoader {
       const nodesByParent = new Map<string, BABYLON.TransformNode[]>();
       let globalRootNodes: BABYLON.TransformNode[] = [];
 
-      result.transformNodes.forEach(node => {
+      result.transformNodes.forEach((node) => {
         if (!node.parent) {
           // True orphan nodes (no parent at all) - rare but possible
           globalRootNodes.push(node);
@@ -602,7 +648,7 @@ export class GLBLoader {
           // Fall back to finding top-level nodes (fewest ancestors)
           // Find nodes with the shallowest depth
           let minDepth = Infinity;
-          const nodeDepths = result.transformNodes.map(node => {
+          const nodeDepths = result.transformNodes.map((node) => {
             let depth = 0;
             let current = node.parent;
             while (current && depth < 100) {
@@ -612,29 +658,32 @@ export class GLBLoader {
             return { node, depth };
           });
 
-          minDepth = Math.min(...nodeDepths.map(nd => nd.depth));
+          minDepth = Math.min(...nodeDepths.map((nd) => nd.depth));
           rootTransformNodes = nodeDepths
-            .filter(nd => nd.depth === minDepth)
-            .map(nd => nd.node);
+            .filter((nd) => nd.depth === minDepth)
+            .map((nd) => nd.node);
 
-          console.log(`[GLB Loader] Using nodes at depth ${minDepth} as roots (${rootTransformNodes.length} nodes)`);
+          console.log(
+            `[GLB Loader] Using nodes at depth ${minDepth} as roots (${rootTransformNodes.length} nodes)`
+          );
         }
       }
 
-      console.log(`[GLB Loader] Filtered ${result.transformNodes.length} transform nodes to ${rootTransformNodes.length} root nodes`);
+      console.log(
+        `[GLB Loader] Filtered ${result.transformNodes.length} transform nodes to ${rootTransformNodes.length} root nodes`
+      );
 
       return {
         success: true,
         meshes: result.meshes,
         rootNodes: rootTransformNodes,
         bounds,
-        errors: []
+        errors: [],
       };
-
     } catch (error) {
       return {
         success: false,
-        errors: [`SceneLoader.ImportMeshAsync failed: ${error}`]
+        errors: [`SceneLoader.ImportMeshAsync failed: ${error}`],
       };
     }
   }
@@ -644,19 +693,25 @@ export class GLBLoader {
    */
   private async loadWithAppendLoader(
     fileOrUrl: File | string,
-    scene: Scene, 
+    scene: Scene,
     options: GLBLoadOptions
-  ): Promise<{ success: boolean; meshes?: AbstractMesh[]; rootNodes?: TransformNode[]; bounds?: BABYLON.BoundingBox | null; errors: string[] }> {
+  ): Promise<{
+    success: boolean;
+    meshes?: AbstractMesh[];
+    rootNodes?: TransformNode[];
+    bounds?: BABYLON.BoundingBox | null;
+    errors: string[];
+  }> {
     try {
       const isUrl = typeof fileOrUrl === 'string';
       const url = isUrl ? (fileOrUrl as string) : URL.createObjectURL(fileOrUrl as File);
-      
+
       const result = await BABYLON.SceneLoader.AppendAsync(
         '',
         url,
         scene,
         undefined,
-        '.glb'  // Explicitly specify GLB extension
+        '.glb' // Explicitly specify GLB extension
       );
 
       if (!isUrl) URL.revokeObjectURL(url);
@@ -667,7 +722,7 @@ export class GLBLoader {
       const nodesByParent = new Map<string, BABYLON.TransformNode[]>();
       let globalRootNodes: BABYLON.TransformNode[] = [];
 
-      result.transformNodes.forEach(node => {
+      result.transformNodes.forEach((node) => {
         if (!node.parent) {
           globalRootNodes.push(node);
         } else {
@@ -686,7 +741,7 @@ export class GLBLoader {
         if (rootChildren.length > 0) {
           rootTransformNodes = rootChildren;
         } else {
-          const nodeDepths = result.transformNodes.map(node => {
+          const nodeDepths = result.transformNodes.map((node) => {
             let depth = 0;
             let current = node.parent;
             while (current && depth < 100) {
@@ -696,27 +751,28 @@ export class GLBLoader {
             return { node, depth };
           });
 
-          const minDepth = Math.min(...nodeDepths.map(nd => nd.depth));
+          const minDepth = Math.min(...nodeDepths.map((nd) => nd.depth));
           rootTransformNodes = nodeDepths
-            .filter(nd => nd.depth === minDepth)
-            .map(nd => nd.node);
+            .filter((nd) => nd.depth === minDepth)
+            .map((nd) => nd.node);
         }
       }
 
-      console.log(`[GLB Loader] Filtered ${result.transformNodes.length} transform nodes to ${rootTransformNodes.length} root nodes`);
+      console.log(
+        `[GLB Loader] Filtered ${result.transformNodes.length} transform nodes to ${rootTransformNodes.length} root nodes`
+      );
 
       return {
         success: true,
         meshes: result.meshes,
         rootNodes: rootTransformNodes,
         bounds,
-        errors: []
+        errors: [],
       };
-
     } catch (error) {
       return {
         success: false,
-        errors: [`SceneLoader.AppendAsync failed: ${error}`]
+        errors: [`SceneLoader.AppendAsync failed: ${error}`],
       };
     }
   }
@@ -724,10 +780,13 @@ export class GLBLoader {
   /**
    * Basic loader fallback
    */
-  private async loadWithBasicLoader(file: File, scene: Scene): Promise<{ success: boolean; meshes: AbstractMesh[]; rootNodes: TransformNode[] }> {
+  private async loadWithBasicLoader(
+    file: File,
+    scene: Scene
+  ): Promise<{ success: boolean; meshes: AbstractMesh[]; rootNodes: TransformNode[] }> {
     try {
       const url = URL.createObjectURL(file);
-      
+
       return new Promise((resolve) => {
         BABYLON.SceneLoader.ImportMesh(
           '',
@@ -739,7 +798,7 @@ export class GLBLoader {
             resolve({
               success: true,
               meshes,
-              rootNodes: transformNodes || []
+              rootNodes: transformNodes || [],
             });
           },
           null,
@@ -748,7 +807,7 @@ export class GLBLoader {
             resolve({
               success: false,
               meshes: [],
-              rootNodes: []
+              rootNodes: [],
             });
           }
         );
@@ -758,7 +817,7 @@ export class GLBLoader {
       return {
         success: false,
         meshes: [],
-        rootNodes: []
+        rootNodes: [],
       };
     }
   }
@@ -771,8 +830,12 @@ export class GLBLoader {
       if (meshes.length === 0) return null;
 
       // Calculate combined bounding box manually
-      let minX = Infinity, minY = Infinity, minZ = Infinity;
-      let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+      let minX = Infinity,
+        minY = Infinity,
+        minZ = Infinity;
+      let maxX = -Infinity,
+        maxY = -Infinity,
+        maxZ = -Infinity;
 
       for (const mesh of meshes) {
         mesh.computeWorldMatrix(true);
@@ -801,18 +864,18 @@ export class GLBLoader {
    * Extract metadata from loaded result
    */
   private extractMetadata(
-    loadResult: any, 
-    file: File, 
+    loadResult: any,
+    file: File,
     startTime: number
   ): GLBLoadResult['metadata'] {
     const loadTime = performance.now() - startTime;
-    
+
     return {
       fileSize: file.size,
       loadTime,
       meshCount: loadResult.meshes?.length || 0,
       hasAnimations: loadResult.animationGroups?.length > 0 || false,
-      hasMaterials: loadResult.meshes?.some((mesh: any) => mesh.material) || false
+      hasMaterials: loadResult.meshes?.some((mesh: any) => mesh.material) || false,
     };
   }
 
@@ -821,11 +884,11 @@ export class GLBLoader {
    */
   private handleError(error: any, filename: string): string {
     console.error(`[GLB Loader] Error loading ${filename}:`, error);
-    
+
     if (error instanceof Error) {
       return `GLB loading failed: ${error.message}`;
     }
-    
+
     return `GLB loading failed: ${String(error)}`;
   }
 
@@ -837,15 +900,17 @@ export class GLBLoader {
       // Check if GLTF plugin is already registered
       const gltfPlugin = BABYLON.SceneLoader.GetPluginForExtension('.gltf');
       const glbPlugin = BABYLON.SceneLoader.GetPluginForExtension('.glb');
-      
+
       if (!gltfPlugin || !glbPlugin) {
         console.warn('[GLB Loader] GLTF plugin not found, attempting to register...');
-        
+
         // Try to register the GLTF loader manually
         // This is a fallback in case the import didn't work
         try {
           // The import should have already registered the plugin, but let's be explicit
-          console.log('[GLB Loader] GLTF plugin registration should be handled by import statement');
+          console.log(
+            '[GLB Loader] GLTF plugin registration should be handled by import statement'
+          );
         } catch (error) {
           console.error('[GLB Loader] Failed to register GLTF plugin:', error);
         }
@@ -879,8 +944,8 @@ export class GLBLoader {
  * Main export function - MJCF-compatible interface
  */
 export const loadGLBFromFile = async (
-  file: File, 
-  scene: Scene, 
+  file: File,
+  scene: Scene,
   options?: GLBLoadOptions
 ): Promise<GLBLoadResult> => {
   const loader = GLBLoader.getInstance();
@@ -890,26 +955,23 @@ export const loadGLBFromFile = async (
 /**
  * Convenience function for basic GLB loading
  */
-export const loadGLB = async (
-  file: File, 
-  scene: Scene
-): Promise<GLBLoadResult> => {
+export const loadGLB = async (file: File, scene: Scene): Promise<GLBLoadResult> => {
   return loadGLBFromFile(file, scene, {
     enableProgressCallback: true,
     enableBoundsCalculation: true,
     enableMetadataExtraction: true,
-    fallbackToBasicLoader: true
+    fallbackToBasicLoader: true,
   });
 };
 
 /**
  * Manually set the up-axis for specific files before loading
  * Use this if automatic detection fails
- * 
+ *
  * Example usage:
  * ```
  * import { setManualUpAxis } from './GLBLoader';
- * 
+ *
  * // Before loading files
  * setManualUpAxis('unit101', 'Y'); // Force UNIT_101 files to Y-up
  * setManualUpAxis('unit104l', 'Z'); // Force UNIT_104L files to Z-up
@@ -928,28 +990,31 @@ export function setManualUpAxis(fileKey: string, axis: 'Y' | 'Z'): void {
  */
 export function diagnoseAllLoadedFiles(scene: BABYLON.Scene): void {
   console.group('🔍 UP-AXIS DIAGNOSTIC REPORT');
-  
+
   const allNodes = scene.transformNodes;
-  const glbFiles = allNodes.filter(node => 
-    node.name.endsWith('.glb') || node.name.endsWith('.GLB')
+  const glbFiles = allNodes.filter(
+    (node) => node.name.endsWith('.glb') || node.name.endsWith('.GLB')
   );
-  
+
   console.log(`Found ${glbFiles.length} GLB file containers\n`);
-  
+
   glbFiles.forEach((container, index) => {
     console.group(`📦 File ${index + 1}: ${container.name}`);
-    
+
     // Get bounds
     const meshes = container.getChildMeshes(false);
-    let minY = Infinity, maxY = -Infinity;
-    let minZ = Infinity, maxZ = -Infinity;
-    let minX = Infinity, maxX = -Infinity;
-    
-    meshes.forEach(mesh => {
+    let minY = Infinity,
+      maxY = -Infinity;
+    let minZ = Infinity,
+      maxZ = -Infinity;
+    let minX = Infinity,
+      maxX = -Infinity;
+
+    meshes.forEach((mesh) => {
       const bounds = mesh.getBoundingInfo();
       const min = bounds.boundingBox.minimumWorld;
       const max = bounds.boundingBox.maximumWorld;
-      
+
       minX = Math.min(minX, min.x);
       maxX = Math.max(maxX, max.x);
       minY = Math.min(minY, min.y);
@@ -957,46 +1022,49 @@ export function diagnoseAllLoadedFiles(scene: BABYLON.Scene): void {
       minZ = Math.min(minZ, min.z);
       maxZ = Math.max(maxZ, max.z);
     });
-    
+
     const extX = maxX - minX;
     const extY = maxY - minY;
     const extZ = maxZ - minZ;
-    
+
     console.log('📏 Dimensions:');
     console.log(`   X: ${extX.toFixed(3)} (${minX.toFixed(2)} to ${maxX.toFixed(2)})`);
     console.log(`   Y: ${extY.toFixed(3)} (${minY.toFixed(2)} to ${maxY.toFixed(2)})`);
     console.log(`   Z: ${extZ.toFixed(3)} (${minZ.toFixed(2)} to ${maxZ.toFixed(2)})`);
-    
+
     const tallest = Math.max(extX, extY, extZ);
     let expectedUp = 'UNKNOWN';
     if (tallest === extY) expectedUp = 'Y';
     else if (tallest === extZ) expectedUp = 'Z';
     else expectedUp = 'X';
-    
+
     console.log(`\n🎯 Expected Up-Axis: ${expectedUp}-up (tallest dimension)`);
-    
+
     // Check for wrapper
-    const hasWrapper = container.parent && 
-                      container.parent.metadata && 
-                      container.parent.metadata.__axisWrapper;
-    
+    const hasWrapper =
+      container.parent && container.parent.metadata && container.parent.metadata.__axisWrapper;
+
     if (hasWrapper) {
       console.log('✅ Has axis wrapper (rotation applied)');
       const wrapper = container.parent as BABYLON.TransformNode;
       const rotation = wrapper.rotationQuaternion?.toEulerAngles() || wrapper.rotation;
-      console.log(`   Rotation: ${rotation.x.toFixed(2)}, ${rotation.y.toFixed(2)}, ${rotation.z.toFixed(2)}`);
+      console.log(
+        `   Rotation: ${rotation.x.toFixed(2)}, ${rotation.y.toFixed(2)}, ${rotation.z.toFixed(2)}`
+      );
     } else {
       console.log('❌ No axis wrapper found');
     }
-    
+
     // Check metadata
     if (container.metadata) {
       console.log('\n📋 Metadata:', container.metadata);
     }
-    
+
     // Position
-    console.log(`\n📍 Position: (${container.position.x.toFixed(2)}, ${container.position.y.toFixed(2)}, ${container.position.z.toFixed(2)})`);
-    
+    console.log(
+      `\n📍 Position: (${container.position.x.toFixed(2)}, ${container.position.y.toFixed(2)}, ${container.position.z.toFixed(2)})`
+    );
+
     // Recommendation
     if (expectedUp === 'Y' && !hasWrapper) {
       console.log('\n✅ CORRECT: Y-up file with no rotation (as expected)');
@@ -1007,11 +1075,11 @@ export function diagnoseAllLoadedFiles(scene: BABYLON.Scene): void {
     } else if (expectedUp === 'Z' && !hasWrapper) {
       console.log('\n⚠️  WARNING: Z-up file missing rotation!');
     }
-    
+
     console.groupEnd();
     console.log('\n');
   });
-  
+
   console.groupEnd();
 }
 

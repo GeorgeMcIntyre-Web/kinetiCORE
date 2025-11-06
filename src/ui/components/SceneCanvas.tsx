@@ -1,9 +1,8 @@
 // Scene Canvas component - renders Babylon.js scene
 // Owner: Edwin/Cole
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import * as BABYLON from '@babylonjs/core';
-import { SceneManager } from '../../scene/SceneManager';
 import { RapierPhysicsEngine } from '../../physics/RapierPhysicsEngine';
 import { EntityRegistry } from '../../entities/EntityRegistry';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
@@ -14,6 +13,7 @@ import { CoordinateFrame } from './CoordinateFrame';
 import { RoutingIntegration } from '../../routing/ui/RoutingIntegration';
 import { isZoomableObject, isSelectableObject } from '../../scene/SceneUtils';
 import { performanceMetrics } from '../../core/PerformanceMetrics';
+import { SceneManager } from '../../scene/SceneManager';
 
 export const SceneCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -59,6 +59,86 @@ export const SceneCanvas: React.FC = () => {
   const gizmoRef = useRef<TransformGizmo | null>(null);
   // const highlightLayerRef = useRef<BABYLON.HighlightLayer | null>(null); // Replaced with direct material color changes
   const originalMaterialsRef = useRef<Map<string, BABYLON.Material | null>>(new Map());
+  const hoveredMeshRef = useRef<BABYLON.AbstractMesh | null>(null);
+  const hoverPointerStateRef = useRef<{ x: number; y: number }>({ x: Number.NEGATIVE_INFINITY, y: Number.NEGATIVE_INFINITY });
+  const hoverRafRef = useRef<number | null>(null);
+  const lastHoverPickTimeRef = useRef<number>(0);
+  const hoverHighlightLayerRef = useRef<BABYLON.HighlightLayer | null>(null);
+  
+  const clearHoverHighlight = useCallback(() => {
+    const currentHover = hoveredMeshRef.current;
+    if (!currentHover) {
+      return;
+    }
+
+    if (hoverHighlightLayerRef.current) {
+      hoverHighlightLayerRef.current.removeMesh(currentHover as unknown as BABYLON.Mesh);
+    }
+
+    hoveredMeshRef.current = null;
+  }, []);
+
+  const applyHoverHighlight = useCallback(
+    (mesh: BABYLON.AbstractMesh, scene: BABYLON.Scene) => {
+      const state = useEditorStore.getState();
+      if (state.alignMode || state.customFrameSelectionMode !== 'none') {
+        return;
+      }
+
+      const alreadySelected = state.selectedMeshes.some(
+        (selectedMesh) => selectedMesh.uniqueId === mesh.uniqueId
+      );
+      if (alreadySelected) {
+        return;
+      }
+
+      if (hoveredMeshRef.current && hoveredMeshRef.current.uniqueId === mesh.uniqueId) {
+        return;
+      }
+
+      clearHoverHighlight();
+
+      if (!hoverHighlightLayerRef.current) {
+        const hoverLayer = new BABYLON.HighlightLayer('hoverHighlightLayer', scene);
+        hoverLayer.innerGlow = false;
+        hoverLayer.outerGlow = true;
+        hoverLayer.blurHorizontalSize = 1.2;
+        hoverLayer.blurVerticalSize = 1.2;
+        hoverHighlightLayerRef.current = hoverLayer;
+      }
+
+      const hoverColor = new BABYLON.Color3(0.0, 1.0, 0.8);
+      hoverHighlightLayerRef.current.addMesh(mesh as unknown as BABYLON.Mesh, hoverColor);
+      scene.hoverCursor = 'pointer';
+      hoveredMeshRef.current = mesh;
+    },
+    [clearHoverHighlight]
+  );
+
+  // Capture Ctrl/Cmd + Shift + I to toggle Babylon inspector before the browser opens devtools
+  useEffect(() => {
+    const handleInspectorHotkey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || !e.shiftKey || e.key.toLowerCase() !== 'i') {
+        return;
+      }
+
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof e.stopImmediatePropagation === 'function') {
+        e.stopImmediatePropagation();
+      }
+
+      SceneManager.getInstance().toggleInspector();
+    };
+
+    window.addEventListener('keydown', handleInspectorHotkey, true);
+    return () => window.removeEventListener('keydown', handleInspectorHotkey, true);
+  }, []);
 
 
   useEffect(() => {
@@ -158,6 +238,7 @@ export const SceneCanvas: React.FC = () => {
         // Add click selection
         scene.onPointerDown = (evt, pickResult) => {
           if (evt.button === 0) {
+            clearHoverHighlight();
 
             // Check if we're in alignment mode
             const currentAlignMode = useEditorStore.getState().alignMode;
@@ -350,6 +431,75 @@ export const SceneCanvas: React.FC = () => {
           }
         };
 
+        const movementThresholdSq = 196; // 14px movement threshold
+        const pickIntervalMs = 48; // limit to ~20 picks/sec
+
+        const scheduleHoverPick = (pointerEvent: PointerEvent) => {
+          const { x: lastX, y: lastY } = hoverPointerStateRef.current;
+          const dx = pointerEvent.clientX - lastX;
+          const dy = pointerEvent.clientY - lastY;
+          if (dx * dx + dy * dy < movementThresholdSq && hoverRafRef.current === null) {
+            return;
+          }
+
+          hoverPointerStateRef.current = { x: pointerEvent.clientX, y: pointerEvent.clientY };
+
+          if (hoverRafRef.current !== null) {
+            return;
+          }
+
+          const now = performance.now();
+          if (now - lastHoverPickTimeRef.current < pickIntervalMs) {
+            return;
+          }
+          lastHoverPickTimeRef.current = now;
+
+          hoverRafRef.current = window.requestAnimationFrame(() => {
+            hoverRafRef.current = null;
+
+            if (!scene.activeCamera) {
+              return;
+            }
+
+            const state = useEditorStore.getState();
+            if (state.alignMode || state.customFrameSelectionMode !== 'none') {
+              clearHoverHighlight();
+              scene.hoverCursor = 'default';
+              return;
+            }
+
+            if ((pointerEvent.buttons & 1) === 1) {
+              clearHoverHighlight();
+              scene.hoverCursor = 'default';
+              return;
+            }
+
+            const predicate = (mesh: BABYLON.AbstractMesh) => {
+              if (!isSelectableObject(mesh)) return false;
+              return !state.selectedMeshes.some((selectedMesh) => selectedMesh.uniqueId === mesh.uniqueId);
+            };
+
+            const pickInfo = scene.pick(
+              scene.pointerX,
+              scene.pointerY,
+              (mesh) => predicate(mesh as BABYLON.AbstractMesh)
+            );
+
+            if (pickInfo?.hit && pickInfo.pickedMesh instanceof BABYLON.AbstractMesh) {
+              applyHoverHighlight(pickInfo.pickedMesh, scene);
+              return;
+            }
+
+            clearHoverHighlight();
+            scene.hoverCursor = 'default';
+          });
+        };
+
+        scene.onPointerMove = (evt) => {
+          const pointerEvt = evt as unknown as PointerEvent;
+          scheduleHoverPick(pointerEvt);
+        };
+
         // Physics + metrics via scene observables (avoid a second runRenderLoop)
         const engine = sceneManager.getEngine();
 
@@ -390,6 +540,11 @@ export const SceneCanvas: React.FC = () => {
     // Cleanup on unmount
     return () => {
       gizmoRef.current?.dispose();
+      clearHoverHighlight();
+      if (hoverHighlightLayerRef.current) {
+        hoverHighlightLayerRef.current.dispose();
+        hoverHighlightLayerRef.current = null;
+      }
       // Remove scene observers if present
       try {
         const scene = SceneManager.getInstance().getScene();
@@ -398,13 +553,21 @@ export const SceneCanvas: React.FC = () => {
           if (obs.beforeRenderObserver) scene.onBeforeRenderObservable.remove(obs.beforeRenderObserver);
           if (obs.afterRenderObserver) scene.onAfterRenderObservable.remove(obs.afterRenderObserver);
         }
+        if (scene) {
+          scene.onPointerMove = () => {};
+          scene.hoverCursor = 'default';
+        }
+        if (hoverRafRef.current !== null) {
+          window.cancelAnimationFrame(hoverRafRef.current);
+          hoverRafRef.current = null;
+        }
       } catch {}
 
       physicsEngine.dispose();
       registry.clear();
       sceneManager.dispose();
     };
-  }, [setCamera, selectMesh, clearSelection, initializeCoordinateFrameWidget]);
+  }, [setCamera, selectMesh, clearSelection, initializeCoordinateFrameWidget, clearHoverHighlight, applyHoverHighlight]);
 
   const transformGizmoEnabled = useEditorStore((state) => state.transformGizmoEnabled);
 
@@ -512,11 +675,28 @@ export const SceneCanvas: React.FC = () => {
     // Helper function to restore original material
     const restoreMaterial = (mesh: BABYLON.AbstractMesh) => {
       const meshId = mesh.uniqueId.toString();
+      const meshWithMeta = mesh as BABYLON.AbstractMesh & { __kcOriginalMaterial?: BABYLON.Material | null };
+      const storedMaterial = originalMaterials.has(meshId)
+        ? originalMaterials.get(meshId) ?? null
+        : meshWithMeta.__kcOriginalMaterial ?? null;
       if (originalMaterials.has(meshId)) {
-        mesh.material = originalMaterials.get(meshId) || null;
         originalMaterials.delete(meshId);
       }
+      if (meshWithMeta.__kcOriginalMaterial !== undefined) {
+        delete meshWithMeta.__kcOriginalMaterial;
+      }
+      mesh.material = storedMaterial;
     };
+
+    if (hoveredMeshRef.current) {
+      const hovered = hoveredMeshRef.current;
+      const hoveredSelected = selectedMeshes.some(
+        (mesh) => mesh.uniqueId === hovered.uniqueId
+      );
+      if (hoveredSelected) {
+        clearHoverHighlight();
+      }
+    }
 
     // Helper function to apply vivid highlight color
     const applyHighlightColor = (mesh: BABYLON.AbstractMesh, color: BABYLON.Color3) => {
@@ -525,6 +705,8 @@ export const SceneCanvas: React.FC = () => {
       // Store original material if not already stored
       if (!originalMaterials.has(meshId)) {
         originalMaterials.set(meshId, mesh.material);
+        (mesh as BABYLON.AbstractMesh & { __kcOriginalMaterial?: BABYLON.Material | null }).__kcOriginalMaterial =
+          mesh.material ?? null;
       }
 
       // Create temporary highlight material
@@ -590,7 +772,7 @@ export const SceneCanvas: React.FC = () => {
         }
       });
     };
-  }, [selectedNodeIds, selectedMeshes]);
+  }, [selectedNodeIds, selectedMeshes, clearHoverHighlight]);
 
   // Handle canvas resize when container changes
   useEffect(() => {

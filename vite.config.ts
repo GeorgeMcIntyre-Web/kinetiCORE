@@ -65,13 +65,6 @@ export default defineConfig({
       },
     },
     rollupOptions: {
-      external: (id) => {
-        // Mark inspector as external (optional debug tool, loaded dynamically)
-        if (id === '@babylonjs/inspector') {
-          return true;
-        }
-        return false;
-      },
       output: {
         // Optimize chunking strategy to reduce main bundle size
         manualChunks(id) {
@@ -142,6 +135,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ['@dimforge/rapier3d-compat', '@mlightcad/libredwg-web', 'pcl.js'],
+    include: ['@babylonjs/core/Debug/debugLayer.js', '@babylonjs/inspector'],
   },
   assetsInclude: ['**/*.wasm', '**/pcl-core.wasm'],
   worker: {

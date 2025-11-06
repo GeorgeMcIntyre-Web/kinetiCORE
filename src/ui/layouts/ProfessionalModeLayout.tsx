@@ -3,6 +3,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import {
+  Circle,
+  Cone,
+  Square,
+  Pill,
+  Disc,
+  Diamond,
   Move,
   RotateCw,
   Scale,
@@ -17,7 +23,7 @@ import {
   EyeOff,
   LayoutTemplate,
   Grab,
-  Settings,
+  Building2,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
@@ -37,8 +43,10 @@ import { ConnectionPointsRenderer } from '../../routing/ui/ConnectionPointsRende
 import { useRoutingStore } from '../store/routingStore';
 import { SceneManager } from '../../scene/SceneManager';
 import { KinematicExtractionPanel } from '../components/KinematicExtractionPanel';
-import { Scan } from 'lucide-react';
+import { WarehousePanel } from '../../routing/ui/WarehousePanel';
+import { Scan, Settings } from 'lucide-react';
 import { CreateDropdown } from '../components/CreateDropdown';
+import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
 import './ProfessionalModeLayout.css';
 
 export const ProfessionalModeLayout: React.FC = () => {
@@ -60,7 +68,6 @@ export const ProfessionalModeLayout: React.FC = () => {
   const canRedo = useEditorStore((state) => state.canRedo());
   const savePanelLayout = useEditorStore((state) => state.savePanelLayout);
   const loadPanelLayout = useEditorStore((state) => state.loadPanelLayout);
-  const toggleInspector = useEditorStore((state) => state.toggleInspector);
 
   const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'analysis'>('modeling');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,9 +78,10 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [activeMeasurement, setActiveMeasurement] = useState<MeasurementType>(null);
   const [showDebugLabels, setShowDebugLabels] = useState(false);
   const [showKinematicExtractionPanel, setShowKinematicExtractionPanel] = useState(false);
+  const [showWarehousePanel, setShowWarehousePanel] = useState(false);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const debugLabelsRef = useRef<RouteDebugLabels | null>(null);
   const routeSelection = useRoutingStore((state) => state.selectedRoute);
-  
   // Auto size the left scene tree based on content (inline to avoid nested hook issues)
   const [leftTreeWidth, setLeftTreeWidth] = useState<number>(240);
   useEffect(() => {
@@ -254,21 +262,18 @@ export const ProfessionalModeLayout: React.FC = () => {
             <button
               className={`workspace-tab ${activeWorkspace === 'modeling' ? 'active' : ''}`}
               onClick={() => setActiveWorkspace('modeling')}
-              title="Modeling Workspace - Create and edit 3D models, primitives, routing, and scene geometry"
             >
               Modeling
             </button>
             <button
               className={`workspace-tab ${activeWorkspace === 'simulation' ? 'active' : ''}`}
               onClick={() => setActiveWorkspace('simulation')}
-              title="Simulation Workspace - Run physics simulations, kinematics, and motion planning (Coming Soon)"
             >
               Simulation
             </button>
             <button
               className={`workspace-tab ${activeWorkspace === 'analysis' ? 'active' : ''}`}
               onClick={() => setActiveWorkspace('analysis')}
-              title="Analysis Workspace - View performance metrics, collision detection, and route validation (Coming Soon)"
             >
               Analysis
             </button>
@@ -286,13 +291,6 @@ export const ProfessionalModeLayout: React.FC = () => {
             <button className="action-btn" title="Export" onClick={handleExport}>
               <Download size={18} />
             </button>
-            <button
-              className="action-btn"
-              onClick={() => toggleInspector()}
-              title="Toggle Babylon.js Debug Inspector (Ctrl+Shift+I)"
-            >
-              <Settings size={18} />
-            </button>
             <div className="separator"></div>
             <button
               className="action-btn"
@@ -309,6 +307,14 @@ export const ProfessionalModeLayout: React.FC = () => {
               onClick={redo}
             >
               <Redo size={18} />
+            </button>
+            <div className="separator"></div>
+            <button
+              className="action-btn"
+              title="Settings"
+              onClick={() => setShowSettingsPanel(!showSettingsPanel)}
+            >
+              <Settings size={18} />
             </button>
           </div>
           <select
@@ -330,6 +336,22 @@ export const ProfessionalModeLayout: React.FC = () => {
 
       {/* Ribbon Toolbar */}
       <div className="ribbon-toolbar">
+        {/* Import Tools (parity with Essential ribbon) */}
+        <div className="tool-group">
+          <div className="group-label">Import</div>
+          <div className="tool-buttons">
+            <button
+              className="tool-btn"
+              title="Import Model (URDF, GLTF, USD, OBJ, etc.)"
+              onClick={handleImport}
+            >
+              <Upload size={18} />
+              <span>Import</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
         {/* Creation Tools */}
         <div className="tool-group">
           <div className="group-label">Creation</div>
@@ -338,15 +360,71 @@ export const ProfessionalModeLayout: React.FC = () => {
               onCreateBox={() => createObject('box')}
               onCreateSphere={() => createObject('sphere')}
               onCreateCylinder={() => createObject('cylinder')}
-              onCreateCone={() => createObject('cone')}
-              onCreateTorus={() => createObject('torus')}
-              onCreatePlane={() => createObject('plane')}
-              onCreateGround={() => createObject('ground')}
-              onCreateCapsule={() => createObject('capsule')}
-              onCreateDisc={() => createObject('disc')}
-              onCreateTorusKnot={() => createObject('torusknot')}
-              onCreatePolyhedron={() => createObject('polyhedron')}
             />
+            <button
+              className="tool-btn"
+              title="Cone"
+              onClick={() => createObject('cone')}
+            >
+              <Cone size={18} />
+              <span>Cone</span>
+            </button>
+            <button
+              className="tool-btn"
+              title="Torus"
+              onClick={() => createObject('torus')}
+            >
+              <Circle size={18} />
+              <span>Torus</span>
+            </button>
+            <button
+              className="tool-btn"
+              title="Plane"
+              onClick={() => createObject('plane')}
+            >
+              <Square size={18} />
+              <span>Plane</span>
+            </button>
+            <button
+              className="tool-btn"
+              title="Ground"
+              onClick={() => createObject('ground')}
+            >
+              <Square size={18} />
+              <span>Ground</span>
+            </button>
+            <button
+              className="tool-btn"
+              title="Capsule"
+              onClick={() => createObject('capsule')}
+            >
+              <Pill size={18} />
+              <span>Capsule</span>
+            </button>
+            <button
+              className="tool-btn"
+              title="Disc"
+              onClick={() => createObject('disc')}
+            >
+              <Disc size={18} />
+              <span>Disc</span>
+            </button>
+            <button
+              className="tool-btn"
+              title="Torus Knot"
+              onClick={() => createObject('torusknot')}
+            >
+              <Circle size={18} />
+              <span>TorusKnot</span>
+            </button>
+            <button
+              className="tool-btn"
+              title="Polyhedron"
+              onClick={() => createObject('polyhedron')}
+            >
+              <Diamond size={18} />
+              <span>Polyhedron</span>
+            </button>
           </div>
         </div>
 
@@ -503,6 +581,23 @@ export const ProfessionalModeLayout: React.FC = () => {
 
         <div className="toolbar-separator"></div>
 
+        {/* Warehouse Tools */}
+        <div className="tool-group">
+          <div className="group-label">Warehouse</div>
+          <div className="tool-buttons">
+            <button
+              className={`tool-btn ${showWarehousePanel ? 'active' : ''}`}
+              onClick={() => setShowWarehousePanel(!showWarehousePanel)}
+              title="Configure Warehouse"
+            >
+              <Building2 size={18} />
+              <span className="tool-btn-label">Configure</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
         {/* Kinematics Tools */}
         <div className="tool-group">
           <div className="group-label">Kinematics</div>
@@ -627,7 +722,6 @@ export const ProfessionalModeLayout: React.FC = () => {
               { id: 'toolPalette-panel', type: 'toolPalette' },
             ],
             rightPanels: [
-              { id: 'warehouse-panel', type: 'warehouse' },
               { id: 'routingControl-panel', type: 'routingControl' },
               { id: 'routeStats-panel', type: 'routeStats' },
               { id: 'inspector-panel', type: 'inspector' },
@@ -668,6 +762,13 @@ export const ProfessionalModeLayout: React.FC = () => {
         onClose={handleCloseMeasurement}
       />
 
+      {/* Warehouse Panel */}
+      <WarehousePanel
+        isVisible={showWarehousePanel}
+        onClose={() => setShowWarehousePanel(false)}
+        zIndex={1003}
+      />
+
       {/* Route Selection Visuals - Cyan glow and connection handles */}
       <RouteSelectionVisuals />
 
@@ -688,8 +789,14 @@ export const ProfessionalModeLayout: React.FC = () => {
         onClose={() => setShowKinematicExtractionPanel(false)}
         zIndex={1003}
       />
+
+      {/* Floating Settings Panel - Contains Skybox tab */}
+      <FloatingSettingsPanel
+        isVisible={showSettingsPanel}
+        onClose={() => setShowSettingsPanel(false)}
+        zIndex={1010}
+      />
     </div>
   );
 };
-    // Auto size the left scene tree based on content (inline to avoid nested hook issues)
 
