@@ -358,18 +358,35 @@ export const SceneCanvas: React.FC = () => {
                     // Alt+Click always selects the individual mesh (override)
                     selectMesh(mesh);
                   } else if (currentSelectionLevel === 'object') {
-                    // Object level: Traverse Babylon hierarchy to find root
+                    // Object level: Traverse Babylon hierarchy to find the object root
                     let rootNode: BABYLON.Node = mesh;
+                    let previousNode: BABYLON.Node = mesh;
 
                     console.log('[Selection] Starting from mesh:', mesh.name);
 
-                    // Traverse up the Babylon parent hierarchy until we find the root
-                    while (rootNode.parent) {
+                    // Traverse up the Babylon parent hierarchy
+                    // Stop before reaching the scene root (parent should be a Mesh or TransformNode, not Scene)
+                    while (rootNode.parent &&
+                           rootNode.parent.name !== '__root__' &&
+                           rootNode.parent.name !== 'root') {
                       console.log('[Selection] Current:', rootNode.name, '-> Parent:', rootNode.parent.name);
+                      previousNode = rootNode;
                       rootNode = rootNode.parent;
+
+                      // Stop if parent is the scene itself
+                      if (rootNode.parent instanceof BABYLON.Scene) {
+                        console.log('[Selection] Reached scene parent, stopping at:', rootNode.name);
+                        break;
+                      }
                     }
 
                     console.log('[Selection] Root found:', rootNode.name);
+
+                    // If rootNode is a Scene or __root__, use the previous node
+                    if (rootNode instanceof BABYLON.Scene || rootNode.name === '__root__' || rootNode.name === 'root') {
+                      rootNode = previousNode;
+                      console.log('[Selection] Using previous node instead:', rootNode.name);
+                    }
 
                     // Select the root node
                     if (rootNode instanceof BABYLON.Mesh) {
