@@ -206,7 +206,8 @@ export const SceneCanvas: React.FC = () => {
       console.log('💡 Tip: Check transparency state with: sceneManager.isBackgroundTransparent()');
       console.log('💡 Tip: Force transparent background with: sceneManager.forceTransparentBackground()');
       console.log('💡 Debug: Kinematics managers available: kinematicsManager, fkSolver, ikSolver');
-      console.log('💡 Point Pick: enablePointPick() | disablePointPick() | clearPointPickMarkers() | listPointPickMarkers()');
+      console.log('✅ Point Pick Mode: ENABLED by default - click objects to place axis frames');
+      console.log('   Commands: disablePointPick() | enablePointPick() | clearPointPickMarkers() | listPointPickMarkers()');
 
       if (camera) {
         setCamera(camera);
