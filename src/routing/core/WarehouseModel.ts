@@ -33,6 +33,7 @@ export interface WarehouseConfig {
   sunAzimuth?: number;   // degrees (-180..180)
   sunElevation?: number; // degrees (0..90)
   sunIntensity?: number; // 0..3
+  skipBuilding?: boolean; // Skip building floor/parking lot (skybox only)
   // Roof configuration
   enableRoof?: boolean; // Enable roof (default: true)
   // Doors configuration
