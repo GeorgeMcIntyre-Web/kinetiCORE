@@ -36,19 +36,19 @@ export const SelectionLevelDropdown: React.FC<SelectionLevelDropdownProps> = ({
     {
       id: 'object',
       label: 'Object',
-      icon: <Box size={32} />,
+      icon: <Box size={28} strokeWidth={2} />,
       description: 'Select entire objects'
     },
     {
       id: 'component',
       label: 'Component',
-      icon: <Component size={32} />,
+      icon: <Component size={28} strokeWidth={2} />,
       description: 'Select components within objects'
     },
     {
       id: 'mesh',
       label: 'Mesh',
-      icon: <Grid3x3 size={32} />,
+      icon: <Grid3x3 size={28} strokeWidth={2} />,
       description: 'Select individual meshes'
     }
   ];
