@@ -9,6 +9,7 @@ import { FloorMaterialManager } from './FloorMaterialManager';
 import { EngineService } from './services/EngineService';
 import { LightingService } from './services/LightingService';
 import { CameraService } from './services/CameraService';
+import { inspectorService } from '../services/InspectorService';
 
 export class SceneManager {
   private static instance: SceneManager | null = null;
@@ -66,6 +67,9 @@ export class SceneManager {
 
     // Create scene
     this.scene = new BABYLON.Scene(this.engineService.getEngine()!);
+
+    // Set scene getter for Inspector service
+    inspectorService.setSceneGetter(() => this.scene ?? null);
 
     // CRITICAL FIX: Keep Babylon default (left-handed, Y-up) for stable coordinate system
     // CAD content will be converted to Y-up during import, not at scene level
@@ -128,6 +132,29 @@ export class SceneManager {
     if (typeof window !== 'undefined' && import.meta.env.DEV) {
       (window as any).scene = this.scene;
       console.log('🔧 Scene exposed to window.scene for debugging');
+    }
+
+    // Dev hotkey: Alt+I to force Inspector embed (diagnostic)
+    if (typeof window !== 'undefined' && import.meta.env.DEV && this.scene) {
+      const hotkeyHandler = (e: KeyboardEvent) => {
+        if (e.altKey && e.key.toLowerCase() === 'i') {
+          const host = document.querySelector('.babylon-inspector-host') as HTMLElement;
+          if (!host || !this.scene) return;
+          try {
+            this.scene.debugLayer.hide();
+            this.scene.debugLayer.show({
+              embedMode: true,
+              overlay: false,
+              enablePopup: false,
+              rootElement: host,
+              parentElement: host,
+              globalRoot: host,
+            } as any);
+          } catch {}
+        }
+      };
+      window.addEventListener('keydown', hotkeyHandler);
+      console.log('🔧 Inspector hotkey: Alt+I to force embed');
     }
 
     // Initialize CSG2 for Boolean operations
