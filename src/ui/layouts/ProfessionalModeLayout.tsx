@@ -526,14 +526,14 @@ export const ProfessionalModeLayout: React.FC = () => {
               title: '3D Viewport',
             },
             leftPanels: [
-              { id: 'sceneTree-panel', type: 'sceneTree' },
               { id: 'toolPalette-panel', type: 'toolPalette' },
             ],
             rightPanels: [
+              { id: 'sceneTree-panel', type: 'sceneTree' },
+              { id: 'inspector-panel', type: 'inspector' },
               { id: 'warehouse-panel', type: 'warehouse' },
               { id: 'routingControl-panel', type: 'routingControl' },
               { id: 'routeStats-panel', type: 'routeStats' },
-              { id: 'inspector-panel', type: 'inspector' },
             ],
             bottomPanels: [],
           }}

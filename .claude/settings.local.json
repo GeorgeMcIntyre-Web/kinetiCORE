@@ -34,7 +34,8 @@
       "Bash(gh pr create:*)",
       "Bash(git remote:*)",
       "Bash(dir:*)",
-      "Bash(npm run dev:ui:*)"
+      "Bash(npm run dev:ui:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []
