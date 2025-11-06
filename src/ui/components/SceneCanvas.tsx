@@ -271,7 +271,12 @@ export const SceneCanvas: React.FC = () => {
             // Handle point pick (if enabled) - runs alongside normal selection
             const currentPointPickMode = useEditorStore.getState().pointPickMode;
             if (currentPointPickMode) {
-              handlePointPick(pickResult);
+              // Do a custom pick for point picking that includes ALL meshes (including ground/layout)
+              const pointPickResult = scene.pick(scene.pointerX, scene.pointerY, (mesh) => {
+                // Pick ANY visible mesh including ground
+                return mesh.isVisible && mesh.isEnabled() && mesh.isPickable;
+              });
+              handlePointPick(pointPickResult);
               // Continue to normal selection (don't return)
             }
 

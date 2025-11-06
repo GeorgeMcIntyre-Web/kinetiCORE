@@ -3323,6 +3323,11 @@ export const useEditorStore = create<EditorState>((set, get) => {
   handlePointPick: (pickInfo) => {
     const { pointPickMode, pointPickMarkers, pointPickFrameWidgets } = get();
 
+    // Debug: Log what we're picking
+    console.log('[PointPick Debug] Hit:', pickInfo.hit);
+    console.log('[PointPick Debug] Mesh:', pickInfo.pickedMesh?.name);
+    console.log('[PointPick Debug] isPickable:', (pickInfo.pickedMesh as any)?.isPickable);
+
     if (!pointPickMode || !pickInfo.hit || !pickInfo.pickedMesh || !pickInfo.pickedPoint) {
       return;
     }
