@@ -657,7 +657,6 @@ export async function showEmbeddedInspector(
         
         if (sceneNode) {
           // Try clicking multiple times to ensure it expands
-          const clickEvent = new MouseEvent('click', { bubbles: true, cancelable: true });
           sceneNode.click(); // Use .click() instead of dispatchEvent for better compatibility
           setTimeout(() => {
             sceneNode!.click();
@@ -692,31 +691,28 @@ export async function showEmbeddedInspector(
           const debugLayer = args.scene!.debugLayer;
           
           // Hide and re-show to force rebuild
-          debugLayer.hide().then(() => {
-            setTimeout(async () => {
-              try {
-                await debugLayer.show({
-                  embedMode: true,
-                  overlay: false,
-                  enablePopup: false,
-                  rootElement: host,
-                  parentElement: host,
-                  globalRoot: host
-                } as any);
-                
-                // Re-apply styles after re-show
-                setTimeout(() => {
-                  adopt(host);
-                  harden(host);
-                  console.log('[refreshInspectorTree] ✅ Inspector rebuilt by hide/show');
-                }, 500);
-              } catch (err) {
-                console.error('[refreshInspectorTree] Error re-showing Inspector:', err);
-              }
-            }, 100);
-          }).catch((err: any) => {
-            console.warn('[refreshInspectorTree] Error hiding Inspector for rebuild:', err);
-          });
+          debugLayer.hide();
+          setTimeout(async () => {
+            try {
+              await debugLayer.show({
+                embedMode: true,
+                overlay: false,
+                enablePopup: false,
+                rootElement: host,
+                parentElement: host,
+                globalRoot: host
+              } as any);
+
+              // Re-apply styles after re-show
+              setTimeout(() => {
+                adopt(host);
+                harden(host);
+                console.log('[refreshInspectorTree] ✅ Inspector rebuilt by hide/show');
+              }, 500);
+            } catch (err) {
+              console.error('[refreshInspectorTree] Error re-showing Inspector:', err);
+            }
+          }, 100);
         } catch (err) {
           console.warn('[refreshInspectorTree] Could not force rebuild:', err);
         }
