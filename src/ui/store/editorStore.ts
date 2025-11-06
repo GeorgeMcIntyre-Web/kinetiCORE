@@ -3322,26 +3322,78 @@ export const useEditorStore = create<EditorState>((set, get) => {
   handlePointPick: (pickInfo) => {
     const { pointPickMode, pointPickMarkers, pointPickFrameWidgets } = get();
 
+    console.log('[PointPick] Handler called, mode:', pointPickMode);
+    console.log('[PointPick] Hit:', pickInfo.hit);
+    console.log('[PointPick] PickedMesh:', pickInfo.pickedMesh?.name);
+
     if (!pointPickMode || !pickInfo.hit || !pickInfo.pickedMesh || !pickInfo.pickedPoint) {
+      console.log('[PointPick] Early return - missing required data');
       return;
     }
 
     const mesh = pickInfo.pickedMesh as BABYLON.Mesh;
     const pickPoint = pickInfo.pickedPoint;
-    const pickNormal = pickInfo.getNormal(true, false);
 
-    if (!pickNormal) {
-      toast.warning('Could not determine surface normal at picked point');
-      return;
-    }
+    console.log('[PointPick] Starting point pick handler');
+    console.log('[PointPick] Pick point:', pickPoint.toString());
+    console.log('[PointPick] Mesh:', mesh.name);
 
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     if (!scene) return;
 
-    console.log('[PointPick] Starting point pick handler');
-    console.log('[PointPick] Pick point:', pickPoint.toString());
-    console.log('[PointPick] Pick normal:', pickNormal?.toString() || 'null');
+    // Calculate normal from face data (more reliable than pickInfo.getNormal())
+    const faceId = pickInfo.faceId;
+    console.log('[PointPick] Face ID:', faceId);
+
+    let pickNormal: BABYLON.Vector3;
+
+    if (faceId >= 0) {
+      // Get the face normal from mesh vertex data
+      const indices = mesh.getIndices();
+      const normals = mesh.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+
+      if (indices && normals && faceId * 3 + 2 < indices.length) {
+        const i0 = indices[faceId * 3];
+        const i1 = indices[faceId * 3 + 1];
+        const i2 = indices[faceId * 3 + 2];
+
+        const n0 = new BABYLON.Vector3(normals[i0 * 3], normals[i0 * 3 + 1], normals[i0 * 3 + 2]);
+        const n1 = new BABYLON.Vector3(normals[i1 * 3], normals[i1 * 3 + 1], normals[i1 * 3 + 2]);
+        const n2 = new BABYLON.Vector3(normals[i2 * 3], normals[i2 * 3 + 1], normals[i2 * 3 + 2]);
+
+        // Average of vertex normals
+        const avgNormal = n0.add(n1).add(n2).scale(1 / 3);
+
+        // Transform to world space
+        const worldMatrix = mesh.computeWorldMatrix(true);
+        pickNormal = BABYLON.Vector3.TransformNormal(avgNormal, worldMatrix).normalize();
+
+        console.log('[PointPick] Calculated normal from face data:', pickNormal.toString());
+      } else {
+        console.warn('[PointPick] Could not get face data');
+        toast.warning('Could not determine surface normal at picked point');
+        return;
+      }
+    } else {
+      console.warn('[PointPick] Invalid face ID');
+      toast.warning('Could not determine surface normal at picked point');
+      return;
+    }
+
+    console.log('[PointPick] Normal calculated:', pickNormal.toString());
+    console.log('='.repeat(80));
+    console.log('[PointPick] DETAILED COORDINATES:');
+    console.log('[PointPick] Raw pick point (Babylon space):', {
+      x: pickPoint.x,
+      y: pickPoint.y,
+      z: pickPoint.z
+    });
+    console.log('[PointPick] Raw normal (Babylon space):', {
+      x: pickNormal.x,
+      y: pickNormal.y,
+      z: pickNormal.z
+    });
 
     try {
       // Create a sphere marker at the picked point (orange, visible size)
@@ -3360,7 +3412,14 @@ export const useEditorStore = create<EditorState>((set, get) => {
       markerMaterial.disableLighting = true;
       marker.material = markerMaterial;
 
-      console.log('[PointPick] Marker created at:', marker.position.toString());
+      console.log('[PointPick] Marker sphere created:');
+      console.log('  - Name:', marker.name);
+      console.log('  - Position:', { x: marker.position.x, y: marker.position.y, z: marker.position.z });
+      console.log('  - Diameter: 0.05');
+      console.log('  - IsVisible:', marker.isVisible);
+      console.log('  - IsEnabled:', marker.isEnabled());
+      console.log('  - RenderingGroupId:', marker.renderingGroupId);
+      console.log('  - Material color:', markerMaterial.emissiveColor.toString());
 
       // Create coordinate frame widget at picked point
       const frameWidget = new CoordinateFrameWidget(scene);
@@ -3368,7 +3427,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
       // Calculate coordinate frame aligned with surface normal
       // Z-axis = surface normal
       const zAxis = pickNormal.normalize();
-      console.log('[PointPick] Z-axis (normal):', zAxis.toString());
+      console.log('[PointPick] Z-axis (normal):', { x: zAxis.x, y: zAxis.y, z: zAxis.z });
 
       // X-axis = perpendicular to normal (choose arbitrary but consistent direction)
       let xAxis: BABYLON.Vector3;
@@ -3377,24 +3436,32 @@ export const useEditorStore = create<EditorState>((set, get) => {
       } else {
         xAxis = BABYLON.Vector3.Cross(zAxis, BABYLON.Vector3.Up()).normalize();
       }
+      console.log('[PointPick] X-axis:', { x: xAxis.x, y: xAxis.y, z: xAxis.z });
 
       // Y-axis = perpendicular to both
       const yAxis = BABYLON.Vector3.Cross(zAxis, xAxis).normalize();
+      console.log('[PointPick] Y-axis:', { x: yAxis.x, y: yAxis.y, z: yAxis.z });
 
       // Create custom frame feature
+      const userOrigin = babylonToUser(pickPoint);
+      console.log('[PointPick] Origin (converted to user space):', userOrigin);
+
       const frame: CustomFrameFeature = {
         featureType: 'face',
         nodeId: mesh.uniqueId.toString(),
-        origin: babylonToUser(pickPoint),
+        origin: userOrigin,
         xAxis: { x: xAxis.x, y: xAxis.y, z: xAxis.z },
         yAxis: { x: yAxis.x, y: yAxis.y, z: yAxis.z },
         zAxis: { x: zAxis.x, y: zAxis.y, z: zAxis.z },
       };
 
+      console.log('[PointPick] Frame data:', frame);
+
       // Show the frame widget with larger axes for visibility
       frameWidget.show(frame, 0.2); // 0.2 meter axis length (increased for visibility)
 
-      console.log('[PointPick] Frame widget created');
+      console.log('[PointPick] Frame widget shown with axis length: 0.2');
+      console.log('[PointPick] Frame widget isVisible:', frameWidget.isVisible());
 
       // Store marker and widget
       set({
@@ -3402,7 +3469,12 @@ export const useEditorStore = create<EditorState>((set, get) => {
         pointPickFrameWidgets: [...pointPickFrameWidgets, frameWidget],
       });
 
-      console.log('[PointPick] Success! Total markers:', pointPickMarkers.length + 1);
+      console.log('[PointPick] ✅ SUCCESS! Objects stored in state');
+      console.log('[PointPick] Total markers:', pointPickMarkers.length + 1);
+      console.log('[PointPick] Total frame widgets:', pointPickFrameWidgets.length + 1);
+      console.log('[PointPick] Marker in scene:', scene.getMeshByName(marker.name) !== null);
+      console.log('='.repeat(80));
+
       toast.success('Point picked - axis frame created');
     } catch (error) {
       console.error('[EditorStore] Failed to create point pick marker:', error);

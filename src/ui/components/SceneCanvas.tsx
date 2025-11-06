@@ -170,6 +170,22 @@ export const SceneCanvas: React.FC = () => {
         useEditorStore.getState().clearPointPickMarkers();
         console.log('🗑️ All point pick markers cleared');
       };
+      (window as any).listPointPickMarkers = () => {
+        const state = useEditorStore.getState();
+        console.log('Point Pick Status:');
+        console.log('  Mode enabled:', state.pointPickMode);
+        console.log('  Markers count:', state.pointPickMarkers.length);
+        console.log('  Frame widgets count:', state.pointPickFrameWidgets.length);
+        state.pointPickMarkers.forEach((marker, i) => {
+          console.log(`  Marker ${i}:`, marker.name, 'at', marker.position.toString(), 'visible:', marker.isVisible);
+        });
+        const scene = sceneManager.getScene();
+        if (scene) {
+          const allMarkers = scene.meshes.filter(m => m.name.includes('pointPickMarker'));
+          console.log('  Markers in scene:', allMarkers.length);
+          allMarkers.forEach(m => console.log('    -', m.name, 'at', m.position.toString()));
+        }
+      };
 
       // Expose kinematics managers for debug tools
       import('../../kinematics/KinematicsManager').then(({ KinematicsManager }) => {
@@ -190,7 +206,7 @@ export const SceneCanvas: React.FC = () => {
       console.log('💡 Tip: Check transparency state with: sceneManager.isBackgroundTransparent()');
       console.log('💡 Tip: Force transparent background with: sceneManager.forceTransparentBackground()');
       console.log('💡 Debug: Kinematics managers available: kinematicsManager, fkSolver, ikSolver');
-      console.log('💡 Point Pick: Enable with enablePointPick(), disable with disablePointPick(), clear markers with clearPointPickMarkers()');
+      console.log('💡 Point Pick: enablePointPick() | disablePointPick() | clearPointPickMarkers() | listPointPickMarkers()');
 
       if (camera) {
         setCamera(camera);
