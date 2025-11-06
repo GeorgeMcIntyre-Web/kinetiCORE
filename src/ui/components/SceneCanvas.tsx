@@ -31,7 +31,8 @@ export const SceneCanvas: React.FC = () => {
   const initializeCoordinateFrameWidget = useEditorStore((state) => state.initializeCoordinateFrameWidget);
   const handleAlignClick = useEditorStore((state) => state.handleAlignClick);
   const handleSceneClickForCustomFrame = useEditorStore((state) => state.handleSceneClickForCustomFrame);
-  
+  const handlePointPick = useEditorStore((state) => state.handlePointPick);
+
   // Snap settings - ALL 13 snap types
   const snapEnabled = useEditorStore((state) => state.snapEnabled);
   const snapToGrid = useEditorStore((state) => state.snapToGrid);
@@ -80,7 +81,7 @@ export const SceneCanvas: React.FC = () => {
   const applyHoverHighlight = useCallback(
     (mesh: BABYLON.AbstractMesh, scene: BABYLON.Scene) => {
       const state = useEditorStore.getState();
-      if (state.alignMode || state.customFrameSelectionMode !== 'none') {
+      if (state.pointPickMode || state.alignMode || state.customFrameSelectionMode !== 'none') {
         return;
       }
 
@@ -156,6 +157,20 @@ export const SceneCanvas: React.FC = () => {
       // Expose managers to window for console debugging
       (window as any).sceneManager = sceneManager;
 
+      // Expose point pick controls to window for console debugging
+      (window as any).enablePointPick = () => {
+        useEditorStore.getState().setPointPickMode(true);
+        console.log('✅ Point pick mode enabled - click on any object to place axis frames');
+      };
+      (window as any).disablePointPick = () => {
+        useEditorStore.getState().setPointPickMode(false);
+        console.log('❌ Point pick mode disabled');
+      };
+      (window as any).clearPointPickMarkers = () => {
+        useEditorStore.getState().clearPointPickMarkers();
+        console.log('🗑️ All point pick markers cleared');
+      };
+
       // Expose kinematics managers for debug tools
       import('../../kinematics/KinematicsManager').then(({ KinematicsManager }) => {
         (window as any).kinematicsManager = KinematicsManager.getInstance();
@@ -175,6 +190,7 @@ export const SceneCanvas: React.FC = () => {
       console.log('💡 Tip: Check transparency state with: sceneManager.isBackgroundTransparent()');
       console.log('💡 Tip: Force transparent background with: sceneManager.forceTransparentBackground()');
       console.log('💡 Debug: Kinematics managers available: kinematicsManager, fkSolver, ikSolver');
+      console.log('💡 Point Pick: Enable with enablePointPick(), disable with disablePointPick(), clear markers with clearPointPickMarkers()');
 
       if (camera) {
         setCamera(camera);
@@ -238,6 +254,14 @@ export const SceneCanvas: React.FC = () => {
         scene.onPointerDown = (evt, pickResult) => {
           if (evt.button === 0) {
             clearHoverHighlight();
+
+            // Check if we're in point pick mode
+            const currentPointPickMode = useEditorStore.getState().pointPickMode;
+            if (currentPointPickMode) {
+              // Handle point pick clicks
+              handlePointPick(pickResult);
+              return; // Don't process as normal selection
+            }
 
             // Check if we're in alignment mode
             const currentAlignMode = useEditorStore.getState().alignMode;
@@ -373,7 +397,7 @@ export const SceneCanvas: React.FC = () => {
             }
 
             const state = useEditorStore.getState();
-            if (state.alignMode || state.customFrameSelectionMode !== 'none') {
+            if (state.pointPickMode || state.alignMode || state.customFrameSelectionMode !== 'none') {
               clearHoverHighlight();
               scene.hoverCursor = 'default';
               return;

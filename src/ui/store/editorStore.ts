@@ -155,6 +155,11 @@ interface EditorState {
   alignMarkers: BABYLON.Mesh[];
   alignFrameWidgets: CoordinateFrameWidget[];
 
+  // Point pick state - visual axis frames at clicked points
+  pointPickMode: boolean;
+  pointPickMarkers: BABYLON.Mesh[];
+  pointPickFrameWidgets: CoordinateFrameWidget[];
+
   // Actions
   undo: () => void;
   redo: () => void;
@@ -270,6 +275,11 @@ interface EditorState {
   } | null) => void;
   handleAlignClick: (pickInfo: BABYLON.PickingInfo) => void;
   cancelAlignment: () => void;
+
+  // Point pick actions
+  setPointPickMode: (enabled: boolean) => void;
+  handlePointPick: (pickInfo: BABYLON.PickingInfo) => void;
+  clearPointPickMarkers: () => void;
 
   // URDF loading helper
   loadURDFWithMeshes: (urdfFile: File, meshFiles: File[], scene: BABYLON.Scene, tree: any, assetsNode: any, registry: any) => Promise<void>;
@@ -596,6 +606,11 @@ export const useEditorStore = create<EditorState>((set, get) => {
   alignFirstPoint: null,
   alignMarkers: [],
   alignFrameWidgets: [],
+
+  // Point pick defaults
+  pointPickMode: false,
+  pointPickMarkers: [],
+  pointPickFrameWidgets: [],
 
   // Undo/Redo actions
   undo: () => {
@@ -3282,6 +3297,117 @@ export const useEditorStore = create<EditorState>((set, get) => {
     setTimeout(() => {
       get().cancelAlignment();
     }, 1500);
+  },
+
+  // Point pick tool setters
+  setPointPickMode: (enabled) => {
+    // Clear existing markers and frame widgets when toggling mode
+    const { pointPickMarkers, pointPickFrameWidgets } = get();
+    if (!enabled) {
+      pointPickMarkers.forEach(marker => marker.dispose());
+      pointPickFrameWidgets.forEach(widget => widget.dispose());
+      set({ pointPickMode: false, pointPickMarkers: [], pointPickFrameWidgets: [] });
+    } else {
+      set({ pointPickMode: true });
+    }
+  },
+
+  clearPointPickMarkers: () => {
+    const { pointPickMarkers, pointPickFrameWidgets } = get();
+    pointPickMarkers.forEach(marker => marker.dispose());
+    pointPickFrameWidgets.forEach(widget => widget.dispose());
+    set({ pointPickMarkers: [], pointPickFrameWidgets: [] });
+  },
+
+  handlePointPick: (pickInfo) => {
+    const { pointPickMode, pointPickMarkers, pointPickFrameWidgets } = get();
+
+    if (!pointPickMode || !pickInfo.hit || !pickInfo.pickedMesh || !pickInfo.pickedPoint) {
+      return;
+    }
+
+    const mesh = pickInfo.pickedMesh as BABYLON.Mesh;
+    const pickPoint = pickInfo.pickedPoint;
+    const pickNormal = pickInfo.getNormal(true, false);
+
+    if (!pickNormal) {
+      toast.warning('Could not determine surface normal at picked point');
+      return;
+    }
+
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    if (!scene) return;
+
+    console.log('[PointPick] Starting point pick handler');
+    console.log('[PointPick] Pick point:', pickPoint.toString());
+    console.log('[PointPick] Pick normal:', pickNormal?.toString() || 'null');
+
+    try {
+      // Create a sphere marker at the picked point (orange, visible size)
+      const marker = BABYLON.MeshBuilder.CreateSphere(
+        `pointPickMarker_${Date.now()}`,
+        { diameter: 0.05 }, // Increased to 0.05 for visibility (same as alignment markers)
+        scene
+      );
+      marker.position = pickPoint.clone();
+      marker.isPickable = false;
+      marker.renderingGroupId = 3;
+
+      // Create marker material
+      const markerMaterial = new BABYLON.StandardMaterial(`pointPickMarkerMat_${Date.now()}`, scene);
+      markerMaterial.emissiveColor = new BABYLON.Color3(1, 0.5, 0); // Orange
+      markerMaterial.disableLighting = true;
+      marker.material = markerMaterial;
+
+      console.log('[PointPick] Marker created at:', marker.position.toString());
+
+      // Create coordinate frame widget at picked point
+      const frameWidget = new CoordinateFrameWidget(scene);
+
+      // Calculate coordinate frame aligned with surface normal
+      // Z-axis = surface normal
+      const zAxis = pickNormal.normalize();
+      console.log('[PointPick] Z-axis (normal):', zAxis.toString());
+
+      // X-axis = perpendicular to normal (choose arbitrary but consistent direction)
+      let xAxis: BABYLON.Vector3;
+      if (Math.abs(zAxis.x) < 0.9) {
+        xAxis = BABYLON.Vector3.Cross(zAxis, BABYLON.Vector3.Right()).normalize();
+      } else {
+        xAxis = BABYLON.Vector3.Cross(zAxis, BABYLON.Vector3.Up()).normalize();
+      }
+
+      // Y-axis = perpendicular to both
+      const yAxis = BABYLON.Vector3.Cross(zAxis, xAxis).normalize();
+
+      // Create custom frame feature
+      const frame: CustomFrameFeature = {
+        featureType: 'face',
+        nodeId: mesh.uniqueId.toString(),
+        origin: babylonToUser(pickPoint),
+        xAxis: { x: xAxis.x, y: xAxis.y, z: xAxis.z },
+        yAxis: { x: yAxis.x, y: yAxis.y, z: yAxis.z },
+        zAxis: { x: zAxis.x, y: zAxis.y, z: zAxis.z },
+      };
+
+      // Show the frame widget with larger axes for visibility
+      frameWidget.show(frame, 0.2); // 0.2 meter axis length (increased for visibility)
+
+      console.log('[PointPick] Frame widget created');
+
+      // Store marker and widget
+      set({
+        pointPickMarkers: [...pointPickMarkers, marker],
+        pointPickFrameWidgets: [...pointPickFrameWidgets, frameWidget],
+      });
+
+      console.log('[PointPick] Success! Total markers:', pointPickMarkers.length + 1);
+      toast.success('Point picked - axis frame created');
+    } catch (error) {
+      console.error('[EditorStore] Failed to create point pick marker:', error);
+      toast.error('Failed to create point pick marker');
+    }
   },
 
   // ============================================================================
