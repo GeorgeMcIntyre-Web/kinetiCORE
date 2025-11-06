@@ -361,7 +361,7 @@ export class CameraService {
 
     // Far plane: 100x object size (ensures we can see the whole object from any angle)
     // CRITICAL: But must be at least skybox size if skybox exists
-    const skybox = this.scene.getMeshByName('skybox');
+    const skybox = this.scene?.getMeshByName('skybox');
     const skyboxSize = 1_000_000; // Skybox is 1,000km
     const requiredMaxZ = skyboxSize * 1.5; // 1.5x skybox size (1,500,000)
     

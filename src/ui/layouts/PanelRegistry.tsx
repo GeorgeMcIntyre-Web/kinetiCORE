@@ -56,7 +56,8 @@ const RoutingControlPanelWrapper: React.FC<IDockviewPanelProps> = () => {
 };
 
 const WarehousePanelWrapper: React.FC<IDockviewPanelProps> = () => {
-  return <WarehousePanel />;
+  const [isVisible, setIsVisible] = React.useState(true);
+  return <WarehousePanel isVisible={isVisible} onClose={() => setIsVisible(false)} />;
 };
 
 const ViewportPanel: React.FC<IDockviewPanelProps> = () => {

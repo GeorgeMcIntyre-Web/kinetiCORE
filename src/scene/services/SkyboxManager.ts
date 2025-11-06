@@ -4,7 +4,7 @@
 
 import * as BABYLON from '@babylonjs/core';
 import { GridMaterial } from '@babylonjs/materials/grid/gridMaterial';
-import { createTriplanarFloor } from './TriplanarFloorShader';
+// import { createTriplanarFloor } from './TriplanarFloorShader'; // TODO: Implement TriplanarFloorShader
 import { setFloorMaterial, FloorKind, logMat } from '../materials/materials';
 
 export type FloorMaterialType = 'grid' | 'stone' | 'concrete' | 'epoxy';
@@ -557,11 +557,14 @@ export class SkyboxManager {
     }
     
     const floorConfig = this.config.floor;
-    const triplanarConfig = floorConfig.triplanar || DEFAULT_TRIPLANAR_CONFIG;
+    // TODO: Re-enable triplanar floor shader once TriplanarFloorShader module is implemented
+    // const triplanarConfig = floorConfig.triplanar || DEFAULT_TRIPLANAR_CONFIG;
     const textureUrls = floorConfig.textureUrls || {};
     
     console.log(`[SkyboxManager] Creating ${materialType} floor with size ${groundSize}`);
 
+    // TODO: Re-enable material presets when triplanar shader is implemented
+    /*
     // Apply material-specific presets
     let materialPreset: Partial<TriplanarFloorConfig> = {};
     switch (materialType) {
@@ -575,10 +578,9 @@ export class SkyboxManager {
         materialPreset = { roughnessBias: 0.08, metallic: 0.08 };
         break;
     }
-
     const finalConfig = { ...triplanarConfig, ...materialPreset };
-
-    // Use triplanar shader if textures are available, otherwise fallback to simple PBR
+    */
+    /*
     if (textureUrls.baseColorUrl && textureUrls.normalUrl && textureUrls.roughAoUrl && 
         textureUrls.microNormalUrl && textureUrls.noiseUrl) {
       try {
@@ -597,17 +599,20 @@ export class SkyboxManager {
           }
         );
 
-        this.groundGrid = result.ground;
-        this.groundGrid.position = new BABYLON.Vector3(0, 0, 0);
-        this.groundGrid.receiveShadows = true;
-        this.groundGrid.isPickable = false;
+        if (result?.ground) {
+          this.groundGrid = result.ground;
+          this.groundGrid.position = new BABYLON.Vector3(0, 0, 0);
+          this.groundGrid.receiveShadows = true;
+          this.groundGrid.isPickable = false;
 
-        console.log(`[SkyboxManager] ✅ Created ${materialType} floor with triplanar PBR shader`);
-        return;
+          console.log(`[SkyboxManager] ✅ Created ${materialType} floor with triplanar PBR shader`);
+          return;
+        }
       } catch (error) {
         console.warn('[SkyboxManager] ⚠️ Failed to create triplanar floor, falling back to simple PBR:', error);
       }
     }
+    */
 
     // Fallback: use material factory functions
     this.groundGrid = BABYLON.MeshBuilder.CreateGround(
