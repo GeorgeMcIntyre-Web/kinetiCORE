@@ -81,7 +81,8 @@ export const SceneCanvas: React.FC = () => {
   const applyHoverHighlight = useCallback(
     (mesh: BABYLON.AbstractMesh, scene: BABYLON.Scene) => {
       const state = useEditorStore.getState();
-      if (state.pointPickMode || state.alignMode || state.customFrameSelectionMode !== 'none') {
+      // Allow hover in point pick mode, but not in align or custom frame modes
+      if (state.alignMode || state.customFrameSelectionMode !== 'none') {
         return;
       }
 
@@ -201,8 +202,8 @@ export const SceneCanvas: React.FC = () => {
       console.log('💡 Tip: Check transparency state with: sceneManager.isBackgroundTransparent()');
       console.log('💡 Tip: Force transparent background with: sceneManager.forceTransparentBackground()');
       console.log('💡 Debug: Kinematics managers available: kinematicsManager, fkSolver, ikSolver');
-      console.log('💡 Point Pick: Use enablePointPick() to place surface-normal axis frames on objects');
-      console.log('   Commands: enablePointPick() | disablePointPick() | clearPointPickMarkers() | listPointPickMarkers()');
+      console.log('✅ Point Pick: ALWAYS ON - click objects to place surface-normal axis frames');
+      console.log('   Frame adapts to zoom (5cm-2m). Commands: disablePointPick() | clearPointPickMarkers()');
 
       if (camera) {
         setCamera(camera);
@@ -267,12 +268,11 @@ export const SceneCanvas: React.FC = () => {
           if (evt.button === 0) {
             clearHoverHighlight();
 
-            // Check if we're in point pick mode
+            // Handle point pick (if enabled) - runs alongside normal selection
             const currentPointPickMode = useEditorStore.getState().pointPickMode;
             if (currentPointPickMode) {
-              // Handle point pick clicks
               handlePointPick(pickResult);
-              return; // Don't process as normal selection
+              // Continue to normal selection (don't return)
             }
 
             // Check if we're in alignment mode
@@ -409,7 +409,8 @@ export const SceneCanvas: React.FC = () => {
             }
 
             const state = useEditorStore.getState();
-            if (state.pointPickMode || state.alignMode || state.customFrameSelectionMode !== 'none') {
+            // Allow hover in point pick mode, but not in align or custom frame modes
+            if (state.alignMode || state.customFrameSelectionMode !== 'none') {
               clearHoverHighlight();
               scene.hoverCursor = 'default';
               return;
