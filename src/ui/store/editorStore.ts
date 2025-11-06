@@ -159,6 +159,7 @@ interface EditorState {
   pointPickMode: boolean;
   pointPickMarkers: BABYLON.Mesh[];
   pointPickFrameWidgets: CoordinateFrameWidget[];
+  pointPickFrameData: { pickPoint: BABYLON.Vector3; frame: CustomFrameFeature } | null;
 
   // Actions
   undo: () => void;
@@ -611,6 +612,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
   pointPickMode: true, // Always enabled - works alongside normal selection
   pointPickMarkers: [],
   pointPickFrameWidgets: [],
+  pointPickFrameData: null,
 
   // Undo/Redo actions
   undo: () => {
@@ -3315,7 +3317,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
   clearPointPickMarkers: () => {
     const { pointPickFrameWidgets } = get();
     pointPickFrameWidgets.forEach(widget => widget.dispose());
-    set({ pointPickMarkers: [], pointPickFrameWidgets: [] });
+    set({ pointPickMarkers: [], pointPickFrameWidgets: [], pointPickFrameData: null });
     console.log('[PointPick] Frame cleared');
   },
 
@@ -3465,14 +3467,16 @@ export const useEditorStore = create<EditorState>((set, get) => {
       console.log('[PointPick] Frame widget shown with adaptive axis length:', frameSize.toFixed(3), 'm');
       console.log('[PointPick] Frame widget isVisible:', frameWidget.isVisible());
 
-      // Store only the frame widget (no sphere marker, only one frame at a time)
+      // Store the frame widget and data for dynamic updates
       set({
         pointPickMarkers: [], // No sphere markers
         pointPickFrameWidgets: [frameWidget], // Only one frame widget
+        pointPickFrameData: { pickPoint, frame }, // Store for dynamic size updates
       });
 
       console.log('[PointPick] ✅ SUCCESS! Frame created');
       console.log('[PointPick] Single frame widget stored (replaced previous)');
+      console.log('[PointPick] Frame data stored for dynamic updates');
       console.log('='.repeat(80));
 
       toast.success(`Point picked - frame size: ${frameSize.toFixed(2)}m`);
