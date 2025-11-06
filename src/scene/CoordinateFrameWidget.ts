@@ -162,6 +162,26 @@ export class CoordinateFrameWidget {
   }
 
   /**
+   * Update the scale of the frame widget without recreating it
+   * Much more efficient than calling show() repeatedly
+   */
+  setScale(scale: number): void {
+    if (this.rootNode) {
+      this.rootNode.scaling = new BABYLON.Vector3(scale, scale, scale);
+    }
+  }
+
+  /**
+   * Get the current scale
+   */
+  getScale(): number {
+    if (this.rootNode) {
+      return this.rootNode.scaling.x;
+    }
+    return 1.0;
+  }
+
+  /**
    * Create a colored line for an axis
    */
   private createAxisLine(

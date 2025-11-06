@@ -479,26 +479,25 @@ export const SceneCanvas: React.FC = () => {
             performanceMetrics.recordMemory();
           }
 
-          // Update point pick frame size dynamically based on camera distance
+          // Update point pick frame scale dynamically based on camera distance
           const state = useEditorStore.getState();
           if (state.pointPickMode && state.pointPickFrameData && state.pointPickFrameWidgets.length > 0) {
-            const { pickPoint, frame } = state.pointPickFrameData;
+            const { pickPoint, baseSize } = state.pointPickFrameData;
             const frameWidget = state.pointPickFrameWidgets[0];
             const camera = scene.activeCamera;
 
             if (camera) {
               const distanceToPoint = BABYLON.Vector3.Distance(camera.position, pickPoint);
 
-              // Calculate adaptive size
+              // Calculate desired frame size
               let frameSize = distanceToPoint * 0.1;
               const MIN_SIZE = 0.05;
               const MAX_SIZE = 2.0;
               frameSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, frameSize));
 
-              // Update frame widget with new size (only every few frames to avoid performance hit)
-              if (scene.getFrameId() % 3 === 0) {
-                frameWidget.show(frame, frameSize);
-              }
+              // Calculate scale relative to base size and apply it
+              const scale = frameSize / baseSize;
+              frameWidget.setScale(scale);
             }
           }
         });

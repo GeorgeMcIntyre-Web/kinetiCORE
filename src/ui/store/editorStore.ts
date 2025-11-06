@@ -159,7 +159,7 @@ interface EditorState {
   pointPickMode: boolean;
   pointPickMarkers: BABYLON.Mesh[];
   pointPickFrameWidgets: CoordinateFrameWidget[];
-  pointPickFrameData: { pickPoint: BABYLON.Vector3; frame: CustomFrameFeature } | null;
+  pointPickFrameData: { pickPoint: BABYLON.Vector3; frame: CustomFrameFeature; baseSize: number } | null;
 
   // Actions
   undo: () => void;
@@ -3461,22 +3461,28 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
       console.log('[PointPick] Frame data:', frame);
 
-      // Show the frame widget with adaptive size
-      frameWidget.show(frame, frameSize);
+      // Create frame at fixed base size, then scale it
+      const BASE_SIZE = 0.1; // Fixed base size for frame creation
+      frameWidget.show(frame, BASE_SIZE);
 
-      console.log('[PointPick] Frame widget shown with adaptive axis length:', frameSize.toFixed(3), 'm');
+      // Calculate and apply initial scale based on camera distance
+      const initialScale = frameSize / BASE_SIZE;
+      frameWidget.setScale(initialScale);
+
+      console.log('[PointPick] Frame widget created with base size:', BASE_SIZE, 'm');
+      console.log('[PointPick] Initial scale applied:', initialScale.toFixed(3));
+      console.log('[PointPick] Effective size:', frameSize.toFixed(3), 'm');
       console.log('[PointPick] Frame widget isVisible:', frameWidget.isVisible());
 
       // Store the frame widget and data for dynamic updates
       set({
         pointPickMarkers: [], // No sphere markers
         pointPickFrameWidgets: [frameWidget], // Only one frame widget
-        pointPickFrameData: { pickPoint, frame }, // Store for dynamic size updates
+        pointPickFrameData: { pickPoint, frame, baseSize: BASE_SIZE }, // Store for dynamic size updates
       });
 
-      console.log('[PointPick] ✅ SUCCESS! Frame created');
-      console.log('[PointPick] Single frame widget stored (replaced previous)');
-      console.log('[PointPick] Frame data stored for dynamic updates');
+      console.log('[PointPick] ✅ SUCCESS! Frame created with dynamic scaling');
+      console.log('[PointPick] Frame will scale smoothly as camera moves');
       console.log('='.repeat(80));
 
       toast.success(`Point picked - frame size: ${frameSize.toFixed(2)}m`);
