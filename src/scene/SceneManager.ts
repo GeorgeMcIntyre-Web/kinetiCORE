@@ -603,6 +603,9 @@ export class SceneManager {
       throw new Error('Scene not initialized');
     }
 
+    const host = document.querySelector('.babylon-inspector-host') as HTMLElement | null;
+    if (host && document.querySelector('.babylon-inspector-host .babylonjsInspector, .babylon-inspector-host #sceneExplorer')) return;
+
     // Dynamically import inspector only when needed (avoids build issues)
     try {
       await this.ensureInspectorModulesLoaded();
@@ -616,6 +619,10 @@ export class SceneManager {
       console.log('[SceneManager] Inspector hidden');
       return;
     }
+
+    // before showing overlay debug layer anywhere:
+    const embedded = document.querySelector('.babylon-inspector-host .babylonjsInspector, .babylon-inspector-host #sceneExplorer');
+    if (embedded) return; // embedded already present; do not open overlay
 
     console.log('[SceneManager] Showing debug layer...');
     const debugLayer = await this.scene.debugLayer

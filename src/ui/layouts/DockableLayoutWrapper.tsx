@@ -118,7 +118,7 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
     if (config.rightPanels && config.rightPanels.length > 0) {
       const [firstPanel, ...restPanels] = config.rightPanels;
 
-      // Add first panel to create the right group (wider - 480px for routing panels)
+      // Add first panel to create the right group - keep title for now, CSS will hide text
       const rightPanel = api.addPanel({
         id: firstPanel.id,
         component: firstPanel.type,
@@ -127,23 +127,51 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
         position: { direction: 'right' },
       });
 
-      // Set wider width for right panel group (480px - good for routing controls and inspector)
-      if (rightPanel.api.width > 480) {
-        rightPanel.api.setSize({ width: 480 });
+      // Add icon class for CSS styling
+      if (PANEL_REGISTRY[firstPanel.type].titleIcon) {
+        rightPanel.api.updateParameters({ iconType: firstPanel.type });
+      }
+
+      // Calculate width based on icon-only tabs (much narrower)
+      // Icon size: 16px + padding: 8px left/right = 16px per tab
+      // Close button: ~20px per tab
+      // Tab separator: ~2px between tabs
+      const ICON_SIZE = 16;
+      const TAB_PADDING = 16; // 8px left + 8px right (reduced for icons)
+      const CLOSE_BUTTON = 20;
+      const TAB_SEPARATOR = 2;
+      const MIN_TAB_WIDTH = 40; // Reduced for icon-only
+      const MIN_GROUP_WIDTH = 120; // Reduced minimum
+
+      let totalTabWidth = 0;
+      for (let i = 0; i < config.rightPanels.length; i++) {
+        const tabWidth = Math.max(MIN_TAB_WIDTH, ICON_SIZE + TAB_PADDING + CLOSE_BUTTON);
+        totalTabWidth += tabWidth + TAB_SEPARATOR;
+      }
+
+      // Reduce width by 0.5 (50%)
+      const calculatedWidth = Math.max(MIN_GROUP_WIDTH, totalTabWidth * 0.5);
+      if (rightPanel.api.width < calculatedWidth) {
+        rightPanel.api.setSize({ width: calculatedWidth });
       }
 
       // Add remaining right panels to the same group (they will be inactive tabs)
       for (const panelDef of restPanels) {
-        api.addPanel({
+        const panel = api.addPanel({
           id: panelDef.id,
           component: panelDef.type,
           title: panelDef.title || PANEL_REGISTRY[panelDef.type].title,
           params: {},
           position: { referencePanel: rightPanel.id },
         });
+
+        // Add icon class for CSS styling
+        if (PANEL_REGISTRY[panelDef.type].titleIcon) {
+          panel.api.updateParameters({ iconType: panelDef.type });
+        }
       }
 
-      // Ensure first panel (Routing Control) is active
+      // Ensure first panel (Warehouse) is active by default
       rightPanel.api.setActive();
     }
 

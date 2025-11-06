@@ -3,12 +3,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Circle,
-  Cone,
-  Square,
-  Pill,
-  Disc,
-  Diamond,
   Move,
   RotateCw,
   Scale,
@@ -23,7 +17,6 @@ import {
   EyeOff,
   LayoutTemplate,
   Grab,
-  Building2,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
@@ -37,13 +30,11 @@ import { RouteDebugLabels, setGlobalDebugLabels } from '../../routing/ui/RouteDe
 import { RouteEditPanel } from '../../routing/ui/RouteEditPanel';
 import { RouteSelectionVisuals } from '../../routing/ui/RouteSelectionVisuals';
 import { RouteTemplatesPanel } from '../../routing/ui/RouteTemplatesPanel';
-import { createPresetRoute, createMixedPreset } from '../../routing/ui/QuickRoutePresets';
 import { RouteWarningsPanel } from '../../routing/ui/RouteWarningsPanel';
 import { ConnectionPointsRenderer } from '../../routing/ui/ConnectionPointsRenderer';
 import { useRoutingStore } from '../store/routingStore';
 import { SceneManager } from '../../scene/SceneManager';
 import { KinematicExtractionPanel } from '../components/KinematicExtractionPanel';
-import { WarehousePanel } from '../../routing/ui/WarehousePanel';
 import { Scan, Settings } from 'lucide-react';
 import { CreateDropdown } from '../components/CreateDropdown';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
@@ -78,7 +69,6 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [activeMeasurement, setActiveMeasurement] = useState<MeasurementType>(null);
   const [showDebugLabels, setShowDebugLabels] = useState(false);
   const [showKinematicExtractionPanel, setShowKinematicExtractionPanel] = useState(false);
-  const [showWarehousePanel, setShowWarehousePanel] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const debugLabelsRef = useRef<RouteDebugLabels | null>(null);
   const routeSelection = useRoutingStore((state) => state.selectedRoute);
@@ -336,22 +326,6 @@ export const ProfessionalModeLayout: React.FC = () => {
 
       {/* Ribbon Toolbar */}
       <div className="ribbon-toolbar">
-        {/* Import Tools (parity with Essential ribbon) */}
-        <div className="tool-group">
-          <div className="group-label">Import</div>
-          <div className="tool-buttons">
-            <button
-              className="tool-btn"
-              title="Import Model (URDF, GLTF, USD, OBJ, etc.)"
-              onClick={handleImport}
-            >
-              <Upload size={18} />
-              <span>Import</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="toolbar-separator"></div>
         {/* Creation Tools */}
         <div className="tool-group">
           <div className="group-label">Creation</div>
@@ -360,71 +334,15 @@ export const ProfessionalModeLayout: React.FC = () => {
               onCreateBox={() => createObject('box')}
               onCreateSphere={() => createObject('sphere')}
               onCreateCylinder={() => createObject('cylinder')}
+              onCreateCone={() => createObject('cone')}
+              onCreateTorus={() => createObject('torus')}
+              onCreatePlane={() => createObject('plane')}
+              onCreateGround={() => createObject('ground')}
+              onCreateCapsule={() => createObject('capsule')}
+              onCreateDisc={() => createObject('disc')}
+              onCreateTorusKnot={() => createObject('torusknot')}
+              onCreatePolyhedron={() => createObject('polyhedron')}
             />
-            <button
-              className="tool-btn"
-              title="Cone"
-              onClick={() => createObject('cone')}
-            >
-              <Cone size={18} />
-              <span>Cone</span>
-            </button>
-            <button
-              className="tool-btn"
-              title="Torus"
-              onClick={() => createObject('torus')}
-            >
-              <Circle size={18} />
-              <span>Torus</span>
-            </button>
-            <button
-              className="tool-btn"
-              title="Plane"
-              onClick={() => createObject('plane')}
-            >
-              <Square size={18} />
-              <span>Plane</span>
-            </button>
-            <button
-              className="tool-btn"
-              title="Ground"
-              onClick={() => createObject('ground')}
-            >
-              <Square size={18} />
-              <span>Ground</span>
-            </button>
-            <button
-              className="tool-btn"
-              title="Capsule"
-              onClick={() => createObject('capsule')}
-            >
-              <Pill size={18} />
-              <span>Capsule</span>
-            </button>
-            <button
-              className="tool-btn"
-              title="Disc"
-              onClick={() => createObject('disc')}
-            >
-              <Disc size={18} />
-              <span>Disc</span>
-            </button>
-            <button
-              className="tool-btn"
-              title="Torus Knot"
-              onClick={() => createObject('torusknot')}
-            >
-              <Circle size={18} />
-              <span>TorusKnot</span>
-            </button>
-            <button
-              className="tool-btn"
-              title="Polyhedron"
-              onClick={() => createObject('polyhedron')}
-            >
-              <Diamond size={18} />
-              <span>Polyhedron</span>
-            </button>
           </div>
         </div>
 
@@ -581,23 +499,6 @@ export const ProfessionalModeLayout: React.FC = () => {
 
         <div className="toolbar-separator"></div>
 
-        {/* Warehouse Tools */}
-        <div className="tool-group">
-          <div className="group-label">Warehouse</div>
-          <div className="tool-buttons">
-            <button
-              className={`tool-btn ${showWarehousePanel ? 'active' : ''}`}
-              onClick={() => setShowWarehousePanel(!showWarehousePanel)}
-              title="Configure Warehouse"
-            >
-              <Building2 size={18} />
-              <span className="tool-btn-label">Configure</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="toolbar-separator"></div>
-
         {/* Kinematics Tools */}
         <div className="tool-group">
           <div className="group-label">Kinematics</div>
@@ -611,99 +512,6 @@ export const ProfessionalModeLayout: React.FC = () => {
               <span className="tool-btn-label">Auto Extract</span>
             </button>
 
-            {/* Quick preset generators to speed up documentation screenshots */}
-            <button
-              className="tool-btn-small"
-              title="Quick Electrical preset"
-              onClick={async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('[ProfessionalModeLayout] 🔌 Electrical preset button clicked');
-                // Ensure routing mode is off so viewport clicks don't interfere
-                useRoutingStore.getState().setRoutingMode('off');
-                try {
-                  await createPresetRoute('electrical', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 });
-                  console.log('[ProfessionalModeLayout] ✅ Electrical preset complete');
-                } catch (error) {
-                  console.error('[ProfessionalModeLayout] ❌ Electrical preset failed:', error);
-                }
-              }}
-            >
-              Electrical
-            </button>
-            <button
-              className="tool-btn-small"
-              title="Quick Pipe preset"
-              onClick={async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('[ProfessionalModeLayout] 🔧 Pipe preset button clicked');
-                // Ensure routing mode is off so viewport clicks don't interfere
-                useRoutingStore.getState().setRoutingMode('off');
-                try {
-                  await createPresetRoute('pipe', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 });
-                  console.log('[ProfessionalModeLayout] ✅ Pipe preset complete');
-                } catch (error) {
-                  console.error('[ProfessionalModeLayout] ❌ Pipe preset failed:', error);
-                }
-              }}
-            >
-              Pipe
-            </button>
-            <button
-              className="tool-btn-small"
-              title="Quick Cable Tray preset"
-              onClick={async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('[ProfessionalModeLayout] 🪜 Cable Tray preset button clicked');
-                useRoutingStore.getState().setRoutingMode('off');
-                try {
-                  await createPresetRoute('cable_tray', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 });
-                  console.log('[ProfessionalModeLayout] ✅ Cable Tray preset complete');
-                } catch (error) {
-                  console.error('[ProfessionalModeLayout] ❌ Cable Tray preset failed:', error);
-                }
-              }}
-            >
-              Tray
-            </button>
-            <button
-              className="tool-btn-small"
-              title="Quick Conduit preset"
-              onClick={async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('[ProfessionalModeLayout] 🔌 Conduit preset button clicked');
-                useRoutingStore.getState().setRoutingMode('off');
-                try {
-                  await createPresetRoute('conduit', { x: 0, y: 0, z: 0 }, { x: 2, y: 0.5, z: 0.5 });
-                  console.log('[ProfessionalModeLayout] ✅ Conduit preset complete');
-                } catch (error) {
-                  console.error('[ProfessionalModeLayout] ❌ Conduit preset failed:', error);
-                }
-              }}
-            >
-              Conduit
-            </button>
-            <button
-              className="tool-btn-small"
-              title="Create all 4 (arranged)"
-              onClick={async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('[ProfessionalModeLayout] 🎨 Mixed preset button clicked');
-                useRoutingStore.getState().setRoutingMode('off');
-                try {
-                  await createMixedPreset();
-                  console.log('[ProfessionalModeLayout] ✅ Mixed preset complete');
-                } catch (error) {
-                  console.error('[ProfessionalModeLayout] ❌ Mixed preset failed:', error);
-                }
-              }}
-            >
-              Mixed
-            </button>
           </div>
         </div>
       </div>
@@ -722,8 +530,10 @@ export const ProfessionalModeLayout: React.FC = () => {
               { id: 'toolPalette-panel', type: 'toolPalette' },
             ],
             rightPanels: [
+              { id: 'warehouse-panel', type: 'warehouse' },
               { id: 'routingControl-panel', type: 'routingControl' },
               { id: 'routeStats-panel', type: 'routeStats' },
+              { id: 'babylonInspector-panel', type: 'babylonInspector' },
               { id: 'inspector-panel', type: 'inspector' },
             ],
             bottomPanels: [],
@@ -762,12 +572,6 @@ export const ProfessionalModeLayout: React.FC = () => {
         onClose={handleCloseMeasurement}
       />
 
-      {/* Warehouse Panel */}
-      <WarehousePanel
-        isVisible={showWarehousePanel}
-        onClose={() => setShowWarehousePanel(false)}
-        zIndex={1003}
-      />
 
       {/* Route Selection Visuals - Cyan glow and connection handles */}
       <RouteSelectionVisuals />

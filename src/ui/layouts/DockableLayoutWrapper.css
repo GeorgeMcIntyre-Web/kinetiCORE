@@ -34,7 +34,7 @@
 .dockview-theme-kineticore .panel-content {
   padding: 0;
   height: 100%;
-  overflow: auto;
+  overflow: hidden; /* absolute child (inspector root) fills without scroll clipping */
   background: #2d3748;
   color: #e2e8f0;
 }
@@ -237,25 +237,42 @@
   font-size: 14px;
 }
 
-/* Make dockview panel content fill the group so embedded UIs can size correctly */
-.dockview-theme-kineticore .dv-content,
-.dockview-theme-kineticore .content-container,
-.dockview-theme-kineticore .dv-gridview-view-container,
-.dockview-theme-kineticore .dv-groupview .content-container {
-  height: 100%;
-  min-height: 320px; /* safety for first mount */
-  position: relative;
-  overflow: hidden;
-}
-
-/* Babylon Inspector Panel - Force full expansion */
-.babylon-inspector-host,
-.babylon-inspector-host > div,
-.babylon-inspector-host #sceneExplorer,
-.babylon-inspector-host .babylonjsInspector {
+/* Inspector pane scoping — flex the Dockview ancestors that CONTAIN the pane */
+.dv-react-part:has(.inspector-pane),
+.dv-content-container:has(.inspector-pane),
+.dv-groupview:has(.inspector-pane),
+.dv-view.visible:has(.inspector-pane) {
+  display: flex !important;
+  flex-direction: column !important;
   width: 100% !important;
   height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Optional: the pane wrapper itself can stay simple */
+.inspector-pane {
+  width: 100%;
+  height: 100%;
+}
+
+.babylon-inspector-host {
+  position: relative !important;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.babylon-inspector-host > .babylonjsInspector,
+.babylon-inspector-host > #sceneExplorer {
   position: absolute !important;
-  top: 0;
-  left: 0;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: grid !important;
+  grid-template-columns: 450px minmax(0, 1fr) !important;
 }

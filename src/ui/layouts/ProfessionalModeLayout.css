@@ -142,9 +142,9 @@
   display: flex;
   align-items: center;
   /* Provide breathing space so group labels aren't cut by top border */
-  padding: 6px 10px 6px 10px;
-  gap: 8px; /* tighter spacing */
-  overflow-x: auto;
+  padding: 6px 8px 6px 8px;
+  gap: 4px; /* tighter spacing to prevent scrollbar */
+  overflow-x: hidden; /* Remove scrollbar - buttons should fit */
   overflow-y: visible; /* allow labels to render cleanly */
   z-index: 199; /* Below header, above content */
 }
@@ -157,18 +157,18 @@
 }
 
 .group-label {
-  font-size: 11px;
+  font-size: 10px;
   line-height: 14px; /* avoid top cropping */
   color: #718096;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 0 8px;
+  padding: 0 4px; /* tighter padding */
   white-space: nowrap; /* keep labels on one line */
 }
 
 .tool-buttons {
   display: flex;
-  gap: 4px; /* consistent spacing */
+  gap: 2px; /* tighter spacing to prevent scrollbar */
 }
 
 .tool-btn {
@@ -176,7 +176,7 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 2px 8px; /* slightly tighter to fit label+icons */
+  padding: 2px 6px; /* tighter padding to fit more buttons */
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
@@ -184,7 +184,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 10px;
-  min-width: 52px; /* narrow but readable */
+  min-width: 48px; /* narrower to fit more buttons */
 }
 
 .tool-btn:hover {
@@ -263,6 +263,7 @@
   width: 1px;
   height: 100%; /* fill ribbon height */
   background: #4a5568;
+  margin: 0 2px; /* minimal margin */
 }
 
 /* Main Content */
