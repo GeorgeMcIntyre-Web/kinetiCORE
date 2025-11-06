@@ -608,7 +608,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
   alignFrameWidgets: [],
 
   // Point pick defaults
-  pointPickMode: true, // Enabled by default - disable with disablePointPick()
+  pointPickMode: false, // Disabled by default - enable with enablePointPick() when needed
   pointPickMarkers: [],
   pointPickFrameWidgets: [],
 
