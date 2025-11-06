@@ -3318,27 +3318,17 @@ export const useEditorStore = create<EditorState>((set, get) => {
     const { pointPickFrameWidgets } = get();
     pointPickFrameWidgets.forEach(widget => widget.dispose());
     set({ pointPickMarkers: [], pointPickFrameWidgets: [], pointPickFrameData: null });
-    console.log('[PointPick] Frame cleared');
   },
 
   handlePointPick: (pickInfo) => {
     const { pointPickMode, pointPickMarkers, pointPickFrameWidgets } = get();
 
-    console.log('[PointPick] Handler called, mode:', pointPickMode);
-    console.log('[PointPick] Hit:', pickInfo.hit);
-    console.log('[PointPick] PickedMesh:', pickInfo.pickedMesh?.name);
-
     if (!pointPickMode || !pickInfo.hit || !pickInfo.pickedMesh || !pickInfo.pickedPoint) {
-      console.log('[PointPick] Early return - missing required data');
       return;
     }
 
     const mesh = pickInfo.pickedMesh as BABYLON.Mesh;
     const pickPoint = pickInfo.pickedPoint;
-
-    console.log('[PointPick] Starting point pick handler');
-    console.log('[PointPick] Pick point:', pickPoint.toString());
-    console.log('[PointPick] Mesh:', mesh.name);
 
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
@@ -3346,7 +3336,6 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     // Calculate normal from face data (more reliable than pickInfo.getNormal())
     const faceId = pickInfo.faceId;
-    console.log('[PointPick] Face ID:', faceId);
 
     let pickNormal: BABYLON.Vector3;
 
@@ -3370,39 +3359,17 @@ export const useEditorStore = create<EditorState>((set, get) => {
         // Transform to world space
         const worldMatrix = mesh.computeWorldMatrix(true);
         pickNormal = BABYLON.Vector3.TransformNormal(avgNormal, worldMatrix).normalize();
-
-        console.log('[PointPick] Calculated normal from face data:', pickNormal.toString());
       } else {
-        console.warn('[PointPick] Could not get face data');
-        toast.warning('Could not determine surface normal at picked point');
         return;
       }
     } else {
-      console.warn('[PointPick] Invalid face ID');
-      toast.warning('Could not determine surface normal at picked point');
       return;
     }
-
-    console.log('[PointPick] Normal calculated:', pickNormal.toString());
-    console.log('='.repeat(80));
-    console.log('[PointPick] DETAILED COORDINATES:');
-    console.log('[PointPick] Raw pick point (Babylon space):', {
-      x: pickPoint.x,
-      y: pickPoint.y,
-      z: pickPoint.z
-    });
-    console.log('[PointPick] Raw normal (Babylon space):', {
-      x: pickNormal.x,
-      y: pickNormal.y,
-      z: pickNormal.z
-    });
 
     try {
       // Clear any existing point pick markers/frames (only show one at a time)
       pointPickMarkers.forEach(marker => marker.dispose());
       pointPickFrameWidgets.forEach(widget => widget.dispose());
-
-      console.log('[PointPick] Cleared previous markers/frames');
 
       // Calculate adaptive frame size based on camera distance
       const camera = scene.activeCamera;
@@ -3420,9 +3387,6 @@ export const useEditorStore = create<EditorState>((set, get) => {
         const MIN_SIZE = 0.05;  // Minimum 5cm
         const MAX_SIZE = 2.0;   // Maximum 2m
         frameSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, frameSize));
-
-        console.log('[PointPick] Camera distance:', distanceToPoint.toFixed(3), 'm');
-        console.log('[PointPick] Adaptive frame size:', frameSize.toFixed(3), 'm');
       }
 
       // Create coordinate frame widget at picked point (no sphere marker)
@@ -3431,7 +3395,6 @@ export const useEditorStore = create<EditorState>((set, get) => {
       // Calculate coordinate frame aligned with surface normal
       // Z-axis = surface normal
       const zAxis = pickNormal.normalize();
-      console.log('[PointPick] Z-axis (normal):', { x: zAxis.x, y: zAxis.y, z: zAxis.z });
 
       // X-axis = perpendicular to normal (choose arbitrary but consistent direction)
       let xAxis: BABYLON.Vector3;
@@ -3440,15 +3403,12 @@ export const useEditorStore = create<EditorState>((set, get) => {
       } else {
         xAxis = BABYLON.Vector3.Cross(zAxis, BABYLON.Vector3.Up()).normalize();
       }
-      console.log('[PointPick] X-axis:', { x: xAxis.x, y: xAxis.y, z: xAxis.z });
 
       // Y-axis = perpendicular to both
       const yAxis = BABYLON.Vector3.Cross(zAxis, xAxis).normalize();
-      console.log('[PointPick] Y-axis:', { x: yAxis.x, y: yAxis.y, z: yAxis.z });
 
       // Create custom frame feature
       const userOrigin = babylonToUser(pickPoint);
-      console.log('[PointPick] Origin (converted to user space):', userOrigin);
 
       const frame: CustomFrameFeature = {
         featureType: 'face',
@@ -3459,8 +3419,6 @@ export const useEditorStore = create<EditorState>((set, get) => {
         zAxis: { x: zAxis.x, y: zAxis.y, z: zAxis.z },
       };
 
-      console.log('[PointPick] Frame data:', frame);
-
       // Create frame at fixed base size, then scale it
       const BASE_SIZE = 0.1; // Fixed base size for frame creation
       frameWidget.show(frame, BASE_SIZE);
@@ -3469,26 +3427,14 @@ export const useEditorStore = create<EditorState>((set, get) => {
       const initialScale = frameSize / BASE_SIZE;
       frameWidget.setScale(initialScale);
 
-      console.log('[PointPick] Frame widget created with base size:', BASE_SIZE, 'm');
-      console.log('[PointPick] Initial scale applied:', initialScale.toFixed(3));
-      console.log('[PointPick] Effective size:', frameSize.toFixed(3), 'm');
-      console.log('[PointPick] Frame widget isVisible:', frameWidget.isVisible());
-
       // Store the frame widget and data for dynamic updates
       set({
         pointPickMarkers: [], // No sphere markers
         pointPickFrameWidgets: [frameWidget], // Only one frame widget
         pointPickFrameData: { pickPoint, frame, baseSize: BASE_SIZE }, // Store for dynamic size updates
       });
-
-      console.log('[PointPick] ✅ SUCCESS! Frame created with dynamic scaling');
-      console.log('[PointPick] Frame will scale smoothly as camera moves');
-      console.log('='.repeat(80));
-
-      toast.success(`Point picked - frame size: ${frameSize.toFixed(2)}m`);
     } catch (error) {
-      console.error('[EditorStore] Failed to create point pick marker:', error);
-      toast.error('Failed to create point pick marker');
+      // Silently fail
     }
   },
 
