@@ -67,6 +67,7 @@ import { useEditorStore } from '../store/editorStore';
 import { ViewDropdown } from './ViewDropdown';
 import { SaveDropdown } from './SaveDropdown';
 import { CreateDropdown } from './CreateDropdown';
+import { SelectionLevelDropdown } from './SelectionLevelDropdown';
 import './RibbonToolbar.css';
 
 // Transform Gizmo Toggle Component - inline with label
@@ -165,6 +166,8 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   const loadWorld = useEditorStore((state) => state.loadWorld);
   const currentView = useEditorStore((state) => state.currentView);
   const setCurrentView = useEditorStore((state) => state.setCurrentView);
+  const selectionLevel = useEditorStore((state) => state.selectionLevel);
+  const setSelectionLevel = useEditorStore((state) => state.setSelectionLevel);
 
   // File input refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -328,6 +331,17 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
             onFrontViewClick={handleFrontViewClick}
             onIsoViewClick={handleIsoViewClick}
             currentView={currentView}
+          />
+        </div>
+      </div>
+
+      {/* Utilities Category */}
+      <div className="ribbon-category-excel">
+        <div className="ribbon-category-label">Utilities</div>
+        <div className="ribbon-buttons-row">
+          <SelectionLevelDropdown
+            currentLevel={selectionLevel}
+            onLevelChange={setSelectionLevel}
           />
         </div>
       </div>

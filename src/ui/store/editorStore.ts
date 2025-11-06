@@ -81,10 +81,14 @@ interface EditorState {
   // UI state - which toolbar popup is currently open (only one at a time)
   openToolbarPopup: 'transform-settings' | 'snap-geometric' | 'snap-object' | 'snap-auxiliary' | null;
   setOpenToolbarPopup: (popup: 'transform-settings' | 'snap-geometric' | 'snap-object' | 'snap-auxiliary' | null) => void;
-  
+
   // Camera view state
   currentView: 'front' | 'right' | 'top' | 'iso';
   setCurrentView: (view: 'front' | 'right' | 'top' | 'iso') => void;
+
+  // Selection level state
+  selectionLevel: 'object' | 'component' | 'mesh';
+  setSelectionLevel: (level: 'object' | 'component' | 'mesh') => void;
 
   // Project Management Methods
   createProject: (config: {
@@ -565,7 +569,11 @@ export const useEditorStore = create<EditorState>((set, get) => {
   // Camera view state defaults
   currentView: 'front',
   setCurrentView: (view) => set({ currentView: view }),
-  
+
+  // Selection level defaults
+  selectionLevel: 'object',
+  setSelectionLevel: (level) => set({ selectionLevel: level }),
+
   // File system state defaults
   lastUsedDirectory: null,
   setLastUsedDirectory: (directory) => set({ lastUsedDirectory: directory }),
