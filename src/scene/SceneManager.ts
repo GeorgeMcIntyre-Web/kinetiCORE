@@ -79,6 +79,9 @@ export class SceneManager {
       this.scene
     );
 
+    // Ensure ground is pickable for point pick feature
+    this.ground.isPickable = true;
+
     // Initialize floor material manager
     this.floorMaterialManager = new FloorMaterialManager(this.scene);
 
@@ -418,6 +421,9 @@ export class SceneManager {
       this.scene
     );
     this.ground = newGround;
+
+    // Ensure ground is pickable for point pick feature
+    newGround.isPickable = true;
 
     // Reapply material with proper scaling for large floors
     const material = this.floorMaterialManager!.createFloorMaterial(
