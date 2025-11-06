@@ -530,7 +530,7 @@ export const ProfessionalModeLayout: React.FC = () => {
             ],
             rightPanels: [
               { id: 'sceneTree-panel', type: 'sceneTree' },
-              { id: 'babylonInspector-panel', type: 'babylonInspector' },
+              { id: 'inspector-panel', type: 'inspector' },
               { id: 'warehouse-panel', type: 'warehouse' },
               { id: 'routingControl-panel', type: 'routingControl' },
               { id: 'routeStats-panel', type: 'routeStats' },
