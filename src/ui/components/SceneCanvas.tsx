@@ -168,22 +168,17 @@ export const SceneCanvas: React.FC = () => {
       };
       (window as any).clearPointPickMarkers = () => {
         useEditorStore.getState().clearPointPickMarkers();
-        console.log('🗑️ All point pick markers cleared');
+        console.log('🗑️ Point pick frame cleared');
       };
       (window as any).listPointPickMarkers = () => {
         const state = useEditorStore.getState();
         console.log('Point Pick Status:');
         console.log('  Mode enabled:', state.pointPickMode);
-        console.log('  Markers count:', state.pointPickMarkers.length);
         console.log('  Frame widgets count:', state.pointPickFrameWidgets.length);
-        state.pointPickMarkers.forEach((marker, i) => {
-          console.log(`  Marker ${i}:`, marker.name, 'at', marker.position.toString(), 'visible:', marker.isVisible);
-        });
-        const scene = sceneManager.getScene();
-        if (scene) {
-          const allMarkers = scene.meshes.filter(m => m.name.includes('pointPickMarker'));
-          console.log('  Markers in scene:', allMarkers.length);
-          allMarkers.forEach(m => console.log('    -', m.name, 'at', m.position.toString()));
+        if (state.pointPickFrameWidgets.length > 0) {
+          console.log('  Current frame is visible:', state.pointPickFrameWidgets[0].isVisible());
+        } else {
+          console.log('  No frame currently displayed');
         }
       };
 

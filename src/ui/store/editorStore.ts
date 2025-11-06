@@ -3313,10 +3313,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
   },
 
   clearPointPickMarkers: () => {
-    const { pointPickMarkers, pointPickFrameWidgets } = get();
-    pointPickMarkers.forEach(marker => marker.dispose());
+    const { pointPickFrameWidgets } = get();
     pointPickFrameWidgets.forEach(widget => widget.dispose());
     set({ pointPickMarkers: [], pointPickFrameWidgets: [] });
+    console.log('[PointPick] Frame cleared');
   },
 
   handlePointPick: (pickInfo) => {
@@ -3396,32 +3396,34 @@ export const useEditorStore = create<EditorState>((set, get) => {
     });
 
     try {
-      // Create a sphere marker at the picked point (orange, visible size)
-      const marker = BABYLON.MeshBuilder.CreateSphere(
-        `pointPickMarker_${Date.now()}`,
-        { diameter: 0.05 }, // Increased to 0.05 for visibility (same as alignment markers)
-        scene
-      );
-      marker.position = pickPoint.clone();
-      marker.isPickable = false;
-      marker.renderingGroupId = 3;
+      // Clear any existing point pick markers/frames (only show one at a time)
+      pointPickMarkers.forEach(marker => marker.dispose());
+      pointPickFrameWidgets.forEach(widget => widget.dispose());
 
-      // Create marker material
-      const markerMaterial = new BABYLON.StandardMaterial(`pointPickMarkerMat_${Date.now()}`, scene);
-      markerMaterial.emissiveColor = new BABYLON.Color3(1, 0.5, 0); // Orange
-      markerMaterial.disableLighting = true;
-      marker.material = markerMaterial;
+      console.log('[PointPick] Cleared previous markers/frames');
 
-      console.log('[PointPick] Marker sphere created:');
-      console.log('  - Name:', marker.name);
-      console.log('  - Position:', { x: marker.position.x, y: marker.position.y, z: marker.position.z });
-      console.log('  - Diameter: 0.05');
-      console.log('  - IsVisible:', marker.isVisible);
-      console.log('  - IsEnabled:', marker.isEnabled());
-      console.log('  - RenderingGroupId:', marker.renderingGroupId);
-      console.log('  - Material color:', markerMaterial.emissiveColor.toString());
+      // Calculate adaptive frame size based on camera distance
+      const camera = scene.activeCamera;
+      let frameSize = 0.2; // Default size in meters
 
-      // Create coordinate frame widget at picked point
+      if (camera) {
+        const cameraPosition = camera.position;
+        const distanceToPoint = BABYLON.Vector3.Distance(cameraPosition, pickPoint);
+
+        // Adaptive size: frame appears ~10% of screen regardless of zoom
+        // Size increases with distance from camera
+        frameSize = distanceToPoint * 0.1;
+
+        // Clamp size to reasonable limits
+        const MIN_SIZE = 0.05;  // Minimum 5cm
+        const MAX_SIZE = 2.0;   // Maximum 2m
+        frameSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, frameSize));
+
+        console.log('[PointPick] Camera distance:', distanceToPoint.toFixed(3), 'm');
+        console.log('[PointPick] Adaptive frame size:', frameSize.toFixed(3), 'm');
+      }
+
+      // Create coordinate frame widget at picked point (no sphere marker)
       const frameWidget = new CoordinateFrameWidget(scene);
 
       // Calculate coordinate frame aligned with surface normal
@@ -3457,25 +3459,23 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
       console.log('[PointPick] Frame data:', frame);
 
-      // Show the frame widget with larger axes for visibility
-      frameWidget.show(frame, 0.2); // 0.2 meter axis length (increased for visibility)
+      // Show the frame widget with adaptive size
+      frameWidget.show(frame, frameSize);
 
-      console.log('[PointPick] Frame widget shown with axis length: 0.2');
+      console.log('[PointPick] Frame widget shown with adaptive axis length:', frameSize.toFixed(3), 'm');
       console.log('[PointPick] Frame widget isVisible:', frameWidget.isVisible());
 
-      // Store marker and widget
+      // Store only the frame widget (no sphere marker, only one frame at a time)
       set({
-        pointPickMarkers: [...pointPickMarkers, marker],
-        pointPickFrameWidgets: [...pointPickFrameWidgets, frameWidget],
+        pointPickMarkers: [], // No sphere markers
+        pointPickFrameWidgets: [frameWidget], // Only one frame widget
       });
 
-      console.log('[PointPick] ✅ SUCCESS! Objects stored in state');
-      console.log('[PointPick] Total markers:', pointPickMarkers.length + 1);
-      console.log('[PointPick] Total frame widgets:', pointPickFrameWidgets.length + 1);
-      console.log('[PointPick] Marker in scene:', scene.getMeshByName(marker.name) !== null);
+      console.log('[PointPick] ✅ SUCCESS! Frame created');
+      console.log('[PointPick] Single frame widget stored (replaced previous)');
       console.log('='.repeat(80));
 
-      toast.success('Point picked - axis frame created');
+      toast.success(`Point picked - frame size: ${frameSize.toFixed(2)}m`);
     } catch (error) {
       console.error('[EditorStore] Failed to create point pick marker:', error);
       toast.error('Failed to create point pick marker');
