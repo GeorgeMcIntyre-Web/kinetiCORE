@@ -19,19 +19,19 @@ const modeConfig = {
   essential: {
     label: 'Essential',
     icon: ZapOff,
-    description: 'Simplified interface for basic operations',
+    description: 'Student/Beginner',
     color: colors.primary[500],
   },
   professional: {
     label: 'Professional',
     icon: Zap,
-    description: 'Full feature set for advanced users',
+    description: 'Engineer/Designer',
     color: colors.success[500],
   },
   expert: {
     label: 'Expert',
     icon: ZapIcon,
-    description: 'Complete toolkit for power users',
+    description: 'Power User/Enterprise',
     color: colors.warning[500],
   },
 };
