@@ -336,10 +336,13 @@ export const SceneCanvas: React.FC = () => {
 
               // Check if mesh is selectable (using centralized filtering from SceneUtils.ts)
               if (mesh instanceof BABYLON.Mesh && isSelectableObject(mesh)) {
+                // Get current selection level from store
+                const currentSelectionLevel = useEditorStore.getState().selectionLevel;
+
                 // Check if this mesh belongs to a device entity
                 const deviceEntity = registry.getDeviceByMesh(mesh);
 
-                // Alt+Click to select individual link instead of device
+                // Alt+Click overrides selection level to select individual link/mesh
                 const selectIndividualLink = evt.altKey;
 
                 // Ctrl+Click for multi-selection
@@ -351,12 +354,22 @@ export const SceneCanvas: React.FC = () => {
                   // Regular click - replace selection
                   clearSelection();
 
-                  // If part of a device and not Alt+Click, select the device root mesh
-                  if (deviceEntity && !selectIndividualLink) {
+                  // Determine what to select based on selection level
+                  if (selectIndividualLink) {
+                    // Alt+Click always selects the individual mesh (override)
+                    selectMesh(mesh);
+                  } else if (currentSelectionLevel === 'object' && deviceEntity) {
+                    // Object level: Select the entire device/object root
                     const deviceMesh = deviceEntity.getMesh();
                     selectMesh(deviceMesh);
+                  } else if (currentSelectionLevel === 'component' && deviceEntity) {
+                    // Component level: Select the clicked component/link
+                    selectMesh(mesh);
+                  } else if (currentSelectionLevel === 'mesh') {
+                    // Mesh level: Always select the individual mesh
+                    selectMesh(mesh);
                   } else {
-                    // Select the individual mesh
+                    // Fallback: select the individual mesh
                     selectMesh(mesh);
                   }
                 }
