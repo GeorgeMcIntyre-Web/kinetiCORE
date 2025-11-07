@@ -178,7 +178,7 @@ async function generateThumbnail(
 async function extractMetadata(
   assetId: string, 
   supabase: any, 
-  options?: any
+  _options?: any
 ): Promise<ProcessingResult> {
   try {
     // Get asset information
@@ -411,23 +411,23 @@ async function validateAsset(
 }
 
 // Helper functions (simplified implementations)
-async function generateURDFThumbnail(fileData: any, size: { width: number; height: number }): Promise<Uint8Array> {
+async function generateURDFThumbnail(_fileData: any, _size: { width: number; height: number }): Promise<Uint8Array> {
   // In a real implementation, this would use a 3D rendering library
   // to generate a thumbnail from the URDF file
   return new Uint8Array(1024) // Placeholder
 }
 
-async function resizeImage(fileData: any, size: { width: number; height: number }): Promise<Uint8Array> {
+async function resizeImage(_fileData: any, _size: { width: number; height: number }): Promise<Uint8Array> {
   // In a real implementation, this would use an image processing library
   return new Uint8Array(1024) // Placeholder
 }
 
-async function generateGenericThumbnail(fileType: string, size: { width: number; height: number }): Promise<Uint8Array> {
+async function generateGenericThumbnail(_fileType: string, _size: { width: number; height: number }): Promise<Uint8Array> {
   // Generate a generic icon based on file type
   return new Uint8Array(1024) // Placeholder
 }
 
-async function extractURDFMetadata(fileData: any): Promise<any> {
+async function extractURDFMetadata(_fileData: any): Promise<any> {
   // Parse URDF XML and extract metadata
   return {
     domain: 'robotics',
@@ -440,7 +440,7 @@ async function extractURDFMetadata(fileData: any): Promise<any> {
   }
 }
 
-async function extractGLTFMetadata(fileData: any): Promise<any> {
+async function extractGLTFMetadata(_fileData: any): Promise<any> {
   // Parse GLTF/GLB and extract metadata
   return {
     domain: 'general',
@@ -455,7 +455,7 @@ async function extractGLTFMetadata(fileData: any): Promise<any> {
   }
 }
 
-async function extractImageMetadata(fileData: any): Promise<any> {
+async function extractImageMetadata(_fileData: any): Promise<any> {
   // Extract image metadata
   return {
     domain: 'general',
@@ -479,7 +479,7 @@ async function extractGenericMetadata(fileData: any, asset: any): Promise<any> {
   }
 }
 
-async function optimizeGLTF(fileData: any, level: string): Promise<{ data: Uint8Array; compressionRatio: number }> {
+async function optimizeGLTF(fileData: any, _level: string): Promise<{ data: Uint8Array; compressionRatio: number }> {
   // Optimize GLTF/GLB file
   return {
     data: new Uint8Array(fileData.length * 0.8), // 20% compression
@@ -487,7 +487,7 @@ async function optimizeGLTF(fileData: any, level: string): Promise<{ data: Uint8
   }
 }
 
-async function optimizeImage(fileData: any, level: string): Promise<{ data: Uint8Array; compressionRatio: number }> {
+async function optimizeImage(fileData: any, _level: string): Promise<{ data: Uint8Array; compressionRatio: number }> {
   // Optimize image file
   return {
     data: new Uint8Array(fileData.length * 0.7), // 30% compression
@@ -495,7 +495,7 @@ async function optimizeImage(fileData: any, level: string): Promise<{ data: Uint
   }
 }
 
-async function compressFile(fileData: any, level: string): Promise<{ data: Uint8Array; compressionRatio: number }> {
+async function compressFile(fileData: any, _level: string): Promise<{ data: Uint8Array; compressionRatio: number }> {
   // Compress file
   return {
     data: new Uint8Array(fileData.length * 0.9), // 10% compression
@@ -503,7 +503,7 @@ async function compressFile(fileData: any, level: string): Promise<{ data: Uint8
   }
 }
 
-async function performDetailedValidation(fileData: any, asset: any): Promise<{
+async function performDetailedValidation(_fileData: any, _asset: any): Promise<{
   errors: string[];
   warnings: string[];
   qualityPenalty: number;
