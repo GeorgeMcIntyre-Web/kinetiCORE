@@ -128,6 +128,7 @@ export interface RibbonToolbarProps {
   onRightViewClick?: () => void;
   onFrontViewClick?: () => void;
   onIsoViewClick?: () => void;
+  onSnapSettingsClick?: () => void;
 }
 
 export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
@@ -151,6 +152,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onRightViewClick,
   onFrontViewClick,
   onIsoViewClick,
+  onSnapSettingsClick,
 }) => {
   // Store connections
   const transformMode = useEditorStore((state) => state.transformMode);
@@ -178,6 +180,12 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   const handleImportFile = () => fileInputRef.current?.click();
   const handleImportFolder = () => folderInputRef.current?.click();
   const handleLoadWorld = () => worldLoadInputRef.current?.click();
+
+  const handleSnapButtonClick = () => {
+    const newEnabled = !snapEnabled;
+    setSnapEnabled(newEnabled);
+    onSnapSettingsClick?.();
+  };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     console.log('[RibbonToolbar] Generic file loader invoked');
@@ -225,6 +233,11 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   const handleIsoViewClick = () => {
     setCurrentView('iso');
     onIsoViewClick?.();
+  };
+
+  const handleAddFrame = () => {
+    const addPermanentFrame = useEditorStore.getState().addPermanentFrame;
+    addPermanentFrame();
   };
 
   return (
@@ -343,6 +356,23 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
             currentLevel={selectionLevel}
             onLevelChange={setSelectionLevel}
           />
+          <button
+            className="ribbon-btn"
+            onClick={handleAddFrame}
+            title="Add Frame at Selection"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              {/* X-axis (Red) */}
+              <line x1="12" y1="12" x2="20" y2="12" stroke="#ff0000" strokeWidth="2.5" />
+              <polygon points="20,12 18,11 18,13" fill="#ff0000" />
+              {/* Y-axis (Green) */}
+              <line x1="12" y1="12" x2="12" y2="4" stroke="#00ff00" strokeWidth="2.5" />
+              <polygon points="12,4 11,6 13,6" fill="#00ff00" />
+              {/* Z-axis (Blue) */}
+              <line x1="12" y1="12" x2="6" y2="18" stroke="#0000ff" strokeWidth="2.5" />
+              <polygon points="6,18 7.5,16.5 8,17.5" fill="#0000ff" />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -352,7 +382,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
         <div className="ribbon-buttons-row">
           <button
             className={`ribbon-btn ${snapEnabled ? 'active' : ''}`}
-            onClick={() => setSnapEnabled(!snapEnabled)}
+            onClick={handleSnapButtonClick}
             title="Toggle Snap"
           >
             <Crosshair size={32} />

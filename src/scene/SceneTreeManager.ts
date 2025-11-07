@@ -48,6 +48,12 @@ export class SceneTreeManager {
     this.nodes.set(system.id, system);
     world.childIds.push(system.id);
 
+    // Create Frames collection under System node
+    const frames = createSceneNode('collection', 'Frames', system.id);
+    frames.locked = false; // User can delete/rename this collection
+    this.nodes.set(frames.id, frames);
+    system.childIds.push(frames.id);
+
     // Create default Assets collection under Scene
     const assets = createSceneNode('collection', 'Assets', scene.id);
     assets.locked = false; // User can delete/rename this collection
@@ -128,6 +134,22 @@ export class SceneTreeManager {
     const root = this.getRootNode();
     if (root) {
       return this.nodes.get(root.childIds[1]); // System is second child of World
+    }
+    return undefined;
+  }
+
+  /**
+   * Get Frames collection node under System
+   */
+  getFramesNode(): SceneNode | undefined {
+    const system = this.getSystemNode();
+    if (!system) return undefined;
+
+    for (const childId of system.childIds) {
+      const child = this.nodes.get(childId);
+      if (child && child.type === 'collection' && child.name === 'Frames') {
+        return child;
+      }
     }
     return undefined;
   }

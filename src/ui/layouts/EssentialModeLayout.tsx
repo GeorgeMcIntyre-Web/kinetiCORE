@@ -21,6 +21,7 @@ import { FloatingPhysicsPanel } from '../components/FloatingPhysicsPanel';
 import { FloatingCollisionPanel } from '../components/FloatingCollisionPanel';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
 import { MoveObjectDialog } from '../components/MoveObjectDialog';
+import { SnapSettingsDialog } from '../components/SnapSettingsDialog';
 import { ProjectManagerPanelV2 } from '../components/ProjectManager/ProjectManagerPanelV2';
 import { ProjectSaveDialog } from '../components/ProjectSaveDialog';
 import { useProjectManagerStore } from '../store/projectManagerStore';
@@ -55,6 +56,9 @@ export const EssentialModeLayout: React.FC = () => {
   const saveProject = useEditorStore((state) => state.saveProject);
   const currentProject = useEditorStore((state) => state.currentProject);
 
+  // Picked point coordinates
+  const lastPickedPoint = useEditorStore((state) => state.lastPickedPoint);
+
   const [transform, setTransform] = useState<{
     x: number;
     y: number;
@@ -79,6 +83,7 @@ export const EssentialModeLayout: React.FC = () => {
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [showSnapDialog, setShowSnapDialog] = useState(false);
 
   // Resizable sidebar state
   const [sidebarWidth, setSidebarWidth] = useState(256); // Default 256px (w-64)
@@ -558,6 +563,7 @@ export const EssentialModeLayout: React.FC = () => {
             onProjectManagerClick: showProjectManager,
             onAssetLibraryClick: toggleLibrary,
             onQuickMoveClick: () => setShowMoveDialog(true),
+            onSnapSettingsClick: () => setShowSnapDialog(true),
             onResetViewClick: handleResetView,
             onZoomFitClick: handleZoomFit,
             onZoomToSelectedClick: handleZoomToSelected,
@@ -764,6 +770,41 @@ export const EssentialModeLayout: React.FC = () => {
               <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rz.toFixed(1)}°</span>
             </div>
           </div>
+
+          {/* Picked Point Coordinates */}
+          {lastPickedPoint && (() => {
+            const userCoords = babylonToUser(lastPickedPoint);
+            return (
+              <div style={{
+                borderTop: '1px solid rgba(255,255,255,0.1)',
+                margin: '6px 0',
+                paddingTop: '6px'
+              }}>
+                <div style={{
+                  fontSize: '9px',
+                  color: 'rgba(255,255,255,0.5)',
+                  marginBottom: '4px',
+                  fontWeight: '500'
+                }}>
+                  Picked Point:
+                </div>
+                <div className="flex justify-between" style={{ fontSize: '11.5px' }}>
+                  <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                    <span style={{ color: '#D0021B', fontWeight: '500' }}>X:</span>
+                    <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.x.toFixed(3)}</span>
+                  </div>
+                  <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                    <span style={{ color: '#7ED321', fontWeight: '500' }}>Y:</span>
+                    <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.y.toFixed(3)}</span>
+                  </div>
+                  <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                    <span style={{ color: '#4A90E2', fontWeight: '500' }}>Z:</span>
+                    <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.z.toFixed(3)}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
       )}
@@ -798,6 +839,10 @@ export const EssentialModeLayout: React.FC = () => {
       <MoveObjectDialog
         isOpen={showMoveDialog}
         onClose={() => setShowMoveDialog(false)}
+      />
+      <SnapSettingsDialog
+        isOpen={showSnapDialog}
+        onClose={() => setShowSnapDialog(false)}
       />
 
       {/* Project Manager Panel */}

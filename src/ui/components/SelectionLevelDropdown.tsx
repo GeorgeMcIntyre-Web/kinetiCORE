@@ -36,19 +36,19 @@ export const SelectionLevelDropdown: React.FC<SelectionLevelDropdownProps> = ({
     {
       id: 'object',
       label: 'Object',
-      icon: <Box size={32} strokeWidth={2.5} />,
+      icon: <Box size={24} />,
       description: 'Select entire objects'
     },
     {
       id: 'component',
       label: 'Component',
-      icon: <Component size={32} strokeWidth={2.5} />,
+      icon: <Component size={24} />,
       description: 'Select components within objects'
     },
     {
       id: 'mesh',
       label: 'Mesh',
-      icon: <Grid3x3 size={32} strokeWidth={2.5} />,
+      icon: <Grid3x3 size={24} />,
       description: 'Select individual meshes'
     }
   ];
@@ -99,7 +99,7 @@ export const SelectionLevelDropdown: React.FC<SelectionLevelDropdownProps> = ({
         title={`${currentOption.description} (Click to change)`}
       >
         {currentOption.icon}
-        <ChevronDown size={10} className={`dropdown-chevron ${isOpen ? 'open' : ''}`} />
+        <ChevronDown size={10} className={`dropdown-chevron ${isOpen ? 'open' : ''}`} style={{ marginLeft: '2px' }} />
       </button>
 
       {isOpen && (

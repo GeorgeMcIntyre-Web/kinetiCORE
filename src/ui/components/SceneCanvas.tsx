@@ -283,6 +283,8 @@ export const SceneCanvas: React.FC = () => {
                   pointPickResult.pickedPoint,
                   pointPickResult.getNormal(true) || undefined
                 );
+                // Store picked point for coordinate display
+                useEditorStore.getState().setLastPickedPoint(pointPickResult.pickedPoint);
               }
 
               handlePointPick(pointPickResult);
@@ -349,6 +351,8 @@ export const SceneCanvas: React.FC = () => {
                   pickResult.pickedPoint,
                   pickResult.getNormal(true) || undefined
                 );
+                // Store picked point for coordinate display
+                useEditorStore.getState().setLastPickedPoint(pickResult.pickedPoint);
               }
 
               // Check if mesh is selectable (using centralized filtering from SceneUtils.ts)

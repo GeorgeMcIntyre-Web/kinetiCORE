@@ -187,6 +187,10 @@ interface EditorState {
   // Permanent frames state - frames that persist in the scene with dynamic scaling
   permanentFrames: Array<{ rootNode: BABYLON.TransformNode; originPoint: BABYLON.Vector3; baseSize: number }>;
 
+  // Last picked point - for coordinate display
+  lastPickedPoint: BABYLON.Vector3 | null;
+  setLastPickedPoint: (point: BABYLON.Vector3 | null) => void;
+
   // Actions
   undo: () => void;
   redo: () => void;
@@ -675,6 +679,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
   // Permanent frames defaults
   permanentFrames: [],
+
+  // Last picked point defaults
+  lastPickedPoint: null,
+  setLastPickedPoint: (point) => set({ lastPickedPoint: point }),
 
   // Undo/Redo actions
   undo: () => {
@@ -3470,15 +3478,67 @@ export const useEditorStore = create<EditorState>((set, get) => {
       return;
     }
 
-    // Get frame data from either object origin frame or point pick frame
-    const { objectOriginFrameData, pointPickFrameData } = get();
+    // Get frame data from multiple sources
+    const { objectOriginFrameData, pointPickFrameData, selectedMeshes, selectionLevel } = get();
+    console.log('[AddFrame] selectionLevel:', selectionLevel);
+    console.log('[AddFrame] selectedMeshes:', selectedMeshes);
     console.log('[AddFrame] objectOriginFrameData:', objectOriginFrameData);
     console.log('[AddFrame] pointPickFrameData:', pointPickFrameData);
-    const frameData = objectOriginFrameData || pointPickFrameData;
+
+    let frameData = objectOriginFrameData || pointPickFrameData;
+
+    // If no frame data but mesh is selected, create frame from selected mesh
+    if (!frameData && selectionLevel === 'mesh' && selectedMeshes.length > 0) {
+      const selectedMesh = selectedMeshes[0]; // Use first selected mesh
+      console.log('[AddFrame] Creating frame from selected mesh:', selectedMesh.name);
+
+      // Get mesh world position
+      selectedMesh.computeWorldMatrix(true);
+      const worldMatrix = selectedMesh.getWorldMatrix();
+      const position = selectedMesh.getAbsolutePosition();
+
+      // Extract rotation quaternion and decompose to get axes
+      const scaling = new BABYLON.Vector3();
+      const rotation = new BABYLON.Quaternion();
+      const translation = new BABYLON.Vector3();
+      worldMatrix.decompose(scaling, rotation, translation);
+
+      // Convert quaternion to rotation matrix
+      const rotationMatrix = new BABYLON.Matrix();
+      BABYLON.Matrix.FromQuaternionToRef(rotation, rotationMatrix);
+
+      // Get rotation axes from the rotation matrix
+      const xAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Right(), rotationMatrix);
+      const yAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Up(), rotationMatrix);
+      const zAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Forward(), rotationMatrix);
+
+      // Convert from Babylon to user coordinates (Z-up)
+      const userPos = babylonToUser(position);
+
+      // Find the node ID for this mesh
+      const meshIdString = selectedMesh.uniqueId.toString();
+      const node = tree.getNodeByBabylonMeshId(meshIdString);
+      const nodeId = node?.id || meshIdString;
+
+      // Create frame data
+      frameData = {
+        pickPoint: position,
+        frame: {
+          featureType: 'object' as CustomFrameFeatureType,
+          nodeId: nodeId,
+          origin: userPos,
+          xAxis: { x: xAxis.x, y: xAxis.y, z: xAxis.z },
+          yAxis: { x: yAxis.x, y: yAxis.y, z: yAxis.z },
+          zAxis: { x: zAxis.x, y: zAxis.y, z: zAxis.z }
+        },
+        baseSize: 0.1
+      };
+      console.log('[AddFrame] Created frame data from mesh:', frameData);
+    }
 
     if (!frameData) {
       console.error('[AddFrame] No frame data available');
-      toast.error('No frame to add. Please select an object or pick a point first.');
+      toast.error('No frame to add. Please select a mesh or pick a point first.');
       return;
     }
 

@@ -9,7 +9,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
   width: 50px;
   height: 35px;
   padding: 0;
@@ -19,6 +19,10 @@
   color: rgba(255, 255, 255, 0.6);
   cursor: pointer;
   transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.selection-level-dropdown-btn svg {
   flex-shrink: 0;
 }
 
