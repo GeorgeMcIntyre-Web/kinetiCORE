@@ -23,7 +23,10 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
   const snapToPoint = useEditorStore((state) => state.snapToPoint);
   const isPickingSnapPoint = useEditorStore((state) => state.isPickingSnapPoint);
   const setIsPickingSnapPoint = useEditorStore((state) => state.setIsPickingSnapPoint);
+  const setSnapFromPoint = useEditorStore((state) => state.setSnapFromPoint);
+  const setSnapToPoint = useEditorStore((state) => state.setSnapToPoint);
   const applySnapSettings = useEditorStore((state) => state.applySnapSettings);
+  const clearSnapFrames = useEditorStore((state) => state.clearSnapFrames);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
 
   const [from, setFrom] = useState({ x: 0, y: 0, z: 0 });
@@ -97,6 +100,7 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
 
   const handleCancel = () => {
     setIsPickingSnapPoint(null);
+    clearSnapFrames();
     onClose();
   };
 
@@ -107,6 +111,7 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
       to,
     });
     setIsPickingSnapPoint(null);
+    clearSnapFrames();
     onClose();
   };
 
@@ -119,11 +124,15 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
   };
 
   const handleClearFromPoint = () => {
-    setFrom({ x: 0, y: 0, z: 0 });
+    const zeroPoint = { x: 0, y: 0, z: 0 };
+    setFrom(zeroPoint);
+    setSnapFromPoint(zeroPoint);
   };
 
   const handleClearToPoint = () => {
-    setTo({ x: 0, y: 0, z: 0 });
+    const zeroPoint = { x: 0, y: 0, z: 0 };
+    setTo(zeroPoint);
+    setSnapToPoint(zeroPoint);
   };
 
   return (

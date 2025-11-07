@@ -102,11 +102,14 @@ interface EditorState {
   snapFromPoint: SnapPoint;
   snapToPoint: SnapPoint;
   isPickingSnapPoint: 'from' | 'to' | null; // Track which point is being picked
+  snapFromFrame: BABYLON.TransformNode | null; // Visual frame at "from" point
+  snapToFrame: BABYLON.TransformNode | null; // Visual frame at "to" point
   setSnapMode: (mode: SnapMode) => void;
   setSnapFromPoint: (point: SnapPoint) => void;
   setSnapToPoint: (point: SnapPoint) => void;
   setIsPickingSnapPoint: (mode: 'from' | 'to' | null) => void;
   applySnapSettings: (settings: { mode?: SnapMode; from?: SnapPoint; to?: SnapPoint }) => void;
+  clearSnapFrames: () => void; // Clear temporary snap frames
 
   // Project Management Methods
   createProject: (config: {
@@ -323,6 +326,41 @@ interface EditorState {
   loadURDFWithMeshes: (urdfFile: File, meshFiles: File[], scene: BABYLON.Scene, tree: any, assetsNode: any, registry: any) => Promise<void>;
 }
 
+/**
+ * Helper function to create a small coordinate frame for snap points
+ */
+const createSnapFrame = (
+  scene: BABYLON.Scene,
+  position: BABYLON.Vector3,
+  name: string,
+  color: BABYLON.Color3
+): BABYLON.TransformNode => {
+  const frameRoot = new BABYLON.TransformNode(name, scene);
+  frameRoot.position = position;
+
+  const axisLength = 0.05; // Small frame size (5cm)
+
+  // Create simple axis lines
+  const createAxisLine = (start: BABYLON.Vector3, end: BABYLON.Vector3, lineColor: BABYLON.Color3, lineName: string) => {
+    const line = BABYLON.MeshBuilder.CreateLines(
+      lineName,
+      { points: [start, end] },
+      scene
+    );
+    line.color = lineColor;
+    line.isPickable = false;
+    line.parent = frameRoot;
+    return line;
+  };
+
+  // X, Y, Z axes with the specified color (will be tinted)
+  createAxisLine(BABYLON.Vector3.Zero(), new BABYLON.Vector3(axisLength, 0, 0), color, `${name}_X`);
+  createAxisLine(BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, axisLength, 0), color, `${name}_Y`);
+  createAxisLine(BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, 0, axisLength), color, `${name}_Z`);
+
+  return frameRoot;
+};
+
 export const useEditorStore = create<EditorState>((set, get) => {
   const normalizeNodeId = (nodeId: string): string => {
     const tree = SceneTreeManager.getInstance();
@@ -503,10 +541,62 @@ export const useEditorStore = create<EditorState>((set, get) => {
   snapFromPoint: { x: 0, y: 0, z: 0 },
   snapToPoint: { x: 0, y: 0, z: 0 },
   isPickingSnapPoint: null,
+  snapFromFrame: null,
+  snapToFrame: null,
   setSnapMode: (mode) => set({ snapMode: mode }),
-  setSnapFromPoint: (point) => set({ snapFromPoint: point }),
-  setSnapToPoint: (point) => set({ snapToPoint: point }),
+  setSnapFromPoint: (point) => {
+    // Clear previous "from" frame
+    const { snapFromFrame } = get();
+    if (snapFromFrame) {
+      snapFromFrame.dispose();
+    }
+
+    // Only create frame if point is not at origin (0,0,0)
+    const isZero = point.x === 0 && point.y === 0 && point.z === 0;
+    if (!isZero) {
+      const scene = SceneManager.getInstance().getScene();
+      if (scene) {
+        const framePosition = userToBabylon(new BABYLON.Vector3(point.x, point.y, point.z));
+        const frame = createSnapFrame(scene, framePosition, 'snapFrom', new BABYLON.Color3(1, 0, 0)); // Red for "from"
+        set({ snapFromPoint: point, snapFromFrame: frame });
+        return;
+      }
+    }
+
+    set({ snapFromPoint: point, snapFromFrame: null });
+  },
+  setSnapToPoint: (point) => {
+    // Clear previous "to" frame
+    const { snapToFrame } = get();
+    if (snapToFrame) {
+      snapToFrame.dispose();
+    }
+
+    // Only create frame if point is not at origin (0,0,0)
+    const isZero = point.x === 0 && point.y === 0 && point.z === 0;
+    if (!isZero) {
+      const scene = SceneManager.getInstance().getScene();
+      if (scene) {
+        const framePosition = userToBabylon(new BABYLON.Vector3(point.x, point.y, point.z));
+        const frame = createSnapFrame(scene, framePosition, 'snapTo', new BABYLON.Color3(0, 1, 0)); // Green for "to"
+        set({ snapToPoint: point, snapToFrame: frame });
+        return;
+      }
+    }
+
+    set({ snapToPoint: point, snapToFrame: null });
+  },
   setIsPickingSnapPoint: (mode) => set({ isPickingSnapPoint: mode }),
+  clearSnapFrames: () => {
+    const { snapFromFrame, snapToFrame } = get();
+    if (snapFromFrame) {
+      snapFromFrame.dispose();
+    }
+    if (snapToFrame) {
+      snapToFrame.dispose();
+    }
+    set({ snapFromFrame: null, snapToFrame: null });
+  },
   applySnapSettings: (settings) => {
     const { snapMode, snapFromPoint, snapToPoint, selectedMeshes } = get();
     const nextMode = settings.mode ?? snapMode;
