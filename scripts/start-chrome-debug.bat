@@ -14,3 +14,4 @@ echo Chrome started! You can now use MCP Chrome DevTools in Cursor.
 echo.
 pause
 
+

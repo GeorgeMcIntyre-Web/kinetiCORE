@@ -702,17 +702,17 @@ export async function showEmbeddedInspector(
                 parentElement: host,
                 globalRoot: host
               } as any);
-
-              // Re-apply styles after re-show
-              setTimeout(() => {
-                adopt(host);
-                harden(host);
-                console.log('[refreshInspectorTree] ✅ Inspector rebuilt by hide/show');
-              }, 500);
-            } catch (err) {
-              console.error('[refreshInspectorTree] Error re-showing Inspector:', err);
-            }
-          }, 100);
+                
+                // Re-apply styles after re-show
+                setTimeout(() => {
+                  adopt(host);
+                  harden(host);
+                  console.log('[refreshInspectorTree] ✅ Inspector rebuilt by hide/show');
+                }, 500);
+              } catch (err) {
+                console.error('[refreshInspectorTree] Error re-showing Inspector:', err);
+              }
+            }, 100);
         } catch (err) {
           console.warn('[refreshInspectorTree] Could not force rebuild:', err);
         }

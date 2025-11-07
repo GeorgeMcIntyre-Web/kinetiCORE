@@ -159,3 +159,4 @@ this.scene.clearColor = new BABYLON.Color4(0.12, 0.12, 0.14, 1); // Wrong for sk
 **Last Updated:** 2024-12-02  
 **Status:** ✅ Rules documented for all AI assistants
 
+

@@ -209,3 +209,4 @@ This document explains what each setting in the Warehouse panel does and how it 
 - **Core Logic:** `src/routing/core/WarehouseModel.ts`
 - **Panel Wrapper:** `src/routing/ui/WarehousePanel.tsx`
 
+

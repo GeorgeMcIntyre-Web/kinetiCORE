@@ -81,29 +81,355 @@
   text-align: center;
 }
 
-/* Right panel tabs - professional text styling */
+/* Right panel tabs - ultra-compact design to fit 4 tabs in 300px */
+/* Target the parent dv-tab container first */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-tab {
+  padding: 0 !important;
+  margin: 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  box-sizing: border-box !important;
+}
+
+/* Remove padding from ::before pseudo-elements */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-tab::before {
+  display: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Target the actual tab content */
 .dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab {
-  font-size: 11px !important;
-  font-weight: 500 !important;
-  padding: 8px 14px !important;
-  min-width: auto !important;
-  letter-spacing: 0.25px !important;
-  text-transform: none !important;
-  white-space: nowrap !important;
-  line-height: 1.4 !important;
-  margin: 0 1px !important;
+  font-size: 8px;
+  font-weight: 500;
+  padding: 0 !important; /* No padding around text */
+  min-width: auto;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  line-height: 1.1;
+  margin: 0 !important;
+  flex-shrink: 0; /* Prevent tabs from shrinking */
+  border-radius: 0; /* Remove rounded corners to save space */
+  height: auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+  column-gap: 0 !important;
+  row-gap: 0 !important;
+}
+
+/* Remove padding from any text content inside the tab */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab > *:not(.dv-tab-close) {
+  padding: 0 !important;
+  margin: 0 !important;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+}
+
+/* Remove spacing from text node wrapper if it exists */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab > span,
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab > div:not(.dv-tab-close) {
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline !important;
+}
+
+/* Remove padding from tabs container */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-tabs-container {
+  padding: 0 !important;
+  padding-right: 0 !important;
+  margin: 0 !important;
+  margin-right: 0 !important;
+  gap: 0 !important;
+}
+
+/* Remove padding from tabs and actions container */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-tabs-and-actions-container {
+  padding: 0 !important;
+  padding-right: 0 !important;
+  margin: 0 !important;
+  margin-right: 0 !important;
+  gap: 0 !important;
+}
+
+/* Remove padding from scrollable container */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-scrollable {
+  padding: 0 !important;
+  padding-right: 0 !important;
+  margin: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Collapse any right action containers */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-right-actions-container,
+.dockview-theme-kineticore .dv-group:last-of-type .dv-void-container {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  flex-shrink: 1 !important;
+  flex-grow: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Enable horizontal scrolling on right panel tabs container */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-tabs-container {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: thin;
+  scrollbar-color: #48bb78 #1a202c;
+}
+
+.dockview-theme-kineticore .dv-group:last-of-type .dv-tabs-container::-webkit-scrollbar {
+  height: 4px;
+}
+
+.dockview-theme-kineticore .dv-group:last-of-type .dv-tabs-container::-webkit-scrollbar-track {
+  background: #1a202c;
+}
+
+.dockview-theme-kineticore .dv-group:last-of-type .dv-tabs-container::-webkit-scrollbar-thumb {
+  background: #48bb78;
+  border-radius: 2px;
+}
+
+/* Hide overflow menu on right panel - use scrolling instead */
+/* Target all possible overflow menu elements */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-tabs-container-overflow,
+.dockview-theme-kineticore .dv-group:last-of-type .dv-tabs-and-actions-container .dv-tabs-container-overflow,
+.dockview-theme-kineticore .dv-group:last-of-type [class*="overflow"],
+.dockview-theme-kineticore .dv-group:last-of-type .tabs-and-actions-container [class*="overflow"],
+.dockview-theme-kineticore .dv-group:last-of-type [aria-label*="overflow"],
+.dockview-theme-kineticore .dv-group:last-of-type [aria-label*="More"],
+.dockview-theme-kineticore .dv-group:last-of-type button[aria-label*="overflow"],
+.dockview-theme-kineticore .dv-group:last-of-type button[aria-label*="More"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Hide close buttons on right panel tabs to save space - show on hover */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab .dv-tab-close {
+  opacity: 0;
+  width: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  transition: opacity 0.2s ease, width 0.2s ease;
+  box-sizing: border-box !important;
+}
+
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab:hover .dv-tab-close,
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab.dv-active-tab .dv-tab-close {
+  opacity: 1;
+  width: 10px !important;
+  height: 10px !important;
+  margin: 0 !important;
+  margin-left: 1px !important; /* Tiny gap between text and X */
+  margin-right: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
   position: relative !important;
+  left: 0 !important;
+  right: 0 !important;
 }
 
-/* Active tab styling - subtle highlight */
+/* Remove all padding from close button's internal elements */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab .dv-tab-close *,
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab .dv-tab-close svg,
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab .dv-tab-close button {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+  border: none !important;
+  background: none !important;
+}
+
+/* Remove any gap between tab text and close button - use negative margin if needed */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab {
+  gap: 0 !important;
+  column-gap: 0 !important;
+  row-gap: 0 !important;
+}
+
+/* Force close button to be directly adjacent to text with minimal gap */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab .dv-tab-close {
+  margin-left: 1px !important; /* Tiny gap between text and X */
+}
+
+/* Additional ultra-specific rules to eliminate all tab padding */
+/* Target the tab container wrapper - DISABLE flex-grow to prevent expansion */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab-content,
+.dockview-theme-kineticore .dv-group:last-of-type .dv-tab-content,
+.dockview-theme-kineticore .dv-group:last-of-type [class*="content"] {
+  padding: 0 !important;
+  margin: 0 !important;
+  flex-grow: 0 !important; /* CRITICAL: Prevent content from expanding */
+  flex-shrink: 1 !important;
+  flex-basis: auto !important;
+  width: auto !important;
+  max-width: fit-content !important;
+}
+
+/* Target any flex containers inside tabs */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab > div,
+.dockview-theme-kineticore .dv-group:last-of-type .dv-tab > div {
+  gap: 0 !important;
+  column-gap: 0 !important;
+  row-gap: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Ensure the tab itself has minimal spacing */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-tab.dv-default-tab,
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab {
+  padding: 0 2px !important; /* Minimal horizontal padding just to prevent text from touching edges */
+  margin: 0 !important;
+  gap: 0 !important;
+  flex-grow: 0 !important; /* Prevent tabs from growing */
+  flex-shrink: 0 !important; /* Prevent tabs from shrinking */
+  flex-basis: auto !important;
+  width: auto !important;
+  max-width: fit-content !important;
+}
+
+/* Make the tabs container as tight as possible */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-tabs-and-actions-container .dv-tabs-container {
+  gap: 2px !important; /* Minimal gap between tabs */
+}
+
+/* Target any inner wrappers that might have padding */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab * {
+  letter-spacing: 0 !important;
+}
+
+/* Force specific spacing on tab label text */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab [class*="label"],
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab .tab-label {
+  padding: 0 !important;
+  margin: 0 !important;
+  margin-right: 0 !important;
+  flex-grow: 0 !important;
+  width: auto !important;
+  max-width: fit-content !important;
+}
+
+/* Target the specific problematic element: dv-default-tab-content */
+/* Match the exact selector that dockview uses */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-tab .dv-default-tab .dv-default-tab-content {
+  flex-grow: 0 !important; /* CRITICAL FIX from DevTools inspection */
+  flex-shrink: 1 !important;
+  flex-basis: auto !important;
+  width: auto !important;
+  max-width: fit-content !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Also target without the .dv-tab parent for broader coverage */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab .dv-default-tab-content {
+  flex-grow: 0 !important;
+  flex-shrink: 1 !important;
+  flex-basis: auto !important;
+  width: auto !important;
+  max-width: fit-content !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* NUCLEAR OPTION: Target ALL .dv-default-tab-content elements regardless of group */
+/* This will override dockview's default flex-grow: 1 everywhere */
+.dockview-theme-kineticore .dv-tab .dv-default-tab .dv-default-tab-content {
+  flex-grow: 0 !important;
+  flex-shrink: 1 !important;
+  flex-basis: auto !important;
+  width: auto !important;
+  max-width: fit-content !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Even more aggressive - target the class directly */
+.dockview-theme-kineticore .dv-default-tab-content {
+  flex-grow: 0 !important;
+  flex-shrink: 1 !important;
+  flex-basis: auto !important;
+  width: auto !important;
+  max-width: fit-content !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* ABSOLUTE NUCLEAR OPTION: Target the element without any parent selectors */
+/* This should work if the CSS file is loading at all */
+.dv-default-tab-content {
+  flex-grow: 0 !important;
+  flex-shrink: 1 !important;
+  flex-basis: auto !important;
+  width: auto !important;
+  max-width: fit-content !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Target the tab action container (close button wrapper) */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab-action {
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
+  margin-left: 0 !important;
+  padding: 0 !important;
+}
+
+/* NUCLEAR OPTION: Target ALL .dv-default-tab-action elements */
+.dockview-theme-kineticore .dv-default-tab-action {
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
+  margin-left: 0 !important;
+  padding: 0 !important;
+}
+
+/* Nuclear option: Remove ALL padding from EVERYTHING in right panel tabs */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-tab *,
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab * {
+  box-sizing: border-box !important;
+}
+
+/* Override any dockview default padding that might be applied */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-tab.dv-active-tab,
+.dockview-theme-kineticore .dv-group:last-of-type .dv-tab.dv-inactive-tab {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Active tab styling */
 .dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab.dv-active-tab {
-  font-weight: 600 !important;
-  background-color: rgba(72, 187, 120, 0.08) !important;
-}
-
-
-.dockview-theme-kineticore .dv-default-tab:hover {
-  background-color: #2d2d2d;
+  font-weight: 600;
+  background-color: rgba(72, 187, 120, 0.08);
 }
 
 .dockview-theme-kineticore .dv-resize-container {
