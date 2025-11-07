@@ -173,7 +173,7 @@ npm run lint
 
 ### 2. Fix Failing Unit Tests (Priority: HIGH) ⚠️
 
-**Current State**: 44 failed | 94 passed (138 total)
+**Current State**: 37 failed | 101 passed (138 total)
 
 **Main Issue**: `editorStore` undefined in integration tests
 
@@ -185,8 +185,8 @@ TypeError: Cannot destructure property 'getButtonState' of 'useEditorStore(...)'
 **Root Cause**: Test setup not initializing Zustand store properly
 
 **Files Affected**:
-- `src/__tests__/integration/MJCFIntegration.test.tsx` (40 failing tests)
-- `src/__tests__/integration/AssetLoadingWorkflow.test.ts` (4 failing tests)
+- `src/__tests__/integration/MJCFIntegration.test.tsx` (34 failing tests) - ⚠️ Still needs fixing
+- ✅ `src/__tests__/integration/AssetLoadingWorkflow.test.ts` (7/7 passing) - **FIXED by Agent 4**
 
 **How to Fix**:
 
@@ -219,6 +219,12 @@ npm test -- --run
 ```
 
 **Estimated Time**: 4-6 hours
+
+**✅ Agent 4 Completed (commit 90257df)**:
+- Fixed all 7 tests in `AssetLoadingWorkflow.test.ts`
+- Mocked SceneManager to avoid WebGL dependencies
+- Tests now pass without requiring browser environment
+- Solution: Mock SceneManager completely rather than individual Babylon classes
 
 ### 3. Full CI Validation (Priority: HIGH)
 
