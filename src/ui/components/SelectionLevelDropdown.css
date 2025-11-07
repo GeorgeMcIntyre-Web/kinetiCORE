@@ -26,6 +26,18 @@
   flex-shrink: 0;
 }
 
+.selection-level-dropdown-btn svg:not(.dropdown-chevron) {
+  width: 18px;
+  height: 18px;
+  padding: 4px;
+  box-sizing: content-box;
+}
+
+.selection-level-dropdown-btn .dropdown-chevron {
+  width: 12px;
+  height: 12px;
+}
+
 .selection-level-dropdown-btn:hover {
   background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.2);
