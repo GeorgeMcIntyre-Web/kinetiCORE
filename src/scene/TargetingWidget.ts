@@ -49,14 +49,24 @@ export class TargetingWidget {
     this.rootNode = new BABYLON.TransformNode('targetingWidget', this.scene);
     this.rootNode.position = position;
 
-    // Calculate scale based on camera distance (like frame widgets)
+    // Calculate scale based on camera distance (consistent for all picks)
+    // Use same approach as frame widgets - reference distance from camera
     const camera = this.scene.activeCamera;
     let scale = 1.0;
     if (camera) {
-      const distanceToCamera = BABYLON.Vector3.Distance(camera.position, position);
+      // Use camera radius as reference distance for consistent sizing
+      let referenceDistance: number;
 
-      // Scale based on distance (same formula as frame widgets)
-      let targetSize = distanceToCamera * 0.1;
+      if (camera instanceof BABYLON.ArcRotateCamera) {
+        // For arc rotate camera, use the radius (distance to target)
+        referenceDistance = camera.radius;
+      } else {
+        // Fallback: use distance to this pick point
+        referenceDistance = BABYLON.Vector3.Distance(camera.position, position);
+      }
+
+      // Scale based on reference distance (same formula as frame widgets)
+      let targetSize = referenceDistance * 0.1;
       const MIN_SIZE = 0.05;
       const MAX_SIZE = 2.0;
       targetSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, targetSize));
@@ -162,28 +172,58 @@ export class TargetingWidget {
   }
 
   /**
-   * Create pulse ring animation
+   * Create pulse ring animation using a disc
    */
   private createPulseRing(): void {
     if (!this.rootNode) return;
 
-    const ring = BABYLON.MeshBuilder.CreateTorus(
+    // Create a circular disc for the pulse ring
+    const ring = BABYLON.MeshBuilder.CreateDisc(
       'pulseRing',
       {
-        diameter: this.options.size,
-        thickness: this.options.size * 0.02,
+        radius: this.options.size * 0.5,
         tessellation: 32
       },
       this.scene
     );
 
-    // Billboard mode - always face camera (appears as circle from all angles)
+    // Billboard mode - always face camera
     ring.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 
+    // Create material with a ring pattern using alpha gradient
     const material = new BABYLON.StandardMaterial('pulseRingMaterial', this.scene);
     material.emissiveColor = this.options.color;
     material.disableLighting = true;
     material.alpha = 0.8;
+    material.backFaceCulling = false;
+
+    // Create a dynamic texture for the ring pattern
+    const dynamicTexture = new BABYLON.DynamicTexture(
+      'pulseRingTexture',
+      { width: 256, height: 256 },
+      this.scene,
+      false
+    );
+
+    const context = dynamicTexture.getContext();
+    const centerX = 128;
+    const centerY = 128;
+    const outerRadius = 120;
+    const innerRadius = 100;
+
+    // Draw ring gradient
+    context.clearRect(0, 0, 256, 256);
+    const gradient = context.createRadialGradient(centerX, centerY, innerRadius, centerX, centerY, outerRadius);
+    gradient.addColorStop(0, 'rgba(0, 255, 255, 0)');
+    gradient.addColorStop(0.5, 'rgba(0, 255, 255, 1)');
+    gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
+
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, 256, 256);
+    dynamicTexture.update();
+
+    material.opacityTexture = dynamicTexture;
+    material.diffuseTexture = dynamicTexture;
     ring.material = material;
 
     ring.parent = this.rootNode;
