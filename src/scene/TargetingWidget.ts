@@ -20,7 +20,7 @@ export interface TargetingWidgetOptions {
 export class TargetingWidget {
   private scene: BABYLON.Scene;
   private rootNode: BABYLON.TransformNode | null = null;
-  private reticleLines: BABYLON.LinesMesh[] = [];
+  private reticleLines: BABYLON.Mesh[] = []; // Changed to Mesh[] (using planes instead of lines)
   private centerDot: BABYLON.Mesh | null = null;
   private pulseRing: BABYLON.Mesh | null = null;
   private options: Required<TargetingWidgetOptions>;
@@ -39,8 +39,9 @@ export class TargetingWidget {
 
   /**
    * Show targeting widget at specified position
+   * Note: normal parameter is ignored - widget always billboards to camera
    */
-  show(position: BABYLON.Vector3, normal?: BABYLON.Vector3): void {
+  show(position: BABYLON.Vector3, _normal?: BABYLON.Vector3): void {
     // Clean up existing widget
     this.hide();
 
@@ -48,23 +49,32 @@ export class TargetingWidget {
     this.rootNode = new BABYLON.TransformNode('targetingWidget', this.scene);
     this.rootNode.position = position;
 
-    // Orient to surface normal if provided
-    if (normal) {
-      const up = BABYLON.Vector3.Up();
-      const angle = Math.acos(BABYLON.Vector3.Dot(up, normal));
-      const axis = BABYLON.Vector3.Cross(up, normal);
-      if (axis.length() > 0.001) {
-        this.rootNode.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis.normalize(), angle);
-      }
+    // Calculate scale based on camera distance (like frame widgets)
+    const camera = this.scene.activeCamera;
+    let scale = 1.0;
+    if (camera) {
+      const distanceToCamera = BABYLON.Vector3.Distance(camera.position, position);
+
+      // Scale based on distance (same formula as frame widgets)
+      let targetSize = distanceToCamera * 0.1;
+      const MIN_SIZE = 0.05;
+      const MAX_SIZE = 2.0;
+      targetSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, targetSize));
+
+      // Calculate scale relative to base size
+      scale = targetSize / this.options.size;
     }
 
-    // Create reticle (crosshair with 4 lines)
+    // Apply scale to root node
+    this.rootNode.scaling = new BABYLON.Vector3(scale, scale, scale);
+
+    // Create reticle (crosshair with 4 lines) - will be billboarded
     this.createReticle();
 
-    // Create center dot
+    // Create center dot - will be billboarded
     this.createCenterDot();
 
-    // Create pulse ring if enabled
+    // Create pulse ring if enabled - will be billboarded
     if (this.options.showPulse) {
       this.createPulseRing();
     }
@@ -74,7 +84,7 @@ export class TargetingWidget {
   }
 
   /**
-   * Create crosshair reticle
+   * Create crosshair reticle using planes (for billboard support)
    */
   private createReticle(): void {
     if (!this.rootNode) return;
@@ -82,43 +92,46 @@ export class TargetingWidget {
     const size = this.options.size;
     const gap = size * 0.3; // Gap in the center
     const lineLength = size * 0.35;
+    const lineWidth = size * 0.02; // Width of crosshair lines
     const color = this.options.color;
 
-    // Create 4 lines forming a crosshair
-    const lines = [
-      // Top line
-      [
-        new BABYLON.Vector3(0, gap, 0),
-        new BABYLON.Vector3(0, gap + lineLength, 0)
-      ],
-      // Bottom line
-      [
-        new BABYLON.Vector3(0, -gap, 0),
-        new BABYLON.Vector3(0, -gap - lineLength, 0)
-      ],
-      // Right line
-      [
-        new BABYLON.Vector3(gap, 0, 0),
-        new BABYLON.Vector3(gap + lineLength, 0, 0)
-      ],
-      // Left line
-      [
-        new BABYLON.Vector3(-gap, 0, 0),
-        new BABYLON.Vector3(-gap - lineLength, 0, 0)
-      ],
+    // Create 4 thin rectangles (planes) forming a crosshair
+    const lineConfigs = [
+      // Top line (vertical)
+      { width: lineWidth, height: lineLength, x: 0, y: gap + lineLength / 2 },
+      // Bottom line (vertical)
+      { width: lineWidth, height: lineLength, x: 0, y: -gap - lineLength / 2 },
+      // Right line (horizontal)
+      { width: lineLength, height: lineWidth, x: gap + lineLength / 2, y: 0 },
+      // Left line (horizontal)
+      { width: lineLength, height: lineWidth, x: -gap - lineLength / 2, y: 0 },
     ];
 
-    lines.forEach((points, index) => {
-      const line = BABYLON.MeshBuilder.CreateLines(
+    lineConfigs.forEach((config, index) => {
+      const plane = BABYLON.MeshBuilder.CreatePlane(
         `reticleLine_${index}`,
-        { points, updatable: true },
+        { width: config.width, height: config.height },
         this.scene
       );
-      line.color = color;
-      line.parent = this.rootNode;
-      line.isPickable = false;
-      line.renderingGroupId = 3; // Render on top
-      this.reticleLines.push(line);
+
+      // Position the plane
+      plane.position = new BABYLON.Vector3(config.x, config.y, 0);
+
+      // Billboard mode - always face camera
+      plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+
+      // Create material
+      const material = new BABYLON.StandardMaterial(`reticleLineMat_${index}`, this.scene);
+      material.emissiveColor = color;
+      material.disableLighting = true;
+      material.backFaceCulling = false;
+      plane.material = material;
+
+      plane.parent = this.rootNode;
+      plane.isPickable = false;
+      plane.renderingGroupId = 3; // Render on top
+
+      this.reticleLines.push(plane);
     });
   }
 
@@ -133,6 +146,9 @@ export class TargetingWidget {
       { diameter: this.options.size * 0.1 },
       this.scene
     );
+
+    // Billboard mode - always face camera (keeps dot round from all angles)
+    dot.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 
     const material = new BABYLON.StandardMaterial('centerDotMaterial', this.scene);
     material.emissiveColor = this.options.color;
@@ -160,6 +176,9 @@ export class TargetingWidget {
       },
       this.scene
     );
+
+    // Billboard mode - always face camera (appears as circle from all angles)
+    ring.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 
     const material = new BABYLON.StandardMaterial('pulseRingMaterial', this.scene);
     material.emissiveColor = this.options.color;
@@ -205,9 +224,11 @@ export class TargetingWidget {
         const fadeProgress = (progress - fadeStart) / (1 - fadeStart);
         const alpha = 1 - fadeProgress;
 
-        // Apply alpha to all components
+        // Apply alpha to all reticle line materials
         this.reticleLines.forEach(line => {
-          line.alpha = alpha;
+          if (line.material && 'alpha' in line.material) {
+            line.material.alpha = alpha;
+          }
         });
 
         if (this.centerDot && this.centerDot.material && 'alpha' in this.centerDot.material) {
