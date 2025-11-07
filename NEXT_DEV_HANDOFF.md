@@ -348,6 +348,149 @@ Before merging to main, ensure:
 - ✅ `npm run build` succeeds
 - ✅ Pull request approved by at least 1 reviewer
 
+## Troubleshooting Common Issues
+
+### Issue 1: ESLint Errors Persist After Fixing
+
+**Symptoms**: Running `npm run lint` still shows errors after making fixes.
+
+**Solutions**:
+1. **Clear ESLint cache**: `rm -rf node_modules/.cache/eslint` (or `rmdir /s node_modules\.cache\eslint` on Windows)
+2. **Restart your editor**: Some editors cache lint results
+3. **Verify file was saved**: Check that your changes were actually written to disk
+4. **Check for syntax errors**: TypeScript syntax errors can prevent ESLint from running properly
+5. **Run lint on specific file**: `npm run lint -- src/path/to/file.ts` to isolate issues
+
+### Issue 2: Test Failures After Store Mock
+
+**Symptoms**: Tests still fail with "Cannot destructure property" even after adding store mock.
+
+**Solutions**:
+1. **Check import path**: Ensure you're importing from the correct path (`@/ui/store/editorStore`)
+2. **Verify mock is before imports**: Vitest mocks must be declared before the component imports
+3. **Check store structure**: Verify the mock matches the actual store structure - use `useEditorStore.getState()` to inspect
+4. **Reset store between tests**: Add `useEditorStore.setState({})` in `afterEach` to ensure clean state
+5. **Check for multiple store instances**: Ensure you're not creating multiple store instances
+
+**Example Fix**:
+```typescript
+// At top of test file, before any imports
+vi.mock('@/ui/store/editorStore', () => {
+  const mockStore = {
+    getButtonState: vi.fn(() => ({ visible: true, enabled: true })),
+    // ... other methods
+  };
+  return {
+    useEditorStore: vi.fn((selector) => selector(mockStore)),
+  };
+});
+```
+
+### Issue 3: TypeScript Errors After Lint Fixes
+
+**Symptoms**: TypeScript compilation fails after fixing ESLint errors.
+
+**Solutions**:
+1. **Check for type mismatches**: Unused variable fixes might have removed type annotations
+2. **Verify imports**: Ensure all imports are still valid after removing unused code
+3. **Run type-check separately**: `npm run type-check` to see TypeScript-specific errors
+4. **Check for @ts-expect-error misuse**: Ensure comments explain why the error is expected
+
+### Issue 4: Build Fails After All Fixes
+
+**Symptoms**: `npm run build` fails even though lint and tests pass.
+
+**Solutions**:
+1. **Check for missing dependencies**: Some imports might require additional packages
+2. **Verify environment variables**: Build might require env vars that tests don't
+3. **Check for circular dependencies**: Build process is stricter than dev mode
+4. **Clear build cache**: `rm -rf dist` and `rm -rf node_modules/.vite` then rebuild
+5. **Check for dynamic imports**: Ensure all dynamic imports resolve correctly
+
+### Issue 5: Git Conflicts When Pulling Latest
+
+**Symptoms**: `git pull` shows merge conflicts.
+
+**Solutions**:
+1. **Stash your changes**: `git stash` before pulling, then `git stash pop` after
+2. **Create backup branch**: `git branch backup-$(date +%Y%m%d)` before pulling
+3. **Resolve conflicts carefully**: The handoff document should help identify which changes to keep
+4. **Don't force push**: Never force push to `feature/smart-routing-system` - coordinate with team
+
+### Issue 6: Tests Pass Locally But Fail in CI
+
+**Symptoms**: All tests pass when running `npm test` locally but fail in GitHub Actions.
+
+**Solutions**:
+1. **Check Node version**: CI might use different Node version - verify `.nvmrc` or `package.json` engines
+2. **Check for platform-specific code**: Some code might work on Windows but not Linux (CI)
+3. **Verify environment setup**: CI might be missing environment variables or setup steps
+4. **Check test isolation**: Tests might depend on shared state that doesn't exist in CI
+5. **Run tests in clean environment**: Use Docker or GitHub Codespaces to match CI environment
+
+### Issue 7: ESLint Auto-fix Breaks Code
+
+**Symptoms**: Running `npm run lint -- --fix` introduces syntax errors or breaks functionality.
+
+**Solutions**:
+1. **Review changes before committing**: Always review auto-fix changes with `git diff`
+2. **Fix incrementally**: Fix one category at a time (unused vars, then case blocks, etc.)
+3. **Test after each fix**: Run `npm test` after each category of fixes
+4. **Revert if needed**: `git checkout -- <file>` to revert problematic auto-fixes
+5. **Use manual fixes**: For complex cases, prefer manual fixes over auto-fix
+
+### Issue 8: Store State Not Resetting Between Tests
+
+**Symptoms**: Tests pass individually but fail when run together.
+
+**Solutions**:
+1. **Add `afterEach` cleanup**: Reset store state after each test
+2. **Use `vi.clearAllMocks()`**: Clear all mocks between tests
+3. **Check for shared state**: Ensure tests don't share mutable state
+4. **Run tests in isolation**: Use `--run --reporter=verbose` to see test order
+5. **Check for async cleanup**: Ensure async operations complete before next test
+
+**Example**:
+```typescript
+afterEach(() => {
+  vi.clearAllMocks();
+  useEditorStore.setState({});
+  // Reset any other shared state
+});
+```
+
+### Issue 9: Cannot Find Module Errors
+
+**Symptoms**: `Cannot find module '@/...'` errors after making changes.
+
+**Solutions**:
+1. **Check tsconfig paths**: Verify `@/` alias is configured in `tsconfig.json`
+2. **Restart TypeScript server**: In VS Code: `Ctrl+Shift+P` → "TypeScript: Restart TS Server"
+3. **Verify file exists**: Check that the file path is correct
+4. **Check case sensitivity**: File paths are case-sensitive on Linux (CI)
+5. **Clear TypeScript cache**: Delete `.tsbuildinfo` files if they exist
+
+### Issue 10: Performance Issues During Fixes
+
+**Symptoms**: Editor or tests are slow when working on large files.
+
+**Solutions**:
+1. **Fix files incrementally**: Don't try to fix all files at once
+2. **Use find & replace carefully**: Large find & replace operations can be slow
+3. **Close unused files**: Keep only necessary files open in editor
+4. **Run tests on specific files**: `npm test -- src/path/to/file.test.ts` instead of all tests
+5. **Take breaks**: Fix in batches - lint fixes (2-3 hours), then test fixes (4-6 hours)
+
+## Getting Help
+
+If you encounter an issue not covered here:
+
+1. **Check the error message carefully**: Often contains clues about the root cause
+2. **Search the codebase**: Similar issues might have been solved before
+3. **Check git history**: `git log --all --grep="lint"` or `git log --all --grep="test"` to see how similar issues were fixed
+4. **Document the issue**: Add it to this troubleshooting section for future developers
+5. **Ask for help**: Create an issue or reach out to the team
+
 ## Contact
 
 If you have questions about:
