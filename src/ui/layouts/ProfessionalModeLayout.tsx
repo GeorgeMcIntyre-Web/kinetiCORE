@@ -17,6 +17,7 @@ import {
   EyeOff,
   LayoutTemplate,
   Grab,
+  Search,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
@@ -237,6 +238,15 @@ export const ProfessionalModeLayout: React.FC = () => {
 
   const handleCloseMeasurement = () => {
     setActiveMeasurement(null);
+  };
+
+  const handleToggleBabylonInspector = async () => {
+    try {
+      const sceneManager = SceneManager.getInstance();
+      await sceneManager.toggleInspector();
+    } catch (error) {
+      console.error('[ProfessionalModeLayout] Failed to toggle inspector:', error);
+    }
   };
 
   return (
@@ -487,6 +497,14 @@ export const ProfessionalModeLayout: React.FC = () => {
               <span className="tool-btn-label">Labels</span>
             </button>
             <button
+              className="tool-btn"
+              onClick={handleToggleBabylonInspector}
+              title="Toggle Babylon Scene Inspector (Alt+I)"
+            >
+              <Search size={18} />
+              <span className="tool-btn-label">Inspector</span>
+            </button>
+            <button
               className={`tool-btn ${showTemplatesPanel ? 'active' : ''}`}
               onClick={() => setShowTemplatesPanel(!showTemplatesPanel)}
               title="Open Route Templates Library"
@@ -526,14 +544,14 @@ export const ProfessionalModeLayout: React.FC = () => {
               title: '3D Viewport',
             },
             leftPanels: [
+              { id: 'sceneTree-panel', type: 'sceneTree' },
               { id: 'toolPalette-panel', type: 'toolPalette' },
             ],
             rightPanels: [
-              { id: 'sceneTree-panel', type: 'sceneTree' },
-              { id: 'babylonInspector-panel', type: 'babylonInspector' },
               { id: 'warehouse-panel', type: 'warehouse' },
               { id: 'routingControl-panel', type: 'routingControl' },
               { id: 'routeStats-panel', type: 'routeStats' },
+              { id: 'inspector-panel', type: 'inspector' },
             ],
             bottomPanels: [],
           }}

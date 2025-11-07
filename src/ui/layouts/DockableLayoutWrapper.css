@@ -100,6 +100,13 @@
   visibility: hidden !important;
 }
 
+/* More aggressive text hiding for right panel tabs */
+.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab {
+  color: transparent !important;
+  font-size: 0 !important;
+  text-indent: -9999px !important;
+}
+
 /* Ensure ::before pseudo-element is visible for icons */
 .dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab {
   position: relative !important;
@@ -205,6 +212,35 @@
   visibility: visible !important;
   display: block !important;
   content: "" !important;
+}
+
+/* Right panel tabs - icon only display - SIMPLIFIED APPROACH */
+/* Set background images directly on tabs */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab {
+  min-width: 40px !important;
+  padding: 8px 12px !important;
+  font-size: 0 !important; /* Hide text */
+  line-height: 0 !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 16px 16px !important;
+}
+
+/* Individual tab icons by position - direct background images */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab:nth-child(1) {
+  background-image: url("/icons/Warehouse.png") !important;
+}
+
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab:nth-child(2) {
+  background-image: url("/icons/RoutingControl.png") !important;
+}
+
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab:nth-child(3) {
+  background-image: url("/icons/Route Statistics.png") !important;
+}
+
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab:nth-child(4) {
+  background-image: url("/icons/inspector.png") !important;
 }
 
 

@@ -24,6 +24,11 @@ const AppContent: React.FC = () => {
   const [projectManagerInitialized, setProjectManagerInitialized] = useState(false);
   const [initializationError, setInitializationError] = useState<string | undefined>(undefined);
 
+  // Debug: Log the current user level
+  React.useEffect(() => {
+    console.log(`[App] Current userLevel: ${userLevel}`);
+  }, [userLevel]);
+
   // Initialize Project Manager on app startup
   React.useEffect(() => {
     const initializeProjectManager = async () => {
