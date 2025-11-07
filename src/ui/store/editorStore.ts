@@ -327,36 +327,127 @@ interface EditorState {
 }
 
 /**
- * Helper function to create a small coordinate frame for snap points
+ * Helper function to create a standard coordinate frame for snap points
+ * Uses the same visual style as the "Add Frame" button
  */
 const createSnapFrame = (
   scene: BABYLON.Scene,
   position: BABYLON.Vector3,
   name: string,
-  color: BABYLON.Color3
+  _color: BABYLON.Color3 // Unused - we use standard RGB colors for XYZ
 ): BABYLON.TransformNode => {
   const frameRoot = new BABYLON.TransformNode(name, scene);
   frameRoot.position = position;
 
+  // Standard axis vectors
+  const xAxis = new BABYLON.Vector3(1, 0, 0);
+  const yAxis = new BABYLON.Vector3(0, 1, 0);
+  const zAxis = new BABYLON.Vector3(0, 0, 1);
+
   const axisLength = 0.05; // Small frame size (5cm)
 
-  // Create simple axis lines
-  const createAxisLine = (start: BABYLON.Vector3, end: BABYLON.Vector3, lineColor: BABYLON.Color3, lineName: string) => {
-    const line = BABYLON.MeshBuilder.CreateLines(
-      lineName,
-      { points: [start, end] },
-      scene
-    );
-    line.color = lineColor;
+  // Create axis line
+  const createAxisLine = (start: BABYLON.Vector3, end: BABYLON.Vector3, color: BABYLON.Color3, lineName: string) => {
+    const line = BABYLON.MeshBuilder.CreateLines(lineName, { points: [start, end] }, scene);
+    line.color = color;
     line.isPickable = false;
     line.parent = frameRoot;
     return line;
   };
 
-  // X, Y, Z axes with the specified color (will be tinted)
-  createAxisLine(BABYLON.Vector3.Zero(), new BABYLON.Vector3(axisLength, 0, 0), color, `${name}_X`);
-  createAxisLine(BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, axisLength, 0), color, `${name}_Y`);
-  createAxisLine(BABYLON.Vector3.Zero(), new BABYLON.Vector3(0, 0, axisLength), color, `${name}_Z`);
+  // Create arrow head at end of axis
+  const createArrowHead = (position: BABYLON.Vector3, direction: BABYLON.Vector3, color: BABYLON.Color3, arrowName: string) => {
+    const cone = BABYLON.MeshBuilder.CreateCylinder(
+      arrowName,
+      { height: 0.008, diameterTop: 0, diameterBottom: 0.004, tessellation: 8 },
+      scene
+    );
+
+    cone.position = position;
+
+    const up = new BABYLON.Vector3(0, 1, 0);
+    const angle = Math.acos(BABYLON.Vector3.Dot(up, direction));
+    const axis = BABYLON.Vector3.Cross(up, direction);
+    if (axis.length() > 0.0001) {
+      cone.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis.normalize(), angle);
+    }
+
+    const mat = new BABYLON.StandardMaterial(`${arrowName}_mat`, scene);
+    mat.diffuseColor = color;
+    mat.emissiveColor = color;
+    mat.disableLighting = true;
+    cone.material = mat;
+    cone.isPickable = false;
+    cone.parent = frameRoot;
+    return cone;
+  };
+
+  // Create text label
+  const createLabel = (position: BABYLON.Vector3, text: string, color: BABYLON.Color3, labelName: string) => {
+    const plane = BABYLON.MeshBuilder.CreatePlane(labelName, { size: 0.025 }, scene);
+    plane.position = position;
+    plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+
+    const dynamicTexture = new BABYLON.DynamicTexture(
+      `${labelName}_texture`,
+      { width: 256, height: 256 },
+      scene,
+      false
+    );
+
+    dynamicTexture.drawText(
+      text,
+      null,
+      null,
+      'bold 180px Arial',
+      `rgb(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)})`,
+      'transparent',
+      true,
+      true
+    );
+
+    const material = new BABYLON.StandardMaterial(`${labelName}_mat`, scene);
+    material.diffuseTexture = dynamicTexture;
+    material.emissiveColor = color;
+    material.disableLighting = true;
+    material.opacityTexture = dynamicTexture;
+    material.backFaceCulling = false;
+
+    plane.material = material;
+    plane.isPickable = false;
+    plane.parent = frameRoot;
+    return plane;
+  };
+
+  // Create X axis (red)
+  createAxisLine(BABYLON.Vector3.Zero(), xAxis.scale(axisLength), new BABYLON.Color3(1, 0, 0), `${name}_X_axis`);
+  createArrowHead(xAxis.scale(axisLength), xAxis, new BABYLON.Color3(1, 0, 0), `${name}_X_arrow`);
+  createLabel(xAxis.scale(axisLength * 1.2), 'X', new BABYLON.Color3(1, 0, 0), `${name}_X_label`);
+
+  // Create Y axis (green)
+  createAxisLine(BABYLON.Vector3.Zero(), yAxis.scale(axisLength), new BABYLON.Color3(0, 1, 0), `${name}_Y_axis`);
+  createArrowHead(yAxis.scale(axisLength), yAxis, new BABYLON.Color3(0, 1, 0), `${name}_Y_arrow`);
+  createLabel(yAxis.scale(axisLength * 1.2), 'Y', new BABYLON.Color3(0, 1, 0), `${name}_Y_label`);
+
+  // Create Z axis (blue)
+  createAxisLine(BABYLON.Vector3.Zero(), zAxis.scale(axisLength), new BABYLON.Color3(0, 0, 1), `${name}_Z_axis`);
+  createArrowHead(zAxis.scale(axisLength), zAxis, new BABYLON.Color3(0, 0, 1), `${name}_Z_arrow`);
+  createLabel(zAxis.scale(axisLength * 1.2), 'Z', new BABYLON.Color3(0, 0, 1), `${name}_Z_label`);
+
+  // Apply camera-based scaling
+  const BASE_SIZE = 0.05;
+  const camera = scene.activeCamera;
+  let initialScale = 1.0;
+  if (camera) {
+    const distanceToPoint = BABYLON.Vector3.Distance(camera.position, position);
+    let frameSize = distanceToPoint * 0.08; // Slightly smaller multiplier for snap frames
+    const MIN_SIZE = 0.03;
+    const MAX_SIZE = 0.15;
+    frameSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, frameSize));
+    initialScale = frameSize / BASE_SIZE;
+  }
+
+  frameRoot.scaling = new BABYLON.Vector3(initialScale, initialScale, initialScale);
 
   return frameRoot;
 };
