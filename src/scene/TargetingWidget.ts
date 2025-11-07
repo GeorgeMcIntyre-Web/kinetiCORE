@@ -59,20 +59,34 @@ export class TargetingWidget {
     // Apply billboard mode to root node so entire widget faces camera as one unit
     root.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 
-    // Calculate scale based on distance to picked point (adaptive sizing)
-    // Closer picks = smaller targeter, farther picks = larger targeter
+    // Calculate scale based on screen-space size for natural appearance
+    // This ensures the targeter appears consistent relative to screen size
     const camera = this.scene.activeCamera;
     let scale = 1.0;
     if (camera) {
-      // Use actual distance from camera to pick point for adaptive sizing
+      // Get viewport dimensions
+      const engine = this.scene.getEngine();
+      const viewportHeight = engine.getRenderHeight();
+
+      // Calculate distance from camera to pick point
       const distanceToPoint = BABYLON.Vector3.Distance(camera.position, position);
 
-      // Natural adaptive scaling that feels right at all zoom levels
-      // Uses a percentage of screen space rather than absolute size
-      let targetSize = distanceToPoint * 0.08; // Natural multiplier for screen-relative size
-      const MIN_SIZE = 0.015;  // Very small for extreme close-ups
-      const MAX_SIZE = 0.5;    // Reasonable maximum to prevent oversized targeter
-      targetSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, targetSize));
+      // Calculate FOV-based scale factor for true screen-space sizing
+      // This makes the targeter appear the same size on screen regardless of zoom
+      let fovFactor = 1.0;
+      if (camera instanceof BABYLON.ArcRotateCamera && camera.fov) {
+        // Use vertical FOV to calculate screen-space size
+        fovFactor = Math.tan(camera.fov / 2);
+      }
+
+      // Target size as percentage of screen (aims for ~3% of viewport height)
+      const screenPercentage = 0.03;
+      const worldSize = (distanceToPoint * fovFactor * screenPercentage * 2) / (viewportHeight / 1000);
+
+      // Clamp to reasonable limits
+      const MIN_SIZE = 0.01;
+      const MAX_SIZE = 0.3;
+      const targetSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, worldSize));
 
       // Calculate scale relative to base size
       scale = targetSize / this.options.size;
