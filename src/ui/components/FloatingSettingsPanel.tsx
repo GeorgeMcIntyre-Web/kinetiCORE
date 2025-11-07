@@ -65,6 +65,13 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
     snapToTangent,
     snapAlong,
     snapToNormal,
+    snapToPlane,
+    snapToAxis,
+    snapToCurve,
+    snapToSurface,
+    snapObjectToVertex,
+    snapPointOnEdge,
+    snapBBoxCorner,
     gridSize,
     snapDistance,
     setPositionIncrement,
@@ -82,6 +89,13 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
     setSnapToTangent,
     setSnapAlong,
     setSnapToNormal,
+    setSnapToPlane,
+    setSnapToAxis,
+    setSnapToCurve,
+    setSnapToSurface,
+    setSnapObjectToVertex,
+    setSnapPointOnEdge,
+    setSnapBBoxCorner,
     setGridSize,
     setSnapDistance,
   } = useEditorStore();
@@ -253,18 +267,7 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
             Enable snapping
           </label>
         </div>
-        <div className="settings-option">
-          <label className="settings-label">Snap distance (mm)</label>
-          <input
-            type="number"
-            className="settings-input"
-            value={snapDistance}
-            onChange={(e) => setSnapDistance(Number(e.target.value))}
-            min="1"
-            max="100"
-            step="1"
-          />
-        </div>
+        {/* Snap distance hidden - using CAD standard 0.1mm default */}
       </div>
 
       <div className="settings-group">
@@ -286,6 +289,13 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
             { key: 'snapToTangent', label: 'Tangent', setter: setSnapToTangent, getter: snapToTangent },
             { key: 'snapAlong', label: 'Along', setter: setSnapAlong, getter: snapAlong },
             { key: 'snapToNormal', label: 'Normal', setter: setSnapToNormal, getter: snapToNormal },
+            { key: 'snapToPlane', label: 'Plane', setter: setSnapToPlane, getter: snapToPlane },
+            { key: 'snapToAxis', label: 'Axis', setter: setSnapToAxis, getter: snapToAxis },
+            { key: 'snapToCurve', label: 'Curve', setter: setSnapToCurve, getter: snapToCurve },
+            { key: 'snapToSurface', label: 'Surface', setter: setSnapToSurface, getter: snapToSurface },
+            { key: 'snapObjectToVertex', label: 'Object to Vertex', setter: setSnapObjectToVertex, getter: snapObjectToVertex },
+            { key: 'snapPointOnEdge', label: 'Point on Edge', setter: setSnapPointOnEdge, getter: snapPointOnEdge },
+            { key: 'snapBBoxCorner', label: 'BBox Corner', setter: setSnapBBoxCorner, getter: snapBBoxCorner },
           ].map(({ key, label, setter, getter }) => (
             <label key={key} className="settings-checkbox">
               <input 

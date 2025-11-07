@@ -6,6 +6,7 @@ import { Ruler, Triangle, Box as BoxIcon, X } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
+import { SnappingHelper } from '../../manipulation/SnappingHelper';
 import * as BABYLON from '@babylonjs/core';
 import './MeasurementTools.css';
 
@@ -32,6 +33,30 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
   const sceneManager = SceneManager.getInstance();
   const scene = sceneManager.getScene();
   const tree = SceneTreeManager.getInstance();
+  
+  // Get snap settings from store
+  const snapEnabled = useEditorStore((state) => state.snapEnabled);
+  const snapToGrid = useEditorStore((state) => state.snapToGrid);
+  const snapToVertex = useEditorStore((state) => state.snapToVertex);
+  const snapToEdge = useEditorStore((state) => state.snapToEdge);
+  const snapToFace = useEditorStore((state) => state.snapToFace);
+  const snapToCenter = useEditorStore((state) => state.snapToCenter);
+  const snapToObject = useEditorStore((state) => state.snapToObject);
+  const snapToMidpoint = useEditorStore((state) => state.snapToMidpoint);
+  const snapToIntersection = useEditorStore((state) => state.snapToIntersection);
+  const snapToPerpendicular = useEditorStore((state) => state.snapToPerpendicular);
+  const snapToTangent = useEditorStore((state) => state.snapToTangent);
+  const snapAlong = useEditorStore((state) => state.snapAlong);
+  const snapToNormal = useEditorStore((state) => state.snapToNormal);
+  const snapToPlane = useEditorStore((state) => state.snapToPlane);
+  const snapToAxis = useEditorStore((state) => state.snapToAxis);
+  const snapToCurve = useEditorStore((state) => state.snapToCurve);
+  const snapToSurface = useEditorStore((state) => state.snapToSurface);
+  const snapObjectToVertex = useEditorStore((state) => state.snapObjectToVertex);
+  const snapPointOnEdge = useEditorStore((state) => state.snapPointOnEdge);
+  const snapBBoxCorner = useEditorStore((state) => state.snapBBoxCorner);
+  const snapDistance = useEditorStore((state) => state.snapDistance);
+  const gridSize = useEditorStore((state) => state.gridSize);
 
   const [state, setState] = useState<MeasurementState>({
     type: measurementType,
@@ -63,20 +88,81 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
       }
     };
 
-    scene.onPointerObservable.add(onPointerPick, BABYLON.PointerEventTypes.POINTERPICK);
-    pickObserverRef.current = scene.onPointerObservable.add(onPointerPick);
+    // Only add observer once with the specific event type
+    pickObserverRef.current = scene.onPointerObservable.add(
+      onPointerPick,
+      BABYLON.PointerEventTypes.POINTERPICK
+    );
 
     return () => {
       if (pickObserverRef.current) {
         scene.onPointerObservable.remove(pickObserverRef.current);
+        pickObserverRef.current = null;
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scene, measurementType, state]);
+  }, [scene, measurementType]); // Removed 'state' from dependencies to prevent re-adding observers
 
   const handlePick = (point: BABYLON.Vector3, mesh: BABYLON.AbstractMesh | null) => {
     setState((prev) => {
-      const newPoints = [...prev.points, point.clone()];
+      // Prevent adding more points than needed
+      const maxPoints = measurementType === 'distance' ? 2 : measurementType === 'angle' ? 3 : 0;
+      if (maxPoints > 0 && prev.points.length >= maxPoints) {
+        return prev; // Don't add more points if we already have enough
+      }
+
+      // Apply snapping to the picked point
+      let snappedPoint = point.clone();
+      if (snapEnabled && scene) {
+        const snappingHelper = SnappingHelper.getInstance();
+        const camera = scene.activeCamera;
+        
+        // Build snap settings
+        const snapSettings = {
+          enabled: snapEnabled,
+          snapToGrid,
+          snapToVertex,
+          snapToEdge,
+          snapToFace,
+          snapToCenter,
+          snapToObject,
+          snapToMidpoint,
+          snapToIntersection,
+          snapToPerpendicular,
+          snapToTangent,
+          snapAlong,
+          snapToNormal,
+          snapToPlane,
+          snapToAxis,
+          snapToCurve,
+          snapToSurface,
+          snapObjectToVertex,
+          snapPointOnEdge,
+          snapBBoxCorner,
+          gridSize,
+          snapDistance,
+        };
+        
+        // Exclude the measurement helper meshes from snapping
+        const excludeMeshIds = prev.helperMeshes.map(m => m.uniqueId.toString());
+        
+        // For measurement, use screen-space snapping to match the preview dot
+        // This ensures the measurement uses the same snap point that the preview dot shows
+        const screenSpacePixels = 12; // Same as preview dot
+        const snapResult = snappingHelper.snapPosition(
+          point,
+          snapSettings,
+          excludeMeshIds,
+          camera, // Pass camera for screen-space calculation
+          screenSpacePixels // Use same pixel threshold as preview
+        );
+        
+        if (snapResult.snapped) {
+          snappedPoint = snapResult.position;
+        }
+      }
+
+      const newPoints = [...prev.points, snappedPoint];
       const newNodes = mesh ? [...prev.nodes, mesh.name] : prev.nodes;
       
       let result: string | null = null;
@@ -88,30 +174,30 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
           const distanceMm = distance * 1000; // Convert to mm
           result = `Distance: ${distanceMm.toFixed(2)} mm`;
           
-          // Create thicker glowing line using tube in accent color
+          // Create thicker glowing line using tube in high-contrast color (yellow/gold to avoid clashing with cyan)
           const tube = BABYLON.MeshBuilder.CreateTube('distance-line-tube', {
             path: [newPoints[0], newPoints[1]],
             radius: 0.01,
             updatable: false,
           }, scene!);
           const lineMat = new BABYLON.StandardMaterial('kc-measure-line-mat', scene!);
-          lineMat.emissiveColor = BABYLON.Color3.FromHexString('#00D9FF');
-          lineMat.diffuseColor = BABYLON.Color3.FromHexString('#00D9FF');
-          lineMat.alpha = 0.7;
+          lineMat.emissiveColor = BABYLON.Color3.FromHexString('#FFD700'); // Gold/Yellow - high contrast, doesn't clash
+          lineMat.diffuseColor = BABYLON.Color3.FromHexString('#FFD700');
+          lineMat.alpha = 0.8;
           tube.material = lineMat;
           newHelperMeshes.push(tube);
 
-          // Create sphere markers with cyan glow
+          // Create sphere markers with gold/yellow glow
           newPoints.forEach((p, i) => {
             const sphere = BABYLON.MeshBuilder.CreateSphere(`marker-${i}`, {
               diameter: 0.04,
             }, scene!);
             sphere.position = p;
 
-            // Create emissive cyan material
+            // Create emissive gold/yellow material
             const mat = new BABYLON.StandardMaterial(`marker-mat-${i}`, scene!);
-            mat.emissiveColor = BABYLON.Color3.FromHexString('#00D9FF');
-            mat.diffuseColor = BABYLON.Color3.FromHexString('#00D9FF');
+            mat.emissiveColor = BABYLON.Color3.FromHexString('#FFD700'); // Gold/Yellow
+            mat.diffuseColor = BABYLON.Color3.FromHexString('#FFD700');
             mat.alpha = 0.9;
             sphere.material = mat;
 
@@ -146,14 +232,14 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
             radius: 0.01,
           }, scene!);
           const angleMat = new BABYLON.StandardMaterial('kc-angle-line-mat', scene!);
-          angleMat.emissiveColor = BABYLON.Color3.FromHexString('#00D9FF');
-          angleMat.diffuseColor = BABYLON.Color3.FromHexString('#00D9FF');
-          angleMat.alpha = 0.7;
+          angleMat.emissiveColor = BABYLON.Color3.FromHexString('#FFD700'); // Gold/Yellow - high contrast
+          angleMat.diffuseColor = BABYLON.Color3.FromHexString('#FFD700');
+          angleMat.alpha = 0.8;
           tube1.material = angleMat;
           tube2.material = angleMat;
           newHelperMeshes.push(tube1, tube2);
 
-          // Create markers with cyan glow
+          // Create markers with gold/yellow glow
           newPoints.forEach((p, i) => {
             const sphere = BABYLON.MeshBuilder.CreateSphere(`angle-marker-${i}`, {
               diameter: 0.04,
@@ -161,8 +247,8 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
             sphere.position = p;
 
             const mat = new BABYLON.StandardMaterial(`angle-marker-mat-${i}`, scene!);
-            mat.emissiveColor = BABYLON.Color3.FromHexString('#00D9FF');
-            mat.diffuseColor = BABYLON.Color3.FromHexString('#00D9FF');
+            mat.emissiveColor = BABYLON.Color3.FromHexString('#FFD700'); // Gold/Yellow
+            mat.diffuseColor = BABYLON.Color3.FromHexString('#FFD700');
             mat.alpha = 0.9;
             sphere.material = mat;
 

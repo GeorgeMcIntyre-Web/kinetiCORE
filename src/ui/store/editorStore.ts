@@ -742,9 +742,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
   // Transform settings defaults
   positionIncrement: 10, // 10mm default
   rotationIncrement: 15, // 15 degrees default
-  snapEnabled: false,
+  snapEnabled: true, // Enable snapping by default
   snapToGrid: false,
-  snapToVertex: false,
+  snapToVertex: true, // Enable vertex snapping by default
   snapToEdge: false,
   snapToFace: false,
   snapToCenter: false,
@@ -763,7 +763,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
   snapPointOnEdge: false,
   snapBBoxCorner: false,
   gridSize: 100, // 100mm grid
-  snapDistance: 10, // 10mm snap threshold
+  snapDistance: 0.1, // 0.1mm snap threshold (CAD standard)
   temporaryOrigin: null,
 
   // Button Management System defaults
