@@ -31,7 +31,7 @@ export class TargetingWidget {
     this.scene = scene;
     this.options = {
       size: options.size ?? 0.1,
-      color: options.color ?? new BABYLON.Color3(0, 1, 1), // Cyan
+      color: options.color ?? new BABYLON.Color3(1, 0.4, 0), // Deep distinct orange
       duration: options.duration ?? 500,
       showPulse: options.showPulse ?? true,
     };
@@ -221,12 +221,12 @@ export class TargetingWidget {
     const outerRadius = 120;
     const innerRadius = 100;
 
-    // Draw ring gradient
+    // Draw ring gradient (deep orange)
     context.clearRect(0, 0, 256, 256);
     const gradient = context.createRadialGradient(centerX, centerY, innerRadius, centerX, centerY, outerRadius);
-    gradient.addColorStop(0, 'rgba(0, 255, 255, 0)');
-    gradient.addColorStop(0.5, 'rgba(0, 255, 255, 1)');
-    gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
+    gradient.addColorStop(0, 'rgba(255, 102, 0, 0)');
+    gradient.addColorStop(0.5, 'rgba(255, 102, 0, 1)');
+    gradient.addColorStop(1, 'rgba(255, 102, 0, 0)');
 
     context.fillStyle = gradient;
     context.fillRect(0, 0, 256, 256);
