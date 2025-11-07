@@ -3462,87 +3462,16 @@ export const useEditorStore = create<EditorState>((set, get) => {
     console.log('[PointPick Debug] Mesh:', pickInfo.pickedMesh?.name);
     console.log('[PointPick Debug] isPickable:', (pickInfo.pickedMesh as any)?.isPickable);
 
-    if (!pointPickMode || !pickInfo.hit || !pickInfo.pickedMesh || !pickInfo.pickedPoint) {
+    if (!pointPickMode || !pickInfo.hit || !pickInfo.pickedPoint) {
       return;
     }
 
-    if (!(pickInfo.pickedMesh instanceof BABYLON.Mesh)) {
-      console.warn('[PointPick] Picked node is not a mesh, skipping frame creation');
-      return;
-    }
-
-    const sceneManager = SceneManager.getInstance();
-    const scene = sceneManager.getScene();
-    if (!scene) {
-      console.error('[PointPick] No scene available for frame widget');
-      return;
-    }
-
-    const mesh = pickInfo.pickedMesh as BABYLON.Mesh;
-    const pickPoint = pickInfo.pickedPoint.clone();
-
-    mesh.computeWorldMatrix(true);
-    const worldMatrix = mesh.getWorldMatrix();
-
-    let xAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Right(), worldMatrix).normalize();
-    let yAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Up(), worldMatrix).normalize();
-    let zAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Forward(), worldMatrix).normalize();
-
-    const hitNormal = pickInfo.getNormal(true);
-    if (hitNormal && hitNormal.lengthSquared() > 0.000001) {
-      zAxis = hitNormal.normalize();
-
-      const orthogonalize = (vector: BABYLON.Vector3) => {
-        const projected = vector.subtract(zAxis.scale(BABYLON.Vector3.Dot(vector, zAxis)));
-        if (projected.lengthSquared() < 0.000001) {
-          return projected;
-        }
-        return projected.normalize();
-      };
-
-      xAxis = orthogonalize(xAxis);
-      if (xAxis.lengthSquared() < 0.000001) {
-        xAxis = orthogonalize(yAxis);
-      }
-      if (xAxis.lengthSquared() < 0.000001) {
-        xAxis = BABYLON.Vector3.Cross(zAxis, BABYLON.Vector3.Right()).normalize();
-      }
-      if (xAxis.lengthSquared() < 0.000001) {
-        xAxis = BABYLON.Vector3.Cross(zAxis, BABYLON.Vector3.Up()).normalize();
-      }
-
-      yAxis = BABYLON.Vector3.Cross(zAxis, xAxis).normalize();
-    }
-
-    const tree = SceneTreeManager.getInstance();
-    const node = tree.getNodeByBabylonMeshId(mesh.uniqueId.toString());
-    const nodeId = node?.id || mesh.uniqueId.toString();
-
-    const frame: CustomFrameFeature = {
-      featureType: 'object',
-      nodeId,
-      origin: babylonToUser(pickPoint),
-      xAxis: { x: xAxis.x, y: xAxis.y, z: xAxis.z },
-      yAxis: { x: yAxis.x, y: yAxis.y, z: yAxis.z },
-      zAxis: { x: zAxis.x, y: zAxis.y, z: zAxis.z }
-    };
-
+    // Remove any legacy frame widgets/data so only the targeting widget remains
     pointPickFrameWidgets.forEach(widget => widget.dispose());
+    set({ pointPickFrameWidgets: [], pointPickFrameData: null });
 
-    const BASE_SIZE = 0.1;
-    const frameWidget = new CoordinateFrameWidget(scene);
-    frameWidget.show(frame, BASE_SIZE);
-
-    set({
-      pointPickFrameWidgets: [frameWidget],
-      pointPickFrameData: {
-        pickPoint,
-        frame,
-        baseSize: BASE_SIZE
-      }
-    });
-
-    console.log('[PointPick] Frame data stored for node:', nodeId);
+    // Store pick for coordinate readouts (displayed elsewhere)
+    get().setLastPickedPoint(pickInfo.pickedPoint.clone());
   },
 
   // Object origin frame actions
@@ -3577,10 +3506,12 @@ export const useEditorStore = create<EditorState>((set, get) => {
       pointPickFrameData,
       customFrame,
       selectedMeshes,
-      selectionLevel
+      selectionLevel,
+      lastPickedPoint
     } = get();
     console.log('[AddFrame] selectionLevel:', selectionLevel);
     console.log('[AddFrame] selectedMeshes:', selectedMeshes);
+    console.log('[AddFrame] lastPickedPoint:', lastPickedPoint);
     console.log('[AddFrame] objectOriginFrameData:', objectOriginFrameData);
     console.log('[AddFrame] pointPickFrameData:', pointPickFrameData);
     console.log('[AddFrame] customFrame:', customFrame);
@@ -3597,34 +3528,55 @@ export const useEditorStore = create<EditorState>((set, get) => {
       console.log('[AddFrame] Using custom frame widget data for permanent frame');
     }
 
-    if (!frameData && selectionLevel === 'mesh' && selectedMeshes.length > 0) {
+    // If no frame data but mesh is selected and we have a picked point, create frame at picked location
+    if (!frameData && selectionLevel === 'mesh' && selectedMeshes.length > 0 && lastPickedPoint) {
       const selectedMesh = selectedMeshes[0];
-      console.log('[AddFrame] Creating frame from selected mesh:', selectedMesh.name);
+      console.log('[AddFrame] Creating frame at picked point on mesh:', selectedMesh.name);
 
-      selectedMesh.computeWorldMatrix(true);
-      const worldMatrix = selectedMesh.getWorldMatrix();
-      const position = selectedMesh.getAbsolutePosition();
+      // Use the last picked point as the frame origin
+      const pickPoint = lastPickedPoint.clone();
 
-      const scaling = new BABYLON.Vector3();
-      const rotation = new BABYLON.Quaternion();
-      const translation = new BABYLON.Vector3();
-      worldMatrix.decompose(scaling, rotation, translation);
+      // Perform a raycast from camera to picked point to get surface normal
+      const camera = scene.activeCamera;
+      if (!camera) {
+        toast.error('No active camera');
+        return;
+      }
 
-      const rotationMatrix = new BABYLON.Matrix();
-      BABYLON.Matrix.FromQuaternionToRef(rotation, rotationMatrix);
+      // Ray from camera through picked point
+      const ray = new BABYLON.Ray(camera.position, pickPoint.subtract(camera.position).normalize());
+      const pickInfo = scene.pickWithRay(ray, (mesh) => mesh === selectedMesh);
 
-      const xAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Right(), rotationMatrix);
-      const yAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Up(), rotationMatrix);
-      const zAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Forward(), rotationMatrix);
+      let zAxis = BABYLON.Vector3.Up(); // Default if no normal found
+      if (pickInfo && pickInfo.hit && pickInfo.getNormal) {
+        const hitNormal = pickInfo.getNormal(true);
+        if (hitNormal && hitNormal.lengthSquared() > 0.000001) {
+          zAxis = hitNormal.normalize();
+        }
+      }
 
-      const userPos = babylonToUser(position);
+      // Create orthonormal frame from the surface normal (Z-axis)
+      // Find a suitable X-axis perpendicular to Z
+      let xAxis: BABYLON.Vector3;
+      if (Math.abs(BABYLON.Vector3.Dot(zAxis, BABYLON.Vector3.Right())) < 0.9) {
+        xAxis = BABYLON.Vector3.Cross(zAxis, BABYLON.Vector3.Right()).normalize();
+      } else {
+        xAxis = BABYLON.Vector3.Cross(zAxis, BABYLON.Vector3.Up()).normalize();
+      }
 
+      // Y-axis completes the right-handed coordinate system
+      const yAxis = BABYLON.Vector3.Cross(zAxis, xAxis).normalize();
+
+      // Convert to user coordinates
+      const userPos = babylonToUser(pickPoint);
+
+      // Find node ID
       const meshIdString = selectedMesh.uniqueId.toString();
       const node = tree.getNodeByBabylonMeshId(meshIdString);
       const nodeId = node?.id || meshIdString;
 
       frameData = {
-        pickPoint: position,
+        pickPoint: pickPoint,
         frame: {
           featureType: 'object' as CustomFrameFeatureType,
           nodeId,
@@ -3635,7 +3587,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
         },
         baseSize: 0.1
       };
-      console.log('[AddFrame] Created frame data from mesh:', frameData);
+      console.log('[AddFrame] Created frame data at picked point with surface normal:', frameData);
     }
 
     if (!frameData) {
