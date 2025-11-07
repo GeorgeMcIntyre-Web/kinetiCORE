@@ -13,8 +13,9 @@ import { SceneCanvas } from '../components/SceneCanvas';
 import { ComingSoon } from '../components/ComingSoon';
 import { SelectionIndicator } from '../components/SelectionIndicator';
 import { useEditorStore } from '../store/editorStore';
+import BabylonInspectorPanel from '../components/BabylonInspectorPanel';
 
-export type PanelType = 'sceneTree' | 'inspector' | 'kinematics' | 'toolPalette' | 'routeStats' | 'routingControl' | 'warehouse' | 'viewport';
+export type PanelType = 'sceneTree' | 'inspector' | 'babylonInspector' | 'kinematics' | 'toolPalette' | 'routeStats' | 'routingControl' | 'warehouse' | 'viewport';
 
 export interface PanelConfig {
   id: PanelType;
@@ -86,6 +87,13 @@ export const PANEL_REGISTRY: Record<PanelType, PanelConfig> = {
     titleIcon: null, // Icon set via CSS using data-icon-type
     component: InspectorPanel,
     defaultWidth: 448, // 320 * 1.4 = 448px (40% wider)
+  },
+  babylonInspector: {
+    id: 'babylonInspector',
+    title: 'Babylon Inspector',
+    titleIcon: null, // Icon set via CSS using data-icon-type
+    component: BabylonInspectorPanel,
+    defaultWidth: 400,
   },
   kinematics: {
     id: 'kinematics',
