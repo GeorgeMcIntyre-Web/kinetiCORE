@@ -565,6 +565,69 @@ export const SceneCanvas: React.FC = () => {
               frameWidget.setScale(scale);
             }
           }
+
+          // Update object origin frame scale dynamically based on camera distance
+          if (state.objectOriginFrameData && state.objectOriginFrameWidget) {
+            const { originPoint, baseSize } = state.objectOriginFrameData;
+            const frameWidget = state.objectOriginFrameWidget;
+            const camera = scene.activeCamera;
+
+            if (camera) {
+              const distanceToPoint = BABYLON.Vector3.Distance(camera.position, originPoint);
+
+              // Calculate desired frame size
+              let frameSize = distanceToPoint * 0.1;
+              const MIN_SIZE = 0.05;
+              const MAX_SIZE = 2.0;
+              frameSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, frameSize));
+
+              // Calculate scale relative to base size and apply it
+              const scale = frameSize / baseSize;
+              frameWidget.setScale(scale);
+            }
+          }
+
+          // Update permanent frames scale dynamically - all frames use same scale
+          if (state.permanentFrames && state.permanentFrames.length > 0) {
+            const camera = scene.activeCamera;
+            if (camera) {
+              // Calculate a single reference distance for uniform scaling
+              // Use the camera's radius (distance from target) as reference
+              let referenceDistance: number;
+
+              if (camera instanceof BABYLON.ArcRotateCamera) {
+                // For arc rotate camera, use the radius (distance to target)
+                referenceDistance = camera.radius;
+              } else {
+                // Fallback: use average distance to all frames
+                const totalDistance = state.permanentFrames.reduce((sum, frameData) => {
+                  return sum + BABYLON.Vector3.Distance(camera.position, frameData.originPoint);
+                }, 0);
+                referenceDistance = totalDistance / state.permanentFrames.length;
+              }
+
+              // Calculate desired frame size based on reference distance
+              let frameSize = referenceDistance * 0.1;
+              const MIN_SIZE = 0.05;
+              const MAX_SIZE = 2.0;
+              frameSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, frameSize));
+
+              // Apply the SAME scale to ALL frames
+              state.permanentFrames.forEach((frameData) => {
+                const { rootNode, baseSize } = frameData;
+                if (rootNode && !rootNode.isDisposed()) {
+                  const scale = frameSize / baseSize;
+                  rootNode.scaling = new BABYLON.Vector3(scale, scale, scale);
+                }
+              });
+            }
+
+            // Clean up disposed frames every 60 frames (once per second at 60fps)
+            if (scene.getFrameId() % 60 === 0) {
+              const cleanupDisposedFrames = useEditorStore.getState().cleanupDisposedFrames;
+              cleanupDisposedFrames();
+            }
+          }
         });
 
         // Store observers for cleanup in dev tools if needed

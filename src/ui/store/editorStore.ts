@@ -35,6 +35,12 @@ import { ProjectWorldLoader } from '../../project/ProjectWorldLoader';
 import type { Project, ProjectSave, AssetInstance } from '../../project/types';
 
 type ObjectType = 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'plane' | 'ground' | 'capsule' | 'disc' | 'torusknot' | 'polyhedron';
+type SnapMode = 'grid' | 'vertex' | 'edge' | 'surface' | 'object' | 'component' | 'mesh';
+interface SnapPoint {
+  x: number;
+  y: number;
+  z: number;
+}
 
 interface EditorState {
   // State
@@ -89,6 +95,15 @@ interface EditorState {
   // Selection level state
   selectionLevel: 'object' | 'component' | 'mesh';
   setSelectionLevel: (level: 'object' | 'component' | 'mesh') => void;
+
+  // Snap dialog state
+  snapMode: SnapMode;
+  snapFromPoint: SnapPoint;
+  snapToPoint: SnapPoint;
+  setSnapMode: (mode: SnapMode) => void;
+  setSnapFromPoint: (point: SnapPoint) => void;
+  setSnapToPoint: (point: SnapPoint) => void;
+  applySnapSettings: (settings: { mode?: SnapMode; from?: SnapPoint; to?: SnapPoint }) => void;
 
   // Project Management Methods
   createProject: (config: {
@@ -164,6 +179,13 @@ interface EditorState {
   pointPickMarkers: BABYLON.Mesh[];
   pointPickFrameWidgets: CoordinateFrameWidget[];
   pointPickFrameData: { pickPoint: BABYLON.Vector3; frame: CustomFrameFeature; baseSize: number } | null;
+
+  // Object origin frame state - visual axis frame at selected object's origin
+  objectOriginFrameWidget: CoordinateFrameWidget | null;
+  objectOriginFrameData: { originPoint: BABYLON.Vector3; frame: CustomFrameFeature; baseSize: number } | null;
+
+  // Permanent frames state - frames that persist in the scene with dynamic scaling
+  permanentFrames: Array<{ rootNode: BABYLON.TransformNode; originPoint: BABYLON.Vector3; baseSize: number }>;
 
   // Actions
   undo: () => void;
@@ -285,6 +307,10 @@ interface EditorState {
   setPointPickMode: (enabled: boolean) => void;
   handlePointPick: (pickInfo: BABYLON.PickingInfo) => void;
   clearPointPickMarkers: () => void;
+  showObjectOriginFrame: (mesh: BABYLON.Mesh | BABYLON.TransformNode) => void;
+  clearObjectOriginFrame: () => void;
+  addPermanentFrame: () => void;
+  cleanupDisposedFrames: () => void;
 
   // URDF loading helper
   loadURDFWithMeshes: (urdfFile: File, meshFiles: File[], scene: BABYLON.Scene, tree: any, assetsNode: any, registry: any) => Promise<void>;
@@ -309,7 +335,6 @@ export const useEditorStore = create<EditorState>((set, get) => {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     const tree = SceneTreeManager.getInstance();
-    const registry = EntityRegistry.getInstance();
     const state = get();
     const coordinateFrameWidget = state.coordinateFrameWidget;
 
@@ -574,6 +599,28 @@ export const useEditorStore = create<EditorState>((set, get) => {
   selectionLevel: 'object',
   setSelectionLevel: (level) => set({ selectionLevel: level }),
 
+  // Snap dialog defaults
+  snapMode: 'grid',
+  snapFromPoint: { x: 0, y: 0, z: 0 },
+  snapToPoint: { x: 0, y: 0, z: 0 },
+  setSnapMode: (mode) => set({ snapMode: mode }),
+  setSnapFromPoint: (point) => set({ snapFromPoint: point }),
+  setSnapToPoint: (point) => set({ snapToPoint: point }),
+  applySnapSettings: (settings) => {
+    const { snapMode, snapFromPoint, snapToPoint } = get();
+    const nextMode = settings.mode ?? snapMode;
+    const nextFrom = settings.from ?? snapFromPoint;
+    const nextTo = settings.to ?? snapToPoint;
+
+    set({
+      snapMode: nextMode,
+      snapFromPoint: nextFrom,
+      snapToPoint: nextTo,
+    });
+
+    toast.success('Snap settings updated');
+  },
+
   // File system state defaults
   lastUsedDirectory: null,
   setLastUsedDirectory: (directory) => set({ lastUsedDirectory: directory }),
@@ -622,6 +669,13 @@ export const useEditorStore = create<EditorState>((set, get) => {
   pointPickFrameWidgets: [],
   pointPickFrameData: null,
 
+  // Object origin frame defaults
+  objectOriginFrameWidget: null,
+  objectOriginFrameData: null,
+
+  // Permanent frames defaults
+  permanentFrames: [],
+
   // Undo/Redo actions
   undo: () => {
     const { commandManager } = get();
@@ -647,7 +701,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
   // Selection actions
   selectMesh: (mesh) => {
-    const { selectedMeshes } = get();
+    const { selectedMeshes, selectionLevel } = get();
     if (!selectedMeshes.includes(mesh)) {
       set({ selectedMeshes: [...selectedMeshes, mesh] });
 
@@ -695,6 +749,14 @@ export const useEditorStore = create<EditorState>((set, get) => {
       } else {
         console.warn(`[EditorStore] No tree node found for mesh: ${mesh.name}`);
       }
+
+      // Show origin frame if selection level is 'object'
+      if (selectionLevel === 'object') {
+        console.log('[Selection] Selection level is object, showing origin frame for mesh:', mesh.name);
+        get().showObjectOriginFrame(mesh);
+      } else {
+        console.log('[Selection] Selection level is:', selectionLevel, '(not showing frame)');
+      }
     }
   },
 
@@ -708,6 +770,38 @@ export const useEditorStore = create<EditorState>((set, get) => {
     window.dispatchEvent(new Event('scenetree-update'));
 
     updateSelectionVisuals([normalizedId]);
+
+    // Show origin frame if selection level is 'object'
+    const { selectionLevel } = get();
+    console.log('[SelectNode] Selection level:', selectionLevel);
+    if (selectionLevel === 'object') {
+      const node = tree.getNode(normalizedId);
+      if (node) {
+        console.log('[SelectNode] Tree node found:', node.name);
+        // Get the Babylon node (Mesh or TransformNode) from the tree node
+        const sceneManager = SceneManager.getInstance();
+        const scene = sceneManager.getScene();
+        if (scene) {
+          // Try to get the Babylon node by ID
+          let babylonNode: BABYLON.Node | null = null;
+
+          if (node.babylonMeshId) {
+            babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+            console.log('[SelectNode] Found Babylon mesh by ID:', babylonNode?.name);
+          } else if (node.babylonTransformNodeId) {
+            babylonNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId));
+            console.log('[SelectNode] Found Babylon TransformNode by ID:', babylonNode?.name);
+          }
+
+          if (babylonNode && (babylonNode instanceof BABYLON.Mesh || babylonNode instanceof BABYLON.TransformNode)) {
+            console.log('[SelectNode] Calling showObjectOriginFrame for:', babylonNode.name);
+            get().showObjectOriginFrame(babylonNode);
+          } else {
+            console.warn('[SelectNode] babylonNode not found or wrong type');
+          }
+        }
+      }
+    }
   },
 
   addToSelection: (nodeId: string) => {
@@ -922,6 +1016,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
     if (coordinateFrameWidget && !customFrame) {
       coordinateFrameWidget.hide();
     }
+
+    // Clear object origin frame
+    get().clearObjectOriginFrame();
 
     set({
       selectedMeshes: [],
@@ -3449,6 +3546,306 @@ export const useEditorStore = create<EditorState>((set, get) => {
     } catch (error) {
       // Silently fail
     }
+  },
+
+  // Object origin frame actions
+  showObjectOriginFrame: (node: BABYLON.Mesh | BABYLON.TransformNode) => {
+    console.log('[ObjectOriginFrame] Showing frame for node:', node.name);
+
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    if (!scene) {
+      console.warn('[ObjectOriginFrame] No scene available');
+      return;
+    }
+
+    // Clear any existing object origin frame
+    const { objectOriginFrameWidget } = get();
+    if (objectOriginFrameWidget) {
+      console.log('[ObjectOriginFrame] Disposing existing frame');
+      objectOriginFrameWidget.dispose();
+    }
+
+    try {
+      // Get the object's world position (origin)
+      const originPoint = node.getAbsolutePosition();
+      console.log('[ObjectOriginFrame] Origin point:', originPoint);
+
+      // Calculate adaptive frame size based on camera distance
+      const camera = scene.activeCamera;
+      let frameSize = 0.2; // Default size in meters
+
+      if (camera) {
+        const cameraPosition = camera.position;
+        const distanceToPoint = BABYLON.Vector3.Distance(cameraPosition, originPoint);
+
+        // Adaptive size: frame appears ~10% of screen regardless of zoom
+        frameSize = distanceToPoint * 0.1;
+
+        // Clamp size to reasonable limits
+        const MIN_SIZE = 0.05;  // Minimum 5cm
+        const MAX_SIZE = 2.0;   // Maximum 2m
+        frameSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, frameSize));
+      }
+
+      // Create coordinate frame widget at object origin
+      const frameWidget = new CoordinateFrameWidget(scene);
+
+      // Use object's world orientation for the frame axes
+      const worldMatrix = node.computeWorldMatrix(true);
+      const rotation = new BABYLON.Quaternion();
+      worldMatrix.decompose(undefined, rotation, undefined);
+      const rotationMatrix = new BABYLON.Matrix();
+      rotation.toRotationMatrix(rotationMatrix);
+
+      // Extract axes from rotation matrix
+      const xAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Right(), rotationMatrix).normalize();
+      const yAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Up(), rotationMatrix).normalize();
+      const zAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Forward(), rotationMatrix).normalize();
+
+      // Create custom frame feature
+      const userOrigin = babylonToUser(originPoint);
+
+      const frame: CustomFrameFeature = {
+        featureType: 'object',
+        nodeId: node.uniqueId.toString(),
+        origin: userOrigin,
+        xAxis: { x: xAxis.x, y: xAxis.y, z: xAxis.z },
+        yAxis: { x: yAxis.x, y: yAxis.y, z: yAxis.z },
+        zAxis: { x: zAxis.x, y: zAxis.y, z: zAxis.z },
+      };
+
+      // Create frame at fixed base size, then scale it
+      const BASE_SIZE = 0.1; // Fixed base size for frame creation
+      frameWidget.show(frame, BASE_SIZE);
+
+      // Calculate and apply initial scale based on camera distance
+      const initialScale = frameSize / BASE_SIZE;
+      frameWidget.setScale(initialScale);
+
+      console.log('[ObjectOriginFrame] Frame created successfully');
+      console.log('[ObjectOriginFrame] Frame size:', frameSize, 'Initial scale:', initialScale);
+
+      // Store the frame widget and data for dynamic updates
+      set({
+        objectOriginFrameWidget: frameWidget,
+        objectOriginFrameData: { originPoint, frame, baseSize: BASE_SIZE },
+      });
+    } catch (error) {
+      console.error('[ObjectOriginFrame] Error creating frame:', error);
+    }
+  },
+
+  clearObjectOriginFrame: () => {
+    const { objectOriginFrameWidget } = get();
+    if (objectOriginFrameWidget) {
+      objectOriginFrameWidget.dispose();
+    }
+    set({ objectOriginFrameWidget: null, objectOriginFrameData: null });
+  },
+
+  addPermanentFrame: () => {
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    const tree = SceneTreeManager.getInstance();
+    const registry = EntityRegistry.getInstance();
+
+    if (!scene) {
+      toast.error('No scene available');
+      return;
+    }
+
+    // Get frame data from either object origin frame or point pick frame
+    const { objectOriginFrameData, pointPickFrameData } = get();
+    console.log('[AddFrame] objectOriginFrameData:', objectOriginFrameData);
+    console.log('[AddFrame] pointPickFrameData:', pointPickFrameData);
+    const frameData = objectOriginFrameData || pointPickFrameData;
+
+    if (!frameData) {
+      console.error('[AddFrame] No frame data available');
+      toast.error('No frame to add. Please select an object or pick a point first.');
+      return;
+    }
+
+    console.log('[AddFrame] Using frame data:', frameData);
+
+    const { frame } = frameData;
+
+    try {
+      // Create a parent transform node for the frame
+      const frameName = `Frame_${Date.now()}`;
+      const frameRoot = new BABYLON.TransformNode(frameName, scene);
+
+      // Set position
+      const origin = userToBabylon(frame.origin);
+      frameRoot.position = origin;
+
+      // Convert axis vectors to Babylon space
+      const xAxis = new BABYLON.Vector3(frame.xAxis.x, frame.xAxis.y, frame.xAxis.z).normalize();
+      const yAxis = new BABYLON.Vector3(frame.yAxis.x, frame.yAxis.y, frame.yAxis.z).normalize();
+      const zAxis = new BABYLON.Vector3(frame.zAxis.x, frame.zAxis.y, frame.zAxis.z).normalize();
+
+      const axisLength = 0.1; // 10cm
+
+      // Helper function to create axis line
+      const createAxisLine = (start: BABYLON.Vector3, end: BABYLON.Vector3, color: BABYLON.Color3, name: string) => {
+        const line = BABYLON.MeshBuilder.CreateLines(
+          name,
+          { points: [start, end] },
+          scene
+        );
+        const mat = new BABYLON.StandardMaterial(`${name}_mat`, scene);
+        mat.emissiveColor = color;
+        mat.disableLighting = true;
+        line.color = color;
+        line.isPickable = false; // Individual axes are non-selectable
+        line.parent = frameRoot;
+        return line;
+      };
+
+      // Helper function to create arrow head
+      const createArrowHead = (position: BABYLON.Vector3, direction: BABYLON.Vector3, color: BABYLON.Color3, name: string) => {
+        const cone = BABYLON.MeshBuilder.CreateCylinder(
+          name,
+          { height: 0.015, diameterTop: 0, diameterBottom: 0.008, tessellation: 8 },
+          scene
+        );
+
+        cone.position = position;
+
+        // Orient cone to point along direction
+        const up = new BABYLON.Vector3(0, 1, 0);
+        const angle = Math.acos(BABYLON.Vector3.Dot(up, direction));
+        const axis = BABYLON.Vector3.Cross(up, direction);
+        if (axis.length() > 0.0001) {
+          cone.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis.normalize(), angle);
+        }
+
+        const mat = new BABYLON.StandardMaterial(`${name}_mat`, scene);
+        mat.diffuseColor = color;
+        mat.emissiveColor = color;
+        mat.disableLighting = true;
+        cone.material = mat;
+        cone.isPickable = false; // Arrow heads are non-selectable
+        cone.parent = frameRoot;
+        return cone;
+      };
+
+      // Helper function to create text label
+      const createLabel = (position: BABYLON.Vector3, text: string, color: BABYLON.Color3, name: string) => {
+        // Create a plane for the label
+        const plane = BABYLON.MeshBuilder.CreatePlane(
+          name,
+          { size: 0.05 },
+          scene
+        );
+
+        plane.position = position;
+        plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL; // Always face camera
+
+        // Create dynamic texture for text
+        const dynamicTexture = new BABYLON.DynamicTexture(
+          `${name}_texture`,
+          { width: 256, height: 256 },
+          scene,
+          false
+        );
+
+        // Draw text using DynamicTexture's drawText method
+        dynamicTexture.drawText(
+          text,
+          null,
+          null,
+          'bold 180px Arial',
+          `rgb(${Math.floor(color.r * 255)}, ${Math.floor(color.g * 255)}, ${Math.floor(color.b * 255)})`,
+          'transparent',
+          true,
+          true
+        );
+
+        // Create material with emissive color so it's always visible
+        const material = new BABYLON.StandardMaterial(`${name}_mat`, scene);
+        material.diffuseTexture = dynamicTexture;
+        material.emissiveColor = color;
+        material.disableLighting = true;
+        material.opacityTexture = dynamicTexture;
+        material.backFaceCulling = false;
+
+        plane.material = material;
+        plane.isPickable = false; // Billboards are non-selectable
+        plane.parent = frameRoot;
+
+        return plane;
+      };
+
+      // Create X-axis (Red)
+      createAxisLine(BABYLON.Vector3.Zero(), xAxis.scale(axisLength), new BABYLON.Color3(1, 0, 0), `${frameName}_X_axis`);
+      createArrowHead(xAxis.scale(axisLength), xAxis, new BABYLON.Color3(1, 0, 0), `${frameName}_X_arrow`);
+      createLabel(xAxis.scale(axisLength * 1.2), 'X', new BABYLON.Color3(1, 0, 0), `${frameName}_X_label`);
+
+      // Create Y-axis (Green)
+      createAxisLine(BABYLON.Vector3.Zero(), yAxis.scale(axisLength), new BABYLON.Color3(0, 1, 0), `${frameName}_Y_axis`);
+      createArrowHead(yAxis.scale(axisLength), yAxis, new BABYLON.Color3(0, 1, 0), `${frameName}_Y_arrow`);
+      createLabel(yAxis.scale(axisLength * 1.2), 'Y', new BABYLON.Color3(0, 1, 0), `${frameName}_Y_label`);
+
+      // Create Z-axis (Blue)
+      createAxisLine(BABYLON.Vector3.Zero(), zAxis.scale(axisLength), new BABYLON.Color3(0, 0, 1), `${frameName}_Z_axis`);
+      createArrowHead(zAxis.scale(axisLength), zAxis, new BABYLON.Color3(0, 0, 1), `${frameName}_Z_arrow`);
+      createLabel(zAxis.scale(axisLength * 1.2), 'Z', new BABYLON.Color3(0, 0, 1), `${frameName}_Z_label`);
+
+      // Store the base size for dynamic scaling
+      const BASE_SIZE = 0.1; // 10cm base size
+
+      // Calculate initial scale based on camera distance
+      const camera = scene.activeCamera;
+      let initialScale = 1.0;
+      if (camera) {
+        const distanceToPoint = BABYLON.Vector3.Distance(camera.position, origin);
+        let frameSize = distanceToPoint * 0.1;
+        const MIN_SIZE = 0.05;
+        const MAX_SIZE = 2.0;
+        frameSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, frameSize));
+        initialScale = frameSize / BASE_SIZE;
+      }
+
+      // Apply initial scale to the root node
+      frameRoot.scaling = new BABYLON.Vector3(initialScale, initialScale, initialScale);
+
+      // Add to permanent frames array for dynamic scaling
+      const { permanentFrames } = get();
+      set({
+        permanentFrames: [...permanentFrames, { rootNode: frameRoot, originPoint: origin, baseSize: BASE_SIZE }]
+      });
+
+      // Add to scene tree under Frames collection (falls back to Assets if not available)
+      const framesCollection = tree.getFramesNode();
+      const assetsCollection = tree.getAssetsNode();
+      const parentCollectionId = framesCollection?.id ?? assetsCollection?.id ?? null;
+
+      if (parentCollectionId) {
+        const frameNode = tree.createNode('collection', frameName, parentCollectionId);
+        frameNode.babylonTransformNodeId = frameRoot.uniqueId.toString();
+        frameNode.locked = false;
+        frameNode.visible = true;
+        window.dispatchEvent(new Event('scenetree-update'));
+      } else {
+        console.warn('[AddFrame] No valid parent collection found for frame node');
+      }
+
+      toast.success('Coordinate frame added to scene');
+      console.log('[AddFrame] Permanent frame created:', frameName);
+    } catch (error) {
+      console.error('[AddFrame] Error creating permanent frame:', error);
+      toast.error('Failed to create frame');
+    }
+  },
+
+  cleanupDisposedFrames: () => {
+    const { permanentFrames } = get();
+    const activeFrames = permanentFrames.filter((frameData) => {
+      return frameData.rootNode && !frameData.rootNode.isDisposed();
+    });
+    set({ permanentFrames: activeFrames });
   },
 
   // ============================================================================
