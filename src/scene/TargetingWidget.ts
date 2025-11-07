@@ -67,10 +67,11 @@ export class TargetingWidget {
       // Use actual distance from camera to pick point for adaptive sizing
       const distanceToPoint = BABYLON.Vector3.Distance(camera.position, position);
 
-      // Scale based on distance to pick point (adaptive)
-      let targetSize = distanceToPoint * 0.05; // Reduced multiplier for smaller sizes when zoomed in
-      const MIN_SIZE = 0.02;  // Smaller minimum for close-up picks
-      const MAX_SIZE = 1.0;   // Smaller maximum for better visibility
+      // Natural adaptive scaling that feels right at all zoom levels
+      // Uses a percentage of screen space rather than absolute size
+      let targetSize = distanceToPoint * 0.08; // Natural multiplier for screen-relative size
+      const MIN_SIZE = 0.015;  // Very small for extreme close-ups
+      const MAX_SIZE = 0.5;    // Reasonable maximum to prevent oversized targeter
       targetSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, targetSize));
 
       // Calculate scale relative to base size
