@@ -19,7 +19,7 @@ export interface TargetingWidgetOptions {
  */
 export class TargetingWidget {
   private scene: BABYLON.Scene;
-  private rootNode: BABYLON.TransformNode | null = null;
+  private rootNode: BABYLON.Mesh | null = null; // Changed to Mesh to support billboard mode
   private reticleLines: BABYLON.Mesh[] = []; // Changed to Mesh[] (using planes instead of lines)
   private centerDot: BABYLON.Mesh | null = null;
   private pulseRing: BABYLON.Mesh | null = null;
@@ -45,9 +45,19 @@ export class TargetingWidget {
     // Clean up existing widget
     this.hide();
 
-    // Create root node
-    this.rootNode = new BABYLON.TransformNode('targetingWidget', this.scene);
-    this.rootNode.position = position;
+    // Create root node as a Mesh (allows billboard mode)
+    // Use a tiny invisible sphere as the root
+    const root = BABYLON.MeshBuilder.CreateSphere(
+      'targetingWidget',
+      { diameter: 0.001 },
+      this.scene
+    );
+    root.position = position;
+    root.isVisible = false;
+    root.isPickable = false;
+
+    // Apply billboard mode to root node so entire widget faces camera as one unit
+    root.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 
     // Calculate scale based on camera distance (consistent for all picks)
     // Use same approach as frame widgets - reference distance from camera
@@ -75,8 +85,11 @@ export class TargetingWidget {
       scale = targetSize / this.options.size;
     }
 
-    // Apply scale to root node
-    this.rootNode.scaling = new BABYLON.Vector3(scale, scale, scale);
+    // Apply uniform scale to root node
+    root.scaling = new BABYLON.Vector3(scale, scale, scale);
+
+    // Assign to instance variable
+    this.rootNode = root;
 
     // Create reticle (crosshair with 4 lines) - will be billboarded
     this.createReticle();
@@ -127,8 +140,7 @@ export class TargetingWidget {
       // Position the plane
       plane.position = new BABYLON.Vector3(config.x, config.y, 0);
 
-      // Billboard mode - always face camera
-      plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+      // No individual billboard mode - root handles billboarding for entire widget
 
       // Create material
       const material = new BABYLON.StandardMaterial(`reticleLineMat_${index}`, this.scene);
@@ -157,8 +169,7 @@ export class TargetingWidget {
       this.scene
     );
 
-    // Billboard mode - always face camera (keeps dot round from all angles)
-    dot.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+    // No individual billboard mode - root handles billboarding for entire widget
 
     const material = new BABYLON.StandardMaterial('centerDotMaterial', this.scene);
     material.emissiveColor = this.options.color;
@@ -187,8 +198,7 @@ export class TargetingWidget {
       this.scene
     );
 
-    // Billboard mode - always face camera
-    ring.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+    // No individual billboard mode - root handles billboarding for entire widget
 
     // Create material with a ring pattern using alpha gradient
     const material = new BABYLON.StandardMaterial('pulseRingMaterial', this.scene);
