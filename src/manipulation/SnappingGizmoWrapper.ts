@@ -41,7 +41,7 @@ export class SnappingGizmoWrapper {
       snapPointOnEdge: false,
       snapBBoxCorner: false,
       gridSize: 100,
-      snapDistance: 10,
+      snapDistance: 0.1, // CAD standard: 0.1mm
     };
 
     this.setupGizmoEvents();
@@ -63,11 +63,32 @@ export class SnappingGizmoWrapper {
       });
     }
 
-    // Note: We don't need to monitor pointer events here as the gizmo manager
-    // handles drag detection internally. The snapping will be applied during
-    // the render loop when objects are being transformed.
+    // Hook into gizmo drag events to detect when dragging starts/ends
+    const positionGizmo = this.gizmoManager.gizmos.positionGizmo;
+    if (positionGizmo) {
+      positionGizmo.onDragStartObservable.add(() => {
+        this.isDragging = true;
+        if (this.currentMesh) {
+          this.originalPosition = this.currentMesh.position.clone();
+        } else if (this.currentTransformNode) {
+          this.originalPosition = this.currentTransformNode.position.clone();
+        }
+      });
 
-    // Monitor for continuous updates during drag
+      positionGizmo.onDragEndObservable.add(() => {
+        this.isDragging = false;
+        this.originalPosition = null;
+        this.snappingHelper.clearSnapIndicators();
+      });
+
+      positionGizmo.onDragObservable.add(() => {
+        if (this.snapSettings.enabled) {
+          this.updateSnapping();
+        }
+      });
+    }
+
+    // Monitor for continuous updates during drag (backup)
     this.scene.onBeforeRenderObservable.add(() => {
       if (this.isDragging && this.snapSettings.enabled) {
         this.updateSnapping();

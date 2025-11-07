@@ -63,19 +63,29 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
       }
     };
 
-    scene.onPointerObservable.add(onPointerPick, BABYLON.PointerEventTypes.POINTERPICK);
-    pickObserverRef.current = scene.onPointerObservable.add(onPointerPick);
+    // Only add observer once with the specific event type
+    pickObserverRef.current = scene.onPointerObservable.add(
+      onPointerPick,
+      BABYLON.PointerEventTypes.POINTERPICK
+    );
 
     return () => {
       if (pickObserverRef.current) {
         scene.onPointerObservable.remove(pickObserverRef.current);
+        pickObserverRef.current = null;
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scene, measurementType, state]);
+  }, [scene, measurementType]); // Removed 'state' from dependencies to prevent re-adding observers
 
   const handlePick = (point: BABYLON.Vector3, mesh: BABYLON.AbstractMesh | null) => {
     setState((prev) => {
+      // Prevent adding more points than needed
+      const maxPoints = measurementType === 'distance' ? 2 : measurementType === 'angle' ? 3 : 0;
+      if (maxPoints > 0 && prev.points.length >= maxPoints) {
+        return prev; // Don't add more points if we already have enough
+      }
+
       const newPoints = [...prev.points, point.clone()];
       const newNodes = mesh ? [...prev.nodes, mesh.name] : prev.nodes;
       
@@ -88,30 +98,30 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
           const distanceMm = distance * 1000; // Convert to mm
           result = `Distance: ${distanceMm.toFixed(2)} mm`;
           
-          // Create thicker glowing line using tube in accent color
+          // Create thicker glowing line using tube in high-contrast color (yellow/gold to avoid clashing with cyan)
           const tube = BABYLON.MeshBuilder.CreateTube('distance-line-tube', {
             path: [newPoints[0], newPoints[1]],
             radius: 0.01,
             updatable: false,
           }, scene!);
           const lineMat = new BABYLON.StandardMaterial('kc-measure-line-mat', scene!);
-          lineMat.emissiveColor = BABYLON.Color3.FromHexString('#00D9FF');
-          lineMat.diffuseColor = BABYLON.Color3.FromHexString('#00D9FF');
-          lineMat.alpha = 0.7;
+          lineMat.emissiveColor = BABYLON.Color3.FromHexString('#FFD700'); // Gold/Yellow - high contrast, doesn't clash
+          lineMat.diffuseColor = BABYLON.Color3.FromHexString('#FFD700');
+          lineMat.alpha = 0.8;
           tube.material = lineMat;
           newHelperMeshes.push(tube);
 
-          // Create sphere markers with cyan glow
+          // Create sphere markers with gold/yellow glow
           newPoints.forEach((p, i) => {
             const sphere = BABYLON.MeshBuilder.CreateSphere(`marker-${i}`, {
               diameter: 0.04,
             }, scene!);
             sphere.position = p;
 
-            // Create emissive cyan material
+            // Create emissive gold/yellow material
             const mat = new BABYLON.StandardMaterial(`marker-mat-${i}`, scene!);
-            mat.emissiveColor = BABYLON.Color3.FromHexString('#00D9FF');
-            mat.diffuseColor = BABYLON.Color3.FromHexString('#00D9FF');
+            mat.emissiveColor = BABYLON.Color3.FromHexString('#FFD700'); // Gold/Yellow
+            mat.diffuseColor = BABYLON.Color3.FromHexString('#FFD700');
             mat.alpha = 0.9;
             sphere.material = mat;
 
@@ -146,14 +156,14 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
             radius: 0.01,
           }, scene!);
           const angleMat = new BABYLON.StandardMaterial('kc-angle-line-mat', scene!);
-          angleMat.emissiveColor = BABYLON.Color3.FromHexString('#00D9FF');
-          angleMat.diffuseColor = BABYLON.Color3.FromHexString('#00D9FF');
-          angleMat.alpha = 0.7;
+          angleMat.emissiveColor = BABYLON.Color3.FromHexString('#FFD700'); // Gold/Yellow - high contrast
+          angleMat.diffuseColor = BABYLON.Color3.FromHexString('#FFD700');
+          angleMat.alpha = 0.8;
           tube1.material = angleMat;
           tube2.material = angleMat;
           newHelperMeshes.push(tube1, tube2);
 
-          // Create markers with cyan glow
+          // Create markers with gold/yellow glow
           newPoints.forEach((p, i) => {
             const sphere = BABYLON.MeshBuilder.CreateSphere(`angle-marker-${i}`, {
               diameter: 0.04,
@@ -161,8 +171,8 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
             sphere.position = p;
 
             const mat = new BABYLON.StandardMaterial(`angle-marker-mat-${i}`, scene!);
-            mat.emissiveColor = BABYLON.Color3.FromHexString('#00D9FF');
-            mat.diffuseColor = BABYLON.Color3.FromHexString('#00D9FF');
+            mat.emissiveColor = BABYLON.Color3.FromHexString('#FFD700'); // Gold/Yellow
+            mat.diffuseColor = BABYLON.Color3.FromHexString('#FFD700');
             mat.alpha = 0.9;
             sphere.material = mat;
 

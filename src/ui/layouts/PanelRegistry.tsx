@@ -230,7 +230,7 @@ const ViewportPanel: React.FC<IDockviewPanelProps> = () => {
         >
           <div style={{ transform: 'scale(0.95)', transformOrigin: 'bottom right', padding: '8px 0' }}>
           {/* Tiny coord mode toggle */}
-          <div className="flex justify-end mb-1">
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
             <button
               onClick={() => setCoordMode(coordMode === 'world' ? 'local' : 'world')}
               title={coordMode === 'world' ? 'Showing World coordinates. Click for Local.' : 'Showing Local coordinates. Click for World.'}
@@ -248,30 +248,30 @@ const ViewportPanel: React.FC<IDockviewPanelProps> = () => {
               {coordMode === 'world' ? 'World' : 'Local'}
             </button>
           </div>
-          <div className="flex justify-between" style={{ fontSize: '11.5px' }}>
-            <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px' }}>
+            <div style={{ display: 'flex', gap: '4px', minWidth: '80px' }}>
               <span style={{ color: '#D0021B', fontWeight: '500' }}>X:</span>
               <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.x.toFixed(1)}</span>
             </div>
-            <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+            <div style={{ display: 'flex', gap: '4px', minWidth: '80px' }}>
               <span style={{ color: '#7ED321', fontWeight: '500' }}>Y:</span>
               <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.y.toFixed(1)}</span>
             </div>
-            <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+            <div style={{ display: 'flex', gap: '4px', minWidth: '80px' }}>
               <span style={{ color: '#4A90E2', fontWeight: '500' }}>Z:</span>
               <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.z.toFixed(1)}</span>
             </div>
           </div>
-          <div className="flex justify-between mt-1" style={{ fontSize: '11.5px' }}>
-            <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '11.5px' }}>
+            <div style={{ display: 'flex', gap: '4px', minWidth: '80px' }}>
               <span style={{ color: '#D0021B', fontWeight: '500' }}>RX:</span>
               <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rx.toFixed(1)}°</span>
             </div>
-            <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+            <div style={{ display: 'flex', gap: '4px', minWidth: '80px' }}>
               <span style={{ color: '#7ED321', fontWeight: '500' }}>RY:</span>
               <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.ry.toFixed(1)}°</span>
             </div>
-            <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+            <div style={{ display: 'flex', gap: '4px', minWidth: '80px' }}>
               <span style={{ color: '#4A90E2', fontWeight: '500' }}>RZ:</span>
               <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rz.toFixed(1)}°</span>
             </div>

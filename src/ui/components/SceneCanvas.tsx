@@ -14,6 +14,7 @@ import { RoutingIntegration } from '../../routing/ui/RoutingIntegration';
 import { isZoomableObject, isSelectableObject } from '../../scene/SceneUtils';
 import { performanceMetrics } from '../../core/PerformanceMetrics';
 import { SceneManager } from '../../scene/SceneManager';
+import { SnappingHelper } from '../../manipulation/SnappingHelper';
 
 export const SceneCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -479,6 +480,111 @@ export const SceneCanvas: React.FC = () => {
               return !state.selectedMeshes.some((selectedMesh) => selectedMesh.uniqueId === mesh.uniqueId);
             };
 
+            // First, do a general pick to get the 3D position (for snap preview)
+            // Use pick with predicate that allows all meshes (including ground) for better snap detection
+            const generalPick = scene.pick(
+              scene.pointerX,
+              scene.pointerY,
+              (mesh) => {
+                // Allow picking on all visible meshes except UI elements
+                return mesh.isVisible && 
+                       mesh.name !== 'gridOverlay' &&
+                       !mesh.name.startsWith('snapIndicator') &&
+                       !mesh.name.startsWith('snapPreviewDot');
+              },
+              false, // Don't use fast check
+              scene.activeCamera
+            );
+            
+            // Show preview dot if snapping is enabled and we have a picked point
+            const snappingHelper = SnappingHelper.getInstance();
+            if (state.snapEnabled && generalPick?.hit && generalPick.pickedPoint) {
+              // Advanced: Use screen-space distance for preview (more accurate than world-space)
+              // This makes the "magnetic" distance feel consistent at any zoom level
+              const camera = scene.activeCamera;
+              const screenSpacePixels = 12; // 12 pixels feels good for magnetic snap
+              let previewSnapDistance = 50; // Default: 50mm (fallback if screen-space not available)
+              
+              if (camera) {
+                // Calculate world-space distance for fallback (but we'll use screen-space for actual check)
+                // Convert screen-space distance (pixels) to world-space distance
+                // Target: ~10-15 pixels of "magnetic" distance feels natural
+                
+                // Calculate world-space distance that corresponds to screen pixels
+                // Use the distance from camera to picked point as reference
+                const cameraToPoint = BABYLON.Vector3.Distance(camera.position, generalPick.pickedPoint);
+                const canvas = scene.getEngine().getRenderingCanvas();
+                
+                if (canvas && camera instanceof BABYLON.ArcRotateCamera) {
+                  // For perspective camera: convert pixels to world units
+                  // Formula: worldDistance = (pixelDistance / canvasHeight) * 2 * distance * tan(fov/2)
+                  const canvasHeight = canvas.height;
+                  const fov = camera.fov || (Math.PI / 4); // Default FOV
+                  const worldDistanceAtPoint = (screenSpacePixels / canvasHeight) * 2 * cameraToPoint * Math.tan(fov / 2);
+                  previewSnapDistance = worldDistanceAtPoint * 1000; // Convert to mm
+                  
+                  // Clamp to reasonable range: 5mm minimum, 200mm maximum
+                  previewSnapDistance = Math.max(5, Math.min(200, previewSnapDistance));
+                } else if (camera instanceof BABYLON.OrthographicCamera) {
+                  // For orthographic camera: use ortho size
+                  const orthoSize = (camera as any).orthoLeft ? 
+                    Math.abs((camera as any).orthoRight - (camera as any).orthoLeft) : 10;
+                  const canvasHeight = canvas?.height || 800;
+                  const worldDistanceAtPoint = (screenSpacePixels / canvasHeight) * orthoSize;
+                  previewSnapDistance = worldDistanceAtPoint * 1000; // Convert to mm
+                  previewSnapDistance = Math.max(5, Math.min(200, previewSnapDistance));
+                }
+              }
+              
+              // The actual snap during drag will still use 0.1mm for precision
+              // This preview distance is just for the "magnetic" hover effect
+              
+              const snapSettings = {
+                enabled: state.snapEnabled,
+                snapToGrid: state.snapToGrid,
+                snapToVertex: state.snapToVertex,
+                snapToEdge: state.snapToEdge,
+                snapToFace: state.snapToFace,
+                snapToCenter: state.snapToCenter,
+                snapToObject: state.snapToObject,
+                snapToMidpoint: state.snapToMidpoint,
+                snapToIntersection: state.snapToIntersection,
+                snapToPerpendicular: state.snapToPerpendicular,
+                snapToTangent: state.snapToTangent,
+                snapAlong: state.snapAlong,
+                snapToNormal: state.snapToNormal,
+                snapToPlane: state.snapToPlane,
+                snapToAxis: state.snapToAxis,
+                snapToCurve: state.snapToCurve,
+                snapToSurface: state.snapToSurface,
+                snapObjectToVertex: state.snapObjectToVertex,
+                snapPointOnEdge: state.snapPointOnEdge,
+                snapBBoxCorner: state.snapBBoxCorner,
+                gridSize: state.gridSize,
+                snapDistance: previewSnapDistance, // Use larger distance for preview
+              };
+              
+              // Check for snap point near the picked point
+              // Use screen-space distance for preview (more accurate than world-space)
+              const snapResult = snappingHelper.snapPosition(
+                generalPick.pickedPoint,
+                snapSettings,
+                [], // Don't exclude any meshes for preview
+                camera, // Pass camera for screen-space calculation
+                screenSpacePixels // Pass screen-space pixel threshold
+              );
+              
+              
+              if (snapResult.snapped && snapResult.visualFeedback && snapResult.visualFeedback.length > 0) {
+                snappingHelper.showPreviewDot(snapResult.visualFeedback[0]);
+              } else {
+                snappingHelper.clearPreviewDot();
+              }
+            } else {
+              snappingHelper.clearPreviewDot();
+            }
+
+            // Now do the selective pick for hover highlighting (only selectable objects)
             const pickInfo = scene.pick(
               scene.pointerX,
               scene.pointerY,
