@@ -276,6 +276,15 @@ export const SceneCanvas: React.FC = () => {
                 // Pick ANY visible mesh including ground
                 return mesh.isVisible && mesh.isEnabled() && mesh.isPickable;
               });
+
+              // Show targeting widget for point pick
+              if (pointPickResult.hit && pointPickResult.pickedPoint) {
+                sceneManager.showTargetingWidget(
+                  pointPickResult.pickedPoint,
+                  pointPickResult.getNormal(true) || undefined
+                );
+              }
+
               handlePointPick(pointPickResult);
               // Continue to normal selection (don't return)
             }
@@ -333,6 +342,14 @@ export const SceneCanvas: React.FC = () => {
             // Single-click selection logic
             if (pickResult.hit && pickResult.pickedMesh) {
               const mesh = pickResult.pickedMesh;
+
+              // Show targeting widget at pick point for visual feedback
+              if (pickResult.pickedPoint) {
+                sceneManager.showTargetingWidget(
+                  pickResult.pickedPoint,
+                  pickResult.getNormal(true) || undefined
+                );
+              }
 
               // Check if mesh is selectable (using centralized filtering from SceneUtils.ts)
               if (mesh instanceof BABYLON.Mesh && isSelectableObject(mesh)) {

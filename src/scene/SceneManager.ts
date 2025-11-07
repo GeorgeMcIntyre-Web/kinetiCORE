@@ -9,6 +9,7 @@ import { FloorMaterialManager } from './FloorMaterialManager';
 import { EngineService } from './services/EngineService';
 import { LightingService } from './services/LightingService';
 import { CameraService } from './services/CameraService';
+import { TargetingWidget } from './TargetingWidget';
 
 export class SceneManager {
   private static instance: SceneManager | null = null;
@@ -19,6 +20,7 @@ export class SceneManager {
   private currentFloorType: FloorType = 'grid-only';
   private isInitialized: boolean = false;
   private inspectorModulesPromise: Promise<void> | null = null;
+  private targetingWidget: TargetingWidget | null = null;
 
   // Service dependencies
   private engineService: EngineService;
@@ -118,6 +120,9 @@ export class SceneManager {
 
     // Initialize camera service
     this.cameraService.initialize(this.scene, canvas, this.engineService.getEngine()!);
+
+    // Initialize targeting widget
+    this.targetingWidget = new TargetingWidget(this.scene);
 
     // Start render loop
     this.cameraService.startRenderLoop(this.scene);
@@ -535,6 +540,22 @@ export class SceneManager {
    */
   resetClippingPlanes(): void {
     this.cameraService.resetClippingPlanes();
+  }
+
+  /**
+   * Show targeting widget at specified position
+   */
+  showTargetingWidget(position: BABYLON.Vector3, normal?: BABYLON.Vector3): void {
+    if (this.targetingWidget) {
+      this.targetingWidget.show(position, normal);
+    }
+  }
+
+  /**
+   * Get targeting widget instance
+   */
+  getTargetingWidget(): TargetingWidget | null {
+    return this.targetingWidget;
   }
 
   /**
