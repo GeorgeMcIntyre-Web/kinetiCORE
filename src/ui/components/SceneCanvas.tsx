@@ -576,7 +576,15 @@ export const SceneCanvas: React.FC = () => {
               
               
               if (snapResult.snapped && snapResult.visualFeedback && snapResult.visualFeedback.length > 0) {
-                snappingHelper.showPreviewDot(snapResult.visualFeedback[0]);
+                // For midpoint, pass edge endpoints if available
+                // visualFeedback format: [midpoint, edgeStart, edgeEnd] or just [midpoint]
+                const midpoint = snapResult.visualFeedback[0];
+                if (snapResult.snapType === 'midpoint' && snapResult.visualFeedback.length >= 3) {
+                  // Attach edge endpoints to the point object for showPreviewDot
+                  (midpoint as any).edgeStart = snapResult.visualFeedback[1];
+                  (midpoint as any).edgeEnd = snapResult.visualFeedback[2];
+                }
+                snappingHelper.showPreviewDot(midpoint, snapResult.snapType);
               } else {
                 snappingHelper.clearPreviewDot();
               }

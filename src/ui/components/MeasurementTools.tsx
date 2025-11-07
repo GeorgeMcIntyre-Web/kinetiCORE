@@ -6,6 +6,7 @@ import { Ruler, Triangle, Box as BoxIcon, X } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
+import { SnappingHelper } from '../../manipulation/SnappingHelper';
 import * as BABYLON from '@babylonjs/core';
 import './MeasurementTools.css';
 
@@ -32,6 +33,30 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
   const sceneManager = SceneManager.getInstance();
   const scene = sceneManager.getScene();
   const tree = SceneTreeManager.getInstance();
+  
+  // Get snap settings from store
+  const snapEnabled = useEditorStore((state) => state.snapEnabled);
+  const snapToGrid = useEditorStore((state) => state.snapToGrid);
+  const snapToVertex = useEditorStore((state) => state.snapToVertex);
+  const snapToEdge = useEditorStore((state) => state.snapToEdge);
+  const snapToFace = useEditorStore((state) => state.snapToFace);
+  const snapToCenter = useEditorStore((state) => state.snapToCenter);
+  const snapToObject = useEditorStore((state) => state.snapToObject);
+  const snapToMidpoint = useEditorStore((state) => state.snapToMidpoint);
+  const snapToIntersection = useEditorStore((state) => state.snapToIntersection);
+  const snapToPerpendicular = useEditorStore((state) => state.snapToPerpendicular);
+  const snapToTangent = useEditorStore((state) => state.snapToTangent);
+  const snapAlong = useEditorStore((state) => state.snapAlong);
+  const snapToNormal = useEditorStore((state) => state.snapToNormal);
+  const snapToPlane = useEditorStore((state) => state.snapToPlane);
+  const snapToAxis = useEditorStore((state) => state.snapToAxis);
+  const snapToCurve = useEditorStore((state) => state.snapToCurve);
+  const snapToSurface = useEditorStore((state) => state.snapToSurface);
+  const snapObjectToVertex = useEditorStore((state) => state.snapObjectToVertex);
+  const snapPointOnEdge = useEditorStore((state) => state.snapPointOnEdge);
+  const snapBBoxCorner = useEditorStore((state) => state.snapBBoxCorner);
+  const snapDistance = useEditorStore((state) => state.snapDistance);
+  const gridSize = useEditorStore((state) => state.gridSize);
 
   const [state, setState] = useState<MeasurementState>({
     type: measurementType,
@@ -86,7 +111,58 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
         return prev; // Don't add more points if we already have enough
       }
 
-      const newPoints = [...prev.points, point.clone()];
+      // Apply snapping to the picked point
+      let snappedPoint = point.clone();
+      if (snapEnabled && scene) {
+        const snappingHelper = SnappingHelper.getInstance();
+        const camera = scene.activeCamera;
+        
+        // Build snap settings
+        const snapSettings = {
+          enabled: snapEnabled,
+          snapToGrid,
+          snapToVertex,
+          snapToEdge,
+          snapToFace,
+          snapToCenter,
+          snapToObject,
+          snapToMidpoint,
+          snapToIntersection,
+          snapToPerpendicular,
+          snapToTangent,
+          snapAlong,
+          snapToNormal,
+          snapToPlane,
+          snapToAxis,
+          snapToCurve,
+          snapToSurface,
+          snapObjectToVertex,
+          snapPointOnEdge,
+          snapBBoxCorner,
+          gridSize,
+          snapDistance,
+        };
+        
+        // Exclude the measurement helper meshes from snapping
+        const excludeMeshIds = prev.helperMeshes.map(m => m.uniqueId.toString());
+        
+        // For measurement, use screen-space snapping to match the preview dot
+        // This ensures the measurement uses the same snap point that the preview dot shows
+        const screenSpacePixels = 12; // Same as preview dot
+        const snapResult = snappingHelper.snapPosition(
+          point,
+          snapSettings,
+          excludeMeshIds,
+          camera, // Pass camera for screen-space calculation
+          screenSpacePixels // Use same pixel threshold as preview
+        );
+        
+        if (snapResult.snapped) {
+          snappedPoint = snapResult.position;
+        }
+      }
+
+      const newPoints = [...prev.points, snappedPoint];
       const newNodes = mesh ? [...prev.nodes, mesh.name] : prev.nodes;
       
       let result: string | null = null;
