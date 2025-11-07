@@ -93,7 +93,9 @@ export class GLBExportService {
           const c = anyMesh.clone(`${mesh.name}__exp`, exportContainer);
           if (c) { c.isVisible = true; c.setEnabled?.(true); }
         }
-      } catch {}
+      } catch {
+        // Ignore: Clone operation is optional, skip if not supported
+      }
     };
 
     for (const r of roots) {
@@ -103,7 +105,9 @@ export class GLBExportService {
         const childMeshes = r.getChildMeshes(false);
         childMeshes.forEach(addMeshClone);
       } else if ((r as any).getChildMeshes) {
-        try { (r as any).getChildMeshes(false).forEach(addMeshClone); } catch {}
+        try { (r as any).getChildMeshes(false).forEach(addMeshClone); } catch {
+          // Ignore: getChildMeshes may not be available on all node types
+        }
       }
     }
 
@@ -117,7 +121,9 @@ export class GLBExportService {
     // IMPORTANT: Do not dispose materials/textures here – clones share material
     // instances with originals by default. Disposing them would clear materials
     // on the originals and turn meshes white. Keep materials alive.
-    try { exportContainer.dispose(false, false); } catch {}
+    try { exportContainer.dispose(false, false); } catch {
+      // Ignore: Cleanup is best-effort
+    }
 
     GLBExportService.downloadBlob(blob, fileName);
   }
@@ -163,7 +169,9 @@ export class GLBExportService {
               inst.position.copyFrom(p); (inst as any).rotationQuaternion = r.clone(); inst.scaling.copyFrom(s);
             }
           }
-        } catch {}
+        } catch {
+          // Ignore: Thin instance cloning is best-effort
+        }
       }
       return base;
     };
@@ -176,11 +184,15 @@ export class GLBExportService {
         inst.parent = exportContainer; inst.isVisible = true; inst.setEnabled(true); setWorld(m, inst); return;
       }
       if (m instanceof BABYLON.Mesh) { ensureBase(m); return; }
-      try { const c = (m as any).clone?.(`${m.name}__exp`, exportContainer); if (c) { setWorld(m, c); c.isVisible = true; c.setEnabled?.(true); } } catch {}
+      try { const c = (m as any).clone?.(`${m.name}__exp`, exportContainer); if (c) { setWorld(m, c); c.isVisible = true; c.setEnabled?.(true); } } catch {
+        // Ignore: Clone operation may fail on some mesh types
+      }
     };
 
     for (const r of roots) {
-      if ((r as any).getChildMeshes) { try { (r as any).getChildMeshes(false).forEach(add); } catch {} }
+      if ((r as any).getChildMeshes) { try { (r as any).getChildMeshes(false).forEach(add); } catch {
+        // Ignore: getChildMeshes may not be available
+      } }
       else if (r instanceof BABYLON.Mesh) { add(r); }
     }
 
@@ -192,7 +204,9 @@ export class GLBExportService {
             add(m);
           }
         });
-      } catch {}
+      } catch {
+        // Ignore: Fallback mesh collection is best-effort
+      }
     }
 
     const { GLTF2Export } = await import('@babylonjs/serializers/glTF/2.0/glTFSerializer');
@@ -201,7 +215,9 @@ export class GLBExportService {
     });
     const blob = glb.glTFFiles['selection.glb'] as Blob;
     // Do not dispose shared materials/textures – see note above.
-    try { exportContainer.dispose(false, false); } catch {}
+    try { exportContainer.dispose(false, false); } catch {
+      // Ignore: Cleanup is best-effort
+    }
     GLBExportService.downloadBlob(blob, fileName);
   }
 
@@ -233,7 +249,9 @@ export class GLBExportService {
           const m=(src as BABYLON.Mesh).clone(`${safe}__mesh`, parent) as BABYLON.Mesh; m.isVisible=true; m.setEnabled(true); setLocal(src,m);
           // Decouple material from original
           cloneMaterialOnto(m, src as BABYLON.Mesh);
-          const c=(src as any).thinInstanceCount as number|undefined; if (c&&c>0){ try{ const mats=(src as any).thinInstanceGetWorldMatrices?.() as Float32Array|undefined; if(mats){ for(let i=0;i<c;i++){ const M=BABYLON.Matrix.FromArray(Array.from(mats.slice(i*16,i*16+16))); const S=new BABYLON.Vector3(),R=new BABYLON.Quaternion(),P=new BABYLON.Vector3(); M.decompose(S,R,P); const inst=m.createInstance(`${safe}__thin_${i}`); inst.parent=m.parent as BABYLON.TransformNode; inst.position.copyFrom(P); (inst as any).rotationQuaternion=R; inst.scaling.copyFrom(S); inst.isVisible=true; inst.setEnabled(true); } } }catch{} }
+          const c=(src as any).thinInstanceCount as number|undefined; if (c&&c>0){ try{ const mats=(src as any).thinInstanceGetWorldMatrices?.() as Float32Array|undefined; if(mats){ for(let i=0;i<c;i++){ const M=BABYLON.Matrix.FromArray(Array.from(mats.slice(i*16,i*16+16))); const S=new BABYLON.Vector3(),R=new BABYLON.Quaternion(),P=new BABYLON.Vector3(); M.decompose(S,R,P); const inst=m.createInstance(`${safe}__thin_${i}`); inst.parent=m.parent as BABYLON.TransformNode; inst.position.copyFrom(P); (inst as any).rotationQuaternion=R; inst.scaling.copyFrom(S); inst.isVisible=true; inst.setEnabled(true); } } }catch{
+            // Ignore: Thin instance processing is best-effort
+          } }
           (src.getChildren().filter(c=>c instanceof BABYLON.TransformNode) as BABYLON.TransformNode[]).forEach(ch=>cloneRec(ch,m)); seen.add((src as any).uniqueId); return m; }
         if (src instanceof BABYLON.TransformNode) {
           const shouldClone = !(allowSet && !allowSet.has((src as any).uniqueId));
@@ -243,15 +261,23 @@ export class GLBExportService {
           src.getChildren().forEach(ch => cloneRec(ch as BABYLON.Node, nextParent));
           return shouldClone ? nextParent : null;
         }
-        const anySrc=src as any; if (typeof anySrc.clone==='function'){ const c=anySrc.clone(`${safe}__exp`, parent); if(c){ try{ setLocal(src as any,c);}catch{}; c.isVisible=true; c.setEnabled?.(true);} seen.add((src as any).uniqueId); return c; }
-      }catch{}
+        const anySrc=src as any; if (typeof anySrc.clone==='function'){ const c=anySrc.clone(`${safe}__exp`, parent); if(c){ try{ setLocal(src as any,c);}catch{
+          // Ignore: setLocal may fail on some node types
+        }; c.isVisible=true; c.setEnabled?.(true);} seen.add((src as any).uniqueId); return c; }
+      }catch{
+        // Ignore: Node cloning is best-effort
+      }
       return null;
     };
     roots.forEach(r=>cloneRec(r,container));
-    if (container.getChildren().length===0){ try{ scene.rootNodes.forEach(n=>cloneRec(n,container)); }catch{} }
+    if (container.getChildren().length===0){ try{ scene.rootNodes.forEach(n=>cloneRec(n,container)); }catch{
+      // Ignore: Fallback root node cloning is best-effort
+    } }
     const { GLTF2Export } = await import('@babylonjs/serializers/glTF/2.0/glTFSerializer');
     const glb = await GLTF2Export.GLBAsync(scene,'selection',{ shouldExportNode:(n: BABYLON.Node)=> n===container || n.isDescendantOf(container) });
-    const blob = glb.glTFFiles['selection.glb'] as Blob; try{ container.dispose(false,false);}catch{}; GLBExportService.downloadBlob(blob,fileName);
+    const blob = glb.glTFFiles['selection.glb'] as Blob; try{ container.dispose(false,false);}catch{
+      // Ignore: Cleanup is best-effort
+    }; GLBExportService.downloadBlob(blob,fileName);
   }  private static downloadBlob(blob: Blob, fileName: string) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

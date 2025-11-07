@@ -185,11 +185,12 @@ export class FixtureController {
   detectWorkPiece(): boolean {
     // Simulate work piece detection based on fixture type
     switch (this.config.type) {
-      case 'clamping':
+      case 'clamping': {
         // Clamping fixture: detect based on clamp force
         const clampForce = this.getClampForce();
         this.workPieceDetected = clampForce > 10; // 10N threshold
         break;
+      }
         
       case 'welding':
         // Welding fixture: always detect (assume work piece is loaded)

@@ -11,34 +11,115 @@
   position: relative;
 }
 
+/* Use ribbon-btn class from RibbonToolbar.css for consistent styling */
+.create-dropdown {
+  display: inline-block;
+  position: relative;
+}
+
+.create-dropdown-button-group {
+  position: relative;
+  display: inline-block;
+}
+
+/* Ensure the button matches tool-btn sizing and styling */
 .create-dropdown-main-btn {
+  /* Match .tool-btn styling but with horizontal layout */
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  position: relative;
+  overflow: visible;
+  gap: 0;
+  padding: 2px 8px;
+  min-width: 52px;
+  width: auto;
+  background: transparent !important; /* Match tool-btn background - override ribbon-btn */
+  border: 1px solid transparent !important; /* Match tool-btn border - override ribbon-btn */
+  border-radius: 4px;
+  color: #e2e8f0 !important; /* Match tool-btn text color */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 10px;
+}
+
+.create-dropdown-icon-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  width: 50px;
-  height: 35px;
-  padding: 0;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  color: rgba(255, 255, 255, 0.6);
-  cursor: pointer;
-  transition: all 0.15s ease;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-right: 6px; /* Space between icon and text */
+}
+
+.create-dropdown-icon-wrapper svg {
+  width: 16px;
+  height: 16px;
+  color: inherit;
   flex-shrink: 0;
 }
 
-.create-dropdown-main-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 1);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+.create-dropdown-label {
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  line-height: 14px;
+  color: inherit;
+  margin: 0;
+  margin-right: 6px; /* Space between text and arrow */
 }
 
-.create-dropdown-main-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+.create-dropdown-chevron-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  flex-grow: 0;
+  width: 10px;
+  height: 10px;
+  margin-left: auto; /* Push to far right */
+}
+
+.create-dropdown-chevron {
+  position: relative;
+  opacity: 0.7;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  pointer-events: none;
+  width: 10px;
+  height: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.create-dropdown-chevron svg {
+  width: 10px;
+  height: 10px;
+}
+
+.create-dropdown-main-btn:hover {
+  background: rgba(0, 217, 255, 0.1);
+  border-color: rgba(0, 217, 255, 0.3);
+}
+
+.create-dropdown-main-btn:hover .create-dropdown-chevron {
+  opacity: 1;
+}
+
+.create-dropdown-chevron.open {
+  transform: rotate(180deg);
+}
+
+.create-dropdown-main-btn .dropdown-chevron {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.create-dropdown-main-btn:hover .dropdown-chevron {
+  opacity: 1;
 }
 
 .create-dropdown-arrow-btn {
@@ -46,6 +127,15 @@
   border: none;
   cursor: pointer;
   z-index: 2;
+  transition: opacity 0.2s ease;
+}
+
+.create-dropdown-arrow-btn:hover {
+  opacity: 1;
+}
+
+.create-dropdown-arrow-btn:hover .dropdown-chevron {
+  opacity: 1;
 }
 
 .dropdown-chevron {

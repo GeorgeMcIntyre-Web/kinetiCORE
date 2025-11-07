@@ -2,7 +2,7 @@
 // Owner: George
 // All tools visible horizontally organized by category
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Settings,
   CornerDownRight,
@@ -27,7 +27,17 @@ import {
   Rocket,
   Scan,
   TestTube,
+  Building2,
+  Eye,
+  Camera,
 } from 'lucide-react';
+import { loadOBJFile } from '../../loaders/obj/OBJLoader';
+import { SceneManager } from '../../scene/SceneManager';
+import { toast } from '../components/ToastNotifications';
+import { loading } from '../components/LoadingIndicator';
+import { RoutingToolbar } from '../../routing/ui/RoutingToolbar';
+import { useUserLevel } from '../core/UserLevelContext';
+import { WarehousePanel } from '../../routing/ui/WarehousePanel';
 
 // Custom Quick Move Icon - 3 horizontal lines behind a cube
 const QuickMoveIcon = ({ size = 32 }: { size?: number }) => (
@@ -127,6 +137,9 @@ export interface RibbonToolbarProps {
   onRightViewClick?: () => void;
   onFrontViewClick?: () => void;
   onIsoViewClick?: () => void;
+  onWarehouseConfigClick?: () => void;
+  onWarehouseToggleClick?: () => void;
+  onWarehouseResetCameraClick?: () => void;
 }
 
 export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
@@ -150,7 +163,13 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onRightViewClick,
   onFrontViewClick,
   onIsoViewClick,
+  onWarehouseConfigClick,
+  onWarehouseToggleClick,
+  onWarehouseResetCameraClick,
 }) => {
+  const { userLevel } = useUserLevel();
+  const [showWarehousePanel, setShowWarehousePanel] = useState(false);
+  
   // Store connections
   const transformMode = useEditorStore((state) => state.transformMode);
   const setTransformMode = useEditorStore((state) => state.setTransformMode);
@@ -170,14 +189,16 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const worldLoadInputRef = useRef<HTMLInputElement>(null);
+  const objInputRef = useRef<HTMLInputElement>(null);
 
   // Handlers
   const handleImportFile = () => fileInputRef.current?.click();
   const handleImportFolder = () => folderInputRef.current?.click();
   const handleLoadWorld = () => worldLoadInputRef.current?.click();
+  const handleImportOBJ = () => objInputRef.current?.click();
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('[RibbonToolbar] Generic file loader invoked');
+    console.log('[RibbonToolbar] ❌ GENERIC FILE LOADER - WRONG BUTTON! Use the Robot icon for OBJ files');
     const files = event.target.files;
     if (files && files.length > 0) {
       for (let i = 0; i < files.length; i++) {
@@ -185,6 +206,42 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
       }
     }
     event.target.value = '';
+  };
+
+  const handleOBJFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    console.log('[RibbonToolbar] ✅ OBJ LOADER HANDLER CALLED - This is the correct button!');
+    console.log('[RibbonToolbar] File:', file.name);
+
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    if (!scene) {
+      toast.error('Scene not initialized');
+      return;
+    }
+
+    loading.start(`Loading ${file.name}...`, 'uploading');
+
+    try {
+      const result = await loadOBJFile(file, scene);
+
+      if (result.success) {
+        toast.success(`Loaded ${result.meshes.length} meshes from ${file.name}`);
+        console.log(`[Ribbon] Successfully imported OBJ: ${file.name}`);
+      } else {
+        toast.error(`Failed to load OBJ: ${result.errorMessage || 'Unknown error'}`);
+        console.error(`[Ribbon] OBJ import failed:`, result.errorMessage);
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to load OBJ: ${errorMsg}`);
+      console.error('[Ribbon] OBJ import error:', error);
+    } finally {
+      loading.end();
+      event.target.value = '';
+    }
   };
 
   const handleFolderChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -240,6 +297,13 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           <button className="ribbon-btn" onClick={onAssetLibraryClick} title="Asset Library">
             <Package size={32} />
           </button>
+          <button 
+            className={`ribbon-btn ${showWarehousePanel ? 'active' : ''}`}
+            onClick={() => setShowWarehousePanel(!showWarehousePanel)}
+            title="Configure Warehouse"
+          >
+            <Building2 size={32} />
+          </button>
         </div>
       </div>
 
@@ -252,6 +316,9 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           </button>
           <button className="ribbon-btn" onClick={handleImportFolder} title="Import Folder">
             <FolderUp size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={handleImportOBJ} title="Import OBJ Mesh">
+            <Package size={32} />
           </button>
         </div>
       </div>
@@ -421,6 +488,47 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
         </div>
       </div>
 
+      {/* Routing Category - Professional+ only */}
+      {userLevel !== 'essential' && (
+        <div className="ribbon-category-excel">
+          <div className="ribbon-category-label">Routing</div>
+          <RoutingToolbar onTemplatesClick={() => {
+            // This will be passed from ProfessionalModeLayout
+            window.dispatchEvent(new CustomEvent('routing-templates-click'));
+          }} />
+        </div>
+      )}
+
+      {/* Warehouse Category - Professional+ only */}
+      {userLevel !== 'essential' && (
+        <div className="ribbon-category-excel">
+          <div className="ribbon-category-label">Warehouse</div>
+          <div className="ribbon-buttons-row">
+            <button 
+              className="ribbon-btn" 
+              onClick={onWarehouseConfigClick}
+              title="Configure Warehouse (W)"
+            >
+              <Building2 size={32} />
+            </button>
+            <button 
+              className="ribbon-btn" 
+              onClick={onWarehouseToggleClick}
+              title="Toggle Warehouse Visibility"
+            >
+              <Eye size={32} />
+            </button>
+            <button 
+              className="ribbon-btn" 
+              onClick={onWarehouseResetCameraClick}
+              title="Reset Warehouse Camera"
+            >
+              <Camera size={32} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Hidden file inputs */}
       <input
         ref={fileInputRef}
@@ -447,6 +555,22 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
         onChange={handleWorldFileChange}
         style={{ display: 'none' }}
       />
+      <input
+        ref={objInputRef}
+        type="file"
+        accept=".obj,.zip"
+        onChange={handleOBJFileChange}
+        style={{ display: 'none' }}
+      />
+
+      {/* Warehouse Panel */}
+      {showWarehousePanel && (
+        <WarehousePanel
+          isVisible={showWarehousePanel}
+          onClose={() => setShowWarehousePanel(false)}
+          zIndex={1003}
+        />
+      )}
     </div>
   );
 };

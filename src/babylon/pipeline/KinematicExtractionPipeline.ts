@@ -446,7 +446,7 @@ export class KinematicExtractionPipeline {
       full: 0,
       confidence: 0,
     };
-    for (const [_nodeId, result] of filterResults.entries()) {
+    for (const [, result] of filterResults.entries()) {
       if (result.stage === 'prefilter' && !result.passed) stats.prefilter++;
       else if (result.stage === 'coarse' && !result.passed) stats.coarse++;
       else if (result.stage === 'full' && !result.passed) stats.full++;

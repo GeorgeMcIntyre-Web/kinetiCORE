@@ -23,6 +23,7 @@ import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
 import { MoveObjectDialog } from '../components/MoveObjectDialog';
 import { ProjectManagerPanelV2 } from '../components/ProjectManager/ProjectManagerPanelV2';
 import { ProjectSaveDialog } from '../components/ProjectSaveDialog';
+import { WarehousePanel } from '../../routing/ui/WarehousePanel';
 import { useProjectManagerStore } from '../store/projectManagerStore';
 import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
@@ -79,6 +80,7 @@ export const EssentialModeLayout: React.FC = () => {
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [showWarehousePanel, setShowWarehousePanel] = useState(false);
 
   // Resizable sidebar state
   const [sidebarWidth, setSidebarWidth] = useState(256); // Default 256px (w-64)
@@ -89,7 +91,7 @@ export const EssentialModeLayout: React.FC = () => {
   // Auto-resize hook for optimal tree width
   const { optimalWidth } = useTreeAutoResize({
     minWidth: minSidebarWidth,
-    maxWidth: maxSidebarWidth,
+    maxWidth: Math.max(maxSidebarWidth, 800),
     padding: 16,
     fontSize: 13,
     iconWidth: 16,
@@ -99,12 +101,13 @@ export const EssentialModeLayout: React.FC = () => {
 
   // Update sidebar width when optimal width changes
   useEffect(() => {
-    if (!isResizing && optimalWidth > sidebarWidth) {
-      console.log(`🔄 Auto-expanding sidebar from ${sidebarWidth}px to ${optimalWidth}px`);
-      setSidebarWidth(optimalWidth);
+    if (!isResizing && optimalWidth && Number.isFinite(optimalWidth)) {
+      if (Math.abs(sidebarWidth - optimalWidth) > 2) {
+        console.log(`Auto-sizing sidebar to ${optimalWidth}px (from ${sidebarWidth}px)`);
+        setSidebarWidth(optimalWidth);
+      }
     }
   }, [optimalWidth, isResizing, sidebarWidth]);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -565,6 +568,15 @@ export const EssentialModeLayout: React.FC = () => {
             onRightViewClick: handleRightView,
             onFrontViewClick: handleFrontView,
             onIsoViewClick: handleIsoView,
+            onWarehouseConfigClick: () => setShowWarehousePanel(!showWarehousePanel),
+            onWarehouseToggleClick: () => {
+              // Dispatch event to toggle warehouse visibility (handled by WarehousePanel's 'W' key handler)
+              window.dispatchEvent(new KeyboardEvent('keydown', { key: 'w', bubbles: true }));
+            },
+            onWarehouseResetCameraClick: () => {
+              // Dispatch custom event that WarehousePanel can listen to
+              window.dispatchEvent(new CustomEvent('warehouse-reset-camera'));
+            },
           }}
         />
 
@@ -692,6 +704,12 @@ export const EssentialModeLayout: React.FC = () => {
         zIndex={1009}
       />
 
+      <WarehousePanel
+        isVisible={showWarehousePanel}
+        onClose={() => setShowWarehousePanel(false)}
+        zIndex={1010}
+      />
+
       {/* Transform Display - Bottom-right corner */}
       {transform && (
         <div
@@ -808,4 +826,7 @@ export const EssentialModeLayout: React.FC = () => {
     </div>
   );
 };
+
+
+
 

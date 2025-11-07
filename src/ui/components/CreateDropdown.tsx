@@ -2,11 +2,21 @@
  * Create Dropdown Component
  * Owner: George (UI Consolidation)
  * 
- * Consolidates Box, Sphere, and Cylinder create buttons into a single dropdown
+ * Consolidates all primitive creation buttons into a single combobox dropdown
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Box, Circle, Cylinder } from 'lucide-react';
+import { 
+  ChevronDown, 
+  Box, 
+  Circle, 
+  Cylinder,
+  Cone,
+  Square,
+  Pill,
+  Disc,
+  Diamond
+} from 'lucide-react';
 import './CreateDropdown.css';
 
 export interface CreateOption {
@@ -21,6 +31,14 @@ export interface CreateDropdownProps {
   onCreateBox?: () => void;
   onCreateSphere?: () => void;
   onCreateCylinder?: () => void;
+  onCreateCone?: () => void;
+  onCreateTorus?: () => void;
+  onCreatePlane?: () => void;
+  onCreateGround?: () => void;
+  onCreateCapsule?: () => void;
+  onCreateDisc?: () => void;
+  onCreateTorusKnot?: () => void;
+  onCreatePolyhedron?: () => void;
   currentShape?: string;
 }
 
@@ -28,10 +46,19 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
   onCreateBox,
   onCreateSphere,
   onCreateCylinder,
-  currentShape = 'box'
+  onCreateCone,
+  onCreateTorus,
+  onCreatePlane,
+  onCreateGround,
+  onCreateCapsule,
+  onCreateDisc,
+  onCreateTorusKnot,
+  onCreatePolyhedron,
+  currentShape: initialShape = 'box'
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [currentShape, setCurrentShape] = useState(initialShape);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -39,7 +66,7 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
     {
       id: 'box',
       label: 'Box',
-      icon: <Box size={24} />,
+      icon: <Box size={16} />,
       onClick: onCreateBox || (() => {}),
       description: 'Create Box'
     },
@@ -56,6 +83,62 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
       icon: <Cylinder size={24} />,
       onClick: onCreateCylinder || (() => {}),
       description: 'Create Cylinder'
+    },
+    {
+      id: 'cone',
+      label: 'Cone',
+      icon: <Cone size={24} />,
+      onClick: onCreateCone || (() => {}),
+      description: 'Create Cone'
+    },
+    {
+      id: 'torus',
+      label: 'Torus',
+      icon: <Circle size={24} />,
+      onClick: onCreateTorus || (() => {}),
+      description: 'Create Torus'
+    },
+    {
+      id: 'plane',
+      label: 'Plane',
+      icon: <Square size={24} />,
+      onClick: onCreatePlane || (() => {}),
+      description: 'Create Plane'
+    },
+    {
+      id: 'ground',
+      label: 'Ground',
+      icon: <Square size={24} />,
+      onClick: onCreateGround || (() => {}),
+      description: 'Create Ground'
+    },
+    {
+      id: 'capsule',
+      label: 'Capsule',
+      icon: <Pill size={24} />,
+      onClick: onCreateCapsule || (() => {}),
+      description: 'Create Capsule'
+    },
+    {
+      id: 'disc',
+      label: 'Disc',
+      icon: <Disc size={24} />,
+      onClick: onCreateDisc || (() => {}),
+      description: 'Create Disc'
+    },
+    {
+      id: 'torusknot',
+      label: 'TorusKnot',
+      icon: <Circle size={24} />,
+      onClick: onCreateTorusKnot || (() => {}),
+      description: 'Create Torus Knot'
+    },
+    {
+      id: 'polyhedron',
+      label: 'Polyhedron',
+      icon: <Diamond size={24} />,
+      onClick: onCreatePolyhedron || (() => {}),
+      description: 'Create Polyhedron'
     }
   ];
 
@@ -88,40 +171,52 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
 
   const handleItemClick = (option: CreateOption) => {
     option.onClick();
+    setCurrentShape(option.id); // Update current shape when a shape is created
     setIsOpen(false);
   };
 
-  const handleMainButtonClick = () => {
-    // Clicking the main button executes the current shape action
-    currentOption.onClick();
-  };
-
-  const handleDropdownClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsOpen(!isOpen);
+  const handleMainButtonClick = (e: React.MouseEvent) => {
+    // Check if click was on the chevron area (right side)
+    const button = e.currentTarget as HTMLButtonElement;
+    const rect = button.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const buttonWidth = rect.width;
+    
+    // If click is in the right 20% of button, open dropdown instead
+    if (clickX > buttonWidth * 0.8) {
+      e.stopPropagation();
+      e.preventDefault();
+      setIsOpen(!isOpen);
+    } else {
+      // Clicking the main area executes the current shape action
+      e.stopPropagation();
+      currentOption.onClick();
+      setCurrentShape(currentShape); // Keep current shape active
+    }
   };
 
   return (
     <div className="create-dropdown" ref={dropdownRef}>
       <div className="create-dropdown-button-group">
-        {/* Combined button - shape icon + chevron */}
+        {/* Main button with icon, text, and integrated arrow */}
         <button
           ref={buttonRef}
-          className="create-dropdown-main-btn"
+          className="ribbon-btn create-dropdown-main-btn"
           onClick={handleMainButtonClick}
-          title={`${currentOption.description} (Click to create)`}
+          title={`${currentOption.description} (Click to create ${currentOption.label})`}
         >
-          {currentOption.icon}
-          <ChevronDown size={10} className={`dropdown-chevron ${isOpen ? 'open' : ''}`} style={{ marginLeft: '2px' }} />
-        </button>
-
-        {/* Hidden clickable area for dropdown */}
-        <button
-          className="create-dropdown-arrow-btn"
-          onClick={handleDropdownClick}
-          title="Create Options"
-          style={{ position: 'absolute', right: 0, top: 0, width: '16px', height: '100%', opacity: 0 }}
-        >
+          <span className="create-dropdown-icon-wrapper">
+            {currentOption.icon}
+          </span>
+          <span className="create-dropdown-label">
+            {currentOption.label}
+          </span>
+          <span className="create-dropdown-chevron-wrapper">
+            <ChevronDown 
+              size={10} 
+              className={`create-dropdown-chevron ${isOpen ? 'open' : ''}`}
+            />
+          </span>
         </button>
       </div>
 

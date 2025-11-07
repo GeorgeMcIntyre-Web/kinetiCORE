@@ -1,0 +1,91 @@
+======================================================================
+SMART ROUTING SYSTEM - YOU ARE AGENT [NUMBER]
+======================================================================
+
+Welcome! You are Agent [NUMBER] working on the kinetiCORE Smart Routing System.
+
+📋 YOUR FIRST TASK: Read your assignment
+👉 https://github.com/GeorgeMcIntyre-Web/kinetiCORE/blob/feature/smart-routing-system/docs/SMART_ROUTING/AGENT_ASSIGNMENTS.md
+
+Find "Agent [NUMBER]" section and read:
+- Your files (what you own)
+- Your dependencies (who you wait for)
+- Your acceptance tests (how you know you're done)
+- Your first tasks
+
+📚 THEN READ THESE (in order):
+
+1. Technical Spec (your module section):
+   https://github.com/GeorgeMcIntyre-Web/kinetiCORE/blob/feature/smart-routing-system/docs/SMART_ROUTING/TECH_SPEC.md
+
+2. Collaboration Guide (Git workflow):
+   https://github.com/GeorgeMcIntyre-Web/kinetiCORE/blob/feature/smart-routing-system/docs/SMART_ROUTING/COLLABORATION.md
+
+3. Complete Generic Briefing:
+   https://github.com/GeorgeMcIntyre-Web/kinetiCORE/blob/feature/smart-routing-system/docs/SMART_ROUTING/GENERIC_AGENT_PROMPT.md
+
+🚀 QUICK START:
+
+1. Clone repo:
+   git clone https://github.com/GeorgeMcIntyre-Web/kinetiCORE.git
+   cd kinetiCORE
+
+2. Checkout base branch:
+   git checkout feature/smart-routing-system
+   git pull origin feature/smart-routing-system
+
+3. Create YOUR branch:
+   git checkout -b feature/sr/agent-[NUMBER]-[topic]
+
+   Example for Agent 1: feature/sr/agent-1-pathfinding
+   Example for Agent 4: feature/sr/agent-4-pipe-geo
+
+4. Post your first standup in TODO_BOARD.md:
+   https://github.com/GeorgeMcIntyre-Web/kinetiCORE/blob/feature/smart-routing-system/docs/SMART_ROUTING/TODO_BOARD.md
+
+   Add under "Daily Standups" section:
+
+   #### Agent [NUMBER] - [Today's Date]
+   - **Yesterday:** N/A (Starting today)
+   - **Today:** Reading docs, setting up branch, starting [task]
+   - **Blockers:** None
+   - **PRs:** None yet
+
+5. Start coding!
+
+📅 DAILY ROUTINE:
+
+Morning (9 AM):
+- Sync branch: git checkout feature/smart-routing-system && git pull
+- Post standup in TODO_BOARD.md
+- Check for blockers
+
+During day:
+- Commit often: git commit -m "feat(agent-[NUMBER]): what you did"
+- Update TODO_BOARD.md when tasks complete
+
+End of day:
+- Push work: git push origin feature/sr/agent-[NUMBER]-[topic]
+- Open PR if ready (use checklist from COLLABORATION.md)
+
+✅ DEFINITION OF DONE:
+
+Your work is NOT done until:
+1. Your acceptance tests pass (find yours in AGENT_ASSIGNMENTS.md)
+2. TypeScript compiles (npm run type-check)
+3. ESLint passes (npm run lint)
+4. Tests pass (npm test)
+5. PR merged
+6. TODO_BOARD.md updated
+
+❓ NEED HELP?
+
+- Post [HELP] in TODO_BOARD.md
+- PM (George) responds within 1 hour
+- Reference docs above
+
+🎯 YOUR SUCCESS = ALL YOUR ACCEPTANCE TESTS PASSING
+
+Let's build something amazing! 🚀
+
+======================================================================

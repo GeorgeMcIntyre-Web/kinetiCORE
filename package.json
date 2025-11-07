@@ -41,7 +41,7 @@
     "@babylonjs/addons": "^8.30.4",
     "@babylonjs/core": "^8.30.4",
     "@babylonjs/gui": "^8.30.4",
-    "@babylonjs/inspector": "^8.34.0",
+    "@babylonjs/inspector": "8.30.4",
     "@babylonjs/loaders": "^8.30.4",
     "@babylonjs/materials": "^8.30.4",
     "@babylonjs/serializers": "^8.30.4",
@@ -56,6 +56,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "icpts": "^0.6.0",
+    "jspdf": "^3.0.3",
     "jszip": "^3.10.1",
     "lucide-react": "^0.544.0",
     "manifold-3d": "^3.2.1",
@@ -68,6 +69,7 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^14.3.1",
     "@testing-library/user-event": "^14.6.1",

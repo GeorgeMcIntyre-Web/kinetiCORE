@@ -1,0 +1,204 @@
+/* Route Warnings Panel Styles */
+/* Owner: Routing System Team (Agent 3) */
+
+.route-warnings-panel {
+  position: fixed;
+  top: 104px; /* Below header (48px) + ribbon (56px) */
+  left: 0;
+  right: 0;
+  z-index: 198; /* Below header/ribbon, above content */
+  background: rgba(26, 26, 26, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 2px solid rgba(255, 193, 7, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  color: #e0e0e0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  /* Ensure it doesn't affect document flow - overlay only */
+  pointer-events: auto;
+  /* Prevent affecting layout calculations */
+  margin: 0;
+  padding: 0;
+  /* Remove from document flow completely */
+  position: fixed !important;
+}
+
+.warnings-header {
+  padding: 8px 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.warnings-header:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.warnings-header.error {
+  border-bottom-color: rgba(244, 67, 54, 0.5);
+}
+
+.warnings-header.warning {
+  border-bottom-color: rgba(255, 193, 7, 0.5);
+}
+
+.warnings-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.error-count {
+  color: #f44336;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.warning-count {
+  color: #ffc107;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.expand-icon {
+  margin-left: auto;
+  font-size: 12px;
+  color: #999;
+  transition: transform 0.2s;
+}
+
+.warnings-header[aria-expanded='true'] .expand-icon {
+  transform: rotate(90deg);
+}
+
+.warnings-content {
+  max-height: 400px;
+  overflow-y: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(20, 20, 20, 0.9);
+}
+
+.warnings-list {
+  padding: 8px;
+}
+
+.violation-item {
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  border-left: 3px solid;
+  background: rgba(255, 255, 255, 0.02);
+  transition: background 0.2s;
+}
+
+.violation-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.violation-item.error {
+  border-left-color: #f44336;
+}
+
+.violation-item.warning {
+  border-left-color: #ffc107;
+}
+
+.violation-item.info {
+  border-left-color: #2196f3;
+}
+
+.violation-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.violation-icon {
+  font-size: 16px;
+}
+
+.violation-item.error .violation-icon {
+  color: #f44336;
+}
+
+.violation-item.warning .violation-icon {
+  color: #ffc107;
+}
+
+.route-type {
+  color: #00d9ff;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.route-id {
+  color: #999;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+}
+
+.violation-message {
+  font-size: 13px;
+  color: #ccc;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.warnings-actions {
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fix-route-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #00d9ff 0%, #0099cc 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 217, 255, 0.3);
+}
+
+.fix-route-btn:hover {
+  background: linear-gradient(135deg, #00b8e6 0%, #0088bb 100%);
+  box-shadow: 0 4px 8px rgba(0, 217, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.fix-route-btn:active {
+  transform: translateY(0);
+}
+
+/* Scrollbar styling */
+.warnings-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.warnings-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.warnings-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.warnings-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+

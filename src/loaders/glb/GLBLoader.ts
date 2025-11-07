@@ -616,7 +616,7 @@ export class GLBLoader {
 
       // Strategy: Build a parent-child map to find nodes at the top level
       const nodesByParent = new Map<string, BABYLON.TransformNode[]>();
-      let globalRootNodes: BABYLON.TransformNode[] = [];
+      const globalRootNodes: BABYLON.TransformNode[] = [];
 
       result.transformNodes.forEach((node) => {
         if (!node.parent) {
@@ -720,7 +720,7 @@ export class GLBLoader {
 
       // CRITICAL FIX: Find actual root nodes (same logic as ImportMeshAsync)
       const nodesByParent = new Map<string, BABYLON.TransformNode[]>();
-      let globalRootNodes: BABYLON.TransformNode[] = [];
+      const globalRootNodes: BABYLON.TransformNode[] = [];
 
       result.transformNodes.forEach((node) => {
         if (!node.parent) {
@@ -979,6 +979,7 @@ export const loadGLB = async (file: File, scene: Scene): Promise<GLBLoadResult> 
  */
 export function setManualUpAxis(fileKey: string, axis: 'Y' | 'Z'): void {
   // Access the cache from upAxis module
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { decisionCache } = require('./upAxis');
   decisionCache.set(fileKey, axis);
   console.log(`[GLB Loader] Manual override set: ${fileKey} -> ${axis}-up`);

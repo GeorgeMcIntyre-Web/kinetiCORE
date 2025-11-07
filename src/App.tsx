@@ -98,7 +98,9 @@ const AppContent: React.FC = () => {
   return (
     <>
       <ErrorBoundary fallbackMessage="The layout encountered an error">
-        {renderLayout()}
+        <div className={`layout-container mode-transition ${userLevel}`}>
+          {renderLayout()}
+        </div>
       </ErrorBoundary>
 
       {/* Global UI Components - Always active */}
@@ -133,7 +135,7 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <ThemeProvider defaultTheme="cyan">
-      <UserLevelProvider defaultLevel="essential">
+      <UserLevelProvider defaultLevel="professional">
         <AppContent />
       </UserLevelProvider>
     </ThemeProvider>

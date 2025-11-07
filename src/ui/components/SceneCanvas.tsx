@@ -10,6 +10,7 @@ import { TransformGizmo } from '../../manipulation/TransformGizmo';
 import { useEditorStore } from '../store/editorStore';
 import { useUserLevel } from '../core/UserLevelContext';
 import { CoordinateFrame } from './CoordinateFrame';
+import { RoutingIntegration } from '../../routing/ui/RoutingIntegration';
 import { isZoomableObject, isSelectableObject } from '../../scene/SceneUtils';
 import { performanceMetrics } from '../../core/PerformanceMetrics';
 import { SceneManager } from '../../scene/SceneManager';
@@ -292,6 +293,94 @@ export const SceneCanvas: React.FC = () => {
             // Single-click selection logic
             if (pickResult.hit && pickResult.pickedMesh) {
               const mesh = pickResult.pickedMesh;
+              console.log('[SceneCanvas] 🎯 Mesh clicked:', mesh.name, 'metadata:', mesh.metadata);
+
+              // Check if this is a connection point sphere
+              if (mesh.metadata && mesh.metadata.isConnectionPoint && mesh.metadata.connectionPointId) {
+                console.log('[SceneCanvas] 🔵 Connection point clicked:', mesh.metadata.connectionPointId);
+
+                // Connection point click - handle route creation workflow
+                import('../../routing/ui/RoutingWorkflowHandler').then(({ RoutingWorkflowHandler }) => {
+                  import('../../routing/commands/GenerateRouteGeometryCommand').then(({ GenerateRouteGeometryCommand }) => {
+                    import('../../ui/store/routingStore').then(async ({ useRoutingStore }) => {
+                      const routingStore = useRoutingStore.getState();
+                      const connectorId = mesh.metadata.connectionPointId;
+
+                      // Get current routing mode
+                      const routingMode = routingStore.routingMode;
+                      console.log('[SceneCanvas] Current routing mode:', routingMode);
+
+                      // Only handle clicks if in placement mode or selecting
+                      if (routingMode === 'off') {
+                        // Auto-start selection mode
+                        routingStore.setRoutingMode('selecting_source');
+                        console.log('[SceneCanvas] Auto-started selection mode');
+                      }
+
+                      // Check if we have a source selected
+                      const selectedSource = routingStore.selectedSource;
+                      console.log('[SceneCanvas] Selected source:', selectedSource?.getId() || 'none');
+
+                      if (!selectedSource) {
+                        // First click - select as source
+                        const connectionManager = await import('../../routing/core/ConnectionManager').then(m => m.ConnectionManager.getInstance());
+                        const point = connectionManager.getAllConnectionPoints().find(p => p.getId() === connectorId);
+                        if (point) {
+                          routingStore.selectSource(point);
+                          console.log('[SceneCanvas] ✅ Selected source connection point:', connectorId);
+                        } else {
+                          console.error('[SceneCanvas] ❌ Could not find connection point:', connectorId);
+                        }
+                      } else if (selectedSource.getId() === connectorId) {
+                        // Clicking the same point - deselect
+                        routingStore.clearSelection();
+                        console.log('[SceneCanvas] ⚪ Deselected connection point');
+                      } else {
+                        // Second click - create route
+                        console.log('[SceneCanvas] 🚀 Creating route from', selectedSource.getId(), 'to', connectorId);
+
+                        const routeId = await RoutingWorkflowHandler.createRouteBetweenPoints(selectedSource.getId(), connectorId);
+                        console.log('[SceneCanvas] Route creation result:', routeId || 'FAILED');
+
+                        if (routeId) {
+                          console.log('[SceneCanvas] ⚙️ Generating geometry for route:', routeId);
+                          const cmdManager = useEditorStore.getState().commandManager;
+                          const genCmd = new GenerateRouteGeometryCommand(routeId);
+                          console.log('[SceneCanvas] Executing GenerateRouteGeometryCommand...');
+                          cmdManager.execute(genCmd);
+                          console.log('[SceneCanvas] ✅ Command executed');
+
+                          // Clear selection
+                          routingStore.clearSelection();
+                        } else {
+                          console.error('[SceneCanvas] ❌ Failed to create route');
+                        }
+                      }
+                    });
+                  });
+                });
+                return; // Don't process as regular selection
+              }
+
+              // Check if this is a route mesh (has routeId in metadata)
+              if (mesh.metadata && mesh.metadata.isRoute && mesh.metadata.routeId) {
+                // Route selection - handle separately
+                import('../../ui/store/routingStore').then(({ useRoutingStore }) => {
+                  const routingStore = useRoutingStore.getState();
+                  const activeRoutes = routingStore.activeRoutes;
+                  const route = activeRoutes.find((r) => r.getId() === mesh.metadata.routeId);
+
+                  if (route) {
+                    // Select the route in routing store
+                    routingStore.selectRoute(route);
+                    // Also select the mesh for visual feedback
+                    if (mesh instanceof BABYLON.Mesh) {
+                      selectMesh(mesh);
+                    }
+                  }
+                });
+                return; // Don't process as regular selection
+              }
 
               // Check if mesh is selectable (using centralized filtering from SceneUtils.ts)
               if (mesh instanceof BABYLON.Mesh && isSelectableObject(mesh)) {
@@ -685,32 +774,13 @@ export const SceneCanvas: React.FC = () => {
     };
   }, [selectedNodeIds, selectedMeshes, clearHoverHighlight]);
 
-  // Position canvas to overlay the active viewport div
+  // Handle canvas resize when container changes
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // Determine viewport ID based on user level
-    const viewportId = `viewport-${userLevel}`;
-
-    const updatePosition = () => {
-      const viewportElement = document.getElementById(viewportId);
-      if (!viewportElement) {
-        // Hide canvas if viewport not found
-        container.style.display = 'none';
-        return;
-      }
-
-      const rect = viewportElement.getBoundingClientRect();
-      container.style.display = 'block';
-      container.style.position = 'fixed';
-      container.style.top = `${rect.top}px`;
-      container.style.left = `${rect.left}px`;
-      container.style.width = `${rect.width}px`;
-      container.style.height = `${rect.height}px`;
-      container.style.pointerEvents = 'none';
-
-      // Trigger engine resize to match new dimensions
+    const updateSize = () => {
+      // Trigger engine resize to match container dimensions
       const sceneManager = SceneManager.getInstance();
       const engine = sceneManager.getEngine();
       if (engine) {
@@ -718,55 +788,32 @@ export const SceneCanvas: React.FC = () => {
       }
     };
 
-    // Initial positioning
-    updatePosition();
+    // Initial sizing
+    updateSize();
 
     // Watch for window resize
-    window.addEventListener('resize', updatePosition);
+    window.addEventListener('resize', updateSize);
 
-    // Use ResizeObserver to track viewport changes
-    const viewportElement = document.getElementById(viewportId);
-    let resizeObserver: ResizeObserver | null = null;
-
-    if (viewportElement) {
-      resizeObserver = new ResizeObserver(updatePosition);
-      resizeObserver.observe(viewportElement);
-    }
+    // Use ResizeObserver to track container changes
+    const resizeObserver = new ResizeObserver(updateSize);
+    resizeObserver.observe(container);
 
     // Cleanup
     return () => {
-      window.removeEventListener('resize', updatePosition);
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      }
-      
-      // Remove canvas from viewport on cleanup
-      const viewportId = userLevel === 'essential' ? 'viewport-essential' : 
-                        userLevel === 'professional' ? 'viewport-professional' : 
-                        'viewport-expert';
-      const viewportContainer = document.getElementById(viewportId);
-      if (viewportContainer && canvasRef.current) {
-        try {
-          viewportContainer.removeChild(canvasRef.current);
-        } catch (e) {
-          // Canvas might already be removed
-        }
-      }
+      window.removeEventListener('resize', updateSize);
+      resizeObserver.disconnect();
     };
-  }, [userLevel]);
+  }, []);
 
 
   return (
     <div
       ref={containerRef}
       style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 30,
-        pointerEvents: 'none',
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'auto',
       }}
     >
       <canvas
@@ -801,6 +848,9 @@ export const SceneCanvas: React.FC = () => {
       {camera && showCoordinateOverlay && (
         <CoordinateFrame camera={camera as BABYLON.ArcRotateCamera} />
       )}
+
+      {/* Routing Integration - Professional+ only */}
+      {userLevel !== 'essential' && <RoutingIntegration />}
     </div>
   );
 };

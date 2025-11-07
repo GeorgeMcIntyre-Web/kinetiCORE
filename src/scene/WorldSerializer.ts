@@ -7,9 +7,19 @@ import { SceneTreeManager } from './SceneTreeManager';
 import { SceneManager } from './SceneManager';
 import { EntityRegistry } from '../entities/EntityRegistry';
 import { userToBabylon } from '../core/CoordinateSystem';
-import { AssetReference } from '../core/types';
+import { AssetReference, Vector3 } from '../core/types';
 import { toast } from '../ui/components/ToastNotifications';
 import type { SceneNode } from './SceneTreeNode';
+import { ConnectionManager } from '../routing/core/ConnectionManager';
+import { useRoutingStore } from '../ui/store/routingStore';
+import { Route } from '../routing/core/Route';
+import type {
+  ConnectionSpecifications,
+  Route as RouteModel,
+  RouteConstraints,
+  RouteSegment,
+  SupportPoint,
+} from '../routing/core/types';
 
 export interface WorldData {
   version: string;
@@ -17,6 +27,7 @@ export interface WorldData {
   tree: {
     nodes: Array<SceneNode>;
   };
+  routing?: SerializedRoutingState;
 }
 
 export interface BabylonWorldData {
@@ -24,6 +35,62 @@ export interface BabylonWorldData {
   timestamp: number;
   babylonScene: any; // Babylon scene serialization
   metadata: WorldData; // kinetiCORE metadata
+}
+
+export type SerializedVector3 = [number, number, number];
+
+export interface SerializedConnector {
+  id: string;
+  type: RouteModel['type'];
+  position: SerializedVector3;
+  direction: SerializedVector3;
+  specifications: ConnectionSpecifications;
+  parentObject?: string;
+}
+
+export interface SerializedSegment {
+  id: string;
+  startPoint: SerializedVector3;
+  endPoint: SerializedVector3;
+  segmentType: RouteSegment['segmentType'];
+  bendRadius?: number;
+  length: number;
+}
+
+export interface SerializedSupport {
+  id: string;
+  position: SerializedVector3;
+  type: SupportPoint['type'];
+  specification: string;
+}
+
+export interface SerializedRoute {
+  id: string;
+  type: RouteModel['type'];
+  sourceId: string;
+  destinationId: string;
+  segments: SerializedSegment[];
+  supports: SerializedSupport[];
+  material: RouteModel['material'];
+  constraints: RouteConstraints;
+  generated: boolean;
+}
+
+export interface SerializedRoutingState {
+  version: string;
+  connectors: SerializedConnector[];
+  routes: SerializedRoute[];
+}
+
+const ROUTING_SERIALIZATION_VERSION = '1.0.0';
+
+function vector3ToSerialized(vector: Vector3): SerializedVector3 {
+  return [vector.x, vector.y, vector.z];
+}
+
+function serializedToVector3(tuple: SerializedVector3): Vector3 {
+  const [x, y, z] = tuple;
+  return { x, y, z };
 }
 
 export interface JointData {
@@ -57,12 +124,15 @@ export interface ComprehensiveWorldData {
   version: string;
   timestamp: number;
   format: 'comprehensive';
-  
+
   // Scene structure
   tree: {
     nodes: Array<SceneNode>;
   };
-  
+
+  // Routing system state
+  routing?: SerializedRoutingState;
+
   // Babylon.js scene data
   babylonScene: any;
   
@@ -153,12 +223,38 @@ export function validateWorldData(worldData: ComprehensiveWorldData): { isValid:
         }
       }
     }
-    
+
     if (worldData.assets.materials) {
       for (const material of worldData.assets.materials) {
         if (!material.id || !material.name || !material.type) {
           errors.push('Invalid material data');
         }
+      }
+    }
+  }
+
+  if (worldData.routing) {
+    const connectorIds = new Set<string>();
+    for (const connector of worldData.routing.connectors) {
+      if (!connector.id) {
+        errors.push('Routing connector missing ID');
+        continue;
+      }
+      if (connectorIds.has(connector.id)) {
+        errors.push(`Duplicate routing connector ID: ${connector.id}`);
+      }
+      connectorIds.add(connector.id);
+    }
+
+    for (const route of worldData.routing.routes) {
+      if (!route.id) {
+        errors.push('Routing route missing ID');
+      }
+      if (route.sourceId && !connectorIds.has(route.sourceId)) {
+        errors.push(`Route ${route.id} references unknown source connector ${route.sourceId}`);
+      }
+      if (route.destinationId && !connectorIds.has(route.destinationId)) {
+        errors.push(`Route ${route.id} references unknown destination connector ${route.destinationId}`);
       }
     }
   }
@@ -268,11 +364,163 @@ export interface KinematicChainData {
 }
 
 /**
+ * Serialize routing system state (connection points and routes)
+ */
+export function serializeRoutingState(): SerializedRoutingState | undefined {
+  const connectionManager = ConnectionManager.getInstance();
+  const connectors = connectionManager.getAllConnectionPoints();
+  const routes = useRoutingStore.getState().activeRoutes;
+
+  if (connectors.length === 0 && routes.length === 0) {
+    return undefined;
+  }
+
+  const serializedConnectors: SerializedConnector[] = connectors.map((connector) => ({
+    id: connector.getId(),
+    type: connector.getType(),
+    position: vector3ToSerialized(connector.getPosition()),
+    direction: vector3ToSerialized(connector.getDirection()),
+    specifications: { ...connector.specifications },
+    parentObject: connector.parentObject,
+  }));
+
+  const serializedRoutes: SerializedRoute[] = routes.map((route) => ({
+    id: route.getId(),
+    type: route.type,
+    sourceId: route.source.getId(),
+    destinationId: route.destination.getId(),
+    segments: route.segments.map((segment) => ({
+      id: segment.id,
+      startPoint: vector3ToSerialized(segment.startPoint),
+      endPoint: vector3ToSerialized(segment.endPoint),
+      segmentType: segment.segmentType,
+      bendRadius: segment.bendRadius,
+      length: segment.length,
+    })),
+    supports: route.supports.map((support) => ({
+      id: support.id,
+      position: vector3ToSerialized(support.position),
+      type: support.type,
+      specification: support.specification,
+    })),
+    material: {
+      ...route.material,
+      properties: route.material.properties ? { ...route.material.properties } : undefined,
+    },
+    constraints: JSON.parse(JSON.stringify(route.constraints)) as RouteConstraints,
+    generated: route.generated,
+  }));
+
+  return {
+    version: ROUTING_SERIALIZATION_VERSION,
+    connectors: serializedConnectors,
+    routes: serializedRoutes,
+  };
+}
+
+/**
+ * Restore routing state from serialized data
+ */
+export function restoreRoutingState(routing?: SerializedRoutingState | null): void {
+  const connectionManager = ConnectionManager.getInstance();
+  const routingStore = useRoutingStore.getState();
+  const registry = EntityRegistry.getInstance();
+
+  // Clear existing routing data
+  connectionManager.clear();
+  routingStore.clearConnectionPoints();
+  routingStore.clearRoutes();
+  routingStore.clearValidationResults();
+  routingStore.clearSelection();
+  routingStore.selectRoute(null);
+  routingStore.setPreviewRoute(null);
+  routingStore.setRoutingMode('off');
+
+  if (!routing || routing.connectors.length === 0) {
+    return;
+  }
+
+  const connectorMap = new Map<string, ReturnType<typeof connectionManager.addConnectionPoint>>();
+
+  for (const connector of routing.connectors) {
+    const config = {
+      type: connector.type,
+      position: serializedToVector3(connector.position),
+      direction: serializedToVector3(connector.direction),
+      specifications: { ...connector.specifications } as ConnectionSpecifications,
+      parentObject: connector.parentObject,
+    };
+
+    const point = connectionManager.addConnectionPoint(config);
+    connectorMap.set(connector.id, point);
+
+    if (connector.parentObject) {
+      const entity = registry.get(connector.parentObject);
+      entity?.addConnectionPointId(point.getId());
+    }
+
+    routingStore.addConnectionPoint(point);
+  }
+
+  for (const serializedRoute of routing.routes) {
+    const source = connectorMap.get(serializedRoute.sourceId);
+    const destination = connectorMap.get(serializedRoute.destinationId);
+
+    if (!source || !destination) {
+      console.warn(`Skipping route ${serializedRoute.id} - missing connectors`);
+      continue;
+    }
+
+    const segments: RouteSegment[] = serializedRoute.segments.map((segment) => ({
+      id: segment.id,
+      startPoint: serializedToVector3(segment.startPoint),
+      endPoint: serializedToVector3(segment.endPoint),
+      segmentType: segment.segmentType,
+      bendRadius: segment.bendRadius,
+      length: segment.length,
+    }));
+
+    const supports: SupportPoint[] = serializedRoute.supports.map((support) => ({
+      id: support.id,
+      position: serializedToVector3(support.position),
+      type: support.type,
+      specification: support.specification,
+    }));
+
+    const material = {
+      ...serializedRoute.material,
+      properties: serializedRoute.material?.properties
+        ? { ...serializedRoute.material.properties }
+        : undefined,
+    } as RouteModel['material'];
+
+    const constraints = JSON.parse(JSON.stringify(serializedRoute.constraints)) as RouteConstraints;
+
+    const route = Route.createWithType(
+      serializedRoute.id,
+      source,
+      destination,
+      serializedRoute.type,
+      segments,
+      supports,
+      material,
+      constraints
+    );
+    route.generated = serializedRoute.generated;
+
+    routingStore.addRoute(route);
+    connectionManager.createConnection(source.getId(), destination.getId(), route.getId());
+  }
+}
+
+/**
  * Serialize the entire world state to JSON (legacy - metadata only)
  */
 export function serializeWorld(): string {
   const tree = SceneTreeManager.getInstance();
   const allNodes = tree.getAllNodes();
+
+  const routing = serializeRoutingState();
 
   const worldData: WorldData = {
     version: '1.0.0',
@@ -280,6 +528,7 @@ export function serializeWorld(): string {
     tree: {
       nodes: allNodes,
     },
+    routing,
   };
 
   return JSON.stringify(worldData, null, 2);
@@ -314,6 +563,7 @@ export async function serializeComprehensiveWorld(): Promise<string> {
 
   // Collect kinematics data
   const kinematics = await collectKinematicsData(scene, tree);
+  const routing = serializeRoutingState();
 
   // Create comprehensive world data
   const worldData: ComprehensiveWorldData = {
@@ -323,6 +573,7 @@ export async function serializeComprehensiveWorld(): Promise<string> {
     tree: {
       nodes: allNodes,
     },
+    routing,
     babylonScene,
     assets,
     physics,
@@ -1225,7 +1476,15 @@ export function restoreWorldState(worldData: WorldData, isComprehensive: boolean
     }
 
     console.log(`Restored world with ${worldData.tree.nodes.length} nodes`);
-    
+
+    // Restore routing state if available
+    if (worldData.routing) {
+      restoreRoutingState(worldData.routing);
+    } else {
+      // Ensure routing state is cleared if not provided
+      restoreRoutingState(undefined);
+    }
+
     // Notify UI components that the tree has been updated
     // Use setTimeout to ensure the event is dispatched after React has processed the tree changes
     console.log('🔄 Dispatching scenetree-update event to refresh UI...');
@@ -1393,6 +1652,7 @@ export function serializeBabylonWorld(): string {
 export function serializeWorldMetadata(): WorldData {
   const tree = SceneTreeManager.getInstance();
   const allNodes = tree.getAllNodes();
+  const routing = serializeRoutingState();
 
   return {
     version: '1.0.0',
@@ -1400,6 +1660,7 @@ export function serializeWorldMetadata(): WorldData {
     tree: {
       nodes: allNodes,
     },
+    routing,
   };
 }
 

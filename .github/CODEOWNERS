@@ -1,0 +1,19 @@
+# CODEOWNERS
+# Auto-request reviews for routing module and related docs.
+# Replace or extend the owners below with your actual GitHub usernames or teams.
+
+# Default owner (repository maintainer)
+* @GeorgeMcIntyre-Web
+
+# Routing module
+src/routing/** @GeorgeMcIntyre-Web
+src/ui/store/routingStore.ts @GeorgeMcIntyre-Web
+
+# Routing docs and CI
+docs/SMART_ROUTING_*.md @GeorgeMcIntyre-Web
+.github/workflows/ci.yml @GeorgeMcIntyre-Web
+.github/labeler.yml @GeorgeMcIntyre-Web
+
+# You can also add additional owners, e.g.:
+# src/routing/** @routing-owner @core-ui-owner @infra-reviewer
+

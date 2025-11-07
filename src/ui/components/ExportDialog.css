@@ -1,0 +1,213 @@
+/* Export Dialog Styles */
+
+.export-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+
+.export-dialog {
+  background: #2d3748;
+  border-radius: 8px;
+  width: 600px;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  border: 1px solid #4a5568;
+}
+
+.export-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #4a5568;
+}
+
+.export-dialog-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.export-dialog-close {
+  background: transparent;
+  border: none;
+  color: #a0aec0;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.export-dialog-close:hover {
+  background: #4a5568;
+  color: #e2e8f0;
+}
+
+.export-dialog-content {
+  padding: 24px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.export-dialog-description {
+  color: #a0aec0;
+  font-size: 14px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.export-format-grid {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.export-format-card {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.export-format-card:hover {
+  background: rgba(0, 217, 255, 0.05);
+  border-color: rgba(0, 217, 255, 0.3);
+}
+
+.export-format-card.selected {
+  background: rgba(0, 217, 255, 0.1);
+  border-color: var(--kc-accent, #00D9FF);
+  box-shadow: 0 0 12px rgba(0, 217, 255, 0.2);
+}
+
+.export-format-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+}
+
+.format-icon {
+  flex-shrink: 0;
+  color: #999;
+  transition: color 0.2s ease;
+}
+
+.export-format-card.selected .format-icon {
+  color: var(--kc-accent, #00D9FF);
+}
+
+.format-content {
+  flex: 1;
+}
+
+.format-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.format-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.format-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: rgba(0, 217, 255, 0.2);
+  color: var(--kc-accent, #00D9FF);
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.format-description {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #999;
+}
+
+.format-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #666;
+}
+
+.format-size::before {
+  content: '📦 ';
+}
+
+.format-ext {
+  color: #888;
+  font-family: 'Courier New', monospace;
+}
+
+.export-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid #4a5568;
+}
+
+.export-dialog-cancel,
+.export-dialog-export {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.export-dialog-cancel {
+  background: transparent;
+  border: 1px solid #4a5568;
+  color: #a0aec0;
+}
+
+.export-dialog-cancel:hover {
+  background: #4a5568;
+  color: #e2e8f0;
+}
+
+.export-dialog-export {
+  background: var(--kc-accent, #00D9FF);
+  border: none;
+  color: #001a1a;
+}
+
+.export-dialog-export:hover {
+  filter: brightness(1.05);
+}
+
+.export-dialog-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
