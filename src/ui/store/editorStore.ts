@@ -3426,7 +3426,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
   },
 
   handlePointPick: (pickInfo) => {
-    const { pointPickMode, pointPickMarkers, pointPickFrameWidgets } = get();
+    const { pointPickMode } = get();
 
     // Debug: Log what we're picking
     console.log('[PointPick Debug] Hit:', pickInfo.hit);
@@ -3437,203 +3437,18 @@ export const useEditorStore = create<EditorState>((set, get) => {
       return;
     }
 
-    const mesh = pickInfo.pickedMesh as BABYLON.Mesh;
-    const pickPoint = pickInfo.pickedPoint;
-
-    const sceneManager = SceneManager.getInstance();
-    const scene = sceneManager.getScene();
-    if (!scene) return;
-
-    // Calculate normal from face data (more reliable than pickInfo.getNormal())
-    const faceId = pickInfo.faceId;
-
-    let pickNormal: BABYLON.Vector3;
-
-    if (faceId >= 0) {
-      // Get the face normal from mesh vertex data
-      const indices = mesh.getIndices();
-      const normals = mesh.getVerticesData(BABYLON.VertexBuffer.NormalKind);
-
-      if (indices && normals && faceId * 3 + 2 < indices.length) {
-        const i0 = indices[faceId * 3];
-        const i1 = indices[faceId * 3 + 1];
-        const i2 = indices[faceId * 3 + 2];
-
-        const n0 = new BABYLON.Vector3(normals[i0 * 3], normals[i0 * 3 + 1], normals[i0 * 3 + 2]);
-        const n1 = new BABYLON.Vector3(normals[i1 * 3], normals[i1 * 3 + 1], normals[i1 * 3 + 2]);
-        const n2 = new BABYLON.Vector3(normals[i2 * 3], normals[i2 * 3 + 1], normals[i2 * 3 + 2]);
-
-        // Average of vertex normals
-        const avgNormal = n0.add(n1).add(n2).scale(1 / 3);
-
-        // Transform to world space
-        const worldMatrix = mesh.computeWorldMatrix(true);
-        pickNormal = BABYLON.Vector3.TransformNormal(avgNormal, worldMatrix).normalize();
-      } else {
-        return;
-      }
-    } else {
-      return;
-    }
-
-    try {
-      // Clear any existing point pick markers/frames (only show one at a time)
-      pointPickMarkers.forEach(marker => marker.dispose());
-      pointPickFrameWidgets.forEach(widget => widget.dispose());
-
-      // Calculate adaptive frame size based on camera distance
-      const camera = scene.activeCamera;
-      let frameSize = 0.2; // Default size in meters
-
-      if (camera) {
-        const cameraPosition = camera.position;
-        const distanceToPoint = BABYLON.Vector3.Distance(cameraPosition, pickPoint);
-
-        // Adaptive size: frame appears ~10% of screen regardless of zoom
-        // Size increases with distance from camera
-        frameSize = distanceToPoint * 0.1;
-
-        // Clamp size to reasonable limits
-        const MIN_SIZE = 0.05;  // Minimum 5cm
-        const MAX_SIZE = 2.0;   // Maximum 2m
-        frameSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, frameSize));
-      }
-
-      // Create coordinate frame widget at picked point (no sphere marker)
-      const frameWidget = new CoordinateFrameWidget(scene);
-
-      // Calculate coordinate frame aligned with surface normal
-      // Z-axis = surface normal
-      const zAxis = pickNormal.normalize();
-
-      // X-axis = perpendicular to normal (choose arbitrary but consistent direction)
-      let xAxis: BABYLON.Vector3;
-      if (Math.abs(zAxis.x) < 0.9) {
-        xAxis = BABYLON.Vector3.Cross(zAxis, BABYLON.Vector3.Right()).normalize();
-      } else {
-        xAxis = BABYLON.Vector3.Cross(zAxis, BABYLON.Vector3.Up()).normalize();
-      }
-
-      // Y-axis = perpendicular to both
-      const yAxis = BABYLON.Vector3.Cross(zAxis, xAxis).normalize();
-
-      // Create custom frame feature
-      const userOrigin = babylonToUser(pickPoint);
-
-      const frame: CustomFrameFeature = {
-        featureType: 'face',
-        nodeId: mesh.uniqueId.toString(),
-        origin: userOrigin,
-        xAxis: { x: xAxis.x, y: xAxis.y, z: xAxis.z },
-        yAxis: { x: yAxis.x, y: yAxis.y, z: yAxis.z },
-        zAxis: { x: zAxis.x, y: zAxis.y, z: zAxis.z },
-      };
-
-      // Create frame at fixed base size, then scale it
-      const BASE_SIZE = 0.1; // Fixed base size for frame creation
-      frameWidget.show(frame, BASE_SIZE);
-
-      // Calculate and apply initial scale based on camera distance
-      const initialScale = frameSize / BASE_SIZE;
-      frameWidget.setScale(initialScale);
-
-      // Store the frame widget and data for dynamic updates
-      set({
-        pointPickMarkers: [], // No sphere markers
-        pointPickFrameWidgets: [frameWidget], // Only one frame widget
-        pointPickFrameData: { pickPoint, frame, baseSize: BASE_SIZE }, // Store for dynamic size updates
-      });
-    } catch (error) {
-      // Silently fail
-    }
+    // Point pick now only shows the targeting widget (handled in SceneCanvas.tsx)
+    // Frame creation has been removed - targeting widget provides visual feedback
+    console.log('[PointPick] Pick registered at:', pickInfo.pickedPoint);
   },
 
   // Object origin frame actions
   showObjectOriginFrame: (node: BABYLON.Mesh | BABYLON.TransformNode) => {
-    console.log('[ObjectOriginFrame] Showing frame for node:', node.name);
+    console.log('[ObjectOriginFrame] Frame display disabled - using targeting widget instead');
+    console.log('[ObjectOriginFrame] Node:', node.name);
 
-    const sceneManager = SceneManager.getInstance();
-    const scene = sceneManager.getScene();
-    if (!scene) {
-      console.warn('[ObjectOriginFrame] No scene available');
-      return;
-    }
-
-    // Clear any existing object origin frame
-    const { objectOriginFrameWidget } = get();
-    if (objectOriginFrameWidget) {
-      console.log('[ObjectOriginFrame] Disposing existing frame');
-      objectOriginFrameWidget.dispose();
-    }
-
-    try {
-      // Get the object's world position (origin)
-      const originPoint = node.getAbsolutePosition();
-      console.log('[ObjectOriginFrame] Origin point:', originPoint);
-
-      // Calculate adaptive frame size based on camera distance
-      const camera = scene.activeCamera;
-      let frameSize = 0.2; // Default size in meters
-
-      if (camera) {
-        const cameraPosition = camera.position;
-        const distanceToPoint = BABYLON.Vector3.Distance(cameraPosition, originPoint);
-
-        // Adaptive size: frame appears ~10% of screen regardless of zoom
-        frameSize = distanceToPoint * 0.1;
-
-        // Clamp size to reasonable limits
-        const MIN_SIZE = 0.05;  // Minimum 5cm
-        const MAX_SIZE = 2.0;   // Maximum 2m
-        frameSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, frameSize));
-      }
-
-      // Create coordinate frame widget at object origin
-      const frameWidget = new CoordinateFrameWidget(scene);
-
-      // Use object's world orientation for the frame axes
-      const worldMatrix = node.computeWorldMatrix(true);
-      const rotation = new BABYLON.Quaternion();
-      worldMatrix.decompose(undefined, rotation, undefined);
-      const rotationMatrix = new BABYLON.Matrix();
-      rotation.toRotationMatrix(rotationMatrix);
-
-      // Extract axes from rotation matrix
-      const xAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Right(), rotationMatrix).normalize();
-      const yAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Up(), rotationMatrix).normalize();
-      const zAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Forward(), rotationMatrix).normalize();
-
-      // Create custom frame feature
-      const userOrigin = babylonToUser(originPoint);
-
-      const frame: CustomFrameFeature = {
-        featureType: 'object',
-        nodeId: node.uniqueId.toString(),
-        origin: userOrigin,
-        xAxis: { x: xAxis.x, y: xAxis.y, z: xAxis.z },
-        yAxis: { x: yAxis.x, y: yAxis.y, z: yAxis.z },
-        zAxis: { x: zAxis.x, y: zAxis.y, z: zAxis.z },
-      };
-
-      // Create frame at fixed base size, then scale it
-      const BASE_SIZE = 0.1; // Fixed base size for frame creation
-      frameWidget.show(frame, BASE_SIZE);
-
-      // Calculate and apply initial scale based on camera distance
-      const initialScale = frameSize / BASE_SIZE;
-      frameWidget.setScale(initialScale);
-
-      console.log('[ObjectOriginFrame] Frame created successfully');
-      console.log('[ObjectOriginFrame] Frame size:', frameSize, 'Initial scale:', initialScale);
-
-      // Store the frame widget and data for dynamic updates
-      set({
-        objectOriginFrameWidget: frameWidget,
-        objectOriginFrameData: { originPoint, frame, baseSize: BASE_SIZE },
-      });
-    } catch (error) {
-      console.error('[ObjectOriginFrame] Error creating frame:', error);
-    }
+    // Object origin frames have been replaced by the targeting widget
+    // No frame is created - visual feedback is provided by targeting widget in SceneCanvas.tsx
   },
 
   clearObjectOriginFrame: () => {

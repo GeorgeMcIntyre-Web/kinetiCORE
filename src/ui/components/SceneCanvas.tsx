@@ -561,50 +561,11 @@ export const SceneCanvas: React.FC = () => {
             performanceMetrics.recordMemory();
           }
 
-          // Update point pick frame scale dynamically based on camera distance
-          const state = useEditorStore.getState();
-          if (state.pointPickMode && state.pointPickFrameData && state.pointPickFrameWidgets.length > 0) {
-            const { pickPoint, baseSize } = state.pointPickFrameData;
-            const frameWidget = state.pointPickFrameWidgets[0];
-            const camera = scene.activeCamera;
-
-            if (camera) {
-              const distanceToPoint = BABYLON.Vector3.Distance(camera.position, pickPoint);
-
-              // Calculate desired frame size
-              let frameSize = distanceToPoint * 0.1;
-              const MIN_SIZE = 0.05;
-              const MAX_SIZE = 2.0;
-              frameSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, frameSize));
-
-              // Calculate scale relative to base size and apply it
-              const scale = frameSize / baseSize;
-              frameWidget.setScale(scale);
-            }
-          }
-
-          // Update object origin frame scale dynamically based on camera distance
-          if (state.objectOriginFrameData && state.objectOriginFrameWidget) {
-            const { originPoint, baseSize } = state.objectOriginFrameData;
-            const frameWidget = state.objectOriginFrameWidget;
-            const camera = scene.activeCamera;
-
-            if (camera) {
-              const distanceToPoint = BABYLON.Vector3.Distance(camera.position, originPoint);
-
-              // Calculate desired frame size
-              let frameSize = distanceToPoint * 0.1;
-              const MIN_SIZE = 0.05;
-              const MAX_SIZE = 2.0;
-              frameSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, frameSize));
-
-              // Calculate scale relative to base size and apply it
-              const scale = frameSize / baseSize;
-              frameWidget.setScale(scale);
-            }
-          }
+          // Point pick and object origin frame widgets have been removed
+          // Visual feedback is now provided by the targeting widget
 
           // Update permanent frames scale dynamically - all frames use same scale
+          const state = useEditorStore.getState();
           if (state.permanentFrames && state.permanentFrames.length > 0) {
             const camera = scene.activeCamera;
             if (camera) {
