@@ -2,24 +2,11 @@
 // Styled to match Quick Move dialog
 
 import { useEffect, useRef, useState } from 'react';
-import { X, Crosshair, GripVertical } from 'lucide-react';
+import { X, Crosshair, GripVertical, MousePointer } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { XNumericInput, YNumericInput, ZNumericInput } from './NumericInput';
 import './MoveObjectDialog.css';
-
-const SNAP_OPTIONS: Array<{
-  value: 'grid' | 'vertex' | 'edge' | 'surface' | 'object' | 'component' | 'mesh';
-  label: string;
-}> = [
-  { value: 'grid', label: 'Grid' },
-  { value: 'vertex', label: 'Vertex' },
-  { value: 'edge', label: 'Edge' },
-  { value: 'surface', label: 'Surface' },
-  { value: 'object', label: 'Object' },
-  { value: 'component', label: 'Component' },
-  { value: 'mesh', label: 'Mesh' },
-];
 
 interface SnapSettingsDialogProps {
   isOpen: boolean;
@@ -32,13 +19,13 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
 
-  const snapMode = useEditorStore((state) => state.snapMode);
   const snapFromPoint = useEditorStore((state) => state.snapFromPoint);
   const snapToPoint = useEditorStore((state) => state.snapToPoint);
+  const isPickingSnapPoint = useEditorStore((state) => state.isPickingSnapPoint);
+  const setIsPickingSnapPoint = useEditorStore((state) => state.setIsPickingSnapPoint);
   const applySnapSettings = useEditorStore((state) => state.applySnapSettings);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
 
-  const [mode, setMode] = useState<typeof SNAP_OPTIONS[number]['value']>('grid');
   const [from, setFrom] = useState({ x: 0, y: 0, z: 0 });
   const [to, setTo] = useState({ x: 0, y: 0, z: 0 });
   const [objectName, setObjectName] = useState<string>('None Selected');
@@ -56,7 +43,6 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
   // Populate local state from store when dialog opens
   useEffect(() => {
     if (isOpen) {
-      setMode(snapMode);
       setFrom(snapFromPoint);
       setTo(snapToPoint);
 
@@ -68,7 +54,7 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
         setObjectName('None Selected');
       }
     }
-  }, [isOpen, snapMode, snapFromPoint, snapToPoint, selectedNodeId]);
+  }, [isOpen, snapFromPoint, snapToPoint, selectedNodeId]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.move-dialog-drag-handle') && dialogPosition) {
@@ -110,16 +96,26 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
   }
 
   const handleCancel = () => {
+    setIsPickingSnapPoint(null);
     onClose();
   };
 
   const handleApply = () => {
     applySnapSettings({
-      mode,
+      mode: 'point-to-point',
       from,
       to,
     });
+    setIsPickingSnapPoint(null);
     onClose();
+  };
+
+  const handlePickFromPoint = () => {
+    setIsPickingSnapPoint('from');
+  };
+
+  const handlePickToPoint = () => {
+    setIsPickingSnapPoint('to');
   };
 
   return (
@@ -150,9 +146,7 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
       <div className="move-dialog-content">
         <div className="move-section">
           <label className="move-section-label">Snapping Mode</label>
-          <select
-            value={mode}
-            onChange={(event) => setMode(event.target.value as typeof mode)}
+          <div
             style={{
               width: '100%',
               background: 'rgba(37,37,38,0.8)',
@@ -161,15 +155,10 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
               borderRadius: '4px',
               padding: '6px 8px',
               fontSize: '12px',
-              appearance: 'none',
             }}
           >
-            {SNAP_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+            Point to Point
+          </div>
         </div>
 
         <div className="move-section">
@@ -191,7 +180,28 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
         </div>
 
         <div className="move-section">
-          <label className="move-section-label">Snap From (mm)</label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+            <label className="move-section-label" style={{ marginBottom: 0 }}>Snap From (mm)</label>
+            <button
+              onClick={handlePickFromPoint}
+              style={{
+                background: isPickingSnapPoint === 'from' ? 'rgba(98, 104, 255, 0.6)' : 'rgba(98, 104, 255, 0.3)',
+                color: '#fff',
+                border: '1px solid rgba(98, 104, 255, 0.6)',
+                borderRadius: '4px',
+                padding: '4px 8px',
+                fontSize: '10px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+              title="Click to pick a point in the scene"
+            >
+              <MousePointer size={12} />
+              {isPickingSnapPoint === 'from' ? 'Picking...' : 'Pick Point'}
+            </button>
+          </div>
           <div className="move-values-row">
             <XNumericInput value={from.x} onChange={(val) => setFrom({ ...from, x: val })} precision={2} />
             <YNumericInput value={from.y} onChange={(val) => setFrom({ ...from, y: val })} precision={2} />
@@ -200,7 +210,28 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
         </div>
 
         <div className="move-section">
-          <label className="move-section-label">Snap To (mm)</label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+            <label className="move-section-label" style={{ marginBottom: 0 }}>Snap To (mm)</label>
+            <button
+              onClick={handlePickToPoint}
+              style={{
+                background: isPickingSnapPoint === 'to' ? 'rgba(98, 104, 255, 0.6)' : 'rgba(98, 104, 255, 0.3)',
+                color: '#fff',
+                border: '1px solid rgba(98, 104, 255, 0.6)',
+                borderRadius: '4px',
+                padding: '4px 8px',
+                fontSize: '10px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+              title="Click to pick a point in the scene"
+            >
+              <MousePointer size={12} />
+              {isPickingSnapPoint === 'to' ? 'Picking...' : 'Pick Point'}
+            </button>
+          </div>
           <div className="move-values-row">
             <XNumericInput value={to.x} onChange={(val) => setTo({ ...to, x: val })} precision={2} />
             <YNumericInput value={to.y} onChange={(val) => setTo({ ...to, y: val })} precision={2} />

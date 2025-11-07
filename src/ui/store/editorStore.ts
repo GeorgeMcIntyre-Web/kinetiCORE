@@ -35,7 +35,7 @@ import { ProjectWorldLoader } from '../../project/ProjectWorldLoader';
 import type { Project, ProjectSave, AssetInstance } from '../../project/types';
 
 type ObjectType = 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'plane' | 'ground' | 'capsule' | 'disc' | 'torusknot' | 'polyhedron';
-type SnapMode = 'grid' | 'vertex' | 'edge' | 'surface' | 'object' | 'component' | 'mesh';
+type SnapMode = 'point-to-point';
 
 interface SnapPoint {
   x: number;
@@ -101,9 +101,11 @@ interface EditorState {
   snapMode: SnapMode;
   snapFromPoint: SnapPoint;
   snapToPoint: SnapPoint;
+  isPickingSnapPoint: 'from' | 'to' | null; // Track which point is being picked
   setSnapMode: (mode: SnapMode) => void;
   setSnapFromPoint: (point: SnapPoint) => void;
   setSnapToPoint: (point: SnapPoint) => void;
+  setIsPickingSnapPoint: (mode: 'from' | 'to' | null) => void;
   applySnapSettings: (settings: { mode?: SnapMode; from?: SnapPoint; to?: SnapPoint }) => void;
 
   // Project Management Methods
@@ -497,14 +499,16 @@ export const useEditorStore = create<EditorState>((set, get) => {
   setSelectionLevel: (level) => set({ selectionLevel: level }),
 
   // Snap dialog defaults
-  snapMode: 'grid',
+  snapMode: 'point-to-point',
   snapFromPoint: { x: 0, y: 0, z: 0 },
   snapToPoint: { x: 0, y: 0, z: 0 },
+  isPickingSnapPoint: null,
   setSnapMode: (mode) => set({ snapMode: mode }),
   setSnapFromPoint: (point) => set({ snapFromPoint: point }),
   setSnapToPoint: (point) => set({ snapToPoint: point }),
+  setIsPickingSnapPoint: (mode) => set({ isPickingSnapPoint: mode }),
   applySnapSettings: (settings) => {
-    const { snapMode, snapFromPoint, snapToPoint } = get();
+    const { snapMode, snapFromPoint, snapToPoint, selectedMeshes } = get();
     const nextMode = settings.mode ?? snapMode;
     const nextFrom = settings.from ?? snapFromPoint;
     const nextTo = settings.to ?? snapToPoint;
@@ -515,7 +519,24 @@ export const useEditorStore = create<EditorState>((set, get) => {
       snapToPoint: nextTo,
     });
 
-    toast.success('Snap settings updated');
+    // Apply point-to-point transformation if both points are set and object is selected
+    if (selectedMeshes.length > 0 && nextMode === 'point-to-point') {
+      const mesh = selectedMeshes[0];
+
+      // Convert from user coordinates (mm) to Babylon (meters, Y-up)
+      const fromPointBabylon = userToBabylon(new BABYLON.Vector3(nextFrom.x, nextFrom.y, nextFrom.z));
+      const toPointBabylon = userToBabylon(new BABYLON.Vector3(nextTo.x, nextTo.y, nextTo.z));
+
+      // Calculate translation vector
+      const translation = toPointBabylon.subtract(fromPointBabylon);
+
+      // Apply translation to mesh
+      mesh.position.addInPlace(translation);
+
+      toast.success('Object snapped from point to point');
+    } else {
+      toast.success('Snap settings updated');
+    }
   },
   
   // File system state defaults

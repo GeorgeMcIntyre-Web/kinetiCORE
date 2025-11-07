@@ -14,6 +14,7 @@ import { RoutingIntegration } from '../../routing/ui/RoutingIntegration';
 import { isZoomableObject, isSelectableObject } from '../../scene/SceneUtils';
 import { performanceMetrics } from '../../core/PerformanceMetrics';
 import { SceneManager } from '../../scene/SceneManager';
+import { babylonToUser } from '../../core/CoordinateSystem';
 
 export const SceneCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -268,6 +269,43 @@ export const SceneCanvas: React.FC = () => {
         scene.onPointerDown = (evt, pickResult) => {
           if (evt.button === 0) {
             clearHoverHighlight();
+
+            // Handle snap point picking (if enabled) - takes priority over normal selection
+            const isPickingSnapPoint = useEditorStore.getState().isPickingSnapPoint;
+            if (isPickingSnapPoint) {
+              // Do a custom pick for snap point picking that includes ALL meshes
+              const snapPickResult = scene.pick(scene.pointerX, scene.pointerY, (mesh) => {
+                return mesh.isVisible && mesh.isEnabled() && mesh.isPickable;
+              });
+
+              if (snapPickResult.hit && snapPickResult.pickedPoint) {
+                // Show targeting widget for visual feedback
+                sceneManager.showTargetingWidget(
+                  snapPickResult.pickedPoint,
+                  snapPickResult.getNormal(true) || undefined
+                );
+
+                // Convert picked point to user coordinates (mm)
+                const userCoords = babylonToUser(snapPickResult.pickedPoint);
+                const snapPoint = {
+                  x: userCoords.x,
+                  y: userCoords.y,
+                  z: userCoords.z
+                };
+
+                // Update the appropriate snap point
+                if (isPickingSnapPoint === 'from') {
+                  useEditorStore.getState().setSnapFromPoint(snapPoint);
+                } else {
+                  useEditorStore.getState().setSnapToPoint(snapPoint);
+                }
+
+                // Exit picking mode
+                useEditorStore.getState().setIsPickingSnapPoint(null);
+              }
+
+              return; // Don't process as normal selection
+            }
 
             // Handle point pick (if enabled) - runs alongside normal selection
             const currentPointPickMode = useEditorStore.getState().pointPickMode;
