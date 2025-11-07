@@ -667,7 +667,7 @@ export class WarehouseModel {
     const material = new BABYLON.PBRMetallicRoughnessMaterial(`warehouse_floor_mat_${floorType}`, this.scene);
     
     switch (floorType) {
-      case 'concrete':
+      case 'concrete': {
         material.baseColor = new BABYLON.Color3(0.5, 0.5, 0.48);
         material.metallic = 0.0;
         material.roughness = 0.75;
@@ -678,8 +678,9 @@ export class WarehouseModel {
         concreteTexture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
         material.baseTexture = concreteTexture;
         break;
+      }
         
-      case 'epoxy':
+      case 'epoxy': {
         // Epoxy floor - smoother, slightly reflective
         material.baseColor = new BABYLON.Color3(0.4, 0.4, 0.42);
         material.metallic = 0.1;
@@ -691,8 +692,9 @@ export class WarehouseModel {
         epoxyTexture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
         material.baseTexture = epoxyTexture;
         break;
+      }
         
-      case 'tile':
+      case 'tile': {
         // Industrial tile floor
         material.baseColor = new BABYLON.Color3(0.45, 0.45, 0.47);
         material.metallic = 0.0;
@@ -704,6 +706,7 @@ export class WarehouseModel {
         tileTexture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
         material.baseTexture = tileTexture;
         break;
+      }
     }
 
     material._environmentIntensity = 0.4;
@@ -1792,7 +1795,7 @@ export class WarehouseModel {
     let column: BABYLON.Mesh;
 
     switch (shape) {
-      case 'I-beam':
+      case 'I-beam': {
         // I-beam: wide flanges (top/bottom), narrow web (center)
         const iBeamFlangeWidth = 0.4; // 40cm wide flanges
         const iBeamWebWidth = 0.15; // 15cm web
@@ -1843,8 +1846,9 @@ export class WarehouseModel {
         // Note: Individual child meshes are added to this.meshes above
         column = iBeamGroup as any as BABYLON.Mesh;
         break;
+      }
 
-      case 'H-beam':
+      case 'H-beam': {
         // H-beam: wider flanges than I-beam, thicker web
         const hBeamFlangeWidth = 0.5; // 50cm wide flanges
         const hBeamWebWidth = 0.2; // 20cm web
@@ -1894,6 +1898,7 @@ export class WarehouseModel {
         // Note: Individual child meshes are added to this.meshes above
         column = hBeamGroup as any as BABYLON.Mesh;
         break;
+      }
 
       case 'box':
       default:
