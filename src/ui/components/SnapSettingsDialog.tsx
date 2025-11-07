@@ -2,7 +2,7 @@
 // Styled to match Quick Move dialog
 
 import { useEffect, useRef, useState } from 'react';
-import { X, Crosshair, GripVertical, MousePointer } from 'lucide-react';
+import { X, Crosshair, GripVertical, MousePointer, XCircle } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { XNumericInput, YNumericInput, ZNumericInput } from './NumericInput';
@@ -118,6 +118,14 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
     setIsPickingSnapPoint('to');
   };
 
+  const handleClearFromPoint = () => {
+    setFrom({ x: 0, y: 0, z: 0 });
+  };
+
+  const handleClearToPoint = () => {
+    setTo({ x: 0, y: 0, z: 0 });
+  };
+
   return (
     <div
       ref={dialogRef}
@@ -182,25 +190,45 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
         <div className="move-section">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
             <label className="move-section-label" style={{ marginBottom: 0 }}>Snap From (mm)</label>
-            <button
-              onClick={handlePickFromPoint}
-              style={{
-                background: isPickingSnapPoint === 'from' ? 'rgba(98, 104, 255, 0.6)' : 'rgba(98, 104, 255, 0.3)',
-                color: '#fff',
-                border: '1px solid rgba(98, 104, 255, 0.6)',
-                borderRadius: '4px',
-                padding: '4px 8px',
-                fontSize: '10px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-              title="Click to pick a point in the scene"
-            >
-              <MousePointer size={12} />
-              {isPickingSnapPoint === 'from' ? 'Picking...' : 'Pick Point'}
-            </button>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button
+                onClick={handlePickFromPoint}
+                style={{
+                  background: isPickingSnapPoint === 'from' ? 'rgba(98, 104, 255, 0.6)' : 'rgba(98, 104, 255, 0.3)',
+                  color: '#fff',
+                  border: '1px solid rgba(98, 104, 255, 0.6)',
+                  borderRadius: '4px',
+                  padding: '4px 8px',
+                  fontSize: '10px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+                title="Click to pick a point in the scene"
+              >
+                <MousePointer size={12} />
+                {isPickingSnapPoint === 'from' ? 'Picking...' : 'Pick Point'}
+              </button>
+              <button
+                onClick={handleClearFromPoint}
+                style={{
+                  background: 'rgba(255, 59, 48, 0.3)',
+                  color: '#fff',
+                  border: '1px solid rgba(255, 59, 48, 0.6)',
+                  borderRadius: '4px',
+                  padding: '4px 8px',
+                  fontSize: '10px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+                title="Clear this point"
+              >
+                <XCircle size={12} />
+              </button>
+            </div>
           </div>
           <div className="move-values-row">
             <XNumericInput value={from.x} onChange={(val) => setFrom({ ...from, x: val })} precision={2} />
@@ -212,25 +240,45 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
         <div className="move-section">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
             <label className="move-section-label" style={{ marginBottom: 0 }}>Snap To (mm)</label>
-            <button
-              onClick={handlePickToPoint}
-              style={{
-                background: isPickingSnapPoint === 'to' ? 'rgba(98, 104, 255, 0.6)' : 'rgba(98, 104, 255, 0.3)',
-                color: '#fff',
-                border: '1px solid rgba(98, 104, 255, 0.6)',
-                borderRadius: '4px',
-                padding: '4px 8px',
-                fontSize: '10px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-              title="Click to pick a point in the scene"
-            >
-              <MousePointer size={12} />
-              {isPickingSnapPoint === 'to' ? 'Picking...' : 'Pick Point'}
-            </button>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button
+                onClick={handlePickToPoint}
+                style={{
+                  background: isPickingSnapPoint === 'to' ? 'rgba(98, 104, 255, 0.6)' : 'rgba(98, 104, 255, 0.3)',
+                  color: '#fff',
+                  border: '1px solid rgba(98, 104, 255, 0.6)',
+                  borderRadius: '4px',
+                  padding: '4px 8px',
+                  fontSize: '10px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+                title="Click to pick a point in the scene"
+              >
+                <MousePointer size={12} />
+                {isPickingSnapPoint === 'to' ? 'Picking...' : 'Pick Point'}
+              </button>
+              <button
+                onClick={handleClearToPoint}
+                style={{
+                  background: 'rgba(255, 59, 48, 0.3)',
+                  color: '#fff',
+                  border: '1px solid rgba(255, 59, 48, 0.6)',
+                  borderRadius: '4px',
+                  padding: '4px 8px',
+                  fontSize: '10px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+                title="Clear this point"
+              >
+                <XCircle size={12} />
+              </button>
+            </div>
           </div>
           <div className="move-values-row">
             <XNumericInput value={to.x} onChange={(val) => setTo({ ...to, x: val })} precision={2} />
