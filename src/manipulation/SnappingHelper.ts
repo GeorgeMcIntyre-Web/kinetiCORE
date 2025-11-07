@@ -85,8 +85,11 @@ export class SnappingHelper {
 
     // 2. Midpoint snapping
     if (settings.snapToMidpoint) {
-      result = this.snapToMidpoint(position, settings.snapDistance, excludeMeshIds);
-      if (result.snapped) return result;
+      result = this.snapToMidpoint(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
+      if (result.snapped) {
+        console.log(`[SnappingHelper] MIDPOINT SNAP: result.snapped=${result.snapped}, visualFeedback.length=${result.visualFeedback?.length || 0}, snapType=${result.snapType}`);
+        return result;
+      }
     }
 
     // 3. Edge snapping
@@ -272,12 +275,8 @@ export class SnappingHelper {
     for (const mesh of scene.meshes) {
       if (mesh instanceof BABYLON.Mesh) {
         allMeshes.add(mesh);
-        // Also add instances
-        if (mesh.instances) {
-          for (const instance of mesh.instances) {
-            allMeshes.add(instance);
-          }
-        }
+        // Also add instances (instances are InstancedMesh, not Mesh, so we skip them for now)
+        // Instances share the same geometry as the source mesh, so we can use the source mesh
       }
     }
     
@@ -484,7 +483,10 @@ export class SnappingHelper {
         excludeMeshIds.includes(mesh.uniqueId.toString()) ||
         mesh.name === 'ground' ||
         mesh.name === 'gridOverlay' ||
-        mesh.name === 'gridOverlay'
+        mesh.name.startsWith('snap') || // Exclude snap preview meshes
+        mesh.name.startsWith('circle') || // Exclude debug visualization
+        mesh.name.startsWith('measurement') ||
+        mesh.name.startsWith('transform_label')
       ) {
         continue;
       }
@@ -631,11 +633,13 @@ export class SnappingHelper {
     normal = normal.normalize();
 
     // Project all points onto the plane
+    // IMPORTANT: Clone normal before using it to avoid mutating it
+    const normalClone = normal.clone();
     const projectedPoints: BABYLON.Vector3[] = [];
     for (const p of points) {
       const toPoint = p.subtract(points[0]);
-      const distToPlane = BABYLON.Vector3.Dot(toPoint, normal);
-      const projected = p.subtract(normal.scale(distToPlane));
+      const distToPlane = BABYLON.Vector3.Dot(toPoint, normalClone);
+      const projected = p.subtract(normalClone.clone().scale(distToPlane));
       projectedPoints.push(projected);
     }
 
@@ -670,96 +674,67 @@ export class SnappingHelper {
       perimeterPoints.push(...projectedPoints);
     }
 
-    // Recalculate center from perimeter points only
-    const center = perimeterPoints.reduce((sum, p) => sum.add(p), BABYLON.Vector3.Zero())
+    // Recalculate center from perimeter points using iterative refinement
+    // Start with geometric center
+    let center = perimeterPoints.reduce((sum, p) => sum.add(p), BABYLON.Vector3.Zero())
       .scale(1 / perimeterPoints.length);
+    
+    // Iteratively refine center to minimize radius variance (simple least-squares approach)
+    for (let iter = 0; iter < 3; iter++) {
+      const radii: number[] = [];
+      for (const p of perimeterPoints) {
+        radii.push(BABYLON.Vector3.Distance(p, center));
+      }
+      const avgRadius = radii.reduce((sum, r) => sum + r, 0) / radii.length;
+      
+      // Calculate weighted center (points closer to average radius have more weight)
+      let weightedSum = BABYLON.Vector3.Zero();
+      let totalWeight = 0;
+      for (let i = 0; i < perimeterPoints.length; i++) {
+        const radius = radii[i];
+        const weight = 1 / (1 + Math.abs(radius - avgRadius) / avgRadius); // Higher weight for points closer to avg radius
+        weightedSum.addInPlace(perimeterPoints[i].scale(weight));
+        totalWeight += weight;
+      }
+      if (totalWeight > 0) {
+        center = weightedSum.scale(1 / totalWeight);
+      }
+    }
 
-    // Recalculate radii from perimeter points
+    // Calculate final radii and statistics
     const perimeterRadii: number[] = [];
     for (const p of perimeterPoints) {
       const radius = BABYLON.Vector3.Distance(p, center);
       perimeterRadii.push(radius);
     }
     const finalAvgRadius = perimeterRadii.reduce((sum, r) => sum + r, 0) / perimeterRadii.length;
+    
+    // Find min and max radius for debugging
+    const minRadiusValue = Math.min(...perimeterRadii);
+    const maxRadiusValue = Math.max(...perimeterRadii);
+    const radiusRange = maxRadiusValue - minRadiusValue;
 
     // Check if all perimeter points are approximately equidistant from center (circle check)
     const radiusVariance = perimeterRadii.reduce((sum, r) => sum + Math.pow(r - finalAvgRadius, 2), 0) / perimeterRadii.length;
     const radiusStdDev = Math.sqrt(radiusVariance);
     const relativeError = finalAvgRadius > 0 ? radiusStdDev / finalAvgRadius : Infinity;
 
+    // Debug logging
+    console.log(`[SnappingHelper] fitCircleToPoints: points=${points.length}, perimeter=${perimeterPoints.length}, center=(${center.x.toFixed(6)}, ${center.y.toFixed(6)}, ${center.z.toFixed(6)}), radius=${(finalAvgRadius * 1000).toFixed(3)}mm, stdDev=${(radiusStdDev * 1000).toFixed(3)}mm, range=${(radiusRange * 1000).toFixed(3)}mm, relError=${(relativeError * 100).toFixed(2)}%, normal=(${normal.x.toFixed(6)}, ${normal.y.toFixed(6)}, ${normal.z.toFixed(6)})`);
+
     // If relative error is too high, it's not a circle
     // Increased tolerance to 25% for triangulated circles (cylinder ends often have 15-20% error)
     if (relativeError > 0.25 || finalAvgRadius < tolerance) { // 25% tolerance, minimum 1mm radius
+      console.warn(`[SnappingHelper] fitCircleToPoints: Rejected - relError=${(relativeError * 100).toFixed(2)}%, radius=${(finalAvgRadius * 1000).toFixed(3)}mm`);
       return null;
     }
 
-    return { center, radius: finalAvgRadius, normal };
-  }
-
-  /**
-   * Helper: Detect if a face is approximately circular
-   * Returns circle info if face is circular, null otherwise
-   */
-  private detectCircularFace(
-    mesh: BABYLON.Mesh,
-    faceIndex: number
-  ): { center: BABYLON.Vector3; radius: number; normal: BABYLON.Vector3 } | null {
-    const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-    const indices = mesh.getIndices();
-    const normals = mesh.getVerticesData(BABYLON.VertexBuffer.NormalKind);
-    if (!positions || !indices || !normals) return null;
-
-    const worldMatrix = mesh.computeWorldMatrix(true);
-
-    // Get triangle vertices
-    const i0 = indices[faceIndex * 3];
-    const i1 = indices[faceIndex * 3 + 1];
-    const i2 = indices[faceIndex * 3 + 2];
-
-    // Get all vertices that share this face (for more complex faces, we'd need to trace connected faces)
-    // For now, check if this triangle's vertices form a circle
-    // In practice, for a cylinder's circular face, we need to collect all vertices of that face
-    // This is a simplified version - we'll improve it by checking connected faces
+    // Ensure normal is properly normalized (fix any floating point errors)
+    const finalNormal = normal.clone().normalize();
     
-    const v0 = BABYLON.Vector3.TransformCoordinates(
-      new BABYLON.Vector3(positions[i0 * 3], positions[i0 * 3 + 1], positions[i0 * 3 + 2]),
-      worldMatrix
-    );
-    const v1 = BABYLON.Vector3.TransformCoordinates(
-      new BABYLON.Vector3(positions[i1 * 3], positions[i1 * 3 + 1], positions[i1 * 3 + 2]),
-      worldMatrix
-    );
-    const v2 = BABYLON.Vector3.TransformCoordinates(
-      new BABYLON.Vector3(positions[i2 * 3], positions[i2 * 3 + 1], positions[i2 * 3 + 2]),
-      worldMatrix
-    );
-
-    // For a single triangle, check if it's approximately equilateral (could be part of a circle)
-    // But we need more points - let's collect all vertices of faces that share an edge with this face
-    const faceVertices = new Set<number>([i0, i1, i2]);
-    const worldVertices: BABYLON.Vector3[] = [v0, v1, v2];
-
-    // Find connected faces that share edges (for circular faces like cylinder ends)
-    // This is a simplified approach - in a cylinder, the circular face has many triangles
-    // We'll detect by checking if vertices form a circular pattern
-    // For now, return null for single triangles - we need a better approach
-    
-    // Better approach: Check all faces and group by normal, then check if vertices form circles
-    return null; // Will implement better detection below
+    return { center, radius: finalAvgRadius, normal: finalNormal };
   }
 
-  /**
-   * Helper: Detect circular edges (edges that form a circle)
-   * Returns circle info if edges form a circle, null otherwise
-   */
-  private detectCircularEdges(
-    mesh: BABYLON.Mesh,
-    startEdgeIndex: number
-  ): { center: BABYLON.Vector3; radius: number; normal: BABYLON.Vector3 } | null {
-    // This would trace connected edges to see if they form a circle
-    // For now, we'll use a different approach - detect circles from face vertices
-    return null;
-  }
 
   /**
    * Snap to circle center (circular faces and edges)
@@ -782,6 +757,7 @@ export class SnappingHelper {
     let closestMeshName = '';
     let closestRadius = 0;
     let closestNormal: BABYLON.Vector3 | null = null;
+    let closestVertices: BABYLON.Vector3[] | undefined = undefined;
 
     // Get screen position for screen-space distance checking
     let screenPos: BABYLON.Vector2 | null = null;
@@ -801,7 +777,7 @@ export class SnappingHelper {
     }
 
     // Track detected circles to avoid duplicates
-    const circleMap = new Map<string, { center: BABYLON.Vector3; radius: number; normal: BABYLON.Vector3; meshName: string }>();
+    const circleMap = new Map<string, { center: BABYLON.Vector3; radius: number; normal: BABYLON.Vector3; meshName: string; vertices?: BABYLON.Vector3[] }>();
 
     // Check all meshes for circular faces
     for (const mesh of scene.meshes) {
@@ -919,7 +895,8 @@ export class SnappingHelper {
             center: circleInfo.center,
             radius: circleInfo.radius,
             normal: circleInfo.normal,
-            meshName: mesh.name
+            meshName: mesh.name,
+            vertices: worldVertices // Store vertices for debugging
           });
           // Debug: log circle detection
           console.log(`[SnappingHelper] CIRCLE DETECTED: Center=(${circleInfo.center.x.toFixed(3)}, ${circleInfo.center.y.toFixed(3)}, ${circleInfo.center.z.toFixed(3)}), Radius=${(circleInfo.radius * 1000).toFixed(2)}mm, Mesh="${mesh.name}", Vertices=${worldVertices.length}, Faces=${faceIndices.length}`);
@@ -928,7 +905,7 @@ export class SnappingHelper {
     }
 
     // Now find the closest circle center
-    for (const [key, circle] of circleMap) {
+    for (const [, circle] of circleMap) {
       let distance: number;
       let withinRange = false;
 
@@ -1007,6 +984,7 @@ export class SnappingHelper {
           closestMeshName = circle.meshName;
           closestRadius = circle.radius;
           closestNormal = circle.normal;
+          closestVertices = circle.vertices;
         }
       } else {
         // Debug: log when circle is NOT within range
@@ -1041,19 +1019,32 @@ export class SnappingHelper {
       console.log(`[SnappingHelper] CENTER: Found ${circleMap.size} circles, closestCenter=${!!closestCenter}, closestDistance=${closestDistance === Infinity ? 'Inf' : (closestDistance * 1000).toFixed(2) + 'mm'}`);
     }
     
-    if (closestCenter && closestNormal) {
+    if (closestCenter && closestRadius > 0 && closestNormal) {
       // Debug: log center snap
-      console.log(`[SnappingHelper] ✅ CENTER SNAP: Pos=(${closestCenter.x.toFixed(3)}, ${closestCenter.y.toFixed(3)}, ${closestCenter.z.toFixed(3)}), Radius=${(closestRadius * 1000).toFixed(2)}mm, Mesh="${closestMeshName}", Type=center`);
+      // Ensure normal is normalized (fix any floating point errors)
+      const finalNormal = closestNormal.clone().normalize();
+      const normalLength = finalNormal.length();
+      if (Math.abs(normalLength - 1.0) > 0.001) {
+        console.warn(`[SnappingHelper] WARNING: Circle normal not normalized! Length=${normalLength.toFixed(6)}, re-normalizing...`);
+      }
+      
+      console.log(`[SnappingHelper] ✅ CENTER SNAP: Pos=(${closestCenter.x.toFixed(6)}, ${closestCenter.y.toFixed(6)}, ${closestCenter.z.toFixed(6)}), Radius=${(closestRadius * 1000).toFixed(6)}mm, Normal=(${finalNormal.x.toFixed(6)}, ${finalNormal.y.toFixed(6)}, ${finalNormal.z.toFixed(6)}), Mesh="${closestMeshName}", Type=center`);
       
       // Return circle center with radius and normal for visual feedback
       // visualFeedback: [center, normal (for circle orientation), radius as Vector3(x=radius, y=0, z=0)]
       const radiusVec = new BABYLON.Vector3(closestRadius, 0, 0); // Store radius in x component
+
+      // Attach vertices to the center point for debugging visualization
+      if (closestVertices) {
+        (closestCenter as any).circleVertices = closestVertices;
+      }
+
       return {
         snapped: true,
         position: closestCenter,
         snapType: 'center',
         targetMeshName: closestMeshName,
-        visualFeedback: [closestCenter, closestNormal, radiusVec],
+        visualFeedback: [closestCenter, finalNormal, radiusVec],
       };
     }
     
@@ -1092,7 +1083,10 @@ export class SnappingHelper {
         excludeMeshIds.includes(mesh.uniqueId.toString()) ||
         mesh.name === 'ground' ||
         mesh.name === 'gridOverlay' ||
-        mesh.name === 'gridOverlay'
+        mesh.name.startsWith('snap') || // Exclude snap preview meshes
+        mesh.name.startsWith('circle') || // Exclude debug visualization
+        mesh.name.startsWith('measurement') ||
+        mesh.name.startsWith('transform_label')
       ) {
         continue;
       }
@@ -1184,12 +1178,13 @@ export class SnappingHelper {
 
     let preview: BABYLON.Mesh;
     let baseColor: BABYLON.Color3;
-    let size: number;
 
     if (snapType === 'midpoint') {
       // Midpoint: Show a line along the edge + a dot at the midpoint
       const edgeStart = (point as any).edgeStart;
       const edgeEnd = (point as any).edgeEnd;
+      
+      console.log(`[SnappingHelper] showPreviewDot MIDPOINT: point=(${point.x.toFixed(3)}, ${point.y.toFixed(3)}, ${point.z.toFixed(3)}), edgeStart=${edgeStart ? `(${edgeStart.x.toFixed(3)}, ${edgeStart.y.toFixed(3)}, ${edgeStart.z.toFixed(3)})` : 'undefined'}, edgeEnd=${edgeEnd ? `(${edgeEnd.x.toFixed(3)}, ${edgeEnd.y.toFixed(3)}, ${edgeEnd.z.toFixed(3)})` : 'undefined'}`);
       
       // Create dot at midpoint first
       const diameter = isOnSelectedMesh ? 0.06 : 0.04;
@@ -1198,24 +1193,43 @@ export class SnappingHelper {
       
       // Create line along edge if endpoints available
       if (edgeStart && edgeEnd) {
-        const localStart = edgeStart.subtract(point);
-        const localEnd = edgeEnd.subtract(point);
+        // Create line in world space (not relative to preview dot)
         const line = BABYLON.MeshBuilder.CreateLines('snapPreviewLine', {
-          points: [localStart, localEnd],
+          points: [edgeStart.clone(), edgeEnd.clone()],
           updatable: false
         }, scene);
-        line.color = isOnSelectedMesh 
+        
+        const lineColor = isOnSelectedMesh 
           ? new BABYLON.Color3(1, 1, 1)
           : new BABYLON.Color3(1, 0.5, 0); // Orange
+        
+        line.color = lineColor;
         line.renderingGroupId = 1;
         line.isPickable = false;
-        line.parent = preview;
+        line.isVisible = true;
+        line.visibility = 1.0;
+        
+        // Create material for the line to ensure it renders properly
+        const lineMaterial = new BABYLON.StandardMaterial('snapPreviewLineMat', scene);
+        lineMaterial.emissiveColor = lineColor;
+        lineMaterial.diffuseColor = lineColor;
+        lineMaterial.disableLighting = true;
+        lineMaterial.alpha = 1.0;
+        line.material = lineMaterial;
+        
+        // Don't parent to preview - keep in world space
+        console.log(`[SnappingHelper] Created midpoint line from (${edgeStart.x.toFixed(3)}, ${edgeStart.y.toFixed(3)}, ${edgeStart.z.toFixed(3)}) to (${edgeEnd.x.toFixed(3)}, ${edgeEnd.y.toFixed(3)}, ${edgeEnd.z.toFixed(3)})`);
+        
+        // Store line reference for cleanup
+        (preview as any).__snapPreviewLine = line;
+        (preview as any).__snapPreviewLineMaterial = lineMaterial;
+      } else {
+        console.warn(`[SnappingHelper] Midpoint preview missing edge endpoints: edgeStart=${!!edgeStart}, edgeEnd=${!!edgeEnd}`);
       }
       
       baseColor = isOnSelectedMesh 
         ? new BABYLON.Color3(1, 1, 1)
         : new BABYLON.Color3(1, 0.5, 0); // Orange
-      size = diameter;
     } else if (snapType === 'center') {
       // Center: Show a circle ring around circumference + a dot at center
       const circleNormal = (point as any).circleNormal;
@@ -1230,45 +1244,95 @@ export class SnappingHelper {
       
       // Create circle ring if radius and normal available
       if (circleNormal && circleRadius && circleRadius > 0) {
-        const ringThickness = 0.003; // 3mm
-        // Torus diameter parameter is the major diameter (outer edge to outer edge)
-        // So diameter = radius * 2 is correct
+        // DEBUG: Visualize circle vertices if available
+        const circleVertices = (point as any).circleVertices as BABYLON.Vector3[] | undefined;
+        if (circleVertices && circleVertices.length > 0) {
+          console.log(`[SnappingHelper] Visualizing ${circleVertices.length} circle vertices`);
+          for (const vertex of circleVertices) {
+            const dot = BABYLON.MeshBuilder.CreateSphere('circleVertexDebug', { diameter: 0.01 }, scene);
+            dot.position = vertex.clone();
+            dot.isPickable = false;
+            dot.renderingGroupId = 1;
+            const dotMat = new BABYLON.StandardMaterial('circleVertexDebugMat', scene);
+            dotMat.emissiveColor = new BABYLON.Color3(0, 1, 1); // Cyan for vertex dots
+            dotMat.disableLighting = true;
+            dot.material = dotMat;
+            dot.parent = preview; // Parent to preview so they get disposed together
+          }
+        }
+
+        const ringThickness = 0.003; // 3mm tube thickness
+
+        // ✅ CONFIRMED via cyan dot visualization: Option C is CORRECT!
+        // The cyan dots (actual vertices) show the ring was TOO SMALL with Option B
+        //
+        // Babylon.js CreateTorus: 'diameter' = major diameter (centerline of tube)
+        // - Tube is CENTERED on a circle of diameter D
+        // - Tube has thickness T
+        // - Outer radius = (D/2) + (T/2)
+        //
+        // We want: Outer edge aligns with detected circle edge
+        // So: (D/2) + (T/2) = circleRadius
+        // Therefore: D = (circleRadius * 2) - T
+        //
+        // This is Option A (the ORIGINAL formula that was working!)
+        const torusDiameter = (circleRadius * 2) - ringThickness;
+
+        const torusMinorRadius = ringThickness / 2;
+        const torusMajorRadius = torusDiameter / 2;
+        const torusOuterRadius = torusMajorRadius + torusMinorRadius;
+        const torusInnerRadius = torusMajorRadius - torusMinorRadius;
+
+        console.log(`[SnappingHelper] Torus dimensions: circleRadius=${(circleRadius * 1000).toFixed(3)}mm, diameter=${(torusDiameter * 1000).toFixed(3)}mm, thickness=${(ringThickness * 1000).toFixed(3)}mm`);
+        console.log(`[SnappingHelper] Torus radii: major=${(torusMajorRadius * 1000).toFixed(3)}mm, minor=${(torusMinorRadius * 1000).toFixed(3)}mm, outer=${(torusOuterRadius * 1000).toFixed(3)}mm, inner=${(torusInnerRadius * 1000).toFixed(3)}mm`);
+        
         const ring = BABYLON.MeshBuilder.CreateTorus('snapPreviewCircle', {
-          diameter: circleRadius * 2,
+          diameter: torusDiameter,
           thickness: ringThickness,
           tessellation: 64
         }, scene);
         
         // Orient ring to match circle normal
         // Torus in Babylon.js: major circle lies in XZ plane, torus "normal" (through hole) is Y-axis
-        // For a circle with normal (0, -1, 0), we want the ring in XZ plane
-        // Default torus is already in XZ plane, but its "normal" is (0, 1, 0)
-        // We need to rotate so the ring plane is perpendicular to circle normal
+        // We need to rotate the torus so its Y-axis aligns with the circle normal
+        // This will make the torus lie in the plane perpendicular to the circle normal
         
         const targetNormal = circleNormal.clone().normalize();
-        
-        // The ring should lie in the plane perpendicular to targetNormal
-        // If targetNormal is (0, -1, 0), ring should be in XZ plane
-        // Default torus is in XZ plane, so we just need to ensure it's oriented correctly
-        
-        // For Y-axis aligned normals, handle specially
         const yAxis = new BABYLON.Vector3(0, 1, 0);
-        const dotY = BABYLON.Vector3.Dot(targetNormal, yAxis);
         
-        if (Math.abs(Math.abs(dotY) - 1) < 0.001) {
-          // Normal is parallel to Y-axis (up or down)
-          // Torus default is in XZ plane, which is correct for Y-axis normal
-          // No rotation needed - torus is already in the right plane
+        // Check if normal is already aligned with Y-axis
+        const dotY = BABYLON.Vector3.Dot(targetNormal, yAxis);
+        const alignmentCheck = Math.abs(dotY);
+        
+        if (alignmentCheck > 0.999) {
+          // Normal is parallel to Y-axis (within 0.1 degrees)
+          if (dotY < 0) {
+            // Normal points down (0, -1, 0), rotate torus 180 degrees around X axis to flip Y-axis
+            ring.rotationQuaternion = BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(1, 0, 0), Math.PI);
+            console.log(`[SnappingHelper] Torus rotation: Flipping 180° around X-axis for downward normal`);
+          }
+          // If dotY > 0, normal points up (0, 1, 0), torus is already correct - no rotation needed
         } else {
           // Normal is not aligned with Y-axis - need to rotate torus
-          // Rotate torus so its plane is perpendicular to targetNormal
-          // Find axis perpendicular to both Y-axis and targetNormal
-          const axis = BABYLON.Vector3.Cross(yAxis, targetNormal);
-          if (axis.lengthSquared() > 0.0001) {
-            // Angle between Y-axis and targetNormal
-            const angle = Math.acos(Math.max(-1, Math.min(1, Math.abs(dotY))));
-            // Rotate 90 degrees minus the angle to align ring plane with targetNormal
-            ring.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis.normalize(), Math.PI / 2 - angle);
+          // Calculate rotation to align Y-axis with targetNormal
+          const cross = BABYLON.Vector3.Cross(yAxis, targetNormal);
+          const crossLength = cross.length();
+          
+          if (crossLength > 0.0001) {
+            // Normalize the rotation axis
+            const axis = cross.normalize();
+            
+            // Calculate angle between Y-axis and targetNormal
+            // Use dotY directly (not abs) to get signed angle
+            const angle = Math.acos(Math.max(-1, Math.min(1, dotY)));
+            
+            // Create rotation quaternion
+            ring.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis, angle);
+            
+            console.log(`[SnappingHelper] Torus rotation: axis=(${axis.x.toFixed(3)}, ${axis.y.toFixed(3)}, ${axis.z.toFixed(3)}), angle=${(angle * 180 / Math.PI).toFixed(1)}°, dotY=${dotY.toFixed(3)}`);
+          } else {
+            // Y-axis and targetNormal are parallel (shouldn't happen due to check above, but handle it)
+            console.warn(`[SnappingHelper] Torus rotation: cross product too small (${crossLength.toFixed(6)}), using identity rotation`);
           }
         }
         
@@ -1276,6 +1340,29 @@ export class SnappingHelper {
         ring.renderingGroupId = 1;
         ring.isPickable = false;
         ring.parent = preview;
+        
+        // Verify torus orientation after rotation and parenting
+        // Force matrix update to ensure rotation is applied
+        ring.computeWorldMatrix(true);
+        // Get the local rotation - transform Y-axis using the quaternion directly
+        const quat = ring.rotationQuaternion || BABYLON.Quaternion.Identity();
+        const rotMatrix = new BABYLON.Matrix();
+        BABYLON.Matrix.FromQuaternionToRef(quat, rotMatrix);
+        const torusYAxis = BABYLON.Vector3.TransformNormal(new BABYLON.Vector3(0, 1, 0), rotMatrix);
+        const torusAlignment = BABYLON.Vector3.Dot(torusYAxis.normalize(), targetNormal);
+        console.log(`[SnappingHelper] Torus orientation check: torusYAxis=(${torusYAxis.x.toFixed(6)}, ${torusYAxis.y.toFixed(6)}, ${torusYAxis.z.toFixed(6)}), targetNormal=(${targetNormal.x.toFixed(6)}, ${targetNormal.y.toFixed(6)}, ${targetNormal.z.toFixed(6)}), alignment=${torusAlignment.toFixed(6)} (should be ~1.0)`);
+        
+        if (Math.abs(torusAlignment) < 0.9) {
+          console.warn(`[SnappingHelper] WARNING: Torus Y-axis not aligned with circle normal! Alignment=${torusAlignment.toFixed(3)}`);
+          // Try to fix: if alignment is close to -1, we're 180 degrees off
+          if (torusAlignment < -0.9) {
+            console.warn(`[SnappingHelper] Attempting to fix: rotating 180° around X-axis`);
+            const currentRot = ring.rotationQuaternion || BABYLON.Quaternion.Identity();
+            const flipRot = BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(1, 0, 0), Math.PI);
+            ring.rotationQuaternion = currentRot.multiply(flipRot);
+            ring.computeWorldMatrix(true);
+          }
+        }
         
         const ringColor = isOnSelectedMesh 
           ? new BABYLON.Color3(1, 1, 1)
@@ -1288,7 +1375,7 @@ export class SnappingHelper {
         ringMat.zOffset = -2;
         ring.material = ringMat;
         
-        console.log(`[SnappingHelper] Created center preview: orange circle ring (radius=${(circleRadius * 1000).toFixed(2)}mm, normal=(${targetNormal.x.toFixed(2)}, ${targetNormal.y.toFixed(2)}, ${targetNormal.z.toFixed(2)})) + orange dot at (${point.x.toFixed(3)}, ${point.y.toFixed(3)}, ${point.z.toFixed(3)})`);
+        console.log(`[SnappingHelper] Created center preview: orange circle ring (radius=${(circleRadius * 1000).toFixed(6)}mm, diameter=${(torusDiameter * 1000).toFixed(6)}mm, normal=(${targetNormal.x.toFixed(6)}, ${targetNormal.y.toFixed(6)}, ${targetNormal.z.toFixed(6)})) + orange dot at (${point.x.toFixed(6)}, ${point.y.toFixed(6)}, ${point.z.toFixed(6)})`);
       } else {
         console.warn(`[SnappingHelper] Center preview missing data: radius=${circleRadius}, normal=${!!circleNormal}`);
       }
@@ -1296,7 +1383,6 @@ export class SnappingHelper {
       baseColor = isOnSelectedMesh 
         ? new BABYLON.Color3(1, 1, 1)
         : new BABYLON.Color3(1, 0.5, 0); // Orange
-      size = dotDiameter;
     } else {
       // Vertex (default): Yellow dot only
       const diameter = isOnSelectedMesh ? 0.06 : 0.04;
@@ -1305,7 +1391,6 @@ export class SnappingHelper {
       baseColor = isOnSelectedMesh 
         ? new BABYLON.Color3(1, 1, 1)
         : new BABYLON.Color3(1, 0.84, 0); // Gold/Yellow
-      size = diameter;
     }
 
     preview.renderingGroupId = 1;
@@ -1348,6 +1433,16 @@ export class SnappingHelper {
           glowLayer.removeIncludedOnlyMesh(this.previewIndicator);
         }
         
+        // Dispose the midpoint line if it exists (stored separately, not as child)
+        const line = (this.previewIndicator as any).__snapPreviewLine;
+        const lineMaterial = (this.previewIndicator as any).__snapPreviewLineMaterial;
+        if (lineMaterial && lineMaterial.dispose) {
+          lineMaterial.dispose();
+        }
+        if (line && line.dispose) {
+          line.dispose();
+        }
+        
         // Dispose all child meshes (lines, rings, etc.)
         const childMeshes = this.previewIndicator.getChildMeshes();
         childMeshes.forEach(child => {
@@ -1369,15 +1464,37 @@ export class SnappingHelper {
   private snapToMidpoint(
     position: BABYLON.Vector3,
     snapDistance: number,
-    excludeMeshIds: string[]
+    excludeMeshIds: string[],
+    camera?: BABYLON.Camera,
+    screenSpacePixels?: number
   ): SnapResult {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     if (!scene) return { snapped: false, position: position.clone() };
 
     const snapDistanceMeters = snapDistance / 1000;
+
+    // Convert position to screen space if camera and screen-space threshold provided
+    let screenPos: { x: number; y: number } | null = null;
+    if (camera && screenSpacePixels !== undefined) {
+      const worldMatrix = scene.getTransformMatrix();
+      const viewport = camera.viewport.toGlobal(
+        scene.getEngine().getRenderWidth(),
+        scene.getEngine().getRenderHeight()
+      );
+      const projected = BABYLON.Vector3.Project(
+        position,
+        worldMatrix,
+        camera.getProjectionMatrix(),
+        viewport
+      );
+      screenPos = { x: projected.x, y: projected.y };
+    }
+
     let closestMidpoint: BABYLON.Vector3 | null = null;
-    let closestDistance = snapDistanceMeters;
+    let closestEdgeStart: BABYLON.Vector3 | null = null;
+    let closestEdgeEnd: BABYLON.Vector3 | null = null;
+    let closestDistance = Infinity; // Start with Infinity to find true closest, like vertex snapping
     let closestMeshName = '';
 
     for (const mesh of scene.meshes) {
@@ -1386,7 +1503,10 @@ export class SnappingHelper {
         excludeMeshIds.includes(mesh.uniqueId.toString()) ||
         mesh.name === 'ground' ||
         mesh.name === 'gridOverlay' ||
-        mesh.name === 'gridOverlay'
+        mesh.name.startsWith('snap') || // Exclude snap preview meshes
+        mesh.name.startsWith('circle') || // Exclude debug visualization
+        mesh.name.startsWith('measurement') ||
+        mesh.name.startsWith('transform_label')
       ) {
         continue;
       }
@@ -1421,20 +1541,63 @@ export class SnappingHelper {
           if (distance < closestDistance) {
             closestDistance = distance;
             closestMidpoint = midpoint;
+            closestEdgeStart = v1.clone();
+            closestEdgeEnd = v2.clone();
             closestMeshName = mesh.name;
           }
         }
       }
     }
 
-    if (closestMidpoint) {
+    // Determine if we should snap based on the method used
+    let shouldSnap = false;
+    if (closestMidpoint && closestEdgeStart && closestEdgeEnd) {
+      if (camera && screenSpacePixels !== undefined && screenPos) {
+        // Check screen-space distance for preview
+        const worldMatrix = scene.getTransformMatrix();
+        const viewport = camera.viewport.toGlobal(
+          scene.getEngine().getRenderWidth(),
+          scene.getEngine().getRenderHeight()
+        );
+        const projected = BABYLON.Vector3.Project(
+          closestMidpoint,
+          worldMatrix,
+          camera.getProjectionMatrix(),
+          viewport
+        );
+        const screenDist = Math.sqrt(
+          Math.pow(projected.x - screenPos.x, 2) +
+          Math.pow(projected.y - screenPos.y, 2)
+        );
+        shouldSnap = screenDist <= screenSpacePixels;
+      } else {
+        // Check world-space distance for actual snapping
+        shouldSnap = closestDistance <= snapDistanceMeters;
+      }
+    }
+
+    // Check if we found a midpoint within snap distance
+    if (closestMidpoint && closestEdgeStart && closestEdgeEnd && shouldSnap) {
+      console.log(`[SnappingHelper] ✅ MIDPOINT SNAP: midpoint=(${closestMidpoint.x.toFixed(6)}, ${closestMidpoint.y.toFixed(6)}, ${closestMidpoint.z.toFixed(6)}), edgeStart=(${closestEdgeStart.x.toFixed(6)}, ${closestEdgeStart.y.toFixed(6)}, ${closestEdgeStart.z.toFixed(6)}), edgeEnd=(${closestEdgeEnd.x.toFixed(6)}, ${closestEdgeEnd.y.toFixed(6)}, ${closestEdgeEnd.z.toFixed(6)}), mesh="${closestMeshName}", distance=${(closestDistance * 1000).toFixed(3)}mm`);
       return {
         snapped: true,
         position: closestMidpoint,
         snapType: 'midpoint',
         targetMeshName: closestMeshName,
-        visualFeedback: [closestMidpoint],
+        visualFeedback: [closestMidpoint, closestEdgeStart, closestEdgeEnd],
       };
+    }
+
+    // Debug: log if no midpoint found or if midpoint was too far (less frequently now)
+    if (closestMidpoint && closestEdgeStart && closestEdgeEnd && Math.random() < 0.05) {
+      // Found midpoint but it was too far
+      const threshold = (camera && screenSpacePixels !== undefined)
+        ? `${screenSpacePixels}px (screen-space)`
+        : `${(snapDistanceMeters * 1000).toFixed(3)}mm`;
+      console.log(`[SnappingHelper] MIDPOINT: Found but too far - distance=${(closestDistance * 1000).toFixed(3)}mm, threshold=${threshold}`);
+    } else if (Math.random() < 0.01) {
+      // Truly no midpoint found
+      console.log(`[SnappingHelper] MIDPOINT: No edges found near cursor, closestMidpoint=${!!closestMidpoint}, closestEdgeStart=${!!closestEdgeStart}, closestEdgeEnd=${!!closestEdgeEnd}`);
     }
 
     return { snapped: false, position: position.clone() };
@@ -1466,7 +1629,10 @@ export class SnappingHelper {
         excludeMeshIds.includes(mesh.uniqueId.toString()) ||
         mesh.name === 'ground' ||
         mesh.name === 'gridOverlay' ||
-        mesh.name === 'gridOverlay'
+        mesh.name.startsWith('snap') || // Exclude snap preview meshes
+        mesh.name.startsWith('circle') || // Exclude debug visualization
+        mesh.name.startsWith('measurement') ||
+        mesh.name.startsWith('transform_label')
       ) {
         continue;
       }
@@ -1677,7 +1843,10 @@ export class SnappingHelper {
         excludeMeshIds.includes(mesh.uniqueId.toString()) ||
         mesh.name === 'ground' ||
         mesh.name === 'gridOverlay' ||
-        mesh.name === 'gridOverlay'
+        mesh.name.startsWith('snap') || // Exclude snap preview meshes
+        mesh.name.startsWith('circle') || // Exclude debug visualization
+        mesh.name.startsWith('measurement') ||
+        mesh.name.startsWith('transform_label')
       ) {
         continue;
       }
@@ -1842,7 +2011,6 @@ export class SnappingHelper {
     excludeMeshIds: string[]
   ): SnapResult {
     // Snap to nearest axis-aligned position (simplified - could be enhanced)
-    const snapDistanceMeters = snapDistance / 1000;
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     if (!scene) return { snapped: false, position: position.clone() };

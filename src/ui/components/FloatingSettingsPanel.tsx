@@ -73,7 +73,6 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
     snapPointOnEdge,
     snapBBoxCorner,
     gridSize,
-    snapDistance,
     setPositionIncrement,
     setRotationIncrement,
     setSnapEnabled,
@@ -97,7 +96,6 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
     setSnapPointOnEdge,
     setSnapBBoxCorner,
     setGridSize,
-    setSnapDistance,
   } = useEditorStore();
 
   // General Settings Component
