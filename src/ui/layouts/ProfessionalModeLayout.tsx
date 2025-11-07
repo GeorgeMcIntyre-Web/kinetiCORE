@@ -107,12 +107,30 @@ export const ProfessionalModeLayout: React.FC = () => {
     };
 
     recalc();
-    const onTree = () => setTimeout(recalc, 80);
+    
+    // Use requestAnimationFrame for fast, smooth resizing
+    let rafId: number | null = null;
+    let pendingRecalc = false;
+    
+    const scheduleRecalc = () => {
+      if (pendingRecalc) return;
+      pendingRecalc = true;
+      rafId = requestAnimationFrame(() => {
+        recalc();
+        pendingRecalc = false;
+        rafId = null;
+      });
+    };
+    
+    const onTree = () => scheduleRecalc();
     window.addEventListener('scenetree-update', onTree);
     window.addEventListener('model-import-complete', onTree);
     return () => {
       window.removeEventListener('scenetree-update', onTree);
       window.removeEventListener('model-import-complete', onTree);
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
     };
   }, []);
 
