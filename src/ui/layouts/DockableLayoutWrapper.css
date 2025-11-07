@@ -236,7 +236,7 @@
   width: 10px !important;
   height: 10px !important;
   margin: 0 !important;
-  margin-left: 0px !important; /* No gap - text directly adjacent to X */
+  margin-left: 2px !important; /* Small gap between text and X */
   margin-right: 0 !important;
   padding: 0 !important;
   display: flex !important;
@@ -273,7 +273,7 @@
 
 /* Force close button to be directly adjacent to text with minimal gap */
 .dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab .dv-tab-close {
-  margin-left: 0px !important; /* No gap - text directly adjacent to X */
+  margin-left: 2px !important; /* Small gap between text and X */
 }
 
 /* Additional ultra-specific rules to eliminate all tab padding */

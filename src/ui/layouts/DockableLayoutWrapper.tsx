@@ -413,7 +413,7 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
             // Add minimal gap between text and close button
             const closeBtn = tab.querySelector('.dv-tab-close');
             if (closeBtn instanceof HTMLElement) {
-              closeBtn.style.setProperty('margin-left', '0px', 'important');
+              closeBtn.style.setProperty('margin-left', '2px', 'important');
               closeBtn.style.setProperty('margin-right', '0', 'important');
               closeBtn.style.setProperty('padding', '0', 'important');
             }
@@ -521,7 +521,7 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
 
             const closeBtn = tab.querySelector('.dv-tab-close');
             if (closeBtn instanceof HTMLElement) {
-              closeBtn.style.setProperty('margin-left', '0px', 'important');
+              closeBtn.style.setProperty('margin-left', '2px', 'important');
             }
           }
         });
