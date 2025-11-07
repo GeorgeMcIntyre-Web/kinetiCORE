@@ -799,8 +799,9 @@ export class SnappingHelper {
       let line: BABYLON.LinesMesh | null = null;
       if (edgeStart && edgeEnd) {
         // Convert edge endpoints to local space relative to midpoint
-        const localStart = edgeStart.subtract(point);
-        const localEnd = edgeEnd.subtract(point);
+        // Clone vectors to avoid mutating originals
+        const localStart = edgeStart.clone().subtract(point);
+        const localEnd = edgeEnd.clone().subtract(point);
         
         line = BABYLON.MeshBuilder.CreateLines(
           'snapPreviewLine',
