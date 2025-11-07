@@ -548,10 +548,9 @@ export const ProfessionalModeLayout: React.FC = () => {
               { id: 'toolPalette-panel', type: 'toolPalette' },
             ],
             rightPanels: [
-              { id: 'warehouse-panel', type: 'warehouse' },
-              { id: 'routingControl-panel', type: 'routingControl' },
-              { id: 'routeStats-panel', type: 'routeStats' },
-              { id: 'inspector-panel', type: 'inspector' },
+              { id: 'warehouse-panel', type: 'warehouse', title: 'Factory' },
+              { id: 'routingControl-panel', type: 'routingControl', title: 'Route' },
+              { id: 'routeStats-panel', type: 'routeStats', title: 'Routing Analyses' },
             ],
             bottomPanels: [],
           }}

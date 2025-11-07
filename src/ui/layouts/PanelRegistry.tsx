@@ -127,7 +127,7 @@ export const PANEL_REGISTRY: Record<PanelType, PanelConfig> = {
     title: 'Warehouse',
     titleIcon: null, // Icon set via CSS using data-icon-type
     component: WarehousePanelWrapper,
-    defaultWidth: 240, // Reduced from 320 for more compact layout
+    defaultWidth: 300, // Professional layout width
   },
   viewport: {
     id: 'viewport',
