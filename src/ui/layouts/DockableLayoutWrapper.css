@@ -81,166 +81,24 @@
   text-align: center;
 }
 
-/* Icon-only tabs - hide all text in right panel tabs and show icons via ::before */
-/* Target tabs by their text content using attribute selectors where possible */
-.dockview-theme-kineticore .dv-default-tab {
-  position: relative;
-}
-
-/* Hide text only in right panel tabs (icon-only) - but keep element for layout */
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab > span:not([class*="close"]) {
-  font-size: 0 !important;
-  line-height: 0 !important;
-  width: 0 !important;
-  height: 0 !important;
-  overflow: hidden !important;
-  opacity: 0 !important;
-  position: absolute !important;
-  left: -9999px !important;
-  visibility: hidden !important;
-}
-
-/* More aggressive text hiding for right panel tabs */
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab {
-  color: transparent !important;
-  font-size: 0 !important;
-  text-indent: -9999px !important;
-}
-
-/* Ensure ::before pseudo-element is visible for icons */
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab {
-  position: relative !important;
-  padding-left: 24px !important; /* Make room for icon */
-  min-width: 40px !important;
-}
-
-/* Base ::before for ALL right panel tabs - MUST have content and display */
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab::before {
-  content: "" !important;
-  display: block !important;
-  width: 16px !important;
-  height: 16px !important;
-  position: absolute !important;
-  left: 8px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  background-repeat: no-repeat !important;
-  background-position: center !important;
-  background-size: contain !important;
-  z-index: 10 !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  pointer-events: none !important;
-}
-
-/* Add icons via ::before using data-icon-type attribute */
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab[data-icon-type="warehouse"]::before {
-  background-image: url("/icons/Warehouse.png") !important;
-}
-
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab[data-icon-type="routingControl"]::before {
-  background-image: url("/icons/RoutingControl.png") !important;
-}
-
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab[data-icon-type="routeStats"]::before {
-  background-image: url("/icons/Route Statistics.png") !important;
-}
-
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab[data-icon-type="inspector"]::before {
-  background-image: url("/icons/inspector.png") !important;
-}
-
-/* Fallback: Match by title attribute if data-icon-type not set */
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab[title*="Warehouse"]::before {
-  background-image: url("/icons/Warehouse.png") !important;
-}
-
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab[title*="Routing Control"]::before {
-  background-image: url("/icons/RoutingControl.png") !important;
-}
-
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab[title*="Route Statistics"]::before {
-  background-image: url("/icons/Route Statistics.png") !important;
-}
-
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab[title*="Inspector"]:not([title*="Babylon"])::before {
-  background-image: url("/icons/inspector.png") !important;
-}
-
-/* Ultimate fallback: Use nth-child for right panel tabs (order: Warehouse, Routing Control, Route Statistics, Inspector) */
-/* This MUST come after the base ::before rule to override it */
-/* Target tabs container directly */
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-tabs-container .dv-default-tab:nth-of-type(1)::before,
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-tabs-container .dv-default-tab:nth-child(1)::before,
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab:nth-of-type(1)::before,
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab:nth-child(1)::before {
-  background-image: url("/icons/Warehouse.png") !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  display: block !important;
-  content: "" !important;
-}
-
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-tabs-container .dv-default-tab:nth-of-type(2)::before,
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-tabs-container .dv-default-tab:nth-child(2)::before,
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab:nth-of-type(2)::before,
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab:nth-child(2)::before {
-  background-image: url("/icons/RoutingControl.png") !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  display: block !important;
-  content: "" !important;
-}
-
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-tabs-container .dv-default-tab:nth-of-type(3)::before,
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-tabs-container .dv-default-tab:nth-child(3)::before,
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab:nth-of-type(3)::before,
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab:nth-child(3)::before {
-  background-image: url("/icons/Route Statistics.png") !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  display: block !important;
-  content: "" !important;
-}
-
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-tabs-container .dv-default-tab:nth-of-type(4)::before,
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-tabs-container .dv-default-tab:nth-child(4)::before,
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab:nth-of-type(4)::before,
-.dockview-theme-kineticore .dv-group[data-direction="right"] .dv-default-tab:nth-child(4)::before {
-  background-image: url("/icons/inspector.png") !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  display: block !important;
-  content: "" !important;
-}
-
-/* Right panel tabs - icon only display - SIMPLIFIED APPROACH */
-/* Set background images directly on tabs */
+/* Right panel tabs - professional text styling */
 .dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab {
-  min-width: 40px !important;
-  padding: 8px 12px !important;
-  font-size: 0 !important; /* Hide text */
-  line-height: 0 !important;
-  background-repeat: no-repeat !important;
-  background-position: center !important;
-  background-size: 16px 16px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  padding: 8px 14px !important;
+  min-width: auto !important;
+  letter-spacing: 0.25px !important;
+  text-transform: none !important;
+  white-space: nowrap !important;
+  line-height: 1.4 !important;
+  margin: 0 1px !important;
+  position: relative !important;
 }
 
-/* Individual tab icons by position - direct background images */
-.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab:nth-child(1) {
-  background-image: url("/icons/Warehouse.png") !important;
-}
-
-.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab:nth-child(2) {
-  background-image: url("/icons/RoutingControl.png") !important;
-}
-
-.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab:nth-child(3) {
-  background-image: url("/icons/Route Statistics.png") !important;
-}
-
-.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab:nth-child(4) {
-  background-image: url("/icons/inspector.png") !important;
+/* Active tab styling - subtle highlight */
+.dockview-theme-kineticore .dv-group:last-of-type .dv-default-tab.dv-active-tab {
+  font-weight: 600 !important;
+  background-color: rgba(72, 187, 120, 0.08) !important;
 }
 
 

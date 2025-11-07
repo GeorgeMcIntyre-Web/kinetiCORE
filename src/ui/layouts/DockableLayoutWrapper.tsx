@@ -67,17 +67,6 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
     createDefaultLayout(event.api);
   };
 
-  // Helper function to get icon path for right panel tabs
-  const getIconPath = (panelType: PanelType): string | null => {
-    const iconMap: Record<string, string> = {
-      'warehouse': '/icons/Warehouse.png',
-      'routingControl': '/icons/RoutingControl.png',
-      'routeStats': '/icons/Route Statistics.png',
-      'inspector': '/icons/inspector.png',
-    };
-    return iconMap[panelType] || null;
-  };
-
   const createDefaultLayout = (api: DockviewApi) => {
     // Add center panel first (usually the viewport) - this will be the main content area
     if (config.centerPanel) {
@@ -130,84 +119,30 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
       const [firstPanel, ...restPanels] = config.rightPanels;
 
       // Add first panel to create the right group
-      const iconPath = getIconPath(firstPanel.type);
       const rightPanel = api.addPanel({
         id: firstPanel.id,
         component: firstPanel.type,
-        title: iconPath ? '⬜' : (firstPanel.title || PANEL_REGISTRY[firstPanel.type].title), // White square placeholder for icon tabs
-        params: { iconPath, panelTitle: PANEL_REGISTRY[firstPanel.type].title },
+        title: firstPanel.title || PANEL_REGISTRY[firstPanel.type].title,
+        params: {},
         position: { direction: 'right' },
       });
 
-      // Set right panel width to 120px as requested
-      rightPanel.api.setSize({ width: 120 });
+      // Set right panel minimum width to 260px for optimal layout
+      rightPanel.api.setSize({ width: 260 });
 
       // Add remaining right panels to the same group (they will be inactive tabs)
       for (const panelDef of restPanels) {
-        const iconPath = getIconPath(panelDef.type);
         api.addPanel({
           id: panelDef.id,
           component: panelDef.type,
-          title: iconPath ? '⬜' : (panelDef.title || PANEL_REGISTRY[panelDef.type].title), // White square placeholder for icon tabs
-          params: { iconPath, panelTitle: PANEL_REGISTRY[panelDef.type].title },
+          title: panelDef.title || PANEL_REGISTRY[panelDef.type].title,
+          params: {},
           position: { referencePanel: rightPanel.id },
         });
       }
 
       // Ensure first panel (Warehouse) is active by default
       rightPanel.api.setActive();
-
-      // Apply icons with retry logic
-      const applyIcons = (attempt = 1, maxAttempts = 10) => {
-        // Debug: Log all groups
-        const allGroups = document.querySelectorAll('.dv-group');
-        console.log(`[DockableLayoutWrapper] 🔍 Attempt ${attempt}: Found ${allGroups.length} groups`);
-
-        if (allGroups.length === 0 && attempt < maxAttempts) {
-          // Retry after delay if groups haven't rendered yet
-          setTimeout(() => applyIcons(attempt + 1, maxAttempts), 200);
-          return;
-        }
-
-        allGroups.forEach((group, i) => {
-          const tabs = group.querySelectorAll('.dv-default-tab');
-          console.log(`[DockableLayoutWrapper] 🔍 Group ${i}: ${tabs.length} tabs`);
-        });
-
-        // Apply icons directly to right panel tabs
-        let successCount = 0;
-        config.rightPanels?.forEach((panelDef, index) => {
-          const iconPath = getIconPath(panelDef.type);
-          if (!iconPath) return;
-
-          const panelElement = document.querySelector(`[data-panel-id="${panelDef.id}"]`);
-          if (panelElement) {
-            const tabElement = panelElement.closest('.dv-default-tab') as HTMLElement;
-            if (tabElement) {
-              // Apply icon directly via JavaScript
-              tabElement.style.backgroundImage = `url("${iconPath}")`;
-              tabElement.style.backgroundRepeat = 'no-repeat';
-              tabElement.style.backgroundPosition = 'center';
-              tabElement.style.backgroundSize = '16px 16px';
-              tabElement.style.fontSize = '0';
-              tabElement.style.lineHeight = '0';
-              console.log(`[DockableLayoutWrapper] ✅ Applied icon for ${panelDef.type}: ${iconPath}`);
-              successCount++;
-            }
-          }
-        });
-
-        // Retry if we didn't find all panels yet
-        if (successCount < (config.rightPanels?.length || 0) && attempt < maxAttempts) {
-          console.log(`[DockableLayoutWrapper] ⚠️ Only applied ${successCount}/${config.rightPanels?.length} icons, retrying...`);
-          setTimeout(() => applyIcons(attempt + 1, maxAttempts), 200);
-        } else {
-          console.log(`[DockableLayoutWrapper] 🎉 Icon application complete: ${successCount}/${config.rightPanels?.length} icons applied`);
-        }
-      };
-
-      // Start applying icons after a short initial delay
-      setTimeout(() => applyIcons(), 100);
     }
 
     // Add bottom panels as a group at the bottom
