@@ -20,7 +20,7 @@ async function testJTKinematicWorkflow() {
     const scene = new BABYLON.Scene(engine);
     
     // Add basic lighting
-    const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0, 1, 0), scene);
+    new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0, 1, 0), scene);
     const camera = new BABYLON.ArcRotateCamera('camera', 0, Math.PI / 2, 10, BABYLON.Vector3.Zero(), scene);
     camera.attachControls(canvas, true);
     

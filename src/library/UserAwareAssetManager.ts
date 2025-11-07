@@ -29,7 +29,7 @@ export class UserAwareAssetManager {
   private localDatabase: AssetDatabase;
   private currentUser: User | null = null;
   private storageConfig: StorageTierConfig;
-  // @ts-ignore - Future use
+  // @ts-expect-error - Reserved for future cache strategy optimization feature
   private ___cacheStrategy: CacheStrategy;
   private analytics: Map<string, AssetAnalytics> = new Map();
 
@@ -93,8 +93,7 @@ export class UserAwareAssetManager {
     };
 
     // Save to appropriate storage tiers
-    // @ts-ignore - Future use
-    const __storageInfo = await this.saveToStorageTiers(
+    await this.saveToStorageTiers(
       enhancedAsset,
       ownership,
       thumbnailData,
@@ -668,10 +667,11 @@ export class UserAwareAssetManager {
           return query.sorting.order === 'asc' 
             ? a.asset.name.localeCompare(b.asset.name)
             : b.asset.name.localeCompare(a.asset.name);
-        case 'lastUsed':
+        case 'lastUsed': {
           const aTime = a.storageInfo.lastAccessed.getTime();
           const bTime = b.storageInfo.lastAccessed.getTime();
           return query.sorting.order === 'asc' ? aTime - bTime : bTime - aTime;
+        }
         case 'popularity':
           return query.sorting.order === 'asc'
             ? a.storageInfo.popularityScore - b.storageInfo.popularityScore

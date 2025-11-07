@@ -556,13 +556,15 @@ export class DeviceClassifier {
         return gripperKeywords.some(keyword => lowerName.includes(keyword)) ? 0.1 : 0;
       }
         
-      case 'fixture':
+      case 'fixture': {
         const fixtureKeywords = ['fixture', 'mount', 'clamp', 'holder', 'base'];
         return fixtureKeywords.some(keyword => lowerName.includes(keyword)) ? 0.1 : 0;
+      }
         
-      case 'eot':
+      case 'eot': {
         const eotKeywords = ['tool', 'end', 'effector', 'welder', 'cutter'];
         return eotKeywords.some(keyword => lowerName.includes(keyword)) ? 0.1 : 0;
+      }
         
       case 'valve':
         return this.isValvePattern(deviceName) ? 0.1 : 0;

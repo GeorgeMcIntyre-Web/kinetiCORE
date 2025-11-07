@@ -14,53 +14,6 @@ import * as BABYLON from '@babylonjs/core';
 import { loadMJCFFromFile, createKinematicsFromMJCF } from './src/loaders/mjcf/MJCFLoader';
 import { MJCFImportResult } from './src/loaders/mjcf/types';
 
-// Test configuration
-const TEST_CONFIG = {
-  zipFilePath: 'C:\\Users\\georgem\\source\\repos\\kinetiCORE_data\\mujoco_menagerie\\google_robot.zip',
-  expectedMJCFFile: 'robot.xml',
-  expectedMeshFiles: [
-    'link_base_0_00.stl',
-    'link_base_0_01.stl',
-    'link_base_1_00.stl',
-    'link_base_1_01.stl',
-    'link_base_1_02.stl',
-    'link_base_1_03.stl',
-    'link_base_1_04.stl',
-    'link_base_1_05.stl',
-    'link_base_1_06.stl',
-    'link_base_1_07.stl',
-    'link_base_1_08.stl',
-    'link_base_1_09.stl',
-    'link_base_1_10.stl',
-    'link_base_1_11.stl',
-    'link_base_1_12.stl',
-    'link_base_1_13.stl',
-    'link_base_1_14.stl',
-    'link_base_1_15.stl',
-    'link_base_1_16.stl',
-    'link_base_1_17.stl',
-    'link_base_1_18.stl',
-    'link_base_1_19.stl',
-    'link_bicep.stl',
-    'link_elbow.stl',
-    'link_finger_base.stl',
-    'link_finger_tip.stl',
-    'link_forearm.stl',
-    'link_gripper.stl',
-    'link_head_pan.stl',
-    'link_head_tilt.stl',
-    'link_shoulder.stl',
-    'link_torso_00.stl',
-    'link_torso_01.stl',
-    'link_wrist.stl'
-  ],
-  expectedTextureFiles: [
-    'finger_base_texture.png',
-    'finger_tip_texture.png',
-    'robot_texture.png'
-  ]
-};
-
 /**
  * Test MJCF loader with Google Robot ZIP file
  */
@@ -342,7 +295,7 @@ async function testUIIntegration(): Promise<void> {
   ];
   
   testFiles.forEach(file => {
-    const mockFile = new File([''], file.name, { type: file.type });
+    new File([''], file.name, { type: file.type });
     console.log(`✅ Mock file created: ${file.name} (${file.type})`);
   });
   

@@ -98,12 +98,6 @@ describe('WholeBodyIKSolver - Unit Tests', () => {
 
   describe('Humanoid walking configuration', () => {
     it('should configure feet with highest priority', () => {
-      const _config = {
-        leftFootTarget: { x: 0, y: 0, z: 0 } as any,
-        rightFootTarget: { x: 0, y: 0, z: 0.3 } as any,
-        pelvisTarget: { x: 0, y: 0.8, z: 0.15 } as any,
-      };
-
       // Feet should have priority 1.0
       const leftLegPriority = 1.0;
       const rightLegPriority = 1.0;
@@ -129,13 +123,6 @@ describe('WholeBodyIKSolver - Unit Tests', () => {
 
   describe('Quadruped gait configuration', () => {
     it('should configure all four legs', () => {
-      const _config = {
-        frontLeftTarget: { x: 0.2, y: 0, z: 0.3 } as any,
-        frontRightTarget: { x: -0.2, y: 0, z: 0.3 } as any,
-        rearLeftTarget: { x: 0.2, y: 0, z: -0.3 } as any,
-        rearRightTarget: { x: -0.2, y: 0, z: -0.3 } as any,
-      };
-
       const legCount = 4;
       expect(legCount).toBe(4);
     });

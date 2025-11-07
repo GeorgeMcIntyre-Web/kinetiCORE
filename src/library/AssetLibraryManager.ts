@@ -72,7 +72,9 @@ export class AssetLibraryManager {
             // Process roots if needed
           }
         }
-      } catch {}
+      } catch {
+        // Ignore: Asset roots config fetch is optional
+      }
 
       // Ask backend for enumerated GLB assets under ASSET_ROOTS
       const api = await fetch('/api/assets/list', { cache: 'no-store' });
