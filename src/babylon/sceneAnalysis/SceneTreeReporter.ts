@@ -115,7 +115,9 @@ export function generateTreeReport(root: BABYLON.Node): TreeReport {
           }
         }
       }
-    } catch {}
+    } catch {
+      // Ignore errors during mesh processing
+    }
   }
 
   console.log(`[generateTreeReport] Result: ${meshCount} meshes, ${transformCount} transform nodes`);
@@ -145,7 +147,7 @@ export function downloadTreeReport(root: BABYLON.Node): void {
   const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const safeName = (report.rootName || 'tree').replace(/[^a-z0-9_\-]+/gi, '_');
+  const safeName = (report.rootName || 'tree').replace(/[^a-z0-9_-]+/gi, '_');
   a.href = url;
   a.download = `${safeName}_tree_report.json`;
   document.body.appendChild(a);
@@ -184,7 +186,7 @@ export function downloadMappedSceneTreeReport(scene: BABYLON.Scene, sceneTreeNod
     }
     let count = 0;
     let depth = 0;
-    let hasTransform = !!root;
+    const hasTransform = !!root;
     if (root) {
       // CRITICAL FIX: Use getChildMeshes() to collect ALL descendant meshes
       const meshes: BABYLON.AbstractMesh[] = (root as any).getChildMeshes
@@ -227,7 +229,7 @@ export function downloadMappedSceneTreeReport(scene: BABYLON.Scene, sceneTreeNod
   const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const safeName = (report.rootName || 'tree').replace(/[^a-z0-9_\-]+/gi, '_');
+  const safeName = (report.rootName || 'tree').replace(/[^a-z0-9_-]+/gi, '_');
   a.href = url;
   a.download = `${safeName}_mapped_tree_report.json`;
   document.body.appendChild(a);

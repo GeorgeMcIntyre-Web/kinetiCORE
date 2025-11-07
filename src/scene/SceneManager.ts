@@ -10,6 +10,7 @@ import { EngineService } from './services/EngineService';
 import { LightingService } from './services/LightingService';
 import { CameraService } from './services/CameraService';
 import { TargetingWidget } from './TargetingWidget';
+import { inspectorService } from '../services/InspectorService';
 
 export class SceneManager {
   private static instance: SceneManager | null = null;
@@ -17,7 +18,7 @@ export class SceneManager {
   private ground: BABYLON.Mesh | null = null;
   private floorMaterialManager: FloorMaterialManager | null = null;
   private gridOverlay: BABYLON.Mesh | null = null;
-  private currentFloorType: FloorType = 'grid-only';
+  private currentFloorType: FloorType = 'concrete-polished';
   private isInitialized: boolean = false;
   private inspectorModulesPromise: Promise<void> | null = null;
   private targetingWidget: TargetingWidget | null = null;
@@ -31,6 +32,11 @@ export class SceneManager {
     this.engineService = EngineService.getInstance();
     this.lightingService = LightingService.getInstance();
     this.cameraService = CameraService.getInstance();
+    
+    // Expose for testing (only in dev mode)
+    if (typeof window !== 'undefined' && import.meta.env.DEV) {
+      (window as any).sceneManager = this;
+    }
   }
 
   static getInstance(): SceneManager {
@@ -64,12 +70,16 @@ export class SceneManager {
     // Create scene
     this.scene = new BABYLON.Scene(this.engineService.getEngine()!);
 
-    // Configure for right-handed coordinate system (matches CAD standards)
-    this.scene.useRightHandedSystem = true;
+    // Set scene getter for Inspector service
+    inspectorService.setSceneGetter(() => this.scene ?? null);
 
-    // Set dark background for better contrast with floor and grid
-    this.scene.clearColor = new BABYLON.Color4(0.12, 0.12, 0.14, 1);
-    console.log('🎨 Scene initialized with dark background:', this.scene.clearColor);
+    // CRITICAL FIX: Keep Babylon default (left-handed, Y-up) for stable coordinate system
+    // CAD content will be converted to Y-up during import, not at scene level
+    this.scene.useRightHandedSystem = false;
+
+    // Cloudy sky background - soft blue-grey overcast color
+    this.scene.clearColor = new BABYLON.Color4(0.71, 0.78, 0.82, 1.0); // Cloudy sky (#B5C7D1)
+    console.log('🎨 Scene initialized with cloudy sky background:', this.scene.clearColor);
 
     // Initialize lighting service
     this.lightingService.initialize(this.scene);
@@ -92,14 +102,12 @@ export class SceneManager {
     this.ground.material = floorMaterial;
     this.ground.receiveShadows = true;
 
-    // Create grid overlay for spatial reference
-    // Enable grid by default for grid-only floor type, disable for others
-    const gridInitiallyVisible = this.currentFloorType === 'grid-only';
+    // Create grid overlay for spatial reference - always visible by default
     this.gridOverlay = this.floorMaterialManager.createGridOverlay(
       this.ground,
-      gridInitiallyVisible
+      true // Always show grid by default
     );
-    console.log('🔲 Grid overlay created with enabled:', this.gridOverlay?.isEnabled());
+    console.log('🔲 Grid overlay created and enabled:', this.gridOverlay?.isEnabled());
 
     // Defensive check: Ensure floor and grid are visible (floor should always be visible, grid depends on type)
     // This addresses potential issues where floor might not render due to visibility state
@@ -126,6 +134,39 @@ export class SceneManager {
 
     // Start render loop
     this.cameraService.startRenderLoop(this.scene);
+
+    // CRITICAL FIX: Expose scene to browser console for debugging
+    // Dev convenience for the browser console
+    if (typeof window !== 'undefined' && import.meta.env.DEV) {
+      (window as any).scene = this.scene;
+      console.log('🔧 Scene exposed to window.scene for debugging');
+    }
+
+    // Dev hotkey: Alt+I to toggle Inspector (overlay mode)
+    if (typeof window !== 'undefined' && import.meta.env.DEV && this.scene) {
+      const hotkeyHandler = (e: KeyboardEvent) => {
+        if (e.altKey && e.key.toLowerCase() === 'i') {
+          if (!this.scene) return;
+          try {
+            if (this.scene.debugLayer.isVisible()) {
+              this.scene.debugLayer.hide();
+              console.log('🔧 Inspector hidden (Alt+I)');
+            } else {
+              this.scene.debugLayer.show({
+                embedMode: false,
+                overlay: true,
+                handleResize: true,
+              });
+              console.log('🔧 Inspector shown (Alt+I)');
+            }
+          } catch (err) {
+            console.error('🔧 Failed to toggle Inspector:', err);
+          }
+        }
+      };
+      window.addEventListener('keydown', hotkeyHandler);
+      console.log('🔧 Inspector hotkey: Alt+I to toggle');
+    }
 
     // Initialize CSG2 for Boolean operations
     try {
@@ -349,11 +390,13 @@ export class SceneManager {
 
     if (transparent) {
       this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
-      // Hide grid overlay when background is transparent
+      // Keep grid overlay visible even when background is transparent (for spatial reference)
       if (this.gridOverlay) {
-        this.gridOverlay.setEnabled(false);
+        this.gridOverlay.setEnabled(true);
+        this.gridOverlay.isVisible = true;
+        this.gridOverlay.visibility = 1.0;
       }
-      console.log('✅ Background set to transparent (grid overlay hidden)');
+      console.log('✅ Background set to transparent (grid overlay visible)');
     } else {
       // Use a default dark background
       this.scene.clearColor = new BABYLON.Color4(0.2, 0.2, 0.25, 1);
@@ -590,6 +633,9 @@ export class SceneManager {
       throw new Error('Scene not initialized');
     }
 
+    const host = document.querySelector('.babylon-inspector-host') as HTMLElement | null;
+    if (host && document.querySelector('.babylon-inspector-host .babylonjsInspector, .babylon-inspector-host #sceneExplorer')) return;
+
     // Dynamically import inspector only when needed (avoids build issues)
     try {
       await this.ensureInspectorModulesLoaded();
@@ -603,6 +649,10 @@ export class SceneManager {
       console.log('[SceneManager] Inspector hidden');
       return;
     }
+
+    // before showing overlay debug layer anywhere:
+    const embedded = document.querySelector('.babylon-inspector-host .babylonjsInspector, .babylon-inspector-host #sceneExplorer');
+    if (embedded) return; // embedded already present; do not open overlay
 
     console.log('[SceneManager] Showing debug layer...');
     const debugLayer = await this.scene.debugLayer

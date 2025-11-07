@@ -123,8 +123,8 @@ export class InverseKinematicsSolver {
         // Verify: FK→World should match mesh position (validation check - no output)
         const nullTCPPose = this.fkSolver.getNullTCPPose(chainName);
         if (nullTCPPose) {
-          // @ts-expect-error - Used for validation check, output disabled
-          const _diff = currentPosWorld.subtract(nullTCPPose.position).length();
+          // Validation check - intentionally unused (debug output disabled)
+          void (currentPosWorld.subtract(nullTCPPose.position).length());
           // DEBUG DISABLED: console.log(`[IK DEBUG] ✓ FK→World vs Mesh diff: ${diff.toFixed(6)}m (should be ~0.000m)`);
           // DEBUG DISABLED: console.log(`[IK DEBUG] Mesh position (WORLD): ${nullTCPPose.position.toString()}`);
         }
@@ -190,8 +190,8 @@ export class InverseKinematicsSolver {
 
           // Compute angle difference (validation check - no output)
           const dot = BABYLON.Quaternion.Dot(currentRotWorld, target.rotation);
-          // @ts-expect-error - Used for validation check, output disabled
-          const _angleDiff = 2 * Math.acos(Math.min(1, Math.abs(dot)));
+          // Validation check - intentionally unused (debug output disabled)
+          void (2 * Math.acos(Math.min(1, Math.abs(dot))));
           // DEBUG DISABLED: console.log(`[IK DEBUG] Orientation difference: ${(angleDiff * 180 / Math.PI).toFixed(3)}° (should be ~0° for pure translation)`);
           // DEBUG DISABLED: console.log(`[IK DEBUG] Orientation error magnitude: ${orientationError.length().toFixed(6)} rad`);
         } else {
@@ -458,8 +458,8 @@ export class InverseKinematicsSolver {
 
         // === WRIST JOINT ACTIVITY ANALYSIS (validation check - no output) ===
         if (jointAngles.length >= 6) {
-          // @ts-expect-error - Used for validation check, output disabled
-          const _armDelta = Math.sqrt(
+          // Validation check - intentionally unused (debug output disabled)
+          void Math.sqrt(
             deltaAngles.slice(0, 3).reduce((sum, v) => sum + v * v, 0)
           );
           const wristDelta = Math.sqrt(

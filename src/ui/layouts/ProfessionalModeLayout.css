@@ -12,14 +12,18 @@
 
 /* Header */
 .professional-header {
+  position: sticky;
+  top: 0;
   height: 48px;
+  min-height: 48px;
+  flex-shrink: 0;
   background: #2d3748;
   border-bottom: 1px solid #4a5568;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  z-index: 100;
+  z-index: 200; /* Above warning panel */
 }
 
 .header-left {
@@ -127,94 +131,146 @@
 
 /* Ribbon Toolbar */
 .ribbon-toolbar {
-  height: 80px;
+  position: sticky;
+  top: 48px; /* Below header */
+  height: 64px; /* Increased to prevent label clipping */
+  min-height: 64px;
+  max-height: 64px;
+  flex-shrink: 0; /* Don't shrink in flex container */
   background: #2d3748;
   border-bottom: 1px solid #4a5568;
   display: flex;
   align-items: center;
-  padding: 0 16px;
-  gap: 16px;
-  overflow-x: auto;
+  /* Provide breathing space so group labels aren't cut by top border */
+  padding: 6px 8px 6px 8px;
+  gap: 4px; /* tighter spacing to prevent scrollbar */
+  overflow-x: hidden; /* Remove scrollbar - buttons should fit */
+  overflow-y: visible; /* allow labels to render cleanly */
+  z-index: 199; /* Below header, above content */
 }
 
 .tool-group {
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
   gap: 4px;
 }
 
 .group-label {
-  font-size: 11px;
+  font-size: 10px;
+  line-height: 14px; /* avoid top cropping */
   color: #718096;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 0 8px;
+  padding: 0 4px; /* tighter padding */
+  white-space: nowrap; /* keep labels on one line */
 }
 
 .tool-buttons {
   display: flex;
-  gap: 4px;
+  gap: 2px; /* tighter spacing to prevent scrollbar */
 }
 
 .tool-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  background: #374151;
-  border: 1px solid #4a5568;
+  gap: 2px;
+  padding: 2px 6px; /* tighter padding to fit more buttons */
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: 4px;
   color: #e2e8f0;
   cursor: pointer;
-  transition: all 0.2s;
-  font-size: 11px;
-  min-width: 60px;
+  transition: all 0.2s ease;
+  font-size: 10px;
+  min-width: 48px; /* narrower to fit more buttons */
 }
 
-.tool-btn:not(:disabled):hover {
-  background: #4299e1;
-  border-color: #4299e1;
-  color: white;
+.tool-btn:hover {
+  background: rgba(0, 217, 255, 0.1);
+  border-color: rgba(0, 217, 255, 0.3);
+}
+
+.tool-btn.active {
+  background: rgba(0, 217, 255, 0.2);
+  border-color: #00D9FF;
+  color: #00D9FF;
 }
 
 .tool-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
+.tool-btn:disabled:hover {
+  background: transparent;
+  border-color: transparent;
+}
+
+.tool-btn span {
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  line-height: 14px; /* ensure full glyph height */
+}
+
+/* Normalize icon sizes inside buttons for consistency */
+.tool-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.tool-btn svg {
+  flex-shrink: 0;
+}
+
+.tool-btn.active svg {
+  color: var(--kc-accent, #00D9FF);
+}
+
+.tool-btn-label {
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  margin-top: 4px;
+  line-height: 14px; /* ensure full glyph height */
+}
+
 .tool-btn-small {
-  padding: 6px 12px;
-  background: #374151;
-  border: 1px solid #4a5568;
+  padding: 5px 10px;
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: 4px;
   color: #e2e8f0;
   cursor: pointer;
-  transition: all 0.2s;
-  font-size: 12px;
+  transition: all 0.2s ease;
+  font-size: 11px;
 }
 
 .tool-btn-small:not(:disabled):hover {
-  background: #4299e1;
-  border-color: #4299e1;
-  color: white;
+  background: rgba(var(--kc-accent-rgb), 0.1);
+  border-color: rgba(var(--kc-accent-rgb), 0.3);
+  color: #fff;
 }
 
 .tool-btn-small:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .toolbar-separator {
   width: 1px;
-  height: 60px;
+  height: 100%; /* fill ribbon height */
   background: #4a5568;
+  margin: 0 2px; /* minimal margin */
 }
 
 /* Main Content */
 .professional-content {
-  display: flex;
   flex: 1;
+  min-height: 0;
+  position: relative;
   overflow: hidden;
 }
 
@@ -428,12 +484,10 @@
 
 /* Main Viewport */
 .professional-viewport {
-  flex: 1;
+  width: 100%;
+  height: 100%;
   position: relative;
   background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 /* Ensure viewport IDs are also transparent */

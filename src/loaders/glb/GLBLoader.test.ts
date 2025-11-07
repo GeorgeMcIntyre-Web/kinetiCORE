@@ -2,11 +2,11 @@
 // Tests GLB loader integration with existing MJCF workflow
 // Owner: AI Assistant
 
-import { GLBLoader, loadGLBFromFile, type GLBLoadResult } from './GLBLoader';
+import { GLBLoader, loadGLBFromFile } from './GLBLoader';
 import * as BABYLON from '@babylonjs/core';
 
 // Mock File object for testing
-const createMockGLBFile = (name: string, size: number = 1024): File => {
+const createMockGLBFile = (name: string, _size: number = 1024): File => {
   const blob = new Blob(['mock glb data'], { type: 'model/gltf-binary' });
   return new File([blob], name, { type: 'model/gltf-binary' });
 };
@@ -19,7 +19,6 @@ const createMockScene = (): BABYLON.Scene => {
 
 describe('GLBLoader Integration Tests', () => {
   let scene: BABYLON.Scene;
-  let loader: GLBLoader;
 
   beforeEach(() => {
     scene = createMockScene();

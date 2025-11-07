@@ -1,0 +1,19 @@
+/* Keyboard Hint Styles */
+.keyboard-hint {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  margin-left: auto;
+  font-family: monospace;
+  color: #999;
+}
+
+.mode-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+}
+

@@ -197,3 +197,53 @@
 .panel-collapse-btn:active {
   transform: translate(-50%, -50%) scale(0.95);
 }
+
+/* Smooth layout transitions when switching modes */
+.layout-container {
+  width: 100%;
+  height: 100%;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mode-transition {
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Keyboard shortcut hint badge */
+.keyboard-hint {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  margin-left: auto;
+  font-family: monospace;
+}
+
+/* Layout Container Transition */
+.layout-container {
+  width: 100%;
+  height: 100%;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

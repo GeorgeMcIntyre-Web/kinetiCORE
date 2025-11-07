@@ -105,9 +105,6 @@ export default defineConfig({
         },
         // Optimize asset file names for better caching
         assetFileNames: (assetInfo) => {
-          const info = assetInfo.name?.split('.') || [];
-          const ext = info[info.length - 1];
-
           // Group assets by type for better CDN caching
           if (/\.(png|jpe?g|svg|gif|tiff|bmp|ico)$/i.test(assetInfo.name || '')) {
             return 'assets/images/[name]-[hash][extname]';

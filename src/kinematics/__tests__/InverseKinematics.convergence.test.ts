@@ -17,13 +17,15 @@ import * as BABYLON from '@babylonjs/core';
 import { InverseKinematicsSolver } from '../InverseKinematicsSolver';
 import { ForwardKinematicsSolver } from '../ForwardKinematicsSolver';
 import { KinematicsManager } from '../KinematicsManager';
-import type { IKSolution, IKTarget } from '../InverseKinematicsSolver';
+import type { IKTarget } from '../InverseKinematicsSolver';
 
 describe('Inverse Kinematics - Convergence Tests', () => {
   let engine: BABYLON.Engine | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let scene: BABYLON.Scene | null = null;
   let ikSolver: InverseKinematicsSolver;
   let fkSolver: ForwardKinematicsSolver;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let kinematicsManager: KinematicsManager;
   let canRunTests = false;
 

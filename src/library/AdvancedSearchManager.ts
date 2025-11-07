@@ -180,7 +180,7 @@ export class AdvancedSearchManager {
   private searchCache: Map<string, SearchResult[]> = new Map();
   private searchHistory: Map<string, string[]> = new Map();
   private searchAnalytics: SearchAnalytics[] = [];
-  // @ts-ignore - Future use
+  // @ts-expect-error - Reserved for future search indexing feature
   private ___searchIndex: Map<string, Set<string>> = new Map();
   private synonymDictionary: Map<string, string[]> = new Map();
 
@@ -398,19 +398,16 @@ export class AdvancedSearchManager {
    * Get personalized recommendations
    */
   public   async getPersonalizedRecommendations(
-    userId: string,
+    _userId: string,
     _context: SearchContext,
     _limit: number = 10
   ): Promise<LibraryAsset[]> {
     const recommendations: LibraryAsset[] = [];
     
-    // Get user's search history
-    // @ts-ignore - Future use
-    const ___userHistory = this.searchHistory.get(userId) || [];
+    // TODO: Get user's search history for personalized recommendations
+    // this.searchHistory.get(_userId) || [];
     
-    // Get user's recent asset interactions
-    // @ts-ignore - Future use
-    const ___recentInteractions = await this.getUserRecentInteractions(userId);
+    // TODO: Get user's recent asset interactions (future feature)
     
     // Generate recommendations based on:
     // 1. Search history patterns
@@ -794,11 +791,6 @@ export class AdvancedSearchManager {
     _limit: number
   ): Promise<SearchSuggestion[]> {
     // Placeholder for manufacturer suggestions
-    return [];
-  }
-
-  private async getUserRecentInteractions(_userId: string): Promise<any[]> {
-    // Placeholder for user interaction history
     return [];
   }
 

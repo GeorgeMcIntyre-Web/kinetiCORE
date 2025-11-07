@@ -3,6 +3,7 @@ import { Menu, X, Settings, HelpCircle, Zap, ZapOff, ZapIcon } from 'lucide-reac
 import { zIndex, colors } from '../styles/design-tokens';
 import { RibbonToolbar, RibbonToolbarProps } from './RibbonToolbar';
 import { useTheme } from '../core/ThemeContext';
+import './Header.css';
 
 export interface HeaderProps {
   currentMode: 'essential' | 'professional' | 'expert';
@@ -18,19 +19,19 @@ const modeConfig = {
   essential: {
     label: 'Essential',
     icon: ZapOff,
-    description: 'Simplified interface for basic operations',
+    description: 'Student/Beginner',
     color: colors.primary[500],
   },
   professional: {
     label: 'Professional',
     icon: Zap,
-    description: 'Full feature set for advanced users',
+    description: 'Engineer/Designer',
     color: colors.success[500],
   },
   expert: {
     label: 'Expert',
     icon: ZapIcon,
-    description: 'Complete toolkit for power users',
+    description: 'Power User/Enterprise',
     color: colors.warning[500],
   },
 };
@@ -144,7 +145,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Mode Dropdown */}
           {isModeMenuOpen && (
-            <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+            <div className="absolute top-full right-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
               <div className="p-2">
                 {Object.entries(modeConfig).map(([mode, config]) => {
                   const Icon = config.icon;
@@ -157,14 +158,11 @@ export const Header: React.FC<HeaderProps> = ({
                         onModeChange(mode as 'essential' | 'professional' | 'expert');
                         setIsModeMenuOpen(false);
                       }}
-                      className={`
-                        w-full flex items-start space-x-3 p-3 rounded-lg
-                        transition-colors duration-200 text-left
-                        ${isActive 
+                      className={`mode-option ${
+                        isActive 
                           ? 'bg-blue-50 border border-blue-200' 
                           : 'hover:bg-gray-50'
-                        }
-                      `}
+                      }`}
                     >
                       <Icon 
                         className="w-5 h-5 mt-0.5 flex-shrink-0" 
@@ -183,6 +181,9 @@ export const Header: React.FC<HeaderProps> = ({
                           {config.description}
                         </p>
                       </div>
+                      {mode === 'essential' && <kbd className="keyboard-hint">Ctrl+1</kbd>}
+                      {mode === 'professional' && <kbd className="keyboard-hint">Ctrl+2</kbd>}
+                      {mode === 'expert' && <kbd className="keyboard-hint">Ctrl+3</kbd>}
                     </button>
                   );
                 })}

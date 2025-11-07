@@ -3,13 +3,13 @@
 // Floating panel with tabs for all application settings
 
 import React, { useState } from 'react';
-import {
-  Settings,
-  User,
-  Move,
-  Crosshair,
-  Zap,
-  Eye,
+import { 
+  Settings, 
+  User, 
+  Move, 
+  Crosshair, 
+  Zap, 
+  Eye, 
   Folder,
   Save,
   Palette,
@@ -18,11 +18,13 @@ import {
   Target,
   Sliders,
   Database,
+  Cloud,
 } from 'lucide-react';
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { useEditorStore } from '../store/editorStore';
 import { useUserLevel } from '../core/UserLevelContext';
 import { AdminPanel } from './Admin/AdminPanel';
+import { SkyboxSettingsPanel } from './SkyboxSettingsPanel';
 import './FloatingSettingsPanel.css';
 
 interface FloatingSettingsPanelProps {
@@ -45,7 +47,7 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState('general');
   const { userLevel, setUserLevel } = useUserLevel();
-
+  
   // Get settings from store
   const {
     positionIncrement,
@@ -82,25 +84,11 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
     setSnapToNormal,
     setGridSize,
     setSnapDistance,
-    toggleInspector,
   } = useEditorStore();
-  const handleInspectorToggle = () => {
-    console.log('[Settings] Toggle Babylon.js inspector requested');
-    try {
-      const maybePromise = toggleInspector();
-      if (maybePromise && typeof (maybePromise as Promise<void>).catch === 'function') {
-        (maybePromise as Promise<void>).catch((err) => {
-          console.error('[Settings] Inspector toggle failed:', err);
-        });
-      }
-    } catch (err) {
-      console.error('[Settings] Inspector toggle threw:', err);
-    }
-  };
 
   // General Settings Component
   const GeneralSettings = () => (
-    <div className="settings-section m-3">
+    <div className="settings-section">
       <div className="settings-grid">
         <div className="settings-compact-group">
           <h4 className="settings-group-title">
@@ -111,21 +99,9 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
             <label className="settings-label">Interface Mode</label>
             <div className="settings-radio-group">
               {[
-                {
-                  value: 'essential',
-                  label: 'Essential',
-                  description: 'Simplified interface for beginners',
-                },
-                {
-                  value: 'professional',
-                  label: 'Professional',
-                  description: 'Full feature set for engineers',
-                },
-                {
-                  value: 'expert',
-                  label: 'Expert',
-                  description: 'Advanced features for power users',
-                },
+                { value: 'essential', label: 'Essential', description: 'Simplified interface for beginners' },
+                { value: 'professional', label: 'Professional', description: 'Full feature set for engineers' },
+                { value: 'expert', label: 'Expert', description: 'Advanced features for power users' }
               ].map(({ value, label, description }) => (
                 <label key={value} className="settings-radio-option">
                   <input
@@ -193,13 +169,12 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
           </select>
         </div>
       </div>
-
     </div>
   );
 
   // Transform Settings Component
   const TransformSettings = () => (
-    <div className="settings-section m-4">
+    <div className="settings-section">
       <div className="settings-group">
         <h4 className="settings-group-title">
           <Move size={16} />
@@ -261,7 +236,7 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
 
   // Snap Settings Component
   const SnapSettings = () => (
-    <div className="settings-section overflow-auto m-4">
+    <div className="settings-section">
       <div className="settings-group">
         <h4 className="settings-group-title">
           <Crosshair size={16} />
@@ -269,8 +244,8 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
         </h4>
         <div className="settings-option">
           <label className="settings-checkbox">
-            <input
-              type="checkbox"
+            <input 
+              type="checkbox" 
               checked={snapEnabled}
               onChange={(e) => setSnapEnabled(e.target.checked)}
             />
@@ -305,35 +280,19 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
             { key: 'snapToFace', label: 'Face', setter: setSnapToFace, getter: snapToFace },
             { key: 'snapToCenter', label: 'Center', setter: setSnapToCenter, getter: snapToCenter },
             { key: 'snapToObject', label: 'Object', setter: setSnapToObject, getter: snapToObject },
-            {
-              key: 'snapToMidpoint',
-              label: 'Midpoint',
-              setter: setSnapToMidpoint,
-              getter: snapToMidpoint,
-            },
-            {
-              key: 'snapToIntersection',
-              label: 'Intersection',
-              setter: setSnapToIntersection,
-              getter: snapToIntersection,
-            },
-            {
-              key: 'snapToPerpendicular',
-              label: 'Perpendicular',
-              setter: setSnapToPerpendicular,
-              getter: snapToPerpendicular,
-            },
-            {
-              key: 'snapToTangent',
-              label: 'Tangent',
-              setter: setSnapToTangent,
-              getter: snapToTangent,
-            },
+            { key: 'snapToMidpoint', label: 'Midpoint', setter: setSnapToMidpoint, getter: snapToMidpoint },
+            { key: 'snapToIntersection', label: 'Intersection', setter: setSnapToIntersection, getter: snapToIntersection },
+            { key: 'snapToPerpendicular', label: 'Perpendicular', setter: setSnapToPerpendicular, getter: snapToPerpendicular },
+            { key: 'snapToTangent', label: 'Tangent', setter: setSnapToTangent, getter: snapToTangent },
             { key: 'snapAlong', label: 'Along', setter: setSnapAlong, getter: snapAlong },
             { key: 'snapToNormal', label: 'Normal', setter: setSnapToNormal, getter: snapToNormal },
           ].map(({ key, label, setter, getter }) => (
             <label key={key} className="settings-checkbox">
-              <input type="checkbox" checked={getter} onChange={(e) => setter(e.target.checked)} />
+              <input 
+                type="checkbox" 
+                checked={getter}
+                onChange={(e) => setter(e.target.checked)}
+              />
               <span className="checkmark"></span>
               {label}
             </label>
@@ -345,7 +304,7 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
 
   // Physics Settings Component
   const PhysicsSettings = () => (
-    <div className="settings-section m-4">
+    <div className="settings-section">
       <div className="settings-group">
         <h4 className="settings-group-title">
           <Zap size={16} />
@@ -401,7 +360,7 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
 
   // View Settings Component
   const ViewSettings = () => (
-    <div className="settings-section m-4">
+    <div className="settings-section">
       <div className="settings-group">
         <h4 className="settings-group-title">
           <Camera size={16} />
@@ -409,14 +368,7 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
         </h4>
         <div className="settings-option">
           <label className="settings-label">Default camera speed</label>
-          <input
-            type="range"
-            className="settings-range"
-            defaultValue="1"
-            min="0.1"
-            max="5"
-            step="0.1"
-          />
+          <input type="range" className="settings-range" defaultValue="1" min="0.1" max="5" step="0.1" />
         </div>
         <div className="settings-option">
           <label className="settings-checkbox">
@@ -473,7 +425,7 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
 
   // Project Settings Component
   const ProjectSettings = () => (
-    <div className="settings-section m-4">
+    <div className="settings-section">
       <div className="settings-group">
         <h4 className="settings-group-title">
           <Folder size={16} />
@@ -529,24 +481,14 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
             <option value="usd">USD</option>
           </select>
         </div>
-        <div className="settings-option">
-          <button className="settings-button" onClick={handleInspectorToggle}>
-            Toggle Babylon.js Inspector
-          </button>
-          <p className="settings-helper-text">Shortcut: Ctrl + Shift + I</p>
-        </div>
       </div>
     </div>
   );
 
   const tabs: SettingsTab[] = [
     { id: 'general', label: 'General', icon: <User size={16} />, component: <GeneralSettings /> },
-    {
-      id: 'transform',
-      label: 'Transform',
-      icon: <Move size={16} />,
-      component: <TransformSettings />,
-    },
+    { id: 'skybox', label: 'Skybox', icon: <Cloud size={16} />, component: <SkyboxSettingsPanel /> },
+    { id: 'transform', label: 'Transform', icon: <Move size={16} />, component: <TransformSettings /> },
     { id: 'snap', label: 'Snap', icon: <Crosshair size={16} />, component: <SnapSettings /> },
     { id: 'physics', label: 'Physics', icon: <Zap size={16} />, component: <PhysicsSettings /> },
     { id: 'view', label: 'View', icon: <Eye size={16} />, component: <ViewSettings /> },
@@ -585,13 +527,17 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
 
         {/* Tab Content */}
         <div className="settings-content">
-          {tabs.find((tab) => tab.id === activeTab)?.component}
+          {tabs.find(tab => tab.id === activeTab)?.component}
         </div>
 
         {/* Action Buttons */}
         <div className="settings-actions">
-          <button className="settings-btn settings-btn-secondary">Reset to Defaults</button>
-          <button className="settings-btn settings-btn-primary">Save Settings</button>
+          <button className="settings-btn settings-btn-secondary">
+            Reset to Defaults
+          </button>
+          <button className="settings-btn settings-btn-primary">
+            Save Settings
+          </button>
         </div>
       </div>
     </FloatingPanel>

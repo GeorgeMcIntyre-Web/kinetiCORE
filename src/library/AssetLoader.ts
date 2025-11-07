@@ -245,7 +245,9 @@ export class AssetLoader {
       parent.position = new BABYLON.Vector3(pos.x, pos.z, pos.y);
 
       // Freeze static meshes for perf
-      result.meshes.forEach(m => { try { m.freezeWorldMatrix(); } catch {} });
+      result.meshes.forEach(m => { try { m.freezeWorldMatrix(); } catch {
+        // Ignore: Mesh freeze is optional optimization
+      } });
 
       return { success: true, meshes: result.meshes as BABYLON.Mesh[] };
     } catch (e) {
@@ -320,7 +322,8 @@ export class AssetLoader {
       case 'sphere':
         mesh = BABYLON.MeshBuilder.CreateSphere(
           name,
-          { diameter: 1 },
+          // Reduce default primitive sphere size from 1.0m to 0.05m
+          { diameter: 0.05 },
           this.scene
         );
         break;

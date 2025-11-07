@@ -500,13 +500,14 @@ export class JTJsonToGLTFConverter {
                     -0.05, -0.05, 3.5,  0.05, -0.05, 3.5,  0.05, 0.05, 3.5,  -0.05, 0.05, 3.5
                 );
                 break;
-            default:
+            default: {
                 // Additional components
                 const offset = _componentIndex * 0.5;
                 positions.push(
                     -0.1, -0.1, 3.0 + offset,    0.1, -0.1, 3.0 + offset,    0.1, 0.1, 3.0 + offset,    -0.1, 0.1, 3.0 + offset,
                     -0.05, -0.05, 3.5 + offset,  0.05, -0.05, 3.5 + offset,  0.05, 0.05, 3.5 + offset,  -0.05, 0.05, 3.5 + offset
                 );
+            }
         }
         
         return positions;

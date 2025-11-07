@@ -20,8 +20,10 @@ import { KinematicsManager } from '../KinematicsManager';
 
 describe('Forward Kinematics - Comprehensive Validation', () => {
   let engine: BABYLON.Engine | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let scene: BABYLON.Scene | null = null;
   let fkSolver: ForwardKinematicsSolver;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let kinematicsManager: KinematicsManager;
 
   // Test will be skipped if we can't create engine/scene
@@ -449,6 +451,7 @@ describe('Forward Kinematics - Comprehensive Validation', () => {
         jointAngles: [0, 0, 0], // Wrong number of joints
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const fkPose = fkSolver.solve(testConfig.chainName, testConfig.jointAngles);
 
       // Should either return null or throw error (depending on implementation)
@@ -462,6 +465,7 @@ describe('Forward Kinematics - Comprehensive Validation', () => {
         jointAngles: [],
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const fkPose = fkSolver.solve(testConfig.chainName, testConfig.jointAngles);
 
       // Should handle gracefully

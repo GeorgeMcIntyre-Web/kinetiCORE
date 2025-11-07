@@ -459,7 +459,7 @@ describe('CommandManager', () => {
 
       // State should be consistent
       const canUndo = commandManager.canUndo();
-      const _canRedo = commandManager.canRedo();
+      // const canRedo = commandManager.canRedo(); // Reserved for future assertions
 
       // If we can undo, undoing should work
       if (canUndo) {

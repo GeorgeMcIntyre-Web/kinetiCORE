@@ -139,6 +139,8 @@ export class FloorMaterialManager {
     );
     texture.uScale = avgSize / 5;
     texture.vScale = avgSize / 5;
+    // Enable mipmaps for proper distance rendering
+    texture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
     material.baseTexture = texture;
 
     material._environmentIntensity = 0.4;
@@ -164,6 +166,8 @@ export class FloorMaterialManager {
     );
     texture.uScale = avgSize / 3;
     texture.vScale = avgSize / 3;
+    // Enable mipmaps for proper distance rendering
+    texture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
     material.baseTexture = texture;
 
     material._environmentIntensity = 0.2;
@@ -205,6 +209,8 @@ export class FloorMaterialManager {
     );
     texture.uScale = avgSize / 2; // Smaller tiles
     texture.vScale = avgSize / 2;
+    // Enable mipmaps for proper distance rendering
+    texture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
     material.baseTexture = texture;
 
     material._environmentIntensity = 0.5;
@@ -246,6 +252,8 @@ export class FloorMaterialManager {
     );
     texture.uScale = avgSize / 4;
     texture.vScale = avgSize / 4;
+    // Enable mipmaps for proper distance rendering
+    texture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
     material.baseTexture = texture;
 
     material._environmentIntensity = 0.1;
@@ -271,6 +279,8 @@ export class FloorMaterialManager {
     );
     texture.uScale = avgSize / 8;
     texture.vScale = avgSize / 8;
+    // Enable mipmaps for proper distance rendering
+    texture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
     material.baseTexture = texture;
 
     material._environmentIntensity = 0.3;

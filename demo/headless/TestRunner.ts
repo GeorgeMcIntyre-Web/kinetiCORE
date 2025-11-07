@@ -103,7 +103,7 @@ async function main() {
   fs.writeFileSync(path.join(outDir, 'actuators.program.json'), MJCFExporter.exportProgram(programOut), 'utf-8');
 
   // Basic assertions
-  const thresholdDeg = 0.25; // tolerance bookkeeping if needed later
+  // Threshold tolerance bookkeeping: 0.25 degrees (reserved for future use)
   const ok = jointsOut.length > 0 && channels.length === jointsOut.length;
   if (!ok) {
     console.error('Test failed: joints/channels mismatch or none created.');

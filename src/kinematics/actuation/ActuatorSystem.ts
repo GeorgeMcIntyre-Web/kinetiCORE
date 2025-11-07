@@ -10,6 +10,8 @@ import {
   HardwareCommand,
   ActuatorType,
 } from '../device/UnifiedDeviceDefinition';
+import { SceneTreeManager } from '../../scene/SceneTreeManager';
+import { Vector3 } from '@babylonjs/core';
 
 export interface ActuatorStateUpdate {
   actuatorId: string;
@@ -88,7 +90,7 @@ export class ActuatorSystem {
         actuator.state.enabled = false;
         break;
 
-      case 'set_value':
+      case 'set_value': {
         if (command.value === undefined) {
           console.error('[ActuatorSystem] set_value requires value parameter');
           return false;
@@ -107,6 +109,7 @@ export class ActuatorSystem {
         // Apply to coordinated joints (would be handled by kinematics system)
         this.applyToJoints(actuator);
         break;
+      }
 
       case 'set_velocity':
         if (command.value === undefined) return false;
@@ -167,14 +170,14 @@ export class ActuatorSystem {
           joint.position = jointValue;
           
           // Apply transform to the child node
-          const sceneTreeManager = (require('../../scene/SceneTreeManager') as any).SceneTreeManager.getInstance();
+          const sceneTreeManager = SceneTreeManager.getInstance();
           const childNode = sceneTreeManager.getNode(joint.childNodeId);
           
           if (childNode) {
             // Apply joint transform based on joint type
             if (joint.type === 'revolute') {
               // Apply rotation around joint axis
-              const axis = new (require('@babylonjs/core') as any).Vector3(
+              const axis = new Vector3(
                 joint.axis.x, joint.axis.y, joint.axis.z
               );
               const rotation = axis.scale(jointValue);
@@ -185,7 +188,7 @@ export class ActuatorSystem {
               };
             } else if (joint.type === 'prismatic') {
               // Apply translation along joint axis
-              const axis = new (require('@babylonjs/core') as any).Vector3(
+              const axis = new Vector3(
                 joint.axis.x, joint.axis.y, joint.axis.z
               );
               const translation = axis.scale(jointValue);

@@ -133,7 +133,8 @@ describe('FK Verification - Independent Tests', () => {
         const baseMatrix = kinematicsManager.getBaseWorldMatrix(chain.id);
         expect(baseMatrix).toBeDefined();
 
-        // Transform to world
+        // Transform to world (currently unused - reserved for future validation)
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const poseWorld = BABYLON.Vector3.TransformCoordinates(
           poseLocal.position,
           baseMatrix || BABYLON.Matrix.Identity()

@@ -21,9 +21,11 @@ import type { IKTarget } from '../InverseKinematicsSolver';
 
 describe('Kinematics - Edge Cases and Robustness', () => {
   let engine: BABYLON.Engine | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let scene: BABYLON.Scene | null = null;
   let fkSolver: ForwardKinematicsSolver;
   let ikSolver: InverseKinematicsSolver;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let kinematicsManager: KinematicsManager;
   let canRunTests = false;
 
@@ -340,7 +342,7 @@ describe('Kinematics - Edge Cases and Robustness', () => {
       const chainName = 'test_chain';
       const jointAngles: number[] = [];
 
-      const fkPose = fkSolver.solve(chainName, jointAngles);
+      fkSolver.solve(chainName, jointAngles);
 
       // Should handle gracefully
       // (May return null or throw error, depending on implementation)
@@ -351,7 +353,7 @@ describe('Kinematics - Edge Cases and Robustness', () => {
       const chainName = 'test_chain';
       const jointAngles = [0, 0, 0]; // Wrong number
 
-      const fkPose = fkSolver.solve(chainName, jointAngles);
+      fkSolver.solve(chainName, jointAngles);
 
       // Should handle gracefully (return null or throw)
       expect(true).toBe(true);
@@ -361,7 +363,7 @@ describe('Kinematics - Edge Cases and Robustness', () => {
       const chainName = 'test_chain';
       const jointAngles = [NaN, 0, 0, 0, 0, 0];
 
-      const fkPose = fkSolver.solve(chainName, jointAngles);
+      fkSolver.solve(chainName, jointAngles);
 
       // Should either reject or produce NaN output (not crash)
       expect(true).toBe(true);
@@ -371,7 +373,7 @@ describe('Kinematics - Edge Cases and Robustness', () => {
       const chainName = 'test_chain';
       const jointAngles = [Infinity, 0, 0, 0, 0, 0];
 
-      const fkPose = fkSolver.solve(chainName, jointAngles);
+      fkSolver.solve(chainName, jointAngles);
 
       // Should handle gracefully
       expect(true).toBe(true);

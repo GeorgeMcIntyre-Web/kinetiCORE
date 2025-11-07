@@ -36,6 +36,7 @@ import type { Project, ProjectSave, AssetInstance } from '../../project/types';
 
 type ObjectType = 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'plane' | 'ground' | 'capsule' | 'disc' | 'torusknot' | 'polyhedron';
 type SnapMode = 'grid' | 'vertex' | 'edge' | 'surface' | 'object' | 'component' | 'mesh';
+
 interface SnapPoint {
   x: number;
   y: number;
@@ -87,7 +88,7 @@ interface EditorState {
   // UI state - which toolbar popup is currently open (only one at a time)
   openToolbarPopup: 'transform-settings' | 'snap-geometric' | 'snap-object' | 'snap-auxiliary' | null;
   setOpenToolbarPopup: (popup: 'transform-settings' | 'snap-geometric' | 'snap-object' | 'snap-auxiliary' | null) => void;
-
+  
   // Camera view state
   currentView: 'front' | 'right' | 'top' | 'iso';
   setCurrentView: (view: 'front' | 'right' | 'top' | 'iso') => void;
@@ -339,6 +340,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     const tree = SceneTreeManager.getInstance();
+    const registry = EntityRegistry.getInstance();
     const state = get();
     const coordinateFrameWidget = state.coordinateFrameWidget;
 
@@ -360,192 +362,83 @@ export const useEditorStore = create<EditorState>((set, get) => {
     }
 
     const primaryNodeId = nodeIds[nodeIds.length - 1];
-    const primaryNode = tree.getNode(primaryNodeId);
+    const node = tree.getNode(primaryNodeId);
 
-    if (primaryNode && primaryNode.name.toLowerCase() === 'assets') {
-      set({
-        selectedMeshes: [],
-        selectedCollectionNodeId: null,
-        selectedCollectionTransformNode: null,
-      });
-
-      if (coordinateFrameWidget && !state.customFrame) {
-        coordinateFrameWidget.hide();
-      }
-
-      sceneManager.resetClippingPlanes();
+    if (!node) {
+      console.warn('[EditorStore] Node not found for selection:', primaryNodeId);
       return;
     }
-    const orderedNodeIds = [primaryNodeId, ...nodeIds.filter((id) => id !== primaryNodeId)];
 
-    const meshes: BABYLON.Mesh[] = [];
-    const seenMeshIds = new Set<number>();
+    // Update selected meshes array for gizmo and inspector
+    const newSelectedMeshes: BABYLON.Mesh[] = [];
 
-    const parseUniqueId = (value?: string): number | null => {
-      if (!value) return null;
-      const parsed = Number(value);
-      return Number.isFinite(parsed) ? parsed : null;
-    };
-
-    const addMeshIfValid = (candidate: BABYLON.AbstractMesh | null | undefined) => {
-      if (!candidate) return;
-
-      const baseMesh =
-        candidate instanceof BABYLON.InstancedMesh ? candidate.sourceMesh : candidate;
-
-      if (!baseMesh || !(baseMesh instanceof BABYLON.Mesh)) {
-        return;
+    const addMeshAndChildren = (mesh: BABYLON.Mesh | BABYLON.TransformNode) => {
+      if (mesh instanceof BABYLON.Mesh) {
+        newSelectedMeshes.push(mesh);
       }
-
-      if (seenMeshIds.has(baseMesh.uniqueId)) {
-        return;
-      }
-
-      meshes.push(baseMesh);
-      seenMeshIds.add(baseMesh.uniqueId);
-    };
-
-    const addMeshesFromNode = (node: BABYLON.Node | null | undefined) => {
-      if (!node) return;
-
-      if (node instanceof BABYLON.AbstractMesh) {
-        addMeshIfValid(node);
-      }
-
-      // Prefer getChildMeshes when available (TransformNodes/AbstractMesh implement it)
-      if ('getChildMeshes' in node && typeof (node as any).getChildMeshes === 'function') {
-        try {
-          const childMeshes: BABYLON.AbstractMesh[] = (node as any).getChildMeshes(false);
-          childMeshes.forEach(addMeshIfValid);
-          return;
-        } catch (error) {
-          console.warn('[EditorStore] Failed to get child meshes from node:', node.name, error);
+      mesh.getChildMeshes(false).forEach((child) => {
+        if (child instanceof BABYLON.Mesh) {
+          newSelectedMeshes.push(child);
         }
-      }
-
-      // Fallback: traverse descendants
-      try {
-        const descendants = node.getDescendants(false);
-        descendants.forEach((descendant) => {
-          if (descendant instanceof BABYLON.AbstractMesh) {
-            addMeshIfValid(descendant);
-          }
-        });
-      } catch (error) {
-        console.warn('[EditorStore] Failed to traverse descendants for node:', node.name, error);
-      }
+      });
     };
 
-    let selectedCollectionNodeId: string | null = null;
-    let selectedCollectionTransformNode: BABYLON.TransformNode | null = null;
-
-    const isDescendant = (candidateId: string, expectedAncestorId: string): boolean => {
-      let current = tree.getNode(candidateId);
-      while (current && current.parentId) {
-        if (current.parentId === expectedAncestorId) {
-          return true;
+    if (node.type === 'mesh' && node.babylonMeshId) {
+      const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
+      if (mesh) {
+        addMeshAndChildren(mesh);
+        sceneManager.adjustClippingPlanesForObject(mesh);
+      } else {
+        console.warn('[EditorStore] Mesh not found for node:', node.name);
+      }
+    } else if (node.type === 'collection') {
+      // For collections, select all visible child meshes
+      const childMeshIds = tree.getDescendantMeshIds(node.id);
+      childMeshIds.forEach((meshId) => {
+        const mesh = scene.getMeshByUniqueId(parseInt(meshId, 10));
+        if (mesh) {
+          addMeshAndChildren(mesh);
         }
-        current = tree.getNode(current.parentId);
-      }
-      return candidateId === expectedAncestorId;
-    };
-
-    const registerMeshNode = (meshNodeId: string) => {
-      if (!isDescendant(meshNodeId, primaryNodeId)) {
-        return;
-      }
-      const meshNode = tree.getNode(meshNodeId);
-      if (!meshNode) {
-        return;
-      }
-
-      const meshUniqueId = parseUniqueId(meshNode.babylonMeshId);
-      if (meshUniqueId !== null) {
-        addMeshesFromNode(scene.getMeshByUniqueId(meshUniqueId));
-      }
-
-      const transformUniqueId = parseUniqueId(meshNode.babylonTransformNodeId);
-      if (transformUniqueId !== null) {
-        addMeshesFromNode(scene.getTransformNodeByUniqueId(transformUniqueId));
-      }
-    };
-
-    const collectMeshes = (nodeId: string) => {
-      const node = tree.getNode(nodeId);
-      if (!node) return;
-
-      if (node.entityId) {
-        const entity = registry.get(node.entityId);
-        if (entity) {
-          const primaryMeshNode = tree.getNodeByEntityId?.(entity.getId?.() ?? '');
-          if (primaryMeshNode) {
-            registerMeshNode(primaryMeshNode.id);
-          }
-          if (typeof entity.getMesh === 'function') {
-            addMeshesFromNode(entity.getMesh());
-          }
-          if (typeof (entity as any).getRootTransformNode === 'function') {
-            addMeshesFromNode((entity as any).getRootTransformNode());
-          }
-          if (typeof (entity as any).getChildren === 'function') {
-            try {
-              const children = (entity as any).getChildren() as any[];
-              children?.forEach((child) => {
-                if (child && typeof child.getSceneNodeId === 'function') {
-                  const sceneNodeId = child.getSceneNodeId();
-                  if (typeof sceneNodeId === 'string') {
-                    registerMeshNode(sceneNodeId);
-                  }
-                }
-                if (child && typeof child.getMesh === 'function') {
-                  addMeshesFromNode(child.getMesh());
-                }
-              });
-            } catch (error) {
-              console.warn('[EditorStore] Failed to collect meshes from entity children:', error);
-            }
-          }
-        }
-      }
-
-      registerMeshNode(nodeId);
-
-      const children = tree.getChildren(nodeId);
-      children.forEach((child) => collectMeshes(child.id));
-    };
-
-    orderedNodeIds.forEach((id) => {
-      collectMeshes(id);
-
-      if (id === primaryNodeId) {
-        const node = tree.getNode(id);
-        if (node && node.type === 'collection' && nodeIds.length === 1) {
-          let transformNode: BABYLON.TransformNode | undefined;
-          if (node.babylonTransformNodeId) {
-            const uniqueId = parseInt(node.babylonTransformNodeId, 10);
-            transformNode = scene.getTransformNodeByUniqueId(uniqueId) || undefined;
-          }
-
-          if (!transformNode) {
-            transformNode = scene.transformNodes.find((tn) => tn.name === node.name);
-          }
-
-          if (transformNode) {
-            selectedCollectionNodeId = node.id;
-            selectedCollectionTransformNode = transformNode;
-          }
-        }
-      }
-    });
+      });
+      sceneManager.adjustClippingPlanesForObject(newSelectedMeshes[0] || null);
+    }
 
     set({
-      selectedMeshes: meshes,
-      selectedCollectionNodeId,
-      selectedCollectionTransformNode,
+      selectedMeshes: newSelectedMeshes,
+      selectedCollectionNodeId: node.type === 'collection' ? node.id : null,
+      selectedCollectionTransformNode: node.type === 'collection' ? scene.getTransformNodeByUniqueId(node.babylonTransformNodeId ? parseInt(node.babylonTransformNodeId, 10) : -1) || null : null,
     });
 
-    if ((nodeIds.length > 1 || !selectedCollectionNodeId) && coordinateFrameWidget && !state.customFrame) {
-      coordinateFrameWidget.hide();
+    // Update coordinate frame widget unless a custom frame is active
+    if (coordinateFrameWidget && !state.customFrame) {
+      if (newSelectedMeshes.length === 1) {
+        const mesh = newSelectedMeshes[0];
+        const meshWorldMatrix = mesh.getWorldMatrix();
+        const origin = mesh.getAbsolutePosition();
+        const xAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Right(), meshWorldMatrix).normalize();
+        const yAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Up(), meshWorldMatrix).normalize();
+        const zAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Forward(), meshWorldMatrix).normalize();
+
+        coordinateFrameWidget.show(
+          {
+            featureType: 'object',
+            nodeId: node.id,
+            origin: babylonToUser(origin),
+            xAxis: { x: xAxis.x, y: xAxis.y, z: xAxis.z },
+            yAxis: { x: yAxis.x, y: yAxis.y, z: yAxis.z },
+            zAxis: { x: zAxis.x, y: zAxis.y, z: zAxis.z },
+          },
+          0.1
+        );
+      } else {
+        coordinateFrameWidget.hide();
+      }
+    }
+
+    // Update entity selection state
+    const entity = node.entityId ? registry.get(node.entityId) : null;
+    if (entity) {
+      registry.setSelected(entity, true);
     }
   };
 
@@ -557,7 +450,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
   selectedCollectionNodeId: null,
   selectedCollectionTransformNode: null,
   transformMode: DEFAULT_TRANSFORM_MODE,
-  transformGizmoEnabled: false,
+  transformGizmoEnabled: true, // Enable by default so gizmo appears on selection
   setTransformGizmoEnabled: (enabled) => set({ transformGizmoEnabled: enabled }),
   camera: null,
   isPlaying: false,
@@ -624,7 +517,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     toast.success('Snap settings updated');
   },
-
+  
   // File system state defaults
   lastUsedDirectory: null,
   setLastUsedDirectory: (directory) => set({ lastUsedDirectory: directory }),
@@ -668,7 +561,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
   alignFrameWidgets: [],
 
   // Point pick defaults
-  pointPickMode: true, // Always enabled - works alongside normal selection
+  pointPickMode: true,
   pointPickMarkers: [],
   pointPickFrameWidgets: [],
   pointPickFrameData: null,
@@ -758,97 +651,166 @@ export const useEditorStore = create<EditorState>((set, get) => {
         console.warn(`[EditorStore] No tree node found for mesh: ${mesh.name}`);
       }
 
-      // Show origin frame if selection level is 'object'
       if (selectionLevel === 'object') {
-        console.log('[Selection] Selection level is object, showing origin frame for mesh:', mesh.name);
         get().showObjectOriginFrame(mesh);
-      } else {
-        console.log('[Selection] Selection level is:', selectionLevel, '(not showing frame)');
       }
     }
   },
 
   selectNode: (nodeId) => {
     const normalizedId = normalizeNodeId(nodeId);
-    const tree = SceneTreeManager.getInstance();
-
     set({ selectedNodeId: normalizedId, selectedNodeIds: [normalizedId] });
 
+    const tree = SceneTreeManager.getInstance();
+    const node = tree.getNode(normalizedId);
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    const { coordinateFrameWidget } = get();
+
+    // Check if this is a device root mesh node (ending in _device_root)
+    if (node && node.name.endsWith('_device_root') && node.type === 'mesh') {
+      // Redirect to parent collection node instead
+      if (node.parentId) {
+        const parentNode = tree.getNode(node.parentId);
+        if (parentNode && parentNode.type === 'collection') {
+          // Recursively call selectNode with the parent collection ID
+          get().selectNode(parentNode.id);
+          return; // Exit early
+        }
+      }
+    }
+
+    // Auto-expand tree to show selected node
     tree.expandToNode(normalizedId);
     window.dispatchEvent(new Event('scenetree-update'));
 
-    updateSelectionVisuals([normalizedId]);
+    // If it's a collection/TransformNode, show coordinate frame at its origin
+    if (node && node.type === 'collection' && scene) {
+      let transformNode: BABYLON.TransformNode | undefined;
+      
+      // Use uniqueId lookup first for reliability (canonical field)
+      if (node.babylonTransformNodeId) {
+        const uniqueId = parseInt(node.babylonTransformNodeId, 10);
+        const foundNode = scene.getTransformNodeByUniqueId(uniqueId);
+        transformNode = foundNode ? foundNode : undefined;
+      } else if ((node as any).babylonNodeId) {
+        // Backward compatibility with older saves that used `babylonNodeId`
+        const legacyId = parseInt((node as any).babylonNodeId, 10);
+        const foundNode = scene.getTransformNodeByUniqueId(legacyId);
+        transformNode = foundNode ? foundNode : undefined;
+      } else {
+        // Final fallback: name lookup (may be ambiguous if names repeat)
+        transformNode = scene.transformNodes.find(tn => tn.name === node.name);
+      }
+      
+      if (transformNode) {
+        // For collection nodes, we need to trigger gizmo activation
+        // by setting a special flag that SceneCanvas can detect
+        // Clear any existing mesh selection to avoid conflicts
+        // Collect all descendant meshes for highlight
+        const meshes: BABYLON.Mesh[] = [];
+        const registry = EntityRegistry.getInstance();
+        const collectMeshes = (nid: string) => {
+          const n = tree.getNode(nid);
+          if (!n) return;
+          // Prefer entity mesh if available
+          if (n.entityId) {
+            const ent = registry.get(n.entityId);
+            if (ent && typeof ent.getMesh === 'function') {
+              const m = ent.getMesh();
+              if (m && m instanceof BABYLON.Mesh && m.isVisible) meshes.push(m);
+            }
+          } else if (n.babylonMeshId) {
+            const m = scene.getMeshByUniqueId(parseInt(n.babylonMeshId, 10));
+            if (m && m instanceof BABYLON.Mesh && m.isVisible) meshes.push(m);
+          }
+          // Recurse children
+          tree.getChildren(nid).forEach(child => collectMeshes(child.id));
+        };
+        collectMeshes(normalizedId);
 
-    // Show origin frame if selection level is 'object'
-    const { selectionLevel } = get();
-    console.log('[SelectNode] Selection level:', selectionLevel);
-    if (selectionLevel === 'object') {
-      const node = tree.getNode(normalizedId);
-      if (node) {
-        console.log('[SelectNode] Tree node found:', node.name);
-        // Get the Babylon node (Mesh or TransformNode) from the tree node
-        const sceneManager = SceneManager.getInstance();
-        const scene = sceneManager.getScene();
-        if (scene) {
-          // Try to get the Babylon node by ID
-          let babylonNode: BABYLON.Node | null = null;
+        set({
+          selectedMeshes: meshes,
+          selectedCollectionNodeId: normalizedId,
+          selectedCollectionTransformNode: transformNode 
+        });
 
-          if (node.babylonMeshId) {
-            babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
-            console.log('[SelectNode] Found Babylon mesh by ID:', babylonNode?.name);
-          } else if (node.babylonTransformNodeId) {
-            babylonNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId));
-            console.log('[SelectNode] Found Babylon TransformNode by ID:', babylonNode?.name);
+      }
+    } else {
+      // For mesh or entity-backed nodes, collect the node's mesh AND all descendant meshes
+      if (node && scene) {
+        const meshes: BABYLON.Mesh[] = [];
+        const registry = EntityRegistry.getInstance();
+
+        // Helper to collect meshes recursively
+        const collectMeshes = (nid: string) => {
+          const n = tree.getNode(nid);
+          if (!n) return;
+
+          // Prefer entity mesh if available
+          if (n.entityId) {
+            const ent = registry.get(n.entityId);
+            if (ent && typeof ent.getMesh === 'function') {
+              const m = ent.getMesh();
+              if (m && m instanceof BABYLON.Mesh && m.isVisible) meshes.push(m);
+            }
+          } else if (n.babylonMeshId) {
+            const m = scene.getMeshByUniqueId(parseInt(n.babylonMeshId, 10));
+            if (m && m instanceof BABYLON.Mesh && m.isVisible) meshes.push(m);
           }
 
-          if (babylonNode && (babylonNode instanceof BABYLON.Mesh || babylonNode instanceof BABYLON.TransformNode)) {
-            console.log('[SelectNode] Calling showObjectOriginFrame for:', babylonNode.name);
-            get().showObjectOriginFrame(babylonNode);
-          } else {
-            console.warn('[SelectNode] babylonNode not found or wrong type');
-          }
+          // Recurse through all children
+          tree.getChildren(nid).forEach(child => collectMeshes(child.id));
+        };
+
+        // Collect meshes starting from selected node
+        collectMeshes(normalizedId);
+
+        if (meshes.length > 0) {
+          set({
+            selectedMeshes: meshes,
+            selectedCollectionNodeId: null,
+            selectedCollectionTransformNode: null,
+          });
+          return;
         }
+      }
+
+      // Hide coordinate frame widget if not a collection
+      if (coordinateFrameWidget && !get().customFrame) {
+        coordinateFrameWidget.hide();
       }
     }
   },
 
   addToSelection: (nodeId: string) => {
     const normalizedId = normalizeNodeId(nodeId);
-    const tree = SceneTreeManager.getInstance();
     const { selectedNodeIds } = get();
-
-    const alreadySelected = selectedNodeIds.includes(normalizedId);
-    const newSelection = alreadySelected ? selectedNodeIds : [...selectedNodeIds, normalizedId];
-
-    set({
-      selectedNodeIds: newSelection,
-      selectedNodeId: newSelection[newSelection.length - 1] || null,
-    });
-
-    if (!alreadySelected) {
-      tree.expandToNode(normalizedId);
-      window.dispatchEvent(new Event('scenetree-update'));
+    if (!selectedNodeIds.includes(normalizedId)) {
+      const newSelection = [...selectedNodeIds, normalizedId];
+      set({
+        selectedNodeIds: newSelection,
+        selectedNodeId: newSelection[newSelection.length - 1] || null
+      });
+      updateSelectionVisuals(newSelection);
     }
-
-    updateSelectionVisuals(newSelection);
   },
 
   removeFromSelection: (nodeId: string) => {
     const normalizedId = normalizeNodeId(nodeId);
     const { selectedNodeIds } = get();
-    const newSelection = selectedNodeIds.filter((id) => id !== normalizedId);
-
-    if (newSelection.length === 0) {
-      get().clearSelection();
-      return;
-    }
+    const newSelection = selectedNodeIds.filter(id => id !== normalizedId);
 
     set({
       selectedNodeIds: newSelection,
-      selectedNodeId: newSelection[newSelection.length - 1],
+      selectedNodeId: newSelection.length > 0 ? newSelection[newSelection.length - 1] : null
     });
 
-    updateSelectionVisuals(newSelection);
+    if (newSelection.length > 0) {
+      updateSelectionVisuals(newSelection);
+    } else {
+      get().clearSelection();
+    }
   },
 
   toggleNodeSelection: (nodeId: string) => {
@@ -886,6 +848,14 @@ export const useEditorStore = create<EditorState>((set, get) => {
       if (node.babylonTransformNodeId) {
         const transformNode = scene.getTransformNodeByUniqueId(
           parseInt(node.babylonTransformNodeId, 10)
+        );
+        if (transformNode) {
+          sceneManager.zoomToNode(transformNode);
+        }
+      } else if ((node as any).babylonNodeId) {
+        // Backward compatibility with older saves that used `babylonNodeId`
+        const transformNode = scene.getTransformNodeByUniqueId(
+          parseInt((node as any).babylonNodeId, 10)
         );
         if (transformNode) {
           sceneManager.zoomToNode(transformNode);
@@ -943,6 +913,25 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     // Dynamically adjust camera clipping planes based on selected mesh size
     sceneManager.adjustClippingPlanesForObject(selectedMesh);
+
+    const { selectionLevel } = get();
+    if (selectionLevel === 'object') {
+      if (node) {
+        const scene = sceneManager.getScene();
+        if (scene) {
+          let babylonNode: BABYLON.Node | null = null;
+          if (node.babylonMeshId) {
+            babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
+          } else if (node.babylonTransformNodeId) {
+            babylonNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId, 10));
+          }
+
+          if (babylonNode && (babylonNode instanceof BABYLON.Mesh || babylonNode instanceof BABYLON.TransformNode)) {
+            get().showObjectOriginFrame(babylonNode);
+          }
+        }
+      }
+    }
   },
 
   zoomFit: () => {
@@ -1024,9 +1013,6 @@ export const useEditorStore = create<EditorState>((set, get) => {
     if (coordinateFrameWidget && !customFrame) {
       coordinateFrameWidget.hide();
     }
-
-    // Clear object origin frame
-    get().clearObjectOriginFrame();
 
     set({
       selectedMeshes: [],
@@ -1270,6 +1256,18 @@ export const useEditorStore = create<EditorState>((set, get) => {
       return;
     }
 
+    // Trigger Inspector refresh manually (backup in case observables don't fire)
+    // The Inspector service should also listen to observables, but this ensures it updates
+    setTimeout(() => {
+      const host = document.querySelector('.babylon-inspector-host') as HTMLElement | null;
+      if (host && (host as any)._inspectorRefresh) {
+        (host as any)._inspectorRefresh();
+      } else {
+        // Fallback: try to trigger refresh via window event
+        window.dispatchEvent(new CustomEvent('inspector-refresh-requested'));
+      }
+    }, 100);
+
     // Position slightly above ground (user space: 1000mm high = 1m in Z-up)
     // Converts to Babylon space (Y-up, meters)
     mesh.position = userToBabylon({ x: 0, y: 0, z: 1000 });
@@ -1450,9 +1448,15 @@ export const useEditorStore = create<EditorState>((set, get) => {
           node.name,
           parentNodeId
         );
-        
-        treeNode.babylonMeshId = isMesh ? (node as BABYLON.Mesh).uniqueId.toString() : null;
-        treeNode.babylonNodeId = node.uniqueId.toString();
+
+        // Store stable Babylon identifiers for later lookup.
+        // Use mesh uniqueId for meshes and transform uniqueId for collections.
+        treeNode.babylonMeshId = isMesh ? (node as BABYLON.Mesh).uniqueId.toString() : undefined;
+        // IMPORTANT: Use babylonTransformNodeId (the canonical property used across the app)
+        // Some older code used `babylonNodeId`; keep backward compatibility by not removing it here,
+        // but make sure the canonical field is populated so lookups do not fall back to name.
+        (treeNode as any).babylonNodeId = node.uniqueId.toString();
+        treeNode.babylonTransformNodeId = node.uniqueId.toString();
         treeNode.position = babylonToUser(worldPosition);
         treeNode.isURDF = isURDF;
         
@@ -2608,8 +2612,14 @@ export const useEditorStore = create<EditorState>((set, get) => {
       // It's a mesh
       babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
     } else if (node.type === 'collection') {
-      // It's a collection/TransformNode - find by name
-      babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
+      // It's a collection/TransformNode - prefer uniqueId over name
+      if (node.babylonTransformNodeId) {
+        babylonNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId, 10));
+      } else if ((node as any).babylonNodeId) {
+        babylonNode = scene.getTransformNodeByUniqueId(parseInt((node as any).babylonNodeId, 10));
+      } else {
+        babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
+      }
     }
 
     if (babylonNode) {
@@ -2652,7 +2662,13 @@ export const useEditorStore = create<EditorState>((set, get) => {
     if (node.babylonMeshId) {
       babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
     } else if (node.type === 'collection') {
-      babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
+      if (node.babylonTransformNodeId) {
+        babylonNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId, 10));
+      } else if ((node as any).babylonNodeId) {
+        babylonNode = scene.getTransformNodeByUniqueId(parseInt((node as any).babylonNodeId, 10));
+      } else {
+        babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
+      }
     }
 
     if (babylonNode) {
@@ -2698,7 +2714,13 @@ export const useEditorStore = create<EditorState>((set, get) => {
     if (node.babylonMeshId) {
       babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
     } else if (node.type === 'collection') {
-      babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
+      if (node.babylonTransformNodeId) {
+        babylonNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId, 10));
+      } else if ((node as any).babylonNodeId) {
+        babylonNode = scene.getTransformNodeByUniqueId(parseInt((node as any).babylonNodeId, 10));
+      } else {
+        babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
+      }
     }
 
     if (babylonNode) {
@@ -3411,7 +3433,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     // Clear markers after a short delay to show the result
     setTimeout(() => {
       get().cancelAlignment();
-    }, 1500);
+  }, 1500);
   },
 
   // Point pick tool setters
@@ -3434,9 +3456,8 @@ export const useEditorStore = create<EditorState>((set, get) => {
   },
 
   handlePointPick: (pickInfo) => {
-    const { pointPickMode } = get();
+    const { pointPickMode, pointPickFrameWidgets } = get();
 
-    // Debug: Log what we're picking
     console.log('[PointPick Debug] Hit:', pickInfo.hit);
     console.log('[PointPick Debug] Mesh:', pickInfo.pickedMesh?.name);
     console.log('[PointPick Debug] isPickable:', (pickInfo.pickedMesh as any)?.isPickable);
@@ -3445,9 +3466,83 @@ export const useEditorStore = create<EditorState>((set, get) => {
       return;
     }
 
-    // Point pick now only shows the targeting widget (handled in SceneCanvas.tsx)
-    // Frame creation has been removed - targeting widget provides visual feedback
-    console.log('[PointPick] Pick registered at:', pickInfo.pickedPoint);
+    if (!(pickInfo.pickedMesh instanceof BABYLON.Mesh)) {
+      console.warn('[PointPick] Picked node is not a mesh, skipping frame creation');
+      return;
+    }
+
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    if (!scene) {
+      console.error('[PointPick] No scene available for frame widget');
+      return;
+    }
+
+    const mesh = pickInfo.pickedMesh as BABYLON.Mesh;
+    const pickPoint = pickInfo.pickedPoint.clone();
+
+    mesh.computeWorldMatrix(true);
+    const worldMatrix = mesh.getWorldMatrix();
+
+    let xAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Right(), worldMatrix).normalize();
+    let yAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Up(), worldMatrix).normalize();
+    let zAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Forward(), worldMatrix).normalize();
+
+    const hitNormal = pickInfo.getNormal(true);
+    if (hitNormal && hitNormal.lengthSquared() > 0.000001) {
+      zAxis = hitNormal.normalize();
+
+      const orthogonalize = (vector: BABYLON.Vector3) => {
+        const projected = vector.subtract(zAxis.scale(BABYLON.Vector3.Dot(vector, zAxis)));
+        if (projected.lengthSquared() < 0.000001) {
+          return projected;
+        }
+        return projected.normalize();
+      };
+
+      xAxis = orthogonalize(xAxis);
+      if (xAxis.lengthSquared() < 0.000001) {
+        xAxis = orthogonalize(yAxis);
+      }
+      if (xAxis.lengthSquared() < 0.000001) {
+        xAxis = BABYLON.Vector3.Cross(zAxis, BABYLON.Vector3.Right()).normalize();
+      }
+      if (xAxis.lengthSquared() < 0.000001) {
+        xAxis = BABYLON.Vector3.Cross(zAxis, BABYLON.Vector3.Up()).normalize();
+      }
+
+      yAxis = BABYLON.Vector3.Cross(zAxis, xAxis).normalize();
+    }
+
+    const tree = SceneTreeManager.getInstance();
+    const node = tree.getNodeByBabylonMeshId(mesh.uniqueId.toString());
+    const nodeId = node?.id || mesh.uniqueId.toString();
+
+    const frame: CustomFrameFeature = {
+      featureType: 'object',
+      nodeId,
+      origin: babylonToUser(pickPoint),
+      xAxis: { x: xAxis.x, y: xAxis.y, z: xAxis.z },
+      yAxis: { x: yAxis.x, y: yAxis.y, z: yAxis.z },
+      zAxis: { x: zAxis.x, y: zAxis.y, z: zAxis.z }
+    };
+
+    pointPickFrameWidgets.forEach(widget => widget.dispose());
+
+    const BASE_SIZE = 0.1;
+    const frameWidget = new CoordinateFrameWidget(scene);
+    frameWidget.show(frame, BASE_SIZE);
+
+    set({
+      pointPickFrameWidgets: [frameWidget],
+      pointPickFrameData: {
+        pickPoint,
+        frame,
+        baseSize: BASE_SIZE
+      }
+    });
+
+    console.log('[PointPick] Frame data stored for node:', nodeId);
   },
 
   // Object origin frame actions
@@ -3455,8 +3550,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     console.log('[ObjectOriginFrame] Frame display disabled - using targeting widget instead');
     console.log('[ObjectOriginFrame] Node:', node.name);
 
-    // Object origin frames have been replaced by the targeting widget
-    // No frame is created - visual feedback is provided by targeting widget in SceneCanvas.tsx
+    // Visual feedback provided by targeting widget (SceneCanvas)
   },
 
   clearObjectOriginFrame: () => {
@@ -3478,54 +3572,62 @@ export const useEditorStore = create<EditorState>((set, get) => {
       return;
     }
 
-    // Get frame data from multiple sources
-    const { objectOriginFrameData, pointPickFrameData, selectedMeshes, selectionLevel } = get();
+    const {
+      objectOriginFrameData,
+      pointPickFrameData,
+      customFrame,
+      selectedMeshes,
+      selectionLevel
+    } = get();
     console.log('[AddFrame] selectionLevel:', selectionLevel);
     console.log('[AddFrame] selectedMeshes:', selectedMeshes);
     console.log('[AddFrame] objectOriginFrameData:', objectOriginFrameData);
     console.log('[AddFrame] pointPickFrameData:', pointPickFrameData);
+    console.log('[AddFrame] customFrame:', customFrame);
 
     let frameData = objectOriginFrameData || pointPickFrameData;
 
-    // If no frame data but mesh is selected, create frame from selected mesh
+    if (!frameData && selectionLevel === 'mesh' && customFrame) {
+      const origin = userToBabylon(customFrame.origin);
+      frameData = {
+        pickPoint: origin.clone(),
+        frame: customFrame,
+        baseSize: 0.1
+      };
+      console.log('[AddFrame] Using custom frame widget data for permanent frame');
+    }
+
     if (!frameData && selectionLevel === 'mesh' && selectedMeshes.length > 0) {
-      const selectedMesh = selectedMeshes[0]; // Use first selected mesh
+      const selectedMesh = selectedMeshes[0];
       console.log('[AddFrame] Creating frame from selected mesh:', selectedMesh.name);
 
-      // Get mesh world position
       selectedMesh.computeWorldMatrix(true);
       const worldMatrix = selectedMesh.getWorldMatrix();
       const position = selectedMesh.getAbsolutePosition();
 
-      // Extract rotation quaternion and decompose to get axes
       const scaling = new BABYLON.Vector3();
       const rotation = new BABYLON.Quaternion();
       const translation = new BABYLON.Vector3();
       worldMatrix.decompose(scaling, rotation, translation);
 
-      // Convert quaternion to rotation matrix
       const rotationMatrix = new BABYLON.Matrix();
       BABYLON.Matrix.FromQuaternionToRef(rotation, rotationMatrix);
 
-      // Get rotation axes from the rotation matrix
       const xAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Right(), rotationMatrix);
       const yAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Up(), rotationMatrix);
       const zAxis = BABYLON.Vector3.TransformNormal(BABYLON.Vector3.Forward(), rotationMatrix);
 
-      // Convert from Babylon to user coordinates (Z-up)
       const userPos = babylonToUser(position);
 
-      // Find the node ID for this mesh
       const meshIdString = selectedMesh.uniqueId.toString();
       const node = tree.getNodeByBabylonMeshId(meshIdString);
       const nodeId = node?.id || meshIdString;
 
-      // Create frame data
       frameData = {
         pickPoint: position,
         frame: {
           featureType: 'object' as CustomFrameFeatureType,
-          nodeId: nodeId,
+          nodeId,
           origin: userPos,
           xAxis: { x: xAxis.x, y: xAxis.y, z: xAxis.z },
           yAxis: { x: yAxis.x, y: yAxis.y, z: yAxis.z },
@@ -3547,38 +3649,28 @@ export const useEditorStore = create<EditorState>((set, get) => {
     const { frame } = frameData;
 
     try {
-      // Create a parent transform node for the frame
       const frameName = `Frame_${Date.now()}`;
       const frameRoot = new BABYLON.TransformNode(frameName, scene);
-
-      // Set position
       const origin = userToBabylon(frame.origin);
       frameRoot.position = origin;
 
-      // Convert axis vectors to Babylon space
       const xAxis = new BABYLON.Vector3(frame.xAxis.x, frame.xAxis.y, frame.xAxis.z).normalize();
       const yAxis = new BABYLON.Vector3(frame.yAxis.x, frame.yAxis.y, frame.yAxis.z).normalize();
       const zAxis = new BABYLON.Vector3(frame.zAxis.x, frame.zAxis.y, frame.zAxis.z).normalize();
 
-      const axisLength = 0.1; // 10cm
+      const axisLength = 0.1;
 
-      // Helper function to create axis line
       const createAxisLine = (start: BABYLON.Vector3, end: BABYLON.Vector3, color: BABYLON.Color3, name: string) => {
-        const line = BABYLON.MeshBuilder.CreateLines(
-          name,
-          { points: [start, end] },
-          scene
-        );
+        const line = BABYLON.MeshBuilder.CreateLines(name, { points: [start, end] }, scene);
         const mat = new BABYLON.StandardMaterial(`${name}_mat`, scene);
         mat.emissiveColor = color;
         mat.disableLighting = true;
         line.color = color;
-        line.isPickable = false; // Individual axes are non-selectable
+        line.isPickable = false;
         line.parent = frameRoot;
         return line;
       };
 
-      // Helper function to create arrow head
       const createArrowHead = (position: BABYLON.Vector3, direction: BABYLON.Vector3, color: BABYLON.Color3, name: string) => {
         const cone = BABYLON.MeshBuilder.CreateCylinder(
           name,
@@ -3588,7 +3680,6 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
         cone.position = position;
 
-        // Orient cone to point along direction
         const up = new BABYLON.Vector3(0, 1, 0);
         const angle = Math.acos(BABYLON.Vector3.Dot(up, direction));
         const axis = BABYLON.Vector3.Cross(up, direction);
@@ -3601,24 +3692,16 @@ export const useEditorStore = create<EditorState>((set, get) => {
         mat.emissiveColor = color;
         mat.disableLighting = true;
         cone.material = mat;
-        cone.isPickable = false; // Arrow heads are non-selectable
+        cone.isPickable = false;
         cone.parent = frameRoot;
         return cone;
       };
 
-      // Helper function to create text label
       const createLabel = (position: BABYLON.Vector3, text: string, color: BABYLON.Color3, name: string) => {
-        // Create a plane for the label
-        const plane = BABYLON.MeshBuilder.CreatePlane(
-          name,
-          { size: 0.05 },
-          scene
-        );
-
+        const plane = BABYLON.MeshBuilder.CreatePlane(name, { size: 0.05 }, scene);
         plane.position = position;
-        plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL; // Always face camera
+        plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 
-        // Create dynamic texture for text
         const dynamicTexture = new BABYLON.DynamicTexture(
           `${name}_texture`,
           { width: 256, height: 256 },
@@ -3626,7 +3709,6 @@ export const useEditorStore = create<EditorState>((set, get) => {
           false
         );
 
-        // Draw text using DynamicTexture's drawText method
         dynamicTexture.drawText(
           text,
           null,
@@ -3638,7 +3720,6 @@ export const useEditorStore = create<EditorState>((set, get) => {
           true
         );
 
-        // Create material with emissive color so it's always visible
         const material = new BABYLON.StandardMaterial(`${name}_mat`, scene);
         material.diffuseTexture = dynamicTexture;
         material.emissiveColor = color;
@@ -3647,31 +3728,24 @@ export const useEditorStore = create<EditorState>((set, get) => {
         material.backFaceCulling = false;
 
         plane.material = material;
-        plane.isPickable = false; // Billboards are non-selectable
+        plane.isPickable = false;
         plane.parent = frameRoot;
-
         return plane;
       };
 
-      // Create X-axis (Red)
       createAxisLine(BABYLON.Vector3.Zero(), xAxis.scale(axisLength), new BABYLON.Color3(1, 0, 0), `${frameName}_X_axis`);
       createArrowHead(xAxis.scale(axisLength), xAxis, new BABYLON.Color3(1, 0, 0), `${frameName}_X_arrow`);
       createLabel(xAxis.scale(axisLength * 1.2), 'X', new BABYLON.Color3(1, 0, 0), `${frameName}_X_label`);
 
-      // Create Y-axis (Green)
       createAxisLine(BABYLON.Vector3.Zero(), yAxis.scale(axisLength), new BABYLON.Color3(0, 1, 0), `${frameName}_Y_axis`);
       createArrowHead(yAxis.scale(axisLength), yAxis, new BABYLON.Color3(0, 1, 0), `${frameName}_Y_arrow`);
       createLabel(yAxis.scale(axisLength * 1.2), 'Y', new BABYLON.Color3(0, 1, 0), `${frameName}_Y_label`);
 
-      // Create Z-axis (Blue)
       createAxisLine(BABYLON.Vector3.Zero(), zAxis.scale(axisLength), new BABYLON.Color3(0, 0, 1), `${frameName}_Z_axis`);
       createArrowHead(zAxis.scale(axisLength), zAxis, new BABYLON.Color3(0, 0, 1), `${frameName}_Z_arrow`);
       createLabel(zAxis.scale(axisLength * 1.2), 'Z', new BABYLON.Color3(0, 0, 1), `${frameName}_Z_label`);
 
-      // Store the base size for dynamic scaling
-      const BASE_SIZE = 0.1; // 10cm base size
-
-      // Calculate initial scale based on camera distance
+      const BASE_SIZE = 0.1;
       const camera = scene.activeCamera;
       let initialScale = 1.0;
       if (camera) {
@@ -3683,16 +3757,13 @@ export const useEditorStore = create<EditorState>((set, get) => {
         initialScale = frameSize / BASE_SIZE;
       }
 
-      // Apply initial scale to the root node
       frameRoot.scaling = new BABYLON.Vector3(initialScale, initialScale, initialScale);
 
-      // Add to permanent frames array for dynamic scaling
       const { permanentFrames } = get();
       set({
         permanentFrames: [...permanentFrames, { rootNode: frameRoot, originPoint: origin, baseSize: BASE_SIZE }]
       });
 
-      // Add to scene tree under Frames collection (falls back to Assets if not available)
       const framesCollection = tree.getFramesNode();
       const assetsCollection = tree.getAssetsNode();
       const parentCollectionId = framesCollection?.id ?? assetsCollection?.id ?? null;

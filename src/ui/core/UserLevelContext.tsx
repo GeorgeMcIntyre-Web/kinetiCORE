@@ -30,7 +30,7 @@ interface UserLevelProviderProps {
  */
 export const UserLevelProvider: React.FC<UserLevelProviderProps> = ({
   children,
-  defaultLevel = 'essential', // Start with simplest mode
+  defaultLevel = 'professional', // Start with professional mode for routing features
 }) => {
   const [userLevel, setUserLevel] = useState<UserLevel>(defaultLevel);
 
