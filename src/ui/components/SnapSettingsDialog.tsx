@@ -115,6 +115,11 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
     onClose();
   };
 
+  const handleQuickSnap = () => {
+    // Start the quick snap workflow - pick from point
+    setIsPickingSnapPoint('from');
+  };
+
   const handlePickFromPoint = () => {
     setIsPickingSnapPoint('from');
   };
@@ -122,6 +127,20 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
   const handlePickToPoint = () => {
     setIsPickingSnapPoint('to');
   };
+
+  // Handle ESC key to cancel picking
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isPickingSnapPoint) {
+        setIsPickingSnapPoint(null);
+      }
+    };
+
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, isPickingSnapPoint, setIsPickingSnapPoint]);
 
   const handleClearFromPoint = () => {
     const zeroPoint = { x: 0, y: 0, z: 0 };
@@ -194,6 +213,70 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
               fontSize: '12px',
             }}
           />
+        </div>
+
+        {/* Quick Snap Button */}
+        <div className="move-section">
+          <button
+            onClick={handleQuickSnap}
+            style={{
+              width: '100%',
+              background: isPickingSnapPoint ? 'rgba(98, 104, 255, 0.7)' : 'rgba(98, 104, 255, 0.5)',
+              color: '#fff',
+              border: '2px solid rgba(98, 104, 255, 0.8)',
+              borderRadius: '6px',
+              padding: '10px 12px',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'all 0.2s ease',
+            }}
+            title="Click to start quick snap workflow: pick FROM point, then TO point - object snaps automatically!"
+          >
+            <Crosshair size={16} />
+            {isPickingSnapPoint === 'from'
+              ? 'Click to set FROM point...'
+              : isPickingSnapPoint === 'to'
+              ? 'Click to set TO point...'
+              : 'Quick Snap (Click to Start)'}
+          </button>
+          {isPickingSnapPoint && (
+            <div style={{
+              marginTop: '6px',
+              fontSize: '11px',
+              color: '#aaa',
+              textAlign: 'center',
+              fontStyle: 'italic'
+            }}>
+              Press ESC to cancel
+            </div>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div style={{
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          margin: '12px 0',
+          position: 'relative'
+        }}>
+          <span style={{
+            position: 'absolute',
+            top: '-8px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(37,37,38,1)',
+            padding: '0 8px',
+            fontSize: '10px',
+            color: '#666',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            Manual Mode
+          </span>
         </div>
 
         <div className="move-section">

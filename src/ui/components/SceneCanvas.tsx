@@ -15,11 +15,13 @@ import { isZoomableObject, isSelectableObject } from '../../scene/SceneUtils';
 import { performanceMetrics } from '../../core/PerformanceMetrics';
 import { SceneManager } from '../../scene/SceneManager';
 import { babylonToUser } from '../../core/CoordinateSystem';
+import { toast } from './ToastNotifications';
 
 export const SceneCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { userLevel } = useUserLevel();
+  const isPickingSnapPoint = useEditorStore((state) => state.isPickingSnapPoint);
   const setCamera = useEditorStore((state) => state.setCamera);
   const camera = useEditorStore((state) => state.camera);
   const showCoordinateOverlay = useEditorStore((state) => state.showCoordinateOverlay);
@@ -296,12 +298,30 @@ export const SceneCanvas: React.FC = () => {
                 // Update the appropriate snap point
                 if (isPickingSnapPoint === 'from') {
                   useEditorStore.getState().setSnapFromPoint(snapPoint);
+                  // Auto-advance to picking "to" point
+                  useEditorStore.getState().setIsPickingSnapPoint('to');
+                  toast.success('From point set. Now click to set the "To" point.');
                 } else {
                   useEditorStore.getState().setSnapToPoint(snapPoint);
-                }
+                  // Auto-apply the snap transformation
+                  useEditorStore.getState().setIsPickingSnapPoint(null);
 
-                // Exit picking mode
-                useEditorStore.getState().setIsPickingSnapPoint(null);
+                  // Get current snap points
+                  const state = useEditorStore.getState();
+                  const from = state.snapFromPoint;
+                  const to = snapPoint;
+
+                  // Apply snap settings immediately
+                  useEditorStore.getState().applySnapSettings({
+                    mode: 'point-to-point',
+                    from,
+                    to,
+                  });
+
+                  toast.success('Object snapped! Points cleared - ready for next snap.');
+                }
+              } else {
+                toast.error('No point picked. Click on a surface to pick a point.');
               }
 
               return; // Don't process as normal selection
@@ -695,9 +715,12 @@ export const SceneCanvas: React.FC = () => {
           // Point pick and object origin frame widgets have been removed
           // Visual feedback is now provided by the targeting widget
 
-          // Update permanent frames scale dynamically - all frames use same scale
+          // Update permanent and snap frames scale dynamically - all frames use same scale
           const state = useEditorStore.getState();
-          if (state.permanentFrames && state.permanentFrames.length > 0) {
+          const hasPermanentFrames = state.permanentFrames && state.permanentFrames.length > 0;
+          const hasSnapFrames = state.snapFromFrame || state.snapToFrame;
+
+          if (hasPermanentFrames || hasSnapFrames) {
             const camera = scene.activeCamera;
             if (camera) {
               // Calculate a single reference distance for uniform scaling
@@ -708,11 +731,16 @@ export const SceneCanvas: React.FC = () => {
                 // For arc rotate camera, use the radius (distance to target)
                 referenceDistance = camera.radius;
               } else {
-                // Fallback: use average distance to all frames
-                const totalDistance = state.permanentFrames.reduce((sum, frameData) => {
+                // Fallback: use average distance to all frames (permanent + snap)
+                const allFrames = [
+                  ...(state.permanentFrames || []),
+                  ...(state.snapFromFrame ? [state.snapFromFrame] : []),
+                  ...(state.snapToFrame ? [state.snapToFrame] : [])
+                ];
+                const totalDistance = allFrames.reduce((sum, frameData) => {
                   return sum + BABYLON.Vector3.Distance(camera.position, frameData.originPoint);
                 }, 0);
-                referenceDistance = totalDistance / state.permanentFrames.length;
+                referenceDistance = totalDistance / allFrames.length;
               }
 
               // Calculate desired frame size based on reference distance
@@ -721,14 +749,32 @@ export const SceneCanvas: React.FC = () => {
               const MAX_SIZE = 2.0;
               frameSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, frameSize));
 
-              // Apply the SAME scale to ALL frames
-              state.permanentFrames.forEach((frameData) => {
-                const { rootNode, baseSize } = frameData;
+              // Apply the SAME scale to ALL permanent frames
+              if (hasPermanentFrames) {
+                state.permanentFrames.forEach((frameData) => {
+                  const { rootNode, baseSize } = frameData;
+                  if (rootNode && !rootNode.isDisposed()) {
+                    const scale = frameSize / baseSize;
+                    rootNode.scaling = new BABYLON.Vector3(scale, scale, scale);
+                  }
+                });
+              }
+
+              // Apply the SAME scale to snap frames
+              if (state.snapFromFrame) {
+                const { rootNode, baseSize } = state.snapFromFrame;
                 if (rootNode && !rootNode.isDisposed()) {
                   const scale = frameSize / baseSize;
                   rootNode.scaling = new BABYLON.Vector3(scale, scale, scale);
                 }
-              });
+              }
+              if (state.snapToFrame) {
+                const { rootNode, baseSize } = state.snapToFrame;
+                if (rootNode && !rootNode.isDisposed()) {
+                  const scale = frameSize / baseSize;
+                  rootNode.scaling = new BABYLON.Vector3(scale, scale, scale);
+                }
+              }
             }
 
             // Clean up disposed frames every 60 frames (once per second at 60fps)
@@ -1031,6 +1077,7 @@ export const SceneCanvas: React.FC = () => {
           display: 'block',
           outline: 'none',
           pointerEvents: 'auto',
+          cursor: isPickingSnapPoint ? 'crosshair' : 'default',
         }}
       />
 

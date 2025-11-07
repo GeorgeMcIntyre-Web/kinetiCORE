@@ -102,8 +102,8 @@ interface EditorState {
   snapFromPoint: SnapPoint;
   snapToPoint: SnapPoint;
   isPickingSnapPoint: 'from' | 'to' | null; // Track which point is being picked
-  snapFromFrame: BABYLON.TransformNode | null; // Visual frame at "from" point
-  snapToFrame: BABYLON.TransformNode | null; // Visual frame at "to" point
+  snapFromFrame: { rootNode: BABYLON.TransformNode; originPoint: BABYLON.Vector3; baseSize: number } | null; // Visual frame at "from" point
+  snapToFrame: { rootNode: BABYLON.TransformNode; originPoint: BABYLON.Vector3; baseSize: number } | null; // Visual frame at "to" point
   setSnapMode: (mode: SnapMode) => void;
   setSnapFromPoint: (point: SnapPoint) => void;
   setSnapToPoint: (point: SnapPoint) => void;
@@ -329,13 +329,14 @@ interface EditorState {
 /**
  * Helper function to create a standard coordinate frame for snap points
  * Uses the same visual style as the "Add Frame" button
+ * Returns an object with rootNode, originPoint, and baseSize for dynamic scaling
  */
 const createSnapFrame = (
   scene: BABYLON.Scene,
   position: BABYLON.Vector3,
   name: string,
   _color: BABYLON.Color3 // Unused - we use standard RGB colors for XYZ
-): BABYLON.TransformNode => {
+): { rootNode: BABYLON.TransformNode; originPoint: BABYLON.Vector3; baseSize: number } => {
   const frameRoot = new BABYLON.TransformNode(name, scene);
   frameRoot.position = position;
 
@@ -449,7 +450,12 @@ const createSnapFrame = (
 
   frameRoot.scaling = new BABYLON.Vector3(initialScale, initialScale, initialScale);
 
-  return frameRoot;
+  // Return object with same structure as permanent frames
+  return {
+    rootNode: frameRoot,
+    originPoint: position.clone(),
+    baseSize: BASE_SIZE
+  };
 };
 
 export const useEditorStore = create<EditorState>((set, get) => {
@@ -639,7 +645,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     // Clear previous "from" frame
     const { snapFromFrame } = get();
     if (snapFromFrame) {
-      snapFromFrame.dispose();
+      snapFromFrame.rootNode.dispose();
     }
 
     // Only create frame if point is not at origin (0,0,0)
@@ -660,7 +666,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     // Clear previous "to" frame
     const { snapToFrame } = get();
     if (snapToFrame) {
-      snapToFrame.dispose();
+      snapToFrame.rootNode.dispose();
     }
 
     // Only create frame if point is not at origin (0,0,0)
@@ -681,15 +687,15 @@ export const useEditorStore = create<EditorState>((set, get) => {
   clearSnapFrames: () => {
     const { snapFromFrame, snapToFrame } = get();
     if (snapFromFrame) {
-      snapFromFrame.dispose();
+      snapFromFrame.rootNode.dispose();
     }
     if (snapToFrame) {
-      snapToFrame.dispose();
+      snapToFrame.rootNode.dispose();
     }
     set({ snapFromFrame: null, snapToFrame: null });
   },
   applySnapSettings: (settings) => {
-    const { snapMode, snapFromPoint, snapToPoint, selectedMeshes } = get();
+    const { snapMode, snapFromPoint, snapToPoint, selectedMeshes, snapFromFrame, snapToFrame } = get();
     const nextMode = settings.mode ?? snapMode;
     const nextFrom = settings.from ?? snapFromPoint;
     const nextTo = settings.to ?? snapToPoint;
@@ -714,7 +720,16 @@ export const useEditorStore = create<EditorState>((set, get) => {
       // Apply translation to mesh
       mesh.position.addInPlace(translation);
 
-      toast.success('Object snapped from point to point');
+      // Auto-clear snap frames after successful snap (keep points for reference)
+      if (snapFromFrame) {
+        snapFromFrame.rootNode.dispose();
+      }
+      if (snapToFrame) {
+        snapToFrame.rootNode.dispose();
+      }
+      set({ snapFromFrame: null, snapToFrame: null });
+
+      toast.success('Object snapped! Ready for next snap.');
     } else {
       toast.success('Snap settings updated');
     }
