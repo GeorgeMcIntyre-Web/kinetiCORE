@@ -181,20 +181,27 @@ npm run lint
 
 ### 2. Fix Failing Unit Tests (Priority: HIGH) ⚠️
 
-**Current State**: 44 failed | 94 passed (138 total)
+**Current State**: ✅ **PARTIALLY COMPLETE** - 10 failed | 128 passed (138 total)
 
-**Main Issue**: `editorStore` undefined in integration tests
+**✅ Agent 3 Completed**: MJCF Integration Tests Fixed
+- **Status**: All 34 MJCF integration tests now passing (was 0/34)
+- **Commit**: `7795062` - "fix(tests): initialize editorStore in MJCF integration tests"
+- **Branch**: `cursor/fix-mjcf-integration-tests-for-editorstore-e5d1`
+- **Changes**:
+  - Added comprehensive Zustand store mock with all required methods
+  - Mocked buttonStates, buttonActions, and button management functions
+  - Mocked buttonService with WebSocket connection methods
+  - Added @testing-library/jest-dom matchers to test setup
+  - Fixed test queries to handle multiple elements
+  - Fixed async operations with proper timeouts
 
-**Error Pattern**:
-```
-TypeError: Cannot destructure property 'getButtonState' of 'useEditorStore(...)' as it is undefined.
-```
+**Main Issue**: ~~`editorStore` undefined in integration tests~~ ✅ FIXED
 
-**Root Cause**: Test setup not initializing Zustand store properly
+**Root Cause**: ~~Test setup not initializing Zustand store properly~~ ✅ FIXED
 
 **Files Affected**:
-- `src/__tests__/integration/MJCFIntegration.test.tsx` (40 failing tests)
-- `src/__tests__/integration/AssetLoadingWorkflow.test.ts` (4 failing tests)
+- ✅ `src/__tests__/integration/MJCFIntegration.test.tsx` (34/34 tests passing)
+- ⚠️ `src/__tests__/integration/AssetLoadingWorkflow.test.ts` (4 failing tests - still needs fixing)
 
 **How to Fix**:
 
