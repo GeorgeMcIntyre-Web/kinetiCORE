@@ -596,7 +596,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
   setCurrentView: (view) => set({ currentView: view }),
 
   // Selection level defaults
-  selectionLevel: 'object',
+  selectionLevel: 'mesh',
   setSelectionLevel: (level) => set({ selectionLevel: level }),
 
   // Snap dialog defaults
