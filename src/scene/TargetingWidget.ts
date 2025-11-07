@@ -59,26 +59,18 @@ export class TargetingWidget {
     // Apply billboard mode to root node so entire widget faces camera as one unit
     root.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 
-    // Calculate scale based on camera distance (consistent for all picks)
-    // Use same approach as frame widgets - reference distance from camera
+    // Calculate scale based on distance to picked point (adaptive sizing)
+    // Closer picks = smaller targeter, farther picks = larger targeter
     const camera = this.scene.activeCamera;
     let scale = 1.0;
     if (camera) {
-      // Use camera radius as reference distance for consistent sizing
-      let referenceDistance: number;
+      // Use actual distance from camera to pick point for adaptive sizing
+      const distanceToPoint = BABYLON.Vector3.Distance(camera.position, position);
 
-      if (camera instanceof BABYLON.ArcRotateCamera) {
-        // For arc rotate camera, use the radius (distance to target)
-        referenceDistance = camera.radius;
-      } else {
-        // Fallback: use distance to this pick point
-        referenceDistance = BABYLON.Vector3.Distance(camera.position, position);
-      }
-
-      // Scale based on reference distance (same formula as frame widgets)
-      let targetSize = referenceDistance * 0.1;
-      const MIN_SIZE = 0.05;
-      const MAX_SIZE = 2.0;
+      // Scale based on distance to pick point (adaptive)
+      let targetSize = distanceToPoint * 0.05; // Reduced multiplier for smaller sizes when zoomed in
+      const MIN_SIZE = 0.02;  // Smaller minimum for close-up picks
+      const MAX_SIZE = 1.0;   // Smaller maximum for better visibility
       targetSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, targetSize));
 
       // Calculate scale relative to base size
