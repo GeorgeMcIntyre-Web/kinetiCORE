@@ -2321,8 +2321,8 @@ export class SnappingHelper {
       if (pickInfo && pickInfo.hit && pickInfo.pickedPoint) {
         const normal = pickInfo.getNormal(true);
         if (normal) {
-          // Snap to point along normal
-          const snapPoint = pickInfo.pickedPoint.add(normal.scale(0.01)); // 10mm offset
+          // Snap to surface point (no offset - user can drag along normal after snapping)
+          const snapPoint = pickInfo.pickedPoint.clone();
           const distance = BABYLON.Vector3.Distance(position, snapPoint);
 
           if (distance < closestDistance) {

@@ -345,7 +345,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   snapToPerpendicular: false, // Advanced snap types off by default
   snapToTangent: false,
   snapAlong: false,
-  snapToNormal: true,
+  snapToNormal: false, // Disabled by default - rarely used, can interfere with other snaps
   snapToPlane: false,
   snapToAxis: false,
   snapToCurve: false,
