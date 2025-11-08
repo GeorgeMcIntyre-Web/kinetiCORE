@@ -3,19 +3,18 @@
 // Floating panel with tabs for all application settings
 
 import React, { useState } from 'react';
-import { 
-  Settings, 
-  User, 
-  Move, 
-  Crosshair, 
-  Zap, 
-  Eye, 
+import {
+  Settings,
+  User,
+  Move,
+  Crosshair,
+  Zap,
+  Eye,
   Folder,
   Save,
   Palette,
   Grid3X3,
   Camera,
-  Target,
   Sliders,
   Database,
   Cloud,
@@ -48,53 +47,17 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
   const [activeTab, setActiveTab] = useState('general');
   const { userLevel, setUserLevel } = useUserLevel();
   
-  // Get settings from store
+  // Get settings from store (only the ones we actually use)
   const {
     positionIncrement,
     rotationIncrement,
     snapEnabled,
     snapToGrid,
-    snapToVertex,
-    snapToEdge,
-    snapToFace,
-    snapToCenter,
-    snapToObject,
-    snapToMidpoint,
-    snapToIntersection,
-    snapToPerpendicular,
-    snapToTangent,
-    snapAlong,
-    snapToNormal,
-    snapToPlane,
-    snapToAxis,
-    snapToCurve,
-    snapToSurface,
-    snapObjectToVertex,
-    snapPointOnEdge,
-    snapBBoxCorner,
     gridSize,
     setPositionIncrement,
     setRotationIncrement,
     setSnapEnabled,
     setSnapToGrid,
-    setSnapToVertex,
-    setSnapToEdge,
-    setSnapToFace,
-    setSnapToCenter,
-    setSnapToObject,
-    setSnapToMidpoint,
-    setSnapToIntersection,
-    setSnapToPerpendicular,
-    setSnapToTangent,
-    setSnapAlong,
-    setSnapToNormal,
-    setSnapToPlane,
-    setSnapToAxis,
-    setSnapToCurve,
-    setSnapToSurface,
-    setSnapObjectToVertex,
-    setSnapPointOnEdge,
-    setSnapBBoxCorner,
     setGridSize,
   } = useEditorStore();
 
@@ -544,7 +507,9 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
             onClick={() => {
               // Settings are automatically saved via Zustand store
               // Just close the panel
-              onClose();
+              if (onClose) {
+                onClose();
+              }
               console.log('[Settings] Saved and closed');
             }}
           >
