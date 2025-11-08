@@ -1004,13 +1004,9 @@ export class SnappingHelper {
     const radiusStdDev = Math.sqrt(radiusVariance);
     const relativeError = finalAvgRadius > 0 ? radiusStdDev / finalAvgRadius : Infinity;
 
-    // Debug logging
-    console.log(`[SnappingHelper] fitCircleToPoints: points=${points.length}, perimeter=${perimeterPoints.length}, center=(${center.x.toFixed(6)}, ${center.y.toFixed(6)}, ${center.z.toFixed(6)}), radius=${(finalAvgRadius * 1000).toFixed(3)}mm, stdDev=${(radiusStdDev * 1000).toFixed(3)}mm, range=${(radiusRange * 1000).toFixed(3)}mm, relError=${(relativeError * 100).toFixed(2)}%, normal=(${normal.x.toFixed(6)}, ${normal.y.toFixed(6)}, ${normal.z.toFixed(6)})`);
-
     // If relative error is too high, it's not a circle
     // Increased tolerance to 25% for triangulated circles (cylinder ends often have 15-20% error)
     if (relativeError > 0.25 || finalAvgRadius < tolerance) { // 25% tolerance, minimum 1mm radius
-      console.warn(`[SnappingHelper] fitCircleToPoints: Rejected - relError=${(relativeError * 100).toFixed(2)}%, radius=${(finalAvgRadius * 1000).toFixed(3)}mm`);
       return null;
     }
 
@@ -1019,8 +1015,6 @@ export class SnappingHelper {
 
     // For visualization purposes, use the maximum radius so the ring encompasses all vertices
     // (The average radius would make the ring smaller than some vertices)
-    console.log(`[SnappingHelper] fitCircleToPoints: Using maxRadius=${(maxRadiusValue * 1000).toFixed(3)}mm for visualization (avg=${(finalAvgRadius * 1000).toFixed(3)}mm)`);
-
     return { center, radius: maxRadiusValue, normal: finalNormal };
   }
 
@@ -1118,10 +1112,7 @@ export class SnappingHelper {
         facesByNormal.get(normalKey)!.push(i / 3); // Face index
       }
 
-      // Debug: log face grouping
-      if (facesByNormal.size > 0 && Math.random() < 0.1) {
-        console.log(`[SnappingHelper] CENTER: Mesh="${mesh.name}", NormalGroups=${facesByNormal.size}, TotalFaces=${indices.length / 3}`);
-      }
+      // Face grouping complete (removed debug spam)
 
       // For each group of faces with the same normal, check if vertices form a circle
       for (const [normalKey, faceIndices] of facesByNormal) {
@@ -1147,31 +1138,9 @@ export class SnappingHelper {
           worldVertices.push(BABYLON.Vector3.TransformCoordinates(v, worldMatrix));
         }
 
-        // Debug: log vertex collection
-        if (worldVertices.length >= 3 && Math.random() < 0.1) {
-          console.log(`[SnappingHelper] CENTER: Trying to fit circle: Mesh="${mesh.name}", Vertices=${worldVertices.length}, Faces=${faceIndices.length}, NormalKey=${normalKey}`);
-        }
-
         // Fit circle to these vertices
         const circleInfo = this.fitCircleToPoints(worldVertices);
         if (!circleInfo) {
-          // Debug: log why circle fit failed (occasionally)
-          if (worldVertices.length >= 3 && Math.random() < 0.05) {
-            // Calculate what the fit would have been to see why it failed
-            const v1 = worldVertices[1].subtract(worldVertices[0]);
-            const v2 = worldVertices[2].subtract(worldVertices[0]);
-            let testNormal = BABYLON.Vector3.Cross(v1, v2);
-            if (testNormal.lengthSquared() > 0.0001) {
-              testNormal = testNormal.normalize();
-              const testCenter = worldVertices.reduce((sum, p) => sum.add(p), BABYLON.Vector3.Zero()).scale(1 / worldVertices.length);
-              const testRadii = worldVertices.map(p => BABYLON.Vector3.Distance(p, testCenter));
-              const testAvgRadius = testRadii.reduce((sum, r) => sum + r, 0) / testRadii.length;
-              const testVariance = testRadii.reduce((sum, r) => sum + Math.pow(r - testAvgRadius, 2), 0) / testRadii.length;
-              const testStdDev = Math.sqrt(testVariance);
-              const testRelativeError = testAvgRadius > 0 ? testStdDev / testAvgRadius : Infinity;
-              console.log(`[SnappingHelper] CENTER: Circle fit failed: relativeError=${(testRelativeError * 100).toFixed(1)}%, avgRadius=${(testAvgRadius * 1000).toFixed(2)}mm, vertices=${worldVertices.length}`);
-            }
-          }
           continue;
         }
 
@@ -1187,8 +1156,6 @@ export class SnappingHelper {
             meshName: mesh.name,
             vertices: worldVertices // Store vertices for debugging
           });
-          // Debug: log circle detection
-          console.log(`[SnappingHelper] CIRCLE DETECTED: Center=(${circleInfo.center.x.toFixed(3)}, ${circleInfo.center.y.toFixed(3)}, ${circleInfo.center.z.toFixed(3)}), Radius=${(circleInfo.radius * 1000).toFixed(2)}mm, Mesh="${mesh.name}", Vertices=${worldVertices.length}, Faces=${faceIndices.length}`);
         }
       }
     }
@@ -1229,14 +1196,10 @@ export class SnappingHelper {
       // Also check world-space distance - don't allow circles that are too far
       // For preview mode, use a larger world-space cap to allow snapping to circle centers
       // Circle centers can be far from the cursor but still visible on screen
-      const maxWorldDistance = (camera && screenSpacePixels !== undefined) ? 
+      const maxWorldDistance = (camera && screenSpacePixels !== undefined) ?
         1.0 : // 1 meter max for preview (allows snapping to circle centers even if far)
         snapDistanceMeters; // Use actual snap distance for real snapping
       if (distance > maxWorldDistance) {
-        // Debug: log when circle is too far
-        if (Math.random() < 0.05) {
-          console.log(`[SnappingHelper] CENTER: Circle too far: WorldDist=${(distance * 1000).toFixed(2)}mm, Max=${(maxWorldDistance * 1000).toFixed(2)}mm`);
-        }
         continue;
       }
 
@@ -1260,13 +1223,6 @@ export class SnappingHelper {
             );
           })() : distance;
 
-        // Debug: log when circle is within range
-        if (Math.random() < 0.1) {
-          const distMM = (distance * 1000).toFixed(2);
-          const compDist = (camera && screenSpacePixels !== undefined) ? comparisonDistance.toFixed(2) + 'px' : (comparisonDistance * 1000).toFixed(2) + 'mm';
-          console.log(`[SnappingHelper] CENTER: Circle within range: Center=(${circle.center.x.toFixed(3)}, ${circle.center.y.toFixed(3)}, ${circle.center.z.toFixed(3)}), WorldDist=${distMM}mm, CompDist=${compDist}, Closest=${closestDistance === Infinity ? 'Inf' : (closestDistance * 1000).toFixed(2) + 'mm'}`);
-        }
-
         if (comparisonDistance < closestDistance) {
           closestDistance = comparisonDistance;
           closestCenter = circle.center;
@@ -1275,38 +1231,12 @@ export class SnappingHelper {
           closestNormal = circle.normal;
           closestVertices = circle.vertices;
         }
-      } else {
-        // Debug: log when circle is NOT within range
-        if (Math.random() < 0.05) {
-          const distMM = (distance * 1000).toFixed(2);
-          const maxDistMM = (maxWorldDistance * 1000).toFixed(2);
-          const screenDist = (camera && screenSpacePixels !== undefined && screenPos) ? 
-            (() => {
-              const worldMatrix = scene.getTransformMatrix();
-              const viewport = camera.viewport.toGlobal(
-                scene.getEngine().getRenderWidth(),
-                scene.getEngine().getRenderHeight()
-              );
-              const projected = BABYLON.Vector3.Project(
-                circle.center,
-                worldMatrix,
-                camera.getProjectionMatrix(),
-                viewport
-              );
-              return Math.sqrt(
-                Math.pow(projected.x - screenPos.x, 2) + 
-                Math.pow(projected.y - screenPos.y, 2)
-              );
-            })() : null;
-          console.log(`[SnappingHelper] CENTER: Circle NOT in range: Center=(${circle.center.x.toFixed(3)}, ${circle.center.y.toFixed(3)}, ${circle.center.z.toFixed(3)}), WorldDist=${distMM}mm, MaxWorld=${maxDistMM}mm, ScreenDist=${screenDist ? screenDist.toFixed(2) + 'px' : 'N/A'}, Threshold=${screenSpacePixels || 'N/A'}px`);
-        }
       }
+      // Removed: debug logging for circles not in range (was causing console spam)
     }
 
-    // Debug: log final state
-    if (circleMap.size > 0) {
-      console.log(`[SnappingHelper] CENTER: Found ${circleMap.size} circles, closestCenter=${!!closestCenter}, closestDistance=${closestDistance === Infinity ? 'Inf' : (closestDistance * 1000).toFixed(2) + 'mm'}`);
-    }
+    // Only log when a circle is actually snapped (not just detected)
+    // Removed: massive console spam on every mouse move
     
     if (closestCenter && closestRadius > 0 && closestNormal) {
       // Debug: log center snap
@@ -1337,13 +1267,7 @@ export class SnappingHelper {
       };
     }
     
-    // Debug: log if no circles found
-    if (circleMap.size === 0 && Math.random() < 0.1) { // Log occasionally to avoid spam
-      console.log(`[SnappingHelper] CENTER: No circles detected, Meshes checked, Position=(${position.x.toFixed(3)}, ${position.y.toFixed(3)}, ${position.z.toFixed(3)})`);
-    } else if (circleMap.size > 0 && !closestCenter) {
-      // Debug: log if circles found but none within range
-      console.log(`[SnappingHelper] CENTER: ${circleMap.size} circles detected but none within range, Position=(${position.x.toFixed(3)}, ${position.y.toFixed(3)}, ${position.z.toFixed(3)})`);
-    }
+    // No logging for "circles detected but not snapped" - was causing massive console spam
 
     return { snapped: false, position: position.clone() };
   }
