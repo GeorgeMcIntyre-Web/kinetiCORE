@@ -256,8 +256,8 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
         </h4>
         <div className="settings-option">
           <label className="settings-checkbox">
-            <input 
-              type="checkbox" 
+            <input
+              type="checkbox"
               checked={snapEnabled}
               onChange={(e) => setSnapEnabled(e.target.checked)}
             />
@@ -265,17 +265,14 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
             Enable snapping
           </label>
         </div>
-        {/* Snap distance hidden - using CAD standard 0.1mm default */}
-      </div>
 
-      <div className="settings-group">
-        <h4 className="settings-group-title">
-          <Target size={16} />
-          Smart Snap Selector
-        </h4>
-        <div className="settings-info">
+        {/* Smart Snap Selector explanation */}
+        <div className="settings-info" style={{ marginTop: '16px' }}>
+          <h5 style={{ fontSize: '13px', color: '#e2e8f0', marginBottom: '8px', fontWeight: 500 }}>
+            Smart Snap Selector
+          </h5>
           <p style={{ fontSize: '12px', color: '#94a3b8', margin: '8px 0' }}>
-            The smart snap selector automatically detects the best snap type based on proximity.
+            Automatically detects the best snap type based on proximity.
             All snap types are enabled by default and work together seamlessly.
           </p>
           <p style={{ fontSize: '11px', color: '#64748b', margin: '8px 0', fontStyle: 'italic' }}>
@@ -283,7 +280,7 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
           </p>
         </div>
 
-        {/* Optional: Grid snap toggle (commonly needed) */}
+        {/* Grid snap toggle */}
         <div className="settings-option" style={{ marginTop: '16px' }}>
           <label className="settings-checkbox">
             <input
