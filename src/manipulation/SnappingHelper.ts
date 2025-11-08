@@ -185,8 +185,22 @@ export class SnappingHelper {
       return { snapped: false, position: position.clone() };
     }
 
+    // Filter out face snaps with 0.00mm distance (mouse is ON the face, not snapping TO it)
+    // Face snaps should only be valid if the mouse is actually close to but NOT on the face
+    const filteredCandidates = candidates.filter(c => {
+      if (c.result.snapType === 'face' && c.distance < 0.0001) { // < 0.1mm
+        return false; // Reject face snaps when mouse is exactly on the face
+      }
+      return true;
+    });
+
+    // No candidates left after filtering
+    if (filteredCandidates.length === 0) {
+      return { snapped: false, position: position.clone() };
+    }
+
     // Sort by distance first (closest), then by priority (if distances are very similar)
-    candidates.sort((a, b) => {
+    filteredCandidates.sort((a, b) => {
       const distDiff = a.distance - b.distance;
       // If distances are within 1mm (very close), use priority
       if (Math.abs(distDiff) < 0.001) {
@@ -196,8 +210,8 @@ export class SnappingHelper {
     });
 
     // Return the best candidate
-    const best = candidates[0];
-    console.log(`[SnappingHelper] SMART SNAP: Selected ${best.result.snapType} (distance=${(best.distance * 1000).toFixed(2)}mm, priority=${best.priority}) from ${candidates.length} candidates`);
+    const best = filteredCandidates[0];
+    console.log(`[SnappingHelper] SMART SNAP: Selected ${best.result.snapType} (distance=${(best.distance * 1000).toFixed(2)}mm, priority=${best.priority}) from ${filteredCandidates.length} candidates (${candidates.length} before filtering)`);
 
     return best.result;
   }
@@ -1701,17 +1715,102 @@ export class SnappingHelper {
         console.warn(`[SnappingHelper] Center preview missing data: radius=${circleRadius}, normal=${!!circleNormal}`);
       }
       
-      baseColor = isOnSelectedMesh 
+      baseColor = isOnSelectedMesh
         ? new BABYLON.Color3(1, 1, 1)
         : new BABYLON.Color3(1, 0.5, 0); // Orange
+    } else if (snapType === 'vertex') {
+      // Vertex: Yellow diamond shape (box rotated 45°)
+      const size = isOnSelectedMesh ? 0.06 : 0.04;
+      preview = BABYLON.MeshBuilder.CreateBox('snapPreviewVertex', { size }, scene);
+      preview.position = point.clone();
+      // Rotate to diamond orientation
+      preview.rotationQuaternion = BABYLON.Quaternion.RotationYawPitchRoll(
+        Math.PI / 4, // 45° around Y
+        Math.PI / 4, // 45° around X
+        0
+      );
+      baseColor = isOnSelectedMesh
+        ? new BABYLON.Color3(1, 1, 1)
+        : new BABYLON.Color3(1, 0.84, 0); // Gold/Yellow
+    } else if (snapType === 'edge') {
+      // Edge: Cyan cylinder aligned with edge
+      const diameter = isOnSelectedMesh ? 0.06 : 0.04;
+      const height = 0.02; // Short cylinder
+      preview = BABYLON.MeshBuilder.CreateCylinder('snapPreviewEdge', { diameter, height }, scene);
+      preview.position = point.clone();
+      baseColor = isOnSelectedMesh
+        ? new BABYLON.Color3(1, 1, 1)
+        : new BABYLON.Color3(0, 1, 1); // Cyan
+    } else if (snapType === 'face') {
+      // Face: Green square (flat box)
+      const size = isOnSelectedMesh ? 0.06 : 0.04;
+      preview = BABYLON.MeshBuilder.CreateBox('snapPreviewFace', {
+        width: size,
+        height: size,
+        depth: 0.005 // Very thin
+      }, scene);
+      preview.position = point.clone();
+      baseColor = isOnSelectedMesh
+        ? new BABYLON.Color3(1, 1, 1)
+        : new BABYLON.Color3(0, 1, 0); // Green
+    } else if (snapType === 'intersection') {
+      // Intersection: Magenta X (two crossed boxes)
+      const size = isOnSelectedMesh ? 0.06 : 0.04;
+      preview = BABYLON.MeshBuilder.CreateBox('snapPreviewIntersection', {
+        width: size * 1.5,
+        height: 0.005,
+        depth: 0.005
+      }, scene);
+      preview.position = point.clone();
+
+      // Add second bar
+      const bar2 = BABYLON.MeshBuilder.CreateBox('snapPreviewIntersectionBar2', {
+        width: size * 1.5,
+        height: 0.005,
+        depth: 0.005
+      }, scene);
+      bar2.rotation.z = Math.PI / 2; // 90° rotation
+      bar2.parent = preview;
+
+      baseColor = isOnSelectedMesh
+        ? new BABYLON.Color3(1, 1, 1)
+        : new BABYLON.Color3(1, 0, 1); // Magenta
+    } else if (snapType === 'normal') {
+      // Normal: Blue arrow pointing up
+      const diameter = isOnSelectedMesh ? 0.06 : 0.04;
+      preview = BABYLON.MeshBuilder.CreateCylinder('snapPreviewNormal', {
+        diameterTop: 0,
+        diameterBottom: diameter,
+        height: diameter * 2
+      }, scene);
+      preview.position = point.clone();
+      baseColor = isOnSelectedMesh
+        ? new BABYLON.Color3(1, 1, 1)
+        : new BABYLON.Color3(0, 0.5, 1); // Blue
+    } else if (snapType === 'bboxCorner') {
+      // BBox Corner: White wireframe cube
+      const size = isOnSelectedMesh ? 0.06 : 0.04;
+      preview = BABYLON.MeshBuilder.CreateBox('snapPreviewBBox', { size }, scene);
+      preview.position = point.clone();
+      baseColor = isOnSelectedMesh
+        ? new BABYLON.Color3(1, 1, 1)
+        : new BABYLON.Color3(0.8, 0.8, 0.8); // Light gray/white
+    } else if (snapType === 'object') {
+      // Object: Purple sphere (object center)
+      const diameter = isOnSelectedMesh ? 0.08 : 0.06; // Slightly larger
+      preview = BABYLON.MeshBuilder.CreateSphere('snapPreviewObject', { diameter }, scene);
+      preview.position = point.clone();
+      baseColor = isOnSelectedMesh
+        ? new BABYLON.Color3(1, 1, 1)
+        : new BABYLON.Color3(0.8, 0, 0.8); // Purple
     } else {
-      // Vertex (default): Yellow dot only
+      // Default fallback: Gray sphere
       const diameter = isOnSelectedMesh ? 0.06 : 0.04;
       preview = BABYLON.MeshBuilder.CreateSphere('snapPreviewDot', { diameter }, scene);
       preview.position = point.clone();
-      baseColor = isOnSelectedMesh 
+      baseColor = isOnSelectedMesh
         ? new BABYLON.Color3(1, 1, 1)
-        : new BABYLON.Color3(1, 0.84, 0); // Gold/Yellow
+        : new BABYLON.Color3(0.5, 0.5, 0.5); // Gray
     }
 
     preview.renderingGroupId = 1;
