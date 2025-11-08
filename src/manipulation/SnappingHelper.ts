@@ -731,8 +731,12 @@ export class SnappingHelper {
 
     // Ensure normal is properly normalized (fix any floating point errors)
     const finalNormal = normal.clone().normalize();
-    
-    return { center, radius: finalAvgRadius, normal: finalNormal };
+
+    // For visualization purposes, use the maximum radius so the ring encompasses all vertices
+    // (The average radius would make the ring smaller than some vertices)
+    console.log(`[SnappingHelper] fitCircleToPoints: Using maxRadius=${(maxRadiusValue * 1000).toFixed(3)}mm for visualization (avg=${(finalAvgRadius * 1000).toFixed(3)}mm)`);
+
+    return { center, radius: maxRadiusValue, normal: finalNormal };
   }
 
 
@@ -1497,6 +1501,10 @@ export class SnappingHelper {
     let closestDistance = Infinity; // Start with Infinity to find true closest, like vertex snapping
     let closestMeshName = '';
 
+    // Edge deduplication: Track seen edges to avoid processing duplicates
+    // Key format: "meshId:minIdx-maxIdx" where minIdx < maxIdx
+    const seenEdges = new Set<string>();
+
     for (const mesh of scene.meshes) {
       if (
         !mesh.isVisible ||
@@ -1516,16 +1524,30 @@ export class SnappingHelper {
       if (!positions || !indices) continue;
 
       const worldMatrix = mesh.computeWorldMatrix(true);
+      const meshId = mesh.uniqueId.toString();
 
       // Check each edge midpoint
       for (let i = 0; i < indices.length; i += 3) {
         const edges = [
-          [indices[i] * 3, indices[i + 1] * 3],
-          [indices[i + 1] * 3, indices[i + 2] * 3],
-          [indices[i + 2] * 3, indices[i] * 3],
+          [indices[i], indices[i + 1]],
+          [indices[i + 1], indices[i + 2]],
+          [indices[i + 2], indices[i]],
         ];
 
-        for (const [start, end] of edges) {
+        for (const [idx1, idx2] of edges) {
+          // Deduplicate edges: create consistent key regardless of vertex order
+          const minIdx = Math.min(idx1, idx2);
+          const maxIdx = Math.max(idx1, idx2);
+          const edgeKey = `${meshId}:${minIdx}-${maxIdx}`;
+
+          if (seenEdges.has(edgeKey)) {
+            continue; // Skip duplicate edge
+          }
+          seenEdges.add(edgeKey);
+
+          const start = idx1 * 3;
+          const end = idx2 * 3;
+
           const v1 = BABYLON.Vector3.TransformCoordinates(
             new BABYLON.Vector3(positions[start], positions[start + 1], positions[start + 2]),
             worldMatrix
@@ -1534,6 +1556,12 @@ export class SnappingHelper {
             new BABYLON.Vector3(positions[end], positions[end + 1], positions[end + 2]),
             worldMatrix
           );
+
+          // Filter out very short edges (< 5mm) - likely triangulation artifacts
+          const edgeLength = BABYLON.Vector3.Distance(v1, v2);
+          if (edgeLength < 0.005) {
+            continue;
+          }
 
           const midpoint = v1.add(v2).scale(0.5);
           const distance = BABYLON.Vector3.Distance(position, midpoint);
