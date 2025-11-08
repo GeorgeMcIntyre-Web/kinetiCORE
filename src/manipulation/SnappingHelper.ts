@@ -56,25 +56,165 @@ export class SnappingHelper {
   }
 
   /**
+   * SMART SNAP SELECTOR: Try all enabled snap types and return the closest one
+   * This provides better UX - users don't need to manually toggle snap types
+   * @param position - World space position to snap from
+   * @param settings - Snap settings
+   * @param excludeMeshIds - Mesh IDs to exclude from snapping
+   * @param camera - Optional camera for screen-space distance calculation
+   * @param screenSpacePixels - Optional screen-space pixel threshold
+   */
+  private smartSnapPosition(
+    position: BABYLON.Vector3,
+    settings: SnapSettings,
+    excludeMeshIds: string[],
+    camera?: BABYLON.Camera,
+    screenSpacePixels?: number
+  ): SnapResult {
+    const candidates: Array<{ result: SnapResult; distance: number; priority: number }> = [];
+
+    // Define snap type priorities (lower = higher priority when distances are equal)
+    const priorities: Record<string, number> = {
+      vertex: 1,      // Most precise
+      midpoint: 2,    // Precise point on edge
+      center: 3,      // Circle centers are important
+      intersection: 4, // Edge intersections
+      edge: 5,        // Points on edges
+      bboxCorner: 6,  // Bounding box corners
+      face: 7,        // Points on faces
+      normal: 8,      // Surface normals
+      object: 9,      // Object centers
+      perpendicular: 10,
+      tangent: 11,
+      surface: 12,    // Lowest priority
+    };
+
+    // Try all enabled snap types and collect candidates
+    if (settings.snapToVertex) {
+      const result = this.snapToVertex(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
+      if (result.snapped) {
+        const distance = BABYLON.Vector3.Distance(position, result.position);
+        candidates.push({ result, distance, priority: priorities.vertex || 999 });
+      }
+    }
+
+    if (settings.snapToMidpoint) {
+      const result = this.snapToMidpoint(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
+      if (result.snapped) {
+        const distance = BABYLON.Vector3.Distance(position, result.position);
+        candidates.push({ result, distance, priority: priorities.midpoint || 999 });
+      }
+    }
+
+    if (settings.snapToCenter) {
+      const result = this.snapToCenter(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
+      if (result.snapped) {
+        const distance = BABYLON.Vector3.Distance(position, result.position);
+        candidates.push({ result, distance, priority: priorities.center || 999 });
+      }
+    }
+
+    if (settings.snapToEdge) {
+      const result = this.snapToEdge(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
+      if (result.snapped) {
+        const distance = BABYLON.Vector3.Distance(position, result.position);
+        candidates.push({ result, distance, priority: priorities.edge || 999 });
+      }
+    }
+
+    if (settings.snapToIntersection) {
+      const result = this.snapToIntersection(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
+      if (result.snapped) {
+        const distance = BABYLON.Vector3.Distance(position, result.position);
+        candidates.push({ result, distance, priority: priorities.intersection || 999 });
+      }
+    }
+
+    if (settings.snapToFace) {
+      const result = this.snapToFace(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
+      if (result.snapped) {
+        const distance = BABYLON.Vector3.Distance(position, result.position);
+        candidates.push({ result, distance, priority: priorities.face || 999 });
+      }
+    }
+
+    if (settings.snapToNormal) {
+      const result = this.snapToNormal(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
+      if (result.snapped) {
+        const distance = BABYLON.Vector3.Distance(position, result.position);
+        candidates.push({ result, distance, priority: priorities.normal || 999 });
+      }
+    }
+
+    if (settings.snapBBoxCorner) {
+      const result = this.snapBBoxCorner(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
+      if (result.snapped) {
+        const distance = BABYLON.Vector3.Distance(position, result.position);
+        candidates.push({ result, distance, priority: priorities.bboxCorner || 999 });
+      }
+    }
+
+    if (settings.snapToObject) {
+      const result = this.snapToObject(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
+      if (result.snapped) {
+        const distance = BABYLON.Vector3.Distance(position, result.position);
+        candidates.push({ result, distance, priority: priorities.object || 999 });
+      }
+    }
+
+    // Note: Perpendicular, tangent, and surface don't have camera support yet
+    // They can be added here once updated
+
+    // No candidates found
+    if (candidates.length === 0) {
+      return { snapped: false, position: position.clone() };
+    }
+
+    // Sort by distance first (closest), then by priority (if distances are very similar)
+    candidates.sort((a, b) => {
+      const distDiff = a.distance - b.distance;
+      // If distances are within 1mm (very close), use priority
+      if (Math.abs(distDiff) < 0.001) {
+        return a.priority - b.priority;
+      }
+      return distDiff;
+    });
+
+    // Return the best candidate
+    const best = candidates[0];
+    console.log(`[SnappingHelper] SMART SNAP: Selected ${best.result.snapType} (distance=${(best.distance * 1000).toFixed(2)}mm, priority=${best.priority}) from ${candidates.length} candidates`);
+
+    return best.result;
+  }
+
+  /**
    * Attempt to snap a position based on settings
    * @param position - World space position to snap from
    * @param settings - Snap settings
    * @param excludeMeshIds - Mesh IDs to exclude from snapping
    * @param camera - Optional camera for screen-space distance calculation (for preview)
    * @param screenSpacePixels - Optional screen-space pixel threshold (for preview)
+   * @param smartSelect - If true, tries all enabled snap types and returns the closest (default: true for better UX)
    */
   snapPosition(
     position: BABYLON.Vector3,
     settings: SnapSettings,
     excludeMeshIds: string[] = [],
     camera?: BABYLON.Camera,
-    screenSpacePixels?: number
+    screenSpacePixels?: number,
+    smartSelect: boolean = true
   ): SnapResult {
     if (!settings.enabled) {
       return { snapped: false, position: position.clone() };
     }
 
-    // Try snapping in order of priority
+    // SMART SNAP SELECTOR: Try all enabled snap types and return the closest
+    // This provides a better UX - users don't need to manually toggle snap types
+    if (smartSelect) {
+      return this.smartSnapPosition(position, settings, excludeMeshIds, camera, screenSpacePixels);
+    }
+
+    // LEGACY MODE: Try snapping in order of priority (first match wins)
     let result: SnapResult | null = null;
 
     // 1. Vertex snapping (highest priority - most precise)
@@ -94,13 +234,13 @@ export class SnappingHelper {
 
     // 3. Edge snapping
     if (settings.snapToEdge) {
-      result = this.snapToEdge(position, settings.snapDistance, excludeMeshIds);
+      result = this.snapToEdge(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
       if (result.snapped) return result;
     }
 
     // 4. Intersection snapping
     if (settings.snapToIntersection) {
-      result = this.snapToIntersection(position, settings.snapDistance, excludeMeshIds);
+      result = this.snapToIntersection(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
       if (result.snapped) return result;
     }
 
@@ -118,13 +258,13 @@ export class SnappingHelper {
 
     // 5. Face snapping
     if (settings.snapToFace) {
-      result = this.snapToFace(position, settings.snapDistance, excludeMeshIds);
+      result = this.snapToFace(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
       if (result.snapped) return result;
     }
 
     // 6. Normal snapping
     if (settings.snapToNormal) {
-      result = this.snapToNormal(position, settings.snapDistance, excludeMeshIds);
+      result = this.snapToNormal(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
       if (result.snapped) return result;
     }
 
@@ -136,13 +276,13 @@ export class SnappingHelper {
 
     // 8. BBox corner snapping
     if (settings.snapBBoxCorner) {
-      result = this.snapBBoxCorner(position, settings.snapDistance, excludeMeshIds);
+      result = this.snapBBoxCorner(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
       if (result.snapped) return result;
     }
 
     // 9. Object snapping (bounding box centers)
     if (settings.snapToObject) {
-      result = this.snapToObject(position, settings.snapDistance, excludeMeshIds);
+      result = this.snapToObject(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
       if (result.snapped) return result;
     }
 
@@ -465,16 +605,39 @@ export class SnappingHelper {
   private snapToEdge(
     position: BABYLON.Vector3,
     snapDistance: number,
-    excludeMeshIds: string[]
+    excludeMeshIds: string[],
+    camera?: BABYLON.Camera,
+    screenSpacePixels?: number
   ): SnapResult {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     if (!scene) return { snapped: false, position: position.clone() };
 
     const snapDistanceMeters = snapDistance / 1000;
+
+    // Convert position to screen space if camera provided
+    let screenPos: { x: number; y: number } | null = null;
+    if (camera && screenSpacePixels !== undefined) {
+      const worldMatrix = scene.getTransformMatrix();
+      const viewport = camera.viewport.toGlobal(
+        scene.getEngine().getRenderWidth(),
+        scene.getEngine().getRenderHeight()
+      );
+      const projected = BABYLON.Vector3.Project(
+        position,
+        worldMatrix,
+        camera.getProjectionMatrix(),
+        viewport
+      );
+      screenPos = { x: projected.x, y: projected.y };
+    }
+
     let closestPoint: BABYLON.Vector3 | null = null;
-    let closestDistance = snapDistanceMeters;
+    let closestDistance = Infinity; // Find true closest first
     let closestMeshName = '';
+
+    // Edge deduplication
+    const seenEdges = new Set<string>();
 
     // Check all meshes in the scene
     for (const mesh of scene.meshes) {
@@ -496,20 +659,30 @@ export class SnappingHelper {
       if (!positions || !indices) continue;
 
       const worldMatrix = mesh.computeWorldMatrix(true);
+      const meshId = mesh.uniqueId.toString();
 
       // Check each edge (triangle edge)
       for (let i = 0; i < indices.length; i += 3) {
-        const idx1 = indices[i] * 3;
-        const idx2 = indices[i + 1] * 3;
-        const idx3 = indices[i + 2] * 3;
-
         const edges = [
-          [idx1, idx2],
-          [idx2, idx3],
-          [idx3, idx1],
+          [indices[i], indices[i + 1]],
+          [indices[i + 1], indices[i + 2]],
+          [indices[i + 2], indices[i]],
         ];
 
-        for (const [start, end] of edges) {
+        for (const [idx1, idx2] of edges) {
+          // Deduplicate edges
+          const minIdx = Math.min(idx1, idx2);
+          const maxIdx = Math.max(idx1, idx2);
+          const edgeKey = `${meshId}:${minIdx}-${maxIdx}`;
+
+          if (seenEdges.has(edgeKey)) {
+            continue;
+          }
+          seenEdges.add(edgeKey);
+
+          const start = idx1 * 3;
+          const end = idx2 * 3;
+
           const v1 = BABYLON.Vector3.TransformCoordinates(
             new BABYLON.Vector3(positions[start], positions[start + 1], positions[start + 2]),
             worldMatrix
@@ -519,9 +692,14 @@ export class SnappingHelper {
             worldMatrix
           );
 
+          // Filter out very short edges (< 5mm)
+          const edgeLength = BABYLON.Vector3.Distance(v1, v2);
+          if (edgeLength < 0.005) {
+            continue;
+          }
+
           // Find closest point on edge
           const edgeDir = v2.subtract(v1);
-          const edgeLength = edgeDir.length();
           edgeDir.normalize();
 
           const toPoint = position.subtract(v1);
@@ -540,7 +718,34 @@ export class SnappingHelper {
       }
     }
 
+    // Determine if we should snap
+    let shouldSnap = false;
     if (closestPoint) {
+      if (camera && screenSpacePixels !== undefined && screenPos) {
+        // Check screen-space distance for preview
+        const worldMatrix = scene.getTransformMatrix();
+        const viewport = camera.viewport.toGlobal(
+          scene.getEngine().getRenderWidth(),
+          scene.getEngine().getRenderHeight()
+        );
+        const projected = BABYLON.Vector3.Project(
+          closestPoint,
+          worldMatrix,
+          camera.getProjectionMatrix(),
+          viewport
+        );
+        const screenDist = Math.sqrt(
+          Math.pow(projected.x - screenPos.x, 2) +
+          Math.pow(projected.y - screenPos.y, 2)
+        );
+        shouldSnap = screenDist <= screenSpacePixels;
+      } else {
+        // Check world-space distance for actual snapping
+        shouldSnap = closestDistance <= snapDistanceMeters;
+      }
+    }
+
+    if (closestPoint && shouldSnap) {
       return {
         snapped: true,
         position: closestPoint,
@@ -559,15 +764,35 @@ export class SnappingHelper {
   private snapToFace(
     position: BABYLON.Vector3,
     snapDistance: number,
-    excludeMeshIds: string[]
+    excludeMeshIds: string[],
+    camera?: BABYLON.Camera,
+    screenSpacePixels?: number
   ): SnapResult {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     if (!scene) return { snapped: false, position: position.clone() };
 
     const snapDistanceMeters = snapDistance / 1000;
+
+    // Convert position to screen space if camera provided
+    let screenPos: { x: number; y: number } | null = null;
+    if (camera && screenSpacePixels !== undefined) {
+      const worldMatrix = scene.getTransformMatrix();
+      const viewport = camera.viewport.toGlobal(
+        scene.getEngine().getRenderWidth(),
+        scene.getEngine().getRenderHeight()
+      );
+      const projected = BABYLON.Vector3.Project(
+        position,
+        worldMatrix,
+        camera.getProjectionMatrix(),
+        viewport
+      );
+      screenPos = { x: projected.x, y: projected.y };
+    }
+
     let closestPoint: BABYLON.Vector3 | null = null;
-    let closestDistance = snapDistanceMeters;
+    let closestDistance = Infinity; // Find true closest first
     let closestMeshName = '';
 
     // Use raycasting in 6 directions (±X, ±Y, ±Z) to find nearby faces
@@ -587,7 +812,11 @@ export class SnappingHelper {
           mesh.isVisible &&
           !excludeMeshIds.includes(mesh.uniqueId.toString()) &&
           mesh.name !== 'ground' &&
-          mesh.name !== 'gridOverlay'
+          mesh.name !== 'gridOverlay' &&
+          !mesh.name.startsWith('snap') &&
+          !mesh.name.startsWith('circle') &&
+          !mesh.name.startsWith('measurement') &&
+          !mesh.name.startsWith('transform_label')
         );
       });
 
@@ -601,7 +830,34 @@ export class SnappingHelper {
       }
     }
 
+    // Determine if we should snap
+    let shouldSnap = false;
     if (closestPoint) {
+      if (camera && screenSpacePixels !== undefined && screenPos) {
+        // Check screen-space distance for preview
+        const worldMatrix = scene.getTransformMatrix();
+        const viewport = camera.viewport.toGlobal(
+          scene.getEngine().getRenderWidth(),
+          scene.getEngine().getRenderHeight()
+        );
+        const projected = BABYLON.Vector3.Project(
+          closestPoint,
+          worldMatrix,
+          camera.getProjectionMatrix(),
+          viewport
+        );
+        const screenDist = Math.sqrt(
+          Math.pow(projected.x - screenPos.x, 2) +
+          Math.pow(projected.y - screenPos.y, 2)
+        );
+        shouldSnap = screenDist <= screenSpacePixels;
+      } else {
+        // Check world-space distance for actual snapping
+        shouldSnap = closestDistance <= snapDistanceMeters;
+      }
+    }
+
+    if (closestPoint && shouldSnap) {
       return {
         snapped: true,
         position: closestPoint,
@@ -1069,15 +1325,34 @@ export class SnappingHelper {
   private snapToObject(
     position: BABYLON.Vector3,
     snapDistance: number,
-    excludeMeshIds: string[]
+    excludeMeshIds: string[],
+    camera?: BABYLON.Camera,
+    screenSpacePixels?: number
   ): SnapResult {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     if (!scene) return { snapped: false, position: position.clone() };
 
+    // Convert position to screen space if camera provided
+    let screenPos: { x: number; y: number } | null = null;
+    if (camera && screenSpacePixels !== undefined) {
+      const worldMatrix = scene.getTransformMatrix();
+      const viewport = camera.viewport.toGlobal(
+        scene.getEngine().getRenderWidth(),
+        scene.getEngine().getRenderHeight()
+      );
+      const projected = BABYLON.Vector3.Project(
+        position,
+        worldMatrix,
+        camera.getProjectionMatrix(),
+        viewport
+      );
+      screenPos = { x: projected.x, y: projected.y };
+    }
+
     const snapDistanceMeters = snapDistance / 1000;
     let closestCenter: BABYLON.Vector3 | null = null;
-    let closestDistance = snapDistanceMeters;
+    let closestDistance = Infinity;
     let closestMeshName = '';
 
     // Check all meshes for their bounding box centers
@@ -1110,7 +1385,34 @@ export class SnappingHelper {
       }
     }
 
+    // Determine if we should snap
+    let shouldSnap = false;
     if (closestCenter) {
+      if (camera && screenSpacePixels !== undefined && screenPos) {
+        // Check screen-space distance for preview
+        const worldMatrix = scene.getTransformMatrix();
+        const viewport = camera.viewport.toGlobal(
+          scene.getEngine().getRenderWidth(),
+          scene.getEngine().getRenderHeight()
+        );
+        const projected = BABYLON.Vector3.Project(
+          closestCenter,
+          worldMatrix,
+          camera.getProjectionMatrix(),
+          viewport
+        );
+        const screenDist = Math.sqrt(
+          Math.pow(projected.x - screenPos.x, 2) +
+          Math.pow(projected.y - screenPos.y, 2)
+        );
+        shouldSnap = screenDist <= screenSpacePixels;
+      } else {
+        // Check world-space distance for actual snapping
+        shouldSnap = closestDistance <= snapDistanceMeters;
+      }
+    }
+
+    if (closestCenter && shouldSnap) {
       return {
         snapped: true,
         position: closestCenter,
@@ -1410,7 +1712,7 @@ export class SnappingHelper {
     mat.backFaceCulling = false;
     preview.material = mat;
 
-    // Add glow
+    // Add glow to preview and all child meshes
     let glowLayer = scene.getGlowLayerByName('snap-preview-glow');
     if (!glowLayer) {
       glowLayer = new BABYLON.GlowLayer('snap-preview-glow', scene);
@@ -1418,6 +1720,20 @@ export class SnappingHelper {
     }
     glowLayer.intensity = isOnSelectedMesh ? 3.0 : 2.0;
     glowLayer.addIncludedOnlyMesh(preview);
+
+    // Add all child meshes (ring, debug dots) to glow layer
+    const childMeshes = preview.getChildMeshes();
+    for (const child of childMeshes) {
+      if (child instanceof BABYLON.Mesh) {
+        glowLayer.addIncludedOnlyMesh(child);
+      }
+    }
+
+    // Add midpoint line if it exists (not a child, stored separately)
+    const midpointLine = (preview as any).__snapPreviewLine;
+    if (midpointLine && midpointLine instanceof BABYLON.Mesh) {
+      glowLayer.addIncludedOnlyMesh(midpointLine);
+    }
 
     preview.alwaysSelectAsActiveMesh = true;
     preview.isPickable = false;
@@ -1637,15 +1953,34 @@ export class SnappingHelper {
   private snapToIntersection(
     position: BABYLON.Vector3,
     snapDistance: number,
-    excludeMeshIds: string[]
+    excludeMeshIds: string[],
+    camera?: BABYLON.Camera,
+    screenSpacePixels?: number
   ): SnapResult {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     if (!scene) return { snapped: false, position: position.clone() };
 
+    // Convert position to screen space if camera provided
+    let screenPos: { x: number; y: number } | null = null;
+    if (camera && screenSpacePixels !== undefined) {
+      const worldMatrix = scene.getTransformMatrix();
+      const viewport = camera.viewport.toGlobal(
+        scene.getEngine().getRenderWidth(),
+        scene.getEngine().getRenderHeight()
+      );
+      const projected = BABYLON.Vector3.Project(
+        position,
+        worldMatrix,
+        camera.getProjectionMatrix(),
+        viewport
+      );
+      screenPos = { x: projected.x, y: projected.y };
+    }
+
     const snapDistanceMeters = snapDistance / 1000;
     let closestIntersection: BABYLON.Vector3 | null = null;
-    let closestDistance = snapDistanceMeters;
+    let closestDistance = Infinity;
     let closestMeshName = '';
 
     // Collect all edges from all meshes
@@ -1725,7 +2060,34 @@ export class SnappingHelper {
       }
     }
 
+    // Determine if we should snap
+    let shouldSnap = false;
     if (closestIntersection) {
+      if (camera && screenSpacePixels !== undefined && screenPos) {
+        // Check screen-space distance for preview
+        const worldMatrix = scene.getTransformMatrix();
+        const viewport = camera.viewport.toGlobal(
+          scene.getEngine().getRenderWidth(),
+          scene.getEngine().getRenderHeight()
+        );
+        const projected = BABYLON.Vector3.Project(
+          closestIntersection,
+          worldMatrix,
+          camera.getProjectionMatrix(),
+          viewport
+        );
+        const screenDist = Math.sqrt(
+          Math.pow(projected.x - screenPos.x, 2) +
+          Math.pow(projected.y - screenPos.y, 2)
+        );
+        shouldSnap = screenDist <= screenSpacePixels;
+      } else {
+        // Check world-space distance for actual snapping
+        shouldSnap = closestDistance <= snapDistanceMeters;
+      }
+    }
+
+    if (closestIntersection && shouldSnap) {
       return {
         snapped: true,
         position: closestIntersection,
@@ -1786,11 +2148,30 @@ export class SnappingHelper {
   private snapToNormal(
     position: BABYLON.Vector3,
     snapDistance: number,
-    excludeMeshIds: string[]
+    excludeMeshIds: string[],
+    camera?: BABYLON.Camera,
+    screenSpacePixels?: number
   ): SnapResult {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     if (!scene) return { snapped: false, position: position.clone() };
+
+    // Convert position to screen space if camera provided
+    let screenPos: { x: number; y: number } | null = null;
+    if (camera && screenSpacePixels !== undefined) {
+      const worldMatrix = scene.getTransformMatrix();
+      const viewport = camera.viewport.toGlobal(
+        scene.getEngine().getRenderWidth(),
+        scene.getEngine().getRenderHeight()
+      );
+      const projected = BABYLON.Vector3.Project(
+        position,
+        worldMatrix,
+        camera.getProjectionMatrix(),
+        viewport
+      );
+      screenPos = { x: projected.x, y: projected.y };
+    }
 
     const snapDistanceMeters = snapDistance / 1000;
 
@@ -1805,7 +2186,7 @@ export class SnappingHelper {
     ];
 
     let closestPoint: BABYLON.Vector3 | null = null;
-    let closestDistance = snapDistanceMeters;
+    let closestDistance = Infinity;
     let closestMeshName = '';
 
     for (const dir of directions) {
@@ -1815,7 +2196,11 @@ export class SnappingHelper {
           mesh.isVisible &&
           !excludeMeshIds.includes(mesh.uniqueId.toString()) &&
           mesh.name !== 'ground' &&
-          mesh.name !== 'gridOverlay'
+          mesh.name !== 'gridOverlay' &&
+          !mesh.name.startsWith('snap') && // Exclude snap preview meshes
+          !mesh.name.startsWith('circle') && // Exclude debug visualization
+          !mesh.name.startsWith('measurement') &&
+          !mesh.name.startsWith('transform_label')
         );
       });
 
@@ -1835,7 +2220,34 @@ export class SnappingHelper {
       }
     }
 
+    // Determine if we should snap
+    let shouldSnap = false;
     if (closestPoint) {
+      if (camera && screenSpacePixels !== undefined && screenPos) {
+        // Check screen-space distance for preview
+        const worldMatrix = scene.getTransformMatrix();
+        const viewport = camera.viewport.toGlobal(
+          scene.getEngine().getRenderWidth(),
+          scene.getEngine().getRenderHeight()
+        );
+        const projected = BABYLON.Vector3.Project(
+          closestPoint,
+          worldMatrix,
+          camera.getProjectionMatrix(),
+          viewport
+        );
+        const screenDist = Math.sqrt(
+          Math.pow(projected.x - screenPos.x, 2) +
+          Math.pow(projected.y - screenPos.y, 2)
+        );
+        shouldSnap = screenDist <= screenSpacePixels;
+      } else {
+        // Check world-space distance for actual snapping
+        shouldSnap = closestDistance <= snapDistanceMeters;
+      }
+    }
+
+    if (closestPoint && shouldSnap) {
       return {
         snapped: true,
         position: closestPoint,
@@ -1854,15 +2266,34 @@ export class SnappingHelper {
   private snapBBoxCorner(
     position: BABYLON.Vector3,
     snapDistance: number,
-    excludeMeshIds: string[]
+    excludeMeshIds: string[],
+    camera?: BABYLON.Camera,
+    screenSpacePixels?: number
   ): SnapResult {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     if (!scene) return { snapped: false, position: position.clone() };
 
+    // Convert position to screen space if camera provided
+    let screenPos: { x: number; y: number } | null = null;
+    if (camera && screenSpacePixels !== undefined) {
+      const worldMatrix = scene.getTransformMatrix();
+      const viewport = camera.viewport.toGlobal(
+        scene.getEngine().getRenderWidth(),
+        scene.getEngine().getRenderHeight()
+      );
+      const projected = BABYLON.Vector3.Project(
+        position,
+        worldMatrix,
+        camera.getProjectionMatrix(),
+        viewport
+      );
+      screenPos = { x: projected.x, y: projected.y };
+    }
+
     const snapDistanceMeters = snapDistance / 1000;
     let closestCorner: BABYLON.Vector3 | null = null;
-    let closestDistance = snapDistanceMeters;
+    let closestDistance = Infinity;
     let closestMeshName = '';
 
     for (const mesh of scene.meshes) {
@@ -1907,7 +2338,34 @@ export class SnappingHelper {
       }
     }
 
+    // Determine if we should snap
+    let shouldSnap = false;
     if (closestCorner) {
+      if (camera && screenSpacePixels !== undefined && screenPos) {
+        // Check screen-space distance for preview
+        const worldMatrix = scene.getTransformMatrix();
+        const viewport = camera.viewport.toGlobal(
+          scene.getEngine().getRenderWidth(),
+          scene.getEngine().getRenderHeight()
+        );
+        const projected = BABYLON.Vector3.Project(
+          closestCorner,
+          worldMatrix,
+          camera.getProjectionMatrix(),
+          viewport
+        );
+        const screenDist = Math.sqrt(
+          Math.pow(projected.x - screenPos.x, 2) +
+          Math.pow(projected.y - screenPos.y, 2)
+        );
+        shouldSnap = screenDist <= screenSpacePixels;
+      } else {
+        // Check world-space distance for actual snapping
+        shouldSnap = closestDistance <= snapDistanceMeters;
+      }
+    }
+
+    if (closestCorner && shouldSnap) {
       return {
         snapped: true,
         position: closestCorner,
