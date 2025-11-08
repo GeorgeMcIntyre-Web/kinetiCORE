@@ -17,28 +17,32 @@ export interface SnapResult {
 }
 
 export interface SnapSettings {
+  // Simple settings for smart snap selector
   enabled: boolean;
-  snapToGrid: boolean;
-  snapToVertex: boolean;
-  snapToEdge: boolean;
-  snapToFace: boolean;
-  snapToCenter: boolean;
-  snapToObject: boolean;
-  snapToMidpoint: boolean;
-  snapToIntersection: boolean;
-  snapToPerpendicular: boolean;
-  snapToTangent: boolean;
-  snapAlong: boolean;
-  snapToNormal: boolean;
-  snapToPlane: boolean;
-  snapToAxis: boolean;
-  snapToCurve: boolean;
-  snapToSurface: boolean;
-  snapObjectToVertex: boolean;
-  snapPointOnEdge: boolean;
-  snapBBoxCorner: boolean;
-  gridSize: number; // mm
-  snapDistance: number; // mm
+  snapDistance: number; // mm - detection threshold
+  gridSize: number; // mm - for grid snapping
+
+  // Advanced: Individual snap type toggles (for power users)
+  // With smart selector, these are all enabled by default
+  snapToGrid?: boolean;
+  snapToVertex?: boolean;
+  snapToEdge?: boolean;
+  snapToFace?: boolean;
+  snapToCenter?: boolean;
+  snapToObject?: boolean;
+  snapToMidpoint?: boolean;
+  snapToIntersection?: boolean;
+  snapToPerpendicular?: boolean;
+  snapToTangent?: boolean;
+  snapAlong?: boolean;
+  snapToNormal?: boolean;
+  snapToPlane?: boolean;
+  snapToAxis?: boolean;
+  snapToCurve?: boolean;
+  snapToSurface?: boolean;
+  snapObjectToVertex?: boolean;
+  snapPointOnEdge?: boolean;
+  snapBBoxCorner?: boolean;
 }
 
 export class SnappingHelper {
@@ -89,8 +93,19 @@ export class SnappingHelper {
       surface: 12,    // Lowest priority
     };
 
+    // Smart selector defaults: all snap types enabled unless explicitly disabled
+    const snapToVertex = settings.snapToVertex !== false;
+    const snapToMidpoint = settings.snapToMidpoint !== false;
+    const snapToCenter = settings.snapToCenter !== false;
+    const snapToEdge = settings.snapToEdge !== false;
+    const snapToIntersection = settings.snapToIntersection !== false;
+    const snapToFace = settings.snapToFace !== false;
+    const snapToNormal = settings.snapToNormal !== false;
+    const snapBBoxCorner = settings.snapBBoxCorner !== false;
+    const snapToObject = settings.snapToObject !== false;
+
     // Try all enabled snap types and collect candidates
-    if (settings.snapToVertex) {
+    if (snapToVertex) {
       const result = this.snapToVertex(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
       if (result.snapped) {
         const distance = BABYLON.Vector3.Distance(position, result.position);
@@ -98,7 +113,7 @@ export class SnappingHelper {
       }
     }
 
-    if (settings.snapToMidpoint) {
+    if (snapToMidpoint) {
       const result = this.snapToMidpoint(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
       if (result.snapped) {
         const distance = BABYLON.Vector3.Distance(position, result.position);
@@ -106,7 +121,7 @@ export class SnappingHelper {
       }
     }
 
-    if (settings.snapToCenter) {
+    if (snapToCenter) {
       const result = this.snapToCenter(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
       if (result.snapped) {
         const distance = BABYLON.Vector3.Distance(position, result.position);
@@ -114,7 +129,7 @@ export class SnappingHelper {
       }
     }
 
-    if (settings.snapToEdge) {
+    if (snapToEdge) {
       const result = this.snapToEdge(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
       if (result.snapped) {
         const distance = BABYLON.Vector3.Distance(position, result.position);
@@ -122,7 +137,7 @@ export class SnappingHelper {
       }
     }
 
-    if (settings.snapToIntersection) {
+    if (snapToIntersection) {
       const result = this.snapToIntersection(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
       if (result.snapped) {
         const distance = BABYLON.Vector3.Distance(position, result.position);
@@ -130,7 +145,7 @@ export class SnappingHelper {
       }
     }
 
-    if (settings.snapToFace) {
+    if (snapToFace) {
       const result = this.snapToFace(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
       if (result.snapped) {
         const distance = BABYLON.Vector3.Distance(position, result.position);
@@ -138,7 +153,7 @@ export class SnappingHelper {
       }
     }
 
-    if (settings.snapToNormal) {
+    if (snapToNormal) {
       const result = this.snapToNormal(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
       if (result.snapped) {
         const distance = BABYLON.Vector3.Distance(position, result.position);
@@ -146,7 +161,7 @@ export class SnappingHelper {
       }
     }
 
-    if (settings.snapBBoxCorner) {
+    if (snapBBoxCorner) {
       const result = this.snapBBoxCorner(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
       if (result.snapped) {
         const distance = BABYLON.Vector3.Distance(position, result.position);
@@ -154,7 +169,7 @@ export class SnappingHelper {
       }
     }
 
-    if (settings.snapToObject) {
+    if (snapToObject) {
       const result = this.snapToObject(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
       if (result.snapped) {
         const distance = BABYLON.Vector3.Distance(position, result.position);
