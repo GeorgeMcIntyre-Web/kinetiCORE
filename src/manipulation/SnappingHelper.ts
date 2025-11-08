@@ -209,10 +209,8 @@ export class SnappingHelper {
       return distDiff;
     });
 
-    // Return the best candidate
+    // Return the best candidate (logging removed to reduce console spam)
     const best = filteredCandidates[0];
-    console.log(`[SnappingHelper] SMART SNAP: Selected ${best.result.snapType} (distance=${(best.distance * 1000).toFixed(2)}mm, priority=${best.priority}) from ${filteredCandidates.length} candidates (${candidates.length} before filtering)`);
-
     return best.result;
   }
 
@@ -525,16 +523,7 @@ export class SnappingHelper {
       // Second pass: check only unique vertices for snapping
       uniqueVerticesCount += uniqueVertices.size;
       
-      // Debug: log first few unique vertices and distances (only occasionally to avoid spam)
-      if (meshesChecked === 1 && uniqueVertices.size > 0 && Math.random() < 0.01) {
-        const sampleVertices = Array.from(uniqueVertices.values()).slice(0, 8);
-        const sampleDistances = sampleVertices.map(v => {
-          const dist = BABYLON.Vector3.Distance(position, v);
-          return { vertex: `(${v.x.toFixed(3)}, ${v.y.toFixed(3)}, ${v.z.toFixed(3)})`, distance: dist.toFixed(4) + 'm (' + (dist * 1000).toFixed(2) + 'mm)' };
-        });
-        console.log('[SnappingHelper] Sample unique vertices and distances:', sampleDistances);
-        console.log('[SnappingHelper] Total unique vertices:', uniqueVertices.size, 'from', positions.length / 3, 'total vertices');
-      }
+      // Vertex deduplication complete (logging removed to reduce console spam)
       
       for (const worldVertex of uniqueVertices.values()) {
         let distance: number;
@@ -1243,12 +1232,8 @@ export class SnappingHelper {
       // Ensure normal is normalized (fix any floating point errors)
       const finalNormal = closestNormal.clone().normalize();
       const normalLength = finalNormal.length();
-      if (Math.abs(normalLength - 1.0) > 0.001) {
-        console.warn(`[SnappingHelper] WARNING: Circle normal not normalized! Length=${normalLength.toFixed(6)}, re-normalizing...`);
-      }
-      
-      console.log(`[SnappingHelper] ✅ CENTER SNAP: Pos=(${closestCenter.x.toFixed(6)}, ${closestCenter.y.toFixed(6)}, ${closestCenter.z.toFixed(6)}), Radius=${(closestRadius * 1000).toFixed(6)}mm, Normal=(${finalNormal.x.toFixed(6)}, ${finalNormal.y.toFixed(6)}, ${finalNormal.z.toFixed(6)}), Mesh="${closestMeshName}", Type=center`);
-      
+      // Normal normalization check removed (logging spam reduction)
+
       // Return circle center with radius and normal for visual feedback
       // visualFeedback: [center, normal (for circle orientation), radius as Vector3(x=radius, y=0, z=0)]
       const radiusVec = new BABYLON.Vector3(closestRadius, 0, 0); // Store radius in x component
@@ -1960,7 +1945,7 @@ export class SnappingHelper {
 
     // Check if we found a midpoint within snap distance
     if (closestMidpoint && closestEdgeStart && closestEdgeEnd && shouldSnap) {
-      console.log(`[SnappingHelper] ✅ MIDPOINT SNAP: midpoint=(${closestMidpoint.x.toFixed(6)}, ${closestMidpoint.y.toFixed(6)}, ${closestMidpoint.z.toFixed(6)}), edgeStart=(${closestEdgeStart.x.toFixed(6)}, ${closestEdgeStart.y.toFixed(6)}, ${closestEdgeStart.z.toFixed(6)}), edgeEnd=(${closestEdgeEnd.x.toFixed(6)}, ${closestEdgeEnd.y.toFixed(6)}, ${closestEdgeEnd.z.toFixed(6)}), mesh="${closestMeshName}", distance=${(closestDistance * 1000).toFixed(3)}mm`);
+      // Midpoint snap detected (logging removed to reduce console spam)
       return {
         snapped: true,
         position: closestMidpoint,
