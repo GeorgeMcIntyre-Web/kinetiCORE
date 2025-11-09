@@ -983,10 +983,8 @@ export class SnappingHelper {
     }
     const finalAvgRadius = perimeterRadii.reduce((sum, r) => sum + r, 0) / perimeterRadii.length;
     
-    // Find min and max radius for debugging
-    const minRadiusValue = Math.min(...perimeterRadii);
+    // Find max radius for visualization (use maximum to encompass all vertices)
     const maxRadiusValue = Math.max(...perimeterRadii);
-    const radiusRange = maxRadiusValue - minRadiusValue;
 
     // Check if all perimeter points are approximately equidistant from center (circle check)
     const radiusVariance = perimeterRadii.reduce((sum, r) => sum + Math.pow(r - finalAvgRadius, 2), 0) / perimeterRadii.length;
@@ -1104,7 +1102,7 @@ export class SnappingHelper {
       // Face grouping complete (removed debug spam)
 
       // For each group of faces with the same normal, check if vertices form a circle
-      for (const [normalKey, faceIndices] of facesByNormal) {
+      for (const [, faceIndices] of facesByNormal) {
         if (faceIndices.length < 3) continue; // Need at least 3 faces for a circle
 
         // Collect all unique vertices from these faces
@@ -1231,8 +1229,6 @@ export class SnappingHelper {
       // Debug: log center snap
       // Ensure normal is normalized (fix any floating point errors)
       const finalNormal = closestNormal.clone().normalize();
-      const normalLength = finalNormal.length();
-      // Normal normalization check removed (logging spam reduction)
 
       // Return circle center with radius and normal for visual feedback
       // visualFeedback: [center, normal (for circle orientation), radius as Vector3(x=radius, y=0, z=0)]
