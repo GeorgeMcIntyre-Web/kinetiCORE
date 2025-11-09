@@ -583,7 +583,6 @@ export const SceneCanvas: React.FC = () => {
                 if (snapResult.snapType === 'midpoint' && snapResult.visualFeedback.length >= 3) {
                   (center as any).edgeStart = snapResult.visualFeedback[1].clone();
                   (center as any).edgeEnd = snapResult.visualFeedback[2].clone();
-                  console.log(`[SceneCanvas] Midpoint snap: center=${center}, edgeStart=${snapResult.visualFeedback[1]}, edgeEnd=${snapResult.visualFeedback[2]}`);
                 }
                 
                 // For center (circle), pass circle normal and radius
@@ -600,8 +599,6 @@ export const SceneCanvas: React.FC = () => {
                   
                   (center as any).circleNormal = circleNormal;
                   (center as any).circleRadius = circleRadius;
-                  
-                  console.log(`[SceneCanvas] Center snap: center=${center}, radius=${(circleRadius * 1000).toFixed(6)}mm, normal=(${circleNormal.x.toFixed(6)}, ${circleNormal.y.toFixed(6)}, ${circleNormal.z.toFixed(6)})`);
                 }
                 
                 snappingHelper.showPreviewDot(center, snapResult.snapType);

@@ -1424,8 +1424,6 @@ export class SnappingHelper {
       const edgeStart = (point as any).edgeStart;
       const edgeEnd = (point as any).edgeEnd;
       
-      console.log(`[SnappingHelper] showPreviewDot MIDPOINT: point=(${point.x.toFixed(3)}, ${point.y.toFixed(3)}, ${point.z.toFixed(3)}), edgeStart=${edgeStart ? `(${edgeStart.x.toFixed(3)}, ${edgeStart.y.toFixed(3)}, ${edgeStart.z.toFixed(3)})` : 'undefined'}, edgeEnd=${edgeEnd ? `(${edgeEnd.x.toFixed(3)}, ${edgeEnd.y.toFixed(3)}, ${edgeEnd.z.toFixed(3)})` : 'undefined'}`);
-      
       // Create dot at midpoint first
       const diameter = isOnSelectedMesh ? 0.06 : 0.04;
       preview = BABYLON.MeshBuilder.CreateSphere('snapPreviewDot', { diameter }, scene);
@@ -1456,10 +1454,7 @@ export class SnappingHelper {
         lineMaterial.disableLighting = true;
         lineMaterial.alpha = 1.0;
         line.material = lineMaterial;
-        
-        // Don't parent to preview - keep in world space
-        console.log(`[SnappingHelper] Created midpoint line from (${edgeStart.x.toFixed(3)}, ${edgeStart.y.toFixed(3)}, ${edgeStart.z.toFixed(3)}) to (${edgeEnd.x.toFixed(3)}, ${edgeEnd.y.toFixed(3)}, ${edgeEnd.z.toFixed(3)})`);
-        
+
         // Store line reference for cleanup
         (preview as any).__snapPreviewLine = line;
         (preview as any).__snapPreviewLineMaterial = lineMaterial;
@@ -1952,16 +1947,7 @@ export class SnappingHelper {
     }
 
     // Debug: log if no midpoint found or if midpoint was too far (less frequently now)
-    if (closestMidpoint && closestEdgeStart && closestEdgeEnd && Math.random() < 0.05) {
-      // Found midpoint but it was too far
-      const threshold = (camera && screenSpacePixels !== undefined)
-        ? `${screenSpacePixels}px (screen-space)`
-        : `${(snapDistanceMeters * 1000).toFixed(3)}mm`;
-      console.log(`[SnappingHelper] MIDPOINT: Found but too far - distance=${(closestDistance * 1000).toFixed(3)}mm, threshold=${threshold}`);
-    } else if (Math.random() < 0.01) {
-      // Truly no midpoint found
-      console.log(`[SnappingHelper] MIDPOINT: No edges found near cursor, closestMidpoint=${!!closestMidpoint}, closestEdgeStart=${!!closestEdgeStart}, closestEdgeEnd=${!!closestEdgeEnd}`);
-    }
+    // No midpoint snap found (logging removed to reduce console spam)
 
     return { snapped: false, position: position.clone() };
   }
