@@ -336,25 +336,34 @@ export const SceneCanvas: React.FC = () => {
               let pickedMesh = pickResult.pickedMesh;
               const tree = SceneTreeManager.getInstance();
 
+              console.log('[Frame Picking] Clicked mesh:', pickedMesh.name, 'uniqueId:', pickedMesh.uniqueId);
+
               // Traverse up the parent hierarchy to find the root mesh that's in the scene tree
               // This ensures we select the entire frame object, not just an axis or label
               let rootMesh: BABYLON.AbstractMesh | null = pickedMesh;
               let node = tree.getNodeByBabylonMeshId(pickedMesh.uniqueId.toString());
 
+              console.log('[Frame Picking] Initial tree lookup:', node ? node.name : 'NOT FOUND');
+
               // If picked mesh is not in tree, try traversing up the parent hierarchy
               while (!node && rootMesh && rootMesh.parent) {
+                console.log('[Frame Picking] Traversing parent:', rootMesh.parent.name);
+
                 if (rootMesh.parent instanceof BABYLON.AbstractMesh || rootMesh.parent instanceof BABYLON.TransformNode) {
                   // Check if parent has a mesh we can use
                   if (rootMesh.parent instanceof BABYLON.AbstractMesh) {
                     rootMesh = rootMesh.parent;
                     node = tree.getNodeByBabylonMeshId(rootMesh.uniqueId.toString());
+                    console.log('[Frame Picking] Checking parent mesh:', rootMesh.name, 'found in tree:', !!node);
                   } else {
                     // Parent is a TransformNode, check its children for the main mesh
                     const transformNode = rootMesh.parent as BABYLON.TransformNode;
+                    console.log('[Frame Picking] Found TransformNode parent:', transformNode.name, 'children count:', transformNode.getChildren().length);
                     const children = transformNode.getChildren();
                     for (const child of children) {
                       if (child instanceof BABYLON.AbstractMesh) {
                         const childNode = tree.getNodeByBabylonMeshId(child.uniqueId.toString());
+                        console.log('[Frame Picking] Checking sibling:', child.name, 'found in tree:', !!childNode);
                         if (childNode) {
                           rootMesh = child;
                           node = childNode;
@@ -365,9 +374,12 @@ export const SceneCanvas: React.FC = () => {
                     break; // Stop traversing if we reached a TransformNode
                   }
                 } else {
+                  console.log('[Frame Picking] Parent is not mesh or transform node, stopping');
                   break; // Stop if parent is not a mesh or transform node
                 }
               }
+
+              console.log('[Frame Picking] Final node:', node ? node.name : 'NONE', 'rootMesh:', rootMesh ? rootMesh.name : 'NONE');
 
               if (node && rootMesh) {
                 const frameObject = {
@@ -375,6 +387,8 @@ export const SceneCanvas: React.FC = () => {
                   mesh: rootMesh,
                   name: node.name
                 };
+
+                console.log('[Frame Picking] ✅ Frame found:', frameObject.name);
 
                 // Update the appropriate snap frame
                 if (isPickingSnapFrame === 'from') {
@@ -402,7 +416,8 @@ export const SceneCanvas: React.FC = () => {
                   }
                 }
               } else {
-                toast.error('Selected object is not in the scene tree. Please select a coordinate frame.');
+                console.log('[Frame Picking] ❌ Frame NOT found in scene tree');
+                toast.error('Selected object is not in the scene tree. Please select a coordinate frame object, not a visual frame overlay.');
               }
 
               return; // Don't process as normal selection - prevents changing the Object field
