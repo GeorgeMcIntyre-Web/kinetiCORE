@@ -4087,7 +4087,8 @@ export const useEditorStore = create<EditorState>((set, get) => {
       const createLabel = (position: BABYLON.Vector3, text: string, color: BABYLON.Color3, name: string) => {
         const plane = BABYLON.MeshBuilder.CreatePlane(name, { size: 0.05 }, scene);
         plane.position = position;
-        plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+        // Remove billboard mode so labels rotate with the frame
+        // plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 
         const dynamicTexture = new BABYLON.DynamicTexture(
           `${name}_texture`,
@@ -4112,7 +4113,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
         material.emissiveColor = color;
         material.disableLighting = true;
         material.opacityTexture = dynamicTexture;
-        material.backFaceCulling = false;
+        material.backFaceCulling = false; // Keep visible from both sides
 
         plane.material = material;
         plane.isPickable = true; // Make pickable for frame selection
