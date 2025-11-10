@@ -183,7 +183,7 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
           point,
           snapSettings,
           excludeMeshIds,
-          camera, // Pass camera for screen-space calculation
+          camera || undefined, // Pass camera for screen-space calculation (convert null to undefined)
           screenSpacePixels // Use same pixel threshold as preview
         );
         

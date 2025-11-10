@@ -491,7 +491,6 @@ export const useEditorStore = create<EditorState>((set, get) => {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     const tree = SceneTreeManager.getInstance();
-    const registry = EntityRegistry.getInstance();
     const state = get();
     const coordinateFrameWidget = state.coordinateFrameWidget;
 
@@ -544,11 +543,27 @@ export const useEditorStore = create<EditorState>((set, get) => {
       }
     } else if (node.type === 'collection') {
       // For collections, select all visible child meshes
-      const childMeshIds = tree.getDescendantMeshIds(node.id);
-      childMeshIds.forEach((meshId) => {
-        const mesh = scene.getMeshByUniqueId(parseInt(meshId, 10));
-        if (mesh) {
-          addMeshAndChildren(mesh);
+      // Get all descendant nodes and find their meshes
+      const getAllDescendants = (nodeId: string): string[] => {
+        const descendants: string[] = [];
+        const traverse = (id: string) => {
+          const n = tree.getNode(id);
+          if (!n) return;
+          descendants.push(id);
+          n.childIds.forEach((childId: string) => traverse(childId));
+        };
+        traverse(nodeId);
+        return descendants;
+      };
+      
+      const descendantIds = getAllDescendants(node.id);
+      descendantIds.forEach((nodeId: string) => {
+        const descendantNode = tree.getNode(nodeId);
+        if (descendantNode?.babylonMeshId) {
+          const mesh = scene.getMeshByUniqueId(parseInt(descendantNode.babylonMeshId, 10));
+          if (mesh) {
+            addMeshAndChildren(mesh);
+          }
         }
       });
       sceneManager.adjustClippingPlanesForObject(newSelectedMeshes[0] || null);
@@ -587,10 +602,8 @@ export const useEditorStore = create<EditorState>((set, get) => {
     }
 
     // Update entity selection state
-    const entity = node.entityId ? registry.get(node.entityId) : null;
-    if (entity) {
-      registry.setSelected(entity, true);
-    }
+    // Note: Entity selection is handled through mesh selection
+    // The entity registry doesn't have a setSelected method
   };
 
   return {
@@ -3927,7 +3940,6 @@ export const useEditorStore = create<EditorState>((set, get) => {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     const tree = SceneTreeManager.getInstance();
-    const registry = EntityRegistry.getInstance();
 
     if (!scene) {
       toast.error('No scene available');

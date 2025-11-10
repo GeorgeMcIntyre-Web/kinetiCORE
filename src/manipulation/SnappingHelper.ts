@@ -228,11 +228,54 @@ export class SnappingHelper {
     }
 
     // Sort by distance first (closest), then by priority (if distances are very similar)
+    // Special handling for center vs midpoint: prefer center for circular faces, midpoint for edge midpoints
     filteredCandidates.sort((a, b) => {
       const distDiff = a.distance - b.distance;
-      // If distances are within 3mm (very close), use priority to prefer more precise snaps
+      
+      // Special case: Center vs Midpoint
+      // If center snap detects a circular face center and midpoint detects a face center (bounding box),
+      // prefer center snap as it's more geometrically accurate for circular geometry
+      const isCenterVsMidpoint = 
+        (a.result.snapType === 'center' && b.result.snapType === 'midpoint') ||
+        (a.result.snapType === 'midpoint' && b.result.snapType === 'center');
+      
+      if (isCenterVsMidpoint) {
+        const centerCandidate = a.result.snapType === 'center' ? a : b;
+        const midpointCandidate = a.result.snapType === 'midpoint' ? a : b;
+        
+        // Check if they're detecting the same or very close positions (within 5mm)
+        const posDiff = BABYLON.Vector3.Distance(
+          centerCandidate.result.position,
+          midpointCandidate.result.position
+        );
+        
+        if (posDiff < 0.005) { // Within 5mm - likely the same logical point
+          // Check if midpoint is a face center (no edge endpoints) vs edge midpoint
+          // Face centers have visualFeedback.length === 1, edge midpoints have length === 3
+          const midpointHasEdges = midpointCandidate.result.visualFeedback && 
+                                   midpointCandidate.result.visualFeedback.length >= 3;
+          
+          // If midpoint is a face center (no edges), both are detecting centers
+          // Prefer center snap as it uses more accurate geometric calculation (circle fitting)
+          // for circular faces, while midpoint just uses bounding box center
+          if (!midpointHasEdges) {
+            // Center wins for circular/geometric centers (more accurate)
+            return a.result.snapType === 'center' ? -1 : 1;
+          } else {
+            // Midpoint has edges, so it's an actual edge midpoint - prefer midpoint
+            // Edge midpoints are more specific than general centers
+            return a.result.snapType === 'midpoint' ? -1 : 1;
+          }
+        }
+        
+        // If positions are different (> 5mm apart), prefer the closer one
+        // This handles cases where center finds a circle center and midpoint finds a different edge midpoint
+        // Distance comparison will handle this in the default case below
+      }
+      
+      // Default: If distances are within 3mm (very close), use priority to prefer more precise snaps
       // This gives higher priority snaps (vertex, midpoint) a better chance to win
-      if (Math.abs(distDiff) < 0.003) { // Increased from 1mm to 3mm
+      if (Math.abs(distDiff) < 0.003) { // 3mm threshold
         return a.priority - b.priority;
       }
       return distDiff;
@@ -1669,7 +1712,6 @@ export class SnappingHelper {
     }
     
     // Use filtered inliers if we have enough, otherwise use all perimeter points
-    const pointsForFinal = finalInliers.length >= 3 ? finalInliers : perimeterPoints;
     const radiiForFinal = finalInliers.length >= 3 ? finalRadii : tempRadii;
     
     // Use median radius for final calculation (more robust than mean)
@@ -2334,7 +2376,7 @@ export class SnappingHelper {
         (preview as any).__snapPreviewLine = line;
         (preview as any).__snapPreviewLineMaterial = lineMaterial;
         
-        console.log(`[SnappingHelper] Midpoint line created: visible=${line.isVisible}, renderingGroupId=${line.renderingGroupId}, parent=${line.parent?.name || 'none'}`);
+        console.log(`[SnappingHelper] Midpoint line created: visible=${line.isVisible}, renderingGroupId=${line.renderingGroupId}, parent=${(line.parent as any)?.name || 'none'}`);
       }
       // No warning needed - face centers don't have edge endpoints, which is expected
       
@@ -2827,17 +2869,6 @@ export class SnappingHelper {
     }
 
     let meshesChecked = 0;
-    let edgesChecked = 0;
-    let midpointsWithinRange = 0;
-
-    // Deduplicate midpoints (same edge shared by multiple triangles)
-    // Use 1mm tolerance for deduplication - edges from different triangles should be within this
-    const midpointTolerance = 0.001; // 1mm tolerance for deduplication
-    const uniqueMidpoints = new Map<string, { point: BABYLON.Vector3; meshName: string; distance: number }>();
-    
-    // Also track edges by vertex pair to ensure true edge deduplication
-    // Store edge endpoints for visual feedback (line along edge)
-    const edgeMap = new Map<string, { midpoint: BABYLON.Vector3; meshName: string; distance: number; edgeStart: BABYLON.Vector3; edgeEnd: BABYLON.Vector3 }>();
 
     // Edge deduplication: Track seen edges to avoid processing duplicates
     // Key format: "meshId:minIdx-maxIdx" where minIdx < maxIdx
