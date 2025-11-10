@@ -102,7 +102,10 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
             snapSettings,
             [], // Don't exclude any meshes for measurement
             camera || undefined, // Convert null to undefined for TypeScript
-            screenSpaceThreshold // Use screen-space distance to find vertex closest to click position
+            screenSpaceThreshold, // Use screen-space distance to find vertex closest to click position
+            true, // smartSelect
+            evt.pickInfo.pickedMesh || null, // Pass clicked mesh for face snap
+            evt.pickInfo.pickedPoint || null // Pass clicked point for face snap
           );
           
           if (snapResult.snapped) {
