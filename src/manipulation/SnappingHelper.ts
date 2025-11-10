@@ -73,7 +73,9 @@ export class SnappingHelper {
     settings: SnapSettings,
     excludeMeshIds: string[],
     camera?: BABYLON.Camera,
-    screenSpacePixels?: number
+    screenSpacePixels?: number,
+    clickedMesh?: BABYLON.AbstractMesh | null,
+    clickedPoint?: BABYLON.Vector3 | null
   ): SnapResult {
     const candidates: Array<{ result: SnapResult; distance: number; priority: number }> = [];
 
@@ -146,7 +148,7 @@ export class SnappingHelper {
     }
 
     if (snapToFace) {
-      const result = this.snapToFace(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
+      const result = this.snapToFace(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels, clickedMesh, clickedPoint);
       if (result.snapped) {
         const distance = BABYLON.Vector3.Distance(position, result.position);
         candidates.push({ result, distance, priority: priorities.face || 999 });
@@ -226,18 +228,87 @@ export class SnappingHelper {
     }
 
     // Sort by distance first (closest), then by priority (if distances are very similar)
+    // Special handling for center vs midpoint: prefer center for circular faces, midpoint for edge midpoints
     filteredCandidates.sort((a, b) => {
       const distDiff = a.distance - b.distance;
-      // If distances are within 3mm (very close), use priority to prefer more precise snaps
+      
+      // Special case: Center vs Midpoint
+      // If center snap detects a circular face center and midpoint detects a face center (bounding box),
+      // prefer center snap as it's more geometrically accurate for circular geometry
+      const isCenterVsMidpoint = 
+        (a.result.snapType === 'center' && b.result.snapType === 'midpoint') ||
+        (a.result.snapType === 'midpoint' && b.result.snapType === 'center');
+      
+      if (isCenterVsMidpoint) {
+        const centerCandidate = a.result.snapType === 'center' ? a : b;
+        const midpointCandidate = a.result.snapType === 'midpoint' ? a : b;
+        
+        // Check if they're detecting the same or very close positions (within 5mm)
+        const posDiff = BABYLON.Vector3.Distance(
+          centerCandidate.result.position,
+          midpointCandidate.result.position
+        );
+        
+        if (posDiff < 0.005) { // Within 5mm - likely the same logical point
+          // Check if midpoint is a face center (no edge endpoints) vs edge midpoint
+          // Face centers have visualFeedback.length === 1, edge midpoints have length === 3
+          const midpointHasEdges = midpointCandidate.result.visualFeedback && 
+                                   midpointCandidate.result.visualFeedback.length >= 3;
+          
+          // If midpoint is a face center (no edges), both are detecting centers
+          // Prefer center snap as it uses more accurate geometric calculation (circle fitting)
+          // for circular faces, while midpoint just uses bounding box center
+          if (!midpointHasEdges) {
+            // Center wins for circular/geometric centers (more accurate)
+            return a.result.snapType === 'center' ? -1 : 1;
+          } else {
+            // Midpoint has edges, so it's an actual edge midpoint - prefer midpoint
+            // Edge midpoints are more specific than general centers
+            return a.result.snapType === 'midpoint' ? -1 : 1;
+          }
+        }
+        
+        // If positions are different (> 5mm apart), prefer the closer one
+        // This handles cases where center finds a circle center and midpoint finds a different edge midpoint
+        // Distance comparison will handle this in the default case below
+      }
+      
+      // Default: If distances are within 3mm (very close), use priority to prefer more precise snaps
       // This gives higher priority snaps (vertex, midpoint) a better chance to win
-      if (Math.abs(distDiff) < 0.003) { // Increased from 1mm to 3mm
+      if (Math.abs(distDiff) < 0.003) { // 3mm threshold
         return a.priority - b.priority;
       }
       return distDiff;
     });
 
-    // Return the best candidate (logging removed to reduce console spam)
+    // Return the best candidate
     const best = filteredCandidates[0];
+    
+    // DEBUG: Compare face and center snap results when both are candidates
+    if (best.result.snapType === 'center' || best.result.snapType === 'face') {
+      const faceCandidate = filteredCandidates.find(c => c.result.snapType === 'face');
+      const centerCandidate = filteredCandidates.find(c => c.result.snapType === 'center');
+      
+      if (faceCandidate && centerCandidate && faceCandidate.result.targetMeshName === centerCandidate.result.targetMeshName) {
+        const facePos = faceCandidate.result.position;
+        const centerPos = centerCandidate.result.position;
+        const posDiff = BABYLON.Vector3.Distance(facePos, centerPos);
+        
+        console.log(`[SnappingHelper] 🔍 COMPARING FACE vs CENTER SNAP:`);
+        console.log(`  Mesh: ${faceCandidate.result.targetMeshName}`);
+        console.log(`  Face snap position: (${facePos.x.toFixed(6)}, ${facePos.y.toFixed(6)}, ${facePos.z.toFixed(6)})`);
+        console.log(`  Center snap position: (${centerPos.x.toFixed(6)}, ${centerPos.y.toFixed(6)}, ${centerPos.z.toFixed(6)})`);
+        console.log(`  Position difference: ${(posDiff * 1000).toFixed(3)}mm`);
+        console.log(`  Selected snap type: ${best.result.snapType} (priority: ${best.priority})`);
+        
+        if (posDiff > 0.0001) { // > 0.1mm difference
+          console.warn(`[SnappingHelper] ⚠️ WARNING: Face and center snap positions differ by ${(posDiff * 1000).toFixed(3)}mm!`);
+        } else {
+          console.log(`[SnappingHelper] ✅ Face and center snap positions match (within 0.1mm)`);
+        }
+      }
+    }
+    
     return best.result;
   }
 
@@ -256,7 +327,9 @@ export class SnappingHelper {
     excludeMeshIds: string[] = [],
     camera?: BABYLON.Camera,
     screenSpacePixels?: number,
-    smartSelect: boolean = true
+    smartSelect: boolean = true,
+    clickedMesh?: BABYLON.AbstractMesh | null,
+    clickedPoint?: BABYLON.Vector3 | null
   ): SnapResult {
     if (!settings.enabled) {
       return { snapped: false, position: position.clone() };
@@ -265,7 +338,7 @@ export class SnappingHelper {
     // SMART SNAP SELECTOR: Try all enabled snap types and return the closest
     // This provides a better UX - users don't need to manually toggle snap types
     if (smartSelect) {
-      return this.smartSnapPosition(position, settings, excludeMeshIds, camera, screenSpacePixels);
+      return this.smartSnapPosition(position, settings, excludeMeshIds, camera, screenSpacePixels, clickedMesh, clickedPoint);
     }
 
     // LEGACY MODE: Try snapping in order of priority (first match wins)
@@ -312,7 +385,7 @@ export class SnappingHelper {
 
     // 5. Face snapping
     if (settings.snapToFace) {
-      result = this.snapToFace(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
+      result = this.snapToFace(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels, clickedMesh, clickedPoint);
       if (result.snapped) return result;
     }
 
@@ -908,70 +981,65 @@ export class SnappingHelper {
     let closestMeshName = '';
     let closestNormal: BABYLON.Vector3 | null = null; // Store face normal for orientation
 
-    // Use raycasting in 6 directions (±X, ±Y, ±Z) to find nearby faces
-    const directions = [
-      new BABYLON.Vector3(1, 0, 0),
-      new BABYLON.Vector3(-1, 0, 0),
-      new BABYLON.Vector3(0, 1, 0),
-      new BABYLON.Vector3(0, -1, 0),
-      new BABYLON.Vector3(0, 0, 1),
-      new BABYLON.Vector3(0, 0, -1),
-    ];
-
-    for (const dir of directions) {
-      const ray = new BABYLON.Ray(position, dir, snapDistanceMeters);
-      const pickInfo = scene.pickWithRay(ray, (mesh) => {
-        return (
-          mesh.isVisible &&
-          !excludeMeshIds.includes(mesh.uniqueId.toString()) &&
-          mesh.name !== 'ground' &&
-          mesh.name !== 'gridOverlay' &&
-          !mesh.name.startsWith('snap') &&
-          !mesh.name.startsWith('circle') &&
-          !mesh.name.startsWith('measurement') &&
-          !mesh.name.startsWith('transform_label')
-        );
-      });
-
-      if (pickInfo && pickInfo.hit && pickInfo.pickedPoint && pickInfo.pickedMesh) {
-        const mesh = pickInfo.pickedMesh as BABYLON.Mesh;
+    // PRIORITY: If we have a clicked mesh and point, use that first (most accurate)
+    // This ensures we use the face the user actually clicked on
+    if (clickedMesh && clickedPoint && clickedMesh instanceof BABYLON.Mesh) {
+      const mesh = clickedMesh as BABYLON.Mesh;
+      // Use scene.pick to find the face at the clicked point
+      // We need to convert the world point to screen coordinates for scene.pick
+      // But since we don't have screen coords, use a ray from the clicked point in multiple directions
+      // to find the face that contains the clicked point
+      const directions = [
+        new BABYLON.Vector3(0, 0, 1),
+        new BABYLON.Vector3(0, 0, -1),
+        new BABYLON.Vector3(0, 1, 0),
+        new BABYLON.Vector3(0, -1, 0),
+        new BABYLON.Vector3(1, 0, 0),
+        new BABYLON.Vector3(-1, 0, 0),
+      ];
+      
+      let pickInfo: BABYLON.PickingInfo | null = null;
+      for (const dir of directions) {
+        const ray = new BABYLON.Ray(clickedPoint, dir, 0.001); // Very short ray
+        const testPick = scene.pickWithRay(ray, (m) => m === mesh);
+        if (testPick && testPick.hit && testPick.faceId !== null && testPick.faceId !== undefined) {
+          pickInfo = testPick;
+          break; // Found the face
+        }
+      }
+      
+      if (pickInfo && pickInfo.hit && pickInfo.pickedPoint && pickInfo.faceId !== null && pickInfo.faceId !== undefined) {
+        // We found the clicked face - calculate its center
         const facetId = pickInfo.faceId;
         
-        // Get face normal from pickInfo
+        // Get face normal
         let faceNormal: BABYLON.Vector3 | null = null;
         if (pickInfo.getNormal) {
-          const normal = pickInfo.getNormal(true); // true = use world space
+          const normal = pickInfo.getNormal(true);
           if (normal) {
             faceNormal = normal.normalize();
           }
         }
         
-        // If getNormal is not available, compute normal from mesh
-        if (!faceNormal && mesh.getFacetNormal && facetId !== null && facetId !== undefined) {
+        if (!faceNormal && mesh.getFacetNormal) {
           const normal = mesh.getFacetNormal(facetId);
           if (normal) {
-            // Transform to world space
             const worldMatrix = mesh.getWorldMatrix();
             faceNormal = BABYLON.Vector3.TransformNormal(normal, worldMatrix).normalize();
           }
         }
         
-        // Fallback: compute normal from ray direction (pointing away from face)
-        if (!faceNormal) {
-          faceNormal = dir.scale(-1).normalize();
-        }
-        
-        // Calculate face center: find all triangles on the SAME FACE (spatially connected, same normal)
-        // This is the key for CAD workflow - always snap to face center when face is detected
+        // Calculate face center using the same logic as below
         let faceCenter: BABYLON.Vector3 | null = null;
-        if (faceNormal && facetId !== null && facetId !== undefined) {
+        if (faceNormal) {
           const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
           const indices = mesh.getIndices();
           if (positions && indices) {
             const worldMatrix = mesh.computeWorldMatrix(true);
-            const normalTolerance = 0.01; // ~1 degree tolerance for face normal matching
+            const normalTolerance = 0.01;
+            const spatialTolerance = 0.1;
             
-            // Get the clicked triangle center as reference point
+            // Get clicked triangle center
             const clickedTriIdx0 = indices[facetId * 3];
             const clickedTriIdx1 = indices[facetId * 3 + 1];
             const clickedTriIdx2 = indices[facetId * 3 + 2];
@@ -982,10 +1050,9 @@ export class SnappingHelper {
             const clickedTriCenter = clickedV0.add(clickedV1).add(clickedV2).scale(1/3);
             const clickedTriCenterWorld = BABYLON.Vector3.TransformCoordinates(clickedTriCenter, worldMatrix);
             
-            // Find all triangles on the SAME FACE (same normal AND spatially connected)
+            // Find all triangles on the same face
             const faceTriangles: BABYLON.Vector3[] = [];
             const triangleCount = indices.length / 3;
-            const spatialTolerance = 0.1; // 10cm - triangles must be close to be on same face
             
             for (let i = 0; i < triangleCount; i++) {
               const idx0 = indices[i * 3];
@@ -996,28 +1063,21 @@ export class SnappingHelper {
               const v1 = new BABYLON.Vector3(positions[idx1 * 3], positions[idx1 * 3 + 1], positions[idx1 * 3 + 2]);
               const v2 = new BABYLON.Vector3(positions[idx2 * 3], positions[idx2 * 3 + 1], positions[idx2 * 3 + 2]);
               
-              // Calculate triangle normal
               const edge1 = v1.subtract(v0);
               const edge2 = v2.subtract(v0);
               let triNormal = BABYLON.Vector3.Cross(edge1, edge2);
               if (triNormal.length() > 0.0001) {
                 triNormal.normalize();
-                // Transform to world space
                 const worldTriNormal = BABYLON.Vector3.TransformNormal(triNormal, worldMatrix).normalize();
                 
-                // Check if this triangle has the same normal (same face direction)
                 const dot = BABYLON.Vector3.Dot(worldTriNormal, faceNormal);
                 if (Math.abs(dot - 1.0) < normalTolerance || Math.abs(dot + 1.0) < normalTolerance) {
-                  // Calculate triangle center
                   const triCenter = v0.add(v1).add(v2).scale(1/3);
                   const worldTriCenter = BABYLON.Vector3.TransformCoordinates(triCenter, worldMatrix);
                   
-                  // CRITICAL: Also check spatial proximity - triangle must be on the same face plane
-                  // Project triangle center onto the face plane (using clicked point as reference)
                   const toTriCenter = worldTriCenter.subtract(clickedTriCenterWorld);
                   const distAlongNormal = BABYLON.Vector3.Dot(toTriCenter, faceNormal);
                   
-                  // If triangle is on the same plane (distance along normal is small), include it
                   if (Math.abs(distAlongNormal) < spatialTolerance) {
                     faceTriangles.push(worldTriCenter);
                   }
@@ -1025,35 +1085,337 @@ export class SnappingHelper {
               }
             }
             
-            // Calculate center of all triangles on this face
             if (faceTriangles.length > 0) {
-              const sum = BABYLON.Vector3.Zero();
-              faceTriangles.forEach(center => sum.addInPlace(center));
-              faceCenter = sum.scale(1 / faceTriangles.length);
+              // For circular faces, use the same vertex-based calculation as center snap
+              // This ensures face snap and center snap use the exact same position
+              // Collect all unique vertices from triangles on this face
+              const vertexSet = new Set<number>();
+              for (let i = 0; i < triangleCount; i++) {
+                const idx0 = indices[i * 3];
+                const idx1 = indices[i * 3 + 1];
+                const idx2 = indices[i * 3 + 2];
+                
+                const v0 = new BABYLON.Vector3(positions[idx0 * 3], positions[idx0 * 3 + 1], positions[idx0 * 3 + 2]);
+                const v1 = new BABYLON.Vector3(positions[idx1 * 3], positions[idx1 * 3 + 1], positions[idx1 * 3 + 2]);
+                const v2 = new BABYLON.Vector3(positions[idx2 * 3], positions[idx2 * 3 + 1], positions[idx2 * 3 + 2]);
+                
+                const edge1 = v1.subtract(v0);
+                const edge2 = v2.subtract(v0);
+                let triNormal = BABYLON.Vector3.Cross(edge1, edge2);
+                if (triNormal.length() > 0.0001) {
+                  triNormal.normalize();
+                  const worldTriNormal = BABYLON.Vector3.TransformNormal(triNormal, worldMatrix).normalize();
+                  
+                  const dot = BABYLON.Vector3.Dot(worldTriNormal, faceNormal);
+                  if (Math.abs(dot - 1.0) < normalTolerance || Math.abs(dot + 1.0) < normalTolerance) {
+                    const triCenter = v0.add(v1).add(v2).scale(1/3);
+                    const worldTriCenter = BABYLON.Vector3.TransformCoordinates(triCenter, worldMatrix);
+                    
+                    const toTriCenter = worldTriCenter.subtract(clickedTriCenterWorld);
+                    const distAlongNormal = BABYLON.Vector3.Dot(toTriCenter, faceNormal);
+                    
+                    if (Math.abs(distAlongNormal) < spatialTolerance) {
+                      // This triangle is on the same face - collect its vertices
+                      vertexSet.add(idx0);
+                      vertexSet.add(idx1);
+                      vertexSet.add(idx2);
+                    }
+                  }
+                }
+              }
+              
+              // Get world positions of vertices, removing duplicates (same as center snap does)
+              const worldVertices: BABYLON.Vector3[] = [];
+              const vertexMap = new Map<string, BABYLON.Vector3>();
+              const EPSILON = 0.0001; // 0.1mm tolerance for duplicate detection
+              
+              for (const vIdx of vertexSet) {
+                const v = new BABYLON.Vector3(
+                  positions[vIdx * 3],
+                  positions[vIdx * 3 + 1],
+                  positions[vIdx * 3 + 2]
+                );
+                const worldV = BABYLON.Vector3.TransformCoordinates(v, worldMatrix);
+                
+                // Create a key for duplicate detection (rounded to 0.1mm)
+                const key = `${Math.round(worldV.x / EPSILON)},${Math.round(worldV.y / EPSILON)},${Math.round(worldV.z / EPSILON)}`;
+                
+                // Only add if we haven't seen this vertex before
+                if (!vertexMap.has(key)) {
+                  vertexMap.set(key, worldV);
+                  worldVertices.push(worldV);
+                }
+              }
+              
+              // Fit circle to vertices (same method as center snap)
+              const circleInfo = this.fitCircleToPoints(worldVertices);
+              if (circleInfo && circleInfo.radius > 0) {
+                // This is a circular face - use the circle center (same as center snap)
+                faceCenter = circleInfo.center;
+              } else {
+                // Not circular - use average of triangle centers
+                const sum = BABYLON.Vector3.Zero();
+                faceTriangles.forEach(center => sum.addInPlace(center));
+                faceCenter = sum.scale(1 / faceTriangles.length);
+              }
             } else {
-              // Fallback: use center of the clicked triangle
               faceCenter = clickedTriCenterWorld;
             }
           }
         }
         
-        // ALWAYS use face center when a face is detected (for CAD workflow)
-        // If face center calculation failed, fall back to picked point
-        const snapPoint = faceCenter || pickInfo.pickedPoint;
-        
-        // Distance from hover/click position to snap point
-        // For face center, this might be large, but that's OK - we want to snap to center
-        const distance = BABYLON.Vector3.Distance(position, snapPoint);
-        
-        // If we have a face center, prioritize it (use smaller distance for comparison)
-        // This ensures face center wins over other snap types when face is detected
-        const comparisonDistance = faceCenter ? distance * 0.5 : distance; // Give face center 2x priority
-        
-        if (comparisonDistance < closestDistance) {
-          closestDistance = distance; // Store actual distance, not comparison distance
-          closestPoint = snapPoint;
+        if (faceCenter && faceNormal) {
+          const distance = BABYLON.Vector3.Distance(position, faceCenter);
+          closestPoint = faceCenter;
+          closestDistance = distance;
           closestMeshName = mesh.name;
           closestNormal = faceNormal;
+          
+          // DEBUG: Compare face center with expected cylinder center
+          const bbox = mesh.getBoundingInfo().boundingBox;
+          const meshCenter = bbox.centerWorld;
+          const meshSize = bbox.maximumWorld.subtract(bbox.minimumWorld);
+          const expectedTopCenter = meshCenter.add(new BABYLON.Vector3(0, meshSize.y / 2, 0));
+          const expectedBottomCenter = meshCenter.subtract(new BABYLON.Vector3(0, meshSize.y / 2, 0));
+          
+          const distToTop = BABYLON.Vector3.Distance(faceCenter, expectedTopCenter);
+          const distToBottom = BABYLON.Vector3.Distance(faceCenter, expectedBottomCenter);
+          
+          console.log(`[SnappingHelper] 🔍 FACE SNAP DEBUG (clicked mesh):`);
+          console.log(`  Mesh: ${mesh.name}`);
+          console.log(`  Mesh position: (${mesh.position.x.toFixed(6)}, ${mesh.position.y.toFixed(6)}, ${mesh.position.z.toFixed(6)})`);
+          console.log(`  Mesh bbox center: (${meshCenter.x.toFixed(6)}, ${meshCenter.y.toFixed(6)}, ${meshCenter.z.toFixed(6)})`);
+          console.log(`  Mesh size: (${meshSize.x.toFixed(6)}, ${meshSize.y.toFixed(6)}, ${meshSize.z.toFixed(6)})`);
+          console.log(`  Expected top center: (${expectedTopCenter.x.toFixed(6)}, ${expectedTopCenter.y.toFixed(6)}, ${expectedTopCenter.z.toFixed(6)})`);
+          console.log(`  Expected bottom center: (${expectedBottomCenter.x.toFixed(6)}, ${expectedBottomCenter.y.toFixed(6)}, ${expectedBottomCenter.z.toFixed(6)})`);
+          console.log(`  Calculated face center: (${faceCenter.x.toFixed(6)}, ${faceCenter.y.toFixed(6)}, ${faceCenter.z.toFixed(6)})`);
+          console.log(`  Distance to expected top: ${(distToTop * 1000).toFixed(3)}mm`);
+          console.log(`  Distance to expected bottom: ${(distToBottom * 1000).toFixed(3)}mm`);
+          console.log(`  Face normal: (${faceNormal.x.toFixed(6)}, ${faceNormal.y.toFixed(6)}, ${faceNormal.z.toFixed(6)})`);
+          
+          // Found the clicked face - use it and skip raycasting
+          // (we'll check shouldSnap below)
+        }
+      }
+    }
+
+    // If we didn't find a face from the clicked mesh, use raycasting in 6 directions (±X, ±Y, ±Z) to find nearby faces
+    if (!closestPoint) {
+      const directions = [
+        new BABYLON.Vector3(1, 0, 0),
+        new BABYLON.Vector3(-1, 0, 0),
+        new BABYLON.Vector3(0, 1, 0),
+        new BABYLON.Vector3(0, -1, 0),
+        new BABYLON.Vector3(0, 0, 1),
+        new BABYLON.Vector3(0, 0, -1),
+      ];
+
+      for (const dir of directions) {
+        const ray = new BABYLON.Ray(position, dir, snapDistanceMeters);
+        const pickInfo = scene.pickWithRay(ray, (mesh) => {
+          return (
+            mesh.isVisible &&
+            !excludeMeshIds.includes(mesh.uniqueId.toString()) &&
+            mesh.name !== 'ground' &&
+            mesh.name !== 'gridOverlay' &&
+            !mesh.name.startsWith('snap') &&
+            !mesh.name.startsWith('circle') &&
+            !mesh.name.startsWith('measurement') &&
+            !mesh.name.startsWith('transform_label')
+          );
+        });
+
+        if (pickInfo && pickInfo.hit && pickInfo.pickedPoint && pickInfo.pickedMesh) {
+          const mesh = pickInfo.pickedMesh as BABYLON.Mesh;
+          const facetId = pickInfo.faceId;
+          
+          // Get face normal from pickInfo
+          let faceNormal: BABYLON.Vector3 | null = null;
+          if (pickInfo.getNormal) {
+            const normal = pickInfo.getNormal(true); // true = use world space
+            if (normal) {
+              faceNormal = normal.normalize();
+            }
+          }
+          
+          // If getNormal is not available, compute normal from mesh
+          if (!faceNormal && mesh.getFacetNormal && facetId !== null && facetId !== undefined) {
+            const normal = mesh.getFacetNormal(facetId);
+            if (normal) {
+              // Transform to world space
+              const worldMatrix = mesh.getWorldMatrix();
+              faceNormal = BABYLON.Vector3.TransformNormal(normal, worldMatrix).normalize();
+            }
+          }
+          
+          // Fallback: compute normal from ray direction (pointing away from face)
+          if (!faceNormal) {
+            faceNormal = dir.scale(-1).normalize();
+          }
+          
+          // Calculate face center: find all triangles on the SAME FACE (spatially connected, same normal)
+          // This is the key for CAD workflow - always snap to face center when face is detected
+          let faceCenter: BABYLON.Vector3 | null = null;
+          if (faceNormal && facetId !== null && facetId !== undefined) {
+            const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+            const indices = mesh.getIndices();
+            if (positions && indices) {
+              const worldMatrix = mesh.computeWorldMatrix(true);
+              const normalTolerance = 0.01; // ~1 degree tolerance for face normal matching
+              
+              // Get the clicked triangle center as reference point
+              const clickedTriIdx0 = indices[facetId * 3];
+              const clickedTriIdx1 = indices[facetId * 3 + 1];
+              const clickedTriIdx2 = indices[facetId * 3 + 2];
+              
+              const clickedV0 = new BABYLON.Vector3(positions[clickedTriIdx0 * 3], positions[clickedTriIdx0 * 3 + 1], positions[clickedTriIdx0 * 3 + 2]);
+              const clickedV1 = new BABYLON.Vector3(positions[clickedTriIdx1 * 3], positions[clickedTriIdx1 * 3 + 1], positions[clickedTriIdx1 * 3 + 2]);
+              const clickedV2 = new BABYLON.Vector3(positions[clickedTriIdx2 * 3], positions[clickedTriIdx2 * 3 + 1], positions[clickedTriIdx2 * 3 + 2]);
+              const clickedTriCenter = clickedV0.add(clickedV1).add(clickedV2).scale(1/3);
+              const clickedTriCenterWorld = BABYLON.Vector3.TransformCoordinates(clickedTriCenter, worldMatrix);
+              
+              // Find all triangles on the SAME FACE (same normal AND spatially connected)
+              const faceTriangles: BABYLON.Vector3[] = [];
+              const triangleCount = indices.length / 3;
+              const spatialTolerance = 0.1; // 10cm - triangles must be close to be on same face
+              
+              for (let i = 0; i < triangleCount; i++) {
+                const idx0 = indices[i * 3];
+                const idx1 = indices[i * 3 + 1];
+                const idx2 = indices[i * 3 + 2];
+                
+                const v0 = new BABYLON.Vector3(positions[idx0 * 3], positions[idx0 * 3 + 1], positions[idx0 * 3 + 2]);
+                const v1 = new BABYLON.Vector3(positions[idx1 * 3], positions[idx1 * 3 + 1], positions[idx1 * 3 + 2]);
+                const v2 = new BABYLON.Vector3(positions[idx2 * 3], positions[idx2 * 3 + 1], positions[idx2 * 3 + 2]);
+                
+                // Calculate triangle normal
+                const edge1 = v1.subtract(v0);
+                const edge2 = v2.subtract(v0);
+                let triNormal = BABYLON.Vector3.Cross(edge1, edge2);
+                if (triNormal.length() > 0.0001) {
+                  triNormal.normalize();
+                  // Transform to world space
+                  const worldTriNormal = BABYLON.Vector3.TransformNormal(triNormal, worldMatrix).normalize();
+                  
+                  // Check if this triangle has the same normal (same face direction)
+                  const dot = BABYLON.Vector3.Dot(worldTriNormal, faceNormal);
+                  if (Math.abs(dot - 1.0) < normalTolerance || Math.abs(dot + 1.0) < normalTolerance) {
+                    // Calculate triangle center
+                    const triCenter = v0.add(v1).add(v2).scale(1/3);
+                    const worldTriCenter = BABYLON.Vector3.TransformCoordinates(triCenter, worldMatrix);
+                    
+                    // CRITICAL: Also check spatial proximity - triangle must be on the same face plane
+                    // Project triangle center onto the face plane (using clicked point as reference)
+                    const toTriCenter = worldTriCenter.subtract(clickedTriCenterWorld);
+                    const distAlongNormal = BABYLON.Vector3.Dot(toTriCenter, faceNormal);
+                    
+                    // If triangle is on the same plane (distance along normal is small), include it
+                    if (Math.abs(distAlongNormal) < spatialTolerance) {
+                      faceTriangles.push(worldTriCenter);
+                    }
+                  }
+                }
+              }
+              
+            // Calculate center of all triangles on this face
+            if (faceTriangles.length > 0) {
+              // For circular faces, use the same vertex-based calculation as center snap
+              // This ensures face snap and center snap use the exact same position
+              // Collect all unique vertices from triangles on this face
+              const vertexSet = new Set<number>();
+              for (let i = 0; i < triangleCount; i++) {
+                const idx0 = indices[i * 3];
+                const idx1 = indices[i * 3 + 1];
+                const idx2 = indices[i * 3 + 2];
+                
+                const v0 = new BABYLON.Vector3(positions[idx0 * 3], positions[idx0 * 3 + 1], positions[idx0 * 3 + 2]);
+                const v1 = new BABYLON.Vector3(positions[idx1 * 3], positions[idx1 * 3 + 1], positions[idx1 * 3 + 2]);
+                const v2 = new BABYLON.Vector3(positions[idx2 * 3], positions[idx2 * 3 + 1], positions[idx2 * 3 + 2]);
+                
+                const edge1 = v1.subtract(v0);
+                const edge2 = v2.subtract(v0);
+                let triNormal = BABYLON.Vector3.Cross(edge1, edge2);
+                if (triNormal.length() > 0.0001) {
+                  triNormal.normalize();
+                  const worldTriNormal = BABYLON.Vector3.TransformNormal(triNormal, worldMatrix).normalize();
+                  
+                  const dot = BABYLON.Vector3.Dot(worldTriNormal, faceNormal);
+                  if (Math.abs(dot - 1.0) < normalTolerance || Math.abs(dot + 1.0) < normalTolerance) {
+                    const triCenter = v0.add(v1).add(v2).scale(1/3);
+                    const worldTriCenter = BABYLON.Vector3.TransformCoordinates(triCenter, worldMatrix);
+                    
+                    const toTriCenter = worldTriCenter.subtract(clickedTriCenterWorld);
+                    const distAlongNormal = BABYLON.Vector3.Dot(toTriCenter, faceNormal);
+                    
+                    if (Math.abs(distAlongNormal) < spatialTolerance) {
+                      // This triangle is on the same face - collect its vertices
+                      vertexSet.add(idx0);
+                      vertexSet.add(idx1);
+                      vertexSet.add(idx2);
+                    }
+                  }
+                }
+              }
+              
+              // Get world positions of vertices, removing duplicates (same as center snap does)
+              const worldVertices: BABYLON.Vector3[] = [];
+              const vertexMap = new Map<string, BABYLON.Vector3>();
+              const EPSILON = 0.0001; // 0.1mm tolerance for duplicate detection
+              
+              for (const vIdx of vertexSet) {
+                const v = new BABYLON.Vector3(
+                  positions[vIdx * 3],
+                  positions[vIdx * 3 + 1],
+                  positions[vIdx * 3 + 2]
+                );
+                const worldV = BABYLON.Vector3.TransformCoordinates(v, worldMatrix);
+                
+                // Create a key for duplicate detection (rounded to 0.1mm)
+                const key = `${Math.round(worldV.x / EPSILON)},${Math.round(worldV.y / EPSILON)},${Math.round(worldV.z / EPSILON)}`;
+                
+                // Only add if we haven't seen this vertex before
+                if (!vertexMap.has(key)) {
+                  vertexMap.set(key, worldV);
+                  worldVertices.push(worldV);
+                }
+              }
+              
+              // Fit circle to vertices (same method as center snap)
+              const circleInfo = this.fitCircleToPoints(worldVertices);
+              if (circleInfo && circleInfo.radius > 0) {
+                // This is a circular face - use the circle center (same as center snap)
+                faceCenter = circleInfo.center;
+              } else {
+                // Not circular - use average of triangle centers
+                const sum = BABYLON.Vector3.Zero();
+                faceTriangles.forEach(center => sum.addInPlace(center));
+                faceCenter = sum.scale(1 / faceTriangles.length);
+              }
+            } else {
+              // Fallback: use center of the clicked triangle
+              faceCenter = clickedTriCenterWorld;
+            }
+            }
+          }
+          
+          // ALWAYS use face center when a face is detected (for CAD workflow)
+          // If face center calculation failed, fall back to picked point
+          const snapPoint = faceCenter || pickInfo.pickedPoint;
+          
+          // Distance from hover/click position to snap point
+          // For face center, this might be large, but that's OK - we want to snap to center
+          const distance = BABYLON.Vector3.Distance(position, snapPoint);
+          
+          // If we have a face center, prioritize it (use smaller distance for comparison)
+          // This ensures face center wins over other snap types when face is detected
+          const comparisonDistance = faceCenter ? distance * 0.5 : distance; // Give face center 2x priority
+          
+          if (comparisonDistance < closestDistance) {
+            closestDistance = distance; // Store actual distance, not comparison distance
+            closestPoint = snapPoint;
+            closestMeshName = mesh.name;
+            closestNormal = faceNormal;
+          }
         }
       }
     }
@@ -1067,9 +1429,31 @@ export class SnappingHelper {
       
       if (isFaceCenter) {
         // Face center detected - always snap to it (CAD workflow)
-        // Only check that we're reasonably close (within 2m) to avoid snapping to faces on other objects
-        const maxFaceDistance = 2.0; // 2 meters max distance for face center
-        shouldSnap = closestDistance <= maxFaceDistance;
+        // Use screen-space distance if available (for consistency with preview), otherwise use world-space
+        if (camera && screenSpacePixels !== undefined && screenPos) {
+          // Check screen-space distance to face center
+          const worldMatrix = scene.getTransformMatrix();
+          const viewport = camera.viewport.toGlobal(
+            scene.getEngine().getRenderWidth(),
+            scene.getEngine().getRenderHeight()
+          );
+          const projected = BABYLON.Vector3.Project(
+            closestPoint,
+            worldMatrix,
+            camera.getProjectionMatrix(),
+            viewport
+          );
+          const screenDist = Math.sqrt(
+            Math.pow(projected.x - screenPos.x, 2) +
+            Math.pow(projected.y - screenPos.y, 2)
+          );
+          // Use generous screen-space threshold for face centers (5x) since face center might be far from click
+          shouldSnap = screenDist <= screenSpacePixels * 5;
+        } else {
+          // Fallback to world-space distance check
+          const maxFaceDistance = 2.0; // 2 meters max distance for face center
+          shouldSnap = closestDistance <= maxFaceDistance;
+        }
       } else {
         // Regular face snap (no center calculated) - use normal distance check
         if (camera && screenSpacePixels !== undefined && screenPos) {
@@ -1128,14 +1512,62 @@ export class SnappingHelper {
     points: BABYLON.Vector3[],
     tolerance: number = 0.001 // 1mm tolerance for circle detection
   ): { center: BABYLON.Vector3; radius: number; normal: BABYLON.Vector3 } | null {
-    if (points.length < 3) return null;
+    if (points.length < 3) {
+      console.warn(`[SnappingHelper] fitCircleToPoints: Not enough points (${points.length} < 3)`);
+      return null;
+    }
 
-    // Calculate plane normal from first 3 points
-    const v1 = points[1].subtract(points[0]);
-    const v2 = points[2].subtract(points[0]);
-    let normal = BABYLON.Vector3.Cross(v1, v2);
-    if (normal.lengthSquared() < 0.0001) return null; // Points are collinear
-    normal = normal.normalize();
+    // Calculate plane normal more robustly by trying multiple point combinations
+    // This handles cases where the first 3 points might be nearly collinear
+    let normal: BABYLON.Vector3 | null = null;
+    const maxAttempts = Math.min(10, Math.floor(points.length / 3));
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const i0 = attempt % points.length;
+      const i1 = (attempt + Math.floor(points.length / 3)) % points.length;
+      const i2 = (attempt + Math.floor(points.length * 2 / 3)) % points.length;
+      
+      const v1 = points[i1].subtract(points[i0]);
+      const v2 = points[i2].subtract(points[i0]);
+      const cross = BABYLON.Vector3.Cross(v1, v2);
+      
+      if (cross.lengthSquared() > 0.0001) {
+        normal = cross.normalize();
+        break;
+      }
+    }
+    
+    // If still no good normal found, try averaging multiple cross products
+    if (!normal) {
+      const normals: BABYLON.Vector3[] = [];
+      for (let i = 0; i < Math.min(20, points.length - 2); i++) {
+        const i0 = i % points.length;
+        const i1 = (i + 1) % points.length;
+        const i2 = (i + 2) % points.length;
+        
+        const v1 = points[i1].subtract(points[i0]);
+        const v2 = points[i2].subtract(points[i0]);
+        const cross = BABYLON.Vector3.Cross(v1, v2);
+        
+        if (cross.lengthSquared() > 0.00001) {
+          normals.push(cross.normalize());
+        }
+      }
+      
+      if (normals.length > 0) {
+        // Average the normals (they should all point in similar directions for a circle)
+        const avgNormal = normals.reduce((sum, n) => sum.add(n), BABYLON.Vector3.Zero())
+          .scale(1 / normals.length);
+        if (avgNormal.lengthSquared() > 0.0001) {
+          normal = avgNormal.normalize();
+        }
+      }
+    }
+    
+    if (!normal) {
+      console.warn(`[SnappingHelper] fitCircleToPoints: Could not determine plane normal from ${points.length} points`);
+      return null;
+    }
 
     // Project all points onto the plane
     // IMPORTANT: Clone normal before using it to avoid mutating it
@@ -1164,8 +1596,10 @@ export class SnappingHelper {
     const avgRadius = radii.reduce((sum, r) => sum + r, 0) / radii.length;
     
     // Filter out points that are much closer to center than average (likely center vertex)
-    // Keep points that are within 50% of average radius (perimeter points)
-    const minRadius = avgRadius * 0.5;
+    // Since we already removed center vertices before calling this function, use a more lenient threshold
+    // Keep points that are within 30% of average radius (perimeter points)
+    // This is more lenient because center vertices should already be removed
+    const minRadius = avgRadius * 0.3; // More lenient: 30% instead of 50%
     for (let i = 0; i < projectedPoints.length; i++) {
       if (radii[i] >= minRadius) {
         perimeterPoints.push(projectedPoints[i]);
@@ -1179,52 +1613,126 @@ export class SnappingHelper {
       perimeterPoints.push(...projectedPoints);
     }
 
-    // Recalculate center from perimeter points using iterative refinement
-    // Start with geometric center
-    let center = perimeterPoints.reduce((sum, p) => sum.add(p), BABYLON.Vector3.Zero())
-      .scale(1 / perimeterPoints.length);
+    // Use robust circle fitting with outlier rejection
+    // Method: Iteratively refine center by rejecting outliers based on radius variance
+    let center = initialCenter;
     
-    // Iteratively refine center to minimize radius variance (simple least-squares approach)
-    for (let iter = 0; iter < 3; iter++) {
+    // Multiple passes with increasingly strict filtering
+    for (let pass = 0; pass < 3; pass++) {
       const radii: number[] = [];
       for (const p of perimeterPoints) {
         radii.push(BABYLON.Vector3.Distance(p, center));
       }
-      const avgRadius = radii.reduce((sum, r) => sum + r, 0) / radii.length;
       
-      // Calculate weighted center (points closer to average radius have more weight)
-      let weightedSum = BABYLON.Vector3.Zero();
-      let totalWeight = 0;
+      // Calculate median radius (more robust than mean for outlier rejection)
+      const sortedRadii = [...radii].sort((a, b) => a - b);
+      const medianRadius = sortedRadii.length % 2 === 0
+        ? (sortedRadii[sortedRadii.length / 2 - 1] + sortedRadii[sortedRadii.length / 2]) / 2
+        : sortedRadii[Math.floor(sortedRadii.length / 2)];
+      
+      // Calculate MAD (Median Absolute Deviation) for robust outlier detection
+      const deviations = radii.map(r => Math.abs(r - medianRadius));
+      const sortedDeviations = [...deviations].sort((a, b) => a - b);
+      const mad = sortedDeviations.length % 2 === 0
+        ? (sortedDeviations[sortedDeviations.length / 2 - 1] + sortedDeviations[sortedDeviations.length / 2]) / 2
+        : sortedDeviations[Math.floor(sortedDeviations.length / 2)];
+      
+      // Use tighter tolerance on later passes
+      // Since center vertices are already removed, use more lenient tolerances
+      const toleranceFactor = pass === 0 ? 0.3 : (pass === 1 ? 0.2 : 0.1); // 30%, 20%, 10% (more lenient)
+      const radiusTolerance = Math.max(mad * 3, medianRadius * toleranceFactor); // Use 3*MAD or percentage, whichever is larger
+      
+      // Filter to only points that are on the circle (within tolerance of median radius)
+      const inliers: BABYLON.Vector3[] = [];
       for (let i = 0; i < perimeterPoints.length; i++) {
-        const radius = radii[i];
-        const weight = 1 / (1 + Math.abs(radius - avgRadius) / avgRadius); // Higher weight for points closer to avg radius
-        weightedSum.addInPlace(perimeterPoints[i].scale(weight));
-        totalWeight += weight;
+        if (Math.abs(radii[i] - medianRadius) <= radiusTolerance) {
+          inliers.push(perimeterPoints[i]);
+        }
       }
-      if (totalWeight > 0) {
-        center = weightedSum.scale(1 / totalWeight);
+      
+      // Need at least 3 inliers
+      if (inliers.length < 3) {
+        // If too many points were filtered, use all perimeter points
+        inliers.length = 0;
+        inliers.push(...perimeterPoints);
+      }
+      
+      // Recalculate center using least-squares circle fitting (more accurate than simple average)
+      // For a circle, the center minimizes sum of (distance(p, center) - radius)^2
+      // We use an iterative approach: calculate center as weighted average, where weights favor points closer to current radius estimate
+      if (inliers.length >= 3) {
+        // Calculate weighted center based on how close each point is to the median radius
+        let weightedSum = BABYLON.Vector3.Zero();
+        let totalWeight = 0;
+        
+        for (const p of inliers) {
+          const dist = BABYLON.Vector3.Distance(p, center);
+          const error = Math.abs(dist - medianRadius);
+          // Weight inversely proportional to error (points closer to circle get higher weight)
+          const weight = 1.0 / (1.0 + error * 1000); // Scale error to reasonable range
+          weightedSum.addInPlace(p.scale(weight));
+          totalWeight += weight;
+        }
+        
+        if (totalWeight > 0) {
+          center = weightedSum.scale(1 / totalWeight);
+        } else {
+          // Fallback to simple average
+          center = inliers.reduce((sum, p) => sum.add(p), BABYLON.Vector3.Zero())
+            .scale(1 / inliers.length);
+        }
       }
     }
 
-    // Calculate final radii and statistics
-    const perimeterRadii: number[] = [];
+    // Calculate final radii and statistics using the refined center
+    // Get final inliers (points on the circle) for accurate radius calculation
+    const finalRadii: number[] = [];
+    const finalInliers: BABYLON.Vector3[] = [];
+    
+    const tempRadii: number[] = [];
     for (const p of perimeterPoints) {
-      const radius = BABYLON.Vector3.Distance(p, center);
-      perimeterRadii.push(radius);
+      tempRadii.push(BABYLON.Vector3.Distance(p, center));
     }
-    const finalAvgRadius = perimeterRadii.reduce((sum, r) => sum + r, 0) / perimeterRadii.length;
+    
+    // Use median radius for final filtering (more robust)
+    const sortedFinalRadii = [...tempRadii].sort((a, b) => a - b);
+    const finalMedianRadius = sortedFinalRadii.length % 2 === 0
+      ? (sortedFinalRadii[sortedFinalRadii.length / 2 - 1] + sortedFinalRadii[sortedFinalRadii.length / 2]) / 2
+      : sortedFinalRadii[Math.floor(sortedFinalRadii.length / 2)];
+    
+    // Final pass: filter to only points that are on the circle (within tight tolerance)
+    // Since center vertices are already removed, use more lenient tolerance
+    const finalRadiusTolerance = finalMedianRadius * 0.15; // 15% tolerance for final filtering (more lenient)
+    
+    for (let i = 0; i < perimeterPoints.length; i++) {
+      if (Math.abs(tempRadii[i] - finalMedianRadius) <= finalRadiusTolerance) {
+        finalInliers.push(perimeterPoints[i]);
+        finalRadii.push(tempRadii[i]);
+      }
+    }
+    
+    // Use filtered inliers if we have enough, otherwise use all perimeter points
+    const radiiForFinal = finalInliers.length >= 3 ? finalRadii : tempRadii;
+    
+    // Use median radius for final calculation (more robust than mean)
+    const sortedRadiiForFinal = [...radiiForFinal].sort((a, b) => a - b);
+    const finalAvgRadius = sortedRadiiForFinal.length % 2 === 0
+      ? (sortedRadiiForFinal[sortedRadiiForFinal.length / 2 - 1] + sortedRadiiForFinal[sortedRadiiForFinal.length / 2]) / 2
+      : sortedRadiiForFinal[Math.floor(sortedRadiiForFinal.length / 2)];
     
     // Find max radius for visualization (use maximum to encompass all vertices)
-    const maxRadiusValue = Math.max(...perimeterRadii);
+    const maxRadiusValue = radiiForFinal.length > 0 ? Math.max(...radiiForFinal) : finalAvgRadius;
 
     // Check if all perimeter points are approximately equidistant from center (circle check)
-    const radiusVariance = perimeterRadii.reduce((sum, r) => sum + Math.pow(r - finalAvgRadius, 2), 0) / perimeterRadii.length;
+    const radiusVariance = radiiForFinal.reduce((sum, r) => sum + Math.pow(r - finalAvgRadius, 2), 0) / radiiForFinal.length;
     const radiusStdDev = Math.sqrt(radiusVariance);
     const relativeError = finalAvgRadius > 0 ? radiusStdDev / finalAvgRadius : Infinity;
 
     // If relative error is too high, it's not a circle
     // Increased tolerance to 25% for triangulated circles (cylinder ends often have 15-20% error)
     if (relativeError > 0.25 || finalAvgRadius < tolerance) { // 25% tolerance, minimum 1mm radius
+      // DEBUG: Log why circle fitting failed
+      console.warn(`[SnappingHelper] ⚠️ fitCircleToPoints failed: relativeError=${(relativeError * 100).toFixed(2)}%, finalAvgRadius=${(finalAvgRadius * 1000).toFixed(3)}mm, tolerance=${(tolerance * 1000).toFixed(3)}mm`);
       return null;
     }
 
@@ -1345,21 +1853,112 @@ export class SnappingHelper {
           vertexSet.add(indices[baseIdx + 2]);
         }
 
-        // Get world positions of vertices
+        // Get world positions of vertices, removing duplicates
         const worldVertices: BABYLON.Vector3[] = [];
+        const vertexMap = new Map<string, BABYLON.Vector3>();
+        const EPSILON = 0.0001; // 0.1mm tolerance for duplicate detection
+        
         for (const vIdx of vertexSet) {
           const v = new BABYLON.Vector3(
             positions[vIdx * 3],
             positions[vIdx * 3 + 1],
             positions[vIdx * 3 + 2]
           );
-          worldVertices.push(BABYLON.Vector3.TransformCoordinates(v, worldMatrix));
+          const worldV = BABYLON.Vector3.TransformCoordinates(v, worldMatrix);
+          
+          // Create a key for duplicate detection (rounded to 0.1mm)
+          const key = `${Math.round(worldV.x / EPSILON)},${Math.round(worldV.y / EPSILON)},${Math.round(worldV.z / EPSILON)}`;
+          
+          // Only add if we haven't seen this vertex before
+          if (!vertexMap.has(key)) {
+            vertexMap.set(key, worldV);
+            worldVertices.push(worldV);
+          }
+        }
+        
+        // CRITICAL FIX: Remove center vertex before circle fitting
+        // For circular faces (like cylinder ends), there's often a center vertex at (0,0,0) in local space
+        // This center vertex biases the circle fitting and causes incorrect center calculation
+        // We need to identify and remove it before fitting the circle
+        if (worldVertices.length > 3) {
+          // Calculate approximate center of all vertices
+          const tempCenter = worldVertices.reduce((sum, p) => sum.add(p), BABYLON.Vector3.Zero())
+            .scale(1 / worldVertices.length);
+          
+          // Find distances from temp center
+          const distances = worldVertices.map(v => BABYLON.Vector3.Distance(v, tempCenter));
+          const sortedDistances = [...distances].sort((a, b) => a - b);
+          
+          // Use median distance instead of average (more robust to outliers like center vertex)
+          const medianDistance = sortedDistances.length % 2 === 0
+            ? (sortedDistances[sortedDistances.length / 2 - 1] + sortedDistances[sortedDistances.length / 2]) / 2
+            : sortedDistances[Math.floor(sortedDistances.length / 2)];
+          
+          // Remove vertices that are much closer to center than median (likely the center vertex)
+          // Use 20% threshold - center vertex will be at ~0 distance, perimeter vertices at ~medianDistance
+          const filteredVertices: BABYLON.Vector3[] = [];
+          for (let i = 0; i < worldVertices.length; i++) {
+            if (distances[i] >= medianDistance * 0.2) {
+              filteredVertices.push(worldVertices[i]);
+            }
+          }
+          
+          // Only use filtered vertices if we still have enough (at least 3 for circle fitting)
+          if (filteredVertices.length >= 3) {
+            const originalCount = worldVertices.length;
+            worldVertices.length = 0;
+            worldVertices.push(...filteredVertices);
+            
+            // DEBUG: Log center vertex removal
+            if (mesh.name.includes('Cylinder')) {
+              console.log(`[SnappingHelper] 🔍 Removed center vertex: ${originalCount - filteredVertices.length} center vertex(ices) removed, ${filteredVertices.length} perimeter vertices kept`);
+              console.log(`  Median distance: ${(medianDistance * 1000).toFixed(3)}mm, threshold: ${(medianDistance * 0.2 * 1000).toFixed(3)}mm`);
+            }
+          } else {
+            // DEBUG: Log if filtering removed too many
+            if (mesh.name.includes('Cylinder')) {
+              console.warn(`[SnappingHelper] ⚠️ Center vertex removal filtered too many: ${filteredVertices.length} < 3, keeping all ${worldVertices.length} vertices`);
+            }
+          }
         }
 
+        // DEBUG: Log vertex collection for cylinders
+        if (mesh.name.includes('Cylinder')) {
+          console.log(`[SnappingHelper] 🔍 Collecting vertices for circle detection:`);
+          console.log(`  Mesh: ${mesh.name}`);
+          console.log(`  Faces with same normal: ${faceIndices.length}`);
+          console.log(`  Unique vertices collected: ${worldVertices.length}`);
+          if (worldVertices.length > 0) {
+            const firstVertex = worldVertices[0];
+            const lastVertex = worldVertices[worldVertices.length - 1];
+            console.log(`  First vertex: (${firstVertex.x.toFixed(6)}, ${firstVertex.y.toFixed(6)}, ${firstVertex.z.toFixed(6)})`);
+            console.log(`  Last vertex: (${lastVertex.x.toFixed(6)}, ${lastVertex.y.toFixed(6)}, ${lastVertex.z.toFixed(6)})`);
+          }
+        }
+        
         // Fit circle to these vertices
         const circleInfo = this.fitCircleToPoints(worldVertices);
         if (!circleInfo) {
+          // DEBUG: Log why circle fitting failed
+          if (mesh.name.includes('Cylinder')) {
+            console.warn(`[SnappingHelper] ⚠️ Circle fitting failed for ${mesh.name}: fitCircleToPoints returned null`);
+            console.warn(`  Vertices count: ${worldVertices.length}`);
+            if (worldVertices.length > 0) {
+              const first = worldVertices[0];
+              const last = worldVertices[worldVertices.length - 1];
+              console.warn(`  First vertex: (${first.x.toFixed(6)}, ${first.y.toFixed(6)}, ${first.z.toFixed(6)})`);
+              console.warn(`  Last vertex: (${last.x.toFixed(6)}, ${last.y.toFixed(6)}, ${last.z.toFixed(6)})`);
+            }
+          }
           continue;
+        }
+        
+        // DEBUG: Log circle fitting result
+        if (mesh.name.includes('Cylinder')) {
+          console.log(`[SnappingHelper] 🔍 Circle fitting result:`);
+          console.log(`  Fitted center: (${circleInfo.center.x.toFixed(6)}, ${circleInfo.center.y.toFixed(6)}, ${circleInfo.center.z.toFixed(6)})`);
+          console.log(`  Fitted radius: ${(circleInfo.radius * 1000).toFixed(3)}mm`);
+          console.log(`  Normal: (${circleInfo.normal.x.toFixed(6)}, ${circleInfo.normal.y.toFixed(6)}, ${circleInfo.normal.z.toFixed(6)})`);
         }
 
         // Create a unique key for this circle (by center position, rounded)
@@ -1491,6 +2090,35 @@ export class SnappingHelper {
       // Debug: log center snap
       // Ensure normal is normalized (fix any floating point errors)
       const finalNormal = closestNormal.clone().normalize();
+
+      // DEBUG: Calculate expected center for cylinders
+      // For a cylinder created with CreateCylinder, the top/bottom face centers are at:
+      // Top: mesh.position + (0, height/2, 0)
+      // Bottom: mesh.position - (0, height/2, 0)
+      const mesh = scene.getMeshByName(closestMeshName);
+      if (mesh) {
+        const bbox = mesh.getBoundingInfo().boundingBox;
+        const meshCenter = bbox.centerWorld;
+        const meshSize = bbox.maximumWorld.subtract(bbox.minimumWorld);
+        const expectedTopCenter = meshCenter.add(new BABYLON.Vector3(0, meshSize.y / 2, 0));
+        const expectedBottomCenter = meshCenter.subtract(new BABYLON.Vector3(0, meshSize.y / 2, 0));
+        
+        const distToTop = BABYLON.Vector3.Distance(closestCenter, expectedTopCenter);
+        const distToBottom = BABYLON.Vector3.Distance(closestCenter, expectedBottomCenter);
+        
+        console.log(`[SnappingHelper] 🔍 CENTER SNAP DEBUG:`);
+        console.log(`  Mesh: ${closestMeshName}`);
+        console.log(`  Mesh position: (${mesh.position.x.toFixed(6)}, ${mesh.position.y.toFixed(6)}, ${mesh.position.z.toFixed(6)})`);
+        console.log(`  Mesh bbox center: (${meshCenter.x.toFixed(6)}, ${meshCenter.y.toFixed(6)}, ${meshCenter.z.toFixed(6)})`);
+        console.log(`  Mesh size: (${meshSize.x.toFixed(6)}, ${meshSize.y.toFixed(6)}, ${meshSize.z.toFixed(6)})`);
+        console.log(`  Expected top center: (${expectedTopCenter.x.toFixed(6)}, ${expectedTopCenter.y.toFixed(6)}, ${expectedTopCenter.z.toFixed(6)})`);
+        console.log(`  Expected bottom center: (${expectedBottomCenter.x.toFixed(6)}, ${expectedBottomCenter.y.toFixed(6)}, ${expectedBottomCenter.z.toFixed(6)})`);
+        console.log(`  Calculated center: (${closestCenter.x.toFixed(6)}, ${closestCenter.y.toFixed(6)}, ${closestCenter.z.toFixed(6)})`);
+        console.log(`  Distance to expected top: ${(distToTop * 1000).toFixed(3)}mm`);
+        console.log(`  Distance to expected bottom: ${(distToBottom * 1000).toFixed(3)}mm`);
+        console.log(`  Circle radius: ${(closestRadius * 1000).toFixed(3)}mm`);
+        console.log(`  Circle normal: (${finalNormal.x.toFixed(6)}, ${finalNormal.y.toFixed(6)}, ${finalNormal.z.toFixed(6)})`);
+      }
 
       // Return circle center with radius and normal for visual feedback
       // visualFeedback: [center, normal (for circle orientation), radius as Vector3(x=radius, y=0, z=0)]
@@ -1748,7 +2376,7 @@ export class SnappingHelper {
         (preview as any).__snapPreviewLine = line;
         (preview as any).__snapPreviewLineMaterial = lineMaterial;
         
-        console.log(`[SnappingHelper] Midpoint line created: visible=${line.isVisible}, renderingGroupId=${line.renderingGroupId}, parent=${line.parent?.name || 'none'}`);
+        console.log(`[SnappingHelper] Midpoint line created: visible=${line.isVisible}, renderingGroupId=${line.renderingGroupId}, parent=${(line.parent as any)?.name || 'none'}`);
       }
       // No warning needed - face centers don't have edge endpoints, which is expected
       
@@ -1861,10 +2489,12 @@ export class SnappingHelper {
           }
         }
         
+        // Position ring at circle center - use same position as dot to ensure exact alignment
+        // Parent to preview for proper cleanup, but position in world space
         ring.position = BABYLON.Vector3.Zero(); // Relative to parent (center dot)
         ring.renderingGroupId = 1;
         ring.isPickable = false;
-        ring.parent = preview;
+        ring.parent = preview; // Parent for cleanup
         
         // Verify torus orientation after rotation and parenting
         // Force matrix update to ensure rotation is applied
@@ -2239,17 +2869,6 @@ export class SnappingHelper {
     }
 
     let meshesChecked = 0;
-    let edgesChecked = 0;
-    let midpointsWithinRange = 0;
-
-    // Deduplicate midpoints (same edge shared by multiple triangles)
-    // Use 1mm tolerance for deduplication - edges from different triangles should be within this
-    const midpointTolerance = 0.001; // 1mm tolerance for deduplication
-    const uniqueMidpoints = new Map<string, { point: BABYLON.Vector3; meshName: string; distance: number }>();
-    
-    // Also track edges by vertex pair to ensure true edge deduplication
-    // Store edge endpoints for visual feedback (line along edge)
-    const edgeMap = new Map<string, { midpoint: BABYLON.Vector3; meshName: string; distance: number; edgeStart: BABYLON.Vector3; edgeEnd: BABYLON.Vector3 }>();
 
     // Edge deduplication: Track seen edges to avoid processing duplicates
     // Key format: "meshId:minIdx-maxIdx" where minIdx < maxIdx
@@ -2463,8 +3082,9 @@ export class SnappingHelper {
     let closestScreenDistance = Infinity; // Track closest screen-space distance when using screen-space snapping
     let closestMeshName = '';
 
-    // Collect all edges from all meshes
+    // Collect all edges from all meshes, deduplicating edges
     const allEdges: Array<{ v1: BABYLON.Vector3; v2: BABYLON.Vector3; meshName: string }> = [];
+    const seenEdges = new Set<string>(); // Deduplicate edges by mesh and vertex indices
 
     for (const mesh of scene.meshes) {
       if (
@@ -2485,15 +3105,29 @@ export class SnappingHelper {
       if (!positions || !indices) continue;
 
       const worldMatrix = mesh.computeWorldMatrix(true);
+      const meshId = mesh.uniqueId.toString();
 
       for (let i = 0; i < indices.length; i += 3) {
         const edges = [
-          [indices[i] * 3, indices[i + 1] * 3],
-          [indices[i + 1] * 3, indices[i + 2] * 3],
-          [indices[i + 2] * 3, indices[i] * 3],
+          [indices[i], indices[i + 1]],
+          [indices[i + 1], indices[i + 2]],
+          [indices[i + 2], indices[i]],
         ];
 
-        for (const [start, end] of edges) {
+        for (const [idx1, idx2] of edges) {
+          // Deduplicate edges: create consistent key regardless of vertex order
+          const minIdx = Math.min(idx1, idx2);
+          const maxIdx = Math.max(idx1, idx2);
+          const edgeKey = `${meshId}:${minIdx}-${maxIdx}`;
+
+          if (seenEdges.has(edgeKey)) {
+            continue; // Skip duplicate edge
+          }
+          seenEdges.add(edgeKey);
+
+          const start = idx1 * 3;
+          const end = idx2 * 3;
+          
           const v1 = BABYLON.Vector3.TransformCoordinates(
             new BABYLON.Vector3(positions[start], positions[start + 1], positions[start + 2]),
             worldMatrix

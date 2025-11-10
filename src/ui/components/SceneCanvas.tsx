@@ -871,7 +871,24 @@ export const SceneCanvas: React.FC = () => {
               
               
               if (snapResult.snapped && snapResult.visualFeedback && snapResult.visualFeedback.length > 0) {
-                const center = snapResult.visualFeedback[0];
+                // CRITICAL: Use snapResult.position (the actual snap position used in measurements)
+                // instead of visualFeedback[0] to ensure preview matches measurement position
+                // For center snap, this ensures the ring shows at the exact same position used in measurements
+                const center = snapResult.position.clone();
+                
+                // DEBUG: Compare position vs visualFeedback[0]
+                if (snapResult.visualFeedback[0]) {
+                  const visualPos = snapResult.visualFeedback[0];
+                  const posDiff = BABYLON.Vector3.Distance(center, visualPos);
+                  if (posDiff > 0.0001) { // Only log if difference > 0.1mm
+                    console.warn(`[SceneCanvas] ⚠️ Position mismatch for ${snapResult.snapType}:`);
+                    console.warn(`  snapResult.position: (${center.x.toFixed(6)}, ${center.y.toFixed(6)}, ${center.z.toFixed(6)})`);
+                    console.warn(`  visualFeedback[0]: (${visualPos.x.toFixed(6)}, ${visualPos.y.toFixed(6)}, ${visualPos.z.toFixed(6)})`);
+                    console.warn(`  Difference: ${(posDiff * 1000).toFixed(3)}mm`);
+                  } else {
+                    console.log(`[SceneCanvas] ✅ Position match for ${snapResult.snapType}: ${(posDiff * 1000).toFixed(3)}mm difference`);
+                  }
+                }
                 
                 // For midpoint, pass edge endpoints
                 if (snapResult.snapType === 'midpoint' && snapResult.visualFeedback.length >= 3) {
