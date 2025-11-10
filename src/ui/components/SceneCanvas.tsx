@@ -23,6 +23,7 @@ export const SceneCanvas: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { userLevel } = useUserLevel();
   const isPickingSnapPoint = useEditorStore((state) => state.isPickingSnapPoint);
+  const isPickingSnapFrame = useEditorStore((state) => state.isPickingSnapFrame);
   const setCamera = useEditorStore((state) => state.setCamera);
   const camera = useEditorStore((state) => state.camera);
   const showCoordinateOverlay = useEditorStore((state) => state.showCoordinateOverlay);
@@ -327,6 +328,84 @@ export const SceneCanvas: React.FC = () => {
               }
 
               return; // Don't process as normal selection
+            }
+
+            // Handle snap frame picking (if enabled) - takes priority over normal selection
+            const isPickingSnapFrame = useEditorStore.getState().isPickingSnapFrame;
+            if (isPickingSnapFrame && pickResult.hit && pickResult.pickedMesh) {
+              let pickedMesh = pickResult.pickedMesh;
+              const tree = SceneTreeManager.getInstance();
+
+              // Traverse up the parent hierarchy to find the root mesh that's in the scene tree
+              // This ensures we select the entire frame object, not just an axis or label
+              let rootMesh: BABYLON.AbstractMesh | null = pickedMesh;
+              let node = tree.getNodeByBabylonMeshId(pickedMesh.uniqueId.toString());
+
+              // If picked mesh is not in tree, try traversing up the parent hierarchy
+              while (!node && rootMesh && rootMesh.parent) {
+                if (rootMesh.parent instanceof BABYLON.AbstractMesh || rootMesh.parent instanceof BABYLON.TransformNode) {
+                  // Check if parent has a mesh we can use
+                  if (rootMesh.parent instanceof BABYLON.AbstractMesh) {
+                    rootMesh = rootMesh.parent;
+                    node = tree.getNodeByBabylonMeshId(rootMesh.uniqueId.toString());
+                  } else {
+                    // Parent is a TransformNode, check its children for the main mesh
+                    const transformNode = rootMesh.parent as BABYLON.TransformNode;
+                    const children = transformNode.getChildren();
+                    for (const child of children) {
+                      if (child instanceof BABYLON.AbstractMesh) {
+                        const childNode = tree.getNodeByBabylonMeshId(child.uniqueId.toString());
+                        if (childNode) {
+                          rootMesh = child;
+                          node = childNode;
+                          break;
+                        }
+                      }
+                    }
+                    break; // Stop traversing if we reached a TransformNode
+                  }
+                } else {
+                  break; // Stop if parent is not a mesh or transform node
+                }
+              }
+
+              if (node && rootMesh) {
+                const frameObject = {
+                  nodeId: node.id,
+                  mesh: rootMesh,
+                  name: node.name
+                };
+
+                // Update the appropriate snap frame
+                if (isPickingSnapFrame === 'from') {
+                  useEditorStore.getState().setSnapFromFrameObject(frameObject);
+                  // Auto-advance to picking "to" frame
+                  useEditorStore.getState().setIsPickingSnapFrame('to');
+                  toast.success(`From frame set: ${node.name}. Now select the "To" frame.`);
+                } else {
+                  useEditorStore.getState().setSnapToFrameObject(frameObject);
+                  // Auto-apply the frame-to-frame transformation
+                  useEditorStore.getState().setIsPickingSnapFrame(null);
+
+                  // Get current snap frame objects
+                  const state = useEditorStore.getState();
+                  const fromFrame = state.snapFromFrameObject;
+                  const toFrame = frameObject;
+
+                  if (fromFrame) {
+                    // Apply frame-to-frame snap transformation
+                    useEditorStore.getState().applySnapSettings({
+                      mode: 'frame-to-frame',
+                    });
+
+                    toast.success(`Object snapped from "${fromFrame.name}" to "${toFrame.name}"!`);
+                  }
+                }
+              } else {
+                toast.error('Selected object is not in the scene tree. Please select a coordinate frame.');
+              }
+
+              return; // Don't process as normal selection - prevents changing the Object field
             }
 
             // Handle point pick (if enabled) - runs alongside normal selection
@@ -1208,7 +1287,7 @@ export const SceneCanvas: React.FC = () => {
           display: 'block',
           outline: 'none',
           pointerEvents: 'auto',
-          cursor: isPickingSnapPoint ? 'crosshair' : 'default',
+          cursor: (isPickingSnapPoint || isPickingSnapFrame) ? 'crosshair' : 'default',
         }}
       />
 

@@ -35,12 +35,18 @@ import { ProjectWorldLoader } from '../../project/ProjectWorldLoader';
 import type { Project, ProjectSave, AssetInstance } from '../../project/types';
 
 type ObjectType = 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'plane' | 'ground' | 'capsule' | 'disc' | 'torusknot' | 'polyhedron';
-type SnapMode = 'point-to-point';
+type SnapMode = 'point-to-point' | 'frame-to-frame';
 
 interface SnapPoint {
   x: number;
   y: number;
   z: number;
+}
+
+interface SnapFrameObject {
+  nodeId: string; // Scene tree node ID
+  mesh: BABYLON.Mesh | BABYLON.TransformNode; // The actual frame object
+  name: string; // Display name
 }
 
 interface EditorState {
@@ -104,10 +110,17 @@ interface EditorState {
   isPickingSnapPoint: 'from' | 'to' | null; // Track which point is being picked
   snapFromFrame: { rootNode: BABYLON.TransformNode; originPoint: BABYLON.Vector3; baseSize: number } | null; // Visual frame at "from" point
   snapToFrame: { rootNode: BABYLON.TransformNode; originPoint: BABYLON.Vector3; baseSize: number } | null; // Visual frame at "to" point
+  // Frame-to-frame snapping state
+  snapFromFrameObject: SnapFrameObject | null; // Source frame object for frame-to-frame snapping
+  snapToFrameObject: SnapFrameObject | null; // Target frame object for frame-to-frame snapping
+  isPickingSnapFrame: 'from' | 'to' | null; // Track which frame is being picked
   setSnapMode: (mode: SnapMode) => void;
   setSnapFromPoint: (point: SnapPoint) => void;
   setSnapToPoint: (point: SnapPoint) => void;
   setIsPickingSnapPoint: (mode: 'from' | 'to' | null) => void;
+  setSnapFromFrameObject: (frame: SnapFrameObject | null) => void;
+  setSnapToFrameObject: (frame: SnapFrameObject | null) => void;
+  setIsPickingSnapFrame: (mode: 'from' | 'to' | null) => void;
   applySnapSettings: (settings: { mode?: SnapMode; from?: SnapPoint; to?: SnapPoint }) => void;
   clearSnapFrames: () => void; // Clear temporary snap frames
 
@@ -640,6 +653,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
   isPickingSnapPoint: null,
   snapFromFrame: null,
   snapToFrame: null,
+  snapFromFrameObject: null,
+  snapToFrameObject: null,
+  isPickingSnapFrame: null,
   setSnapMode: (mode) => set({ snapMode: mode }),
   setSnapFromPoint: (point) => {
     // Clear previous "from" frame
@@ -684,6 +700,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
     set({ snapToPoint: point, snapToFrame: null });
   },
   setIsPickingSnapPoint: (mode) => set({ isPickingSnapPoint: mode }),
+  setSnapFromFrameObject: (frame) => set({ snapFromFrameObject: frame }),
+  setSnapToFrameObject: (frame) => set({ snapToFrameObject: frame }),
+  setIsPickingSnapFrame: (mode) => set({ isPickingSnapFrame: mode }),
   clearSnapFrames: () => {
     const { snapFromFrame, snapToFrame } = get();
     if (snapFromFrame) {
@@ -695,7 +714,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     set({ snapFromFrame: null, snapToFrame: null });
   },
   applySnapSettings: (settings) => {
-    const { snapMode, snapFromPoint, snapToPoint, selectedMeshes, snapFromFrame, snapToFrame } = get();
+    const { snapMode, snapFromPoint, snapToPoint, selectedMeshes, snapFromFrame, snapToFrame, snapFromFrameObject, snapToFrameObject } = get();
     const nextMode = settings.mode ?? snapMode;
     const nextFrom = settings.from ?? snapFromPoint;
     const nextTo = settings.to ?? snapToPoint;
@@ -730,7 +749,70 @@ export const useEditorStore = create<EditorState>((set, get) => {
       set({ snapFromFrame: null, snapToFrame: null });
 
       toast.success('Object snapped! Ready for next snap.');
-    } else {
+    }
+    // Apply frame-to-frame transformation if both frames are set and object is selected
+    else if (selectedMeshes.length > 0 && nextMode === 'frame-to-frame' && snapFromFrameObject && snapToFrameObject) {
+      const mesh = selectedMeshes[0];
+      const fromFrameMesh = snapFromFrameObject.mesh;
+      const toFrameMesh = snapToFrameObject.mesh;
+
+      // Ensure world matrices are up to date
+      fromFrameMesh.computeWorldMatrix(true);
+      toFrameMesh.computeWorldMatrix(true);
+      mesh.computeWorldMatrix(true);
+
+      // Get the world transformation matrices
+      const fromFrameWorldMatrix = fromFrameMesh.getWorldMatrix();
+      const toFrameWorldMatrix = toFrameMesh.getWorldMatrix();
+
+      // Calculate the relative transformation from "from" frame to "to" frame
+      // This is: T_to * inv(T_from)
+      const fromFrameInverse = BABYLON.Matrix.Invert(fromFrameWorldMatrix);
+      const relativeTransform = toFrameWorldMatrix.multiply(fromFrameInverse);
+
+      // Get the current object's world matrix
+      const objectWorldMatrix = mesh.getWorldMatrix();
+
+      // Calculate object's pose relative to "from" frame
+      // T_obj_relative = inv(T_from) * T_obj
+      const objectRelativeToFrom = fromFrameInverse.multiply(objectWorldMatrix);
+
+      // Apply same relative pose to "to" frame
+      // T_obj_new = T_to * T_obj_relative
+      const newWorldMatrix = toFrameWorldMatrix.multiply(objectRelativeToFrom);
+
+      // Decompose the new world matrix to get position, rotation, and scale
+      const newPosition = new BABYLON.Vector3();
+      const newRotation = new BABYLON.Quaternion();
+      const newScale = new BABYLON.Vector3();
+      newWorldMatrix.decompose(newScale, newRotation, newPosition);
+
+      // Apply the new transformation to the mesh
+      // Need to handle parent transformations if mesh has a parent
+      if (mesh.parent) {
+        // If mesh has a parent, we need to convert world transform to local transform
+        const parentWorldMatrix = mesh.parent.getWorldMatrix();
+        const parentInverse = BABYLON.Matrix.Invert(parentWorldMatrix);
+        const localMatrix = parentInverse.multiply(newWorldMatrix);
+
+        const localPosition = new BABYLON.Vector3();
+        const localRotation = new BABYLON.Quaternion();
+        const localScale = new BABYLON.Vector3();
+        localMatrix.decompose(localScale, localRotation, localPosition);
+
+        mesh.position = localPosition;
+        mesh.rotationQuaternion = localRotation;
+        mesh.scaling = localScale;
+      } else {
+        // No parent, directly set world transform
+        mesh.position = newPosition;
+        mesh.rotationQuaternion = newRotation;
+        mesh.scaling = newScale;
+      }
+
+      toast.success('Object transformed to target frame!');
+    }
+    else {
       toast.success('Snap settings updated');
     }
   },
