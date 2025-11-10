@@ -598,6 +598,25 @@ export const SceneCanvas: React.FC = () => {
                 useEditorStore.getState().setLastPickedPoint(pickResult.pickedPoint);
               }
 
+              // Check if clicked mesh is part of a coordinate frame
+              if (mesh.metadata && mesh.metadata.isFramePart && mesh.metadata.frameRoot) {
+                const frameRoot = mesh.metadata.frameRoot as BABYLON.TransformNode;
+                console.log('[Selection] Clicked frame part, selecting parent frame:', frameRoot.name);
+
+                // Find the corresponding scene tree node and select it
+                const tree = SceneTreeManager.getInstance();
+                const treeNode = tree.getNodeByBabylonTransformNodeId(frameRoot.uniqueId.toString());
+                if (treeNode) {
+                  const { selectNode } = useEditorStore.getState();
+                  selectNode(treeNode.id);
+                  toast.success(`Selected coordinate frame: ${frameRoot.name}`);
+                } else {
+                  console.warn('[Selection] Frame root not found in scene tree:', frameRoot.name);
+                  toast.error('Frame not found in scene tree');
+                }
+                return; // Exit early, don't process as normal selection
+              }
+
               // Check if mesh is selectable (using centralized filtering from SceneUtils.ts)
               if (mesh instanceof BABYLON.Mesh && isSelectableObject(mesh)) {
                 // Get current selection level from store

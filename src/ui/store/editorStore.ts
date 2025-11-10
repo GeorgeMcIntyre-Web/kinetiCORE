@@ -4051,8 +4051,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
         mat.emissiveColor = color;
         mat.disableLighting = true;
         line.color = color;
-        line.isPickable = false;
+        line.isPickable = true; // Make pickable for frame selection
         line.parent = frameRoot;
+        line.metadata = { isFramePart: true, frameRoot: frameRoot };
         return line;
       };
 
@@ -4077,8 +4078,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
         mat.emissiveColor = color;
         mat.disableLighting = true;
         cone.material = mat;
-        cone.isPickable = false;
+        cone.isPickable = true; // Make pickable for frame selection
         cone.parent = frameRoot;
+        cone.metadata = { isFramePart: true, frameRoot: frameRoot };
         return cone;
       };
 
@@ -4113,8 +4115,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
         material.backFaceCulling = false;
 
         plane.material = material;
-        plane.isPickable = false;
+        plane.isPickable = true; // Make pickable for frame selection
         plane.parent = frameRoot;
+        plane.metadata = { isFramePart: true, frameRoot: frameRoot };
         return plane;
       };
 
@@ -4129,6 +4132,25 @@ export const useEditorStore = create<EditorState>((set, get) => {
       createAxisLine(BABYLON.Vector3.Zero(), zAxis.scale(axisLength), new BABYLON.Color3(0, 0, 1), `${frameName}_Z_axis`);
       createArrowHead(zAxis.scale(axisLength), zAxis, new BABYLON.Color3(0, 0, 1), `${frameName}_Z_arrow`);
       createLabel(zAxis.scale(axisLength * 1.2), 'Z', new BABYLON.Color3(0, 0, 1), `${frameName}_Z_label`);
+
+      // Create a small pickable sphere at the origin for direct selection
+      const originSphere = BABYLON.MeshBuilder.CreateSphere(
+        `${frameName}_origin`,
+        { diameter: 0.015 },
+        scene
+      );
+      originSphere.position = BABYLON.Vector3.Zero();
+      originSphere.isPickable = true;
+      originSphere.parent = frameRoot;
+
+      // Make the sphere semi-transparent white
+      const sphereMat = new BABYLON.StandardMaterial(`${frameName}_origin_mat`, scene);
+      sphereMat.diffuseColor = new BABYLON.Color3(1, 1, 1);
+      sphereMat.emissiveColor = new BABYLON.Color3(0.8, 0.8, 0.8);
+      sphereMat.alpha = 0.4;
+      sphereMat.disableLighting = true;
+      originSphere.material = sphereMat;
+      originSphere.metadata = { isFramePart: true, frameRoot: frameRoot };
 
       const BASE_SIZE = 0.1;
       const camera = scene.activeCamera;
