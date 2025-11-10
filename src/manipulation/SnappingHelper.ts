@@ -1756,8 +1756,8 @@ export class SnappingHelper {
     const relativeError = finalAvgRadius > 0 ? radiusStdDev / finalAvgRadius : Infinity;
 
     // If relative error is too high, it's not a circle
-    // Increased tolerance to 25% for triangulated circles (cylinder ends often have 15-20% error)
-    if (relativeError > 0.25 || finalAvgRadius < tolerance) { // 25% tolerance, minimum 1mm radius
+    // Use strict 5% tolerance to avoid false positives on coarse geometry
+    if (relativeError > 0.05 || finalAvgRadius < tolerance) { // 5% tolerance, minimum 1mm radius
       // Suppress frequent warnings - only log in debug mode or once per 5 seconds
       const warningKey = `circle_fit_failed`;
       const lastWarning = this.warningSuppression.get(warningKey) || 0;
@@ -1793,31 +1793,13 @@ export class SnappingHelper {
     const scene = sceneManager.getScene();
     if (!scene) return { snapped: false, position: position.clone() };
 
-    // PERFORMANCE: Skip center snapping for complex scenes to prevent lock-up
-    // Quick check: count valid meshes and exit early if too many
-    // Complex robot models can have hundreds of meshes, making center snapping too expensive
-    const MAX_MESHES_FOR_CENTER_SNAP = 50; // Skip if more than 50 valid meshes
-    let validMeshCount = 0;
-    for (const mesh of scene.meshes) {
-      if (
-        mesh.isVisible &&
-        !excludeMeshIds.includes(mesh.uniqueId.toString()) &&
-        mesh.name !== 'ground' &&
-        mesh.name !== 'gridOverlay' &&
-        !mesh.name.startsWith('snapIndicator') &&
-        !mesh.name.startsWith('snapPreviewDot') &&
-        !mesh.name.startsWith('snapPreviewCircle') &&
-        !mesh.name.startsWith('marker-') &&
-        !mesh.name.startsWith('distance-line') &&
-        !mesh.name.startsWith('angle-line')
-      ) {
-        validMeshCount++;
-        // Early exit if we exceed the limit
-        if (validMeshCount > MAX_MESHES_FOR_CENTER_SNAP) {
-          return { snapped: false, position: position.clone() };
-        }
-      }
-    }
+    // 🚨 HOTFIX: Disable center snapping to prevent freeze on complex models
+    // Re-enable after worker-based snap system is integrated (src/manipulation/snap/)
+    return { snapped: false, position: position.clone() };
+
+    // NOTE: Global mesh-count gates removed - will be replaced with per-mesh budgeting
+    // and worker-based queries in upcoming refactor. Current implementation processes
+    // all meshes but caps complexity per-mesh (see MAX_FACES_PER_MESH below).
 
     const snapDistanceMeters = snapDistance / 1000;
     let closestCenter: BABYLON.Vector3 | null = null;
@@ -1869,12 +1851,12 @@ export class SnappingHelper {
       const normals = mesh.getVerticesData(BABYLON.VertexBuffer.NormalKind);
       if (!positions || !indices || !normals) continue;
 
-      // PERFORMANCE: Skip overly complex meshes to prevent lock-up
-      // Complex robot models can have thousands of faces, causing performance issues
+      // PERFORMANCE: Per-mesh complexity cap (replaced global scene gate)
+      // Will be replaced with time-boxed worker queries in upcoming refactor
       const faceCount = indices.length / 3;
-      const MAX_FACES_PER_MESH = 5000; // Skip meshes with more than 5000 faces
+      const MAX_FACES_PER_MESH = 10000; // Increased from 5000 - only skip extremely complex meshes
       if (faceCount > MAX_FACES_PER_MESH) {
-        continue; // Skip this mesh silently
+        continue; // Skip only the most complex meshes
       }
 
       const worldMatrix = mesh.computeWorldMatrix(true);
@@ -2953,6 +2935,10 @@ export class SnappingHelper {
     // Key format: "meshId:minIdx-maxIdx" where minIdx < maxIdx
     const seenEdges = new Set<string>();
 
+    // PERFORMANCE: Limit edge processing to prevent slowdown on complex models
+    const MAX_EDGE_CHECKS = 3000; // Process max 3000 edges per query
+    let edgesProcessed = 0;
+
     // Now check edge midpoints (only if we haven't found a face center, or if edge is closer)
     for (const mesh of scene.meshes) {
       if (
@@ -2978,6 +2964,11 @@ export class SnappingHelper {
 
       // Check each edge midpoint
       for (let i = 0; i < indices.length; i += 3) {
+        // Budget check
+        if (edgesProcessed >= MAX_EDGE_CHECKS) {
+          break; // Stop processing this mesh if we hit the limit
+        }
+
         const edges = [
           [indices[i], indices[i + 1]],
           [indices[i + 1], indices[i + 2]],
@@ -2985,6 +2976,11 @@ export class SnappingHelper {
         ];
 
         for (const [idx1, idx2] of edges) {
+          // Budget check
+          if (edgesProcessed >= MAX_EDGE_CHECKS) {
+            break; // Stop processing edges if we hit the limit
+          }
+
           // Deduplicate edges: create consistent key regardless of vertex order
           const minIdx = Math.min(idx1, idx2);
           const maxIdx = Math.max(idx1, idx2);
@@ -2994,6 +2990,7 @@ export class SnappingHelper {
             continue; // Skip duplicate edge
           }
           seenEdges.add(edgeKey);
+          edgesProcessed++;
 
           const start = idx1 * 3;
           const end = idx2 * 3;
@@ -3137,6 +3134,11 @@ export class SnappingHelper {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     if (!scene) return { snapped: false, position: position.clone() };
+
+    // 🚨 HOTFIX: Disable intersection snapping - O(n²) edge comparison causes freeze
+    // Lines 3208-3210: allEdges.length² comparisons = 441M ops on robot models!
+    // Re-enable after implementing spatial partitioning (BVH/octree) or worker-based queries
+    return { snapped: false, position: position.clone() };
 
     // Convert position to screen space if camera provided
     let screenPos: { x: number; y: number } | null = null;

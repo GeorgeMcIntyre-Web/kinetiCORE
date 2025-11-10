@@ -10,6 +10,7 @@ import { EntityRegistry } from '../../entities/EntityRegistry';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { SnappingHelper } from '../../manipulation/SnappingHelper';
 import { userToBabylon, babylonToUser } from '../../core/CoordinateSystem';
+import { ensureQuaternion } from '../../core/typeGuards';
 import { loadModelFromFile, getAllChildren } from '../../scene/ModelLoader';
 import { createKinematicsFromURDF } from '../../loaders/urdf/URDFJointExtractor';
 import {
@@ -4127,19 +4128,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     const sourcePoint = snapFirstPoint.position;
     
     // Ensure we have a proper Quaternion instance (Zustand might serialize it)
-    let sourceRotation: BABYLON.Quaternion;
-    if (snapFirstPoint.rotation instanceof BABYLON.Quaternion) {
-      sourceRotation = snapFirstPoint.rotation;
-    } else {
-      // Zustand may have serialized it, so reconstruct from stored values
-      const rot = snapFirstPoint.rotation as any;
-      sourceRotation = new BABYLON.Quaternion(
-        rot.x ?? rot._x ?? 0,
-        rot.y ?? rot._y ?? 0,
-        rot.z ?? rot._z ?? 0,
-        rot.w ?? rot._w ?? 1
-      );
-    }
+    const sourceRotation = ensureQuaternion(snapFirstPoint.rotation);
     
     console.log('[Snap Tool] Source mesh:', sourceMesh?.name, 'Source point:', sourcePoint);
     console.log('[Snap Tool] Target mesh:', pickedMesh?.name, 'Clicked point:', clickedPoint);
