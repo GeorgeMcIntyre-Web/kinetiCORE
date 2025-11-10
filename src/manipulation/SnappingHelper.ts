@@ -243,6 +243,13 @@ export class SnappingHelper {
         const centerCandidate = a.result.snapType === 'center' ? a : b;
         const midpointCandidate = a.result.snapType === 'midpoint' ? a : b;
         
+        // Check if center snap detected a circle (has radius in visualFeedback)
+        // Center snap stores radius as visualFeedback[2].x when a circle is detected
+        const centerHasCircle = centerCandidate.result.visualFeedback && 
+                               centerCandidate.result.visualFeedback.length >= 3 &&
+                               centerCandidate.result.visualFeedback[2] instanceof BABYLON.Vector3 &&
+                               (centerCandidate.result.visualFeedback[2] as BABYLON.Vector3).x > 0;
+        
         // Check if they're detecting the same or very close positions (within 5mm)
         const posDiff = BABYLON.Vector3.Distance(
           centerCandidate.result.position,
@@ -250,16 +257,22 @@ export class SnappingHelper {
         );
         
         if (posDiff < 0.005) { // Within 5mm - likely the same logical point
-          // Check if midpoint is a face center (no edge endpoints) vs edge midpoint
+          // If center snap detected a circle, always prefer it over midpoint
+          // Circle fitting is more accurate than bounding box center for circular faces
+          if (centerHasCircle) {
+            // Center wins for circular faces (more accurate geometric calculation)
+            return a.result.snapType === 'center' ? -1 : 1;
+          }
+          
+          // If center didn't detect a circle, check if midpoint is a face center vs edge midpoint
           // Face centers have visualFeedback.length === 1, edge midpoints have length === 3
           const midpointHasEdges = midpointCandidate.result.visualFeedback && 
                                    midpointCandidate.result.visualFeedback.length >= 3;
           
           // If midpoint is a face center (no edges), both are detecting centers
-          // Prefer center snap as it uses more accurate geometric calculation (circle fitting)
-          // for circular faces, while midpoint just uses bounding box center
+          // Prefer center snap as it might be more accurate even if not a perfect circle
           if (!midpointHasEdges) {
-            // Center wins for circular/geometric centers (more accurate)
+            // Center wins for geometric centers (more accurate than bounding box)
             return a.result.snapType === 'center' ? -1 : 1;
           } else {
             // Midpoint has edges, so it's an actual edge midpoint - prefer midpoint
