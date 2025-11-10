@@ -1081,15 +1081,27 @@ export class SnappingHelper {
                 }
               }
               
-              // Get world positions of vertices (same as center snap does)
+              // Get world positions of vertices, removing duplicates (same as center snap does)
               const worldVertices: BABYLON.Vector3[] = [];
+              const vertexMap = new Map<string, BABYLON.Vector3>();
+              const EPSILON = 0.0001; // 0.1mm tolerance for duplicate detection
+              
               for (const vIdx of vertexSet) {
                 const v = new BABYLON.Vector3(
                   positions[vIdx * 3],
                   positions[vIdx * 3 + 1],
                   positions[vIdx * 3 + 2]
                 );
-                worldVertices.push(BABYLON.Vector3.TransformCoordinates(v, worldMatrix));
+                const worldV = BABYLON.Vector3.TransformCoordinates(v, worldMatrix);
+                
+                // Create a key for duplicate detection (rounded to 0.1mm)
+                const key = `${Math.round(worldV.x / EPSILON)},${Math.round(worldV.y / EPSILON)},${Math.round(worldV.z / EPSILON)}`;
+                
+                // Only add if we haven't seen this vertex before
+                if (!vertexMap.has(key)) {
+                  vertexMap.set(key, worldV);
+                  worldVertices.push(worldV);
+                }
               }
               
               // Fit circle to vertices (same method as center snap)
@@ -1302,15 +1314,27 @@ export class SnappingHelper {
                 }
               }
               
-              // Get world positions of vertices (same as center snap does)
+              // Get world positions of vertices, removing duplicates (same as center snap does)
               const worldVertices: BABYLON.Vector3[] = [];
+              const vertexMap = new Map<string, BABYLON.Vector3>();
+              const EPSILON = 0.0001; // 0.1mm tolerance for duplicate detection
+              
               for (const vIdx of vertexSet) {
                 const v = new BABYLON.Vector3(
                   positions[vIdx * 3],
                   positions[vIdx * 3 + 1],
                   positions[vIdx * 3 + 2]
                 );
-                worldVertices.push(BABYLON.Vector3.TransformCoordinates(v, worldMatrix));
+                const worldV = BABYLON.Vector3.TransformCoordinates(v, worldMatrix);
+                
+                // Create a key for duplicate detection (rounded to 0.1mm)
+                const key = `${Math.round(worldV.x / EPSILON)},${Math.round(worldV.y / EPSILON)},${Math.round(worldV.z / EPSILON)}`;
+                
+                // Only add if we haven't seen this vertex before
+                if (!vertexMap.has(key)) {
+                  vertexMap.set(key, worldV);
+                  worldVertices.push(worldV);
+                }
               }
               
               // Fit circle to vertices (same method as center snap)
@@ -3027,8 +3051,9 @@ export class SnappingHelper {
     let closestScreenDistance = Infinity; // Track closest screen-space distance when using screen-space snapping
     let closestMeshName = '';
 
-    // Collect all edges from all meshes
+    // Collect all edges from all meshes, deduplicating edges
     const allEdges: Array<{ v1: BABYLON.Vector3; v2: BABYLON.Vector3; meshName: string }> = [];
+    const seenEdges = new Set<string>(); // Deduplicate edges by mesh and vertex indices
 
     for (const mesh of scene.meshes) {
       if (
@@ -3049,15 +3074,29 @@ export class SnappingHelper {
       if (!positions || !indices) continue;
 
       const worldMatrix = mesh.computeWorldMatrix(true);
+      const meshId = mesh.uniqueId.toString();
 
       for (let i = 0; i < indices.length; i += 3) {
         const edges = [
-          [indices[i] * 3, indices[i + 1] * 3],
-          [indices[i + 1] * 3, indices[i + 2] * 3],
-          [indices[i + 2] * 3, indices[i] * 3],
+          [indices[i], indices[i + 1]],
+          [indices[i + 1], indices[i + 2]],
+          [indices[i + 2], indices[i]],
         ];
 
-        for (const [start, end] of edges) {
+        for (const [idx1, idx2] of edges) {
+          // Deduplicate edges: create consistent key regardless of vertex order
+          const minIdx = Math.min(idx1, idx2);
+          const maxIdx = Math.max(idx1, idx2);
+          const edgeKey = `${meshId}:${minIdx}-${maxIdx}`;
+
+          if (seenEdges.has(edgeKey)) {
+            continue; // Skip duplicate edge
+          }
+          seenEdges.add(edgeKey);
+
+          const start = idx1 * 3;
+          const end = idx2 * 3;
+          
           const v1 = BABYLON.Vector3.TransformCoordinates(
             new BABYLON.Vector3(positions[start], positions[start + 1], positions[start + 2]),
             worldMatrix
