@@ -114,6 +114,7 @@ interface EditorState {
   snapFromFrameObject: SnapFrameObject | null; // Source frame object for frame-to-frame snapping
   snapToFrameObject: SnapFrameObject | null; // Target frame object for frame-to-frame snapping
   isPickingSnapFrame: 'from' | 'to' | null; // Track which frame is being picked
+  savedSelectionDuringFramePick: { nodeId: string | null; meshes: BABYLON.Mesh[] } | null; // Preserve selection during frame picking
   setSnapMode: (mode: SnapMode) => void;
   setSnapFromPoint: (point: SnapPoint) => void;
   setSnapToPoint: (point: SnapPoint) => void;
@@ -656,6 +657,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
   snapFromFrameObject: null,
   snapToFrameObject: null,
   isPickingSnapFrame: null,
+  savedSelectionDuringFramePick: null,
   setSnapMode: (mode) => set({ snapMode: mode }),
   setSnapFromPoint: (point) => {
     // Clear previous "from" frame
@@ -702,7 +704,50 @@ export const useEditorStore = create<EditorState>((set, get) => {
   setIsPickingSnapPoint: (mode) => set({ isPickingSnapPoint: mode }),
   setSnapFromFrameObject: (frame) => set({ snapFromFrameObject: frame }),
   setSnapToFrameObject: (frame) => set({ snapToFrameObject: frame }),
-  setIsPickingSnapFrame: (mode) => set({ isPickingSnapFrame: mode }),
+  setIsPickingSnapFrame: (mode) => {
+    const state = get();
+
+    // When starting frame picking, save the current selection to preserve it
+    if (mode === 'from' && !state.savedSelectionDuringFramePick) {
+      set({
+        isPickingSnapFrame: mode,
+        savedSelectionDuringFramePick: {
+          nodeId: state.selectedNodeId,
+          meshes: [...state.selectedMeshes], // Copy array
+        },
+      });
+    }
+    // When finishing/canceling frame picking, restore saved selection
+    else if (mode === null && state.savedSelectionDuringFramePick) {
+      const savedSelection = state.savedSelectionDuringFramePick;
+
+      // Restore the selection
+      set({
+        isPickingSnapFrame: mode,
+        savedSelectionDuringFramePick: null,
+        selectedNodeId: savedSelection.nodeId,
+        selectedMeshes: savedSelection.meshes,
+      });
+
+      // Update mesh selection states (highlight/gizmos)
+      savedSelection.meshes.forEach(mesh => {
+        if (mesh.metadata) {
+          mesh.metadata.isSelected = true;
+        }
+      });
+    }
+    // When finishing without saved selection (shouldn't happen, but handle gracefully)
+    else if (mode === null) {
+      set({
+        isPickingSnapFrame: mode,
+        savedSelectionDuringFramePick: null,
+      });
+    }
+    // For 'to' mode, just update the picking mode without changing saved selection
+    else {
+      set({ isPickingSnapFrame: mode });
+    }
+  },
   clearSnapFrames: () => {
     const { snapFromFrame, snapToFrame } = get();
     if (snapFromFrame) {
