@@ -957,6 +957,96 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
   selectNode: (nodeId) => {
     const normalizedId = normalizeNodeId(nodeId);
+
+    // Check if we're in frame picking mode (for frame-to-frame snapping)
+    const { isPickingSnapFrame } = get();
+    if (isPickingSnapFrame) {
+      const tree = SceneTreeManager.getInstance();
+      const node = tree.getNode(normalizedId);
+      const sceneManager = SceneManager.getInstance();
+      const scene = sceneManager.getScene();
+
+      console.log('[Frame Picking from Tree] Selected node:', node?.name);
+
+      if (node && scene) {
+        // Get the mesh for this node
+        let mesh: BABYLON.AbstractMesh | null = null;
+        const registry = EntityRegistry.getInstance();
+
+        // Prefer entity mesh if available
+        if (node.entityId) {
+          const entity = registry.get(node.entityId);
+          if (entity && typeof entity.getMesh === 'function') {
+            mesh = entity.getMesh();
+            console.log('[Frame Picking from Tree] Found mesh from entity:', mesh?.name);
+          }
+        }
+
+        // Fallback to babylonMeshId
+        if (!mesh && node.babylonMeshId) {
+          mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
+          console.log('[Frame Picking from Tree] Found mesh from babylonMeshId:', mesh?.name);
+        }
+
+        // Fallback to TransformNode children
+        if (!mesh && node.babylonTransformNodeId) {
+          const transformNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId, 10));
+          if (transformNode) {
+            const children = transformNode.getChildren();
+            console.log('[Frame Picking from Tree] TransformNode has', children.length, 'children');
+            for (const child of children) {
+              if (child instanceof BABYLON.AbstractMesh) {
+                mesh = child;
+                console.log('[Frame Picking from Tree] Found mesh from TransformNode child:', mesh.name);
+                break;
+              }
+            }
+          }
+        }
+
+        if (mesh && node) {
+          const frameObject = {
+            nodeId: node.id,
+            mesh: mesh,
+            name: node.name
+          };
+
+          console.log('[Frame Picking from Tree] ✅ Frame found:', frameObject.name);
+
+          // Update the appropriate snap frame
+          if (isPickingSnapFrame === 'from') {
+            get().setSnapFromFrameObject(frameObject);
+            get().setIsPickingSnapFrame('to');
+            toast.success(`From frame set: ${node.name}. Now select the "To" frame.`);
+          } else {
+            get().setSnapToFrameObject(frameObject);
+            get().setIsPickingSnapFrame(null);
+
+            // Get current snap frame objects
+            const state = get();
+            const fromFrame = state.snapFromFrameObject;
+            const toFrame = frameObject;
+
+            if (fromFrame) {
+              // Apply frame-to-frame snap transformation
+              get().applySnapSettings({
+                mode: 'frame-to-frame',
+              });
+
+              toast.success(`Object snapped from "${fromFrame.name}" to "${toFrame.name}"!`);
+            }
+          }
+
+          return; // Exit early, don't process as normal selection
+        } else {
+          console.log('[Frame Picking from Tree] ❌ No mesh found for node');
+          toast.error('Selected node has no mesh. Please select a frame object with geometry.');
+          return; // Exit early
+        }
+      }
+    }
+
+    // Normal selection flow continues below
     set({ selectedNodeId: normalizedId, selectedNodeIds: [normalizedId] });
 
     const tree = SceneTreeManager.getInstance();
