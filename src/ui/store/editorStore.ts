@@ -4099,8 +4099,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
       const createLabel = (position: BABYLON.Vector3, text: string, color: BABYLON.Color3, name: string) => {
         const plane = BABYLON.MeshBuilder.CreatePlane(name, { size: 0.05 }, scene);
         plane.position = position;
-        // Remove billboard mode so labels rotate with the frame
-        // plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+        plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 
         const dynamicTexture = new BABYLON.DynamicTexture(
           `${name}_texture`,
