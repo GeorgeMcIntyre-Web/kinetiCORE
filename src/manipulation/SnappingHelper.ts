@@ -49,6 +49,8 @@ export class SnappingHelper {
   private static instance: SnappingHelper;
   private snapIndicators: BABYLON.Mesh[] = [];
   private previewIndicator: BABYLON.Mesh | null = null;
+  private warningSuppression: Map<string, number> = new Map(); // Track warning frequency to suppress spam
+  private readonly WARNING_SUPPRESSION_MS = 5000; // Suppress same warning for 5 seconds
 
   private constructor() {}
 
@@ -1526,7 +1528,13 @@ export class SnappingHelper {
     tolerance: number = 0.001 // 1mm tolerance for circle detection
   ): { center: BABYLON.Vector3; radius: number; normal: BABYLON.Vector3 } | null {
     if (points.length < 3) {
-      console.warn(`[SnappingHelper] fitCircleToPoints: Not enough points (${points.length} < 3)`);
+      // Suppress frequent warnings - only log once per 5 seconds
+      const warningKey = 'not_enough_points';
+      const lastWarning = this.warningSuppression.get(warningKey) || 0;
+      if (Date.now() - lastWarning > this.WARNING_SUPPRESSION_MS) {
+        console.warn(`[SnappingHelper] fitCircleToPoints: Not enough points (${points.length} < 3)`);
+        this.warningSuppression.set(warningKey, Date.now());
+      }
       return null;
     }
 
@@ -1578,7 +1586,13 @@ export class SnappingHelper {
     }
     
     if (!normal) {
-      console.warn(`[SnappingHelper] fitCircleToPoints: Could not determine plane normal from ${points.length} points`);
+      // Suppress frequent warnings - only log once per 5 seconds per point count
+      const warningKey = `no_normal_${points.length}`;
+      const lastWarning = this.warningSuppression.get(warningKey) || 0;
+      if (Date.now() - lastWarning > this.WARNING_SUPPRESSION_MS) {
+        console.warn(`[SnappingHelper] fitCircleToPoints: Could not determine plane normal from ${points.length} points`);
+        this.warningSuppression.set(warningKey, Date.now());
+      }
       return null;
     }
 
@@ -1744,8 +1758,14 @@ export class SnappingHelper {
     // If relative error is too high, it's not a circle
     // Increased tolerance to 25% for triangulated circles (cylinder ends often have 15-20% error)
     if (relativeError > 0.25 || finalAvgRadius < tolerance) { // 25% tolerance, minimum 1mm radius
-      // DEBUG: Log why circle fitting failed
-      console.warn(`[SnappingHelper] ⚠️ fitCircleToPoints failed: relativeError=${(relativeError * 100).toFixed(2)}%, finalAvgRadius=${(finalAvgRadius * 1000).toFixed(3)}mm, tolerance=${(tolerance * 1000).toFixed(3)}mm`);
+      // Suppress frequent warnings - only log in debug mode or once per 5 seconds
+      const warningKey = `circle_fit_failed`;
+      const lastWarning = this.warningSuppression.get(warningKey) || 0;
+      if (Date.now() - lastWarning > this.WARNING_SUPPRESSION_MS) {
+        // Only log detailed debug info if explicitly enabled
+        // console.warn(`[SnappingHelper] ⚠️ fitCircleToPoints failed: relativeError=${(relativeError * 100).toFixed(2)}%, finalAvgRadius=${(finalAvgRadius * 1000).toFixed(3)}mm, tolerance=${(tolerance * 1000).toFixed(3)}mm`);
+        this.warningSuppression.set(warningKey, Date.now());
+      }
       return null;
     }
 
@@ -1772,6 +1792,32 @@ export class SnappingHelper {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     if (!scene) return { snapped: false, position: position.clone() };
+
+    // PERFORMANCE: Skip center snapping for complex scenes to prevent lock-up
+    // Quick check: count valid meshes and exit early if too many
+    // Complex robot models can have hundreds of meshes, making center snapping too expensive
+    const MAX_MESHES_FOR_CENTER_SNAP = 50; // Skip if more than 50 valid meshes
+    let validMeshCount = 0;
+    for (const mesh of scene.meshes) {
+      if (
+        mesh.isVisible &&
+        !excludeMeshIds.includes(mesh.uniqueId.toString()) &&
+        mesh.name !== 'ground' &&
+        mesh.name !== 'gridOverlay' &&
+        !mesh.name.startsWith('snapIndicator') &&
+        !mesh.name.startsWith('snapPreviewDot') &&
+        !mesh.name.startsWith('snapPreviewCircle') &&
+        !mesh.name.startsWith('marker-') &&
+        !mesh.name.startsWith('distance-line') &&
+        !mesh.name.startsWith('angle-line')
+      ) {
+        validMeshCount++;
+        // Early exit if we exceed the limit
+        if (validMeshCount > MAX_MESHES_FOR_CENTER_SNAP) {
+          return { snapped: false, position: position.clone() };
+        }
+      }
+    }
 
     const snapDistanceMeters = snapDistance / 1000;
     let closestCenter: BABYLON.Vector3 | null = null;
@@ -1823,6 +1869,14 @@ export class SnappingHelper {
       const normals = mesh.getVerticesData(BABYLON.VertexBuffer.NormalKind);
       if (!positions || !indices || !normals) continue;
 
+      // PERFORMANCE: Skip overly complex meshes to prevent lock-up
+      // Complex robot models can have thousands of faces, causing performance issues
+      const faceCount = indices.length / 3;
+      const MAX_FACES_PER_MESH = 5000; // Skip meshes with more than 5000 faces
+      if (faceCount > MAX_FACES_PER_MESH) {
+        continue; // Skip this mesh silently
+      }
+
       const worldMatrix = mesh.computeWorldMatrix(true);
 
       // Group faces by normal to find circular faces (e.g., cylinder ends)
@@ -1854,8 +1908,13 @@ export class SnappingHelper {
       // Face grouping complete (removed debug spam)
 
       // For each group of faces with the same normal, check if vertices form a circle
+      // PERFORMANCE: Limit the number of face groups processed per mesh
+      const MAX_FACE_GROUPS_PER_MESH = 20; // Process max 20 face groups per mesh
+      let processedGroups = 0;
       for (const [, faceIndices] of facesByNormal) {
         if (faceIndices.length < 3) continue; // Need at least 3 faces for a circle
+        if (processedGroups >= MAX_FACE_GROUPS_PER_MESH) break; // Skip remaining groups if too many
+        processedGroups++;
 
         // Collect all unique vertices from these faces
         const vertexSet = new Set<number>();
@@ -1918,61 +1977,68 @@ export class SnappingHelper {
           
           // Only use filtered vertices if we still have enough (at least 3 for circle fitting)
           if (filteredVertices.length >= 3) {
-            const originalCount = worldVertices.length;
             worldVertices.length = 0;
             worldVertices.push(...filteredVertices);
             
-            // DEBUG: Log center vertex removal
-            if (mesh.name.includes('Cylinder')) {
-              console.log(`[SnappingHelper] 🔍 Removed center vertex: ${originalCount - filteredVertices.length} center vertex(ices) removed, ${filteredVertices.length} perimeter vertices kept`);
-              console.log(`  Median distance: ${(medianDistance * 1000).toFixed(3)}mm, threshold: ${(medianDistance * 0.2 * 1000).toFixed(3)}mm`);
-            }
+            // DEBUG: Log center vertex removal (suppressed for performance)
+            // if (mesh.name.includes('Cylinder')) {
+            //   const originalCount = worldVertices.length + (filteredVertices.length - worldVertices.length);
+            //   console.log(`[SnappingHelper] 🔍 Removed center vertex: ${originalCount - filteredVertices.length} center vertex(ices) removed, ${filteredVertices.length} perimeter vertices kept`);
+            //   console.log(`  Median distance: ${(medianDistance * 1000).toFixed(3)}mm, threshold: ${(medianDistance * 0.2 * 1000).toFixed(3)}mm`);
+            // }
           } else {
-            // DEBUG: Log if filtering removed too many
-            if (mesh.name.includes('Cylinder')) {
-              console.warn(`[SnappingHelper] ⚠️ Center vertex removal filtered too many: ${filteredVertices.length} < 3, keeping all ${worldVertices.length} vertices`);
-            }
+            // DEBUG: Log if filtering removed too many (suppressed for performance)
+            // if (mesh.name.includes('Cylinder')) {
+            //   console.warn(`[SnappingHelper] ⚠️ Center vertex removal filtered too many: ${filteredVertices.length} < 3, keeping all ${worldVertices.length} vertices`);
+            // }
           }
         }
 
-        // DEBUG: Log vertex collection for cylinders
-        if (mesh.name.includes('Cylinder')) {
-          console.log(`[SnappingHelper] 🔍 Collecting vertices for circle detection:`);
-          console.log(`  Mesh: ${mesh.name}`);
-          console.log(`  Faces with same normal: ${faceIndices.length}`);
-          console.log(`  Unique vertices collected: ${worldVertices.length}`);
-          if (worldVertices.length > 0) {
-            const firstVertex = worldVertices[0];
-            const lastVertex = worldVertices[worldVertices.length - 1];
-            console.log(`  First vertex: (${firstVertex.x.toFixed(6)}, ${firstVertex.y.toFixed(6)}, ${firstVertex.z.toFixed(6)})`);
-            console.log(`  Last vertex: (${lastVertex.x.toFixed(6)}, ${lastVertex.y.toFixed(6)}, ${lastVertex.z.toFixed(6)})`);
-          }
+        // PERFORMANCE: Skip circle fitting for groups with too many vertices
+        // Large vertex groups are unlikely to form perfect circles and waste computation
+        const MAX_VERTICES_PER_CIRCLE = 200; // Skip groups with more than 200 vertices
+        if (worldVertices.length > MAX_VERTICES_PER_CIRCLE) {
+          continue; // Skip this face group
         }
+        
+        // DEBUG: Log vertex collection for cylinders (suppressed for performance)
+        // if (mesh.name.includes('Cylinder')) {
+        //   console.log(`[SnappingHelper] 🔍 Collecting vertices for circle detection:`);
+        //   console.log(`  Mesh: ${mesh.name}`);
+        //   console.log(`  Faces with same normal: ${faceIndices.length}`);
+        //   console.log(`  Unique vertices collected: ${worldVertices.length}`);
+        //   if (worldVertices.length > 0) {
+        //     const firstVertex = worldVertices[0];
+        //     const lastVertex = worldVertices[worldVertices.length - 1];
+        //     console.log(`  First vertex: (${firstVertex.x.toFixed(6)}, ${firstVertex.y.toFixed(6)}, ${firstVertex.z.toFixed(6)})`);
+        //     console.log(`  Last vertex: (${lastVertex.x.toFixed(6)}, ${lastVertex.y.toFixed(6)}, ${lastVertex.z.toFixed(6)})`);
+        //   }
+        // }
         
         // Fit circle to these vertices
         const circleInfo = this.fitCircleToPoints(worldVertices);
         if (!circleInfo) {
-          // DEBUG: Log why circle fitting failed
-          if (mesh.name.includes('Cylinder')) {
-            console.warn(`[SnappingHelper] ⚠️ Circle fitting failed for ${mesh.name}: fitCircleToPoints returned null`);
-            console.warn(`  Vertices count: ${worldVertices.length}`);
-            if (worldVertices.length > 0) {
-              const first = worldVertices[0];
-              const last = worldVertices[worldVertices.length - 1];
-              console.warn(`  First vertex: (${first.x.toFixed(6)}, ${first.y.toFixed(6)}, ${first.z.toFixed(6)})`);
-              console.warn(`  Last vertex: (${last.x.toFixed(6)}, ${last.y.toFixed(6)}, ${last.z.toFixed(6)})`);
-            }
-          }
+          // DEBUG: Log why circle fitting failed (suppressed for performance)
+          // if (mesh.name.includes('Cylinder')) {
+          //   console.warn(`[SnappingHelper] ⚠️ Circle fitting failed for ${mesh.name}: fitCircleToPoints returned null`);
+          //   console.warn(`  Vertices count: ${worldVertices.length}`);
+          //   if (worldVertices.length > 0) {
+          //     const first = worldVertices[0];
+          //     const last = worldVertices[worldVertices.length - 1];
+          //     console.warn(`  First vertex: (${first.x.toFixed(6)}, ${first.y.toFixed(6)}, ${first.z.toFixed(6)})`);
+          //     console.warn(`  Last vertex: (${last.x.toFixed(6)}, ${last.y.toFixed(6)}, ${last.z.toFixed(6)})`);
+          //   }
+          // }
           continue;
         }
         
-        // DEBUG: Log circle fitting result
-        if (mesh.name.includes('Cylinder')) {
-          console.log(`[SnappingHelper] 🔍 Circle fitting result:`);
-          console.log(`  Fitted center: (${circleInfo.center.x.toFixed(6)}, ${circleInfo.center.y.toFixed(6)}, ${circleInfo.center.z.toFixed(6)})`);
-          console.log(`  Fitted radius: ${(circleInfo.radius * 1000).toFixed(3)}mm`);
-          console.log(`  Normal: (${circleInfo.normal.x.toFixed(6)}, ${circleInfo.normal.y.toFixed(6)}, ${circleInfo.normal.z.toFixed(6)})`);
-        }
+        // DEBUG: Log circle fitting result (suppressed for performance)
+        // if (mesh.name.includes('Cylinder')) {
+        //   console.log(`[SnappingHelper] 🔍 Circle fitting result:`);
+        //   console.log(`  Fitted center: (${circleInfo.center.x.toFixed(6)}, ${circleInfo.center.y.toFixed(6)}, ${circleInfo.center.z.toFixed(6)})`);
+        //   console.log(`  Fitted radius: ${(circleInfo.radius * 1000).toFixed(3)}mm`);
+        //   console.log(`  Normal: (${circleInfo.normal.x.toFixed(6)}, ${circleInfo.normal.y.toFixed(6)}, ${circleInfo.normal.z.toFixed(6)})`);
+        // }
 
         // Create a unique key for this circle (by center position, rounded)
         const centerKey = `${Math.round(circleInfo.center.x * 1000)},${Math.round(circleInfo.center.y * 1000)},${Math.round(circleInfo.center.z * 1000)}`;
