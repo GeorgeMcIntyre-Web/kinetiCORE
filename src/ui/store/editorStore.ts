@@ -765,10 +765,8 @@ export const useEditorStore = create<EditorState>((set, get) => {
       const fromFrameWorldMatrix = fromFrameMesh.getWorldMatrix();
       const toFrameWorldMatrix = toFrameMesh.getWorldMatrix();
 
-      // Calculate the relative transformation from "from" frame to "to" frame
-      // This is: T_to * inv(T_from)
+      // Calculate the inverse of the "from" frame for relative transformation
       const fromFrameInverse = BABYLON.Matrix.Invert(fromFrameWorldMatrix);
-      const relativeTransform = toFrameWorldMatrix.multiply(fromFrameInverse);
 
       // Get the current object's world matrix
       const objectWorldMatrix = mesh.getWorldMatrix();

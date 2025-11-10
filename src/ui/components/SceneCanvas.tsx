@@ -284,11 +284,11 @@ export const SceneCanvas: React.FC = () => {
               });
 
               if (snapPickResult.hit && snapPickResult.pickedPoint) {
-                // Show targeting widget for visual feedback
-                sceneManager.showTargetingWidget(
-                  snapPickResult.pickedPoint,
-                  snapPickResult.getNormal(true) || undefined
-                );
+                // Targeting widget disabled
+                // sceneManager.showTargetingWidget(
+                //   snapPickResult.pickedPoint,
+                //   snapPickResult.getNormal(true) || undefined
+                // );
 
                 // Convert picked point to user coordinates (mm)
                 const userCoords = babylonToUser(snapPickResult.pickedPoint);
@@ -417,12 +417,12 @@ export const SceneCanvas: React.FC = () => {
                 return mesh.isVisible && mesh.isEnabled() && mesh.isPickable;
               });
 
-              // Show targeting widget for point pick
+              // Targeting widget disabled
               if (pointPickResult.hit && pointPickResult.pickedPoint) {
-                sceneManager.showTargetingWidget(
-                  pointPickResult.pickedPoint,
-                  pointPickResult.getNormal(true) || undefined
-                );
+                // sceneManager.showTargetingWidget(
+                //   pointPickResult.pickedPoint,
+                //   pointPickResult.getNormal(true) || undefined
+                // );
                 // Store picked point for coordinate display
                 useEditorStore.getState().setLastPickedPoint(pointPickResult.pickedPoint);
               }
@@ -573,12 +573,12 @@ export const SceneCanvas: React.FC = () => {
                 return; // Don't process as regular selection
               }
 
-              // Show targeting widget at pick point for visual feedback
+              // Targeting widget disabled
               if (pickResult.pickedPoint) {
-                sceneManager.showTargetingWidget(
-                  pickResult.pickedPoint,
-                  pickResult.getNormal(true) || undefined
-                );
+                // sceneManager.showTargetingWidget(
+                //   pickResult.pickedPoint,
+                //   pickResult.getNormal(true) || undefined
+                // );
                 // Store picked point for coordinate display
                 useEditorStore.getState().setLastPickedPoint(pickResult.pickedPoint);
               }
