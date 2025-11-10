@@ -30,8 +30,8 @@ import {
   Building2,
   Eye,
   Camera,
+  Magnet,
 } from 'lucide-react';
-import { SnapSetupPopup } from './SnapSetupPopup';
 import { loadOBJFile } from '../../loaders/obj/OBJLoader';
 import { SceneManager } from '../../scene/SceneManager';
 import { toast } from '../components/ToastNotifications';
@@ -183,6 +183,8 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   const setSnapEnabled = useEditorStore((state) => state.setSnapEnabled);
   const alignMode = useEditorStore((state) => state.alignMode);
   const setAlignMode = useEditorStore((state) => state.setAlignMode);
+  const snapToolActive = useEditorStore((state) => state.snapToolActive);
+  const setSnapToolActive = useEditorStore((state) => state.setSnapToolActive);
   const createObject = useEditorStore((state) => state.createObject);
   const createCollection = useEditorStore((state) => state.createCollection);
   const importModel = useEditorStore((state) => state.importModel);
@@ -391,6 +393,13 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
             title="Quick Move Dialog"
           >
             <QuickMoveIcon size={32} />
+          </button>
+          <button
+            className={`ribbon-btn ${snapToolActive ? 'active' : ''}`}
+            onClick={() => setSnapToolActive(!snapToolActive)}
+            title="Snap - Click first point on source object, then click target point"
+          >
+            <Magnet size={32} />
           </button>
           <button
             className="ribbon-btn"

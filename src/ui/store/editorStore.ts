@@ -8,6 +8,7 @@ import { DEFAULT_TRANSFORM_MODE } from '../../core/constants';
 import { SceneManager } from '../../scene/SceneManager';
 import { EntityRegistry } from '../../entities/EntityRegistry';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
+import { SnappingHelper } from '../../manipulation/SnappingHelper';
 import { userToBabylon, babylonToUser } from '../../core/CoordinateSystem';
 import { loadModelFromFile, getAllChildren } from '../../scene/ModelLoader';
 import { createKinematicsFromURDF } from '../../loaders/urdf/URDFJointExtractor';
@@ -200,6 +201,13 @@ interface EditorState {
   pointPickFrameWidgets: CoordinateFrameWidget[];
   pointPickFrameData: { pickPoint: BABYLON.Vector3; frame: CustomFrameFeature; baseSize: number } | null;
 
+  // Snap tool state - two-click snap: first point (source), second point (target)
+  snapToolActive: boolean;
+  snapFirstPoint: {
+    mesh: BABYLON.Mesh;
+    position: BABYLON.Vector3;
+  } | null;
+
   // Object origin frame state - visual axis frame at selected object's origin
   objectOriginFrameWidget: CoordinateFrameWidget | null;
   objectOriginFrameData: { originPoint: BABYLON.Vector3; frame: CustomFrameFeature; baseSize: number } | null;
@@ -326,6 +334,15 @@ interface EditorState {
   } | null) => void;
   handleAlignClick: (pickInfo: BABYLON.PickingInfo) => void;
   cancelAlignment: () => void;
+
+  // Snap tool actions
+  setSnapToolActive: (enabled: boolean) => void;
+  setSnapFirstPoint: (point: {
+    mesh: BABYLON.Mesh;
+    position: BABYLON.Vector3;
+  } | null) => void;
+  handleSnapClick: (pickInfo: BABYLON.PickingInfo) => void;
+  cancelSnap: () => void;
 
   // Point pick actions
   setPointPickMode: (enabled: boolean) => void;
@@ -915,6 +932,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
   alignFirstPoint: null,
   alignMarkers: [],
   alignFrameWidgets: [],
+
+  // Snap tool defaults
+  snapToolActive: false,
+  snapFirstPoint: null,
 
   // Point pick defaults
   pointPickMode: true,
@@ -3880,6 +3901,364 @@ export const useEditorStore = create<EditorState>((set, get) => {
     setTimeout(() => {
       get().cancelAlignment();
   }, 1500);
+  },
+
+  // Snap tool setters
+  setSnapToolActive: (enabled) => {
+    if (!enabled) {
+      // Clear first point when disabling snap tool
+      const { snapFirstPoint } = get();
+      if (snapFirstPoint) {
+        set({ snapToolActive: false, snapFirstPoint: null });
+      } else {
+        set({ snapToolActive: false });
+      }
+    } else {
+      set({ snapToolActive: true });
+    }
+  },
+
+  setSnapFirstPoint: (point) => {
+    set({ snapFirstPoint: point });
+  },
+
+  cancelSnap: () => {
+    set({ snapToolActive: false, snapFirstPoint: null });
+  },
+
+  handleSnapClick: (pickInfo) => {
+    console.log('[Snap Tool] handleSnapClick called', {
+      hit: pickInfo.hit,
+      mesh: pickInfo.pickedMesh?.name,
+      hasPoint: !!pickInfo.pickedPoint,
+    });
+    
+    const { snapToolActive, snapEnabled, snapFirstPoint } = get();
+    
+    console.log('[Snap Tool] State:', {
+      snapToolActive,
+      snapEnabled,
+      hasFirstPoint: !!snapFirstPoint,
+    });
+
+    if (!snapToolActive || !pickInfo.hit || !pickInfo.pickedMesh || !pickInfo.pickedPoint) {
+      console.log('[Snap Tool] Early return - conditions not met');
+      return;
+    }
+
+    // Check if snapping is enabled
+    if (!snapEnabled) {
+      toast.error('Please enable snapping in settings first');
+      return;
+    }
+
+    const pickedMesh = pickInfo.pickedMesh as BABYLON.Mesh;
+    const clickedPoint = pickInfo.pickedPoint;
+
+    // Ignore system meshes (ground, grid overlay, snap previews, etc.)
+    const systemMeshNames = ['ground', 'gridOverlay'];
+    const isSystemMesh = systemMeshNames.includes(pickedMesh.name) || 
+                         pickedMesh.name.startsWith('snap') ||
+                         pickedMesh.name.startsWith('measurement') ||
+                         pickedMesh.name.startsWith('transform_label');
+    
+    if (isSystemMesh) {
+      console.log('[Snap Tool] Ignoring click on system mesh:', pickedMesh.name);
+      return;
+    }
+    
+    console.log('[Snap Tool] Valid mesh clicked:', pickedMesh.name);
+
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    if (!scene) return;
+
+    const camera = scene.activeCamera;
+    if (!camera) return;
+
+    // Build snap settings from current state
+    const state = get();
+    const snapSettings = {
+      enabled: state.snapEnabled,
+      snapToGrid: state.snapToGrid,
+      snapToVertex: state.snapToVertex,
+      snapToEdge: state.snapToEdge,
+      snapToFace: state.snapToFace,
+      snapToCenter: state.snapToCenter,
+      snapToObject: state.snapToObject,
+      snapToMidpoint: state.snapToMidpoint,
+      snapToIntersection: state.snapToIntersection,
+      snapToPerpendicular: state.snapToPerpendicular,
+      snapToTangent: state.snapToTangent,
+      snapAlong: state.snapAlong,
+      snapToNormal: state.snapToNormal,
+      snapToPlane: state.snapToPlane,
+      snapToAxis: state.snapToAxis,
+      snapToCurve: state.snapToCurve,
+      snapToSurface: state.snapToSurface,
+      snapObjectToVertex: state.snapObjectToVertex,
+      snapPointOnEdge: state.snapPointOnEdge,
+      snapBBoxCorner: state.snapBBoxCorner,
+      gridSize: state.gridSize,
+      snapDistance: state.snapDistance,
+    };
+
+    const snappingHelper = SnappingHelper.getInstance();
+
+    // First click - select source point (on object to move)
+    if (!snapFirstPoint) {
+      console.log('[Snap Tool] First click - finding source point on mesh:', pickedMesh?.name);
+      
+      // Use snapping to find the best point on the clicked mesh
+      const snapResult = snappingHelper.snapPosition(
+        clickedPoint,
+        snapSettings,
+        [], // Don't exclude anything for first point
+        camera,
+        undefined,
+        true, // smartSelect
+        pickedMesh,
+        clickedPoint
+      );
+
+      console.log('[Snap Tool] First click snap result:', {
+        snapped: snapResult.snapped,
+        snapType: snapResult.snapType,
+        position: snapResult.position,
+      });
+
+      // If snap failed, try using mesh center as fallback with larger distance
+      let sourcePoint = snapResult.snapped ? snapResult.position : clickedPoint;
+      
+      if (!snapResult.snapped && pickedMesh) {
+        console.log('[Snap Tool] First click snap failed, trying fallback strategies');
+        pickedMesh.computeWorldMatrix(true);
+        const boundingInfo = pickedMesh.getBoundingInfo();
+        const meshCenter = boundingInfo.boundingBox.centerWorld;
+        
+        // Strategy 1: Try snapping from mesh center with normal distance
+        let fallbackSnapResult = snappingHelper.snapPosition(
+          meshCenter,
+          snapSettings,
+          [], // Don't exclude anything for first point
+          camera,
+          undefined,
+          true, // smartSelect
+          pickedMesh,
+          clickedPoint
+        );
+        
+        // Strategy 2: If that fails, try with much larger distance (mesh size)
+        if (!fallbackSnapResult.snapped) {
+          const min = boundingInfo.boundingBox.minimumWorld;
+          const max = boundingInfo.boundingBox.maximumWorld;
+          const meshSize = max.subtract(min);
+          const maxDimension = Math.max(meshSize.x, meshSize.y, meshSize.z);
+          const largeSnapDistance = Math.max(state.snapDistance, maxDimension * 1000 * 2); // Convert to mm and add margin
+          
+          const largeSnapSettings = { ...snapSettings, snapDistance: largeSnapDistance };
+          fallbackSnapResult = snappingHelper.snapPosition(
+            meshCenter,
+            largeSnapSettings,
+            [], // Don't exclude anything for first point
+            camera,
+            undefined,
+            true, // smartSelect
+            pickedMesh,
+            clickedPoint
+          );
+        }
+        
+        if (fallbackSnapResult.snapped) {
+          console.log('[Snap Tool] First click fallback snap succeeded:', fallbackSnapResult.snapType);
+          sourcePoint = fallbackSnapResult.position;
+        } else {
+          // Last resort: use mesh center
+          console.log('[Snap Tool] Using mesh center as source point (no snap found)');
+          sourcePoint = meshCenter;
+        }
+      }
+
+      set({
+        snapFirstPoint: {
+          mesh: pickedMesh,
+          position: sourcePoint,
+        },
+      });
+
+      // Determine the actual snap type used (from initial snap or fallback)
+      const actualSnapType = snapResult.snapped 
+        ? snapResult.snapType 
+        : (sourcePoint !== clickedPoint ? 'center' : 'point');
+      const snapTypeName = actualSnapType || 'point';
+      
+      toast.info(`First point selected (${snapTypeName}). Click target point.`);
+      console.log('[Snap Tool] First point set:', { 
+        mesh: pickedMesh?.name, 
+        position: sourcePoint,
+        snapType: snapTypeName,
+        wasSnapped: snapResult.snapped,
+      });
+      return;
+    }
+
+    // Second click - select target point and perform snap
+    console.log('[Snap Tool] Second click - finding target point');
+    const sourceMesh = snapFirstPoint.mesh;
+    const sourcePoint = snapFirstPoint.position;
+    
+    console.log('[Snap Tool] Source mesh:', sourceMesh?.name, 'Source point:', sourcePoint);
+    console.log('[Snap Tool] Target mesh:', pickedMesh?.name, 'Clicked point:', clickedPoint);
+
+    // Use snapping to find the best point on the target mesh
+    const excludeMeshIds = [sourceMesh.uniqueId.toString()];
+    
+    // Also exclude child meshes if source is a device
+    const registry = EntityRegistry.getInstance();
+    const sourceEntity = registry.getByMesh(sourceMesh);
+    if (sourceEntity && sourceEntity.getIsDevice()) {
+      const deviceEntity = sourceEntity as any;
+      const linkEntities = deviceEntity.getChildren();
+      linkEntities.forEach((linkEntity: any) => {
+        const linkMesh = linkEntity.getMesh();
+        if (linkMesh) {
+          excludeMeshIds.push(linkMesh.uniqueId.toString());
+        }
+      });
+    }
+
+    let snapResult = snappingHelper.snapPosition(
+      clickedPoint,
+      snapSettings,
+      excludeMeshIds,
+      camera,
+      undefined,
+      true, // smartSelect
+      pickedMesh,
+      clickedPoint
+    );
+
+    // If snap failed but we have a valid picked mesh, try using the mesh's bounding box center
+    // This handles cases where the clicked point is far from the snap point (e.g., clicking on a face far from midpoint)
+    if (!snapResult.snapped && pickedMesh) {
+      // Try snapping from the mesh's bounding box center instead
+      pickedMesh.computeWorldMatrix(true);
+      const boundingInfo = pickedMesh.getBoundingInfo();
+      const meshCenter = boundingInfo.boundingBox.centerWorld;
+      
+      snapResult = snappingHelper.snapPosition(
+        meshCenter,
+        snapSettings,
+        excludeMeshIds,
+        camera,
+        undefined,
+        true, // smartSelect
+        pickedMesh,
+        clickedPoint
+      );
+    }
+
+    // If still no snap, try with a much larger distance threshold (mesh bounding box size)
+    if (!snapResult.snapped && pickedMesh) {
+      pickedMesh.computeWorldMatrix(true);
+      const boundingInfo = pickedMesh.getBoundingInfo();
+      const meshCenter = boundingInfo.boundingBox.centerWorld;
+      const min = boundingInfo.boundingBox.minimumWorld;
+      const max = boundingInfo.boundingBox.maximumWorld;
+      const meshSize = max.subtract(min);
+      const maxDimension = Math.max(meshSize.x, meshSize.y, meshSize.z);
+      const largeSnapDistance = Math.max(state.snapDistance, maxDimension * 1000 * 2); // Convert to mm and add margin
+      
+      const largeSnapSettings = { ...snapSettings, snapDistance: largeSnapDistance };
+      snapResult = snappingHelper.snapPosition(
+        meshCenter,
+        largeSnapSettings,
+        excludeMeshIds,
+        camera,
+        undefined,
+        true, // smartSelect
+        pickedMesh,
+        clickedPoint
+      );
+    }
+
+    console.log('[Snap Tool] Target snap result:', {
+      snapped: snapResult.snapped,
+      snapType: snapResult.snapType,
+      position: snapResult.position,
+    });
+
+    if (!snapResult.snapped) {
+      console.error('[Snap Tool] No snap target found!');
+      toast.error(`No snap target found within ${state.snapDistance}mm`);
+      return;
+    }
+
+    const targetPoint = snapResult.position;
+
+    // Calculate offset needed to move source point to target point
+    const offset = targetPoint.subtract(sourcePoint);
+    console.log('[Snap Tool] Calculated offset:', offset);
+    console.log('[Snap Tool] Moving source point from', sourcePoint, 'to', targetPoint);
+
+    // Check if source mesh belongs to a device entity
+    if (sourceEntity && sourceEntity.getIsDevice()) {
+      console.log('[Snap Tool] Moving device entity');
+      // Move the entire device by moving its root transform node
+      const rootNode = sourceEntity.getRootTransformNode();
+      if (rootNode) {
+        console.log('[Snap Tool] Device root node position before:', rootNode.position.clone());
+        rootNode.position.addInPlace(offset);
+        console.log('[Snap Tool] Device root node position after:', rootNode.position.clone());
+
+        // Update scene tree for the device root node
+        const tree = SceneTreeManager.getInstance();
+        const treeNode = tree.getNodeByEntityId(sourceEntity.getId());
+        if (treeNode) {
+          const newPos = babylonToUser(rootNode.position);
+          tree.setLocalPosition(treeNode.id, newPos);
+        }
+
+        // Sync all child link entities to physics
+        const linkEntities = sourceEntity.getChildren();
+        linkEntities.forEach((linkEntity: any) => {
+          linkEntity.syncToPhysics();
+        });
+
+        toast.success(`Device snapped to ${snapResult.snapType || 'target'}!`);
+      } else {
+        console.error('[Snap Tool] Device entity has no root transform node!');
+      }
+    } else {
+      console.log('[Snap Tool] Moving regular mesh');
+      console.log('[Snap Tool] Mesh position before:', sourceMesh.position.clone());
+      sourceMesh.position.addInPlace(offset);
+      console.log('[Snap Tool] Mesh position after:', sourceMesh.position.clone());
+
+      // Sync to scene tree and physics
+      const tree = SceneTreeManager.getInstance();
+      const node = tree.getNodeByBabylonMeshId(sourceMesh.uniqueId.toString());
+      if (node) {
+        const newPos = babylonToUser(sourceMesh.position);
+        tree.setLocalPosition(node.id, newPos);
+
+        // Sync to physics if entity exists
+        if (node.entityId) {
+          const meshEntity = registry.get(node.entityId);
+          meshEntity?.syncToPhysics();
+        }
+      } else {
+        console.warn('[Snap Tool] No scene tree node found for mesh:', sourceMesh.name);
+      }
+
+      const snapTypeName = snapResult.snapType || 'target';
+      toast.success(`Snapped to ${snapTypeName}!`);
+    }
+
+    window.dispatchEvent(new Event('scenetree-update'));
+
+    // Clear first point after successful snap (ready for next snap)
+    set({ snapFirstPoint: null });
   },
 
   // Point pick tool setters

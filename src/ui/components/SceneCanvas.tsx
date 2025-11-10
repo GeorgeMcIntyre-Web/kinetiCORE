@@ -36,6 +36,7 @@ export const SceneCanvas: React.FC = () => {
   const clearSelection = useEditorStore((state) => state.clearSelection);
   const initializeCoordinateFrameWidget = useEditorStore((state) => state.initializeCoordinateFrameWidget);
   const handleAlignClick = useEditorStore((state) => state.handleAlignClick);
+  const handleSnapClick = useEditorStore((state) => state.handleSnapClick);
   const handleSceneClickForCustomFrame = useEditorStore((state) => state.handleSceneClickForCustomFrame);
   const handlePointPick = useEditorStore((state) => state.handlePointPick);
 
@@ -92,8 +93,8 @@ export const SceneCanvas: React.FC = () => {
   const applyHoverHighlight = useCallback(
     (mesh: BABYLON.AbstractMesh, scene: BABYLON.Scene) => {
       const state = useEditorStore.getState();
-      // Allow hover in point pick mode, but not in align or custom frame modes
-      if (state.alignMode || state.customFrameSelectionMode !== 'none') {
+      // Allow hover in point pick mode, but not in snap tool, align or custom frame modes
+      if (state.snapToolActive || state.alignMode || state.customFrameSelectionMode !== 'none') {
         return;
       }
 
@@ -444,6 +445,14 @@ export const SceneCanvas: React.FC = () => {
 
               handlePointPick(pointPickResult);
               // Continue to normal selection (don't return)
+            }
+
+            // Check if we're in snap tool mode
+            const currentSnapToolActive = useEditorStore.getState().snapToolActive;
+            if (currentSnapToolActive) {
+              // Handle snap clicks
+              handleSnapClick(pickResult);
+              return; // Don't process as normal selection
             }
 
             // Check if we're in alignment mode

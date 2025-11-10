@@ -19,6 +19,7 @@ import {
   Grab,
   Search,
   Crosshair,
+  Magnet,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
@@ -62,6 +63,8 @@ export const ProfessionalModeLayout: React.FC = () => {
   const canRedo = useEditorStore((state) => state.canRedo());
   const savePanelLayout = useEditorStore((state) => state.savePanelLayout);
   const loadPanelLayout = useEditorStore((state) => state.loadPanelLayout);
+  const snapToolActive = useEditorStore((state) => state.snapToolActive);
+  const setSnapToolActive = useEditorStore((state) => state.setSnapToolActive);
 
   const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'analysis'>('modeling');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -436,6 +439,14 @@ export const ProfessionalModeLayout: React.FC = () => {
             >
               <Navigation size={18} />
               <span>Position</span>
+            </button>
+            <button
+              className={`tool-btn ${snapToolActive ? 'active' : ''}`}
+              title="Snap - Click first point on source object, then click target point"
+              onClick={() => setSnapToolActive(!snapToolActive)}
+            >
+              <Magnet size={18} />
+              <span>Snap</span>
             </button>
             <button
               className="tool-btn"
