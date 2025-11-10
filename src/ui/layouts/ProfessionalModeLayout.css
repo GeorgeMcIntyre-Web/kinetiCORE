@@ -142,7 +142,7 @@
   display: flex;
   align-items: center;
   /* Provide breathing space so group labels aren't cut by top border */
-  padding: 6px 8px 6px 8px;
+  padding: 6px 8px 6px 2px; /* Minimal left padding to move buttons left */
   gap: 4px; /* tighter spacing to prevent scrollbar */
   overflow-x: hidden; /* Remove scrollbar - buttons should fit */
   overflow-y: visible; /* allow labels to render cleanly */

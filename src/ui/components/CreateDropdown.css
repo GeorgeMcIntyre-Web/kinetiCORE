@@ -2,25 +2,21 @@
 
 .create-dropdown {
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  flex-shrink: 1;
+  overflow: visible; /* Allow chevron to be visible */
+  margin: 0; /* No margin on any side */
+  padding: 0; /* No padding */
 }
 
 .create-dropdown-button-group {
   display: flex;
   align-items: center;
   position: relative;
+  overflow: visible;
 }
 
 /* Use ribbon-btn class from RibbonToolbar.css for consistent styling */
-.create-dropdown {
-  display: inline-block;
-  position: relative;
-}
-
-.create-dropdown-button-group {
-  position: relative;
-  display: inline-block;
-}
 
 /* Ensure the button matches tool-btn sizing and styling */
 .create-dropdown-main-btn {
@@ -28,13 +24,15 @@
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
-  justify-content: space-between !important;
+  justify-content: flex-start !important;
   position: relative;
-  overflow: visible;
+  overflow: visible; /* Allow chevron to be fully visible */
   gap: 0;
-  padding: 2px 8px;
-  min-width: 52px;
+  padding: 2px 16px 2px 2px !important; /* Left: 2px, Right: 16px for spacing to next button - override ribbon-btn */
+  margin: 0 !important; /* Remove any margin from ribbon-btn */
+  min-width: 48px;
   width: auto;
+  box-sizing: border-box; /* Include padding in width calculation */
   background: transparent !important; /* Match tool-btn background - override ribbon-btn */
   border: 1px solid transparent !important; /* Match tool-btn border - override ribbon-btn */
   border-radius: 4px;
@@ -52,6 +50,7 @@
   width: 16px;
   height: 16px;
   margin-right: 6px; /* Space between icon and text */
+  margin-left: 0; /* No left margin, align to left edge */
 }
 
 .create-dropdown-icon-wrapper svg {
@@ -69,7 +68,7 @@
   line-height: 14px;
   color: inherit;
   margin: 0;
-  margin-right: 6px; /* Space between text and arrow */
+  margin-right: 8px; /* Space between text and arrow */
 }
 
 .create-dropdown-chevron-wrapper {
@@ -78,27 +77,32 @@
   justify-content: center;
   flex-shrink: 0;
   flex-grow: 0;
-  width: 12px;
-  height: 12px;
-  margin-left: 4px; /* Add spacing from label, push to right */
-  padding-left: 2px; /* Extra padding for visibility */
+  width: 3px;
+  height: 3px;
+  margin-left: 0; /* No left margin, label margin-right handles spacing */
+  margin-right: 0; /* No margin on right, padding handles spacing */
+  padding: 0;
+  visibility: visible;
+  opacity: 1;
 }
 
 .create-dropdown-chevron {
   position: relative;
-  opacity: 0.9; /* Increased from 0.7 for better visibility */
+  opacity: 1; /* Full opacity for clear visibility */
   transition: transform 0.2s ease, opacity 0.2s ease;
   pointer-events: none;
-  width: 12px;
-  height: 12px;
+  width: 3px;
+  height: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .create-dropdown-chevron svg {
-  width: 12px;
-  height: 12px;
+  width: 3px;
+  height: 3px;
+  flex-shrink: 0;
 }
 
 .create-dropdown-main-btn:hover {
