@@ -23,6 +23,7 @@ export const SceneCanvas: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { userLevel } = useUserLevel();
   const isPickingSnapPoint = useEditorStore((state) => state.isPickingSnapPoint);
+  const isPickingSnapFrame = useEditorStore((state) => state.isPickingSnapFrame);
   const setCamera = useEditorStore((state) => state.setCamera);
   const camera = useEditorStore((state) => state.camera);
   const showCoordinateOverlay = useEditorStore((state) => state.showCoordinateOverlay);
@@ -283,11 +284,11 @@ export const SceneCanvas: React.FC = () => {
               });
 
               if (snapPickResult.hit && snapPickResult.pickedPoint) {
-                // Show targeting widget for visual feedback
-                sceneManager.showTargetingWidget(
-                  snapPickResult.pickedPoint,
-                  snapPickResult.getNormal(true) || undefined
-                );
+                // Targeting widget disabled
+                // sceneManager.showTargetingWidget(
+                //   snapPickResult.pickedPoint,
+                //   snapPickResult.getNormal(true) || undefined
+                // );
 
                 // Convert picked point to user coordinates (mm)
                 const userCoords = babylonToUser(snapPickResult.pickedPoint);
@@ -329,6 +330,99 @@ export const SceneCanvas: React.FC = () => {
               return; // Don't process as normal selection
             }
 
+            // Handle snap frame picking (if enabled) - takes priority over normal selection
+            const isPickingSnapFrame = useEditorStore.getState().isPickingSnapFrame;
+            if (isPickingSnapFrame && pickResult.hit && pickResult.pickedMesh) {
+              let pickedMesh = pickResult.pickedMesh;
+              const tree = SceneTreeManager.getInstance();
+
+              console.log('[Frame Picking] Clicked mesh:', pickedMesh.name, 'uniqueId:', pickedMesh.uniqueId);
+
+              // Traverse up the parent hierarchy to find the root mesh that's in the scene tree
+              // This ensures we select the entire frame object, not just an axis or label
+              let rootMesh: BABYLON.AbstractMesh | null = pickedMesh;
+              let node = tree.getNodeByBabylonMeshId(pickedMesh.uniqueId.toString());
+
+              console.log('[Frame Picking] Initial tree lookup:', node ? node.name : 'NOT FOUND');
+
+              // If picked mesh is not in tree, try traversing up the parent hierarchy
+              while (!node && rootMesh && rootMesh.parent) {
+                console.log('[Frame Picking] Traversing parent:', rootMesh.parent.name);
+
+                if (rootMesh.parent instanceof BABYLON.AbstractMesh || rootMesh.parent instanceof BABYLON.TransformNode) {
+                  // Check if parent has a mesh we can use
+                  if (rootMesh.parent instanceof BABYLON.AbstractMesh) {
+                    rootMesh = rootMesh.parent;
+                    node = tree.getNodeByBabylonMeshId(rootMesh.uniqueId.toString());
+                    console.log('[Frame Picking] Checking parent mesh:', rootMesh.name, 'found in tree:', !!node);
+                  } else {
+                    // Parent is a TransformNode, check its children for the main mesh
+                    const transformNode = rootMesh.parent as BABYLON.TransformNode;
+                    console.log('[Frame Picking] Found TransformNode parent:', transformNode.name, 'children count:', transformNode.getChildren().length);
+                    const children = transformNode.getChildren();
+                    for (const child of children) {
+                      if (child instanceof BABYLON.AbstractMesh) {
+                        const childNode = tree.getNodeByBabylonMeshId(child.uniqueId.toString());
+                        console.log('[Frame Picking] Checking sibling:', child.name, 'found in tree:', !!childNode);
+                        if (childNode) {
+                          rootMesh = child;
+                          node = childNode;
+                          break;
+                        }
+                      }
+                    }
+                    break; // Stop traversing if we reached a TransformNode
+                  }
+                } else {
+                  console.log('[Frame Picking] Parent is not mesh or transform node, stopping');
+                  break; // Stop if parent is not a mesh or transform node
+                }
+              }
+
+              console.log('[Frame Picking] Final node:', node ? node.name : 'NONE', 'rootMesh:', rootMesh ? rootMesh.name : 'NONE');
+
+              if (node && rootMesh) {
+                const frameObject = {
+                  nodeId: node.id,
+                  mesh: rootMesh,
+                  name: node.name
+                };
+
+                console.log('[Frame Picking] ✅ Frame found:', frameObject.name);
+
+                // Update the appropriate snap frame
+                if (isPickingSnapFrame === 'from') {
+                  useEditorStore.getState().setSnapFromFrameObject(frameObject);
+                  // Auto-advance to picking "to" frame
+                  useEditorStore.getState().setIsPickingSnapFrame('to');
+                  toast.success(`From frame set: ${node.name}. Now select the "To" frame.`);
+                } else {
+                  useEditorStore.getState().setSnapToFrameObject(frameObject);
+                  // Auto-apply the frame-to-frame transformation
+                  useEditorStore.getState().setIsPickingSnapFrame(null);
+
+                  // Get current snap frame objects
+                  const state = useEditorStore.getState();
+                  const fromFrame = state.snapFromFrameObject;
+                  const toFrame = frameObject;
+
+                  if (fromFrame) {
+                    // Apply frame-to-frame snap transformation
+                    useEditorStore.getState().applySnapSettings({
+                      mode: 'frame-to-frame',
+                    });
+
+                    toast.success(`Object snapped from "${fromFrame.name}" to "${toFrame.name}"!`);
+                  }
+                }
+              } else {
+                console.log('[Frame Picking] ❌ Frame NOT found in scene tree');
+                toast.error('Selected object is not in the scene tree. Please select a coordinate frame object, not a visual frame overlay.');
+              }
+
+              return; // Don't process as normal selection - prevents changing the Object field
+            }
+
             // Handle point pick (if enabled) - runs alongside normal selection
             const currentPointPickMode = useEditorStore.getState().pointPickMode;
             if (currentPointPickMode) {
@@ -338,12 +432,12 @@ export const SceneCanvas: React.FC = () => {
                 return mesh.isVisible && mesh.isEnabled() && mesh.isPickable;
               });
 
-              // Show targeting widget for point pick
+              // Targeting widget disabled
               if (pointPickResult.hit && pointPickResult.pickedPoint) {
-                sceneManager.showTargetingWidget(
-                  pointPickResult.pickedPoint,
-                  pointPickResult.getNormal(true) || undefined
-                );
+                // sceneManager.showTargetingWidget(
+                //   pointPickResult.pickedPoint,
+                //   pointPickResult.getNormal(true) || undefined
+                // );
                 // Store picked point for coordinate display
                 useEditorStore.getState().setLastPickedPoint(pointPickResult.pickedPoint);
               }
@@ -494,12 +588,12 @@ export const SceneCanvas: React.FC = () => {
                 return; // Don't process as regular selection
               }
 
-              // Show targeting widget at pick point for visual feedback
+              // Targeting widget disabled
               if (pickResult.pickedPoint) {
-                sceneManager.showTargetingWidget(
-                  pickResult.pickedPoint,
-                  pickResult.getNormal(true) || undefined
-                );
+                // sceneManager.showTargetingWidget(
+                //   pickResult.pickedPoint,
+                //   pickResult.getNormal(true) || undefined
+                // );
                 // Store picked point for coordinate display
                 useEditorStore.getState().setLastPickedPoint(pickResult.pickedPoint);
               }
@@ -1221,7 +1315,7 @@ export const SceneCanvas: React.FC = () => {
           display: 'block',
           outline: 'none',
           pointerEvents: 'auto',
-          cursor: isPickingSnapPoint ? 'crosshair' : 'default',
+          cursor: (isPickingSnapPoint || isPickingSnapFrame) ? 'crosshair' : 'default',
         }}
       />
 

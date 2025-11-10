@@ -20,12 +20,18 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
   const dragStartRef = useRef({ x: 0, y: 0 });
   const [isManualModeExpanded, setIsManualModeExpanded] = useState(false);
 
+  const snapMode = useEditorStore((state) => state.snapMode);
+  const setSnapMode = useEditorStore((state) => state.setSnapMode);
   const snapFromPoint = useEditorStore((state) => state.snapFromPoint);
   const snapToPoint = useEditorStore((state) => state.snapToPoint);
   const isPickingSnapPoint = useEditorStore((state) => state.isPickingSnapPoint);
   const setIsPickingSnapPoint = useEditorStore((state) => state.setIsPickingSnapPoint);
   const setSnapFromPoint = useEditorStore((state) => state.setSnapFromPoint);
   const setSnapToPoint = useEditorStore((state) => state.setSnapToPoint);
+  const snapFromFrameObject = useEditorStore((state) => state.snapFromFrameObject);
+  const snapToFrameObject = useEditorStore((state) => state.snapToFrameObject);
+  const isPickingSnapFrame = useEditorStore((state) => state.isPickingSnapFrame);
+  const setIsPickingSnapFrame = useEditorStore((state) => state.setIsPickingSnapFrame);
   const applySnapSettings = useEditorStore((state) => state.applySnapSettings);
   const clearSnapFrames = useEditorStore((state) => state.clearSnapFrames);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
@@ -50,15 +56,19 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
       setFrom(snapFromPoint);
       setTo(snapToPoint);
 
-      const tree = SceneTreeManager.getInstance();
-      if (selectedNodeId) {
-        const node = tree.getNode(selectedNodeId);
-        setObjectName(node?.name ?? 'Unknown Object');
-      } else {
-        setObjectName('None Selected');
+      // Only update object name if we're not currently picking a frame
+      // This prevents the Object field from changing when selecting frames
+      if (!isPickingSnapFrame) {
+        const tree = SceneTreeManager.getInstance();
+        if (selectedNodeId) {
+          const node = tree.getNode(selectedNodeId);
+          setObjectName(node?.name ?? 'Unknown Object');
+        } else {
+          setObjectName('None Selected');
+        }
       }
     }
-  }, [isOpen, snapFromPoint, snapToPoint, selectedNodeId]);
+  }, [isOpen, snapFromPoint, snapToPoint, selectedNodeId, isPickingSnapFrame]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.move-dialog-drag-handle') && dialogPosition) {
@@ -98,8 +108,13 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
   // Handle ESC key to cancel picking (must run every render to keep hook order consistent)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isPickingSnapPoint) {
-        setIsPickingSnapPoint(null);
+      if (e.key === 'Escape') {
+        if (isPickingSnapPoint) {
+          setIsPickingSnapPoint(null);
+        }
+        if (isPickingSnapFrame) {
+          setIsPickingSnapFrame(null);
+        }
       }
     };
 
@@ -107,7 +122,7 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [isOpen, isPickingSnapPoint, setIsPickingSnapPoint]);
+  }, [isOpen, isPickingSnapPoint, isPickingSnapFrame, setIsPickingSnapPoint, setIsPickingSnapFrame]);
 
   if (!isOpen) {
     return null;
@@ -115,17 +130,19 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
 
   const handleCancel = () => {
     setIsPickingSnapPoint(null);
+    setIsPickingSnapFrame(null);
     clearSnapFrames();
     onClose();
   };
 
   const handleApply = () => {
     applySnapSettings({
-      mode: 'point-to-point',
+      mode: snapMode,
       from,
       to,
     });
     setIsPickingSnapPoint(null);
+    setIsPickingSnapFrame(null);
     clearSnapFrames();
     onClose();
   };
@@ -133,6 +150,11 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
   const handleQuickSnap = () => {
     // Start the quick snap workflow - pick from point
     setIsPickingSnapPoint('from');
+  };
+
+  const handleQuickFrameSnap = () => {
+    // Start the quick frame snap workflow - pick from frame
+    setIsPickingSnapFrame('from');
   };
 
   const handlePickFromPoint = () => {
@@ -183,7 +205,9 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
       <div className="move-dialog-content">
         <div className="move-section">
           <label className="move-section-label">Snapping Mode</label>
-          <div
+          <select
+            value={snapMode}
+            onChange={(e) => setSnapMode(e.target.value as 'point-to-point' | 'frame-to-frame')}
             style={{
               width: '100%',
               background: 'rgba(37,37,38,0.8)',
@@ -192,10 +216,12 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
               borderRadius: '4px',
               padding: '6px 8px',
               fontSize: '12px',
+              cursor: 'pointer',
             }}
           >
-            Point to Point
-          </div>
+            <option value="point-to-point">Point to Point</option>
+            <option value="frame-to-frame">Frame to Frame</option>
+          </select>
         </div>
 
         <div className="move-section">
@@ -216,47 +242,103 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
           />
         </div>
 
-        {/* Quick Snap Button */}
-        <div className="move-section">
-          <button
-            onClick={handleQuickSnap}
-            style={{
-              width: '100%',
-              background: isPickingSnapPoint ? 'rgba(98, 104, 255, 0.7)' : 'rgba(98, 104, 255, 0.5)',
-              color: '#fff',
-              border: '2px solid rgba(98, 104, 255, 0.8)',
-              borderRadius: '6px',
-              padding: '10px 12px',
-              fontSize: '13px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              transition: 'all 0.2s ease',
-            }}
-            title="Click to start quick snap workflow: pick FROM point, then TO point - object snaps automatically!"
-          >
-            <Crosshair size={16} />
-            {isPickingSnapPoint === 'from'
-              ? 'Click to set FROM point...'
-              : isPickingSnapPoint === 'to'
-              ? 'Click to set TO point...'
-              : 'Quick Snap (Click to Start)'}
-          </button>
-          {isPickingSnapPoint && (
-            <div style={{
-              marginTop: '6px',
-              fontSize: '11px',
-              color: '#aaa',
-              textAlign: 'center',
-              fontStyle: 'italic'
-            }}>
-              Press ESC to cancel
-            </div>
-          )}
-        </div>
+        {/* Quick Snap Button - Point to Point Mode */}
+        {snapMode === 'point-to-point' && (
+          <div className="move-section">
+            <button
+              onClick={handleQuickSnap}
+              style={{
+                width: '100%',
+                background: isPickingSnapPoint ? 'rgba(98, 104, 255, 0.7)' : 'rgba(98, 104, 255, 0.5)',
+                color: '#fff',
+                border: '2px solid rgba(98, 104, 255, 0.8)',
+                borderRadius: '6px',
+                padding: '10px 12px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+              }}
+              title="Click to start quick snap workflow: pick FROM point, then TO point - object snaps automatically!"
+            >
+              <Crosshair size={16} />
+              {isPickingSnapPoint === 'from'
+                ? 'Click to set FROM point...'
+                : isPickingSnapPoint === 'to'
+                ? 'Click to set TO point...'
+                : 'Quick Snap (Click to Start)'}
+            </button>
+            {isPickingSnapPoint && (
+              <div style={{
+                marginTop: '6px',
+                fontSize: '11px',
+                color: '#aaa',
+                textAlign: 'center',
+                fontStyle: 'italic'
+              }}>
+                Press ESC to cancel
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Frame to Frame Mode - Quick Snap */}
+        {snapMode === 'frame-to-frame' && (
+          <div className="move-section">
+            <button
+              onClick={handleQuickFrameSnap}
+              style={{
+                width: '100%',
+                background: isPickingSnapFrame ? 'rgba(98, 104, 255, 0.7)' : 'rgba(98, 104, 255, 0.5)',
+                color: '#fff',
+                border: '2px solid rgba(98, 104, 255, 0.8)',
+                borderRadius: '6px',
+                padding: '10px 12px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+              }}
+              title="Click to start frame-to-frame snap: select FROM frame, then TO frame - object transforms automatically!"
+            >
+              <Crosshair size={16} />
+              {isPickingSnapFrame === 'from'
+                ? 'Select FROM frame...'
+                : isPickingSnapFrame === 'to'
+                ? 'Select TO frame...'
+                : 'Quick Frame Snap (Click to Start)'}
+            </button>
+            {isPickingSnapFrame && (
+              <div style={{
+                marginTop: '6px',
+                fontSize: '11px',
+                color: '#aaa',
+                textAlign: 'center',
+                fontStyle: 'italic'
+              }}>
+                Press ESC to cancel
+              </div>
+            )}
+            {(snapFromFrameObject || snapToFrameObject) && (
+              <div style={{
+                marginTop: '8px',
+                fontSize: '11px',
+                color: '#ccc',
+              }}>
+                {snapFromFrameObject && <div>From: {snapFromFrameObject.name}</div>}
+                {snapToFrameObject && <div>To: {snapToFrameObject.name}</div>}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Divider - Collapsible Manual Mode */}
         <div

@@ -35,12 +35,18 @@ import { ProjectWorldLoader } from '../../project/ProjectWorldLoader';
 import type { Project, ProjectSave, AssetInstance } from '../../project/types';
 
 type ObjectType = 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'plane' | 'ground' | 'capsule' | 'disc' | 'torusknot' | 'polyhedron';
-type SnapMode = 'point-to-point';
+type SnapMode = 'point-to-point' | 'frame-to-frame';
 
 interface SnapPoint {
   x: number;
   y: number;
   z: number;
+}
+
+interface SnapFrameObject {
+  nodeId: string; // Scene tree node ID
+  mesh: BABYLON.Mesh | BABYLON.TransformNode; // The actual frame object
+  name: string; // Display name
 }
 
 interface EditorState {
@@ -104,10 +110,18 @@ interface EditorState {
   isPickingSnapPoint: 'from' | 'to' | null; // Track which point is being picked
   snapFromFrame: { rootNode: BABYLON.TransformNode; originPoint: BABYLON.Vector3; baseSize: number } | null; // Visual frame at "from" point
   snapToFrame: { rootNode: BABYLON.TransformNode; originPoint: BABYLON.Vector3; baseSize: number } | null; // Visual frame at "to" point
+  // Frame-to-frame snapping state
+  snapFromFrameObject: SnapFrameObject | null; // Source frame object for frame-to-frame snapping
+  snapToFrameObject: SnapFrameObject | null; // Target frame object for frame-to-frame snapping
+  isPickingSnapFrame: 'from' | 'to' | null; // Track which frame is being picked
+  savedSelectionDuringFramePick: { nodeId: string | null; meshes: BABYLON.Mesh[] } | null; // Preserve selection during frame picking
   setSnapMode: (mode: SnapMode) => void;
   setSnapFromPoint: (point: SnapPoint) => void;
   setSnapToPoint: (point: SnapPoint) => void;
   setIsPickingSnapPoint: (mode: 'from' | 'to' | null) => void;
+  setSnapFromFrameObject: (frame: SnapFrameObject | null) => void;
+  setSnapToFrameObject: (frame: SnapFrameObject | null) => void;
+  setIsPickingSnapFrame: (mode: 'from' | 'to' | null) => void;
   applySnapSettings: (settings: { mode?: SnapMode; from?: SnapPoint; to?: SnapPoint }) => void;
   clearSnapFrames: () => void; // Clear temporary snap frames
 
@@ -640,6 +654,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
   isPickingSnapPoint: null,
   snapFromFrame: null,
   snapToFrame: null,
+  snapFromFrameObject: null,
+  snapToFrameObject: null,
+  isPickingSnapFrame: null,
+  savedSelectionDuringFramePick: null,
   setSnapMode: (mode) => set({ snapMode: mode }),
   setSnapFromPoint: (point) => {
     // Clear previous "from" frame
@@ -684,6 +702,52 @@ export const useEditorStore = create<EditorState>((set, get) => {
     set({ snapToPoint: point, snapToFrame: null });
   },
   setIsPickingSnapPoint: (mode) => set({ isPickingSnapPoint: mode }),
+  setSnapFromFrameObject: (frame) => set({ snapFromFrameObject: frame }),
+  setSnapToFrameObject: (frame) => set({ snapToFrameObject: frame }),
+  setIsPickingSnapFrame: (mode) => {
+    const state = get();
+
+    // When starting frame picking, save the current selection to preserve it
+    if (mode === 'from' && !state.savedSelectionDuringFramePick) {
+      set({
+        isPickingSnapFrame: mode,
+        savedSelectionDuringFramePick: {
+          nodeId: state.selectedNodeId,
+          meshes: [...state.selectedMeshes], // Copy array
+        },
+      });
+    }
+    // When finishing/canceling frame picking, restore saved selection
+    else if (mode === null && state.savedSelectionDuringFramePick) {
+      const savedSelection = state.savedSelectionDuringFramePick;
+
+      // Restore the selection
+      set({
+        isPickingSnapFrame: mode,
+        savedSelectionDuringFramePick: null,
+        selectedNodeId: savedSelection.nodeId,
+        selectedMeshes: savedSelection.meshes,
+      });
+
+      // Update mesh selection states (highlight/gizmos)
+      savedSelection.meshes.forEach(mesh => {
+        if (mesh.metadata) {
+          mesh.metadata.isSelected = true;
+        }
+      });
+    }
+    // When finishing without saved selection (shouldn't happen, but handle gracefully)
+    else if (mode === null) {
+      set({
+        isPickingSnapFrame: mode,
+        savedSelectionDuringFramePick: null,
+      });
+    }
+    // For 'to' mode, just update the picking mode without changing saved selection
+    else {
+      set({ isPickingSnapFrame: mode });
+    }
+  },
   clearSnapFrames: () => {
     const { snapFromFrame, snapToFrame } = get();
     if (snapFromFrame) {
@@ -695,7 +759,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     set({ snapFromFrame: null, snapToFrame: null });
   },
   applySnapSettings: (settings) => {
-    const { snapMode, snapFromPoint, snapToPoint, selectedMeshes, snapFromFrame, snapToFrame } = get();
+    const { snapMode, snapFromPoint, snapToPoint, selectedMeshes, snapFromFrame, snapToFrame, snapFromFrameObject, snapToFrameObject } = get();
     const nextMode = settings.mode ?? snapMode;
     const nextFrom = settings.from ?? snapFromPoint;
     const nextTo = settings.to ?? snapToPoint;
@@ -730,7 +794,68 @@ export const useEditorStore = create<EditorState>((set, get) => {
       set({ snapFromFrame: null, snapToFrame: null });
 
       toast.success('Object snapped! Ready for next snap.');
-    } else {
+    }
+    // Apply frame-to-frame transformation if both frames are set and object is selected
+    else if (selectedMeshes.length > 0 && nextMode === 'frame-to-frame' && snapFromFrameObject && snapToFrameObject) {
+      const mesh = selectedMeshes[0];
+      const fromFrameMesh = snapFromFrameObject.mesh;
+      const toFrameMesh = snapToFrameObject.mesh;
+
+      // Ensure world matrices are up to date
+      fromFrameMesh.computeWorldMatrix(true);
+      toFrameMesh.computeWorldMatrix(true);
+      mesh.computeWorldMatrix(true);
+
+      // Get the world transformation matrices
+      const fromFrameWorldMatrix = fromFrameMesh.getWorldMatrix();
+      const toFrameWorldMatrix = toFrameMesh.getWorldMatrix();
+
+      // Calculate the inverse of the "from" frame for relative transformation
+      const fromFrameInverse = BABYLON.Matrix.Invert(fromFrameWorldMatrix);
+
+      // Get the current object's world matrix
+      const objectWorldMatrix = mesh.getWorldMatrix();
+
+      // Calculate object's pose relative to "from" frame
+      // T_obj_relative = inv(T_from) * T_obj
+      const objectRelativeToFrom = fromFrameInverse.multiply(objectWorldMatrix);
+
+      // Apply same relative pose to "to" frame
+      // T_obj_new = T_to * T_obj_relative
+      const newWorldMatrix = toFrameWorldMatrix.multiply(objectRelativeToFrom);
+
+      // Decompose the new world matrix to get position, rotation, and scale
+      const newPosition = new BABYLON.Vector3();
+      const newRotation = new BABYLON.Quaternion();
+      const newScale = new BABYLON.Vector3();
+      newWorldMatrix.decompose(newScale, newRotation, newPosition);
+
+      // Apply the new transformation to the mesh
+      // Need to handle parent transformations if mesh has a parent
+      if (mesh.parent) {
+        // If mesh has a parent, we need to convert world transform to local transform
+        const parentWorldMatrix = mesh.parent.getWorldMatrix();
+        const parentInverse = BABYLON.Matrix.Invert(parentWorldMatrix);
+        const localMatrix = parentInverse.multiply(newWorldMatrix);
+
+        const localPosition = new BABYLON.Vector3();
+        const localRotation = new BABYLON.Quaternion();
+        const localScale = new BABYLON.Vector3();
+        localMatrix.decompose(localScale, localRotation, localPosition);
+
+        mesh.position = localPosition;
+        mesh.rotationQuaternion = localRotation;
+        mesh.scaling = localScale;
+      } else {
+        // No parent, directly set world transform
+        mesh.position = newPosition;
+        mesh.rotationQuaternion = newRotation;
+        mesh.scaling = newScale;
+      }
+
+      toast.success('Object transformed to target frame!');
+    }
+    else {
       toast.success('Snap settings updated');
     }
   },
@@ -877,6 +1002,96 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
   selectNode: (nodeId) => {
     const normalizedId = normalizeNodeId(nodeId);
+
+    // Check if we're in frame picking mode (for frame-to-frame snapping)
+    const { isPickingSnapFrame } = get();
+    if (isPickingSnapFrame) {
+      const tree = SceneTreeManager.getInstance();
+      const node = tree.getNode(normalizedId);
+      const sceneManager = SceneManager.getInstance();
+      const scene = sceneManager.getScene();
+
+      console.log('[Frame Picking from Tree] Selected node:', node?.name);
+
+      if (node && scene) {
+        // Get the mesh for this node
+        let mesh: BABYLON.AbstractMesh | null = null;
+        const registry = EntityRegistry.getInstance();
+
+        // Prefer entity mesh if available
+        if (node.entityId) {
+          const entity = registry.get(node.entityId);
+          if (entity && typeof entity.getMesh === 'function') {
+            mesh = entity.getMesh();
+            console.log('[Frame Picking from Tree] Found mesh from entity:', mesh?.name);
+          }
+        }
+
+        // Fallback to babylonMeshId
+        if (!mesh && node.babylonMeshId) {
+          mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
+          console.log('[Frame Picking from Tree] Found mesh from babylonMeshId:', mesh?.name);
+        }
+
+        // Fallback to TransformNode children
+        if (!mesh && node.babylonTransformNodeId) {
+          const transformNode = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId, 10));
+          if (transformNode) {
+            const children = transformNode.getChildren();
+            console.log('[Frame Picking from Tree] TransformNode has', children.length, 'children');
+            for (const child of children) {
+              if (child instanceof BABYLON.AbstractMesh) {
+                mesh = child;
+                console.log('[Frame Picking from Tree] Found mesh from TransformNode child:', mesh.name);
+                break;
+              }
+            }
+          }
+        }
+
+        if (mesh && node) {
+          const frameObject = {
+            nodeId: node.id,
+            mesh: mesh,
+            name: node.name
+          };
+
+          console.log('[Frame Picking from Tree] ✅ Frame found:', frameObject.name);
+
+          // Update the appropriate snap frame
+          if (isPickingSnapFrame === 'from') {
+            get().setSnapFromFrameObject(frameObject);
+            get().setIsPickingSnapFrame('to');
+            toast.success(`From frame set: ${node.name}. Now select the "To" frame.`);
+          } else {
+            get().setSnapToFrameObject(frameObject);
+            get().setIsPickingSnapFrame(null);
+
+            // Get current snap frame objects
+            const state = get();
+            const fromFrame = state.snapFromFrameObject;
+            const toFrame = frameObject;
+
+            if (fromFrame) {
+              // Apply frame-to-frame snap transformation
+              get().applySnapSettings({
+                mode: 'frame-to-frame',
+              });
+
+              toast.success(`Object snapped from "${fromFrame.name}" to "${toFrame.name}"!`);
+            }
+          }
+
+          return; // Exit early, don't process as normal selection
+        } else {
+          console.log('[Frame Picking from Tree] ❌ No mesh found for node');
+          toast.error('Selected node has no mesh. Please select a frame object with geometry.');
+          return; // Exit early
+        }
+      }
+    }
+
+    // Normal selection flow continues below
     set({ selectedNodeId: normalizedId, selectedNodeIds: [normalizedId] });
 
     const tree = SceneTreeManager.getInstance();
