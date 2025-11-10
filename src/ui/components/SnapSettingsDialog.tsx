@@ -94,6 +94,20 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
     };
   }, [isDragging]);
 
+  // Handle ESC key to cancel picking (must run every render to keep hook order consistent)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isPickingSnapPoint) {
+        setIsPickingSnapPoint(null);
+      }
+    };
+
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, isPickingSnapPoint, setIsPickingSnapPoint]);
+
   if (!isOpen) {
     return null;
   }
@@ -127,20 +141,6 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
   const handlePickToPoint = () => {
     setIsPickingSnapPoint('to');
   };
-
-  // Handle ESC key to cancel picking
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isPickingSnapPoint) {
-        setIsPickingSnapPoint(null);
-      }
-    };
-
-    if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [isOpen, isPickingSnapPoint, setIsPickingSnapPoint]);
 
   const handleClearFromPoint = () => {
     const zeroPoint = { x: 0, y: 0, z: 0 };
