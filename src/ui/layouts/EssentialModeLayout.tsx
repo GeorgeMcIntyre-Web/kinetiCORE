@@ -22,6 +22,7 @@ import { FloatingCollisionPanel } from '../components/FloatingCollisionPanel';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
 import { MoveObjectDialog } from '../components/MoveObjectDialog';
 import { SnapSettingsDialog } from '../components/SnapSettingsDialog';
+import { SnapSetupPopup } from '../components/SnapSetupPopup';
 import { ProjectManagerPanelV2 } from '../components/ProjectManager/ProjectManagerPanelV2';
 import { ProjectSaveDialog } from '../components/ProjectSaveDialog';
 import { WarehousePanel } from '../../routing/ui/WarehousePanel';
@@ -85,6 +86,7 @@ export const EssentialModeLayout: React.FC = () => {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [showSnapDialog, setShowSnapDialog] = useState(false);
+  const [showSnapSetupPopup, setShowSnapSetupPopup] = useState(false);
   const [showWarehousePanel, setShowWarehousePanel] = useState(false);
 
   // Resizable sidebar state
@@ -567,6 +569,7 @@ export const EssentialModeLayout: React.FC = () => {
             onAssetLibraryClick: toggleLibrary,
             onQuickMoveClick: () => setShowMoveDialog(true),
             onSnapSettingsClick: () => setShowSnapDialog(true),
+            onSnapSetupClick: () => setShowSnapSetupPopup(true),
             onResetViewClick: handleResetView,
             onZoomFitClick: handleZoomFit,
             onZoomToSelectedClick: handleZoomToSelected,
@@ -861,6 +864,12 @@ export const EssentialModeLayout: React.FC = () => {
       <SnapSettingsDialog
         isOpen={showSnapDialog}
         onClose={() => setShowSnapDialog(false)}
+      />
+
+      {/* Snap Setup Popup - Quick access from ribbon */}
+      <SnapSetupPopup
+        isOpen={showSnapSetupPopup}
+        onClose={() => setShowSnapSetupPopup(false)}
       />
 
       {/* Project Manager Panel */}

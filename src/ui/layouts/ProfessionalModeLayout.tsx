@@ -18,6 +18,7 @@ import {
   LayoutTemplate,
   Grab,
   Search,
+  Crosshair,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
@@ -39,6 +40,7 @@ import { KinematicExtractionPanel } from '../components/KinematicExtractionPanel
 import { Scan, Settings } from 'lucide-react';
 import { CreateDropdown } from '../components/CreateDropdown';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
+import { SnapSetupPopup } from '../components/SnapSetupPopup';
 import './ProfessionalModeLayout.css';
 
 export const ProfessionalModeLayout: React.FC = () => {
@@ -71,6 +73,7 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [showDebugLabels, setShowDebugLabels] = useState(false);
   const [showKinematicExtractionPanel, setShowKinematicExtractionPanel] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [showSnapSetupPopup, setShowSnapSetupPopup] = useState(false);
   const debugLabelsRef = useRef<RouteDebugLabels | null>(null);
   const routeSelection = useRoutingStore((state) => state.selectedRoute);
   // Auto size the left scene tree based on content (inline to avoid nested hook issues)
@@ -434,6 +437,14 @@ export const ProfessionalModeLayout: React.FC = () => {
               <Navigation size={18} />
               <span>Position</span>
             </button>
+            <button
+              className="tool-btn"
+              title="Snap Setup"
+              onClick={() => setShowSnapSetupPopup(true)}
+            >
+              <Crosshair size={18} />
+              <span>Snap Setup</span>
+            </button>
           </div>
         </div>
 
@@ -633,6 +644,12 @@ export const ProfessionalModeLayout: React.FC = () => {
         isVisible={showSettingsPanel}
         onClose={() => setShowSettingsPanel(false)}
         zIndex={1010}
+      />
+
+      {/* Snap Setup Popup - Quick access from ribbon */}
+      <SnapSetupPopup
+        isOpen={showSnapSetupPopup}
+        onClose={() => setShowSnapSetupPopup(false)}
       />
     </div>
   );

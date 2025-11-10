@@ -31,6 +31,7 @@ import {
   Eye,
   Camera,
 } from 'lucide-react';
+import { SnapSetupPopup } from './SnapSetupPopup';
 import { loadOBJFile } from '../../loaders/obj/OBJLoader';
 import { SceneManager } from '../../scene/SceneManager';
 import { toast } from '../components/ToastNotifications';
@@ -139,6 +140,7 @@ export interface RibbonToolbarProps {
   onFrontViewClick?: () => void;
   onIsoViewClick?: () => void;
   onSnapSettingsClick?: () => void;
+  onSnapSetupClick?: () => void;
   onWarehouseConfigClick?: () => void;
   onWarehouseToggleClick?: () => void;
   onWarehouseResetCameraClick?: () => void;
@@ -166,6 +168,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onFrontViewClick,
   onIsoViewClick,
   onSnapSettingsClick,
+  onSnapSetupClick,
   onWarehouseConfigClick,
   onWarehouseToggleClick,
   onWarehouseResetCameraClick,
@@ -388,6 +391,13 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
             title="Quick Move Dialog"
           >
             <QuickMoveIcon size={32} />
+          </button>
+          <button
+            className="ribbon-btn"
+            onClick={() => onSnapSetupClick?.()}
+            title="Snap Setup"
+          >
+            <Crosshair size={32} />
           </button>
         </div>
       </div>
