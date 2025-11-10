@@ -206,6 +206,7 @@ interface EditorState {
   snapFirstPoint: {
     mesh: BABYLON.Mesh;
     position: BABYLON.Vector3;
+    rotation: BABYLON.Quaternion; // Orientation at the clicked point
   } | null;
 
   // Object origin frame state - visual axis frame at selected object's origin
@@ -340,6 +341,7 @@ interface EditorState {
   setSnapFirstPoint: (point: {
     mesh: BABYLON.Mesh;
     position: BABYLON.Vector3;
+    rotation: BABYLON.Quaternion;
   } | null) => void;
   handleSnapClick: (pickInfo: BABYLON.PickingInfo) => void;
   cancelSnap: () => void;
@@ -4079,10 +4081,27 @@ export const useEditorStore = create<EditorState>((set, get) => {
         }
       }
 
+      // Capture the mesh's current rotation/orientation
+      pickedMesh.computeWorldMatrix(true);
+      let sourceRotation: BABYLON.Quaternion;
+      if (pickedMesh.rotationQuaternion) {
+        sourceRotation = pickedMesh.rotationQuaternion.clone();
+      } else {
+        // Convert Euler angles to quaternion
+        sourceRotation = BABYLON.Quaternion.RotationYawPitchRoll(
+          pickedMesh.rotation.y, // yaw
+          pickedMesh.rotation.x, // pitch
+          pickedMesh.rotation.z  // roll
+        );
+      }
+      
+      console.log('[Snap Tool] Captured source rotation:', sourceRotation);
+
       set({
         snapFirstPoint: {
           mesh: pickedMesh,
           position: sourcePoint,
+          rotation: sourceRotation,
         },
       });
 
@@ -4106,6 +4125,21 @@ export const useEditorStore = create<EditorState>((set, get) => {
     console.log('[Snap Tool] Second click - finding target point');
     const sourceMesh = snapFirstPoint.mesh;
     const sourcePoint = snapFirstPoint.position;
+    
+    // Ensure we have a proper Quaternion instance (Zustand might serialize it)
+    let sourceRotation: BABYLON.Quaternion;
+    if (snapFirstPoint.rotation instanceof BABYLON.Quaternion) {
+      sourceRotation = snapFirstPoint.rotation;
+    } else {
+      // Zustand may have serialized it, so reconstruct from stored values
+      const rot = snapFirstPoint.rotation as any;
+      sourceRotation = new BABYLON.Quaternion(
+        rot.x ?? rot._x ?? 0,
+        rot.y ?? rot._y ?? 0,
+        rot.z ?? rot._z ?? 0,
+        rot.w ?? rot._w ?? 1
+      );
+    }
     
     console.log('[Snap Tool] Source mesh:', sourceMesh?.name, 'Source point:', sourcePoint);
     console.log('[Snap Tool] Target mesh:', pickedMesh?.name, 'Clicked point:', clickedPoint);
@@ -4196,10 +4230,54 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     const targetPoint = snapResult.position;
 
-    // Calculate offset needed to move source point to target point
-    const offset = targetPoint.subtract(sourcePoint);
+    // Get target mesh rotation to match orientation
+    pickedMesh.computeWorldMatrix(true);
+    let targetRotation: BABYLON.Quaternion;
+    
+    if (pickedMesh.rotationQuaternion) {
+      targetRotation = pickedMesh.rotationQuaternion.clone();
+    } else {
+      // Convert Euler angles to quaternion
+      targetRotation = BABYLON.Quaternion.RotationYawPitchRoll(
+        pickedMesh.rotation.y, // yaw
+        pickedMesh.rotation.x, // pitch
+        pickedMesh.rotation.z  // roll
+      );
+    }
+    
+    console.log('[Snap Tool] Target rotation (quaternion):', targetRotation);
+
+    // Convert source point to local space (relative to mesh center)
+    sourceMesh.computeWorldMatrix(true);
+    const sourceMeshCenter = sourceMesh.getAbsolutePosition();
+    const sourcePointLocal = sourcePoint.subtract(sourceMeshCenter);
+    
+    console.log('[Snap Tool] Source point in local space:', sourcePointLocal);
+    console.log('[Snap Tool] Source mesh center:', sourceMeshCenter);
+    console.log('[Snap Tool] Source rotation (quaternion):', sourceRotation);
+    
+    // Calculate the rotation difference needed to go from source rotation to target rotation
+    const sourceRotationInverse = sourceRotation.clone().invert();
+    const rotationDelta = targetRotation.multiply(sourceRotationInverse);
+    
+    // Transform the local source point by the rotation delta to get where it will be after rotation
+    const rotationMatrix = BABYLON.Matrix.Identity();
+    rotationDelta.toRotationMatrix(rotationMatrix);
+    const rotatedSourcePointLocal = BABYLON.Vector3.TransformCoordinates(
+      sourcePointLocal,
+      rotationMatrix
+    );
+    
+    // The new world position of the source point after rotation (but before translation)
+    const rotatedSourcePointWorld = rotatedSourcePointLocal.add(sourceMeshCenter);
+    
+    console.log('[Snap Tool] Source point after rotation (world):', rotatedSourcePointWorld);
+    console.log('[Snap Tool] Target point (world):', targetPoint);
+    
+    // Calculate offset needed to move rotated source point to target point
+    const offset = targetPoint.subtract(rotatedSourcePointWorld);
     console.log('[Snap Tool] Calculated offset:', offset);
-    console.log('[Snap Tool] Moving source point from', sourcePoint, 'to', targetPoint);
+    console.log('[Snap Tool] Moving rotated source point from', rotatedSourcePointWorld, 'to', targetPoint);
 
     // Check if source mesh belongs to a device entity
     if (sourceEntity && sourceEntity.getIsDevice()) {
@@ -4217,6 +4295,23 @@ export const useEditorStore = create<EditorState>((set, get) => {
         if (treeNode) {
           const newPos = babylonToUser(rootNode.position);
           tree.setLocalPosition(treeNode.id, newPos);
+          
+          // Apply target rotation to device root node
+          console.log('[Snap Tool] Applying target rotation to device root node');
+          if (rootNode.rotationQuaternion) {
+            rootNode.rotationQuaternion.copyFrom(targetRotation);
+          } else {
+            rootNode.rotationQuaternion = targetRotation.clone();
+          }
+          
+          // Update scene tree rotation (convert quaternion to Euler for tree)
+          const targetEuler = targetRotation.toEulerAngles();
+          const targetRotationDegrees = {
+            x: (targetEuler.x * 180) / Math.PI,
+            y: (targetEuler.y * 180) / Math.PI,
+            z: (targetEuler.z * 180) / Math.PI,
+          };
+          tree.setLocalRotation(treeNode.id, targetRotationDegrees);
         }
 
         // Sync all child link entities to physics
@@ -4235,12 +4330,29 @@ export const useEditorStore = create<EditorState>((set, get) => {
       sourceMesh.position.addInPlace(offset);
       console.log('[Snap Tool] Mesh position after:', sourceMesh.position.clone());
 
+      // Apply target rotation to source mesh
+      console.log('[Snap Tool] Applying target rotation to source mesh');
+      if (sourceMesh.rotationQuaternion) {
+        sourceMesh.rotationQuaternion.copyFrom(targetRotation);
+      } else {
+        sourceMesh.rotationQuaternion = targetRotation.clone();
+      }
+
       // Sync to scene tree and physics
       const tree = SceneTreeManager.getInstance();
       const node = tree.getNodeByBabylonMeshId(sourceMesh.uniqueId.toString());
       if (node) {
         const newPos = babylonToUser(sourceMesh.position);
         tree.setLocalPosition(node.id, newPos);
+
+        // Update scene tree rotation (convert quaternion to Euler for tree)
+        const targetEuler = targetRotation.toEulerAngles();
+        const targetRotationDegrees = {
+          x: (targetEuler.x * 180) / Math.PI,
+          y: (targetEuler.y * 180) / Math.PI,
+          z: (targetEuler.z * 180) / Math.PI,
+        };
+        tree.setLocalRotation(node.id, targetRotationDegrees);
 
         // Sync to physics if entity exists
         if (node.entityId) {
