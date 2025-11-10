@@ -212,8 +212,8 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
             {currentOption.label}
           </span>
           <span className="create-dropdown-chevron-wrapper">
-            <ChevronDown 
-              size={10} 
+            <ChevronDown
+              size={12}
               className={`create-dropdown-chevron ${isOpen ? 'open' : ''}`}
             />
           </span>

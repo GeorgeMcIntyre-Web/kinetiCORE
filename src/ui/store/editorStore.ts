@@ -743,25 +743,26 @@ export const useEditorStore = create<EditorState>((set, get) => {
   positionIncrement: 10, // 10mm default
   rotationIncrement: 15, // 15 degrees default
   snapEnabled: true, // Enable snapping by default
-  snapToGrid: false,
-  snapToVertex: true, // Enable vertex snapping by default
-  snapToEdge: false,
-  snapToFace: false,
-  snapToCenter: false,
-  snapToObject: false,
-  snapToMidpoint: false,
-  snapToIntersection: false,
-  snapToPerpendicular: false,
+  snapToGrid: false, // Grid snapping off by default (can be toggled)
+  // Smart Snap Selector: All geometry snap types enabled by default
+  snapToVertex: true,
+  snapToEdge: true,
+  snapToFace: true,
+  snapToCenter: true,
+  snapToObject: true,
+  snapToMidpoint: true,
+  snapToIntersection: true,
+  snapToPerpendicular: false, // Advanced snap types off by default
   snapToTangent: false,
   snapAlong: false,
-  snapToNormal: false,
+  snapToNormal: false, // Disabled by default - rarely used, can interfere with other snaps
   snapToPlane: false,
   snapToAxis: false,
   snapToCurve: false,
   snapToSurface: false,
   snapObjectToVertex: false,
   snapPointOnEdge: false,
-  snapBBoxCorner: false,
+  snapBBoxCorner: true,
   gridSize: 100, // 100mm grid
   snapDistance: 0.1, // 0.1mm snap threshold (CAD standard)
   temporaryOrigin: null,

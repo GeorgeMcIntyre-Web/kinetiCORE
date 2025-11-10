@@ -76,6 +76,11 @@ export const SceneCanvas: React.FC = () => {
       return;
     }
 
+    // Disable edge rendering when clearing hover
+    if (currentHover instanceof BABYLON.Mesh) {
+      currentHover.disableEdgesRendering();
+    }
+
     if (hoverHighlightLayerRef.current) {
       hoverHighlightLayerRef.current.removeMesh(currentHover as unknown as BABYLON.Mesh);
     }
@@ -104,17 +109,13 @@ export const SceneCanvas: React.FC = () => {
 
       clearHoverHighlight();
 
-      if (!hoverHighlightLayerRef.current) {
-        const hoverLayer = new BABYLON.HighlightLayer('hoverHighlightLayer', scene);
-        hoverLayer.innerGlow = false;
-        hoverLayer.outerGlow = true;
-        hoverLayer.blurHorizontalSize = 1.2;
-        hoverLayer.blurVerticalSize = 1.2;
-        hoverHighlightLayerRef.current = hoverLayer;
+      // Show edges instead of glow for hover highlight
+      if (mesh instanceof BABYLON.Mesh) {
+        mesh.enableEdgesRendering();
+        mesh.edgesWidth = 2.0;
+        mesh.edgesColor = new BABYLON.Color4(0.0, 1.0, 0.8, 1.0); // Cyan edges
       }
 
-      const hoverColor = new BABYLON.Color3(0.0, 1.0, 0.8);
-      hoverHighlightLayerRef.current.addMesh(mesh as unknown as BABYLON.Mesh, hoverColor);
       scene.hoverCursor = 'pointer';
       hoveredMeshRef.current = mesh;
     },
@@ -706,7 +707,7 @@ export const SceneCanvas: React.FC = () => {
                   
                   // Clamp to reasonable range: 5mm minimum, 200mm maximum
                   previewSnapDistance = Math.max(5, Math.min(200, previewSnapDistance));
-                } else if (camera instanceof BABYLON.OrthographicCamera) {
+                } else if (camera && camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
                   // For orthographic camera: use ortho size
                   const orthoSize = (camera as any).orthoLeft ? 
                     Math.abs((camera as any).orthoRight - (camera as any).orthoLeft) : 10;
@@ -757,15 +758,31 @@ export const SceneCanvas: React.FC = () => {
               
               
               if (snapResult.snapped && snapResult.visualFeedback && snapResult.visualFeedback.length > 0) {
-                // For midpoint, pass edge endpoints if available
-                // visualFeedback format: [midpoint, edgeStart, edgeEnd] or just [midpoint]
-                const midpoint = snapResult.visualFeedback[0];
+                const center = snapResult.visualFeedback[0];
+                
+                // For midpoint, pass edge endpoints
                 if (snapResult.snapType === 'midpoint' && snapResult.visualFeedback.length >= 3) {
-                  // Attach edge endpoints to the point object for showPreviewDot
-                  (midpoint as any).edgeStart = snapResult.visualFeedback[1];
-                  (midpoint as any).edgeEnd = snapResult.visualFeedback[2];
+                  (center as any).edgeStart = snapResult.visualFeedback[1].clone();
+                  (center as any).edgeEnd = snapResult.visualFeedback[2].clone();
                 }
-                snappingHelper.showPreviewDot(midpoint, snapResult.snapType);
+                
+                // For center (circle), pass circle normal and radius
+                if (snapResult.snapType === 'center' && snapResult.visualFeedback.length >= 3) {
+                  const circleNormal = snapResult.visualFeedback[1].clone();
+                  const circleRadius = snapResult.visualFeedback[2].x;
+                  
+                  // Verify and normalize the normal
+                  const normalLength = circleNormal.length();
+                  if (Math.abs(normalLength - 1.0) > 0.001) {
+                    console.warn(`[SceneCanvas] Circle normal not normalized! Length=${normalLength.toFixed(6)}, normalizing...`);
+                    circleNormal.normalize();
+                  }
+                  
+                  (center as any).circleNormal = circleNormal;
+                  (center as any).circleRadius = circleRadius;
+                }
+                
+                snappingHelper.showPreviewDot(center, snapResult.snapType);
               } else {
                 snappingHelper.clearPreviewDot();
               }
@@ -1065,23 +1082,14 @@ export const SceneCanvas: React.FC = () => {
       }
     }
 
-    // Helper function to apply vivid highlight color
+    // Helper function to apply highlight using edges (no material color change)
     const applyHighlightColor = (mesh: BABYLON.AbstractMesh, color: BABYLON.Color3) => {
-      const meshId = mesh.uniqueId.toString();
-
-      // Store original material if not already stored
-      if (!originalMaterials.has(meshId)) {
-        originalMaterials.set(meshId, mesh.material);
-        (mesh as BABYLON.AbstractMesh & { __kcOriginalMaterial?: BABYLON.Material | null }).__kcOriginalMaterial =
-          mesh.material ?? null;
+      // Use edge rendering instead of changing material color
+      if (mesh instanceof BABYLON.Mesh) {
+        mesh.enableEdgesRendering();
+        mesh.edgesWidth = 2.0;
+        mesh.edgesColor = new BABYLON.Color4(color.r, color.g, color.b, 1.0);
       }
-
-      // Create temporary highlight material
-      const highlightMaterial = new BABYLON.StandardMaterial(`highlight_${meshId}`, scene);
-      highlightMaterial.diffuseColor = color;
-      highlightMaterial.emissiveColor = color.scale(0.3); // Add some glow
-      highlightMaterial.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
-      mesh.material = highlightMaterial;
     };
 
     // Collect all currently highlighted meshes
@@ -1097,8 +1105,8 @@ export const SceneCanvas: React.FC = () => {
           const linkEntities = typeof entity.getChildren === 'function' ? entity.getChildren() : [];
 
           const color = index === 0
-            ? new BABYLON.Color3(0.0, 1.0, 0.8) // Bright cyan for primary selection
-            : new BABYLON.Color3(1.0, 0.0, 0.8); // Bright magenta for additional selections
+            ? new BABYLON.Color3(0.2, 0.8, 0.2) // Green for primary selection
+            : new BABYLON.Color3(1.0, 0.5, 0.0); // Orange for additional selections
 
           linkEntities.forEach(linkEntity => {
             if (typeof linkEntity.getMesh === 'function') {
@@ -1114,26 +1122,35 @@ export const SceneCanvas: React.FC = () => {
         } else if (mesh && mesh.isVisible) {
           // Regular mesh - highlight directly
           const color = index === 0
-            ? new BABYLON.Color3(0.0, 1.0, 0.8) // Bright cyan for primary selection
-            : new BABYLON.Color3(1.0, 0.0, 0.8); // Bright magenta for additional selections
+            ? new BABYLON.Color3(0.2, 0.8, 0.2) // Green for primary selection
+            : new BABYLON.Color3(1.0, 0.5, 0.0); // Orange for additional selections
           applyHighlightColor(mesh, color);
           currentlyHighlightedMeshes.add(mesh.uniqueId.toString());
         }
       });
     }
 
-    // Restore materials for meshes that are no longer selected
+    // Disable edge rendering for meshes that are no longer selected
     scene.meshes.forEach(mesh => {
       const meshId = mesh.uniqueId.toString();
-      if (originalMaterials.has(meshId) && !currentlyHighlightedMeshes.has(meshId)) {
-        restoreMaterial(mesh);
+      if (!currentlyHighlightedMeshes.has(meshId)) {
+        if (mesh instanceof BABYLON.Mesh) {
+          mesh.disableEdgesRendering();
+        }
+        // Also restore materials if they were changed
+        if (originalMaterials.has(meshId)) {
+          restoreMaterial(mesh);
+        }
       }
     });
 
-    // Cleanup function to restore all materials when component unmounts
+    // Cleanup function to restore all materials and disable edge rendering when component unmounts
     return () => {
       scene.meshes.forEach(mesh => {
         const meshId = mesh.uniqueId.toString();
+        if (mesh instanceof BABYLON.Mesh) {
+          mesh.disableEdgesRendering();
+        }
         if (originalMaterials.has(meshId)) {
           restoreMaterial(mesh);
         }

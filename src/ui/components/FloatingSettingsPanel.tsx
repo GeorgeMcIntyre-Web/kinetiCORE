@@ -3,19 +3,18 @@
 // Floating panel with tabs for all application settings
 
 import React, { useState } from 'react';
-import { 
-  Settings, 
-  User, 
-  Move, 
-  Crosshair, 
-  Zap, 
-  Eye, 
+import {
+  Settings,
+  User,
+  Move,
+  Crosshair,
+  Zap,
+  Eye,
   Folder,
   Save,
   Palette,
   Grid3X3,
   Camera,
-  Target,
   Sliders,
   Database,
   Cloud,
@@ -48,56 +47,18 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
   const [activeTab, setActiveTab] = useState('general');
   const { userLevel, setUserLevel } = useUserLevel();
   
-  // Get settings from store
+  // Get settings from store (only the ones we actually use)
   const {
     positionIncrement,
     rotationIncrement,
     snapEnabled,
     snapToGrid,
-    snapToVertex,
-    snapToEdge,
-    snapToFace,
-    snapToCenter,
-    snapToObject,
-    snapToMidpoint,
-    snapToIntersection,
-    snapToPerpendicular,
-    snapToTangent,
-    snapAlong,
-    snapToNormal,
-    snapToPlane,
-    snapToAxis,
-    snapToCurve,
-    snapToSurface,
-    snapObjectToVertex,
-    snapPointOnEdge,
-    snapBBoxCorner,
     gridSize,
-    snapDistance,
     setPositionIncrement,
     setRotationIncrement,
     setSnapEnabled,
     setSnapToGrid,
-    setSnapToVertex,
-    setSnapToEdge,
-    setSnapToFace,
-    setSnapToCenter,
-    setSnapToObject,
-    setSnapToMidpoint,
-    setSnapToIntersection,
-    setSnapToPerpendicular,
-    setSnapToTangent,
-    setSnapAlong,
-    setSnapToNormal,
-    setSnapToPlane,
-    setSnapToAxis,
-    setSnapToCurve,
-    setSnapToSurface,
-    setSnapObjectToVertex,
-    setSnapPointOnEdge,
-    setSnapBBoxCorner,
     setGridSize,
-    setSnapDistance,
   } = useEditorStore();
 
   // General Settings Component
@@ -258,8 +219,8 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
         </h4>
         <div className="settings-option">
           <label className="settings-checkbox">
-            <input 
-              type="checkbox" 
+            <input
+              type="checkbox"
               checked={snapEnabled}
               onChange={(e) => setSnapEnabled(e.target.checked)}
             />
@@ -267,46 +228,32 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
             Enable snapping
           </label>
         </div>
-        {/* Snap distance hidden - using CAD standard 0.1mm default */}
-      </div>
 
-      <div className="settings-group">
-        <h4 className="settings-group-title">
-          <Target size={16} />
-          Snap Types
-        </h4>
-        <div className="settings-grid">
-          {[
-            { key: 'snapToGrid', label: 'Grid', setter: setSnapToGrid, getter: snapToGrid },
-            { key: 'snapToVertex', label: 'Vertex', setter: setSnapToVertex, getter: snapToVertex },
-            { key: 'snapToEdge', label: 'Edge', setter: setSnapToEdge, getter: snapToEdge },
-            { key: 'snapToFace', label: 'Face', setter: setSnapToFace, getter: snapToFace },
-            { key: 'snapToCenter', label: 'Center', setter: setSnapToCenter, getter: snapToCenter },
-            { key: 'snapToObject', label: 'Object', setter: setSnapToObject, getter: snapToObject },
-            { key: 'snapToMidpoint', label: 'Midpoint', setter: setSnapToMidpoint, getter: snapToMidpoint },
-            { key: 'snapToIntersection', label: 'Intersection', setter: setSnapToIntersection, getter: snapToIntersection },
-            { key: 'snapToPerpendicular', label: 'Perpendicular', setter: setSnapToPerpendicular, getter: snapToPerpendicular },
-            { key: 'snapToTangent', label: 'Tangent', setter: setSnapToTangent, getter: snapToTangent },
-            { key: 'snapAlong', label: 'Along', setter: setSnapAlong, getter: snapAlong },
-            { key: 'snapToNormal', label: 'Normal', setter: setSnapToNormal, getter: snapToNormal },
-            { key: 'snapToPlane', label: 'Plane', setter: setSnapToPlane, getter: snapToPlane },
-            { key: 'snapToAxis', label: 'Axis', setter: setSnapToAxis, getter: snapToAxis },
-            { key: 'snapToCurve', label: 'Curve', setter: setSnapToCurve, getter: snapToCurve },
-            { key: 'snapToSurface', label: 'Surface', setter: setSnapToSurface, getter: snapToSurface },
-            { key: 'snapObjectToVertex', label: 'Object to Vertex', setter: setSnapObjectToVertex, getter: snapObjectToVertex },
-            { key: 'snapPointOnEdge', label: 'Point on Edge', setter: setSnapPointOnEdge, getter: snapPointOnEdge },
-            { key: 'snapBBoxCorner', label: 'BBox Corner', setter: setSnapBBoxCorner, getter: snapBBoxCorner },
-          ].map(({ key, label, setter, getter }) => (
-            <label key={key} className="settings-checkbox">
-              <input 
-                type="checkbox" 
-                checked={getter}
-                onChange={(e) => setter(e.target.checked)}
-              />
-              <span className="checkmark"></span>
-              {label}
-            </label>
-          ))}
+        {/* Smart Snap Selector explanation */}
+        <div className="settings-info" style={{ marginTop: '16px' }}>
+          <h5 style={{ fontSize: '13px', color: '#e2e8f0', marginBottom: '8px', fontWeight: 500 }}>
+            Smart Snap Selector
+          </h5>
+          <p style={{ fontSize: '12px', color: '#94a3b8', margin: '8px 0' }}>
+            Automatically detects the best snap type based on proximity.
+            All snap types are enabled by default and work together seamlessly.
+          </p>
+          <p style={{ fontSize: '11px', color: '#64748b', margin: '8px 0', fontStyle: 'italic' }}>
+            Priority: Vertex → Midpoint → Center → Intersection → Edge → BBox → Face → Normal → Object
+          </p>
+        </div>
+
+        {/* Grid snap toggle */}
+        <div className="settings-option" style={{ marginTop: '16px' }}>
+          <label className="settings-checkbox">
+            <input
+              type="checkbox"
+              checked={snapToGrid}
+              onChange={(e) => setSnapToGrid(e.target.checked)}
+            />
+            <span className="checkmark"></span>
+            Enable grid snapping
+          </label>
         </div>
       </div>
     </div>
@@ -542,10 +489,30 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
 
         {/* Action Buttons */}
         <div className="settings-actions">
-          <button className="settings-btn settings-btn-secondary">
+          <button
+            className="settings-btn settings-btn-secondary"
+            onClick={() => {
+              // Reset all settings to defaults
+              setSnapEnabled(true);
+              setSnapToGrid(false);
+              setGridSize(100);
+              // Smart selector enables all snap types by default
+              console.log('[Settings] Reset to defaults');
+            }}
+          >
             Reset to Defaults
           </button>
-          <button className="settings-btn settings-btn-primary">
+          <button
+            className="settings-btn settings-btn-primary"
+            onClick={() => {
+              // Settings are automatically saved via Zustand store
+              // Just close the panel
+              if (onClose) {
+                onClose();
+              }
+              console.log('[Settings] Saved and closed');
+            }}
+          >
             Save Settings
           </button>
         </div>
