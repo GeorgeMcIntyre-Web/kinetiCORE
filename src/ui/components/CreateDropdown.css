@@ -5,32 +5,33 @@
   display: inline-flex;
   flex-shrink: 1;
   overflow: visible; /* Allow chevron to be visible */
-  margin: 0; /* No margin on any side */
+  margin: 0 0 0 8px; /* Increased left margin to move content further to the right */
   padding: 0; /* No padding */
+  z-index: 1; /* Ensure proper stacking context */
 }
 
 .create-dropdown-button-group {
   display: flex;
   align-items: center;
   position: relative;
-  overflow: visible;
+  overflow: visible; /* Allow button to extend if needed */
 }
 
 /* Use ribbon-btn class from RibbonToolbar.css for consistent styling */
 
 /* Ensure the button matches tool-btn sizing and styling */
 .create-dropdown-main-btn {
-  /* Match .tool-btn styling but with horizontal layout */
+  /* Match .tool-btn styling but with vertical layout for icon/text and chevron on right */
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
   justify-content: flex-start !important;
   position: relative;
-  overflow: visible; /* Allow chevron to be fully visible */
+  overflow: hidden; /* Prevent chevron from overflowing */
   gap: 0;
-  padding: 2px 16px 2px 2px !important; /* Left: 2px, Right: 16px for spacing to next button - override ribbon-btn */
-  margin: 0 !important; /* Remove any margin from ribbon-btn */
-  min-width: 48px;
+  padding: 4px 2px 4px 14px !important; /* LEFT padding to show full text, RIGHT padding reduced to 2px around chevron - override ribbon-btn */
+  margin: 0 2px !important; /* Add horizontal margin to prevent overlap with other buttons */
+  min-width: 80px; /* Increased minimum width to ensure all content fits, especially "Cylinder" text */
   width: auto;
   box-sizing: border-box; /* Include padding in width calculation */
   background: transparent !important; /* Match tool-btn background - override ribbon-btn */
@@ -42,48 +43,59 @@
   font-size: 10px;
 }
 
+.create-dropdown-content-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important; /* Increased padding between icon and text */
+  flex: 0 1 auto; /* Don't grow, allow shrink, auto basis */
+  min-width: 0; /* Allow shrinking below content size if needed */
+}
+
 .create-dropdown-icon-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  margin-right: 6px; /* Space between icon and text */
-  margin-left: 0; /* No left margin, align to left edge */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important; /* No margin, gap in wrapper handles spacing */
 }
 
 .create-dropdown-icon-wrapper svg {
-  width: 16px;
-  height: 16px;
+  width: 16px !important;
+  height: 16px !important;
   color: inherit;
   flex-shrink: 0;
 }
 
 .create-dropdown-label {
-  font-size: 11px;
-  font-weight: 500;
-  white-space: nowrap;
-  flex: 0 0 auto;
-  line-height: 14px;
-  color: inherit;
-  margin: 0;
-  margin-right: 8px; /* Space between text and arrow */
+  display: block !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+  flex: 0 0 auto !important;
+  line-height: 12px !important;
+  color: inherit !important;
+  margin: 0 !important;
+  text-align: center !important;
 }
 
 .create-dropdown-chevron-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  flex-grow: 0;
-  width: 3px;
-  height: 3px;
-  margin-left: 0; /* No left margin, label margin-right handles spacing */
-  margin-right: 0; /* No margin on right, padding handles spacing */
-  padding: 0;
+  flex-shrink: 0; /* Never shrink the chevron */
+  flex-grow: 0; /* Never grow the chevron */
+  width: auto;
+  height: 100%;
+  margin-left: 2px; /* 2px space between content and chevron */
+  margin-right: 0;
+  padding: 0; /* No padding on wrapper */
   visibility: visible;
   opacity: 1;
+  cursor: pointer; /* Indicate chevron is clickable */
 }
 
 .create-dropdown-chevron {
@@ -91,18 +103,22 @@
   opacity: 1; /* Full opacity for clear visibility */
   transition: transform 0.2s ease, opacity 0.2s ease;
   pointer-events: none;
-  width: 3px;
-  height: 3px;
+  width: 14px;
+  height: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: inherit; /* Inherit color from button */
+  padding: 0; /* No padding on chevron element */
 }
 
 .create-dropdown-chevron svg {
-  width: 3px;
-  height: 3px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
+  color: inherit; /* Ensure color is inherited */
+  stroke-width: 2; /* Make it more visible */
 }
 
 .create-dropdown-main-btn:hover {
@@ -157,23 +173,35 @@
   border: 1px solid #3e3e42;
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
-  min-width: 180px;
+  z-index: 10000; /* Very high z-index to ensure it's above everything */
+  width: auto;
+  min-width: fit-content;
   overflow: hidden;
+  animation: dropdownSlideDown 0.15s ease-out;
+  /* Spacing is handled by the top position calculation in the component */
 }
 
 .create-dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  display: block !important;
   width: 100%;
-  padding: 10px 16px;
+  padding: 8px 8px 8px 12px; /* Remove right padding, keep left padding */
   background: transparent;
   border: none;
   color: #cccccc;
   cursor: pointer;
   transition: all 0.2s ease;
-  text-align: left;
+  text-align: left; /* Left align all content */
+}
+
+.create-dropdown-item .item-content-wrapper {
+  display: flex !important;
+  flex-direction: row !important; /* Horizontal layout: icon left, text right */
+  align-items: center !important;
+  justify-content: flex-start !important; /* Left align */
+  gap: 12px !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .create-dropdown-item:hover {
@@ -190,24 +218,36 @@
   background: #0e639c;
 }
 
-.create-dropdown-menu .item-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
+.create-dropdown-item .item-content-wrapper .item-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 16px !important;
+  height: 16px !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
-.create-dropdown-menu .item-label {
-  font-size: 13px;
-  font-weight: 500;
+.create-dropdown-item .item-content-wrapper .item-icon svg {
+  width: 16px !important;
+  height: 16px !important;
+  display: block !important;
+  margin: 0 !important;
 }
 
-/* Animation for dropdown menu */
-.create-dropdown-menu {
-  animation: dropdownSlideDown 0.15s ease-out;
+.create-dropdown-item .item-content-wrapper .item-label {
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  text-align: left !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 16px !important;
+  flex: 1 !important;
 }
+
+/* Animation for dropdown menu - merged into main .create-dropdown-menu definition */
 
 @keyframes dropdownSlideDown {
   from {

@@ -61,6 +61,7 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
   const [currentShape, setCurrentShape] = useState(initialShape);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const chevronRef = useRef<HTMLSpanElement>(null);
 
   const createOptions: CreateOption[] = [
     {
@@ -73,70 +74,70 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
     {
       id: 'sphere',
       label: 'Sphere',
-      icon: <Circle size={24} />,
+      icon: <Circle size={16} />,
       onClick: onCreateSphere || (() => {}),
       description: 'Create Sphere'
     },
     {
       id: 'cylinder',
       label: 'Cylinder',
-      icon: <Cylinder size={24} />,
+      icon: <Cylinder size={16} />,
       onClick: onCreateCylinder || (() => {}),
       description: 'Create Cylinder'
     },
     {
       id: 'cone',
       label: 'Cone',
-      icon: <Cone size={24} />,
+      icon: <Cone size={16} />,
       onClick: onCreateCone || (() => {}),
       description: 'Create Cone'
     },
     {
       id: 'torus',
       label: 'Torus',
-      icon: <Circle size={24} />,
+      icon: <Circle size={16} />,
       onClick: onCreateTorus || (() => {}),
       description: 'Create Torus'
     },
     {
       id: 'plane',
       label: 'Plane',
-      icon: <Square size={24} />,
+      icon: <Square size={16} />,
       onClick: onCreatePlane || (() => {}),
       description: 'Create Plane'
     },
     {
       id: 'ground',
       label: 'Ground',
-      icon: <Square size={24} />,
+      icon: <Square size={16} />,
       onClick: onCreateGround || (() => {}),
       description: 'Create Ground'
     },
     {
       id: 'capsule',
       label: 'Capsule',
-      icon: <Pill size={24} />,
+      icon: <Pill size={16} />,
       onClick: onCreateCapsule || (() => {}),
       description: 'Create Capsule'
     },
     {
       id: 'disc',
       label: 'Disc',
-      icon: <Disc size={24} />,
+      icon: <Disc size={16} />,
       onClick: onCreateDisc || (() => {}),
       description: 'Create Disc'
     },
     {
       id: 'torusknot',
       label: 'TorusKnot',
-      icon: <Circle size={24} />,
+      icon: <Circle size={16} />,
       onClick: onCreateTorusKnot || (() => {}),
       description: 'Create Torus Knot'
     },
     {
       id: 'polyhedron',
       label: 'Polyhedron',
-      icon: <Diamond size={24} />,
+      icon: <Diamond size={16} />,
       onClick: onCreatePolyhedron || (() => {}),
       description: 'Create Polyhedron'
     }
@@ -149,7 +150,7 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       setMenuPosition({
-        top: rect.bottom + 4,
+        top: rect.bottom + 12, // Increased spacing to prevent overlap with button
         left: rect.left
       });
     }
@@ -175,24 +176,22 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
     setIsOpen(false);
   };
 
+  const handleChevronClick = (e: React.MouseEvent) => {
+    // Clicking the chevron opens the dropdown
+    e.stopPropagation();
+    e.preventDefault();
+    setIsOpen(!isOpen);
+  };
+
   const handleMainButtonClick = (e: React.MouseEvent) => {
-    // Check if click was on the chevron area (right side)
-    const button = e.currentTarget as HTMLButtonElement;
-    const rect = button.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const buttonWidth = rect.width;
-    
-    // If click is in the right 20% of button, open dropdown instead
-    if (clickX > buttonWidth * 0.8) {
-      e.stopPropagation();
-      e.preventDefault();
-      setIsOpen(!isOpen);
-    } else {
-      // Clicking the main area executes the current shape action
-      e.stopPropagation();
-      currentOption.onClick();
-      setCurrentShape(currentShape); // Keep current shape active
+    // If click was on the chevron wrapper, don't handle it here (chevron handler will)
+    if (chevronRef.current && chevronRef.current.contains(e.target as Node)) {
+      return;
     }
+    // Clicking the main area executes the current shape action
+    e.stopPropagation();
+    currentOption.onClick();
+    setCurrentShape(currentShape); // Keep current shape active
   };
 
   return (
@@ -205,15 +204,21 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
           onClick={handleMainButtonClick}
           title={`${currentOption.description} (Click to create ${currentOption.label})`}
         >
-          <span className="create-dropdown-icon-wrapper">
-            {currentOption.icon}
-          </span>
-          <span className="create-dropdown-label">
-            {currentOption.label}
-          </span>
-          <span className="create-dropdown-chevron-wrapper">
+          <div className="create-dropdown-content-wrapper">
+            <span className="create-dropdown-icon-wrapper">
+              {currentOption.icon}
+            </span>
+            <span className="create-dropdown-label">
+              {currentOption.label}
+            </span>
+          </div>
+          <span 
+            ref={chevronRef}
+            className="create-dropdown-chevron-wrapper"
+            onClick={handleChevronClick}
+          >
             <ChevronDown
-              size={3}
+              size={14}
               className={`create-dropdown-chevron ${isOpen ? 'open' : ''}`}
             />
           </span>
@@ -235,8 +240,10 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
               onClick={() => handleItemClick(option)}
               title={option.description}
             >
-              <span className="item-icon">{option.icon}</span>
-              <span className="item-label">{option.label}</span>
+              <div className="item-content-wrapper">
+                <span className="item-icon">{option.icon}</span>
+                <span className="item-label">{option.label}</span>
+              </div>
             </button>
           ))}
         </div>
