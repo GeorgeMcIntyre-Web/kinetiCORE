@@ -185,12 +185,38 @@ export class SnappingHelper {
       return { snapped: false, position: position.clone() };
     }
 
-    // Filter out face snaps with 0.00mm distance (mouse is ON the face, not snapping TO it)
-    // Face snaps should only be valid if the mouse is actually close to but NOT on the face
+    // Filter out invalid candidates
     const filteredCandidates = candidates.filter(c => {
+      // Face snaps: Only reject when mouse is EXACTLY on the face AND there's a better snap available
+      // This allows face snap to work when hovering near faces, but gives priority to more precise snaps
       if (c.result.snapType === 'face' && c.distance < 0.0001) { // < 0.1mm
-        return false; // Reject face snaps when mouse is exactly on the face
+        // Only reject if there's a vertex, midpoint, or edge snap available (more precise)
+        const hasBetterSnap = candidates.some(cand => 
+          cand.result.snapType === 'vertex' || 
+          cand.result.snapType === 'midpoint' || 
+          cand.result.snapType === 'edge'
+        );
+        if (hasBetterSnap) {
+          return false; // Reject face snap in favor of more precise snap
+        }
       }
+      
+      // Edge snaps: reject when there's a vertex snap candidate nearby (vertex has higher priority)
+      // This prevents edge snap from showing up too much when you're near vertices
+      if (c.result.snapType === 'edge') {
+        const vertexCandidate = candidates.find(cand => cand.result.snapType === 'vertex');
+        if (vertexCandidate) {
+          // If vertex is within 3mm of the edge snap point, prefer vertex
+          const edgeToVertexDist = BABYLON.Vector3.Distance(
+            c.result.position,
+            vertexCandidate.result.position
+          );
+          if (edgeToVertexDist < 0.003) { // 3mm threshold
+            return false; // Reject edge snap in favor of vertex
+          }
+        }
+      }
+      
       return true;
     });
 
@@ -202,8 +228,9 @@ export class SnappingHelper {
     // Sort by distance first (closest), then by priority (if distances are very similar)
     filteredCandidates.sort((a, b) => {
       const distDiff = a.distance - b.distance;
-      // If distances are within 1mm (very close), use priority
-      if (Math.abs(distDiff) < 0.001) {
+      // If distances are within 3mm (very close), use priority to prefer more precise snaps
+      // This gives higher priority snaps (vertex, midpoint) a better chance to win
+      if (Math.abs(distDiff) < 0.003) { // Increased from 1mm to 3mm
         return a.priority - b.priority;
       }
       return distDiff;
@@ -423,6 +450,7 @@ export class SnappingHelper {
     }
     let closestVertex: BABYLON.Vector3 | null = null;
     let closestDistance = Infinity; // Start with Infinity, not snapDistanceMeters - we want to find the closest regardless
+    let closestScreenDistance = Infinity; // Track closest screen-space distance when using screen-space snapping
     let closestMeshName = '';
     
     // Debug: Track statistics
@@ -468,6 +496,24 @@ export class SnappingHelper {
       }
 
       meshesChecked++;
+      
+      // Check if clicked position is within this mesh's bounding box
+      // If so, we should prefer vertices from this mesh (for vertex-to-vertex measurements)
+      mesh.computeWorldMatrix(true);
+      const boundingInfo = mesh.getBoundingInfo();
+      const boundingBox = boundingInfo.boundingBox;
+      const min = boundingBox.minimumWorld.clone(); // Clone to avoid mutation
+      const max = boundingBox.maximumWorld.clone(); // Clone to avoid mutation
+      const tolerance = 0.005; // 5mm tolerance
+      const isClickingOnThisMesh = 
+        position.x >= min.x - tolerance && position.x <= max.x + tolerance &&
+        position.y >= min.y - tolerance && position.y <= max.y + tolerance &&
+        position.z >= min.z - tolerance && position.z <= max.z + tolerance;
+      
+      // Calculate max extent for this mesh (used in vertex loop)
+      const bboxSize = max.subtract(min.clone()); // Clone min to avoid mutation
+      const maxExtent = Math.max(bboxSize.x, bboxSize.y, bboxSize.z);
+      
       const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
       if (!positions || positions.length === 0) continue;
 
@@ -527,9 +573,13 @@ export class SnappingHelper {
       
       for (const worldVertex of uniqueVertices.values()) {
         let distance: number;
+        let screenDist: number | null = null;
         let withinRange = false;
         
-        // Use screen-space distance if camera and threshold provided (more accurate for preview)
+        // Calculate world-space distance first
+        distance = BABYLON.Vector3.Distance(position, worldVertex);
+        
+        // Use screen-space distance if camera and threshold provided (more accurate for preview and measurements)
         if (camera && screenSpacePixels !== undefined && screenPos) {
           const worldMatrix = scene.getTransformMatrix();
           const viewport = camera.viewport.toGlobal(
@@ -542,16 +592,24 @@ export class SnappingHelper {
             camera.getProjectionMatrix(),
             viewport
           );
-          const screenDist = Math.sqrt(
+          screenDist = Math.sqrt(
             Math.pow(projected.x - screenPos.x, 2) + 
             Math.pow(projected.y - screenPos.y, 2)
           );
-          distance = BABYLON.Vector3.Distance(position, worldVertex); // Keep world distance for tracking
           withinRange = screenDist <= screenSpacePixels;
         } else {
-          // Use world-space distance (for actual snapping during drag)
-          distance = BABYLON.Vector3.Distance(position, worldVertex);
-          withinRange = distance < snapDistanceMeters;
+          // For actual snapping (measurement tool), use a more generous threshold
+          // When clicking on a face near a vertex, we want to snap to the vertex
+          // If clicking on this mesh's bounding box, use a much larger threshold (up to half the box size)
+          // This ensures vertex snap works reliably for vertex-to-vertex measurements
+          if (isClickingOnThisMesh) {
+            // Allow snapping to vertices within 60% of the box size (covers corner-to-center distance)
+            // For a 2m box, this allows up to 1.2m snap distance, which covers any point on the box
+            withinRange = distance < maxExtent * 0.6;
+          } else {
+            // For vertices on other meshes, use 2x snap distance
+            withinRange = distance < snapDistanceMeters * 2;
+          }
         }
         
         // Track all distances for debugging (limit to avoid spam)
@@ -563,11 +621,24 @@ export class SnappingHelper {
           verticesWithinRange++;
         }
         
-        // Always track the closest vertex, regardless of snap distance
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestVertex = worldVertex;
-          closestMeshName = mesh.name;
+        // Track the closest vertex - use screen-space distance if available (for measurements),
+        // otherwise use world-space distance
+        if (screenDist !== null) {
+          // When using screen-space snapping, prioritize vertices closest in screen space
+          // This ensures we snap to the vertex the user actually clicked on
+          if (screenDist < closestScreenDistance) {
+            closestScreenDistance = screenDist;
+            closestDistance = distance; // Keep world distance for reference
+            closestVertex = worldVertex;
+            closestMeshName = mesh.name;
+          }
+        } else {
+          // Fall back to world-space distance when screen-space is not available
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestVertex = worldVertex;
+            closestMeshName = mesh.name;
+          }
         }
       }
     }
@@ -576,7 +647,9 @@ export class SnappingHelper {
     let shouldSnap = false;
     if (closestVertex) {
       if (camera && screenSpacePixels !== undefined && screenPos) {
-        // Check screen-space distance for preview
+        // Check screen-space distance for magnetic snapping
+        // When using screen-space, we've already found the closest vertex in screen space
+        // If we found one within the threshold, always snap to it (magnetic behavior)
         const worldMatrix = scene.getTransformMatrix();
         const viewport = camera.viewport.toGlobal(
           scene.getEngine().getRenderWidth(),
@@ -592,10 +665,15 @@ export class SnappingHelper {
           Math.pow(projected.x - screenPos.x, 2) + 
           Math.pow(projected.y - screenPos.y, 2)
         );
+        // Magnetic snap: if vertex is within threshold, always snap to it
         shouldSnap = screenDist <= screenSpacePixels;
       } else {
         // Check world-space distance for actual snapping
-        shouldSnap = closestDistance <= snapDistanceMeters;
+        // For measurement tool, we want to be more generous to catch clicks on faces near vertices
+        // The withinRange check above already handles this with mesh-aware thresholds
+        // Here we just need to check if we found a vertex within a reasonable distance
+        // Use a generous threshold (50mm) to ensure vertex snap works for measurements
+        shouldSnap = closestDistance <= Math.max(snapDistanceMeters * 2, 0.05); // At least 50mm
       }
     }
     
@@ -727,6 +805,16 @@ export class SnappingHelper {
           const closestOnEdge = v1.add(edgeDir.scale(clampedT));
           const distance = BABYLON.Vector3.Distance(position, closestOnEdge);
 
+          // Filter out edge snaps when the snap point is very close to a vertex endpoint
+          // This prevents edge snap from triggering when you're actually near a vertex
+          const distToV1 = BABYLON.Vector3.Distance(closestOnEdge, v1);
+          const distToV2 = BABYLON.Vector3.Distance(closestOnEdge, v2);
+          const vertexProximityThreshold = 0.002; // 2mm - if within 2mm of vertex, skip edge snap
+          
+          if (distToV1 < vertexProximityThreshold || distToV2 < vertexProximityThreshold) {
+            continue; // Skip this edge - too close to a vertex, vertex snap should handle it
+          }
+
           if (distance < closestDistance) {
             closestDistance = distance;
             closestPoint = closestOnEdge;
@@ -778,13 +866,19 @@ export class SnappingHelper {
 
   /**
    * Snap to nearest face
+   * Option 1: Use actual clicked point if click is on a face (most intuitive)
+   * Option 2: Project click point onto nearest face plane
+   * Option 3: Snap to face center when clicking on a face
+   * Currently using Option 1 - can be changed via faceSnapMode
    */
   private snapToFace(
     position: BABYLON.Vector3,
     snapDistance: number,
     excludeMeshIds: string[],
     camera?: BABYLON.Camera,
-    screenSpacePixels?: number
+    screenSpacePixels?: number,
+    clickedMesh?: BABYLON.AbstractMesh | null,
+    clickedPoint?: BABYLON.Vector3 | null
   ): SnapResult {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
@@ -812,6 +906,7 @@ export class SnappingHelper {
     let closestPoint: BABYLON.Vector3 | null = null;
     let closestDistance = Infinity; // Find true closest first
     let closestMeshName = '';
+    let closestNormal: BABYLON.Vector3 | null = null; // Store face normal for orientation
 
     // Use raycasting in 6 directions (±X, ±Y, ±Z) to find nearby faces
     const directions = [
@@ -838,51 +933,187 @@ export class SnappingHelper {
         );
       });
 
-      if (pickInfo && pickInfo.hit && pickInfo.pickedPoint) {
-        const distance = BABYLON.Vector3.Distance(position, pickInfo.pickedPoint);
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestPoint = pickInfo.pickedPoint;
-          closestMeshName = pickInfo.pickedMesh?.name || '';
+      if (pickInfo && pickInfo.hit && pickInfo.pickedPoint && pickInfo.pickedMesh) {
+        const mesh = pickInfo.pickedMesh as BABYLON.Mesh;
+        const facetId = pickInfo.faceId;
+        
+        // Get face normal from pickInfo
+        let faceNormal: BABYLON.Vector3 | null = null;
+        if (pickInfo.getNormal) {
+          const normal = pickInfo.getNormal(true); // true = use world space
+          if (normal) {
+            faceNormal = normal.normalize();
+          }
+        }
+        
+        // If getNormal is not available, compute normal from mesh
+        if (!faceNormal && mesh.getFacetNormal && facetId !== null && facetId !== undefined) {
+          const normal = mesh.getFacetNormal(facetId);
+          if (normal) {
+            // Transform to world space
+            const worldMatrix = mesh.getWorldMatrix();
+            faceNormal = BABYLON.Vector3.TransformNormal(normal, worldMatrix).normalize();
+          }
+        }
+        
+        // Fallback: compute normal from ray direction (pointing away from face)
+        if (!faceNormal) {
+          faceNormal = dir.scale(-1).normalize();
+        }
+        
+        // Calculate face center: find all triangles on the SAME FACE (spatially connected, same normal)
+        // This is the key for CAD workflow - always snap to face center when face is detected
+        let faceCenter: BABYLON.Vector3 | null = null;
+        if (faceNormal && facetId !== null && facetId !== undefined) {
+          const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+          const indices = mesh.getIndices();
+          if (positions && indices) {
+            const worldMatrix = mesh.computeWorldMatrix(true);
+            const normalTolerance = 0.01; // ~1 degree tolerance for face normal matching
+            
+            // Get the clicked triangle center as reference point
+            const clickedTriIdx0 = indices[facetId * 3];
+            const clickedTriIdx1 = indices[facetId * 3 + 1];
+            const clickedTriIdx2 = indices[facetId * 3 + 2];
+            
+            const clickedV0 = new BABYLON.Vector3(positions[clickedTriIdx0 * 3], positions[clickedTriIdx0 * 3 + 1], positions[clickedTriIdx0 * 3 + 2]);
+            const clickedV1 = new BABYLON.Vector3(positions[clickedTriIdx1 * 3], positions[clickedTriIdx1 * 3 + 1], positions[clickedTriIdx1 * 3 + 2]);
+            const clickedV2 = new BABYLON.Vector3(positions[clickedTriIdx2 * 3], positions[clickedTriIdx2 * 3 + 1], positions[clickedTriIdx2 * 3 + 2]);
+            const clickedTriCenter = clickedV0.add(clickedV1).add(clickedV2).scale(1/3);
+            const clickedTriCenterWorld = BABYLON.Vector3.TransformCoordinates(clickedTriCenter, worldMatrix);
+            
+            // Find all triangles on the SAME FACE (same normal AND spatially connected)
+            const faceTriangles: BABYLON.Vector3[] = [];
+            const triangleCount = indices.length / 3;
+            const spatialTolerance = 0.1; // 10cm - triangles must be close to be on same face
+            
+            for (let i = 0; i < triangleCount; i++) {
+              const idx0 = indices[i * 3];
+              const idx1 = indices[i * 3 + 1];
+              const idx2 = indices[i * 3 + 2];
+              
+              const v0 = new BABYLON.Vector3(positions[idx0 * 3], positions[idx0 * 3 + 1], positions[idx0 * 3 + 2]);
+              const v1 = new BABYLON.Vector3(positions[idx1 * 3], positions[idx1 * 3 + 1], positions[idx1 * 3 + 2]);
+              const v2 = new BABYLON.Vector3(positions[idx2 * 3], positions[idx2 * 3 + 1], positions[idx2 * 3 + 2]);
+              
+              // Calculate triangle normal
+              const edge1 = v1.subtract(v0);
+              const edge2 = v2.subtract(v0);
+              let triNormal = BABYLON.Vector3.Cross(edge1, edge2);
+              if (triNormal.length() > 0.0001) {
+                triNormal.normalize();
+                // Transform to world space
+                const worldTriNormal = BABYLON.Vector3.TransformNormal(triNormal, worldMatrix).normalize();
+                
+                // Check if this triangle has the same normal (same face direction)
+                const dot = BABYLON.Vector3.Dot(worldTriNormal, faceNormal);
+                if (Math.abs(dot - 1.0) < normalTolerance || Math.abs(dot + 1.0) < normalTolerance) {
+                  // Calculate triangle center
+                  const triCenter = v0.add(v1).add(v2).scale(1/3);
+                  const worldTriCenter = BABYLON.Vector3.TransformCoordinates(triCenter, worldMatrix);
+                  
+                  // CRITICAL: Also check spatial proximity - triangle must be on the same face plane
+                  // Project triangle center onto the face plane (using clicked point as reference)
+                  const toTriCenter = worldTriCenter.subtract(clickedTriCenterWorld);
+                  const distAlongNormal = BABYLON.Vector3.Dot(toTriCenter, faceNormal);
+                  
+                  // If triangle is on the same plane (distance along normal is small), include it
+                  if (Math.abs(distAlongNormal) < spatialTolerance) {
+                    faceTriangles.push(worldTriCenter);
+                  }
+                }
+              }
+            }
+            
+            // Calculate center of all triangles on this face
+            if (faceTriangles.length > 0) {
+              const sum = BABYLON.Vector3.Zero();
+              faceTriangles.forEach(center => sum.addInPlace(center));
+              faceCenter = sum.scale(1 / faceTriangles.length);
+            } else {
+              // Fallback: use center of the clicked triangle
+              faceCenter = clickedTriCenterWorld;
+            }
+          }
+        }
+        
+        // ALWAYS use face center when a face is detected (for CAD workflow)
+        // If face center calculation failed, fall back to picked point
+        const snapPoint = faceCenter || pickInfo.pickedPoint;
+        
+        // Distance from hover/click position to snap point
+        // For face center, this might be large, but that's OK - we want to snap to center
+        const distance = BABYLON.Vector3.Distance(position, snapPoint);
+        
+        // If we have a face center, prioritize it (use smaller distance for comparison)
+        // This ensures face center wins over other snap types when face is detected
+        const comparisonDistance = faceCenter ? distance * 0.5 : distance; // Give face center 2x priority
+        
+        if (comparisonDistance < closestDistance) {
+          closestDistance = distance; // Store actual distance, not comparison distance
+          closestPoint = snapPoint;
+          closestMeshName = mesh.name;
+          closestNormal = faceNormal;
         }
       }
     }
 
     // Determine if we should snap
+    // For face center, always snap when face is detected (CAD workflow requirement)
     let shouldSnap = false;
     if (closestPoint) {
-      if (camera && screenSpacePixels !== undefined && screenPos) {
-        // Check screen-space distance for preview
-        const worldMatrix = scene.getTransformMatrix();
-        const viewport = camera.viewport.toGlobal(
-          scene.getEngine().getRenderWidth(),
-          scene.getEngine().getRenderHeight()
-        );
-        const projected = BABYLON.Vector3.Project(
-          closestPoint,
-          worldMatrix,
-          camera.getProjectionMatrix(),
-          viewport
-        );
-        const screenDist = Math.sqrt(
-          Math.pow(projected.x - screenPos.x, 2) +
-          Math.pow(projected.y - screenPos.y, 2)
-        );
-        shouldSnap = screenDist <= screenSpacePixels;
+      // If we have a face normal, we detected a face - always use its center
+      const isFaceCenter = closestNormal !== null;
+      
+      if (isFaceCenter) {
+        // Face center detected - always snap to it (CAD workflow)
+        // Only check that we're reasonably close (within 2m) to avoid snapping to faces on other objects
+        const maxFaceDistance = 2.0; // 2 meters max distance for face center
+        shouldSnap = closestDistance <= maxFaceDistance;
       } else {
-        // Check world-space distance for actual snapping
-        shouldSnap = closestDistance <= snapDistanceMeters;
+        // Regular face snap (no center calculated) - use normal distance check
+        if (camera && screenSpacePixels !== undefined && screenPos) {
+          const worldMatrix = scene.getTransformMatrix();
+          const viewport = camera.viewport.toGlobal(
+            scene.getEngine().getRenderWidth(),
+            scene.getEngine().getRenderHeight()
+          );
+          const projected = BABYLON.Vector3.Project(
+            closestPoint,
+            worldMatrix,
+            camera.getProjectionMatrix(),
+            viewport
+          );
+          const screenDist = Math.sqrt(
+            Math.pow(projected.x - screenPos.x, 2) +
+            Math.pow(projected.y - screenPos.y, 2)
+          );
+          shouldSnap = screenDist <= screenSpacePixels * 3;
+        } else {
+          shouldSnap = closestDistance <= snapDistanceMeters * 3;
+        }
       }
     }
 
     if (closestPoint && shouldSnap) {
-      return {
-        snapped: true,
-        position: closestPoint,
-        snapType: 'face',
-        targetMeshName: closestMeshName,
-        visualFeedback: [closestPoint],
-      };
+      // Include face normal in visualFeedback so preview can be oriented correctly
+      if (closestNormal) {
+        return {
+          snapped: true,
+          position: closestPoint,
+          snapType: 'face',
+          targetMeshName: closestMeshName,
+          visualFeedback: [closestPoint, closestNormal],
+        };
+      } else {
+        return {
+          snapped: true,
+          position: closestPoint,
+          snapType: 'face',
+          targetMeshName: closestMeshName,
+          visualFeedback: [closestPoint],
+        };
+      }
     }
 
     return { snapped: false, position: position.clone() };
@@ -1151,6 +1382,32 @@ export class SnappingHelper {
     for (const [, circle] of circleMap) {
       let distance: number;
       let withinRange = false;
+      let isOnCircularFace = false; // Track if clicked position is on the circular face
+
+      // Check if the clicked position is on or near the circular face
+      // Project the clicked position onto the circle's plane
+      const toPosition = position.subtract(circle.center);
+      const normalClone = circle.normal.clone(); // Clone to avoid mutating
+      const distToPlane = BABYLON.Vector3.Dot(toPosition, normalClone);
+      // Project position onto the plane: subtract the component along the normal
+      const offsetFromPlane = new BABYLON.Vector3(
+        normalClone.x * distToPlane,
+        normalClone.y * distToPlane,
+        normalClone.z * distToPlane
+      );
+      const projectedOnPlane = position.subtract(offsetFromPlane);
+      const distFromCenter = BABYLON.Vector3.Distance(projectedOnPlane, circle.center);
+      
+      // Check if the projected point is within the circle's radius (with tolerance)
+      // This means the user clicked on the circular face
+      const radiusTolerance = circle.radius * 0.1; // 10% tolerance for edge cases
+      const isWithinCircle = distFromCenter <= (circle.radius + radiusTolerance);
+      
+      // Also check if we're close to the plane (within a small distance)
+      const planeTolerance = 0.005; // 5mm - allow some distance from the plane
+      const isNearPlane = Math.abs(distToPlane) < planeTolerance;
+      
+      isOnCircularFace = isWithinCircle && isNearPlane;
 
       if (camera && screenSpacePixels !== undefined && screenPos) {
         // Use screen-space distance for preview
@@ -1173,19 +1430,24 @@ export class SnappingHelper {
         // For circle centers, use a larger screen-space threshold (30px) since centers can be far from cursor
         // but still visible on screen (the circle itself is large)
         const centerScreenThreshold = screenSpacePixels * 2.5; // 30px for 12px default
-        withinRange = screenDist <= centerScreenThreshold;
+        withinRange = screenDist <= centerScreenThreshold || isOnCircularFace;
       } else {
         // Use world-space distance for actual snapping
         distance = BABYLON.Vector3.Distance(position, circle.center);
-        withinRange = distance < snapDistanceMeters;
+        // If clicking on the circular face, always allow snapping (for center-to-center measurements)
+        // Otherwise, use normal snap distance threshold
+        withinRange = isOnCircularFace || distance < snapDistanceMeters;
       }
 
       // Also check world-space distance - don't allow circles that are too far
       // For preview mode, use a larger world-space cap to allow snapping to circle centers
       // Circle centers can be far from the cursor but still visible on screen
-      const maxWorldDistance = (camera && screenSpacePixels !== undefined) ?
-        1.0 : // 1 meter max for preview (allows snapping to circle centers even if far)
-        snapDistanceMeters; // Use actual snap distance for real snapping
+      // If clicking on the circular face, use a much larger max distance (the radius itself)
+      const maxWorldDistance = isOnCircularFace ? 
+        (circle.radius * 2.0) : // Allow up to 2x radius when clicking on face (covers center-to-edge distance)
+        ((camera && screenSpacePixels !== undefined) ?
+          1.0 : // 1 meter max for preview (allows snapping to circle centers even if far)
+          snapDistanceMeters); // Use actual snap distance for real snapping
       if (distance > maxWorldDistance) {
         continue;
       }
@@ -1424,43 +1686,71 @@ export class SnappingHelper {
       const edgeStart = (point as any).edgeStart;
       const edgeEnd = (point as any).edgeEnd;
       
+      // Debug: Log if edge endpoints are missing
+      if (!edgeStart || !edgeEnd) {
+        console.log(`[SnappingHelper] Midpoint snap: edgeStart=${!!edgeStart}, edgeEnd=${!!edgeEnd}, point=(${point.x.toFixed(3)}, ${point.y.toFixed(3)}, ${point.z.toFixed(3)})`);
+      }
+      
       // Create dot at midpoint first
       const diameter = isOnSelectedMesh ? 0.06 : 0.04;
       preview = BABYLON.MeshBuilder.CreateSphere('snapPreviewDot', { diameter }, scene);
       preview.position = point.clone();
       
       // Create line along edge if endpoints available
+      // Note: Face centers (isFaceCenter=true) don't have edge endpoints, which is expected
       if (edgeStart && edgeEnd) {
-        // Create line in world space (not relative to preview dot)
-        const line = BABYLON.MeshBuilder.CreateLines('snapPreviewLine', {
-          points: [edgeStart.clone(), edgeEnd.clone()],
+        console.log(`[SnappingHelper] Creating midpoint line from (${edgeStart.x.toFixed(3)}, ${edgeStart.y.toFixed(3)}, ${edgeStart.z.toFixed(3)}) to (${edgeEnd.x.toFixed(3)}, ${edgeEnd.y.toFixed(3)}, ${edgeEnd.z.toFixed(3)})`);
+        
+        // Verify the path is valid (not zero length)
+        const pathLength = BABYLON.Vector3.Distance(edgeStart, edgeEnd);
+        if (pathLength < 0.001) {
+          console.warn(`[SnappingHelper] Invalid line path: length=${pathLength.toFixed(6)}m`);
+        }
+        
+        // Use CreateLines for better visibility and simpler rendering
+        // Use unique name to avoid conflicts
+        const lineName = `snapPreviewLine_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const linePoints = [edgeStart.clone(), edgeEnd.clone()];
+        const line = BABYLON.MeshBuilder.CreateLines(lineName, {
+          points: linePoints,
           updatable: false
         }, scene);
         
+        // Use orange to match the midpoint dot
         const lineColor = isOnSelectedMesh 
           ? new BABYLON.Color3(1, 1, 1)
           : new BABYLON.Color3(1, 0.5, 0); // Orange
         
         line.color = lineColor;
-        line.renderingGroupId = 1;
-        line.isPickable = false;
-        line.isVisible = true;
-        line.visibility = 1.0;
         
-        // Create material for the line to ensure it renders properly
-        const lineMaterial = new BABYLON.StandardMaterial('snapPreviewLineMat', scene);
+        // Create material for LinesMesh - some rendering modes require it
+        const lineMaterial = new BABYLON.StandardMaterial(`snapPreviewLineMat_${Date.now()}`, scene);
         lineMaterial.emissiveColor = lineColor;
-        lineMaterial.diffuseColor = lineColor;
         lineMaterial.disableLighting = true;
         lineMaterial.alpha = 1.0;
         line.material = lineMaterial;
+        
+        // LinesMesh rendering settings - don't use renderingGroupId as it might cause issues
+        line.isPickable = false;
+        line.isVisible = true;
+        line.visibility = 1.0;
+        line.doNotSyncBoundingInfo = true; // Prevent bounding info updates that might hide it
+        
+        // Force line to be in the scene's root (not as child of anything)
+        if (line.parent) {
+          line.parent = null;
+        }
+        
+        // CreateLines automatically adds to scene, but ensure it's visible
+        console.log(`[SnappingHelper] Line mesh created: type=${line.constructor.name}, visible=${line.isVisible}, inScene=${scene.meshes.includes(line)}, color=(${lineColor.r}, ${lineColor.g}, ${lineColor.b})`);
 
         // Store line reference for cleanup
         (preview as any).__snapPreviewLine = line;
         (preview as any).__snapPreviewLineMaterial = lineMaterial;
-      } else {
-        console.warn(`[SnappingHelper] Midpoint preview missing edge endpoints: edgeStart=${!!edgeStart}, edgeEnd=${!!edgeEnd}`);
+        
+        console.log(`[SnappingHelper] Midpoint line created: visible=${line.isVisible}, renderingGroupId=${line.renderingGroupId}, parent=${line.parent?.name || 'none'}`);
       }
+      // No warning needed - face centers don't have edge endpoints, which is expected
       
       baseColor = isOnSelectedMesh 
         ? new BABYLON.Color3(1, 1, 1)
@@ -1642,7 +1932,7 @@ export class SnappingHelper {
         ? new BABYLON.Color3(1, 1, 1)
         : new BABYLON.Color3(0, 1, 1); // Cyan
     } else if (snapType === 'face') {
-      // Face: Green square (flat box)
+      // Face: Green square (flat box) lying flat on the face plane
       const size = isOnSelectedMesh ? 0.06 : 0.04;
       preview = BABYLON.MeshBuilder.CreateBox('snapPreviewFace', {
         width: size,
@@ -1650,6 +1940,36 @@ export class SnappingHelper {
         depth: 0.005 // Very thin
       }, scene);
       preview.position = point.clone();
+      
+      // Orient the square to lie flat on the face plane
+      // The box's depth (Z-axis) should align with the face normal
+      // so the square lies flat on the face surface
+      const faceNormal = (point as any).faceNormal;
+      if (faceNormal) {
+        const normal = faceNormal.clone().normalize();
+        
+        // Default box has Z-axis as depth (forward)
+        // We want the depth to align with the face normal
+        const forward = new BABYLON.Vector3(0, 0, 1); // Box's local Z-axis (depth)
+        
+        // Calculate rotation to align Z-axis (depth) with face normal
+        const dot = BABYLON.Vector3.Dot(forward, normal);
+        
+        // If normal is already aligned with Z, no rotation needed
+        if (Math.abs(dot - 1.0) > 0.001 && Math.abs(dot + 1.0) > 0.001) {
+          // Calculate rotation axis and angle
+          const rotationAxis = BABYLON.Vector3.Cross(forward, normal);
+          if (rotationAxis.length() > 0.0001) {
+            rotationAxis.normalize();
+            const rotationAngle = Math.acos(BABYLON.Vector3.Dot(forward, normal));
+            preview.rotationQuaternion = BABYLON.Quaternion.RotationAxis(rotationAxis, rotationAngle);
+          }
+        } else if (Math.abs(dot + 1.0) < 0.001) {
+          // Normal is opposite to Z, rotate 180 degrees around X or Y
+          preview.rotation.x = Math.PI;
+        }
+      }
+      
       baseColor = isOnSelectedMesh
         ? new BABYLON.Color3(1, 1, 1)
         : new BABYLON.Color3(0, 1, 0); // Green
@@ -1797,11 +2117,18 @@ export class SnappingHelper {
         // Dispose the midpoint line if it exists (stored separately, not as child)
         const line = (this.previewIndicator as any).__snapPreviewLine;
         const lineMaterial = (this.previewIndicator as any).__snapPreviewLineMaterial;
+        if (line) {
+          // Remove from snapIndicators array if it's there
+          const index = this.snapIndicators.indexOf(line);
+          if (index > -1) {
+            this.snapIndicators.splice(index, 1);
+          }
+          if (line.dispose) {
+            line.dispose();
+          }
+        }
         if (lineMaterial && lineMaterial.dispose) {
           lineMaterial.dispose();
-        }
-        if (line && line.dispose) {
-          line.dispose();
         }
         
         // Dispose all child meshes (lines, rings, etc.)
@@ -1857,6 +2184,59 @@ export class SnappingHelper {
     let closestEdgeEnd: BABYLON.Vector3 | null = null;
     let closestDistance = Infinity; // Start with Infinity to find true closest, like vertex snapping
     let closestMeshName = '';
+    let isFaceCenter = false; // Track if this is a face center (not edge midpoint)
+    
+    // Track face center separately so we can compare with edge midpoints
+    let faceCenterMidpoint: BABYLON.Vector3 | null = null;
+    let faceCenterDistance = Infinity;
+    let faceCenterMeshName = '';
+
+    // First, check for object centers (bounding box centers) when clicking on faces
+    // This allows center-to-center measurements on boxes using midpoint snap
+    // But we'll compare with edge midpoints later to prefer edges when clicking near them
+    for (const mesh of scene.meshes) {
+      if (
+        !mesh.isVisible ||
+        excludeMeshIds.includes(mesh.uniqueId.toString()) ||
+        mesh.name === 'ground' ||
+        mesh.name === 'gridOverlay' ||
+        mesh.name.startsWith('snap') ||
+        mesh.name.startsWith('circle') ||
+        mesh.name.startsWith('measurement') ||
+        mesh.name.startsWith('transform_label')
+      ) {
+        continue;
+      }
+
+      // Get bounding box center - this is the center for boxes
+      mesh.computeWorldMatrix(true);
+      const boundingInfo = mesh.getBoundingInfo();
+      const boundingBox = boundingInfo.boundingBox;
+      const objectCenter = boundingBox.centerWorld;
+      
+      // Check if the clicked position is within the bounding box bounds
+      // This means we're clicking on the object itself
+      const min = boundingBox.minimumWorld;
+      const max = boundingBox.maximumWorld;
+      
+      // Add a small tolerance (5mm) to account for floating point precision
+      const tolerance = 0.005;
+      const isWithinBounds = 
+        position.x >= min.x - tolerance && position.x <= max.x + tolerance &&
+        position.y >= min.y - tolerance && position.y <= max.y + tolerance &&
+        position.z >= min.z - tolerance && position.z <= max.z + tolerance;
+      
+      if (isWithinBounds) {
+        // If clicking within the bounding box, store the object center for later comparison
+        // We'll prefer edge midpoints if they're close, but use face center as fallback
+        const distanceToCenter = BABYLON.Vector3.Distance(position, objectCenter);
+        if (distanceToCenter < faceCenterDistance) {
+          faceCenterDistance = distanceToCenter;
+          faceCenterMidpoint = objectCenter;
+          faceCenterMeshName = mesh.name;
+        }
+      }
+    }
 
     let meshesChecked = 0;
     let edgesChecked = 0;
@@ -1875,6 +2255,7 @@ export class SnappingHelper {
     // Key format: "meshId:minIdx-maxIdx" where minIdx < maxIdx
     const seenEdges = new Set<string>();
 
+    // Now check edge midpoints (only if we haven't found a face center, or if edge is closer)
     for (const mesh of scene.meshes) {
       if (
         !mesh.isVisible ||
@@ -1948,43 +2329,95 @@ export class SnappingHelper {
       }
     }
 
-    // Determine if we should snap based on the method used
-    let shouldSnap = false;
-    if (closestMidpoint && closestEdgeStart && closestEdgeEnd) {
-      if (camera && screenSpacePixels !== undefined && screenPos) {
-        // Check screen-space distance for preview
-        const worldMatrix = scene.getTransformMatrix();
-        const viewport = camera.viewport.toGlobal(
-          scene.getEngine().getRenderWidth(),
-          scene.getEngine().getRenderHeight()
-        );
-        const projected = BABYLON.Vector3.Project(
-          closestMidpoint,
-          worldMatrix,
-          camera.getProjectionMatrix(),
-          viewport
-        );
-        const screenDist = Math.sqrt(
-          Math.pow(projected.x - screenPos.x, 2) +
-          Math.pow(projected.y - screenPos.y, 2)
-        );
-        shouldSnap = screenDist <= screenSpacePixels;
-      } else {
-        // Check world-space distance for actual snapping
-        shouldSnap = closestDistance <= snapDistanceMeters;
-      }
+    // After checking all edges, compare with face center
+    // Prefer edge midpoints when found, but use face center as fallback if no edge is close
+    // IMPORTANT: Only use face center if we don't have an edge midpoint with endpoints
+    if (faceCenterMidpoint && !closestMidpoint) {
+      // No edge midpoint found at all - use face center as fallback
+      closestMidpoint = faceCenterMidpoint;
+      closestDistance = faceCenterDistance;
+      closestMeshName = faceCenterMeshName;
+      isFaceCenter = true;
+      closestEdgeStart = null;
+      closestEdgeEnd = null;
     }
 
+    // Determine if we should snap based on the method used
+    let shouldSnap = false;
+    if (closestMidpoint) {
+      // Check if we have edge endpoints (for edge midpoints) or not (for face centers)
+      if (closestEdgeStart && closestEdgeEnd) {
+        // Edge midpoint - check distance
+        if (camera && screenSpacePixels !== undefined && screenPos) {
+          // Check screen-space distance for preview
+          const worldMatrix = scene.getTransformMatrix();
+          const viewport = camera.viewport.toGlobal(
+            scene.getEngine().getRenderWidth(),
+            scene.getEngine().getRenderHeight()
+          );
+          const projected = BABYLON.Vector3.Project(
+            closestMidpoint,
+            worldMatrix,
+            camera.getProjectionMatrix(),
+            viewport
+          );
+          const screenDist = Math.sqrt(
+            Math.pow(projected.x - screenPos.x, 2) +
+            Math.pow(projected.y - screenPos.y, 2)
+          );
+          shouldSnap = screenDist <= screenSpacePixels;
+        } else {
+          // Check world-space distance for actual snapping
+          shouldSnap = closestDistance <= snapDistanceMeters;
+        }
+      } else if (isFaceCenter) {
+        // Face center - check distance
+        if (camera && screenSpacePixels !== undefined && screenPos) {
+          const worldMatrix = scene.getTransformMatrix();
+          const viewport = camera.viewport.toGlobal(
+            scene.getEngine().getRenderWidth(),
+            scene.getEngine().getRenderHeight()
+          );
+          const projected = BABYLON.Vector3.Project(
+            closestMidpoint,
+            worldMatrix,
+            camera.getProjectionMatrix(),
+            viewport
+          );
+          const screenDist = Math.sqrt(
+            Math.pow(projected.x - screenPos.x, 2) +
+            Math.pow(projected.y - screenPos.y, 2)
+          );
+          shouldSnap = screenDist <= screenSpacePixels;
+        } else {
+          shouldSnap = closestDistance <= snapDistanceMeters;
+        }
+      }
+    }
+    
     // Check if we found a midpoint within snap distance
-    if (closestMidpoint && closestEdgeStart && closestEdgeEnd && shouldSnap) {
-      // Midpoint snap detected (logging removed to reduce console spam)
-      return {
-        snapped: true,
-        position: closestMidpoint,
-        snapType: 'midpoint',
-        targetMeshName: closestMeshName,
-        visualFeedback: [closestMidpoint, closestEdgeStart, closestEdgeEnd],
-      };
+    if (closestMidpoint && shouldSnap) {
+      // If it's a face center, return it (for center-to-center measurements)
+      if (isFaceCenter) {
+        return {
+          snapped: true,
+          position: closestMidpoint,
+          snapType: 'midpoint',
+          targetMeshName: closestMeshName,
+          visualFeedback: [closestMidpoint], // Face center doesn't need edge endpoints
+        };
+      }
+      
+      // Otherwise, it's an edge midpoint - must have edge endpoints
+      if (closestEdgeStart && closestEdgeEnd) {
+        return {
+          snapped: true,
+          position: closestMidpoint,
+          snapType: 'midpoint',
+          targetMeshName: closestMeshName,
+          visualFeedback: [closestMidpoint, closestEdgeStart, closestEdgeEnd],
+        };
+      }
     }
 
     // Debug: log if no midpoint found or if midpoint was too far (less frequently now)
@@ -2027,6 +2460,7 @@ export class SnappingHelper {
     const snapDistanceMeters = snapDistance / 1000;
     let closestIntersection: BABYLON.Vector3 | null = null;
     let closestDistance = Infinity;
+    let closestScreenDistance = Infinity; // Track closest screen-space distance when using screen-space snapping
     let closestMeshName = '';
 
     // Collect all edges from all meshes
@@ -2074,11 +2508,18 @@ export class SnappingHelper {
       }
     }
 
-    // Find intersections between edges (simplified 3D approach - checking closest approach)
+    // Find intersections between edges from different meshes
+    // Also check edge-to-face intersections for better detection
     for (let i = 0; i < allEdges.length; i++) {
       for (let j = i + 1; j < allEdges.length; j++) {
         const edge1 = allEdges[i];
         const edge2 = allEdges[j];
+
+        // Only check intersections between edges from different meshes
+        // (edges from same mesh are already connected at vertices)
+        if (edge1.meshName === edge2.meshName) {
+          continue;
+        }
 
         // Find closest point between two line segments
         const closestPoints = this.closestPointsBetweenSegments(
@@ -2091,15 +2532,171 @@ export class SnappingHelper {
         if (closestPoints) {
           const { point1, point2, distance: segDistance } = closestPoints;
 
-          // If edges are close enough to be considered intersecting
-          if (segDistance < 0.001) {
+          // Increased threshold: 5mm (0.005m) to catch more intersections
+          // This handles floating point precision issues and slightly non-coplanar edges
+          if (segDistance < 0.005) {
             const intersectionPoint = point1.add(point2).scale(0.5);
+            
+            // Verify the intersection point is actually on both edges (within tolerance)
+            const edge1Dir = edge1.v2.subtract(edge1.v1);
+            const edge1Len = edge1Dir.length();
+            if (edge1Len > 0.0001) {
+              edge1Dir.normalize();
+              const toIntersection1 = intersectionPoint.subtract(edge1.v1);
+              const proj1 = BABYLON.Vector3.Dot(toIntersection1, edge1Dir);
+              if (proj1 < -0.001 || proj1 > edge1Len + 0.001) {
+                continue; // Intersection point is not on edge1
+              }
+            }
+            
+            const edge2Dir = edge2.v2.subtract(edge2.v1);
+            const edge2Len = edge2Dir.length();
+            if (edge2Len > 0.0001) {
+              edge2Dir.normalize();
+              const toIntersection2 = intersectionPoint.subtract(edge2.v1);
+              const proj2 = BABYLON.Vector3.Dot(toIntersection2, edge2Dir);
+              if (proj2 < -0.001 || proj2 > edge2Len + 0.001) {
+                continue; // Intersection point is not on edge2
+              }
+            }
+            
             const distance = BABYLON.Vector3.Distance(position, intersectionPoint);
+            
+            // When using screen-space snapping, prioritize intersections closest in screen space
+            if (camera && screenSpacePixels !== undefined && screenPos) {
+              const worldMatrix = scene.getTransformMatrix();
+              const viewport = camera.viewport.toGlobal(
+                scene.getEngine().getRenderWidth(),
+                scene.getEngine().getRenderHeight()
+              );
+              const projected = BABYLON.Vector3.Project(
+                intersectionPoint,
+                worldMatrix,
+                camera.getProjectionMatrix(),
+                viewport
+              );
+              const screenDist = Math.sqrt(
+                Math.pow(projected.x - screenPos.x, 2) +
+                Math.pow(projected.y - screenPos.y, 2)
+              );
+              
+              if (screenDist < closestScreenDistance) {
+                closestScreenDistance = screenDist;
+                closestDistance = distance; // Keep world distance for reference
+                closestIntersection = intersectionPoint;
+                closestMeshName = edge1.meshName;
+              }
+            } else {
+              // Fall back to world-space distance when screen-space is not available
+              if (distance < closestDistance) {
+                closestDistance = distance;
+                closestIntersection = intersectionPoint;
+                closestMeshName = edge1.meshName;
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Also check for edge-to-face intersections (edges from one mesh intersecting faces of another)
+    for (const mesh of scene.meshes) {
+      if (
+        !mesh.isVisible ||
+        excludeMeshIds.includes(mesh.uniqueId.toString()) ||
+        mesh.name === 'ground' ||
+        mesh.name === 'gridOverlay' ||
+        mesh.name.startsWith('snap') ||
+        mesh.name.startsWith('circle') ||
+        mesh.name.startsWith('measurement') ||
+        mesh.name.startsWith('transform_label')
+      ) {
+        continue;
+      }
 
-            if (distance < closestDistance) {
-              closestDistance = distance;
-              closestIntersection = intersectionPoint;
-              closestMeshName = edge1.meshName;
+      const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+      const indices = mesh.getIndices();
+      if (!positions || !indices) continue;
+
+      const worldMatrix = mesh.computeWorldMatrix(true);
+      
+      // Check each edge from allEdges against faces of this mesh
+      for (const edge of allEdges) {
+        // Skip if edge is from the same mesh
+        if (edge.meshName === mesh.name) continue;
+        
+        // Check edge against each triangle face
+        for (let i = 0; i < indices.length; i += 3) {
+          const idx0 = indices[i] * 3;
+          const idx1 = indices[i + 1] * 3;
+          const idx2 = indices[i + 2] * 3;
+          
+          const v0 = BABYLON.Vector3.TransformCoordinates(
+            new BABYLON.Vector3(positions[idx0], positions[idx0 + 1], positions[idx0 + 2]),
+            worldMatrix
+          );
+          const v1 = BABYLON.Vector3.TransformCoordinates(
+            new BABYLON.Vector3(positions[idx1], positions[idx1 + 1], positions[idx1 + 2]),
+            worldMatrix
+          );
+          const v2 = BABYLON.Vector3.TransformCoordinates(
+            new BABYLON.Vector3(positions[idx2], positions[idx2 + 1], positions[idx2 + 2]),
+            worldMatrix
+          );
+          
+          // Check if edge intersects this triangle face
+          const edgeDir = edge.v2.subtract(edge.v1);
+          const edgeLen = edgeDir.length();
+          if (edgeLen < 0.0001) continue;
+          
+          const edgeDirNorm = edgeDir.normalize();
+          const intersection = this.rayTriangleIntersection(
+            edge.v1,
+            edgeDirNorm,
+            v0,
+            v1,
+            v2
+          );
+          
+          if (intersection) {
+            // Verify intersection is within the edge segment
+            const toIntersection = intersection.subtract(edge.v1);
+            const proj = BABYLON.Vector3.Dot(toIntersection, edgeDirNorm);
+            if (proj >= -0.001 && proj <= edgeLen + 0.001) {
+              const distance = BABYLON.Vector3.Distance(position, intersection);
+              
+              // When using screen-space snapping, prioritize intersections closest in screen space
+              if (camera && screenSpacePixels !== undefined && screenPos) {
+                const worldMatrix = scene.getTransformMatrix();
+                const viewport = camera.viewport.toGlobal(
+                  scene.getEngine().getRenderWidth(),
+                  scene.getEngine().getRenderHeight()
+                );
+                const projected = BABYLON.Vector3.Project(
+                  intersection,
+                  worldMatrix,
+                  camera.getProjectionMatrix(),
+                  viewport
+                );
+                const screenDist = Math.sqrt(
+                  Math.pow(projected.x - screenPos.x, 2) +
+                  Math.pow(projected.y - screenPos.y, 2)
+                );
+                
+                if (screenDist < closestScreenDistance) {
+                  closestScreenDistance = screenDist;
+                  closestDistance = distance; // Keep world distance for reference
+                  closestIntersection = intersection;
+                  closestMeshName = mesh.name;
+                }
+              } else {
+                // Fall back to world-space distance when screen-space is not available
+                if (distance < closestDistance) {
+                  closestDistance = distance;
+                  closestIntersection = intersection;
+                  closestMeshName = mesh.name;
+                }
+              }
             }
           }
         }
@@ -2110,23 +2707,8 @@ export class SnappingHelper {
     let shouldSnap = false;
     if (closestIntersection) {
       if (camera && screenSpacePixels !== undefined && screenPos) {
-        // Check screen-space distance for preview
-        const worldMatrix = scene.getTransformMatrix();
-        const viewport = camera.viewport.toGlobal(
-          scene.getEngine().getRenderWidth(),
-          scene.getEngine().getRenderHeight()
-        );
-        const projected = BABYLON.Vector3.Project(
-          closestIntersection,
-          worldMatrix,
-          camera.getProjectionMatrix(),
-          viewport
-        );
-        const screenDist = Math.sqrt(
-          Math.pow(projected.x - screenPos.x, 2) +
-          Math.pow(projected.y - screenPos.y, 2)
-        );
-        shouldSnap = screenDist <= screenSpacePixels;
+        // Use the screen-space distance we already calculated
+        shouldSnap = closestScreenDistance <= screenSpacePixels;
       } else {
         // Check world-space distance for actual snapping
         shouldSnap = closestDistance <= snapDistanceMeters;
@@ -2186,6 +2768,53 @@ export class SnappingHelper {
     const distance = BABYLON.Vector3.Distance(point1, point2);
 
     return { point1, point2, distance };
+  }
+
+  /**
+   * Ray-triangle intersection using Möller-Trumbore algorithm
+   * Returns intersection point if ray intersects triangle, null otherwise
+   */
+  private rayTriangleIntersection(
+    rayOrigin: BABYLON.Vector3,
+    rayDir: BABYLON.Vector3,
+    v0: BABYLON.Vector3,
+    v1: BABYLON.Vector3,
+    v2: BABYLON.Vector3
+  ): BABYLON.Vector3 | null {
+    const EPSILON = 0.0000001;
+    
+    const edge1 = v1.subtract(v0);
+    const edge2 = v2.subtract(v0);
+    const h = BABYLON.Vector3.Cross(rayDir, edge2);
+    const a = BABYLON.Vector3.Dot(edge1, h);
+    
+    if (a > -EPSILON && a < EPSILON) {
+      return null; // Ray is parallel to triangle
+    }
+    
+    const f = 1.0 / a;
+    const s = rayOrigin.subtract(v0);
+    const u = f * BABYLON.Vector3.Dot(s, h);
+    
+    if (u < 0.0 || u > 1.0) {
+      return null; // Intersection point is outside triangle
+    }
+    
+    const q = BABYLON.Vector3.Cross(s, edge1);
+    const v = f * BABYLON.Vector3.Dot(rayDir, q);
+    
+    if (v < 0.0 || u + v > 1.0) {
+      return null; // Intersection point is outside triangle
+    }
+    
+    const t = f * BABYLON.Vector3.Dot(edge2, q);
+    
+    if (t > EPSILON) {
+      // Ray intersection
+      return rayOrigin.add(rayDir.scale(t));
+    }
+    
+    return null; // Line intersection but behind ray origin
   }
 
   /**

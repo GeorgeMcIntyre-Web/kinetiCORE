@@ -33,30 +33,7 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
   const sceneManager = SceneManager.getInstance();
   const scene = sceneManager.getScene();
   const tree = SceneTreeManager.getInstance();
-  
-  // Get snap settings from store
-  const snapEnabled = useEditorStore((state) => state.snapEnabled);
-  const snapToGrid = useEditorStore((state) => state.snapToGrid);
-  const snapToVertex = useEditorStore((state) => state.snapToVertex);
-  const snapToEdge = useEditorStore((state) => state.snapToEdge);
-  const snapToFace = useEditorStore((state) => state.snapToFace);
-  const snapToCenter = useEditorStore((state) => state.snapToCenter);
-  const snapToObject = useEditorStore((state) => state.snapToObject);
-  const snapToMidpoint = useEditorStore((state) => state.snapToMidpoint);
-  const snapToIntersection = useEditorStore((state) => state.snapToIntersection);
-  const snapToPerpendicular = useEditorStore((state) => state.snapToPerpendicular);
-  const snapToTangent = useEditorStore((state) => state.snapToTangent);
-  const snapAlong = useEditorStore((state) => state.snapAlong);
-  const snapToNormal = useEditorStore((state) => state.snapToNormal);
-  const snapToPlane = useEditorStore((state) => state.snapToPlane);
-  const snapToAxis = useEditorStore((state) => state.snapToAxis);
-  const snapToCurve = useEditorStore((state) => state.snapToCurve);
-  const snapToSurface = useEditorStore((state) => state.snapToSurface);
-  const snapObjectToVertex = useEditorStore((state) => state.snapObjectToVertex);
-  const snapPointOnEdge = useEditorStore((state) => state.snapPointOnEdge);
-  const snapBBoxCorner = useEditorStore((state) => state.snapBBoxCorner);
-  const snapDistance = useEditorStore((state) => state.snapDistance);
-  const gridSize = useEditorStore((state) => state.gridSize);
+  const snappingHelper = SnappingHelper.getInstance();
 
   const [state, setState] = useState<MeasurementState>({
     type: measurementType,
@@ -84,7 +61,56 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
 
     const onPointerPick = (evt: BABYLON.PointerInfo) => {
       if (evt.pickInfo?.hit && evt.pickInfo.pickedPoint) {
-        handlePick(evt.pickInfo.pickedPoint, evt.pickInfo.pickedMesh);
+        // Check for snap position first - use snapped position if available
+        // Get snap settings from store inside callback to ensure we have latest values
+        const currentState = useEditorStore.getState();
+        const snapSettings = {
+          enabled: currentState.snapEnabled,
+          snapToGrid: currentState.snapToGrid,
+          snapToVertex: currentState.snapToVertex,
+          snapToEdge: currentState.snapToEdge,
+          snapToFace: currentState.snapToFace,
+          snapToCenter: currentState.snapToCenter,
+          snapToObject: currentState.snapToObject,
+          snapToMidpoint: currentState.snapToMidpoint,
+          snapToIntersection: currentState.snapToIntersection,
+          snapToPerpendicular: currentState.snapToPerpendicular,
+          snapToTangent: currentState.snapToTangent,
+          snapAlong: currentState.snapAlong,
+          snapToNormal: currentState.snapToNormal,
+          snapToPlane: currentState.snapToPlane,
+          snapToAxis: currentState.snapToAxis,
+          snapToCurve: currentState.snapToCurve,
+          snapToSurface: currentState.snapToSurface,
+          snapObjectToVertex: currentState.snapObjectToVertex,
+          snapPointOnEdge: currentState.snapPointOnEdge,
+          snapBBoxCorner: currentState.snapBBoxCorner,
+          gridSize: currentState.gridSize,
+          snapDistance: currentState.snapDistance,
+        };
+        
+        let finalPoint = evt.pickInfo.pickedPoint;
+        
+        if (snapSettings.enabled) {
+          const camera = sceneManager.getCamera();
+          // For measurements, use screen-space snapping to find the vertex closest to where the user clicked
+          // This ensures we snap to the vertex the user actually clicked on, not just the closest in world space
+          // Use a generous pixel threshold (30px) to catch clicks near vertices - users won't click perfectly each time
+          const screenSpaceThreshold = 30; // 30 pixels - generous threshold to always catch the vertex user is clicking on
+          const snapResult = snappingHelper.snapPosition(
+            evt.pickInfo.pickedPoint,
+            snapSettings,
+            [], // Don't exclude any meshes for measurement
+            camera || undefined, // Convert null to undefined for TypeScript
+            screenSpaceThreshold // Use screen-space distance to find vertex closest to click position
+          );
+          
+          if (snapResult.snapped) {
+            finalPoint = snapResult.position;
+          }
+        }
+        
+        handlePick(finalPoint, evt.pickInfo.pickedMesh);
       }
     };
 
@@ -112,35 +138,36 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
       }
 
       // Apply snapping to the picked point
+      // Get snap settings from store inside callback to ensure we have latest values
       let snappedPoint = point.clone();
-      if (snapEnabled && scene) {
-        const snappingHelper = SnappingHelper.getInstance();
+      const currentState = useEditorStore.getState();
+      if (currentState.snapEnabled && scene) {
         const camera = scene.activeCamera;
         
-        // Build snap settings
+        // Build snap settings from store
         const snapSettings = {
-          enabled: snapEnabled,
-          snapToGrid,
-          snapToVertex,
-          snapToEdge,
-          snapToFace,
-          snapToCenter,
-          snapToObject,
-          snapToMidpoint,
-          snapToIntersection,
-          snapToPerpendicular,
-          snapToTangent,
-          snapAlong,
-          snapToNormal,
-          snapToPlane,
-          snapToAxis,
-          snapToCurve,
-          snapToSurface,
-          snapObjectToVertex,
-          snapPointOnEdge,
-          snapBBoxCorner,
-          gridSize,
-          snapDistance,
+          enabled: currentState.snapEnabled,
+          snapToGrid: currentState.snapToGrid,
+          snapToVertex: currentState.snapToVertex,
+          snapToEdge: currentState.snapToEdge,
+          snapToFace: currentState.snapToFace,
+          snapToCenter: currentState.snapToCenter,
+          snapToObject: currentState.snapToObject,
+          snapToMidpoint: currentState.snapToMidpoint,
+          snapToIntersection: currentState.snapToIntersection,
+          snapToPerpendicular: currentState.snapToPerpendicular,
+          snapToTangent: currentState.snapToTangent,
+          snapAlong: currentState.snapAlong,
+          snapToNormal: currentState.snapToNormal,
+          snapToPlane: currentState.snapToPlane,
+          snapToAxis: currentState.snapToAxis,
+          snapToCurve: currentState.snapToCurve,
+          snapToSurface: currentState.snapToSurface,
+          snapObjectToVertex: currentState.snapObjectToVertex,
+          snapPointOnEdge: currentState.snapPointOnEdge,
+          snapBBoxCorner: currentState.snapBBoxCorner,
+          gridSize: currentState.gridSize,
+          snapDistance: currentState.snapDistance,
         };
         
         // Exclude the measurement helper meshes from snapping
@@ -174,10 +201,10 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
           const distanceMm = distance * 1000; // Convert to mm
           result = `Distance: ${distanceMm.toFixed(2)} mm`;
           
-          // Create thicker glowing line using tube in high-contrast color (yellow/gold to avoid clashing with cyan)
+          // Create thin glowing line using tube in high-contrast color (yellow/gold to avoid clashing with cyan)
           const tube = BABYLON.MeshBuilder.CreateTube('distance-line-tube', {
             path: [newPoints[0], newPoints[1]],
-            radius: 0.01,
+            radius: 0.003, // Thinner line (3mm radius) for better visibility
             updatable: false,
           }, scene!);
           const lineMat = new BABYLON.StandardMaterial('kc-measure-line-mat', scene!);
@@ -188,6 +215,13 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
           newHelperMeshes.push(tube);
 
           // Create sphere markers with gold/yellow glow
+          // Get or create glow layer once (outside loop)
+          let glowLayer = scene!.getGlowLayerByName('measurement-glow') as BABYLON.GlowLayer;
+          if (!glowLayer) {
+            glowLayer = new BABYLON.GlowLayer('measurement-glow', scene!);
+            glowLayer.intensity = 0.8;
+          }
+          
           newPoints.forEach((p, i) => {
             const sphere = BABYLON.MeshBuilder.CreateSphere(`marker-${i}`, {
               diameter: 0.04,
@@ -201,12 +235,7 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
             mat.alpha = 0.9;
             sphere.material = mat;
 
-            // Add glow layer
-            if (!scene!.getGlowLayerByName('measurement-glow')) {
-              const gl = new BABYLON.GlowLayer('measurement-glow', scene!);
-              gl.intensity = 0.8;
-            }
-            const glowLayer = scene!.getGlowLayerByName('measurement-glow') as BABYLON.GlowLayer;
+            // Add to glow layer
             glowLayer.addIncludedOnlyMesh(sphere);
 
             newHelperMeshes.push(sphere);
@@ -240,6 +269,13 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
           newHelperMeshes.push(tube1, tube2);
 
           // Create markers with gold/yellow glow
+          // Get or create glow layer once (outside loop)
+          let glowLayer = scene!.getGlowLayerByName('measurement-glow') as BABYLON.GlowLayer;
+          if (!glowLayer) {
+            glowLayer = new BABYLON.GlowLayer('measurement-glow', scene!);
+            glowLayer.intensity = 0.8;
+          }
+          
           newPoints.forEach((p, i) => {
             const sphere = BABYLON.MeshBuilder.CreateSphere(`angle-marker-${i}`, {
               diameter: 0.04,
@@ -252,8 +288,7 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
             mat.alpha = 0.9;
             sphere.material = mat;
 
-            const glowLayer = scene!.getGlowLayerByName('measurement-glow') as BABYLON.GlowLayer;
-            if (glowLayer) glowLayer.addIncludedOnlyMesh(sphere);
+            glowLayer.addIncludedOnlyMesh(sphere);
 
             newHelperMeshes.push(sphere);
           });
@@ -309,9 +344,23 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
   };
 
   const handleReset = () => {
+    // Clean up glow layer references before disposing meshes
+    const glowLayer = scene?.getGlowLayerByName('measurement-glow') as BABYLON.GlowLayer;
+    if (glowLayer) {
+      state.helperMeshes.forEach((mesh) => {
+        if (mesh && !mesh.isDisposed()) {
+          glowLayer.removeIncludedOnlyMesh(mesh);
+        }
+      });
+    }
+    
+    // Dispose all helper meshes
     state.helperMeshes.forEach((mesh) => {
-      mesh.dispose();
+      if (mesh && !mesh.isDisposed()) {
+        mesh.dispose();
+      }
     });
+    
     setState({
       type: measurementType,
       points: [],
@@ -390,7 +439,12 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
           <button className="measurement-btn reset" onClick={handleReset}>
             Reset
           </button>
-          <button className="measurement-btn close" onClick={onClose}>
+          <button className="measurement-btn close" onClick={() => {
+            // Clean up snap indicators when closing
+            snappingHelper.clearPreviewDot();
+            snappingHelper.clearSnapIndicators();
+            onClose();
+          }}>
             Close
           </button>
         </div>

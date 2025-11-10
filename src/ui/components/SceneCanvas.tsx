@@ -782,6 +782,19 @@ export const SceneCanvas: React.FC = () => {
                   (center as any).circleRadius = circleRadius;
                 }
                 
+                // For face, pass face normal for orientation
+                if (snapResult.snapType === 'face' && snapResult.visualFeedback.length >= 2) {
+                  const faceNormal = snapResult.visualFeedback[1].clone();
+                  
+                  // Verify and normalize the normal
+                  const normalLength = faceNormal.length();
+                  if (Math.abs(normalLength - 1.0) > 0.001) {
+                    faceNormal.normalize();
+                  }
+                  
+                  (center as any).faceNormal = faceNormal;
+                }
+                
                 snappingHelper.showPreviewDot(center, snapResult.snapType);
               } else {
                 snappingHelper.clearPreviewDot();

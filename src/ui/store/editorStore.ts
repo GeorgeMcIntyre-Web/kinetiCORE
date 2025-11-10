@@ -744,9 +744,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
   rotationIncrement: 15, // 15 degrees default
   snapEnabled: true, // Enable snapping by default
   snapToGrid: false, // Grid snapping off by default (can be toggled)
-  // Smart Snap Selector: All geometry snap types enabled by default
+  // Smart Snap Selector: Most useful snap types enabled by default
   snapToVertex: true,
-  snapToEdge: true,
+  snapToEdge: false, // Disabled by default - less useful than vertex/midpoint/intersection
   snapToFace: true,
   snapToCenter: true,
   snapToObject: true,

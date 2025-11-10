@@ -23,7 +23,7 @@ export class SnappingGizmoWrapper {
       enabled: false,
       snapToGrid: true,
       snapToVertex: true,
-      snapToEdge: true,
+      snapToEdge: false, // Disabled by default - less useful than vertex/midpoint/intersection
       snapToFace: true,
       snapToCenter: true,
       snapToObject: true,
