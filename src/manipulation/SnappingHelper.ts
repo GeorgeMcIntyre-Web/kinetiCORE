@@ -1857,23 +1857,6 @@ export class SnappingHelper {
     let closestEdgeEnd: BABYLON.Vector3 | null = null;
     let closestDistance = Infinity; // Start with Infinity to find true closest, like vertex snapping
     let closestMeshName = '';
-    
-    // Get screen position for screen-space distance checking
-    let screenPos: BABYLON.Vector2 | null = null;
-    if (camera && screenSpacePixels !== undefined) {
-      const worldMatrix = scene.getTransformMatrix();
-      const viewport = camera.viewport.toGlobal(
-        scene.getEngine().getRenderWidth(),
-        scene.getEngine().getRenderHeight()
-      );
-      const projected = BABYLON.Vector3.Project(
-        position,
-        worldMatrix,
-        camera.getProjectionMatrix(),
-        viewport
-      );
-      screenPos = new BABYLON.Vector2(projected.x, projected.y);
-    }
 
     let meshesChecked = 0;
     let edgesChecked = 0;

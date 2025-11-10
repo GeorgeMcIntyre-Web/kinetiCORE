@@ -2,7 +2,7 @@
 // Styled to match Quick Move dialog
 
 import { useEffect, useRef, useState } from 'react';
-import { X, Crosshair, GripVertical, MousePointer, XCircle } from 'lucide-react';
+import { X, Crosshair, GripVertical, MousePointer, XCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { XNumericInput, YNumericInput, ZNumericInput } from './NumericInput';
@@ -18,6 +18,7 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
   const [dialogPosition, setDialogPosition] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
+  const [isManualModeExpanded, setIsManualModeExpanded] = useState(false);
 
   const snapFromPoint = useEditorStore((state) => state.snapFromPoint);
   const snapToPoint = useEditorStore((state) => state.snapToPoint);
@@ -169,7 +170,7 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
       <div className="move-dialog-header">
         <div className="move-dialog-title">
           <Crosshair size={14} />
-          <h3>Snap Settings</h3>
+          <h3>Quick Snap</h3>
         </div>
         <div className="move-dialog-drag-handle">
           <GripVertical size={14} />
@@ -257,12 +258,23 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
           )}
         </div>
 
-        {/* Divider */}
-        <div style={{
-          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-          margin: '12px 0',
-          position: 'relative'
-        }}>
+        {/* Divider - Collapsible Manual Mode */}
+        <div
+          onClick={() => setIsManualModeExpanded(!isManualModeExpanded)}
+          style={{
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+            margin: '12px 0',
+            position: 'relative',
+            cursor: 'pointer',
+            transition: 'border-color 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderTopColor = 'rgba(98, 104, 255, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderTopColor = 'rgba(255, 255, 255, 0.1)';
+          }}
+        >
           <span style={{
             position: 'absolute',
             top: '-8px',
@@ -273,13 +285,19 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
             fontSize: '10px',
             color: '#666',
             textTransform: 'uppercase',
-            letterSpacing: '0.5px'
+            letterSpacing: '0.5px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
           }}>
+            {isManualModeExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
             Manual Mode
           </span>
         </div>
 
-        <div className="move-section">
+        {isManualModeExpanded && (
+          <>
+            <div className="move-section">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
             <label className="move-section-label" style={{ marginBottom: 0 }}>Snap From (mm)</label>
             <div style={{ display: 'flex', gap: '4px' }}>
@@ -378,6 +396,8 @@ export const SnapSettingsDialog: React.FC<SnapSettingsDialogProps> = ({ isOpen, 
             <ZNumericInput value={to.z} onChange={(val) => setTo({ ...to, z: val })} precision={2} />
           </div>
         </div>
+          </>
+        )}
 
         <div className="move-dialog-actions">
           <button className="move-btn-cancel" onClick={handleCancel}>
