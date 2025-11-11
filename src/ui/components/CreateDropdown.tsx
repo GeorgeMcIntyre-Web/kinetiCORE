@@ -171,6 +171,7 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
   }, [isOpen]);
 
   const handleItemClick = (option: CreateOption) => {
+    console.log('[CreateDropdown] Item clicked:', option.id, option.label);
     option.onClick();
     setCurrentShape(option.id); // Update current shape when a shape is created
     setIsOpen(false);
@@ -190,6 +191,7 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
     }
     // Clicking the main area executes the current shape action
     e.stopPropagation();
+    console.log('[CreateDropdown] Main button clicked, current shape:', currentShape);
     currentOption.onClick();
     setCurrentShape(currentShape); // Keep current shape active
   };

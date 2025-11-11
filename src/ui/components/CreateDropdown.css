@@ -29,15 +29,15 @@
   position: relative;
   overflow: hidden; /* Prevent chevron from overflowing */
   gap: 0;
-  padding: 4px 2px 4px 14px !important; /* LEFT padding to show full text, RIGHT padding reduced to 2px around chevron - override ribbon-btn */
+  padding: 8px 6px 8px 16px !important; /* Increased padding for better spacing */
   margin: 0 2px !important; /* Add horizontal margin to prevent overlap with other buttons */
   min-width: 80px; /* Increased minimum width to ensure all content fits, especially "Cylinder" text */
   width: auto;
   box-sizing: border-box; /* Include padding in width calculation */
   background: transparent !important; /* Match tool-btn background - override ribbon-btn */
-  border: 1px solid transparent !important; /* Match tool-btn border - override ribbon-btn */
+  border: 1px solid #30353c !important; /* Border for create shape button */
   border-radius: 4px;
-  color: #e2e8f0 !important; /* Match tool-btn text color */
+  color: #7f8690 !important; /* Text and icon color */
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 10px;
@@ -90,7 +90,7 @@
   flex-grow: 0; /* Never grow the chevron */
   width: auto;
   height: 100%;
-  margin-left: 2px; /* 2px space between content and chevron */
+  margin-left: 4px; /* Increased space between content and chevron */
   margin-right: 0;
   padding: 0; /* No padding on wrapper */
   visibility: visible;
@@ -103,8 +103,8 @@
   opacity: 1; /* Full opacity for clear visibility */
   transition: transform 0.2s ease, opacity 0.2s ease;
   pointer-events: none;
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -114,8 +114,8 @@
 }
 
 .create-dropdown-chevron svg {
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
   flex-shrink: 0;
   color: inherit; /* Ensure color is inherited */
   stroke-width: 2; /* Make it more visible */

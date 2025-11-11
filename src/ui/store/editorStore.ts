@@ -1629,9 +1629,13 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
   // Object creation
   createObject: (type) => {
+    console.log('[createObject] Creating object of type:', type);
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
-    if (!scene) return;
+    if (!scene) {
+      console.error('[createObject] Scene not available');
+      return;
+    }
 
     const registry = EntityRegistry.getInstance();
     const tree = SceneTreeManager.getInstance();
@@ -1661,11 +1665,13 @@ export const useEditorStore = create<EditorState>((set, get) => {
         );
         break;
       case 'cone':
+        console.log('[createObject] Creating cone mesh');
         mesh = BABYLON.MeshBuilder.CreateCylinder(
           `Cone_${Date.now()}`,
           { height: 2, diameterTop: 0, diameterBottom: 1 },
           scene
         );
+        console.log('[createObject] Cone mesh created:', mesh);
         break;
       case 'torus':
         mesh = BABYLON.MeshBuilder.CreateTorus(
@@ -1722,9 +1728,11 @@ export const useEditorStore = create<EditorState>((set, get) => {
     }
 
     if (!mesh) {
-      console.error('Failed to create mesh for type:', type);
+      console.error('[createObject] Failed to create mesh for type:', type);
       return;
     }
+
+    console.log('[createObject] Mesh created successfully:', mesh.name);
 
     // Trigger Inspector refresh manually (backup in case observables don't fire)
     // The Inspector service should also listen to observables, but this ensures it updates
