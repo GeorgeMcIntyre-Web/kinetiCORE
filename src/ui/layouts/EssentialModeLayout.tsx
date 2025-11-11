@@ -568,7 +568,6 @@ export const EssentialModeLayout: React.FC = () => {
             onProjectManagerClick: showProjectManager,
             onAssetLibraryClick: toggleLibrary,
             onQuickMoveClick: () => setShowMoveDialog(true),
-            onSnapSettingsClick: () => setShowSnapDialog(true),
             onSnapSetupClick: () => setShowSnapSetupPopup(true),
             onResetViewClick: handleResetView,
             onZoomFitClick: handleZoomFit,

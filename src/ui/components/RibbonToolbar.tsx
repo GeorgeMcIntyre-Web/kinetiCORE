@@ -139,7 +139,6 @@ export interface RibbonToolbarProps {
   onRightViewClick?: () => void;
   onFrontViewClick?: () => void;
   onIsoViewClick?: () => void;
-  onSnapSettingsClick?: () => void;
   onSnapSetupClick?: () => void;
   onWarehouseConfigClick?: () => void;
   onWarehouseToggleClick?: () => void;
@@ -167,7 +166,6 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onRightViewClick,
   onFrontViewClick,
   onIsoViewClick,
-  onSnapSettingsClick,
   onSnapSetupClick,
   onWarehouseConfigClick,
   onWarehouseToggleClick,
@@ -183,8 +181,6 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   const setTransformGizmoEnabled = useEditorStore((state) => state.setTransformGizmoEnabled);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
-  const snapEnabled = useEditorStore((state) => state.snapEnabled);
-  const setSnapEnabled = useEditorStore((state) => state.setSnapEnabled);
   const alignMode = useEditorStore((state) => state.alignMode);
   const setAlignMode = useEditorStore((state) => state.setAlignMode);
   const snapToolActive = useEditorStore((state) => state.snapToolActive);
@@ -210,12 +206,6 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   const handleImportFolder = () => folderInputRef.current?.click();
   const handleLoadWorld = () => worldLoadInputRef.current?.click();
   const handleImportOBJ = () => objInputRef.current?.click();
-
-  const handleSnapButtonClick = () => {
-    const newEnabled = !snapEnabled;
-    setSnapEnabled(newEnabled);
-    onSnapSettingsClick?.();
-  };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     console.log('[RibbonToolbar] ❌ GENERIC FILE LOADER - WRONG BUTTON! Use the Robot icon for OBJ files');
@@ -515,23 +505,6 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
               <line x1="12" y1="12" x2="6" y2="18" stroke="#0000ff" strokeWidth="2.5" />
               <polygon points="6,18 7.5,16.5 8,17.5" fill="#0000ff" />
             </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Snap Category */}
-      <div className="ribbon-category-excel">
-        <div className="ribbon-category-label">Snap</div>
-        <div className="ribbon-buttons-row">
-          <button
-            className={`ribbon-btn ${snapEnabled ? 'active' : ''}`}
-            onClick={handleSnapButtonClick}
-            title="Toggle Snap"
-          >
-            <Crosshair size={32} />
-          </button>
-          <button className="ribbon-btn" title="Snap Settings">
-            <Settings size={32} />
           </button>
         </div>
       </div>
