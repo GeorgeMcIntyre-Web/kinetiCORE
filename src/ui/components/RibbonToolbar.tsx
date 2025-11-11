@@ -400,6 +400,14 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
             onCreateBox={() => createObject('box')}
             onCreateSphere={() => createObject('sphere')}
             onCreateCylinder={() => createObject('cylinder')}
+            onCreateCone={() => createObject('cone')}
+            onCreateTorus={() => createObject('torus')}
+            onCreatePlane={() => createObject('plane')}
+            onCreateGround={() => createObject('ground')}
+            onCreateCapsule={() => createObject('capsule')}
+            onCreateDisc={() => createObject('disc')}
+            onCreateTorusKnot={() => createObject('torusknot')}
+            onCreatePolyhedron={() => createObject('polyhedron')}
           />
           <button className="ribbon-btn" onClick={() => createCollection()} title="Collection">
             <Package size={32} />
