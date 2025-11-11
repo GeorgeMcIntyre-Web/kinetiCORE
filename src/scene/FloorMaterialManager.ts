@@ -111,9 +111,13 @@ export class FloorMaterialManager {
     gridOverlay.position.y = 0.001; // Slightly above ground to avoid z-fighting
     gridOverlay.material = gridMaterial;
 
+    // Prevent grid from interfering with snap detection
+    // Grid should be visible but not pickable for ray intersections
+    gridOverlay.isPickable = false;
+
     // Ensure grid respects depth buffer from other objects
     gridOverlay.renderingGroupId = 0; // Use default rendering group
-    
+
     // Set visibility based on parameter
     gridOverlay.setEnabled(visible);
 

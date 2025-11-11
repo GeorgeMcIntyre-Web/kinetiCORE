@@ -166,6 +166,142 @@ export const SceneCanvas: React.FC = () => {
       // Expose managers to window for console debugging
       (window as any).sceneManager = sceneManager;
 
+      // Snapshot replay functionality (dev only)
+      let forcedPointer: { x: number; y: number } | null = null;
+      let forcedPointerFrames = 0;
+
+      // Snapshot replay function
+      (window as any).__snapReplay = (json: string) => {
+        try {
+          const snap = JSON.parse(json);
+          const engine = scene.getEngine();
+          if (!engine) {
+            console.error('[SnapReplay] No engine available');
+            return;
+          }
+
+          const cam = scene.activeCamera;
+          if (!cam || !(cam instanceof BABYLON.ArcRotateCamera)) {
+            console.error('[SnapReplay] No ArcRotateCamera available');
+            return;
+          }
+
+          // Set DPR
+          if (snap.dpr !== undefined) {
+            engine.setHardwareScalingLevel(1 / snap.dpr);
+          }
+
+          // Force render size
+          if (snap.rw !== undefined && snap.rh !== undefined) {
+            engine.setSize(snap.rw, snap.rh);
+          }
+
+          // Apply camera state
+          if (snap.cam) {
+            if (snap.cam.pos) {
+              cam.position.set(snap.cam.pos[0], snap.cam.pos[1], snap.cam.pos[2]);
+            }
+            if (snap.cam.tgt) {
+              cam.setTarget(BABYLON.Vector3.FromArray(snap.cam.tgt));
+            }
+            if (snap.cam.fov !== undefined) {
+              cam.fov = snap.cam.fov;
+            }
+            if (snap.cam.minZ !== undefined) {
+              cam.minZ = snap.cam.minZ;
+            }
+            if (snap.cam.maxZ !== undefined) {
+              cam.maxZ = snap.cam.maxZ;
+            }
+            cam._setDirty();
+          }
+
+          // Set forced pointer for next 2 frames (also expose to window for SceneCanvas access)
+          if (snap.px !== undefined && snap.py !== undefined) {
+            forcedPointer = { x: snap.px, y: snap.py };
+            forcedPointerFrames = 0;
+            (window as any).__forcedPointer = forcedPointer;
+          }
+
+          console.log('[SnapReplay] Applied snapshot:', {
+            dpr: snap.dpr,
+            rw: snap.rw,
+            rh: snap.rh,
+            px: snap.px,
+            py: snap.py
+          });
+        } catch (e) {
+          console.error('[SnapReplay] Error:', e);
+        }
+      };
+
+      // Comparison function
+      (window as any).__snapCompare = (harnessJson: string) => {
+        try {
+          const harness = JSON.parse(harnessJson);
+          
+          // Replay snapshot
+          (window as any).__snapReplay(harnessJson);
+          
+          // Wait one frame then capture app results
+          scene.onBeforeRenderObservable.addOnce(() => {
+            const engine = scene.getEngine();
+            const cam = scene.activeCamera;
+            if (!engine || !cam) return;
+            
+            const appRw = engine.getRenderWidth();
+            const appRh = engine.getRenderHeight();
+            const appDpr = 1 / engine.getHardwareScalingLevel();
+            const appPx = forcedPointer ? forcedPointer.x : scene.pointerX;
+            const appPy = forcedPointer ? forcedPointer.y : scene.pointerY;
+            
+            // Get last snap diag values
+            const appMinPx = (window as any).__lastMinPx ?? 0;
+            const appNear = (window as any).__lastNear ?? 0;
+            
+            const hMinPx = harness.minPx ?? 0;
+            const hNear = harness.near ?? 0;
+            const hRw = harness.rw ?? 0;
+            const hRh = harness.rh ?? 0;
+            const hDpr = harness.dpr ?? 1;
+            const hPx = harness.px ?? 0;
+            const hPy = harness.py ?? 0;
+            
+            const deltaMinPx = (appMinPx - hMinPx).toFixed(1);
+            const deltaNear = appNear - hNear;
+            const deltaRw = appRw - hRw;
+            const deltaRh = appRh - hRh;
+            const deltaDpr = (appDpr - hDpr).toFixed(2);
+            const deltaPx = appPx - hPx;
+            const deltaPy = appPy - hPy;
+            
+            console.log(`[Compare]
+Harness: minPx=${hMinPx} near=${hNear} rw=${hRw} rh=${hRh} dpr=${hDpr} px=${hPx} py=${hPy}
+App    : minPx=${appMinPx} near=${appNear} rw=${appRw} rh=${appRh} dpr=${appDpr.toFixed(2)} px=${appPx} py=${appPy}
+Δ      : minPx=${deltaMinPx} near=${deltaNear} rw=${deltaRw} rh=${deltaRh} dpr=${deltaDpr} px=${deltaPx} py=${deltaPy}`);
+            
+            // Auto-fix if deltas are non-zero
+            if (deltaRw !== 0 || deltaRh !== 0 || Math.abs(parseFloat(deltaDpr)) > 0.01 || deltaPx !== 0 || deltaPy !== 0) {
+              console.warn('[SnapReplay] Mismatch detected - check projection/viewport/DPR/pointer');
+            }
+          });
+        } catch (e) {
+          console.error('[SnapCompare] Error:', e);
+        }
+      };
+
+      // Clear forced pointer after 2 frames
+      scene.onBeforeRenderObservable.add(() => {
+        if (forcedPointer) {
+          forcedPointerFrames++;
+          if (forcedPointerFrames >= 2) {
+            forcedPointer = null;
+            forcedPointerFrames = 0;
+            (window as any).__forcedPointer = null;
+          }
+        }
+      });
+
       // Expose point pick controls to window for console debugging
       (window as any).enablePointPick = () => {
         useEditorStore.getState().setPointPickMode(true);
@@ -804,77 +940,60 @@ export const SceneCanvas: React.FC = () => {
             
             // Show preview dot if snapping is enabled and we have a picked point
             // Also show preview when snap tool is active (even if snapEnabled is false, the tool should show previews)
+            // We still proceed even if the mesh is ground; pointerX/Y drive the snap search.
             const snappingHelper = SnappingHelper.getInstance();
-            if ((state.snapEnabled || state.snapToolActive) && generalPick?.hit && generalPick.pickedPoint) {
-              // Advanced: Use screen-space distance for preview (more accurate than world-space)
-              // This makes the "magnetic" distance feel consistent at any zoom level
-              const camera = scene.activeCamera;
-
-              // Adaptive screen-space threshold: increase when zoomed in close to small objects
-              // When very close (< 100mm), use larger pixel threshold to ensure vertices are detected
-              const cameraToPoint = camera ? BABYLON.Vector3.Distance(camera.position, generalPick.pickedPoint) : 1;
-              let screenSpacePixels = 12; // Default: 12 pixels for normal viewing
-              if (cameraToPoint < 0.1) {
-                // Very close (< 100mm): use 500 pixels threshold (needed for cylinder/curved surfaces)
-                screenSpacePixels = 500;
-              } else if (cameraToPoint < 0.2) {
-                // Close (< 200mm): use 250 pixels threshold
-                screenSpacePixels = 250;
-              } else if (cameraToPoint < 0.5) {
-                // Medium close (< 500mm): use 50 pixels threshold
-                screenSpacePixels = 50;
-              }
-
-              // DEBUG: Log adaptive threshold when very close
-              if (cameraToPoint < 0.3) {
-                console.log(`[SceneCanvas] Adaptive screen-space threshold: ${screenSpacePixels}px for camera distance ${(cameraToPoint * 1000).toFixed(1)}mm`);
-              }
-
-              let previewSnapDistance = 50; // Default: 50mm (fallback if screen-space not available)
+            // Use forced pointer if available (from snapshot replay), otherwise use scene pointer
+            const forcedPtr = (window as any).__forcedPointer;
+            const pointerX = forcedPtr ? forcedPtr.x : scene.pointerX;
+            const pointerY = forcedPtr ? forcedPtr.y : scene.pointerY;
+            const camera = scene.activeCamera;
+            const engine = scene.getEngine();
+            
+            // Always proceed even if pick mesh is 'ground'. Do not early-return on generalPick.hit.
+            if ((state.snapEnabled || state.snapToolActive) && camera && engine) {
+              // Unify threshold + snapshot
+              const dpr = 1 / engine.getHardwareScalingLevel();
+              const screenSpacePixelsCss = (state as any).snapThresholdCss ?? 100; // use UI value or default 100
+              const screenSpacePixels = screenSpacePixelsCss * dpr; // render px
               
-              if (camera) {
-                // Calculate world-space distance for fallback (but we'll use screen-space for actual check)
-                // Convert screen-space distance (pixels) to world-space distance
-                // Target: ~10-15 pixels of "magnetic" distance feels natural
-                
-                // Calculate world-space distance that corresponds to screen pixels
-                // Use the distance from camera to picked point as reference
-                const cameraToPoint = BABYLON.Vector3.Distance(camera.position, generalPick.pickedPoint);
-                const canvas = scene.getEngine().getRenderingCanvas();
-                
-                if (canvas && camera instanceof BABYLON.ArcRotateCamera) {
-                  // For perspective camera: convert pixels to world units
-                  // Formula: worldDistance = (pixelDistance / canvasHeight) * 2 * distance * tan(fov/2)
-                  const canvasHeight = canvas.height;
-                  const fov = camera.fov || (Math.PI / 4); // Default FOV
-                  const worldDistanceAtPoint = (screenSpacePixels / canvasHeight) * 2 * cameraToPoint * Math.tan(fov / 2);
-                  previewSnapDistance = worldDistanceAtPoint * 1000; // Convert to mm
-
-                  // DEBUG: Log calculated snap distance when very close
-                  if (cameraToPoint < 0.3) {
-                    console.log(`[SceneCanvas] Snap distance calc: cameraToPoint=${(cameraToPoint * 1000).toFixed(1)}mm, worldDist=${(worldDistanceAtPoint * 1000).toFixed(2)}mm, before clamp=${previewSnapDistance.toFixed(2)}mm`);
+              // Parity check snapshot (once per 60 frames)
+              if (scene.getFrameId() % 60 === 0) {
+                const snapShot = {
+                  dpr,
+                  rw: engine.getRenderWidth(),
+                  rh: engine.getRenderHeight(),
+                  px: scene.pointerX,
+                  py: scene.pointerY,
+                  threshPx: screenSpacePixels,
+                  cam: {
+                    pos: camera.position.asArray(),
+                    tgt: camera.getTarget().asArray(),
+                    fov: (camera as any).fov,
+                    minZ: camera.minZ,
+                    maxZ: camera.maxZ
                   }
-
-                  // Clamp to reasonable range: 5mm minimum, 200mm maximum
-                  previewSnapDistance = Math.max(5, Math.min(200, previewSnapDistance));
-
-                  // DEBUG: Log final snap distance when very close
-                  if (cameraToPoint < 0.3) {
-                    console.log(`[SceneCanvas] Final snap distance: ${previewSnapDistance.toFixed(2)}mm`);
-                  }
-                } else if (camera && camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
-                  // For orthographic camera: use ortho size
-                  const orthoSize = (camera as any).orthoLeft ? 
-                    Math.abs((camera as any).orthoRight - (camera as any).orthoLeft) : 10;
-                  const canvasHeight = canvas?.height || 800;
-                  const worldDistanceAtPoint = (screenSpacePixels / canvasHeight) * orthoSize;
-                  previewSnapDistance = worldDistanceAtPoint * 1000; // Convert to mm
-                  previewSnapDistance = Math.max(5, Math.min(200, previewSnapDistance));
-                }
+                };
+                console.log('[SnapDiag][Snapshot]', JSON.stringify(snapShot));
               }
               
-              // The actual snap during drag will still use 0.1mm for precision
-              // This preview distance is just for the "magnetic" hover effect
+              // Sanity assertions
+              const harnessDpr = (window as any).__harnessDpr;
+              const harnessRw = (window as any).__harnessRw;
+              const harnessRh = (window as any).__harnessRh;
+              if (harnessDpr !== undefined && Math.abs(harnessDpr - dpr) > 0.01) {
+                console.warn(`[SnapDiag][Parity] DPR mismatch: app=${dpr.toFixed(3)} harness=${harnessDpr.toFixed(3)}`);
+              }
+              if (harnessRw !== undefined && harnessRw !== engine.getRenderWidth()) {
+                console.warn(`[SnapDiag][Parity] RW mismatch: app=${engine.getRenderWidth()} harness=${harnessRw}`);
+              }
+              if (harnessRh !== undefined && harnessRh !== engine.getRenderHeight()) {
+                console.warn(`[SnapDiag][Parity] RH mismatch: app=${engine.getRenderHeight()} harness=${harnessRh}`);
+              }
+              
+              // Assert pointer is in render px (no CSS unit)
+              if (pointerX !== scene.pointerX || pointerY !== scene.pointerY) {
+                console.warn(`[SnapDiag][Parity] Pointer mismatch: using scene.pointerX/Y directly`);
+              }
               
               const snapSettings = {
                 enabled: state.snapEnabled,
@@ -898,17 +1017,23 @@ export const SceneCanvas: React.FC = () => {
                 snapPointOnEdge: state.snapPointOnEdge,
                 snapBBoxCorner: state.snapBBoxCorner,
                 gridSize: state.gridSize,
-                snapDistance: previewSnapDistance, // Use larger distance for preview
+                snapDistance: state.snapDistance, // Use store value
               };
               
-              // Check for snap point near the picked point
-              // Use screen-space distance for preview (more accurate than world-space)
+              // Use pickedPoint if available, otherwise use camera target as fallback
+              const snapPosition = generalPick?.pickedPoint || camera.getTarget();
+              
               const snapResult = snappingHelper.snapPosition(
-                generalPick.pickedPoint,
+                snapPosition,
                 snapSettings,
                 [], // Don't exclude any meshes for preview
                 camera, // Pass camera for screen-space calculation
-                screenSpacePixels // Pass screen-space pixel threshold
+                screenSpacePixels, // Pass screen-space pixel threshold (render px)
+                true, // smartSelect
+                undefined, // clickedMesh
+                undefined, // clickedPoint
+                pointerX, // Pointer screen X (render pixels)
+                pointerY  // Pointer screen Y (render pixels)
               );
               
               
