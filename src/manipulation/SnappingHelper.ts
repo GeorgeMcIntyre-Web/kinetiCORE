@@ -3118,38 +3118,18 @@ export class SnappingHelper {
    */
   private snapToIntersection(
     position: BABYLON.Vector3,
-    snapDistance: number,
-    excludeMeshIds: string[],
-    camera?: BABYLON.Camera,
-    screenSpacePixels?: number
+    _snapDistance: number,
+    _excludeMeshIds: string[],
+    _camera?: BABYLON.Camera,
+    _screenSpacePixels?: number
   ): SnapResult {
-    const sceneManager = SceneManager.getInstance();
-    const scene = sceneManager.getScene();
-    if (!scene) return { snapped: false, position: position.clone() };
-
-    // 🚨 PERFORMANCE: Intersection snapping has O(n²) complexity - disable for complex scenes
-    // Count valid meshes first to avoid processing
-    let validMeshCount = 0;
-    for (const mesh of scene.meshes) {
-      if (
-        mesh.isVisible &&
-        !excludeMeshIds.includes(mesh.uniqueId.toString()) &&
-        mesh.name !== 'ground' &&
-        mesh.name !== 'gridOverlay' &&
-        !mesh.name.startsWith('snap') &&
-        !mesh.name.startsWith('circle') &&
-        !mesh.name.startsWith('measurement') &&
-        !mesh.name.startsWith('transform_label')
-      ) {
-        validMeshCount++;
-        // Early exit if too many meshes - intersection snapping is O(n²) and will freeze
-        const MAX_MESHES_FOR_INTERSECTION = 20; // Very conservative limit due to O(n²) complexity
-        if (validMeshCount > MAX_MESHES_FOR_INTERSECTION) {
-          return { snapped: false, position: position.clone() };
-        }
-      }
-    }
-
+    // 🚨 DISABLED: Intersection snapping has O(n²) complexity and causes lock-up on complex models
+    // Re-enable after implementing spatial partitioning (BVH/octree) or worker-based queries
+    return { snapped: false, position: position.clone() };
+    
+    /* DISABLED CODE - Commented out to prevent TypeScript errors
+    // All code below is unreachable but kept for reference when re-implementing
+    
     // Convert position to screen space if camera provided
     let screenPos: { x: number; y: number } | null = null;
     if (camera && screenSpacePixels !== undefined) {
@@ -3451,11 +3431,14 @@ export class SnappingHelper {
     }
 
     return { snapped: false, position: position.clone() };
+    */ // End of disabled intersection snapping code
   }
 
   /**
    * Find closest points between two line segments
+   * @deprecated Used only by disabled intersection snapping
    */
+  // @ts-ignore - Unused but kept for when intersection snapping is re-enabled
   private closestPointsBetweenSegments(
     a1: BABYLON.Vector3,
     a2: BABYLON.Vector3,
@@ -3498,7 +3481,9 @@ export class SnappingHelper {
   /**
    * Ray-triangle intersection using Möller-Trumbore algorithm
    * Returns intersection point if ray intersects triangle, null otherwise
+   * @deprecated Used only by disabled intersection snapping
    */
+  // @ts-ignore - Unused but kept for when intersection snapping is re-enabled
   private rayTriangleIntersection(
     rayOrigin: BABYLON.Vector3,
     rayDir: BABYLON.Vector3,
