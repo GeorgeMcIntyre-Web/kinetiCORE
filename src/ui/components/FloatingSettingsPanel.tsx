@@ -292,11 +292,13 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
               <span className="checkmark"></span>
               Center
             </label>
-            <label className="settings-checkbox">
+            <label className="settings-checkbox" style={{ opacity: 0.5, cursor: 'not-allowed', color: '#666' }}>
               <input
                 type="checkbox"
                 checked={snapToIntersection}
-                onChange={(e) => setSnapToIntersection(e.target.checked)}
+                disabled={true}
+                onChange={() => {}}
+                style={{ cursor: 'not-allowed' }}
               />
               <span className="checkmark"></span>
               Intersection

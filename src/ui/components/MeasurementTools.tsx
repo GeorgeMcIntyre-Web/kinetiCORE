@@ -25,6 +25,38 @@ interface MeasurementState {
   helperMeshes: BABYLON.Mesh[];
 }
 
+/**
+ * Calculate adaptive indicator size based on camera distance
+ * Ensures measurement spheres are appropriately sized at any zoom level
+ */
+const calculateMeasurementIndicatorSize = (
+  point: BABYLON.Vector3,
+  scene: BABYLON.Scene
+): number => {
+  const camera = scene.activeCamera;
+  if (!camera) return 0.04; // Default 40mm
+
+  const distanceToPoint = BABYLON.Vector3.Distance(camera.position, point);
+
+  // Calculate FOV-based scale factor
+  let fovFactor = 1.0;
+  if (camera instanceof BABYLON.ArcRotateCamera && camera.fov) {
+    fovFactor = Math.tan(camera.fov / 2);
+  }
+
+  // Target: measurement spheres should be ~1.5% of viewport height (slightly smaller than snap previews)
+  const screenPercentage = 0.015;
+  const engine = scene.getEngine();
+  const viewportHeight = engine.getRenderHeight();
+  const worldSize = (distanceToPoint * fovFactor * screenPercentage * 2) / (viewportHeight / 1000);
+
+  // Adaptive minimum size based on camera distance
+  // When zoomed in close (< 200mm), use smaller indicators
+  const MIN_SIZE = distanceToPoint < 0.2 ? 0.002 : 0.005; // 2mm when close, 5mm when far
+  const MAX_SIZE = 0.08;  // 80mm maximum
+  return Math.max(MIN_SIZE, Math.min(MAX_SIZE, worldSize));
+};
+
 export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
   measurementType,
   onClose,
@@ -90,19 +122,33 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
         };
         
         let finalPoint = evt.pickInfo.pickedPoint;
-        
+
         if (snapSettings.enabled) {
           const camera = sceneManager.getCamera();
-          // For measurements, use screen-space snapping to find the vertex closest to where the user clicked
-          // This ensures we snap to the vertex the user actually clicked on, not just the closest in world space
-          // Use a generous pixel threshold (30px) to catch clicks near vertices - users won't click perfectly each time
-          const screenSpaceThreshold = 30; // 30 pixels - generous threshold to always catch the vertex user is clicking on
+
+          // Use adaptive screen-space threshold based on camera distance (same as snap preview)
+          // This ensures snapping works consistently at any zoom level
+          let screenSpaceThreshold = 30; // Default: 30 pixels for normal viewing
+          if (camera && evt.pickInfo.pickedPoint) {
+            const cameraToPoint = BABYLON.Vector3.Distance(camera.position, evt.pickInfo.pickedPoint);
+            if (cameraToPoint < 0.1) {
+              // Very close (< 100mm): use 500 pixels threshold
+              screenSpaceThreshold = 500;
+            } else if (cameraToPoint < 0.2) {
+              // Close (< 200mm): use 250 pixels threshold
+              screenSpaceThreshold = 250;
+            } else if (cameraToPoint < 0.5) {
+              // Medium close (< 500mm): use 100 pixels threshold
+              screenSpaceThreshold = 100;
+            }
+          }
+
           const snapResult = snappingHelper.snapPosition(
             evt.pickInfo.pickedPoint,
             snapSettings,
             [], // Don't exclude any meshes for measurement
             camera || undefined, // Convert null to undefined for TypeScript
-            screenSpaceThreshold, // Use screen-space distance to find vertex closest to click position
+            screenSpaceThreshold, // Use adaptive screen-space distance
             true, // smartSelect
             evt.pickInfo.pickedMesh || null, // Pass clicked mesh for face snap
             evt.pickInfo.pickedPoint || null // Pass clicked point for face snap
@@ -110,9 +156,12 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
           
           if (snapResult.snapped) {
             finalPoint = snapResult.position;
+            console.log(`[MeasurementTools] Snapped to: (${(finalPoint.x * 1000).toFixed(2)}, ${(finalPoint.y * 1000).toFixed(2)}, ${(finalPoint.z * 1000).toFixed(2)})mm, snap type: ${snapResult.snapType || 'unknown'}`);
+          } else {
+            console.log(`[MeasurementTools] No snap - using picked point: (${(finalPoint.x * 1000).toFixed(2)}, ${(finalPoint.y * 1000).toFixed(2)}, ${(finalPoint.z * 1000).toFixed(2)})mm`);
           }
         }
-        
+
         handlePick(finalPoint, evt.pickInfo.pickedMesh);
       }
     };
@@ -205,9 +254,12 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
           result = `Distance: ${distanceMm.toFixed(2)} mm`;
           
           // Create thin glowing line using tube in high-contrast color (yellow/gold to avoid clashing with cyan)
+          // Use adaptive radius based on camera distance to midpoint
+          const midpoint = newPoints[0].add(newPoints[1]).scale(0.5);
+          const lineRadius = calculateMeasurementIndicatorSize(midpoint, scene!) * 0.15;
           const tube = BABYLON.MeshBuilder.CreateTube('distance-line-tube', {
             path: [newPoints[0], newPoints[1]],
-            radius: 0.003, // Thinner line (3mm radius) for better visibility
+            radius: lineRadius,
             updatable: false,
           }, scene!);
           const lineMat = new BABYLON.StandardMaterial('kc-measure-line-mat', scene!);
@@ -226,8 +278,9 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
           }
           
           newPoints.forEach((p, i) => {
+            const diameter = calculateMeasurementIndicatorSize(p, scene!);
             const sphere = BABYLON.MeshBuilder.CreateSphere(`marker-${i}`, {
-              diameter: 0.04,
+              diameter,
             }, scene!);
             sphere.position = p;
 
@@ -254,14 +307,15 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
           const angleDeg = angleRad * (180 / Math.PI);
           result = `Angle: ${angleDeg.toFixed(2)}°`;
 
-          // Create thicker glowing lines for angle
+          // Create thicker glowing lines for angle (adaptive radius based on camera distance)
+          const lineRadius = calculateMeasurementIndicatorSize(newPoints[1], scene!) * 0.25;
           const tube1 = BABYLON.MeshBuilder.CreateTube('angle-line1', {
             path: [newPoints[0], newPoints[1]],
-            radius: 0.01,
+            radius: lineRadius,
           }, scene!);
           const tube2 = BABYLON.MeshBuilder.CreateTube('angle-line2', {
             path: [newPoints[1], newPoints[2]],
-            radius: 0.01,
+            radius: lineRadius,
           }, scene!);
           const angleMat = new BABYLON.StandardMaterial('kc-angle-line-mat', scene!);
           angleMat.emissiveColor = BABYLON.Color3.FromHexString('#FFD700'); // Gold/Yellow - high contrast
@@ -280,8 +334,9 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
           }
           
           newPoints.forEach((p, i) => {
+            const diameter = calculateMeasurementIndicatorSize(p, scene!);
             const sphere = BABYLON.MeshBuilder.CreateSphere(`angle-marker-${i}`, {
-              diameter: 0.04,
+              diameter,
             }, scene!);
             sphere.position = p;
 
