@@ -1793,14 +1793,6 @@ export class SnappingHelper {
     const scene = sceneManager.getScene();
     if (!scene) return { snapped: false, position: position.clone() };
 
-    // 🚨 HOTFIX: Disable center snapping to prevent freeze on complex models
-    // Re-enable after worker-based snap system is integrated (src/manipulation/snap/)
-    return { snapped: false, position: position.clone() };
-
-    // NOTE: Global mesh-count gates removed - will be replaced with per-mesh budgeting
-    // and worker-based queries in upcoming refactor. Current implementation processes
-    // all meshes but caps complexity per-mesh (see MAX_FACES_PER_MESH below).
-
     const snapDistanceMeters = snapDistance / 1000;
     let closestCenter: BABYLON.Vector3 | null = null;
     let closestDistance = Infinity; // Start with Infinity to find true closest
@@ -3135,10 +3127,28 @@ export class SnappingHelper {
     const scene = sceneManager.getScene();
     if (!scene) return { snapped: false, position: position.clone() };
 
-    // 🚨 HOTFIX: Disable intersection snapping - O(n²) edge comparison causes freeze
-    // Lines 3208-3210: allEdges.length² comparisons = 441M ops on robot models!
-    // Re-enable after implementing spatial partitioning (BVH/octree) or worker-based queries
-    return { snapped: false, position: position.clone() };
+    // 🚨 PERFORMANCE: Intersection snapping has O(n²) complexity - disable for complex scenes
+    // Count valid meshes first to avoid processing
+    let validMeshCount = 0;
+    for (const mesh of scene.meshes) {
+      if (
+        mesh.isVisible &&
+        !excludeMeshIds.includes(mesh.uniqueId.toString()) &&
+        mesh.name !== 'ground' &&
+        mesh.name !== 'gridOverlay' &&
+        !mesh.name.startsWith('snap') &&
+        !mesh.name.startsWith('circle') &&
+        !mesh.name.startsWith('measurement') &&
+        !mesh.name.startsWith('transform_label')
+      ) {
+        validMeshCount++;
+        // Early exit if too many meshes - intersection snapping is O(n²) and will freeze
+        const MAX_MESHES_FOR_INTERSECTION = 20; // Very conservative limit due to O(n²) complexity
+        if (validMeshCount > MAX_MESHES_FOR_INTERSECTION) {
+          return { snapped: false, position: position.clone() };
+        }
+      }
+    }
 
     // Convert position to screen space if camera provided
     let screenPos: { x: number; y: number } | null = null;

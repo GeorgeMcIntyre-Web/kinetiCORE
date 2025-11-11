@@ -241,7 +241,7 @@ export function segmentToSegmentDistance(
 
   if (a <= epsilon) {
     // First segment is a point
-    const s = 0;
+    // s = 0 (point1 is at a1)
     const t = Math.max(0, Math.min(1, f / e));
     const point2 = b1.add(d2.scale(t));
     return { point1: a1, point2, distance: BABYLON.Vector3.Distance(a1, point2) };
@@ -251,7 +251,7 @@ export function segmentToSegmentDistance(
 
   if (e <= epsilon) {
     // Second segment is a point
-    const t = 0;
+    // t = 0 (point2 is at b1)
     const s = Math.max(0, Math.min(1, -c / a));
     const point1 = a1.add(d1.scale(s));
     return { point1, point2: b1, distance: BABYLON.Vector3.Distance(point1, b1) };

@@ -12,12 +12,7 @@ interface EdgeData {
   edgeIndex: number;
 }
 
-interface IntersectionResult {
-  position: { x: number; y: number; z: number };
-  distance: number;
-  edge1MeshName: string;
-  edge2MeshName: string;
-}
+// IntersectionResult interface removed - unused
 
 /**
  * Manages BVH-based intersection snapping with worker offloading
