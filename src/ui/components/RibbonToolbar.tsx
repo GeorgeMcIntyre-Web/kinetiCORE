@@ -441,6 +441,13 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           >
             <QuickMoveIcon size={32} />
           </button>
+        </div>
+      </div>
+
+      {/* Snap Category */}
+      <div className="ribbon-category-excel">
+        <div className="ribbon-category-label">Snap</div>
+        <div className="ribbon-buttons-row">
           <button
             className={`ribbon-btn ${snapToolActive ? 'active' : ''}`}
             onClick={() => setSnapToolActive(!snapToolActive)}
