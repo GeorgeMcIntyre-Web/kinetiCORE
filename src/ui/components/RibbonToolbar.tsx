@@ -23,7 +23,6 @@ import {
   Target,
   GitBranch,
   Network,
-  ToggleLeft,
   Rocket,
   Scan,
   TestTube,
@@ -81,42 +80,43 @@ import { CreateDropdown } from './CreateDropdown';
 import { SelectionLevelDropdown } from './SelectionLevelDropdown';
 import './RibbonToolbar.css';
 
-// Transform Gizmo Toggle Component - inline with label
-const TransformGizmoToggle = () => {
-  const transformGizmoEnabled = useEditorStore((state) => state.transformGizmoEnabled);
-  const setTransformGizmoEnabled = useEditorStore((state) => state.setTransformGizmoEnabled);
-  const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (selectedNodeId) {
-      setTransformGizmoEnabled(!transformGizmoEnabled);
-    }
-  };
-
-  return (
-    <button
-      onClick={handleClick}
-      onMouseDown={(e) => e.stopPropagation()}
-      title={transformGizmoEnabled ? "Disable Transform Gizmo" : "Enable Transform Gizmo"}
-      disabled={!selectedNodeId}
-      style={{
-        background: 'transparent',
-        border: 'none',
-        padding: '0',
-        marginLeft: '4px',
-        cursor: selectedNodeId ? 'pointer' : 'not-allowed',
-        display: 'flex',
-        alignItems: 'center',
-        color: transformGizmoEnabled ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.4)',
-        pointerEvents: 'auto',
-      }}
-    >
-      <ToggleLeft size={14} style={{ transform: transformGizmoEnabled ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform 0.2s' }} />
-    </button>
-  );
-};
+// Transform Gizmo Toggle Component - DISABLED
+// Removed from UI as per user request
+// const TransformGizmoToggle = () => {
+//   const transformGizmoEnabled = useEditorStore((state) => state.transformGizmoEnabled);
+//   const setTransformGizmoEnabled = useEditorStore((state) => state.setTransformGizmoEnabled);
+//   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+//
+//   const handleClick = (e: React.MouseEvent) => {
+//     e.preventDefault();
+//     e.stopPropagation();
+//     if (selectedNodeId) {
+//       setTransformGizmoEnabled(!transformGizmoEnabled);
+//     }
+//   };
+//
+//   return (
+//     <button
+//       onClick={handleClick}
+//       onMouseDown={(e) => e.stopPropagation()}
+//       title={transformGizmoEnabled ? "Disable Transform Gizmo" : "Enable Transform Gizmo"}
+//       disabled={!selectedNodeId}
+//       style={{
+//         background: 'transparent',
+//         border: 'none',
+//         padding: '0',
+//         marginLeft: '4px',
+//         cursor: selectedNodeId ? 'pointer' : 'not-allowed',
+//         display: 'flex',
+//         alignItems: 'center',
+//         color: transformGizmoEnabled ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.4)',
+//         pointerEvents: 'auto',
+//       }}
+//     >
+//       <ToggleLeft size={14} style={{ transform: transformGizmoEnabled ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform 0.2s' }} />
+//     </button>
+//   );
+// };
 
 export interface RibbonToolbarProps {
   onKinematicsClick?: () => void;
@@ -419,9 +419,8 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
 
       {/* Transform Category */}
       <div className="ribbon-category-excel">
-        <div className="ribbon-category-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div className="ribbon-category-label">
           Transform
-          <TransformGizmoToggle />
         </div>
         <div className="ribbon-buttons-row">
           <button
