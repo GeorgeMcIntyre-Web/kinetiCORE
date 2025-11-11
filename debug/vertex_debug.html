@@ -1,0 +1,1453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Vertex Debug Harness — STL Screen-Space Projection</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  html, body { margin:0; height:100%; background:#0b0e12; color:#eaeef2; font:14px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial;}
+  .wrap { position:fixed; inset:0; display:grid; grid-template-rows:auto 1fr; }
+  .toolbar {
+    display:flex; gap:.75rem; align-items:center; padding:.5rem .75rem; background:#121720; border-bottom:1px solid #1e2838;
+    position:relative; z-index:3;
+  }
+  .toolbar input[type="number"] { width:6rem; background:#0f141d; color:#eaeef2; border:1px solid #263247; border-radius:6px; padding:.25rem .5rem; }
+  .toolbar button, .toolbar label {
+    background:#1a2433; color:#eaeef2; border:1px solid #2a3a54; border-radius:8px; padding:.4rem .7rem; cursor:pointer;
+  }
+  .toolbar button:hover, .toolbar label:hover { background:#223048; }
+  .pane { position:relative; width:100%; height:100%; }
+  #render { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  #overlay { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; display:block; }
+  .legend {
+    position:absolute; right:12px; bottom:12px; z-index:2;
+    background:rgba(10,14,18,.8); border:1px solid #253247; border-radius:10px; padding:.6rem .8rem; min-width:260px;
+    font-size:12px; color:#cdd6e3;
+  }
+  .legend .row { display:flex; justify-content:space-between; gap:.75rem; }
+  .pill { display:inline-block; min-width:10px; height:10px; border-radius:50%; margin-right:.5rem; vertical-align:middle; }
+  .g { background:#00d07e; }   /* in frustum */
+  .y { background:#ffd24a; }   /* within threshold */
+  .b { background:#58a6ff; }   /* closest */
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toolbar">
+    <label for="file">Choose STL…</label>
+    <input id="file" type="file" accept=".stl,model/stl" style="display:none;">
+    <button id="btnLoadDefault">Load Default</button>
+    <div style="margin-left:12px; display:flex; gap:8px; align-items:center;">
+      <label><input type="checkbox" id="toggleV" checked> Vertices (V)</label>
+      <label><input type="checkbox" id="toggleM" checked> Midpoints (M)</label>
+      <label><input type="checkbox" id="toggleO" checked> Circle center (O)</label>
+    </div>
+    <div style="margin-left:12px; opacity:.85">Thresholds (CSS px):</div>
+    <input id="inpThreshV" type="number" value="100" min="1" step="1" style="width:4rem;" />
+    <input id="inpThreshM" type="number" value="120" min="1" step="1" style="width:4rem;" />
+    <input id="inpThreshO" type="number" value="140" min="1" step="1" style="width:4rem;" />
+    <div style="margin-left:12px; opacity:.85">O inner:</div>
+    <input id="inpOInner" type="number" value="0.60" min="0.1" max="2.0" step="0.05" style="width:4rem;" />
+    <div style="margin-left:4px; opacity:.85">O outer:</div>
+    <input id="inpOOuter" type="number" value="1.40" min="0.5" max="3.0" step="0.05" style="width:4rem;" />
+    <div style="margin-left:4px; opacity:.85">O res%:</div>
+    <input id="inpOResidual" type="number" value="8" min="1" max="50" step="1" style="width:3rem;" />
+    <div style="margin-left:4px; opacity:.85">O cov°:</div>
+    <input id="inpOCoverage" type="number" value="210" min="90" max="360" step="10" style="width:3rem;" />
+    <label style="margin-left:8px;"><input type="checkbox" id="showOccluded"> Show occluded</label>
+    <label style="margin-left:8px;"><input type="checkbox" id="showBins"> Show bins</label>
+    <label style="margin-left:8px;"><input type="checkbox" id="showOOnly"> Show O only</label>
+    <label style="margin-left:8px;"><input type="checkbox" id="showAnnulusRings"> Show annulus rings</label>
+    <button id="btnFreezePointer">Freeze Pointer</button>
+    <button id="copySnapshotBtn">Copy Snapshot</button>
+    <button id="btnResetCam">Reset Camera</button>
+    <div style="margin-left:auto; opacity:.7" id="status">idle</div>
+  </div>
+  <div class="pane">
+    <canvas id="render"></canvas>
+    <canvas id="overlay"></canvas>
+    <div class="legend" id="legend">
+      <div class="row"><span><span class="pill g"></span>V: inFrustum</span><span id="legVIn">0</span></div>
+      <div class="row"><span><span class="pill y"></span>V: near</span><span id="legVNear">0</span></div>
+      <div class="row"><span><span class="pill b"></span>V: minPx</span><span id="legVMin">—</span></div>
+      <div class="row"><span style="color:#00ffff;">M: inFrustum</span><span id="legMIn">0</span></div>
+      <div class="row"><span style="color:#00ffff;">M: near</span><span id="legMNear">0</span></div>
+      <div class="row"><span style="color:#00ffff;">M: minPx</span><span id="legMMin">—</span></div>
+      <div class="row"><span style="color:#ff8800;">O: inFrustum</span><span id="legOIn">0</span></div>
+      <div class="row"><span style="color:#ff8800;">O: near</span><span id="legONear">0</span></div>
+      <div class="row"><span style="color:#ff8800;">O: minPx</span><span id="legOMin">—</span></div>
+      <div class="row"><span style="color:#ff8800;">O: ann</span><span id="legOAnn">0</span></div>
+      <div class="row"><span style="color:#ff8800;">O: inl</span><span id="legOInl">0</span></div>
+      <div class="row"><span style="color:#ff8800;">O: rms</span><span id="legORms">—</span></div>
+      <div class="row"><span style="color:#ff8800;">O: cov</span><span id="legOCov">—</span></div>
+      <div class="row"><span style="color:#ff8800;">O: rad</span><span id="legORad">—</span></div>
+      <div class="row"><span style="color:#ff8800;">O: ok</span><span id="legOOk">0</span></div>
+      <hr style="border:none; border-top:1px solid #233044; margin:.45rem 0;">
+      <div class="row"><span>occluded</span><span id="legOcc">—</span></div>
+      <div class="row"><span>DPR</span><span id="legDpr">—</span></div>
+      <div class="row"><span>rw</span><span id="legRw">—</span></div>
+      <div class="row"><span>rh</span><span id="legRh">—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Babylon CDN -->
+<script src="https://cdn.jsdelivr.net/npm/babylonjs@6.46.0/babylon.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/babylonjs-loaders@6.46.0/babylonjs.loaders.min.js"></script>
+
+<script>
+(() => {
+  // Guard-y helpers
+  const qs = (id) => document.getElementById(id);
+  const statusEl = qs('status');
+  const setStatus = (s) => statusEl.textContent = s;
+
+  // DOM
+  const canvas3D = qs('render');
+  const canvas2D = qs('overlay');
+  const fileInput = qs('file');
+  const btnDefault = qs('btnLoadDefault');
+  const btnResetCam = qs('btnResetCam');
+  const btnSnapshot = qs('copySnapshotBtn');
+  const btnFreezePointer = qs('btnFreezePointer');
+  
+  // UI toggles and inputs
+  const toggleV = qs('toggleV');
+  const toggleM = qs('toggleM');
+  const toggleO = qs('toggleO');
+  const inpThreshV = qs('inpThreshV');
+  const inpThreshM = qs('inpThreshM');
+  const inpThreshO = qs('inpThreshO');
+  const inpOInner = qs('inpOInner');
+  const inpOOuter = qs('inpOOuter');
+  const inpOResidual = qs('inpOResidual');
+  const inpOCoverage = qs('inpOCoverage');
+  const showOccluded = qs('showOccluded');
+  const showBins = qs('showBins');
+  const showOOnly = qs('showOOnly');
+  const showAnnulusRings = qs('showAnnulusRings');
+
+  // Legend elements
+  const legVIn = qs('legVIn'), legVNear = qs('legVNear'), legVMin = qs('legVMin');
+  const legMIn = qs('legMIn'), legMNear = qs('legMNear'), legMMin = qs('legMMin');
+  const legOIn = qs('legOIn'), legONear = qs('legONear'), legOMin = qs('legOMin');
+  const legOAnn = qs('legOAnn'), legOInl = qs('legOInl'), legORms = qs('legORms');
+  const legOCov = qs('legOCov'), legORad = qs('legORad'), legOOk = qs('legOOk');
+  const legOcc = qs('legOcc'), legDpr = qs('legDpr'), legRw = qs('legRw'), legRh = qs('legRh');
+
+  // Babylon setup
+  const engine = new BABYLON.Engine(canvas3D, true, { preserveDrawingBuffer:true, stencil:true, disableWebGL2Support:false });
+  const scene = new BABYLON.Scene(engine);
+  scene.useRightHandedSystem = false;
+  scene.createDefaultLight(true);
+
+  const camera = new BABYLON.ArcRotateCamera("cam", Math.PI*0.25, Math.PI*0.35, 1.2, new BABYLON.Vector3(0,0,0), scene);
+  camera.attachControl(canvas3D, true);
+  camera.wheelDeltaPercentage = 0.02;
+  camera.minZ = 0.001;
+  camera.maxZ = 10000;
+  camera.lowerRadiusLimit = 0.05;
+
+  const dpr = window.devicePixelRatio || 1;
+  const resize = () => {
+    const toolbar = qs('toolbar');
+    const toolbarHeight = toolbar ? toolbar.offsetHeight : 0;
+    const w = window.innerWidth;
+    const h = window.innerHeight - toolbarHeight;
+    canvas3D.width = w * dpr;
+    canvas3D.height = h * dpr;
+    canvas2D.width = w * dpr;
+    canvas2D.height = h * dpr;
+    canvas3D.style.width = w + 'px';
+    canvas3D.style.height = h + 'px';
+    canvas2D.style.width = w + 'px';
+    canvas2D.style.height = h + 'px';
+    engine.resize();
+  };
+  window.addEventListener('resize', resize, { passive:true });
+  resize();
+
+  // Track last pointer in render pixels
+  canvas3D.addEventListener('mousemove', () => {
+    const rw = engine.getRenderWidth(true);
+    const rh = engine.getRenderHeight(true);
+    const px = scene.pointerX;
+    const py = scene.pointerY;
+    if (rw <= 0 || rh <= 0) return;
+    if (px < 0 || py < 0) return;
+    if (px >= rw || py >= rh) return;
+    lastPointerX = px;
+    lastPointerY = py;
+  });
+
+  // Globals
+  let loadedRoot = null;
+  let mesh = null;
+  let worldVertsCache = null; // Float32Array world-space vertices (welded)
+  let cacheFlag = -1;
+  let pointCloudMesh = null; // PointsCloudSystem mesh (unparented, world space)
+  let lastPointerX = 0;
+  let lastPointerY = 0;
+  let frozenPointer = null; // {x, y} when freeze is enabled
+  
+  // Geometry caches
+  let triangles = []; // array of [i0, i1, i2]
+  let edges = []; // array of [i, j] (undirected, min(i,j) first)
+  let midVerts = null; // Float32Array of edge midpoints (world space)
+  let faceCenters = null; // Float32Array of triangle centroids (not used, kept for future)
+  
+  // Circle detection cache
+  let lastCircleResult = null;
+  let lastCircleFrame = -1;
+
+  const getPositionsArray = (m) => {
+    if (m === null) return null;
+    const src = (m.isAnInstance ? m.sourceMesh : m);
+    if (src === null) return null;
+    const pos = src.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+    if (pos === null) return null;
+    return (pos instanceof Float32Array) ? pos : new Float32Array(pos);
+  };
+
+  const buildWorldVerts = (m) => {
+    if (m === null) return null;
+    const positions = getPositionsArray(m);
+    if (positions === null) return null;
+    m.computeWorldMatrix(true);
+    const wm = m.getWorldMatrix();
+    const count = positions.length;
+    const out = new Float32Array(count);
+    const v = new BABYLON.Vector3();
+
+    for (let i = 0; i < count; i += 3) {
+      v.set(positions[i], positions[i+1], positions[i+2]);
+      const w = BABYLON.Vector3.TransformCoordinates(v, wm);
+      out[i] = w.x; out[i+1] = w.y; out[i+2] = w.z;
+    }
+
+    return out;
+  };
+
+  const ensureWorldVerts = (m) => {
+    const flag = m.getWorldMatrix().updateFlag;
+    if (worldVertsCache && cacheFlag === flag) return worldVertsCache;
+    worldVertsCache = buildWorldVerts(m);
+    cacheFlag = flag;
+    return worldVertsCache;
+  };
+
+  // Must match app's projectToScreen exactly for parity
+  // Input pW is already in world space, so use Identity for worldMatrix
+  const projectToScreen = (worldV, cam) => {
+    if (!worldV || !cam) return null;
+    const engineW = engine.getRenderWidth();
+    const engineH = engine.getRenderHeight();
+    if (engineW <= 0 || engineH <= 0) return null;
+    // Given a world-space position, use Identity for worldMatrix (already world-space)
+    const worldMatrix = BABYLON.Matrix.Identity();
+    const viewProj = scene.getTransformMatrix(); // camera view * proj
+    const vp = cam.viewport.toGlobal(engineW, engineH);
+    const sp = BABYLON.Vector3.Project(worldV, worldMatrix, viewProj, vp);
+    // Validate projection
+    if (!Number.isFinite(sp.x) || !Number.isFinite(sp.y) || !Number.isFinite(sp.z)) return null;
+    // Pad 2 px to avoid edge flicker (matches app)
+    if (sp.z < 0 || sp.z > 1) return null;
+    if (sp.x < -2 || sp.x > engineW + 2) return null;
+    if (sp.y < -2 || sp.y > engineH + 2) return null;
+    return { x: sp.x, y: sp.y, z: sp.z, rw: engineW, rh: engineH };
+  };
+
+  // Bin index function (must match app exactly)
+  const binIndexOf = (screenX, screenY, rw, rh, bx, by) => {
+    if (rw <= 0 || rh <= 0) return { ix: -1, iy: -1 };
+    const nx = screenX / rw;
+    const ny = screenY / rh; // Babylon's screen Y increases downward → this is correct
+    if (Number.isNaN(nx) || Number.isNaN(ny)) return { ix: -1, iy: -1 };
+    let ix = Math.floor(nx * bx);
+    let iy = Math.floor(ny * by);
+    if (ix < 0) ix = 0;
+    if (iy < 0) iy = 0;
+    if (ix >= bx) ix = bx - 1;
+    if (iy >= by) iy = by - 1;
+    return { ix, iy };
+  };
+
+  // Geometry extraction: weld vertices and build triangles/edges
+  const EPS = 1e-6; // epsilon for vertex welding (in world units)
+  
+  const weldVertices = (positions) => {
+    if (!positions || positions.length < 9) return { welded: null, map: null };
+    const map = new Map();
+    const welded = [];
+    const tol = EPS;
+    
+    for (let i = 0; i < positions.length; i += 3) {
+      const x = positions[i], y = positions[i+1], z = positions[i+2];
+      const key = `${Math.round(x/tol)},${Math.round(y/tol)},${Math.round(z/tol)}`;
+      let idx = map.get(key);
+      if (idx === undefined) {
+        idx = welded.length / 3;
+        welded.push(x, y, z);
+        map.set(key, idx);
+      }
+    }
+    
+    return { welded: new Float32Array(welded), map };
+  };
+  
+  const buildTrianglesAndEdges = (positions, weldMap) => {
+    if (!positions || positions.length < 9) return { triangles: [], edges: [] };
+    const tri = [];
+    const edgeSet = new Set();
+    const tol = EPS;
+    
+    // STL: 9 floats per triangle (3 vertices * 3 coords)
+    for (let i = 0; i < positions.length; i += 9) {
+      const v0 = [positions[i], positions[i+1], positions[i+2]];
+      const v1 = [positions[i+3], positions[i+4], positions[i+5]];
+      const v2 = [positions[i+6], positions[i+7], positions[i+8]];
+      
+      const k0 = `${Math.round(v0[0]/tol)},${Math.round(v0[1]/tol)},${Math.round(v0[2]/tol)}`;
+      const k1 = `${Math.round(v1[0]/tol)},${Math.round(v1[1]/tol)},${Math.round(v1[2]/tol)}`;
+      const k2 = `${Math.round(v2[0]/tol)},${Math.round(v2[1]/tol)},${Math.round(v2[2]/tol)}`;
+      
+      const i0 = weldMap.get(k0);
+      const i1 = weldMap.get(k1);
+      const i2 = weldMap.get(k2);
+      
+      if (i0 === undefined || i1 === undefined || i2 === undefined) continue;
+      if (i0 === i1 || i1 === i2 || i0 === i2) continue; // degenerate
+      
+      tri.push([i0, i1, i2]);
+      
+      // Add edges (undirected, min first)
+      const e0 = i0 < i1 ? [i0, i1] : [i1, i0];
+      const e1 = i1 < i2 ? [i1, i2] : [i2, i1];
+      const e2 = i0 < i2 ? [i0, i2] : [i2, i0];
+      edgeSet.add(`${e0[0]},${e0[1]}`);
+      edgeSet.add(`${e1[0]},${e1[1]}`);
+      edgeSet.add(`${e2[0]},${e2[1]}`);
+    }
+    
+    const edges = Array.from(edgeSet).map(s => {
+      const [a, b] = s.split(',').map(Number);
+      return [a, b];
+    });
+    
+    return { triangles: tri, edges };
+  };
+  
+  const computeMidpoints = (worldVerts, edges) => {
+    if (!worldVerts || !edges || edges.length === 0) return null;
+    const mid = new Float32Array(edges.length * 3);
+    for (let i = 0; i < edges.length; i++) {
+      const [a, b] = edges[i];
+      const ax = worldVerts[a * 3], ay = worldVerts[a * 3 + 1], az = worldVerts[a * 3 + 2];
+      const bx = worldVerts[b * 3], by = worldVerts[b * 3 + 1], bz = worldVerts[b * 3 + 2];
+      mid[i * 3] = (ax + bx) * 0.5;
+      mid[i * 3 + 1] = (ay + by) * 0.5;
+      mid[i * 3 + 2] = (az + bz) * 0.5;
+    }
+    return mid;
+  };
+
+  // Draw helpers
+  const ctx = canvas2D.getContext('2d');
+  const clearOverlay = () => { ctx.clearRect(0,0,canvas2D.width, canvas2D.height); };
+  const dot = (x,y,r,style) => {
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+    ctx.fillStyle = style; ctx.fill();
+  };
+  const ring = (x,y,r,style, line=2) => {
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+    ctx.lineWidth = line; ctx.strokeStyle = style; ctx.stroke();
+  };
+  const drawPoints2D = (points, size, color) => {
+    const dpr = 1 / engine.getHardwareScalingLevel();
+    ctx.fillStyle = color;
+    for (const p of points) {
+      ctx.fillRect(p.x / dpr - size/2, p.y / dpr - size/2, size, size);
+    }
+  };
+
+  // Circle detection: PCA plane fit + Taubin circle fit
+  const fitPlanePCA = (points3) => {
+    if (!points3 || points3.length < 3) return null;
+    const n = points3.length;
+    let cx = 0, cy = 0, cz = 0;
+    for (let i = 0; i < n; i++) {
+      cx += points3[i].x;
+      cy += points3[i].y;
+      cz += points3[i].z;
+    }
+    cx /= n; cy /= n; cz /= n;
+    
+    // Covariance matrix
+    let cxx = 0, cxy = 0, cxz = 0, cyy = 0, cyz = 0, czz = 0;
+    for (let i = 0; i < n; i++) {
+      const dx = points3[i].x - cx;
+      const dy = points3[i].y - cy;
+      const dz = points3[i].z - cz;
+      cxx += dx * dx; cxy += dx * dy; cxz += dx * dz;
+      cyy += dy * dy; cyz += dy * dz; czz += dz * dz;
+    }
+    const invN = 1 / n;
+    cxx *= invN; cxy *= invN; cxz *= invN;
+    cyy *= invN; cyz *= invN; czz *= invN;
+    
+    // Simple eigenvector for smallest eigenvalue (normal)
+    // Use power iteration approximation
+    let nx = 1, ny = 0, nz = 0;
+    for (let iter = 0; iter < 10; iter++) {
+      const tx = cxx * nx + cxy * ny + cxz * nz;
+      const ty = cxy * nx + cyy * ny + cyz * nz;
+      const tz = cxz * nx + cyz * ny + czz * nz;
+      const len = Math.sqrt(tx*tx + ty*ty + tz*tz);
+      if (len < 1e-10) break;
+      nx = tx / len; ny = ty / len; nz = tz / len;
+    }
+    
+    // Build orthonormal basis
+    const u = new BABYLON.Vector3(1, 0, 0);
+    if (Math.abs(nx) > 0.9) u.set(0, 1, 0);
+    u.subtractInPlace(new BABYLON.Vector3(nx, ny, nz).scale(BABYLON.Vector3.Dot(u, new BABYLON.Vector3(nx, ny, nz))));
+    u.normalize();
+    const v = BABYLON.Vector3.Cross(new BABYLON.Vector3(nx, ny, nz), u);
+    v.normalize();
+    
+    return {
+      origin: new BABYLON.Vector3(cx, cy, cz),
+      normal: new BABYLON.Vector3(nx, ny, nz),
+      u: u,
+      v: v
+    };
+  };
+  
+  const projectTo2D = (points3, basis) => {
+    if (!points3 || !basis) return null;
+    const uv = new Float32Array(points3.length * 2);
+    for (let i = 0; i < points3.length; i++) {
+      const p = points3[i];
+      const rel = new BABYLON.Vector3(p.x - basis.origin.x, p.y - basis.origin.y, p.z - basis.origin.z);
+      uv[i * 2] = BABYLON.Vector3.Dot(rel, basis.u);
+      uv[i * 2 + 1] = BABYLON.Vector3.Dot(rel, basis.v);
+    }
+    return uv;
+  };
+  
+  const fitCircle2D_Taubin = (uv) => {
+    if (!uv || uv.length < 6) return null;
+    const n = uv.length / 2;
+    let sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, sx3 = 0, sy3 = 0, sxy2 = 0, sx2y = 0;
+    for (let i = 0; i < n; i++) {
+      const x = uv[i * 2], y = uv[i * 2 + 1];
+      sx += x; sy += y;
+      sxx += x * x; syy += y * y; sxy += x * y;
+      sx3 += x * x * x; sy3 += y * y * y;
+      sxy2 += x * y * y; sx2y += x * x * y;
+    }
+    const invN = 1 / n;
+    sx *= invN; sy *= invN; sxx *= invN; syy *= invN; sxy *= invN;
+    sx3 *= invN; sy3 *= invN; sxy2 *= invN; sx2y *= invN;
+    
+    const a1 = 2 * (sxx - sx * sx);
+    const a2 = 2 * (sxy - sx * sy);
+    const a3 = 2 * (syy - sy * sy);
+    const b1 = sx3 + sxy2 - sx * (sxx + syy);
+    const b2 = sy3 + sx2y - sy * (sxx + syy);
+    
+    const det = a1 * a3 - a2 * a2;
+    if (Math.abs(det) < 1e-10) return null;
+    
+    const cx = (b1 * a3 - b2 * a2) / det;
+    const cy = (b2 * a1 - b1 * a2) / det;
+    
+    let r = 0;
+    for (let i = 0; i < n; i++) {
+      const dx = uv[i * 2] - cx;
+      const dy = uv[i * 2 + 1] - cy;
+      r += Math.sqrt(dx * dx + dy * dy);
+    }
+    r /= n;
+    
+    let rms = 0;
+    for (let i = 0; i < n; i++) {
+      const dx = uv[i * 2] - cx;
+      const dy = uv[i * 2 + 1] - cy;
+      const d = Math.abs(Math.sqrt(dx * dx + dy * dy) - r);
+      rms += d * d;
+    }
+    rms = Math.sqrt(rms / n);
+    
+    return { cx, cy, r, rms };
+  };
+  
+  const unprojectCenter = (cx, cy, basis) => {
+    return new BABYLON.Vector3(
+      basis.origin.x + cx * basis.u.x + cy * basis.v.x,
+      basis.origin.y + cx * basis.u.y + cy * basis.v.y,
+      basis.origin.z + cx * basis.u.z + cy * basis.v.z
+    );
+  };
+  
+  const angularCoverage = (uv, cx, cy) => {
+    if (!uv || uv.length < 6) return 0;
+    const angles = [];
+    // Handle both Float32Array (old) and array of {u, v} objects (new)
+    const n = Array.isArray(uv) && uv[0] && typeof uv[0] === 'object' ? uv.length : uv.length / 2;
+    for (let i = 0; i < n; i++) {
+      let dx, dy;
+      if (Array.isArray(uv) && uv[i] && typeof uv[i] === 'object') {
+        dx = uv[i].u - cx;
+        dy = uv[i].v - cy;
+      } else {
+        dx = uv[i * 2] - cx;
+        dy = uv[i * 2 + 1] - cy;
+      }
+      angles.push(Math.atan2(dy, dx));
+    }
+    angles.sort((a, b) => a - b);
+    let maxGap = 0;
+    for (let i = 0; i < angles.length; i++) {
+      const gap = angles[(i + 1) % angles.length] - angles[i];
+      const gapNorm = gap < 0 ? gap + Math.PI * 2 : gap;
+      if (gapNorm > maxGap) maxGap = gapNorm;
+    }
+    return Math.PI * 2 - maxGap;
+  };
+
+  // Helper: quantile for outlier rejection
+  const quantile = (arr, q) => {
+    if (!arr || arr.length === 0) return 0;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const idx = Math.floor((sorted.length - 1) * q);
+    return sorted[idx];
+  };
+
+  // Taubin circle fit - works with array of {u, v} objects
+  const taubinCircle = (uv) => {
+    if (!uv || uv.length < 6) return null;
+    const n = uv.length;
+    let sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, sx3 = 0, sy3 = 0, sxy2 = 0, sx2y = 0;
+    for (let i = 0; i < n; i++) {
+      const x = uv[i].u, y = uv[i].v;
+      sx += x; sy += y;
+      sxx += x * x; syy += y * y; sxy += x * y;
+      sx3 += x * x * x; sy3 += y * y * y;
+      sxy2 += x * y * y; sx2y += x * x * y;
+    }
+    const invN = 1 / n;
+    sx *= invN; sy *= invN; sxx *= invN; syy *= invN; sxy *= invN;
+    sx3 *= invN; sy3 *= invN; sxy2 *= invN; sx2y *= invN;
+    
+    const a1 = 2 * (sxx - sx * sx);
+    const a2 = 2 * (sxy - sx * sy);
+    const a3 = 2 * (syy - sy * sy);
+    const b1 = sx3 + sxy2 - sx * (sxx + syy);
+    const b2 = sy3 + sx2y - sy * (sxx + syy);
+    
+    const det = a1 * a3 - a2 * a2;
+    if (Math.abs(det) < 1e-10) return null;
+    
+    const cx = (b1 * a3 - b2 * a2) / det;
+    const cy = (b2 * a1 - b1 * a2) / det;
+    
+    let r = 0;
+    for (let i = 0; i < n; i++) {
+      const dx = uv[i].u - cx;
+      const dy = uv[i].v - cy;
+      r += Math.sqrt(dx * dx + dy * dy);
+    }
+    r /= n;
+    
+    let rms = 0;
+    for (let i = 0; i < n; i++) {
+      const dx = uv[i].u - cx;
+      const dy = uv[i].v - cy;
+      const d = Math.abs(Math.sqrt(dx * dx + dy * dy) - r);
+      rms += d * d;
+    }
+    rms = Math.sqrt(rms / n);
+    
+    return { cx, cy, r, rms, ok: r > 0 && Number.isFinite(r) && Number.isFinite(rms) };
+  };
+
+  const loadSTLFromURL = async (url) => {
+    setStatus('loading ' + url);
+    // clean old
+    if (loadedRoot) { loadedRoot.dispose(); loadedRoot = null; mesh = null; worldVertsCache = null; }
+    const result = await BABYLON.SceneLoader.ImportMeshAsync("", "", url, scene);
+    if (!result || result.meshes.length === 0) { setStatus('failed to load'); return; }
+    loadedRoot = new BABYLON.TransformNode("root", scene);
+    result.meshes.forEach(m => { if (m && m !== scene.getMeshByName("__root__")) m.parent = loadedRoot; });
+
+    // pick the biggest mesh (most vertices)
+    let pick = null, maxVerts = -1;
+    for (const m of result.meshes) {
+      if (!m || !(m instanceof BABYLON.Mesh)) continue;
+      const pos = getPositionsArray(m);
+      if (!pos) continue;
+      if (pos.length > maxVerts) { maxVerts = pos.length; pick = m; }
+    }
+
+    mesh = pick;
+    if (mesh === null) { setStatus('no mesh positions found'); return; }
+
+    // center & scale into view gently
+    const bb = mesh.getBoundingInfo().boundingBox;
+    const center = bb.centerWorld.clone();
+    const extent = bb.extendSizeWorld.length();
+    camera.setTarget(center);
+    if (extent > 0) camera.radius = extent * 1.8;
+
+    setStatus('loaded: ' + url + '  (' + (maxVerts/3|0) + ' verts)');
+  };
+
+  // UI events
+  btnDefault.addEventListener('click', () => {
+    BABYLON.SceneLoader.ImportMeshAsync("", "/debug/assets/", "MH5_BASE_AXIS.stl", scene).then(result => {
+      if (!result || result.meshes.length === 0) { setStatus('failed to load'); return; }
+      // clean old
+      if (loadedRoot) { loadedRoot.dispose(); loadedRoot = null; mesh = null; worldVertsCache = null; }
+      if (pointCloudMesh) { pointCloudMesh.dispose(); pointCloudMesh = null; }
+      loadedRoot = new BABYLON.TransformNode("root", scene);
+      result.meshes.forEach(m => { if (m && m !== scene.getMeshByName("__root__")) m.parent = loadedRoot; });
+
+      // pick the biggest mesh (most vertices)
+      let pick = null, maxVerts = -1;
+      for (const m of result.meshes) {
+        if (!m || !(m instanceof BABYLON.Mesh)) continue;
+        const pos = getPositionsArray(m);
+        if (!pos) continue;
+        if (pos.length > maxVerts) { maxVerts = pos.length; pick = m; }
+      }
+
+      mesh = pick;
+      if (mesh === null) { setStatus('no mesh positions found'); return; }
+
+      // Build world-space vertex positions (never parent point cloud to mesh)
+      if (!mesh.isVerticesDataPresent(BABYLON.VertexBuffer.PositionKind)) {
+        setStatus('no vertex data');
+        return;
+      }
+      
+      // Guard: ensure fresh world matrix
+      mesh.computeWorldMatrix(true);
+      const W = mesh.getWorldMatrix();
+      const local = getPositionsArray(mesh);
+      if (!local || local.length % 3 !== 0) {
+        setStatus('invalid vertex data');
+        return;
+      }
+
+      // Weld vertices and build geometry
+      const { welded: localWelded, map: weldMap } = weldVertices(local);
+      if (!localWelded || !weldMap) {
+        setStatus('failed to weld vertices');
+        return;
+      }
+      
+      const { triangles: tri, edges: edg } = buildTrianglesAndEdges(local, weldMap);
+      triangles = tri;
+      edges = edg;
+      
+      // Transform welded vertices to world space
+      const world = new Float32Array(localWelded.length);
+      const v = new BABYLON.Vector3();
+      for (let i = 0; i < localWelded.length; i += 3) {
+        v.set(localWelded[i], localWelded[i + 1], localWelded[i + 2]);
+        BABYLON.Vector3.TransformCoordinatesToRef(v, W, v);
+        world[i] = v.x; world[i + 1] = v.y; world[i + 2] = v.z;
+      }
+
+      // Compute midpoints in world space
+      midVerts = computeMidpoints(world, edges);
+      
+      // Store world positions for screen-space projection
+      window.__vertexWorldPositions = world;
+      worldVertsCache = world;
+      cacheFlag = W.updateFlag;
+
+      // Create point cloud in WORLD space; do NOT parent it to mesh
+      if (pointCloudMesh) {
+        pointCloudMesh.dispose();
+        pointCloudMesh = null;
+      }
+      const pts = new BABYLON.PointsCloudSystem('__verts', 1, scene);
+      pts.addPoints(world.length / 3, (p, i) => {
+        p.position.set(world[3 * i], world[3 * i + 1], world[3 * i + 2]);
+        return p;
+      });
+      pts.buildMeshAsync().then(m => {
+        pointCloudMesh = m;
+        m.isPickable = false;
+        m.alwaysSelectAsActiveMesh = false;
+        // Important: do not set m.parent = mesh; leave it unparented (world space)
+      });
+
+      // Live sync when transforms change
+      let lastFlag = W.updateFlag;
+      scene.onBeforeRenderObservable.add(() => {
+        if (!mesh) return;
+        mesh.computeWorldMatrix(true);
+        const f = mesh.getWorldMatrix().updateFlag;
+        if (f !== lastFlag) {
+          lastFlag = f;
+          // Rebuild world positions
+          const W2 = mesh.getWorldMatrix();
+          const local2 = getPositionsArray(mesh);
+          if (local2 && local2.length % 3 === 0) {
+            const world2 = new Float32Array(local2.length);
+            const v2 = new BABYLON.Vector3();
+            for (let i = 0; i < local2.length; i += 3) {
+              v2.set(local2[i], local2[i + 1], local2[i + 2]);
+              BABYLON.Vector3.TransformCoordinatesToRef(v2, W2, v2);
+              world2[i] = v2.x; world2[i + 1] = v2.y; world2[i + 2] = v2.z;
+            }
+            worldVertsCache = world2;
+            window.__vertexWorldPositions = world2;
+            cacheFlag = f;
+            // Update point cloud positions
+            if (pointCloudMesh && pointCloudMesh.updateVerticesData) {
+              pointCloudMesh.updateVerticesData(BABYLON.VertexBuffer.PositionKind, world2);
+            }
+          }
+        }
+      });
+
+      // Sanity log: project first vertex
+      const test = new BABYLON.Vector3(world[0], world[1], world[2]);
+      const sp = BABYLON.Vector3.Project(test, BABYLON.Matrix.Identity(), scene.getTransformMatrix(), camera.viewport.toGlobal(engine.getRenderWidth(), engine.getRenderHeight()));
+      console.log('[Check] first vertex px=', sp.x.toFixed(1), sp.y.toFixed(1));
+
+      // center & scale into view gently
+      const bb = mesh.getBoundingInfo().boundingBox;
+      const center = bb.centerWorld.clone();
+      const extent = bb.extendSizeWorld.length();
+      camera.setTarget(center);
+      if (extent > 0) camera.radius = extent * 1.8;
+
+      setStatus('loaded: MH5_BASE_AXIS.stl  (' + (maxVerts/3|0) + ' verts)');
+    }).catch(err => {
+      console.error('Load error:', err);
+      setStatus('error: ' + err.message);
+    });
+  });
+
+  // Label automatically triggers file input - no need for manual click()
+  // The label's 'for' attribute or containing the input handles it natively
+
+  fileInput.addEventListener('change', async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    // clean old
+    if (loadedRoot) { loadedRoot.dispose(); loadedRoot = null; mesh = null; worldVertsCache = null; }
+    if (pointCloudMesh) { pointCloudMesh.dispose(); pointCloudMesh = null; }
+    BABYLON.SceneLoader.ImportMeshAsync("", "", f, scene, undefined, ".stl").then(result => {
+      if (!result || result.meshes.length === 0) { setStatus('failed to load'); return; }
+      loadedRoot = new BABYLON.TransformNode("root", scene);
+      result.meshes.forEach(m => { if (m && m !== scene.getMeshByName("__root__")) m.parent = loadedRoot; });
+
+      // pick the biggest mesh (most vertices)
+      let pick = null, maxVerts = -1;
+      for (const m of result.meshes) {
+        if (!m || !(m instanceof BABYLON.Mesh)) continue;
+        const pos = getPositionsArray(m);
+        if (!pos) continue;
+        if (pos.length > maxVerts) { maxVerts = pos.length; pick = m; }
+      }
+
+      mesh = pick;
+      if (mesh === null) { setStatus('no mesh positions found'); return; }
+
+      // Build world-space vertex positions (same as Load Default)
+      if (!mesh.isVerticesDataPresent(BABYLON.VertexBuffer.PositionKind)) {
+        setStatus('no vertex data');
+        return;
+      }
+      
+      mesh.computeWorldMatrix(true);
+      const W = mesh.getWorldMatrix();
+      const local = getPositionsArray(mesh);
+      if (!local || local.length % 3 !== 0) {
+        setStatus('invalid vertex data');
+        return;
+      }
+
+      // Weld vertices and build geometry
+      const { welded: localWelded, map: weldMap } = weldVertices(local);
+      if (!localWelded || !weldMap) {
+        setStatus('failed to weld vertices');
+        return;
+      }
+      
+      const { triangles: tri, edges: edg } = buildTrianglesAndEdges(local, weldMap);
+      triangles = tri;
+      edges = edg;
+      
+      // Transform welded vertices to world space
+      const world = new Float32Array(localWelded.length);
+      const v = new BABYLON.Vector3();
+      for (let i = 0; i < localWelded.length; i += 3) {
+        v.set(localWelded[i], localWelded[i + 1], localWelded[i + 2]);
+        BABYLON.Vector3.TransformCoordinatesToRef(v, W, v);
+        world[i] = v.x; world[i + 1] = v.y; world[i + 2] = v.z;
+      }
+
+      // Compute midpoints in world space
+      midVerts = computeMidpoints(world, edges);
+      
+      window.__vertexWorldPositions = world;
+      worldVertsCache = world;
+      cacheFlag = W.updateFlag;
+
+      if (pointCloudMesh) {
+        pointCloudMesh.dispose();
+        pointCloudMesh = null;
+      }
+      const pts = new BABYLON.PointsCloudSystem('__verts', 1, scene);
+      pts.addPoints(world.length / 3, (p, i) => {
+        p.position.set(world[3 * i], world[3 * i + 1], world[3 * i + 2]);
+        return p;
+      });
+      pts.buildMeshAsync().then(m => {
+        pointCloudMesh = m;
+        m.isPickable = false;
+        m.alwaysSelectAsActiveMesh = false;
+      });
+
+      let lastFlag = W.updateFlag;
+      scene.onBeforeRenderObservable.add(() => {
+        if (!mesh) return;
+        mesh.computeWorldMatrix(true);
+        const f = mesh.getWorldMatrix().updateFlag;
+        if (f !== lastFlag) {
+          lastFlag = f;
+          const W2 = mesh.getWorldMatrix();
+          const local2 = getPositionsArray(mesh);
+          if (local2 && local2.length % 3 === 0) {
+            const world2 = new Float32Array(local2.length);
+            const v2 = new BABYLON.Vector3();
+            for (let i = 0; i < local2.length; i += 3) {
+              v2.set(local2[i], local2[i + 1], local2[i + 2]);
+              BABYLON.Vector3.TransformCoordinatesToRef(v2, W2, v2);
+              world2[i] = v2.x; world2[i + 1] = v2.y; world2[i + 2] = v2.z;
+            }
+            worldVertsCache = world2;
+            window.__vertexWorldPositions = world2;
+            cacheFlag = f;
+            if (pointCloudMesh && pointCloudMesh.updateVerticesData) {
+              pointCloudMesh.updateVerticesData(BABYLON.VertexBuffer.PositionKind, world2);
+            }
+          }
+        }
+      });
+
+      const test = new BABYLON.Vector3(world[0], world[1], world[2]);
+      const sp = BABYLON.Vector3.Project(test, BABYLON.Matrix.Identity(), scene.getTransformMatrix(), camera.viewport.toGlobal(engine.getRenderWidth(), engine.getRenderHeight()));
+      console.log('[Check] first vertex px=', sp.x.toFixed(1), sp.y.toFixed(1));
+
+      // center & scale into view gently
+      const bb = mesh.getBoundingInfo().boundingBox;
+      const center = bb.centerWorld.clone();
+      const extent = bb.extendSizeWorld.length();
+      camera.setTarget(center);
+      if (extent > 0) camera.radius = extent * 1.8;
+
+      setStatus('loaded: ' + f.name + '  (' + (maxVerts/3|0) + ' verts)');
+    }).catch(err => {
+      console.error('Load error:', err);
+      setStatus('error: ' + err.message);
+    });
+  });
+
+  btnResetCam.addEventListener('click', () => {
+    if (mesh === null) return;
+    const bb = mesh.getBoundingInfo().boundingBox;
+    camera.setTarget(bb.centerWorld.clone());
+    const extent = bb.extendSizeWorld.length();
+    if (extent > 0) camera.radius = extent * 1.8;
+  });
+
+  btnSnapshot.addEventListener('click', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (mesh === null || camera === null) {
+      console.warn('[Harness][Snapshot] No mesh or camera loaded');
+      return;
+    }
+    
+    // One-frame settle before capture
+    await new Promise(r => requestAnimationFrame(r));
+    
+    // Use last hover pointer, not click position
+    const px = lastPointerX;
+    const py = lastPointerY;
+    const dpr = 1 / engine.getHardwareScalingLevel();
+    const rw = engine.getRenderWidth(true);
+    const rh = engine.getRenderHeight(true);
+    const cam = camera;
+    // Helper to convert Vector3/Matrix to array (plain JS)
+    const vecToArray = (v) => v ? [v.x, v.y, v.z] : [0, 0, 0];
+    const matToArray = (m) => {
+      if (!m) return null;
+      const arr = [];
+      for (let i = 0; i < 16; i++) arr.push(m.m[i]);
+      return arr;
+    };
+    
+    const snapshot = {
+      cam: {
+        pos: vecToArray(cam.position),
+        target: cam.target ? vecToArray(cam.target) : (cam.getTarget ? vecToArray(cam.getTarget()) : [0, 0, 0]),
+        view: matToArray(cam.getViewMatrix()),
+        proj: matToArray(cam.getProjectionMatrix()),
+        fov: cam.fov !== undefined ? cam.fov : (cam.getProjectionMatrix ? Math.PI / 4 : Math.PI / 4),
+        minZ: cam.minZ,
+        maxZ: cam.maxZ
+      },
+      pointer: { x: px, y: py }, // render pixels (last hover)
+      dpr: dpr,
+      rw: rw,
+      rh: rh
+    };
+    
+    // Sanity log
+    console.log('[Harness][Snapshot]', { px: lastPointerX, py: lastPointerY, dpr, rw, rh });
+    const snapshotJson = JSON.stringify(snapshot);
+    console.log('[Harness][Snapshot]', snapshotJson);
+    
+    // Also copy to clipboard if possible (as ready-to-paste function call)
+    const readyToPaste = `__snapCompare('${snapshotJson.replace(/'/g, "\\'")}')`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(readyToPaste).then(() => {
+        setStatus('Ready-to-paste command copied! Paste in app console.');
+        console.log('[Harness][Snapshot] Ready to paste in app console:', readyToPaste);
+      }).catch(() => {
+        setStatus('Snapshot logged to console');
+      });
+    } else {
+      setStatus('Snapshot logged to console');
+      console.log('[Harness][Snapshot] Copy this to app console:', readyToPaste);
+    }
+  });
+
+  // Freeze pointer toggle
+  btnFreezePointer.addEventListener('click', () => {
+    if (frozenPointer) {
+      frozenPointer = null;
+      btnFreezePointer.textContent = 'Freeze Pointer';
+      btnFreezePointer.style.background = '#1a2433';
+    } else {
+      frozenPointer = { x: lastPointerX, y: lastPointerY };
+      btnFreezePointer.textContent = 'Unfreeze Pointer';
+      btnFreezePointer.style.background = '#2a5a3a';
+    }
+  });
+
+  // Hotkeys
+  window.addEventListener('keydown', async (ev) => {
+    if (ev.target.tagName === 'INPUT') return; // Don't intercept when typing in inputs
+    
+    const key = ev.key.toLowerCase();
+    if (key === 'v') {
+      ev.preventDefault();
+      if (toggleV) toggleV.checked = !toggleV.checked;
+    }
+    if (key === 'm') {
+      ev.preventDefault();
+      if (toggleM) toggleM.checked = !toggleM.checked;
+    }
+    if (key === 'o') {
+      ev.preventDefault();
+      if (toggleO) toggleO.checked = !toggleO.checked;
+    }
+    if (key === 'b') {
+      ev.preventDefault();
+      if (showBins) showBins.checked = !showBins.checked;
+    }
+    if (key === 'f') {
+      ev.preventDefault();
+      btnFreezePointer.click();
+    }
+    if (key === 's' && !ev.shiftKey) {
+      ev.preventDefault();
+      document.querySelector('#copySnapshotBtn')?.click();
+    }
+    if (key === 's' && ev.shiftKey) {
+      ev.preventDefault();
+      document.querySelector('#copySnapshotBtn')?.click();
+    }
+  });
+
+  // Main render + overlay pass
+  scene.onBeforeRenderObservable.add(() => {
+    if (mesh === null) { clearOverlay(); return; }
+
+    // Read UI
+    const threshV = Math.max(1, parseFloat(inpThreshV.value) || 100);
+    const threshM = Math.max(1, parseFloat(inpThreshM.value) || 120);
+    const threshO = Math.max(1, parseFloat(inpThreshO.value) || 140);
+    const showV = toggleV && toggleV.checked;
+    const showM = toggleM && toggleM.checked;
+    const showO = toggleO && toggleO.checked;
+    const showOcc = showOccluded && showOccluded.checked;
+    const showBinsFlag = showBins && showBins.checked;
+
+    // DPR-correct thresholds
+    const dpr = 1 / engine.getHardwareScalingLevel();
+    const screenThreshV = threshV * dpr;
+    const screenThreshM = threshM * dpr;
+    const screenThreshO = threshO * dpr;
+
+    // Pointer position (use frozen if enabled)
+    const px = frozenPointer ? frozenPointer.x : scene.pointerX;
+    const py = frozenPointer ? frozenPointer.y : scene.pointerY;
+    const pointer = { x: px, y: py };
+    const rw = engine.getRenderWidth(true);
+    const rh = engine.getRenderHeight(true);
+    
+    // Build pointer ray for depth-gating
+    const ray = scene.createPickingRay(px, py, BABYLON.Matrix.Identity(), camera, false);
+    
+    // Find front depth from candidate mesh hits
+    let frontDepth = Infinity;
+    const hits = scene.multiPickWithRay(ray, m => m === mesh) || [];
+    for (const h of hits) {
+      if (!h || !h.hit) continue;
+      if (h.distance < frontDepth) frontDepth = h.distance;
+    }
+    const general = scene.pick(px, py);
+    if (!Number.isFinite(frontDepth) && general && general.hit && general.pickedMesh === mesh) {
+      frontDepth = general.distance;
+    }
+    const pad = 0.003; // 3 mm in meters
+    const hasDepthGate = Number.isFinite(frontDepth);
+    const tmp = new BABYLON.Vector3(); // Reusable temp vector
+    
+    // Helper function to check if point is occluded
+    const occluded = (vx, vy, vz) => {
+      if (!hasDepthGate) return false;
+      tmp.set(vx - ray.origin.x, vy - ray.origin.y, vz - ray.origin.z);
+      const t = BABYLON.Vector3.Dot(tmp, ray.direction);
+      if (t > frontDepth + pad) return true;
+      if (t < 0) return true;
+      return false;
+    };
+
+    // World verts (cached)
+    if (!mesh || !camera || !scene) {
+      clearOverlay();
+      return;
+    }
+    if (!mesh.isVerticesDataPresent(BABYLON.VertexBuffer.PositionKind)) {
+      clearOverlay();
+      return;
+    }
+    const wv = ensureWorldVerts(mesh);
+    if (wv === null) { clearOverlay(); return; }
+
+    // Bin dimensions (64×36)
+    const binX = 64, binY = 36;
+
+    // Build bins for V, M, O
+    const binsV = Array(binX * binY).fill(null).map(() => ({ dist: Infinity, screen: null, world: null }));
+    const binsM = Array(binX * binY).fill(null).map(() => ({ dist: Infinity, screen: null, world: null }));
+    const binsO = Array(binX * binY).fill(null).map(() => ({ dist: Infinity, screen: null, world: null }));
+
+    // Stats
+    let vInFrustum = 0, vNear = 0, vClosestPx = Infinity, vClosestScreen = null, vOccluded = 0;
+    let mInFrustum = 0, mNear = 0, mClosestPx = Infinity, mClosestScreen = null, mOccluded = 0;
+    let oInFrustum = 0, oNear = 0, oClosestPx = Infinity, oClosestScreen = null, oOccluded = 0;
+    const culledV = [], culledM = [], culledO = [];
+
+    // Process Vertices (V)
+    if (showV && wv) {
+      const temp = new BABYLON.Vector3();
+      for (let i = 0; i < wv.length; i += 3) {
+        temp.set(wv[i], wv[i+1], wv[i+2]);
+        
+        if (occluded(temp.x, temp.y, temp.z)) {
+          vOccluded++;
+          if (showOcc) {
+            const s = projectToScreen(temp, camera);
+            if (s) culledV.push({ x: s.x, y: s.y });
+          }
+          continue;
+        }
+        
+        const s = projectToScreen(temp, camera);
+        if (s === null) continue;
+        vInFrustum++;
+        
+        const dx = s.x - pointer.x;
+        const dy = s.y - pointer.y;
+        const dist = Math.hypot(dx, dy);
+        
+        const bin = binIndexOf(s.x, s.y, rw, rh, binX, binY);
+        if (bin.ix >= 0 && bin.iy >= 0) {
+          const idx = bin.iy * binX + bin.ix;
+          if (dist < binsV[idx].dist) {
+            binsV[idx] = { dist, screen: s, world: { x: temp.x, y: temp.y, z: temp.z } };
+          }
+        }
+        
+        if (dist < vClosestPx) { vClosestPx = dist; vClosestScreen = s; }
+        if (dist <= screenThreshV) vNear++;
+      }
+    }
+
+    // Process Midpoints (M)
+    if (showM && midVerts) {
+      const temp = new BABYLON.Vector3();
+      for (let i = 0; i < midVerts.length; i += 3) {
+        temp.set(midVerts[i], midVerts[i+1], midVerts[i+2]);
+        
+        if (occluded(temp.x, temp.y, temp.z)) {
+          mOccluded++;
+          if (showOcc) {
+            const s = projectToScreen(temp, camera);
+            if (s) culledM.push({ x: s.x, y: s.y });
+          }
+          continue;
+        }
+        
+        const s = projectToScreen(temp, camera);
+        if (s === null) continue;
+        mInFrustum++;
+        
+        const dx = s.x - pointer.x;
+        const dy = s.y - pointer.y;
+        const dist = Math.hypot(dx, dy);
+        
+        const bin = binIndexOf(s.x, s.y, rw, rh, binX, binY);
+        if (bin.ix >= 0 && bin.iy >= 0) {
+          const idx = bin.iy * binX + bin.ix;
+          if (dist < binsM[idx].dist) {
+            binsM[idx] = { dist, screen: s, world: { x: temp.x, y: temp.y, z: temp.z } };
+          }
+        }
+        
+        if (dist < mClosestPx) { mClosestPx = dist; mClosestScreen = s; }
+        if (dist <= screenThreshM) mNear++;
+      }
+    }
+
+    // Process Circle Centers (O) - robust detection with front-visible gating
+    let circleResult = null;
+    if (showO && midVerts) {
+      // Step 1: Collect front-visible points only (depth-gated)
+      const visible = [];
+      const temp = new BABYLON.Vector3();
+      
+      for (let i = 0; i < midVerts.length; i += 3) {
+        temp.set(midVerts[i], midVerts[i+1], midVerts[i+2]);
+        
+        // Depth-gate: skip occluded points
+        if (occluded(temp.x, temp.y, temp.z)) {
+          oOccluded++;
+          if (showOcc) {
+            const s = projectToScreen(temp, camera);
+            if (s) culledO.push({ x: s.x, y: s.y });
+          }
+          continue;
+        }
+        
+        const s = projectToScreen(temp, camera);
+        if (s === null) continue;
+        oInFrustum++;
+        
+        // Store visible point with world and screen coords
+        visible.push({ w: new BABYLON.Vector3(temp.x, temp.y, temp.z), sx: s.x, sy: s.y });
+        
+        // Update bins and stats
+        const dx = s.x - pointer.x;
+        const dy = s.y - pointer.y;
+        const dist = Math.hypot(dx, dy);
+        
+        const bin = binIndexOf(s.x, s.y, rw, rh, binX, binY);
+        if (bin.ix >= 0 && bin.iy >= 0) {
+          const idx = bin.iy * binX + bin.ix;
+          if (dist < binsO[idx].dist) {
+            binsO[idx] = { dist, screen: s, world: { x: temp.x, y: temp.y, z: temp.z } };
+          }
+        }
+        
+        if (dist < oClosestPx) { oClosestPx = dist; oClosestScreen = s; }
+        if (dist <= screenThreshO) oNear++;
+      }
+      
+      // Step 2: Build annulus in screen-space (adaptive bounds)
+      if (visible.length < 16) {
+        if (scene.getFrameId() % 60 === 0) {
+          console.log(`[O] visible=${visible.length} < 16`);
+        }
+      } else {
+        const inner = Math.max(12 * dpr, 0.60 * screenThreshO);
+        const outer = 1.40 * screenThreshO;
+        const annulus = [];
+        
+        for (const p of visible) {
+          const dx = p.sx - px;
+          const dy = p.sy - py;
+          const sd = Math.hypot(dx, dy);
+          if (sd < inner) continue;
+          if (sd > outer) continue;
+          annulus.push(p);
+        }
+        
+        // Step 3: Circle detection pipeline
+        // Lower threshold for initial testing (was 24, now 12)
+        if (annulus.length < 12) {
+          if (scene.getFrameId() % 60 === 0) {
+            console.log(`[O] annulus=${annulus.length} < 12 (inner=${inner.toFixed(1)} outer=${outer.toFixed(1)})`);
+          }
+        } else {
+          // PCA plane fit
+          const points3D = annulus.map(a => a.w);
+          const basis = fitPlanePCA(points3D);
+          if (!basis) {
+            if (scene.getFrameId() % 60 === 0) {
+              console.log(`[O] PCA failed: annulus=${annulus.length}`);
+            }
+          } else {
+            // Flip normal toward camera if needed
+            const camForward = camera.getTarget().clone().subtract(camera.position).normalize();
+            if (BABYLON.Vector3.Dot(basis.normal, camForward) > 0) {
+              basis.normal.scaleInPlace(-1);
+              basis.v.scaleInPlace(-1); // Flip v to maintain right-handed basis
+            }
+            
+            // Project to 2D plane
+            const uv = [];
+            for (let i = 0; i < annulus.length; i++) {
+              const q = annulus[i].w.subtract(basis.origin);
+              const u = BABYLON.Vector3.Dot(q, basis.u);
+              const v = BABYLON.Vector3.Dot(q, basis.v);
+              uv.push({ u, v, w: annulus[i].w });
+            }
+            
+            // Taubin circle fit
+            let fit = taubinCircle(uv);
+            if (!fit || !fit.ok) {
+              if (scene.getFrameId() % 60 === 0) {
+                console.log(`[O] fit failed: annulus=${annulus.length}`);
+              }
+            } else {
+              // Huber-like trimming for outliers
+              const rel = fit.rms / Math.max(fit.r, 1e-6);
+              if (rel > 0.10) {
+                const res = uv.map(p => Math.abs(Math.hypot(p.u - fit.cx, p.v - fit.cy) - fit.r));
+                const q75 = quantile(res, 0.75);
+                const keep = [];
+                for (let i = 0; i < uv.length; i++) {
+                  if (res[i] <= q75) keep.push(uv[i]);
+                }
+                if (keep.length >= 12) {
+                  const refit = taubinCircle(keep);
+                  if (refit && refit.ok) fit = refit;
+                }
+              }
+              
+              // Validation gates (more lenient for testing)
+              const cov = angularCoverage(uv, fit.cx, fit.cy);
+              const relRms = fit.rms / Math.max(fit.r, 1e-6);
+              
+              // More lenient: coverage >= 150° (was 210°), RMS <= 15% (was 8%)
+              if (cov < Math.PI * 5 / 6) {
+                if (scene.getFrameId() % 60 === 0) {
+                  console.log(`[O] coverage low: ${(cov*180/Math.PI).toFixed(0)}° < 150° (ann=${annulus.length} r=${fit.r.toFixed(2)})`);
+                }
+              } else if (relRms > 0.15) {
+                if (scene.getFrameId() % 60 === 0) {
+                  console.log(`[O] RMS high: ${relRms.toFixed(3)} > 0.15 (ann=${annulus.length} r=${fit.r.toFixed(2)} cov=${(cov*180/Math.PI).toFixed(0)}°)`);
+                }
+              } else {
+                // Compute world-space center
+                const centerW = basis.origin.clone()
+                  .addInPlace(basis.u.scale(fit.cx))
+                  .addInPlace(basis.v.scale(fit.cy));
+                
+                // Project center to screen
+                const s = projectToScreen(centerW, camera);
+                if (!s || s.z < 0 || s.z > 1) {
+                  if (scene.getFrameId() % 60 === 0) {
+                    console.log(`[O] center off-screen: s=${s ? `(${s.x|0},${s.y|0}) z=${s.z.toFixed(3)}` : 'null'}`);
+                  }
+                } else if (occluded(centerW.x, centerW.y, centerW.z)) {
+                  if (scene.getFrameId() % 60 === 0) {
+                    console.log(`[O] center occluded: screen=(${s.x|0},${s.y|0})`);
+                  }
+                } else {
+                  // Success!
+                  circleResult = {
+                    center: centerW,
+                    centerScreen: s,
+                    radius: fit.r,
+                    rms: fit.rms,
+                    coverage: cov
+                  };
+                  lastCircleResult = circleResult;
+                  lastCircleFrame = scene.getFrameId();
+                  
+                  // Log every frame when successful
+                  console.log(`[O] ✓ ann=${annulus.length} cov=${(cov*180/Math.PI).toFixed(0)}° rel=${relRms.toFixed(3)} r=${fit.r.toFixed(2)} screen=(${s.x|0},${s.y|0})`);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Draw overlay
+    clearOverlay();
+    ctx.save();
+    ctx.scale(dpr, dpr);
+
+    const dotR = 2;
+
+    // Draw V bins (green)
+    if (showV) {
+      for (const bin of binsV) {
+        if (bin.screen && Number.isFinite(bin.dist)) {
+          const x = bin.screen.x / dpr;
+          const y = bin.screen.y / dpr;
+          if (bin.dist <= screenThreshV) {
+            dot(x, y, dotR, '#ffd24a'); // yellow (near)
+          } else {
+            dot(x, y, dotR, '#00d07e'); // green (in frustum)
+          }
+        }
+      }
+      if (vClosestScreen) {
+        ring(vClosestScreen.x/dpr, vClosestScreen.y/dpr, 6, '#58a6ff', 2);
+      }
+    }
+
+    // Draw M bins (cyan)
+    if (showM) {
+      for (const bin of binsM) {
+        if (bin.screen && Number.isFinite(bin.dist)) {
+          const x = bin.screen.x / dpr;
+          const y = bin.screen.y / dpr;
+          if (bin.dist <= screenThreshM) {
+            dot(x, y, dotR, '#ffd24a'); // yellow (near)
+          } else {
+            dot(x, y, dotR, '#00ffff'); // cyan (in frustum)
+          }
+        }
+      }
+      if (mClosestScreen) {
+        ring(mClosestScreen.x/dpr, mClosestScreen.y/dpr, 6, '#58a6ff', 2);
+      }
+    }
+
+    // Draw O bins (orange) and circle center
+    if (showO) {
+      for (const bin of binsO) {
+        if (bin.screen && Number.isFinite(bin.dist)) {
+          const x = bin.screen.x / dpr;
+          const y = bin.screen.y / dpr;
+          if (bin.dist <= screenThreshO) {
+            dot(x, y, dotR, '#ffd24a'); // yellow (near)
+          } else {
+            dot(x, y, dotR, '#ff8800'); // orange (in frustum)
+          }
+        }
+      }
+      if (oClosestScreen) {
+        ring(oClosestScreen.x/dpr, oClosestScreen.y/dpr, 6, '#58a6ff', 2);
+      }
+      
+      // Draw annulus region for debugging (inner and outer rings)
+      const inner = Math.max(12 * dpr, 0.60 * screenThreshO);
+      const outer = 1.40 * screenThreshO;
+      const pxCss = px / dpr;
+      const pyCss = py / dpr;
+      ctx.strokeStyle = 'rgba(255, 136, 0, 0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(pxCss, pyCss, inner / dpr, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(pxCss, pyCss, outer / dpr, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Draw circle center if detected
+      if (circleResult && circleResult.centerScreen) {
+        const cx = circleResult.centerScreen.x / dpr;
+        const cy = circleResult.centerScreen.y / dpr;
+        dot(cx, cy, dotR * 1.5, '#ff8800');
+        ring(cx, cy, 8, '#ff8800', 2);
+      }
+    }
+
+    // Draw occluded points
+    if (showOcc) {
+      if (culledV.length > 0) drawPoints2D(culledV, dotR, 'rgba(255,0,0,0.5)');
+      if (culledM.length > 0) drawPoints2D(culledM, dotR, 'rgba(255,0,0,0.5)');
+      if (culledO.length > 0) drawPoints2D(culledO, dotR, 'rgba(255,0,0,0.5)');
+    }
+
+    // Draw bin grid (if enabled)
+    if (showBinsFlag) {
+      ctx.strokeStyle = 'rgba(100,100,100,0.3)';
+      ctx.lineWidth = 1;
+      const binW = rw / binX / dpr;
+      const binH = rh / binY / dpr;
+      for (let i = 0; i <= binX; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * binW, 0);
+        ctx.lineTo(i * binW, rh / dpr);
+        ctx.stroke();
+      }
+      for (let i = 0; i <= binY; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, i * binH);
+        ctx.lineTo(rw / dpr, i * binH);
+        ctx.stroke();
+      }
+    }
+
+    ctx.restore();
+
+    // Update legend
+    legVIn.textContent = vInFrustum.toString();
+    legVNear.textContent = vNear.toString();
+    legVMin.textContent = Number.isFinite(vClosestPx) ? vClosestPx.toFixed(1) + ' px' : '—';
+    
+    legMIn.textContent = mInFrustum.toString();
+    legMNear.textContent = mNear.toString();
+    legMMin.textContent = Number.isFinite(mClosestPx) ? mClosestPx.toFixed(1) + ' px' : '—';
+    
+    legOIn.textContent = oInFrustum.toString();
+    legONear.textContent = oNear.toString();
+    legOMin.textContent = Number.isFinite(oClosestPx) ? oClosestPx.toFixed(1) + ' px' : '—';
+    
+    if (circleResult) {
+      legORes.textContent = circleResult.rms.toFixed(3);
+      legORad.textContent = circleResult.radius.toFixed(3);
+    } else {
+      legORes.textContent = '—';
+      legORad.textContent = '—';
+    }
+    
+    legOcc.textContent = (vOccluded + mOccluded + oOccluded).toString();
+    legDpr.textContent = dpr.toFixed(2);
+    legRw.textContent = rw.toString();
+    legRh.textContent = rh.toString();
+
+    // Console pulse (lightweight)
+    if (scene.getFrameId() % 60 === 0) {
+      console.log(`[Harness] V:${vInFrustum}/${vNear}/${Number.isFinite(vClosestPx)?vClosestPx.toFixed(1):'—'} M:${mInFrustum}/${mNear}/${Number.isFinite(mClosestPx)?mClosestPx.toFixed(1):'—'} O:${oInFrustum}/${oNear}/${Number.isFinite(oClosestPx)?oClosestPx.toFixed(1):'—'} occluded:${vOccluded + mOccluded + oOccluded} dpr:${dpr.toFixed(2)}`);
+    }
+  });
+
+  engine.runRenderLoop(() => scene.render());
+})();
+</script>
+</body>
+</html>
+

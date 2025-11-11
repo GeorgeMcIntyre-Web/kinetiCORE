@@ -4,6 +4,186 @@
 
 import * as BABYLON from '@babylonjs/core';
 import { SceneManager } from '../scene/SceneManager';
+import { isSnapExcluded, LAYER_UI } from './snapConstants';
+import { queryNearestVertex } from './snapIndex';
+import { fitPlanePCA, taubinCircle, angularCoverage, quantile } from './snap/circle';
+
+// ============================================================================
+// SCREEN-SPACE BINNING: Fast vertex discovery via screen-space grid
+// ============================================================================
+
+type ScreenBin = { indices: number[] };
+
+type BinnedProjection = {
+  frameId: number;
+  rw: number;
+  rh: number;
+  cols: number;
+  rows: number;
+  bins: ScreenBin[];
+  worldVerts: Float32Array;
+  mesh: BABYLON.Mesh;
+};
+
+const BIN_COLS = 64;
+const BIN_ROWS = 36;
+const OCCLUSION_PAD_MM = 3; // small cushion for thin shells
+
+/**
+ * Compute bin index for screen coordinates (render pixels)
+ * Returns {ix, iy} or {-1, -1} if invalid
+ * Y increases downward (Babylon screen space convention)
+ */
+function binIndexOf(screenX: number, screenY: number, rw: number, rh: number, bx: number, by: number): { ix: number; iy: number } {
+  if (rw <= 0 || rh <= 0) return { ix: -1, iy: -1 };
+
+  const nx = screenX / rw;
+  const ny = screenY / rh; // Babylon's screen Y increases downward → this is correct
+
+  if (Number.isNaN(nx) || Number.isNaN(ny)) return { ix: -1, iy: -1 };
+
+  let ix = Math.floor(nx * bx);
+  let iy = Math.floor(ny * by);
+
+  if (ix < 0) ix = 0;
+  if (iy < 0) iy = 0;
+  if (ix >= bx) ix = bx - 1;
+  if (iy >= by) iy = by - 1;
+
+  return { ix, iy };
+}
+
+// ============================================================================
+// HELPER FUNCTIONS: World-space vertex projection and caching
+// ============================================================================
+
+/**
+ * Snap cache stored in mesh metadata for performance
+ */
+interface SnapCache {
+  vertsWorld?: Float32Array; // x y z triplets in world space
+  updateFlag?: number;       // World matrix update flag for invalidation
+}
+
+/**
+ * Transform local vertex to world space
+ */
+function toWorld(v: BABYLON.Vector3, worldMatrix: BABYLON.Matrix): BABYLON.Vector3 {
+  if (!v || !worldMatrix) return v;
+  return BABYLON.Vector3.TransformCoordinates(v, worldMatrix);
+}
+
+/**
+ * Project world-space vertex to screen space (render pixels)
+ * Must match harness projection exactly for parity
+ * Input pW is already in world space, so use Identity for worldMatrix
+ * @returns Screen position {x, y, z, rw, rh} or null if projection fails
+ */
+function projectToScreen(
+  worldPos: BABYLON.Vector3,
+  scene: BABYLON.Scene,
+  camera: BABYLON.Camera
+): { x: number; y: number; z: number; rw: number; rh: number } | null {
+  if (!worldPos || !scene || !camera) return null;
+
+  const engine = scene.getEngine();
+  if (!engine) return null;
+
+  const rw = engine.getRenderWidth();
+  const rh = engine.getRenderHeight();
+  if (rw <= 0 || rh <= 0) return null;
+
+  // Use viewport.toGlobal(rw, rh) for viewport
+  const vp = camera.viewport.toGlobal(rw, rh);
+  
+  // Use scene.getTransformMatrix() for view-projection
+  const viewProj = scene.getTransformMatrix();
+  
+  // Given a world-space position, use Identity for worldMatrix (already world-space)
+  const worldMatrix = BABYLON.Matrix.Identity();
+  
+  // Project using Vector3.Project with separate view and projection matrices
+  // Note: Vector3.Project expects viewProj to be view * projection combined
+  const sp = BABYLON.Vector3.Project(worldPos, worldMatrix, viewProj, vp);
+
+  // Validate projection with 2-px tolerant frustum border
+  if (!Number.isFinite(sp.x) || !Number.isFinite(sp.y) || !Number.isFinite(sp.z)) {
+    return null;
+  }
+
+  // Reject if z outside [0, 1]
+  if (sp.z < 0 || sp.z > 1) return null;
+  
+  // Reject if outside viewport with 2-px tolerance
+  if (sp.x < -2 || sp.x > rw + 2) return null;
+  if (sp.y < -2 || sp.y > rh + 2) return null;
+
+  return { x: sp.x, y: sp.y, z: sp.z, rw, rh };
+}
+
+/**
+ * Safely get positions array from mesh, handling instances and sourceMesh fallback
+ * STLs can be instanced by importers; always read from sourceMesh if available
+ * Matches harness pattern for parity
+ * @returns Float32Array of positions or null
+ */
+function getPositionsArray(mesh: BABYLON.AbstractMesh): Float32Array | null {
+  if (!mesh) return null;
+
+  // Normalize: always read from sourceMesh if it exists (for instances)
+  const m = (mesh as any).sourceMesh ?? (mesh as BABYLON.Mesh);
+  if (!m) return null;
+
+  const data = m.getVerticesData(BABYLON.VertexBuffer.PositionKind, false, false) as Float32Array | null;
+  if (!data || data.length < 3) return null;
+
+  return data instanceof Float32Array ? data : new Float32Array(data);
+}
+
+/**
+ * Get cached world-space vertices for a mesh
+ * Caches results and invalidates on world matrix changes
+ * @returns Float32Array of world vertices (x,y,z triplets) or null
+ */
+function getWorldVerts(mesh: BABYLON.Mesh): Float32Array | null {
+  if (!mesh.metadata) mesh.metadata = {};
+
+  const cache = (mesh.metadata.__snap as SnapCache) ?? (mesh.metadata.__snap = {});
+  
+  // Ensure world matrix is fresh before building/caching world-space vertices
+  mesh.computeWorldMatrix(true);
+  const worldMatrix = mesh.getWorldMatrix();
+  const currentFlag = worldMatrix.updateFlag;
+
+  // Return cached vertices if world matrix hasn't changed
+  if (cache.vertsWorld && cache.updateFlag === currentFlag) {
+    return cache.vertsWorld;
+  }
+
+  // Get local vertices using robust helper that handles instances/sourceMesh
+  const positions = getPositionsArray(mesh);
+  if (!positions || positions.length === 0) return null;
+
+  // Transform all vertices to world space
+  const worldVerts = new Float32Array(positions.length);
+  for (let i = 0; i < positions.length; i += 3) {
+    const localVertex = new BABYLON.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+    const worldVertex = toWorld(localVertex, worldMatrix);
+    worldVerts[i] = worldVertex.x;
+    worldVerts[i + 1] = worldVertex.y;
+    worldVerts[i + 2] = worldVertex.z;
+  }
+
+  // Cache for next frame
+  cache.vertsWorld = worldVerts;
+  cache.updateFlag = currentFlag;
+
+  return worldVerts;
+}
+
+// ============================================================================
+// SNAP INTERFACES
+// ============================================================================
 
 export interface SnapResult {
   snapped: boolean;
@@ -69,6 +249,8 @@ export class SnappingHelper {
    * @param excludeMeshIds - Mesh IDs to exclude from snapping
    * @param camera - Optional camera for screen-space distance calculation
    * @param screenSpacePixels - Optional screen-space pixel threshold
+   * @param pointerScreenX - Optional pointer screen X coordinate (render pixels)
+   * @param pointerScreenY - Optional pointer screen Y coordinate (render pixels)
    */
   private smartSnapPosition(
     position: BABYLON.Vector3,
@@ -77,7 +259,9 @@ export class SnappingHelper {
     camera?: BABYLON.Camera,
     screenSpacePixels?: number,
     clickedMesh?: BABYLON.AbstractMesh | null,
-    clickedPoint?: BABYLON.Vector3 | null
+    clickedPoint?: BABYLON.Vector3 | null,
+    pointerScreenX?: number,
+    pointerScreenY?: number
   ): SnapResult {
     const candidates: Array<{ result: SnapResult; distance: number; priority: number }> = [];
 
@@ -110,7 +294,7 @@ export class SnappingHelper {
 
     // Try all enabled snap types and collect candidates
     if (snapToVertex) {
-      const result = this.snapToVertex(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
+      const result = this.snapToVertex(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels, pointerScreenX, pointerScreenY);
       if (result.snapped) {
         const distance = BABYLON.Vector3.Distance(position, result.position);
         candidates.push({ result, distance, priority: priorities.vertex || 999 });
@@ -126,7 +310,7 @@ export class SnappingHelper {
     }
 
     if (snapToCenter) {
-      const result = this.snapToCenter(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
+      const result = this.snapToCenter(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels, undefined, undefined);
       if (result.snapped) {
         const distance = BABYLON.Vector3.Distance(position, result.position);
         candidates.push({ result, distance, priority: priorities.center || 999 });
@@ -335,6 +519,8 @@ export class SnappingHelper {
    * @param camera - Optional camera for screen-space distance calculation (for preview)
    * @param screenSpacePixels - Optional screen-space pixel threshold (for preview)
    * @param smartSelect - If true, tries all enabled snap types and returns the closest (default: true for better UX)
+   * @param pointerScreenX - Optional pointer screen X coordinate (render pixels) for accurate snap detection
+   * @param pointerScreenY - Optional pointer screen Y coordinate (render pixels) for accurate snap detection
    */
   snapPosition(
     position: BABYLON.Vector3,
@@ -344,7 +530,9 @@ export class SnappingHelper {
     screenSpacePixels?: number,
     smartSelect: boolean = true,
     clickedMesh?: BABYLON.AbstractMesh | null,
-    clickedPoint?: BABYLON.Vector3 | null
+    clickedPoint?: BABYLON.Vector3 | null,
+    pointerScreenX?: number,
+    pointerScreenY?: number
   ): SnapResult {
     if (!settings.enabled) {
       return { snapped: false, position: position.clone() };
@@ -353,7 +541,7 @@ export class SnappingHelper {
     // SMART SNAP SELECTOR: Try all enabled snap types and return the closest
     // This provides a better UX - users don't need to manually toggle snap types
     if (smartSelect) {
-      return this.smartSnapPosition(position, settings, excludeMeshIds, camera, screenSpacePixels, clickedMesh, clickedPoint);
+      return this.smartSnapPosition(position, settings, excludeMeshIds, camera, screenSpacePixels, clickedMesh, clickedPoint, pointerScreenX, pointerScreenY);
     }
 
     // LEGACY MODE: Try snapping in order of priority (first match wins)
@@ -361,7 +549,7 @@ export class SnappingHelper {
 
     // 1. Vertex snapping (highest priority - most precise)
     if (settings.snapToVertex) {
-      result = this.snapToVertex(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
+      result = this.snapToVertex(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels, pointerScreenX, pointerScreenY);
       if (result.snapped) return result;
     }
 
@@ -412,7 +600,7 @@ export class SnappingHelper {
 
     // 7. Center snapping (circle centers)
     if (settings.snapToCenter) {
-      result = this.snapToCenter(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels);
+      result = this.snapToCenter(position, settings.snapDistance, excludeMeshIds, camera, screenSpacePixels, pointerScreenX, pointerScreenY);
       if (result.snapped) return result;
     }
 
@@ -506,35 +694,69 @@ export class SnappingHelper {
    * @param excludeMeshIds - Mesh IDs to exclude from snapping
    * @param camera - Optional camera for screen-space distance calculation
    * @param screenSpacePixels - Optional screen-space pixel threshold (if provided, uses this instead of world-space distance)
+   * @param pointerScreenX - Optional pointer screen X coordinate (render pixels) for accurate snap detection
+   * @param pointerScreenY - Optional pointer screen Y coordinate (render pixels) for accurate snap detection
    */
   private snapToVertex(
     position: BABYLON.Vector3,
     snapDistance: number,
     excludeMeshIds: string[],
     camera?: BABYLON.Camera,
-    screenSpacePixels?: number
+    screenSpacePixels?: number,
+    pointerScreenX?: number,
+    pointerScreenY?: number
   ): SnapResult {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     if (!scene) return { snapped: false, position: position.clone() };
-
-    const snapDistanceMeters = snapDistance / 1000;
     
-    // Convert position to screen space if camera and screen-space threshold provided
+    // Quick asserts (temporary)
+    if (!camera) return { snapped: false, position: position.clone() };
+    const engine = scene.getEngine();
+    if (!engine) return { snapped: false, position: position.clone() };
+    const rw = engine.getRenderWidth();
+    const rh = engine.getRenderHeight();
+    if (rw <= 0 || rh <= 0) {
+      console.warn(`[SnapDiag][Assert] Invalid render dimensions: rw=${rw} rh=${rh}`);
+      return { snapped: false, position: position.clone() };
+    }
+    if (pointerScreenX !== undefined && (pointerScreenX < 0 || pointerScreenX >= rw)) {
+      console.warn(`[SnapDiag][Assert] pointerX=${pointerScreenX} out of range [0,${rw})`);
+    }
+    if (pointerScreenY !== undefined && (pointerScreenY < 0 || pointerScreenY >= rh)) {
+      console.warn(`[SnapDiag][Assert] pointerY=${pointerScreenY} out of range [0,${rh})`);
+    }
+    if (scene.activeCamera !== camera) {
+      console.warn(`[SnapDiag][Assert] activeCamera mismatch: using provided camera`);
+    }
+    
+    // Instrument parity logs (every 60 frames)
+    const dpr = 1 / engine.getHardwareScalingLevel();
+    if (scene.getFrameId() % 60 === 0) {
+      console.log(`[SnapDiag][Cfg] rw=${rw} rh=${rh} dpr=${dpr.toFixed(2)} threshPx=${screenSpacePixels ?? 'N/A'}`);
+    }
+
+    // Use pointer screen coordinates if provided (accurate), otherwise project position (fallback)
     let screenPos: { x: number; y: number } | null = null;
     if (camera && screenSpacePixels !== undefined) {
-      const worldMatrix = scene.getTransformMatrix();
-      const viewport = camera.viewport.toGlobal(
-        scene.getEngine().getRenderWidth(),
-        scene.getEngine().getRenderHeight()
-      );
-      const projected = BABYLON.Vector3.Project(
-        position,
-        worldMatrix,
-        camera.getProjectionMatrix(),
-        viewport
-      );
-      screenPos = { x: projected.x, y: projected.y };
+      if (pointerScreenX !== undefined && pointerScreenY !== undefined) {
+        // PREFERRED: Use actual pointer screen coordinates (avoids ground anchor pollution)
+        screenPos = { x: pointerScreenX, y: pointerScreenY };
+      } else {
+        // FALLBACK: Project world position to screen space (may hit ground/grid)
+        const worldMatrix = scene.getTransformMatrix();
+        const viewport = camera.viewport.toGlobal(
+          scene.getEngine().getRenderWidth(),
+          scene.getEngine().getRenderHeight()
+        );
+        const projected = BABYLON.Vector3.Project(
+          position,
+          worldMatrix,
+          camera.getProjectionMatrix(),
+          viewport
+        );
+        screenPos = { x: projected.x, y: projected.y };
+      }
     }
     let closestVertex: BABYLON.Vector3 | null = null;
     let closestDistance = Infinity; // Start with Infinity, not snapDistanceMeters - we want to find the closest regardless
@@ -545,237 +767,518 @@ export class SnappingHelper {
     let meshesChecked = 0;
     let meshesWithVertices = 0;
     let totalVerticesChecked = 0;
-    let uniqueVerticesCount = 0;
-    let verticesWithinRange = 0;
-    const debugDistances: number[] = [];
 
-    // Check all meshes in the scene (including instances)
-    // Use getActiveMeshes() to get all visible meshes including instances
-    const activeMeshes = scene.getActiveMeshes();
+    // BOUNDED CANDIDATE SET: Prioritize meshes directly under cursor for performance
+    // This is critical for dense geometry (MH5 base with 40k+ vertices)
     const allMeshes = new Set<BABYLON.Mesh>();
-    
-    // Add all scene meshes
-    for (const mesh of scene.meshes) {
-      if (mesh instanceof BABYLON.Mesh) {
-        allMeshes.add(mesh);
-        // Also add instances (instances are InstancedMesh, not Mesh, so we skip them for now)
-        // Instances share the same geometry as the source mesh, so we can use the source mesh
+
+    if (camera && pointerScreenX !== undefined && pointerScreenY !== undefined) {
+      // A) Existing depth-ordered ray hits (keep)
+      const ray = scene.createPickingRay(
+        pointerScreenX,
+        pointerScreenY,
+        BABYLON.Matrix.Identity(),
+        camera,
+        true
+      );
+      const hits = scene.multiPickWithRay(ray, (m) => !isSnapExcluded(m)) || [];
+      const underCursor: Set<BABYLON.AbstractMesh> = new Set(hits.map(h => h.pickedMesh!).filter(Boolean));
+
+      // B) Thick ray capsule: collect meshes whose AABB center lies within 20-50mm of ray
+      const R_MIN = 0.02; // 20mm minimum
+      const R_MAX = 0.05; // 50mm maximum
+      const R = Math.max(R_MIN, Math.min(R_MAX, (camera as any).radius ? (camera as any).radius * 0.02 : 0.03));
+      const rayFrom = ray.origin;
+      const rayDir = ray.direction.normalize();
+      
+      for (const m of scene.meshes) {
+        if (underCursor.size >= 32) break; // Cap to 32 meshes
+        if (isSnapExcluded(m)) continue;
+        if (underCursor.has(m)) continue; // Already added
+        const bb = m.getBoundingInfo()?.boundingBox;
+        if (!bb) continue;
+        
+        // Distance from AABB center to ray (cheap heuristic)
+        const c = bb.centerWorld;
+        const v = c.subtract(rayFrom);
+        const t = Math.max(0, BABYLON.Vector3.Dot(v, rayDir));
+        const p = rayFrom.add(rayDir.scale(t));
+        const d = BABYLON.Vector3.Distance(c, p);
+        
+        if (d <= R) {
+          underCursor.add(m);
+        }
       }
-    }
-    
-    // Also check active meshes
-    for (const mesh of activeMeshes.data) {
-      if (mesh instanceof BABYLON.Mesh) {
-        allMeshes.add(mesh);
+
+      // C) Cap & move to allMeshes
+      const seen = new Set<number>();
+      let boundedCount = 0;
+      for (const m of underCursor) {
+        if (!(m instanceof BABYLON.Mesh)) continue;
+        if (seen.has(m.uniqueId)) continue;
+        seen.add(m.uniqueId);
+        allMeshes.add(m);
+        boundedCount++;
+        if (boundedCount >= 32) break;
       }
     }
 
-    for (const mesh of allMeshes) {
-      if (
-        !mesh.isVisible ||
-        excludeMeshIds.includes(mesh.uniqueId.toString()) ||
-        mesh.name === 'ground' ||
-        mesh.name === 'gridOverlay' ||
-        mesh.name.startsWith('snap') ||
-        mesh.name.startsWith('measurement') ||
-        mesh.name.startsWith('transform_label')
-      ) {
-        continue;
+    // 2) Fallback to scene.meshes only if we still have zero
+    if (allMeshes.size === 0) {
+      for (const m of scene.meshes) {
+        if (!isSnapExcluded(m) && m instanceof BABYLON.Mesh) {
+          allMeshes.add(m);
+          if (allMeshes.size >= 32) break;
+        }
+      }
+    }
+
+    // SCREEN-SPACE BINNING: Build binned projections for candidate meshes
+    // This provides robust vertex discovery independent of ray hits
+    let binningFoundMatch = false;
+    let occludedCount = 0; // Global counter for occluded vertices (used in both binning and legacy paths)
+    if (camera && screenSpacePixels !== undefined && pointerScreenX !== undefined && pointerScreenY !== undefined) {
+      const frameId = scene.getFrameId();
+      const engine = scene.getEngine();
+      const rw = engine.getRenderWidth(true);
+      const rh = engine.getRenderHeight(true);
+      // screenSpacePixels is already in render pixels, no need to multiply by dpr
+      const screenThresh = screenSpacePixels;
+
+      // Create pointer ray once for depth-gating
+      const ray = scene.createPickingRay(pointerScreenX, pointerScreenY, BABYLON.Matrix.Identity(), camera, false);
+      
+      // Measure front depth across candidate meshes
+      let frontDepth = Number.POSITIVE_INFINITY;
+      const hits = scene.multiPickWithRay(ray, m => {
+        if (!(m instanceof BABYLON.Mesh)) return false;
+        return allMeshes.has(m);
+      }) || [];
+      for (const h of hits) {
+        if (!h || !h.hit) continue;
+        if (h.distance < frontDepth) frontDepth = h.distance;
+      }
+      
+      // Fallback to nearest general hit so we don't cull everything when ground wins
+      if (!Number.isFinite(frontDepth)) {
+        const general = scene.pick(pointerScreenX, pointerScreenY);
+        if (general && general.hit && general.pickedMesh && !isSnapExcluded(general.pickedMesh)) {
+          frontDepth = general.distance;
+        }
+      }
+      
+      // Prepare occlusion constants
+      const pad = 0.001 * (OCCLUSION_PAD_MM ?? 3); // meters
+      const hasDepthGate = Number.isFinite(frontDepth);
+      const _tmp = new BABYLON.Vector3(); // Reusable temp vector to avoid GC
+      
+      // Helper function to check if a vertex is occluded
+      const isOccluded = (worldVertex: BABYLON.Vector3): boolean => {
+        if (!hasDepthGate) return false;
+        _tmp.copyFrom(worldVertex).subtractInPlace(ray.origin);
+        const t = BABYLON.Vector3.Dot(_tmp, ray.direction);
+        if (t > frontDepth + pad) return true;  // behind first surface
+        if (t < 0) return true;                 // behind camera
+        return false;
+      };
+      
+      // Use global occludedCount (declared above)
+
+      // Filter meshes to bin (exclude ground/UI)
+      const meshesToBin: BABYLON.Mesh[] = [];
+      for (const m of allMeshes) {
+        if (isSnapExcluded(m) || excludeMeshIds.includes(m.uniqueId.toString())) continue;
+        if (m instanceof BABYLON.Mesh) meshesToBin.push(m);
       }
 
-      meshesChecked++;
-      
-      // Check if clicked position is within this mesh's bounding box
-      // If so, we should prefer vertices from this mesh (for vertex-to-vertex measurements)
-      mesh.computeWorldMatrix(true);
-      const boundingInfo = mesh.getBoundingInfo();
-      const boundingBox = boundingInfo.boundingBox;
-      const min = boundingBox.minimumWorld.clone(); // Clone to avoid mutation
-      const max = boundingBox.maximumWorld.clone(); // Clone to avoid mutation
-      const tolerance = 0.005; // 5mm tolerance
-      const isClickingOnThisMesh = 
-        position.x >= min.x - tolerance && position.x <= max.x + tolerance &&
-        position.y >= min.y - tolerance && position.y <= max.y + tolerance &&
-        position.z >= min.z - tolerance && position.z <= max.z + tolerance;
-      
-      // Calculate max extent for this mesh (used in vertex loop)
-      const bboxSize = max.subtract(min.clone()); // Clone min to avoid mutation
-      const maxExtent = Math.max(bboxSize.x, bboxSize.y, bboxSize.z);
-      
-      const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-      if (!positions || positions.length === 0) continue;
+      // Build binned projections
+      // For each candidate mesh: computeWorldMatrix(true), get positions from sourceMesh when instanced,
+      // project vertices → screen using viewport.toGlobal(rw, rh), bin into 64×36 grid
+      const binned: BinnedProjection[] = [];
+      for (const mesh of meshesToBin) {
+        // Ensure fresh world matrix
+        mesh.computeWorldMatrix(true);
+        
+        // Get positions from sourceMesh when instanced
+        const positions = getPositionsArray(mesh);
+        if (!positions || positions.length < 3) continue;
+        
+        // Build world-space vertices
+        const worldVerts = getWorldVerts(mesh);
+        if (!worldVerts || worldVerts.length < 3) continue;
+
+        const cols = BIN_COLS;
+        const rows = BIN_ROWS;
+        const bins: ScreenBin[] = Array.from({ length: cols * rows }, () => ({ indices: [] }));
+
+        const v = new BABYLON.Vector3();
+        for (let i = 0; i < worldVerts.length; i += 3) {
+          v.set(worldVerts[i], worldVerts[i + 1], worldVerts[i + 2]);
+          
+          // Depth-gate: skip occluded vertices
+          if (isOccluded(v)) {
+            occludedCount++;
+            continue;
+          }
+          
+          // Project using viewport.toGlobal(rw, rh) - already done in projectToScreen
+          const s = projectToScreen(v, scene, camera);
+          if (s === null) continue;
+          const { ix, iy } = binIndexOf(s.x, s.y, rw, rh, cols, rows);
+          if (ix < 0 || iy < 0) continue;
+          const bi = iy * cols + ix;
+          bins[bi].indices.push(i);
+        }
+
+        binned.push({ frameId, rw, rh, cols, rows, bins, worldVerts, mesh });
+      }
+
+      // Search pointer's bin neighborhood with spill-out for dead zones
+      const SEARCH_RADIUS_BINS = 1; // Start with 3x3 window
+      let globalClosestPx = Infinity;
+      let best = { mesh: null as BABYLON.Mesh | null, idx: -1, px: Infinity, wx: 0, wy: 0, wz: 0 };
+      let binsSearched = 0;
+      let totalCandidates = 0;
+      let lastRingSearched = 0; // Track which ring was searched
+      const binPopulations = new Map<string, number>(); // (bx,by):count
+
+      for (const B of binned) {
+        const { rw, rh, cols, rows, bins, worldVerts, mesh } = B;
+        const { ix: baseX, iy: baseY } = binIndexOf(pointerScreenX, pointerScreenY, rw, rh, cols, rows);
+        if (baseX < 0 || baseY < 0) continue;
+
+        // Onion-layer search: expand outward until we find vertices or hit max radius
+        // Run onion search (3×3 → 5×5 → 7×7) centered on the pointer bin
+        // Keep expanding until success (foundAny = true) or max radius reached
+        let foundAny = false;
+        let searchRadius = SEARCH_RADIUS_BINS; // Start with 3×3
+        const maxRadius = 3; // Cap at 7×7 window max
+
+        while (!foundAny && searchRadius <= maxRadius) {
+          // Generate ring indices for this radius
+          for (let dy = -searchRadius; dy <= searchRadius; dy++) {
+            for (let dx = -searchRadius; dx <= searchRadius; dx++) {
+              // Only check outer ring if expanding (skip inner rings already checked)
+              if (searchRadius > SEARCH_RADIUS_BINS) {
+                const innerRadius = searchRadius - 1;
+                if (Math.abs(dx) <= innerRadius && Math.abs(dy) <= innerRadius) {
+                  continue; // Already checked in previous radius
+                }
+              }
+              const cx = baseX + dx;
+              const cy = baseY + dy;
+              if (cx < 0 || cy < 0 || cx >= cols || cy >= rows) continue;
+              const bi = cy * cols + cx;
+              const bucket = bins[bi].indices;
+              if (!bucket || bucket.length === 0) continue;
+
+              // Found vertices in this bin - mark as found and process
+              foundAny = true;
+              lastRingSearched = Math.max(lastRingSearched, searchRadius);
+              binsSearched++;
+              const binKey = `(${cx},${cy})`;
+              binPopulations.set(binKey, (binPopulations.get(binKey) || 0) + bucket.length);
+              totalCandidates += bucket.length;
+
+              // Refine inside the bucket - pick vertex with smallest screen distance to (pointerX, pointerY)
+              const tmp = new BABYLON.Vector3();
+              for (let k = 0; k < bucket.length; k++) {
+                const i = bucket[k];
+                tmp.set(worldVerts[i], worldVerts[i + 1], worldVerts[i + 2]);
+                const s = projectToScreen(tmp, scene, camera);
+                if (s === null) continue;
+                const dxp = s.x - pointerScreenX;
+                const dyp = s.y - pointerScreenY;
+                const dist = Math.hypot(dxp, dyp);
+                if (dist < globalClosestPx) {
+                  globalClosestPx = dist;
+                  best = { mesh, idx: i, px: dist, wx: tmp.x, wy: tmp.y, wz: tmp.z };
+                }
+              }
+            }
+          }
+          // Only expand if we haven't found anything yet
+          if (!foundAny) searchRadius++;
+        }
+      }
+
+      // Temporary bin visualization logging
+      if (scene.getFrameId() % 60 === 0 && binPopulations.size > 0) {
+        const engine = scene.getEngine();
+        const rw = engine.getRenderWidth(true);
+        const rh = engine.getRenderHeight(true);
+        const binIdx = binIndexOf(pointerScreenX, pointerScreenY, rw, rh, BIN_COLS, BIN_ROWS);
+        const bx = binIdx.ix;
+        const by = binIdx.iy;
+        const binEntries = Array.from(binPopulations.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([k, v]) => `${k}:${v}`)
+          .join(' ');
+        console.log(`[SnapDiag][Bins] pointer=(${bx},${by}) bins={${binEntries}} searched=${binsSearched} candidates=${totalCandidates}`);
+      }
+
+      // Final snap decision (screen-space first)
+      if (Number.isFinite(globalClosestPx) && globalClosestPx <= screenThresh && best.mesh && best.idx >= 0) {
+        closestVertex = new BABYLON.Vector3(best.wx, best.wy, best.wz);
+        closestScreenDistance = globalClosestPx;
+        closestDistance = BABYLON.Vector3.Distance(position, closestVertex);
+        closestMeshName = best.mesh.name;
+        binningFoundMatch = true;
+
+        // Telemetry logging (every 60 frames)
+        if (scene.getFrameId() % 60 === 0) {
+          const inFrustum = binned.reduce((sum, b) => sum + b.bins.reduce((s, bin) => s + bin.indices.length, 0), 0);
+          const withinThreshold = binned.reduce((sum, b) => {
+            return sum + b.bins.reduce((s, bin) => {
+              // Count vertices in this bin that are within threshold
+              let count = 0;
+              const tmp = new BABYLON.Vector3();
+              for (const i of bin.indices) {
+                tmp.set(b.worldVerts[i], b.worldVerts[i + 1], b.worldVerts[i + 2]);
+                const s = projectToScreen(tmp, scene, camera);
+                if (s === null) continue;
+                const dxp = s.x - pointerScreenX;
+                const dyp = s.y - pointerScreenY;
+                const dist = Math.hypot(dxp, dyp);
+                if (dist <= screenThresh) count++;
+              }
+              return s + count;
+            }, 0);
+          }, 0);
+          const usedBins = binPopulations.size;
+          const dpr = 1 / scene.getEngine().getHardwareScalingLevel();
+          
+          // Store for comparison
+          if (typeof window !== 'undefined') {
+            (window as any).__lastMinPx = globalClosestPx;
+            (window as any).__lastNear = withinThreshold;
+          }
+          
+          console.log(`[SnapDiag] inFrustum=${inFrustum} near=${withinThreshold} minPx=${globalClosestPx.toFixed(1)} occluded=${occludedCount} bins.used=${usedBins} bins.ring=${lastRingSearched} rw=${rw} rh=${rh} px=${pointerScreenX} py=${pointerScreenY} dpr=${dpr.toFixed(2)}`);
+        }
+
+        // Binning found a match - skip legacy scan
+        // Continue to snap decision logic below
+      } else if (binned.length > 0 && scene.getFrameId() % 60 === 0) {
+        // Log when binning ran but found nothing
+        const inFrustum = binned.reduce((sum, b) => sum + b.bins.reduce((s, bin) => s + bin.indices.length, 0), 0);
+        const camTarget = (camera as any).target || camera.position;
+        const camDist = BABYLON.Vector3.Distance(camera.globalPosition || camera.position, camTarget);
+        const meshCount = meshesToBin.length;
+        const dpr = 1 / scene.getEngine().getHardwareScalingLevel();
+        console.log(`[SnapDiag] inFrustum=${inFrustum} near=0 minPx=${globalClosestPx !== Infinity ? globalClosestPx.toFixed(1) : 'INF'} occluded=${occludedCount} dpr=${dpr.toFixed(2)} camDist=${camDist.toFixed(3)} mesh=NONE bins=${binned.length} searched=${binsSearched} meshes=${meshCount} (no match)`);
+        
+        // Debug exclusion reasons if near==0 but harness shows near>0
+        // Print per-mesh exclusion reasons for all candidate meshes
+        console.log(`[SnapDiag][Exclusions] Checking ${allMeshes.size} candidate meshes (near=0 but harness may show near>0):`);
+        for (const m of allMeshes) {
+          if (m instanceof BABYLON.Mesh) {
+            const excluded = isSnapExcluded(m);
+            const inExcludeList = excludeMeshIds.includes(m.uniqueId.toString());
+            const layerMask = m.layerMask;
+            const isPickable = m.isPickable;
+            const metadata = m.metadata || {};
+            const hasVerts = m.getVerticesData(BABYLON.VertexBuffer.PositionKind) !== null;
+            console.log(`[SnapDiag][Exclusions] ${m.name}: excluded=${excluded} excludeList=${inExcludeList} layerMask=${layerMask} isPickable=${isPickable} hasVerts=${hasVerts} metadataKeys=${JSON.stringify(Object.keys(metadata))}`);
+          }
+        }
+      }
+    }
+
+    // FALLBACK: Legacy per-vertex scan (only if binning didn't find a match)
+    // Priority order: 1) Bin vertices (primary), 2) Snap index (secondary), 3) Legacy scan (fallback)
+    if (!binningFoundMatch) {
+      for (const mesh of allMeshes) {
+        // Use centralized exclusion predicate + explicit excludeIds (opt-out model)
+        if (isSnapExcluded(mesh) || excludeMeshIds.includes(mesh.uniqueId.toString())) {
+          continue;
+        }
+
+        meshesChecked++;
+
+        // PREFERRED: Use snap index if available (fast O(log N) lookup for STL meshes)
+        if (camera && screenSpacePixels !== undefined && pointerScreenX !== undefined && pointerScreenY !== undefined) {
+          const idxHit = queryNearestVertex(mesh, camera, pointerScreenX, pointerScreenY, screenSpacePixels);
+          if (idxHit && idxHit.px < closestScreenDistance) {
+            closestVertex = idxHit.pos;
+            closestScreenDistance = idxHit.px;
+            closestDistance = BABYLON.Vector3.Distance(position, idxHit.pos);
+            closestMeshName = mesh.name;
+            continue; // Index path found a match, skip legacy scan for this mesh
+          }
+        }
+
+      // FALLBACK: Legacy per-vertex scan (for meshes without index or when index query fails)
+      // Get cached world-space vertices (performance optimization)
+      const worldVerts = getWorldVerts(mesh);
+      if (!worldVerts || worldVerts.length === 0) continue;
 
       meshesWithVertices++;
-      const vertexCount = positions.length / 3;
+      const vertexCount = worldVerts.length / 3;
 
-      // Performance optimization: Skip very large meshes for preview (but still check during actual drag)
-      // For meshes with > 10,000 vertices, we could use bounding box corners instead
-      // But for now, we'll check all vertices - the deduplication helps significantly
-      const MAX_VERTICES_FOR_PREVIEW = 50000; // Skip meshes with more than 50k vertices for preview
+      // Performance optimization: Skip very large meshes for preview
+      const MAX_VERTICES_FOR_PREVIEW = 50000;
       if (vertexCount > MAX_VERTICES_FOR_PREVIEW) {
-        // For very large meshes, we could use bounding box corners as snap points
-        // But for now, skip them in preview to maintain performance
         continue;
       }
 
-      // Transform vertices to world space
-      // For instances, use the instance's world matrix
-      const worldMatrix = mesh.computeWorldMatrix(true);
 
-      // Deduplicate vertices by position (many meshes have duplicate vertices at same position)
-      // Use a Map with position-based keys to avoid checking duplicate positions
-      // Tolerance: How close vertices must be to be considered "the same"
-      // 0.1mm is very strict (good for precision), but 0.5-1mm is also safe for most CAD models
-      // Higher values merge more vertices, which is fine if they're truly at the same geometric position
-      const vertexTolerance = 0.0005; // 0.5mm tolerance - safe for most CAD models, handles floating point precision
-      const uniqueVertices = new Map<string, BABYLON.Vector3>();
+      // ADAPTIVE DECIMATION: For dense STL meshes, use coarse → fine sampling
+      // Phase A: Coarse scan with adaptive stride to find approximate closest
+      const vertCount = worldVerts.length / 3;
+      const targetMax = 30000; // Tighten sampling on dense bases
+      const step = Math.max(1, Math.ceil(vertCount / targetMax));
+
+      // Create pointer ray for depth-gating (if not already created in binning path)
+      let legacyRay: BABYLON.Ray | null = null;
+      let legacyFrontDepth = Number.POSITIVE_INFINITY;
+      let legacyHasDepthGate = false;
+      let legacyPad = 0;
+      const legacyTmp = new BABYLON.Vector3();
+      let legacyOccludedCount = 0;
       
-      // First pass: collect all vertices and transform to world space
-      for (let i = 0; i < positions.length; i += 3) {
+      if (camera && pointerScreenX !== undefined && pointerScreenY !== undefined) {
+        legacyRay = scene.createPickingRay(pointerScreenX, pointerScreenY, BABYLON.Matrix.Identity(), camera, false);
+        const legacyHits = scene.multiPickWithRay(legacyRay, m => {
+          if (!(m instanceof BABYLON.Mesh)) return false;
+          return allMeshes.has(m);
+        }) || [];
+        for (const h of legacyHits) {
+          if (!h || !h.hit) continue;
+          if (h.distance < legacyFrontDepth) legacyFrontDepth = h.distance;
+        }
+        if (!Number.isFinite(legacyFrontDepth)) {
+          const general = scene.pick(pointerScreenX, pointerScreenY);
+          if (general && general.hit && general.pickedMesh && !isSnapExcluded(general.pickedMesh)) {
+            legacyFrontDepth = general.distance;
+          }
+        }
+        legacyPad = 0.001 * (OCCLUSION_PAD_MM ?? 3);
+        legacyHasDepthGate = Number.isFinite(legacyFrontDepth);
+      }
+      
+      // Helper function for legacy path
+      const legacyIsOccluded = (worldVertex: BABYLON.Vector3): boolean => {
+        if (!legacyHasDepthGate || !legacyRay) return false;
+        legacyTmp.copyFrom(worldVertex).subtractInPlace(legacyRay.origin);
+        const t = BABYLON.Vector3.Dot(legacyTmp, legacyRay.direction);
+        if (t > legacyFrontDepth + legacyPad) return true;
+        if (t < 0) return true;
+        return false;
+      };
+
+      // Coarse pass: Track closest index and pixel distance directly
+      let meshClosestIdx = -1;
+      let meshClosestPx = Infinity;
+      
+      for (let i = 0; i < worldVerts.length; i += 3 * step) {
         totalVerticesChecked++;
-        const localVertex = new BABYLON.Vector3(positions[i], positions[i + 1], positions[i + 2]);
-        const worldVertex = BABYLON.Vector3.TransformCoordinates(localVertex, worldMatrix);
-        
-        // Create a key based on rounded position to deduplicate
-        // Round to 0.1mm precision to group vertices at the same position
-        const key = `${Math.round(worldVertex.x / vertexTolerance)},${Math.round(worldVertex.y / vertexTolerance)},${Math.round(worldVertex.z / vertexTolerance)}`;
-        
-        // Only keep the first vertex at this position (or update if this one is closer to our target)
-        if (!uniqueVertices.has(key)) {
-          uniqueVertices.set(key, worldVertex);
-        } else {
-          // If we already have a vertex at this position, keep the one closer to our target
-          const existing = uniqueVertices.get(key)!;
-          const existingDist = BABYLON.Vector3.Distance(position, existing);
-          const currentDist = BABYLON.Vector3.Distance(position, worldVertex);
-          if (currentDist < existingDist) {
-            uniqueVertices.set(key, worldVertex);
+        const worldVertex = new BABYLON.Vector3(worldVerts[i], worldVerts[i + 1], worldVerts[i + 2]);
+
+        // Depth-gate: skip occluded vertices
+        if (legacyIsOccluded(worldVertex)) {
+          legacyOccludedCount++;
+          continue;
+        }
+
+        // Track closest index during coarse pass (for screen-space snapping)
+        if (camera && screenSpacePixels !== undefined && screenPos) {
+          const screenVertex = projectToScreen(worldVertex, scene, camera);
+          if (screenVertex) {
+            const dx = screenVertex.x - screenPos.x;
+            const dy = screenVertex.y - screenPos.y;
+            const px = Math.hypot(dx, dy);
+            if (px < meshClosestPx) {
+              meshClosestPx = px;
+              meshClosestIdx = i;
+            }
           }
         }
       }
-      
-      // Second pass: check only unique vertices for snapping
-      uniqueVerticesCount += uniqueVertices.size;
-      
-      // Vertex deduplication complete (logging removed to reduce console spam)
-      
-      for (const worldVertex of uniqueVertices.values()) {
-        let distance: number;
-        let screenDist: number | null = null;
-        let withinRange = false;
-        
-        // Calculate world-space distance first
-        distance = BABYLON.Vector3.Distance(position, worldVertex);
-        
-        // Use screen-space distance if camera and threshold provided (more accurate for preview and measurements)
-        if (camera && screenSpacePixels !== undefined && screenPos) {
-          const worldMatrix = scene.getTransformMatrix();
-          const viewport = camera.viewport.toGlobal(
-            scene.getEngine().getRenderWidth(),
-            scene.getEngine().getRenderHeight()
-          );
-          const projected = BABYLON.Vector3.Project(
-            worldVertex,
-            worldMatrix,
-            camera.getProjectionMatrix(),
-            viewport
-          );
-          screenDist = Math.sqrt(
-            Math.pow(projected.x - screenPos.x, 2) + 
-            Math.pow(projected.y - screenPos.y, 2)
-          );
-          withinRange = screenDist <= screenSpacePixels;
-        } else {
-          // For actual snapping (measurement tool), use a more generous threshold
-          // When clicking on a face near a vertex, we want to snap to the vertex
-          // If clicking on this mesh's bounding box, use a much larger threshold (up to half the box size)
-          // This ensures vertex snap works reliably for vertex-to-vertex measurements
-          if (isClickingOnThisMesh) {
-            // Allow snapping to vertices within 60% of the box size (covers corner-to-center distance)
-            // For a 2m box, this allows up to 1.2m snap distance, which covers any point on the box
-            withinRange = distance < maxExtent * 0.6;
-          } else {
-            // For vertices on other meshes, use 2x snap distance
-            withinRange = distance < snapDistanceMeters * 2;
+
+      // Log coarse pass results
+      if (step > 1 && camera && screenSpacePixels !== undefined) {
+        console.log(`[Snap] coarse ${mesh.name} step=${step} idx=${meshClosestIdx} px=${meshClosestPx !== Infinity ? meshClosestPx.toFixed(1) : 'N/A'}`);
+      }
+
+      // Phase B: Local refinement around the winner for exactness (if stride > 1)
+      // Use coarse winner index directly - no float equality search needed
+      if (step > 1 && meshClosestIdx >= 0 && camera && screenSpacePixels !== undefined && screenPos) {
+        const K = 60 * step; // ~60 neighbors window scaled by stride
+        const start = Math.max(0, meshClosestIdx - 3 * K);
+        const end = Math.min(worldVerts.length, meshClosestIdx + 3 * K);
+        const wp = new BABYLON.Vector3();
+
+        console.log(`[Snap] refine ${mesh.name} win=${(60*step)*2} px=${meshClosestPx.toFixed(1)}`);
+
+        for (let j = start; j < end; j += 3) {
+          wp.set(worldVerts[j], worldVerts[j + 1], worldVerts[j + 2]);
+          
+          // Depth-gate: skip occluded vertices
+          if (legacyIsOccluded(wp)) {
+            legacyOccludedCount++;
+            continue;
           }
+          
+          const s = projectToScreen(wp, scene, camera);
+          if (!s) continue;
+
+          const dx = s.x - screenPos.x;
+          const dy = s.y - screenPos.y;
+          const px = Math.hypot(dx, dy);
+          if (px >= meshClosestPx) continue;
+
+          const wd = BABYLON.Vector3.Distance(wp, position);
+          meshClosestPx = px;
+          meshClosestIdx = j;
+          closestScreenDistance = px;
+          closestDistance = wd;
+          closestVertex = wp.clone();
+          closestMeshName = mesh.name;
         }
-        
-        // Track all distances for debugging (limit to avoid spam)
-        if (debugDistances.length < 20) {
-          debugDistances.push(distance);
+      }
+
+      // Update global occluded count from legacy path
+      occludedCount += legacyOccludedCount;
+      
+      // After refine (or if no refine needed), use the coarse/refined winner
+      if (meshClosestIdx >= 0 && camera && screenSpacePixels !== undefined && screenPos) {
+        // Update global closest if this mesh's winner is better
+        if (meshClosestPx < closestScreenDistance) {
+          const wp = new BABYLON.Vector3(worldVerts[meshClosestIdx], worldVerts[meshClosestIdx + 1], worldVerts[meshClosestIdx + 2]);
+          closestScreenDistance = meshClosestPx;
+          closestDistance = BABYLON.Vector3.Distance(wp, position);
+          closestVertex = wp;
+          closestMeshName = mesh.name;
         }
-        
-        if (withinRange) {
-          verticesWithinRange++;
-        }
-        
-        // Track the closest vertex - use screen-space distance if available (for measurements),
-        // otherwise use world-space distance
-        if (screenDist !== null) {
-          // When using screen-space snapping, prioritize vertices closest in screen space
-          // This ensures we snap to the vertex the user actually clicked on
-          if (screenDist < closestScreenDistance) {
-            closestScreenDistance = screenDist;
-            closestDistance = distance; // Keep world distance for reference
-            closestVertex = worldVertex;
-            closestMeshName = mesh.name;
-          }
-        } else {
-          // Fall back to world-space distance when screen-space is not available
+      } else if (!camera || screenSpacePixels === undefined || !screenPos) {
+        // Fallback: Use world-space distance when screen-space unavailable
+        if (meshClosestIdx >= 0) {
+          const wp = new BABYLON.Vector3(worldVerts[meshClosestIdx], worldVerts[meshClosestIdx + 1], worldVerts[meshClosestIdx + 2]);
+          const distance = BABYLON.Vector3.Distance(position, wp);
           if (distance < closestDistance) {
             closestDistance = distance;
-            closestVertex = worldVertex;
+            closestVertex = wp;
             closestMeshName = mesh.name;
           }
         }
+      }
       }
     }
 
     // DEBUG: Log search results when very close to camera
     if (camera && BABYLON.Vector3.Distance(camera.position, position) < 0.3) {
-      console.log(`[SnappingHelper] Vertex search: meshes=${meshesChecked}, meshesWithVerts=${meshesWithVertices}, totalVerts=${totalVerticesChecked}, uniqueVerts=${uniqueVerticesCount}, withinRange=${verticesWithinRange}, closest=${closestVertex ? 'YES' : 'NO'}, closestDist=${closestVertex ? (closestDistance * 1000).toFixed(2) + 'mm' : 'N/A'}, closestScreenDist=${closestScreenDistance !== Infinity ? closestScreenDistance.toFixed(1) + 'px' : 'N/A'}`);
+      console.log(`[SnappingHelper] Vertex search: meshes=${meshesChecked}, meshesWithVerts=${meshesWithVertices}, totalVerts=${totalVerticesChecked}, closest=${closestVertex ? 'YES' : 'NO'}, closestDist=${closestVertex ? (closestDistance * 1000).toFixed(2) + 'mm' : 'N/A'}, closestScreenDist=${closestScreenDistance !== Infinity ? closestScreenDistance.toFixed(1) + 'px' : 'N/A'}`);
     }
 
-    // Determine if we should snap based on the method used
-    let shouldSnap = false;
-    if (closestVertex) {
-      if (camera && screenSpacePixels !== undefined && screenPos) {
-        // Check screen-space distance for magnetic snapping
-        // When using screen-space, we've already found the closest vertex in screen space
-        // If we found one within the threshold, always snap to it (magnetic behavior)
-        const worldMatrix = scene.getTransformMatrix();
-        const viewport = camera.viewport.toGlobal(
-          scene.getEngine().getRenderWidth(),
-          scene.getEngine().getRenderHeight()
-        );
-        const projected = BABYLON.Vector3.Project(
-          closestVertex,
-          worldMatrix,
-          camera.getProjectionMatrix(),
-          viewport
-        );
-        const screenDist = Math.sqrt(
-          Math.pow(projected.x - screenPos.x, 2) + 
-          Math.pow(projected.y - screenPos.y, 2)
-        );
-        // Magnetic snap: if vertex is within threshold, always snap to it
-        shouldSnap = screenDist <= screenSpacePixels;
-      } else {
-        // Check world-space distance for actual snapping
-        // For measurement tool, we want to be more generous to catch clicks on faces near vertices
-        // The withinRange check above already handles this with mesh-aware thresholds
-        // Here we just need to check if we found a vertex within a reasonable distance
-        // Use a generous threshold (50mm) to ensure vertex snap works for measurements
-        shouldSnap = closestDistance <= Math.max(snapDistanceMeters * 2, 0.05); // At least 50mm
-      }
-    }
+    // MAGNETIC OVERRIDE: Final decision (magnetic override)
+    // Use screen-space distance for snap decision
+    const shouldSnap = (closestScreenDistance <= (screenSpacePixels ?? Infinity));
     
-    // Debug logging (only when snapping, occasionally)
-    if (shouldSnap && closestVertex && Math.random() < 0.1) {
-      console.log(`[SnappingHelper] ✅ Snapping to vertex at: (${closestVertex.x.toFixed(3)}, ${closestVertex.y.toFixed(3)}, ${closestVertex.z.toFixed(3)})`);
-    }
-    
-    if (closestVertex && shouldSnap) {
+    if (shouldSnap && closestVertex) {
+      // Call showPreviewDot with winner world position
+      this.showPreviewDot(closestVertex, 'vertex');
       return {
         snapped: true,
         position: closestVertex,
@@ -783,6 +1286,9 @@ export class SnappingHelper {
         targetMeshName: closestMeshName,
         visualFeedback: [closestVertex],
       };
+    } else {
+      // Clear preview dot if no snap
+      this.clearPreviewDot();
     }
 
     return { snapped: false, position: position.clone() };
@@ -830,16 +1336,8 @@ export class SnappingHelper {
 
     // Check all meshes in the scene
     for (const mesh of scene.meshes) {
-      if (
-        !mesh.isVisible ||
-        excludeMeshIds.includes(mesh.uniqueId.toString()) ||
-        mesh.name === 'ground' ||
-        mesh.name === 'gridOverlay' ||
-        mesh.name.startsWith('snap') || // Exclude snap preview meshes
-        mesh.name.startsWith('circle') || // Exclude debug visualization
-        mesh.name.startsWith('measurement') ||
-        mesh.name.startsWith('transform_label')
-      ) {
+      // Use centralized exclusion predicate + explicit excludeIds
+      if (isSnapExcluded(mesh) || excludeMeshIds.includes(mesh.uniqueId.toString())) {
         continue;
       }
 
@@ -1238,7 +1736,9 @@ export class SnappingHelper {
             !excludeMeshIds.includes(mesh.uniqueId.toString()) &&
             mesh.name !== 'ground' &&
             mesh.name !== 'gridOverlay' &&
-            !mesh.name.startsWith('snap') &&
+            !mesh.name.startsWith('snapIndicator') &&
+            !mesh.name.startsWith('snapPreviewDot') &&
+            !mesh.name.startsWith('snapPreviewCircle') &&
             !mesh.name.startsWith('circle') &&
             !mesh.name.startsWith('measurement') &&
             !mesh.name.startsWith('transform_label')
@@ -1822,12 +2322,116 @@ export class SnappingHelper {
     snapDistance: number,
     excludeMeshIds: string[],
     camera?: BABYLON.Camera,
-    screenSpacePixels?: number
+    screenSpacePixels?: number,
+    pointerScreenX?: number,
+    pointerScreenY?: number
   ): SnapResult {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     if (!scene) return { snapped: false, position: position.clone() };
 
+    // Try new screen-space circle detection approach first
+    if (camera && screenSpacePixels !== undefined && pointerScreenX !== undefined && pointerScreenY !== undefined) {
+      const engine = scene.getEngine();
+      if (engine) {
+        const dpr = 1 / engine.getHardwareScalingLevel();
+        const centerCss = 140; // Default threshold, can be made configurable later
+        
+        // Collect visible edge midpoints with occlusion gating
+        const visiblePts: { w: BABYLON.Vector3; sx: number; sy: number; occluded?: boolean }[] = [];
+        
+        // Set up occlusion gating (similar to snapToVertex)
+        const ray = scene.createPickingRay(pointerScreenX, pointerScreenY, BABYLON.Matrix.Identity(), camera, false);
+        let frontDepth = Number.POSITIVE_INFINITY;
+        const allMeshes = new Set<BABYLON.Mesh>();
+        for (const m of scene.meshes) {
+          if (isSnapExcluded(m) || excludeMeshIds.includes(m.uniqueId.toString())) continue;
+          if (m instanceof BABYLON.Mesh) allMeshes.add(m);
+        }
+        const hits = scene.multiPickWithRay(ray, m => allMeshes.has(m as BABYLON.Mesh)) || [];
+        for (const h of hits) {
+          if (h?.hit && h.distance < frontDepth) frontDepth = h.distance;
+        }
+        const pad = 0.001 * OCCLUSION_PAD_MM;
+        const hasDepthGate = Number.isFinite(frontDepth);
+        const _tmp = new BABYLON.Vector3();
+        const isOccluded = (worldVertex: BABYLON.Vector3): boolean => {
+          if (!hasDepthGate) return false;
+          _tmp.copyFrom(worldVertex).subtractInPlace(ray.origin);
+          const t = BABYLON.Vector3.Dot(_tmp, ray.direction);
+          if (t > frontDepth + pad) return true;
+          if (t < 0) return true;
+          return false;
+        };
+        
+        // Collect edge midpoints
+        const seenEdges = new Set<string>();
+        for (const mesh of allMeshes) {
+          const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+          const indices = mesh.getIndices();
+          if (!positions || !indices) continue;
+          
+          mesh.computeWorldMatrix(true);
+          const worldMatrix = mesh.getWorldMatrix();
+          const meshId = mesh.uniqueId.toString();
+          
+          for (let i = 0; i < indices.length; i += 3) {
+            const edges = [
+              [indices[i], indices[i + 1]],
+              [indices[i + 1], indices[i + 2]],
+              [indices[i + 2], indices[i]],
+            ];
+            
+            for (const [idx1, idx2] of edges) {
+              const minIdx = Math.min(idx1, idx2);
+              const maxIdx = Math.max(idx1, idx2);
+              const edgeKey = `${meshId}:${minIdx}-${maxIdx}`;
+              if (seenEdges.has(edgeKey)) continue;
+              seenEdges.add(edgeKey);
+              
+              const v1 = BABYLON.Vector3.TransformCoordinates(
+                new BABYLON.Vector3(positions[idx1 * 3], positions[idx1 * 3 + 1], positions[idx1 * 3 + 2]),
+                worldMatrix
+              );
+              const v2 = BABYLON.Vector3.TransformCoordinates(
+                new BABYLON.Vector3(positions[idx2 * 3], positions[idx2 * 3 + 1], positions[idx2 * 3 + 2]),
+                worldMatrix
+              );
+              
+              const midpoint = v1.add(v2).scale(0.5);
+              if (isOccluded(midpoint)) continue;
+              
+              const s = projectToScreen(midpoint, scene, camera);
+              if (!s) continue;
+              
+              visiblePts.push({ w: midpoint, sx: s.x, sy: s.y, occluded: false });
+            }
+          }
+        }
+        
+        // Try circle detection
+        const circleResult = this.tryCircleCenter(scene, visiblePts, pointerScreenX, pointerScreenY, dpr, centerCss, camera);
+        if (circleResult) {
+          // Diagnostic logging for parity (every 60 frames)
+          if (scene.getFrameId() % 60 === 0) {
+            const annCount = visiblePts.length;
+            // Recompute coverage for logging (we have it in tryCircleCenter but don't return it)
+            // For now, just log basic info
+            console.log(`[SnapDiag] O={ann:${annCount}, ok:1} center=(${circleResult.world.x.toFixed(3)},${circleResult.world.y.toFixed(3)},${circleResult.world.z.toFixed(3)}) radius=${circleResult.radius.toFixed(3)}`);
+          }
+          return {
+            snapped: true,
+            position: circleResult.world,
+            snapType: 'center'
+          };
+        } else if (scene.getFrameId() % 60 === 0 && visiblePts.length > 0) {
+          // Log when we have points but no circle detected
+          console.log(`[SnapDiag] O={ann:${visiblePts.length}, ok:0}`);
+        }
+      }
+    }
+
+    // Fall back to old implementation
     const snapDistanceMeters = snapDistance / 1000;
     let closestCenter: BABYLON.Vector3 | null = null;
     let closestDistance = Infinity; // Start with Infinity to find true closest
@@ -1858,18 +2462,8 @@ export class SnappingHelper {
 
     // Check all meshes for circular faces
     for (const mesh of scene.meshes) {
-      if (
-        !mesh.isVisible ||
-        excludeMeshIds.includes(mesh.uniqueId.toString()) ||
-        mesh.name === 'ground' ||
-        mesh.name === 'gridOverlay' ||
-        mesh.name.startsWith('snapIndicator') ||
-        mesh.name.startsWith('snapPreviewDot') ||
-        mesh.name.startsWith('snapPreviewCircle') || // Exclude preview ring from detection
-        mesh.name.startsWith('marker-') ||
-        mesh.name.startsWith('distance-line') ||
-        mesh.name.startsWith('angle-line')
-      ) {
+      // Use centralized exclusion predicate + explicit excludeIds
+      if (isSnapExcluded(mesh) || excludeMeshIds.includes(mesh.uniqueId.toString())) {
         continue;
       }
 
@@ -2269,16 +2863,8 @@ export class SnappingHelper {
 
     // Check all meshes for their bounding box centers
     for (const mesh of scene.meshes) {
-      if (
-        !mesh.isVisible ||
-        excludeMeshIds.includes(mesh.uniqueId.toString()) ||
-        mesh.name === 'ground' ||
-        mesh.name === 'gridOverlay' ||
-        mesh.name.startsWith('snap') || // Exclude snap preview meshes
-        mesh.name.startsWith('circle') || // Exclude debug visualization
-        mesh.name.startsWith('measurement') ||
-        mesh.name.startsWith('transform_label')
-      ) {
+      // Use centralized exclusion predicate + explicit excludeIds
+      if (isSnapExcluded(mesh) || excludeMeshIds.includes(mesh.uniqueId.toString())) {
         continue;
       }
 
@@ -2425,6 +3011,8 @@ export class SnappingHelper {
    * @param snapType - Type of snap (vertex, midpoint, center) for different visuals
    */
   showPreviewDot(point: BABYLON.Vector3, snapType?: string): void {
+    console.log(`[SnappingHelper] 🔵 showPreviewDot called: snapType=${snapType}, point=(${point.x.toFixed(3)}, ${point.y.toFixed(3)}, ${point.z.toFixed(3)})`);
+
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     if (!scene) {
@@ -2871,8 +3459,36 @@ export class SnappingHelper {
     }
 
     preview.alwaysSelectAsActiveMesh = true;
-    preview.isPickable = false;
+    preview.isPickable = false; // Not pickable for scene picking
+    preview.isVisible = true; // Explicitly ensure visibility
+    preview.renderingGroupId = 1; // Render after main scene (prevents z-fighting)
+
+    // Set layer mask to LAYER_UI but keep it visible
+    // Note: We don't use setMeshAsUI here because we need custom layer handling
+    preview.layerMask = LAYER_UI;
+
+    // Also configure child meshes (lines, rings)
+    preview.getChildMeshes().forEach(child => {
+      if (child instanceof BABYLON.Mesh) {
+        child.isPickable = false;
+        child.isVisible = true;
+        child.renderingGroupId = 1;
+        child.layerMask = LAYER_UI;
+      }
+    });
+
+    // Configure midpoint line if it exists (stored separately, not as child)
+    if (midpointLine instanceof BABYLON.Mesh) {
+      midpointLine.isPickable = false;
+      midpointLine.isVisible = true;
+      midpointLine.renderingGroupId = 1;
+      midpointLine.layerMask = LAYER_UI;
+    }
+
     this.previewIndicator = preview;
+
+    // Debug: Confirm preview was created and configured
+    console.log(`[SnappingHelper] ✅ Preview created: name=${preview.name}, isVisible=${preview.isVisible}, isEnabled=${preview.isEnabled()}, layerMask=${preview.layerMask}, renderingGroupId=${preview.renderingGroupId}, position=(${preview.position.x.toFixed(3)}, ${preview.position.y.toFixed(3)}, ${preview.position.z.toFixed(3)})`);
   }
 
   /**
@@ -2969,16 +3585,8 @@ export class SnappingHelper {
     // This allows center-to-center measurements on boxes using midpoint snap
     // But we'll compare with edge midpoints later to prefer edges when clicking near them
     for (const mesh of scene.meshes) {
-      if (
-        !mesh.isVisible ||
-        excludeMeshIds.includes(mesh.uniqueId.toString()) ||
-        mesh.name === 'ground' ||
-        mesh.name === 'gridOverlay' ||
-        mesh.name.startsWith('snap') ||
-        mesh.name.startsWith('circle') ||
-        mesh.name.startsWith('measurement') ||
-        mesh.name.startsWith('transform_label')
-      ) {
+      // Use centralized exclusion predicate + explicit excludeIds
+      if (isSnapExcluded(mesh) || excludeMeshIds.includes(mesh.uniqueId.toString())) {
         continue;
       }
 
@@ -3024,16 +3632,8 @@ export class SnappingHelper {
 
     // Now check edge midpoints (only if we haven't found a face center, or if edge is closer)
     for (const mesh of scene.meshes) {
-      if (
-        !mesh.isVisible ||
-        excludeMeshIds.includes(mesh.uniqueId.toString()) ||
-        mesh.name === 'ground' ||
-        mesh.name === 'gridOverlay' ||
-        mesh.name.startsWith('snap') || // Exclude snap preview meshes
-        mesh.name.startsWith('circle') || // Exclude debug visualization
-        mesh.name.startsWith('measurement') ||
-        mesh.name.startsWith('transform_label')
-      ) {
+      // Use centralized exclusion predicate + explicit excludeIds
+      if (isSnapExcluded(mesh) || excludeMeshIds.includes(mesh.uniqueId.toString())) {
         continue;
       }
 
@@ -3249,16 +3849,8 @@ export class SnappingHelper {
     const seenEdges = new Set<string>(); // Deduplicate edges by mesh and vertex indices
 
     for (const mesh of scene.meshes) {
-      if (
-        !mesh.isVisible ||
-        excludeMeshIds.includes(mesh.uniqueId.toString()) ||
-        mesh.name === 'ground' ||
-        mesh.name === 'gridOverlay' ||
-        mesh.name.startsWith('snap') || // Exclude snap preview meshes
-        mesh.name.startsWith('circle') || // Exclude debug visualization
-        mesh.name.startsWith('measurement') ||
-        mesh.name.startsWith('transform_label')
-      ) {
+      // Use centralized exclusion predicate + explicit excludeIds
+      if (isSnapExcluded(mesh) || excludeMeshIds.includes(mesh.uniqueId.toString())) {
         continue;
       }
 
@@ -3397,16 +3989,8 @@ export class SnappingHelper {
     
     // Also check for edge-to-face intersections (edges from one mesh intersecting faces of another)
     for (const mesh of scene.meshes) {
-      if (
-        !mesh.isVisible ||
-        excludeMeshIds.includes(mesh.uniqueId.toString()) ||
-        mesh.name === 'ground' ||
-        mesh.name === 'gridOverlay' ||
-        mesh.name.startsWith('snap') ||
-        mesh.name.startsWith('circle') ||
-        mesh.name.startsWith('measurement') ||
-        mesh.name.startsWith('transform_label')
-      ) {
+      // Use centralized exclusion predicate + explicit excludeIds
+      if (isSnapExcluded(mesh) || excludeMeshIds.includes(mesh.uniqueId.toString())) {
         continue;
       }
 
@@ -3415,7 +3999,7 @@ export class SnappingHelper {
       if (!positions || !indices) continue;
 
       const worldMatrix = mesh.computeWorldMatrix(true);
-      
+
       // Check each edge from allEdges against faces of this mesh
       for (const edge of allEdges) {
         // Skip if edge is from the same mesh
@@ -3673,7 +4257,9 @@ export class SnappingHelper {
           !excludeMeshIds.includes(mesh.uniqueId.toString()) &&
           mesh.name !== 'ground' &&
           mesh.name !== 'gridOverlay' &&
-          !mesh.name.startsWith('snap') && // Exclude snap preview meshes
+          !mesh.name.startsWith('snapIndicator') &&
+          !mesh.name.startsWith('snapPreviewDot') &&
+          !mesh.name.startsWith('snapPreviewCircle') &&
           !mesh.name.startsWith('circle') && // Exclude debug visualization
           !mesh.name.startsWith('measurement') &&
           !mesh.name.startsWith('transform_label')
@@ -3773,16 +4359,8 @@ export class SnappingHelper {
     let closestMeshName = '';
 
     for (const mesh of scene.meshes) {
-      if (
-        !mesh.isVisible ||
-        excludeMeshIds.includes(mesh.uniqueId.toString()) ||
-        mesh.name === 'ground' ||
-        mesh.name === 'gridOverlay' ||
-        mesh.name.startsWith('snap') || // Exclude snap preview meshes
-        mesh.name.startsWith('circle') || // Exclude debug visualization
-        mesh.name.startsWith('measurement') ||
-        mesh.name.startsWith('transform_label')
-      ) {
+      // Use centralized exclusion predicate + explicit excludeIds
+      if (isSnapExcluded(mesh) || excludeMeshIds.includes(mesh.uniqueId.toString())) {
         continue;
       }
 
@@ -3991,6 +4569,112 @@ export class SnappingHelper {
   ): SnapResult {
     // For now, use edge snapping as curves are represented as edges in mesh geometry
     return this.snapToEdge(position, snapDistance, excludeMeshIds);
+  }
+
+  /**
+   * Try circle-center detection using screen-space annulus approach
+   * Returns circle center if detected, null otherwise
+   */
+  private tryCircleCenter(
+    scene: BABYLON.Scene,
+    visiblePts: { w: BABYLON.Vector3; sx: number; sy: number; occluded?: boolean }[],
+    pointerX: number,
+    pointerY: number,
+    dpr: number,
+    centerCss: number,
+    camera: BABYLON.Camera
+  ): { world: BABYLON.Vector3; screen: { x: number; y: number; z: number; rw: number; rh: number }; radius: number } | null {
+    const engine = scene.getEngine();
+    if (!engine) return null;
+    const rw = engine.getRenderWidth();
+    const rh = engine.getRenderHeight();
+    if (rw <= 0 || rh <= 0) return null;
+
+    // Depth-gate: front-visible only
+    const front: typeof visiblePts = [];
+    for (const p of visiblePts) {
+      if (p.occluded === true) continue;
+      front.push(p);
+    }
+    if (front.length < 16) return null;
+
+    // Screen annulus around pointer
+    const px = pointerX;
+    const py = pointerY;
+    const threshPx = (centerCss ?? 140) * dpr;
+    const inner = Math.max(12 * dpr, 0.60 * threshPx);
+    const outer = 1.40 * threshPx;
+
+    const ann: typeof front = [];
+    for (const p of front) {
+      const dx = p.sx - px;
+      const dy = p.sy - py;
+      const sd = Math.hypot(dx, dy);
+      if (sd < inner) continue;
+      if (sd > outer) continue;
+      ann.push(p);
+    }
+    if (ann.length < 24) return null;
+
+    // Plane fit
+    const basis = fitPlanePCA(ann.map(a => a.w));
+    if (!basis) return null;
+
+    // Get camera forward direction
+    let camForward: BABYLON.Vector3;
+    if (camera instanceof BABYLON.ArcRotateCamera) {
+      camForward = camera.getTarget().clone().subtract(camera.position).normalize();
+    } else {
+      // For other camera types, use forward ray direction
+      const forward = camera.getForwardRay(1).direction;
+      camForward = forward.normalize();
+    }
+    if (BABYLON.Vector3.Dot(basis.n, camForward) > 0) {
+      basis.n.scaleInPlace(-1);
+      basis.v.scaleInPlace(-1);
+    }
+
+    // Project to 2D plane
+    const uv: { u: number; v: number }[] = [];
+    for (const a of ann) {
+      const q = a.w.subtract(basis.origin);
+      const u = BABYLON.Vector3.Dot(q, basis.u);
+      const v = BABYLON.Vector3.Dot(q, basis.v);
+      uv.push({ u, v });
+    }
+
+    // Taubin + trimming
+    let fit = taubinCircle(uv);
+    if (!fit?.ok || fit.r <= 0) return null;
+    const rel = fit.rms / Math.max(fit.r, 1e-6);
+    if (rel > 0.10) {
+      // Trim worst quartile and refit
+      const res = uv.map(p => Math.abs(Math.hypot(p.u - fit!.cx, p.v - fit!.cy) - fit!.r));
+      const q75 = quantile(res, 0.75);
+      const keep: typeof uv = [];
+      for (let i = 0; i < uv.length; i++) {
+        if (res[i] <= q75) keep.push(uv[i]);
+      }
+      if (keep.length < 24) return null;
+      const refit = taubinCircle(keep);
+      if (!refit?.ok || refit.r <= 0) return null;
+      fit = refit;
+    }
+
+    // Coverage + residual gates
+    const cov = angularCoverage(uv, fit.cx, fit.cy);
+    const relRms = fit.rms / Math.max(fit.r, 1e-6);
+    if (cov < Math.PI * 7 / 6) return null; // ≥ 210°
+    if (relRms > 0.08) return null; // ≤ 8%
+
+    // Lift center back to world + screen for preview
+    const centerW = basis.origin.clone()
+      .addInPlace(basis.u.scale(fit.cx))
+      .addInPlace(basis.v.scale(fit.cy));
+    const s = projectToScreen(centerW, scene, camera);
+    if (!s || s.z < 0 || s.z > 1) return null;
+
+    return { world: centerW, screen: s, radius: fit.r };
   }
 
   /**
