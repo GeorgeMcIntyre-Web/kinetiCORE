@@ -471,13 +471,14 @@ export const SceneCanvas: React.FC = () => {
               return; // Don't process as normal selection
             }
 
-            // Detect double-click
+            // Detect double-click (but don't zoom if snap tool is active - let snap handle it)
             const currentTime = Date.now();
             const isDoubleClick = currentTime - lastClickTime < DOUBLE_CLICK_THRESHOLD;
             lastClickTime = currentTime;
 
-            // Handle double-click to zoom to clicked object
-            if (isDoubleClick && pickResult.hit && pickResult.pickedPoint) {
+            // Handle double-click to zoom to clicked object (only if snap tool is not active)
+            const snapToolActive = useEditorStore.getState().snapToolActive;
+            if (isDoubleClick && pickResult.hit && pickResult.pickedPoint && !snapToolActive) {
               const mesh = pickResult.pickedMesh;
 
               // Check if mesh is zoomable (using centralized filtering from SceneUtils.ts)
@@ -773,7 +774,8 @@ export const SceneCanvas: React.FC = () => {
               return;
             }
 
-            if ((pointerEvent.buttons & 1) === 1) {
+            // Don't block hover detection when snap tool is active (we want preview even during clicks)
+            if ((pointerEvent.buttons & 1) === 1 && !state.snapToolActive) {
               clearHoverHighlight();
               scene.hoverCursor = 'default';
               return;
@@ -801,12 +803,33 @@ export const SceneCanvas: React.FC = () => {
             );
             
             // Show preview dot if snapping is enabled and we have a picked point
+            // Also show preview when snap tool is active (even if snapEnabled is false, the tool should show previews)
             const snappingHelper = SnappingHelper.getInstance();
-            if (state.snapEnabled && generalPick?.hit && generalPick.pickedPoint) {
+            if ((state.snapEnabled || state.snapToolActive) && generalPick?.hit && generalPick.pickedPoint) {
               // Advanced: Use screen-space distance for preview (more accurate than world-space)
               // This makes the "magnetic" distance feel consistent at any zoom level
               const camera = scene.activeCamera;
-              const screenSpacePixels = 12; // 12 pixels feels good for magnetic snap
+
+              // Adaptive screen-space threshold: increase when zoomed in close to small objects
+              // When very close (< 100mm), use larger pixel threshold to ensure vertices are detected
+              const cameraToPoint = camera ? BABYLON.Vector3.Distance(camera.position, generalPick.pickedPoint) : 1;
+              let screenSpacePixels = 12; // Default: 12 pixels for normal viewing
+              if (cameraToPoint < 0.1) {
+                // Very close (< 100mm): use 500 pixels threshold (needed for cylinder/curved surfaces)
+                screenSpacePixels = 500;
+              } else if (cameraToPoint < 0.2) {
+                // Close (< 200mm): use 250 pixels threshold
+                screenSpacePixels = 250;
+              } else if (cameraToPoint < 0.5) {
+                // Medium close (< 500mm): use 50 pixels threshold
+                screenSpacePixels = 50;
+              }
+
+              // DEBUG: Log adaptive threshold when very close
+              if (cameraToPoint < 0.3) {
+                console.log(`[SceneCanvas] Adaptive screen-space threshold: ${screenSpacePixels}px for camera distance ${(cameraToPoint * 1000).toFixed(1)}mm`);
+              }
+
               let previewSnapDistance = 50; // Default: 50mm (fallback if screen-space not available)
               
               if (camera) {
@@ -826,9 +849,19 @@ export const SceneCanvas: React.FC = () => {
                   const fov = camera.fov || (Math.PI / 4); // Default FOV
                   const worldDistanceAtPoint = (screenSpacePixels / canvasHeight) * 2 * cameraToPoint * Math.tan(fov / 2);
                   previewSnapDistance = worldDistanceAtPoint * 1000; // Convert to mm
-                  
+
+                  // DEBUG: Log calculated snap distance when very close
+                  if (cameraToPoint < 0.3) {
+                    console.log(`[SceneCanvas] Snap distance calc: cameraToPoint=${(cameraToPoint * 1000).toFixed(1)}mm, worldDist=${(worldDistanceAtPoint * 1000).toFixed(2)}mm, before clamp=${previewSnapDistance.toFixed(2)}mm`);
+                  }
+
                   // Clamp to reasonable range: 5mm minimum, 200mm maximum
                   previewSnapDistance = Math.max(5, Math.min(200, previewSnapDistance));
+
+                  // DEBUG: Log final snap distance when very close
+                  if (cameraToPoint < 0.3) {
+                    console.log(`[SceneCanvas] Final snap distance: ${previewSnapDistance.toFixed(2)}mm`);
+                  }
                 } else if (camera && camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
                   // For orthographic camera: use ortho size
                   const orthoSize = (camera as any).orthoLeft ? 

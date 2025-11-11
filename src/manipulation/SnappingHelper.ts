@@ -731,6 +731,11 @@ export class SnappingHelper {
       }
     }
 
+    // DEBUG: Log search results when very close to camera
+    if (camera && BABYLON.Vector3.Distance(camera.position, position) < 0.3) {
+      console.log(`[SnappingHelper] Vertex search: meshes=${meshesChecked}, meshesWithVerts=${meshesWithVertices}, totalVerts=${totalVerticesChecked}, uniqueVerts=${uniqueVerticesCount}, withinRange=${verticesWithinRange}, closest=${closestVertex ? 'YES' : 'NO'}, closestDist=${closestVertex ? (closestDistance * 1000).toFixed(2) + 'mm' : 'N/A'}, closestScreenDist=${closestScreenDistance !== Infinity ? closestScreenDistance.toFixed(1) + 'px' : 'N/A'}`);
+    }
+
     // Determine if we should snap based on the method used
     let shouldSnap = false;
     if (closestVertex) {
@@ -1586,14 +1591,44 @@ export class SnappingHelper {
     }
     
     if (!normal) {
-      // Suppress frequent warnings - only log once per 5 seconds per point count
-      const warningKey = `no_normal_${points.length}`;
-      const lastWarning = this.warningSuppression.get(warningKey) || 0;
-      if (Date.now() - lastWarning > this.WARNING_SUPPRESSION_MS) {
-        console.warn(`[SnappingHelper] fitCircleToPoints: Could not determine plane normal from ${points.length} points`);
-        this.warningSuppression.set(warningKey, Date.now());
+      // Last resort: If all points are nearly coplanar with a coordinate plane, use that plane's normal
+      // Check if points are mostly flat in XY, XZ, or YZ plane
+      const bounds = {
+        minX: Math.min(...points.map(p => p.x)),
+        maxX: Math.max(...points.map(p => p.x)),
+        minY: Math.min(...points.map(p => p.y)),
+        maxY: Math.max(...points.map(p => p.y)),
+        minZ: Math.min(...points.map(p => p.z)),
+        maxZ: Math.max(...points.map(p => p.z))
+      };
+      const xExtent = bounds.maxX - bounds.minX;
+      const yExtent = bounds.maxY - bounds.minY;
+      const zExtent = bounds.maxZ - bounds.minZ;
+
+      // If one dimension is much smaller than the others, use that as the normal
+      const minExtent = Math.min(xExtent, yExtent, zExtent);
+      const maxExtent = Math.max(xExtent, yExtent, zExtent);
+
+      if (maxExtent > 0.001 && minExtent / maxExtent < 0.05) {
+        // Points are roughly planar
+        if (minExtent === zExtent) {
+          normal = BABYLON.Vector3.Up(); // XY plane -> Z normal
+        } else if (minExtent === yExtent) {
+          normal = BABYLON.Vector3.Up(); // XZ plane -> Y normal (use Y for now)
+        } else {
+          normal = BABYLON.Vector3.Right(); // YZ plane -> X normal
+        }
+        console.log(`[SnappingHelper] fitCircleToPoints: Using coordinate-aligned normal for ${points.length} coplanar points`);
+      } else {
+        // Suppress frequent warnings - only log once per 5 seconds per point count
+        const warningKey = `no_normal_${points.length}`;
+        const lastWarning = this.warningSuppression.get(warningKey) || 0;
+        if (Date.now() - lastWarning > this.WARNING_SUPPRESSION_MS) {
+          console.warn(`[SnappingHelper] fitCircleToPoints: Could not determine plane normal from ${points.length} points`);
+          this.warningSuppression.set(warningKey, Date.now());
+        }
+        return null;
       }
-      return null;
     }
 
     // Project all points onto the plane
@@ -2340,6 +2375,51 @@ export class SnappingHelper {
   }
 
   /**
+   * Calculate appropriate indicator size based on camera distance and object size
+   * Uses screen-space sizing to maintain consistent visual size regardless of zoom
+   */
+  private calculateIndicatorSize(
+    point: BABYLON.Vector3,
+    scene: BABYLON.Scene,
+    baseSize: number = 0.04
+  ): number {
+    const camera = scene.activeCamera;
+    if (!camera) return baseSize;
+
+    // Calculate distance from camera to point
+    const distanceToPoint = BABYLON.Vector3.Distance(camera.position, point);
+
+    // Calculate FOV-based scale factor for screen-space sizing
+    let fovFactor = 1.0;
+    if (camera instanceof BABYLON.ArcRotateCamera && camera.fov) {
+      fovFactor = Math.tan(camera.fov / 2);
+    } else if (camera.mode === BABYLON.Camera.ORTHOGRAPHIC_CAMERA) {
+      // For orthographic, use ortho size
+      const orthoSize = (camera as any).orthoLeft ?
+        Math.abs((camera as any).orthoRight - (camera as any).orthoLeft) : 10;
+      const engine = scene.getEngine();
+      const viewportHeight = engine.getRenderHeight();
+      // Convert to equivalent FOV for sizing calculation
+      fovFactor = (orthoSize / viewportHeight) * 2;
+    }
+
+    // Target size as percentage of screen (aims for ~2% of viewport height for small indicators)
+    const screenPercentage = 0.02;
+    const engine = scene.getEngine();
+    const viewportHeight = engine.getRenderHeight();
+    const worldSize = (distanceToPoint * fovFactor * screenPercentage * 2) / (viewportHeight / 1000);
+
+    // Adaptive minimum size based on camera distance
+    // When zoomed in close (< 200mm), use smaller indicators to avoid near-plane clipping
+    // When zoomed out, use larger indicators for visibility
+    const MIN_SIZE = distanceToPoint < 0.2 ? 0.0005 : 0.002; // 0.5mm when close, 2mm when far
+    const MAX_SIZE = 0.02;  // 20mm
+    const targetSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, worldSize));
+
+    return targetSize;
+  }
+
+  /**
    * Show preview dot at a position with optional snap type for different visuals
    * @param point - Position to show preview
    * @param snapType - Type of snap (vertex, midpoint, center) for different visuals
@@ -2359,6 +2439,10 @@ export class SnappingHelper {
     // For now, default to false - we can enhance this later if needed
     const isOnSelectedMesh = false;
 
+    // Calculate dynamic indicator size based on camera distance (screen-space sizing)
+    const baseIndicatorSize = this.calculateIndicatorSize(point, scene, 0.04);
+    const selectedIndicatorSize = this.calculateIndicatorSize(point, scene, 0.06);
+
     let preview: BABYLON.Mesh;
     let baseColor: BABYLON.Color3;
 
@@ -2373,7 +2457,7 @@ export class SnappingHelper {
       }
       
       // Create dot at midpoint first
-      const diameter = isOnSelectedMesh ? 0.06 : 0.04;
+      const diameter = isOnSelectedMesh ? selectedIndicatorSize : baseIndicatorSize;
       preview = BABYLON.MeshBuilder.CreateSphere('snapPreviewDot', { diameter }, scene);
       preview.position = point.clone();
       
@@ -2444,7 +2528,7 @@ export class SnappingHelper {
       console.log(`[SnappingHelper] showPreviewDot CENTER: point=(${point.x.toFixed(3)}, ${point.y.toFixed(3)}, ${point.z.toFixed(3)}), radius=${circleRadius ? (circleRadius * 1000).toFixed(2) + 'mm' : 'undefined'}, normal=${circleNormal ? `(${circleNormal.x.toFixed(2)}, ${circleNormal.y.toFixed(2)}, ${circleNormal.z.toFixed(2)})` : 'undefined'}`);
       
       // Create dot at circle center
-      const dotDiameter = isOnSelectedMesh ? 0.06 : 0.04;
+      const dotDiameter = isOnSelectedMesh ? selectedIndicatorSize : baseIndicatorSize;
       preview = BABYLON.MeshBuilder.CreateSphere('snapPreviewDot', { diameter: dotDiameter }, scene);
       preview.position = point.clone();
       
@@ -2467,7 +2551,8 @@ export class SnappingHelper {
           }
         }
 
-        const ringThickness = 0.003; // 3mm tube thickness
+        // Ring thickness scales with indicator size, but has min/max limits
+        const ringThickness = Math.max(0.001, Math.min(0.005, baseIndicatorSize * 0.075)); // Proportional to indicator size, clamped
 
         // ✅ CONFIRMED via cyan dot visualization: Option C is CORRECT!
         // The cyan dots (actual vertices) show the ring was TOO SMALL with Option B
@@ -2593,7 +2678,7 @@ export class SnappingHelper {
         : new BABYLON.Color3(1, 0.5, 0); // Orange
     } else if (snapType === 'vertex') {
       // Vertex: Yellow diamond shape (box rotated 45°)
-      const size = isOnSelectedMesh ? 0.06 : 0.04;
+      const size = isOnSelectedMesh ? selectedIndicatorSize : baseIndicatorSize;
       preview = BABYLON.MeshBuilder.CreateBox('snapPreviewVertex', { size }, scene);
       preview.position = point.clone();
       // Rotate to diamond orientation
@@ -2607,8 +2692,8 @@ export class SnappingHelper {
         : new BABYLON.Color3(1, 0.84, 0); // Gold/Yellow
     } else if (snapType === 'edge') {
       // Edge: Cyan cylinder aligned with edge
-      const diameter = isOnSelectedMesh ? 0.06 : 0.04;
-      const height = 0.02; // Short cylinder
+      const diameter = isOnSelectedMesh ? selectedIndicatorSize : baseIndicatorSize;
+      const height = baseIndicatorSize * 0.5; // Short cylinder, proportional to indicator size
       preview = BABYLON.MeshBuilder.CreateCylinder('snapPreviewEdge', { diameter, height }, scene);
       preview.position = point.clone();
       baseColor = isOnSelectedMesh
@@ -2616,11 +2701,11 @@ export class SnappingHelper {
         : new BABYLON.Color3(0, 1, 1); // Cyan
     } else if (snapType === 'face') {
       // Face: Green square (flat box) lying flat on the face plane
-      const size = isOnSelectedMesh ? 0.06 : 0.04;
+      const size = isOnSelectedMesh ? selectedIndicatorSize : baseIndicatorSize;
       preview = BABYLON.MeshBuilder.CreateBox('snapPreviewFace', {
         width: size,
         height: size,
-        depth: 0.005 // Very thin
+        depth: baseIndicatorSize * 0.125 // Very thin, proportional to indicator size
       }, scene);
       preview.position = point.clone();
       
@@ -2658,19 +2743,20 @@ export class SnappingHelper {
         : new BABYLON.Color3(0, 1, 0); // Green
     } else if (snapType === 'intersection') {
       // Intersection: Magenta X (two crossed boxes)
-      const size = isOnSelectedMesh ? 0.06 : 0.04;
+      const size = isOnSelectedMesh ? selectedIndicatorSize : baseIndicatorSize;
+      const barThickness = baseIndicatorSize * 0.125; // Proportional thickness
       preview = BABYLON.MeshBuilder.CreateBox('snapPreviewIntersection', {
         width: size * 1.5,
-        height: 0.005,
-        depth: 0.005
+        height: barThickness,
+        depth: barThickness
       }, scene);
       preview.position = point.clone();
 
       // Add second bar
       const bar2 = BABYLON.MeshBuilder.CreateBox('snapPreviewIntersectionBar2', {
         width: size * 1.5,
-        height: 0.005,
-        depth: 0.005
+        height: barThickness,
+        depth: barThickness
       }, scene);
       bar2.rotation.z = Math.PI / 2; // 90° rotation
       bar2.parent = preview;
@@ -2680,7 +2766,7 @@ export class SnappingHelper {
         : new BABYLON.Color3(1, 0, 1); // Magenta
     } else if (snapType === 'normal') {
       // Normal: Blue arrow pointing up
-      const diameter = isOnSelectedMesh ? 0.06 : 0.04;
+      const diameter = isOnSelectedMesh ? selectedIndicatorSize : baseIndicatorSize;
       preview = BABYLON.MeshBuilder.CreateCylinder('snapPreviewNormal', {
         diameterTop: 0,
         diameterBottom: diameter,
@@ -2692,15 +2778,17 @@ export class SnappingHelper {
         : new BABYLON.Color3(0, 0.5, 1); // Blue
     } else if (snapType === 'bboxCorner') {
       // BBox Corner: White wireframe cube
-      const size = isOnSelectedMesh ? 0.06 : 0.04;
+      const size = isOnSelectedMesh ? selectedIndicatorSize : baseIndicatorSize;
       preview = BABYLON.MeshBuilder.CreateBox('snapPreviewBBox', { size }, scene);
       preview.position = point.clone();
       baseColor = isOnSelectedMesh
         ? new BABYLON.Color3(1, 1, 1)
         : new BABYLON.Color3(0.8, 0.8, 0.8); // Light gray/white
     } else if (snapType === 'object') {
-      // Object: Purple sphere (object center)
-      const diameter = isOnSelectedMesh ? 0.08 : 0.06; // Slightly larger
+      // Object: Purple sphere (object center) - slightly larger than other indicators
+      const objectBaseSize = this.calculateIndicatorSize(point, scene, 0.06);
+      const objectSelectedSize = this.calculateIndicatorSize(point, scene, 0.08);
+      const diameter = isOnSelectedMesh ? objectSelectedSize : objectBaseSize;
       preview = BABYLON.MeshBuilder.CreateSphere('snapPreviewObject', { diameter }, scene);
       preview.position = point.clone();
       baseColor = isOnSelectedMesh
@@ -2708,7 +2796,7 @@ export class SnappingHelper {
         : new BABYLON.Color3(0.8, 0, 0.8); // Purple
     } else {
       // Default fallback: Gray sphere
-      const diameter = isOnSelectedMesh ? 0.06 : 0.04;
+      const diameter = isOnSelectedMesh ? selectedIndicatorSize : baseIndicatorSize;
       preview = BABYLON.MeshBuilder.CreateSphere('snapPreviewDot', { diameter }, scene);
       preview.position = point.clone();
       baseColor = isOnSelectedMesh
@@ -2720,12 +2808,15 @@ export class SnappingHelper {
     preview.isVisible = true;
     preview.visibility = 1.0;
 
+    // IMPORTANT: Do NOT offset preview.position - it must match the actual snap point exactly
+    // for accurate measurements. Use material zOffset and renderingGroupId for z-fighting instead.
+
     const mat = new BABYLON.StandardMaterial('previewMat', scene);
     mat.emissiveColor = baseColor;
     mat.diffuseColor = baseColor;
     mat.disableLighting = true;
     mat.alpha = 1.0;
-    mat.zOffset = -2;
+    mat.zOffset = -10; // Increased from -2 for better visibility when zoomed close
     mat.backFaceCulling = false;
     preview.material = mat;
     
@@ -2738,7 +2829,7 @@ export class SnappingHelper {
           childMat.diffuseColor = baseColor;
           childMat.disableLighting = true;
           childMat.alpha = 1.0;
-          childMat.zOffset = -2;
+          childMat.zOffset = -10; // Match parent preview zOffset
           child.material = childMat;
           console.log(`[SnappingHelper] Applied material to ${child.name}`);
         }

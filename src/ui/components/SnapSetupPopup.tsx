@@ -39,7 +39,6 @@ export const SnapSetupPopup: React.FC<SnapSetupPopupProps> = ({ isOpen, onClose 
     setSnapToCenter,
     setSnapToObject,
     setSnapToMidpoint,
-    setSnapToIntersection,
     setSnapBBoxCorner,
   } = useEditorStore();
 
@@ -239,21 +238,21 @@ export const SnapSetupPopup: React.FC<SnapSetupPopupProps> = ({ isOpen, onClose 
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                cursor: 'pointer',
+                cursor: 'not-allowed',
                 fontSize: '11px',
-                color: '#e2e8f0',
+                color: '#666',
                 padding: '4px 6px',
                 borderRadius: '4px',
                 transition: 'background 0.2s',
+                opacity: 0.5,
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(45, 55, 72, 0.4)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
               <input
                 type="checkbox"
                 checked={snapToIntersection}
-                onChange={(e) => setSnapToIntersection(e.target.checked)}
-                style={{ width: '12px', height: '12px', cursor: 'pointer' }}
+                disabled={true}
+                onChange={() => {}}
+                style={{ width: '12px', height: '12px', cursor: 'not-allowed', opacity: 0.5 }}
               />
               <span>Intersection</span>
             </label>

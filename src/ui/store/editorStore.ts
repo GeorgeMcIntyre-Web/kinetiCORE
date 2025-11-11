@@ -1642,25 +1642,26 @@ export const useEditorStore = create<EditorState>((set, get) => {
     let mesh: BABYLON.Mesh | undefined;
 
     // Create mesh based on type
+    // Default sizes are 100mm (0.1m) for main dimensions
     switch (type) {
       case 'box':
         mesh = BABYLON.MeshBuilder.CreateBox(
           `Box_${Date.now()}`,
-          { size: 2 },
+          { size: 0.1 }, // 100mm
           scene
         );
         break;
       case 'sphere':
         mesh = BABYLON.MeshBuilder.CreateSphere(
           `Sphere_${Date.now()}`,
-          { diameter: 2 },
+          { diameter: 0.1 }, // 100mm
           scene
         );
         break;
       case 'cylinder':
         mesh = BABYLON.MeshBuilder.CreateCylinder(
           `Cylinder_${Date.now()}`,
-          { height: 2, diameter: 1 },
+          { height: 0.1, diameter: 0.1 }, // 100mm
           scene
         );
         break;
@@ -1668,7 +1669,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
         console.log('[createObject] Creating cone mesh');
         mesh = BABYLON.MeshBuilder.CreateCylinder(
           `Cone_${Date.now()}`,
-          { height: 2, diameterTop: 0, diameterBottom: 1 },
+          { height: 0.1, diameterTop: 0, diameterBottom: 0.1 }, // 100mm
           scene
         );
         console.log('[createObject] Cone mesh created:', mesh);
@@ -1676,49 +1677,49 @@ export const useEditorStore = create<EditorState>((set, get) => {
       case 'torus':
         mesh = BABYLON.MeshBuilder.CreateTorus(
           `Torus_${Date.now()}`,
-          { diameter: 2, thickness: 0.5, tessellation: 32 },
+          { diameter: 0.1, thickness: 0.05, tessellation: 32 }, // 100mm diameter, 50mm thickness
           scene
         );
         break;
       case 'plane':
         mesh = BABYLON.MeshBuilder.CreatePlane(
           `Plane_${Date.now()}`,
-          { size: 2 },
+          { size: 0.1 }, // 100mm
           scene
         );
         break;
       case 'ground':
         mesh = BABYLON.MeshBuilder.CreateGround(
           `Ground_${Date.now()}`,
-          { width: 5, height: 5 },
+          { width: 0.1, height: 0.1 }, // 100mm
           scene
         );
         break;
       case 'capsule':
         mesh = BABYLON.MeshBuilder.CreateCapsule(
           `Capsule_${Date.now()}`,
-          { height: 2, radius: 0.5 },
+          { height: 0.1, radius: 0.05 }, // 100mm height, 50mm radius
           scene
         );
         break;
       case 'disc':
         mesh = BABYLON.MeshBuilder.CreateDisc(
           `Disc_${Date.now()}`,
-          { radius: 1, tessellation: 32 },
+          { radius: 0.05, tessellation: 32 }, // 50mm radius = 100mm diameter
           scene
         );
         break;
       case 'torusknot':
         mesh = BABYLON.MeshBuilder.CreateTorusKnot(
           `TorusKnot_${Date.now()}`,
-          { radius: 1, tube: 0.3, radialSegments: 64, tubularSegments: 16 },
+          { radius: 0.05, tube: 0.015, radialSegments: 64, tubularSegments: 16 }, // Proportional to 100mm
           scene
         );
         break;
       case 'polyhedron':
         mesh = BABYLON.MeshBuilder.CreatePolyhedron(
           `Polyhedron_${Date.now()}`,
-          { type: 0, size: 1 },
+          { type: 0, size: 0.1 }, // 100mm
           scene
         );
         break;
@@ -4367,6 +4368,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
     window.dispatchEvent(new Event('scenetree-update'));
 
     // Clear first point after successful snap (ready for next snap)
+    // Also clear any preview dots to ensure fresh state
+    SnappingHelper.getInstance().clearPreviewDot();
+    
     set({ snapFirstPoint: null });
   },
 
