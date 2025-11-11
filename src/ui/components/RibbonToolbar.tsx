@@ -179,6 +179,10 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   // Store connections
   const transformMode = useEditorStore((state) => state.transformMode);
   const setTransformMode = useEditorStore((state) => state.setTransformMode);
+  const transformGizmoEnabled = useEditorStore((state) => state.transformGizmoEnabled);
+  const setTransformGizmoEnabled = useEditorStore((state) => state.setTransformGizmoEnabled);
+  const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+  const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
   const snapEnabled = useEditorStore((state) => state.snapEnabled);
   const setSnapEnabled = useEditorStore((state) => state.setSnapEnabled);
   const alignMode = useEditorStore((state) => state.alignMode);
@@ -302,6 +306,60 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
     addPermanentFrame();
   };
 
+  // Handler for rotation button toggle
+  const handleRotateClick = () => {
+    // Only work when a mesh is selected (selection state is mesh)
+    if (!selectedNodeId && selectedMeshes.length === 0) {
+      toast.error('Please select an object first');
+      return;
+    }
+
+    // If already in rotate mode and gizmo is enabled, disable the gizmo
+    if (transformMode === 'rotate' && transformGizmoEnabled) {
+      setTransformGizmoEnabled(false);
+    } else {
+      // Otherwise, enable gizmo in rotate mode
+      setTransformMode('rotate');
+      setTransformGizmoEnabled(true);
+    }
+  };
+
+  // Handler for translate button toggle
+  const handleTranslateClick = () => {
+    // Only work when a mesh is selected
+    if (!selectedNodeId && selectedMeshes.length === 0) {
+      toast.error('Please select an object first');
+      return;
+    }
+
+    // If already in translate mode and gizmo is enabled, disable the gizmo
+    if (transformMode === 'translate' && transformGizmoEnabled) {
+      setTransformGizmoEnabled(false);
+    } else {
+      // Otherwise, enable gizmo in translate mode
+      setTransformMode('translate');
+      setTransformGizmoEnabled(true);
+    }
+  };
+
+  // Handler for scale button toggle
+  const handleScaleClick = () => {
+    // Only work when a mesh is selected
+    if (!selectedNodeId && selectedMeshes.length === 0) {
+      toast.error('Please select an object first');
+      return;
+    }
+
+    // If already in scale mode and gizmo is enabled, disable the gizmo
+    if (transformMode === 'scale' && transformGizmoEnabled) {
+      setTransformGizmoEnabled(false);
+    } else {
+      // Otherwise, enable gizmo in scale mode
+      setTransformMode('scale');
+      setTransformGizmoEnabled(true);
+    }
+  };
+
   return (
     <div className="ribbon-toolbar-excel">
       {/* Project Category */}
@@ -367,23 +425,23 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
         </div>
         <div className="ribbon-buttons-row">
           <button
-            className={`ribbon-btn ${transformMode === 'translate' ? 'active' : ''}`}
-            onClick={() => setTransformMode('translate')}
-            title="Move (G)"
+            className={`ribbon-btn ${transformMode === 'translate' && transformGizmoEnabled ? 'active' : ''}`}
+            onClick={handleTranslateClick}
+            title="Move (G) - Toggle translation gizmo"
           >
             <Move size={32} />
           </button>
           <button
-            className={`ribbon-btn ${transformMode === 'rotate' ? 'active' : ''}`}
-            onClick={() => setTransformMode('rotate')}
-            title="Rotate (R)"
+            className={`ribbon-btn ${transformMode === 'rotate' && transformGizmoEnabled ? 'active' : ''}`}
+            onClick={handleRotateClick}
+            title="Rotate (R) - Toggle rotation gizmo"
           >
             <RotateCw size={32} />
           </button>
           <button
-            className={`ribbon-btn ${transformMode === 'scale' ? 'active' : ''}`}
-            onClick={() => setTransformMode('scale')}
-            title="Scale (S)"
+            className={`ribbon-btn ${transformMode === 'scale' && transformGizmoEnabled ? 'active' : ''}`}
+            onClick={handleScaleClick}
+            title="Scale (S) - Toggle scale gizmo"
           >
             <Maximize2 size={32} />
           </button>

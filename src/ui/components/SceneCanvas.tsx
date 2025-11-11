@@ -1110,10 +1110,10 @@ export const SceneCanvas: React.FC = () => {
   // Update gizmo when selection or mode changes
   useEffect(() => {
     if (!gizmoRef.current) return;
-    
+
     // Check if gizmo should be enabled
     const shouldEnable = transformGizmoEnabled && (selectedMeshes.length > 0 || selectedCollectionTransformNode);
-    
+
     if (shouldEnable) {
       gizmoRef.current.setEnabled(true);
       const registry = EntityRegistry.getInstance();
@@ -1127,17 +1127,17 @@ export const SceneCanvas: React.FC = () => {
           const rootNode = entity.getRootTransformNode();
           if (rootNode) {
             gizmoRef.current.attachToNode(rootNode);
-            gizmoRef.current.setMode('combined');
+            gizmoRef.current.setMode(transformMode);
           }
         } else {
           // Regular mesh - attach directly
           gizmoRef.current.attachToMesh(selectedMesh);
-          gizmoRef.current.setMode('combined');
+          gizmoRef.current.setMode(transformMode);
         }
       } else if (selectedCollectionTransformNode) {
         // Collection node selected from tree - attach gizmo to TransformNode
         gizmoRef.current.attachToNode(selectedCollectionTransformNode);
-        gizmoRef.current.setMode('combined');
+        gizmoRef.current.setMode(transformMode);
       }
     } else {
       // Disable and detach gizmo
