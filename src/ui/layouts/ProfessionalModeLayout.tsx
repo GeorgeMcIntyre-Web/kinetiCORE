@@ -2,6 +2,7 @@
 // Owner: George (Architecture)
 
 import React, { useState, useRef, useEffect } from 'react';
+import * as BABYLON from '@babylonjs/core';
 import {
   Move,
   RotateCw,
@@ -46,10 +47,13 @@ import { useRoutingStore } from '../store/routingStore';
 import { SceneManager } from '../../scene/SceneManager';
 import { KinematicExtractionPanel } from '../components/KinematicExtractionPanel';
 import { Scan, Settings } from 'lucide-react';
+import { RotateCcw, Target, CornerDownRight, Square } from 'lucide-react';
 import { CreateDropdown } from '../components/CreateDropdown';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
 import { SnapSetupPopup } from '../components/SnapSetupPopup';
 import { ToolbarContainer } from '../components/ToolbarContainer';
+import { ViewDropdown } from '../components/ViewDropdown';
+import { SelectionLevelDropdown } from '../components/SelectionLevelDropdown';
 import './ProfessionalModeLayout.css';
 
 export const ProfessionalModeLayout: React.FC = () => {
@@ -73,6 +77,12 @@ export const ProfessionalModeLayout: React.FC = () => {
   const loadPanelLayout = useEditorStore((state) => state.loadPanelLayout);
   const snapToolActive = useEditorStore((state) => state.snapToolActive);
   const setSnapToolActive = useEditorStore((state) => state.setSnapToolActive);
+  const alignMode = useEditorStore((state) => state.alignMode);
+  const setAlignMode = useEditorStore((state) => state.setAlignMode);
+  const selectionLevel = useEditorStore((state) => state.selectionLevel);
+  const setSelectionLevel = useEditorStore((state) => state.setSelectionLevel);
+  const currentView = useEditorStore((state) => state.currentView);
+  const setCurrentView = useEditorStore((state) => state.setCurrentView);
 
   const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'analysis'>(
     'modeling'
@@ -296,6 +306,64 @@ export const ProfessionalModeLayout: React.FC = () => {
     }
   };
 
+  // Essentials-parity helpers
+  const handleAddFrame = () => {
+    const addPermanentFrame = (useEditorStore as any).getState().addPermanentFrame;
+    if (typeof addPermanentFrame === 'function') addPermanentFrame();
+  };
+
+  const handleResetView = () => {
+    const sceneManager = SceneManager.getInstance();
+    const camera = sceneManager.getCamera();
+    if (camera) {
+      camera.alpha = -Math.PI / 2;
+      camera.beta = Math.PI / 3;
+      camera.radius = 10;
+      camera.target = BABYLON.Vector3.Zero();
+    }
+  };
+
+  const handleZoomFit = () => {
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    const camera = sceneManager.getCamera();
+    if (!scene || !camera) return;
+    const meshes = scene.meshes.filter(m => m.isVisible && m.getTotalVertices() > 0);
+    if (meshes.length === 0) return;
+    let min = new BABYLON.Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
+    let max = new BABYLON.Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
+    meshes.forEach(m => {
+      const bi = m.getBoundingInfo();
+      const bmin = bi.boundingBox.minimumWorld;
+      const bmax = bi.boundingBox.maximumWorld;
+      min = BABYLON.Vector3.Minimize(min, bmin);
+      max = BABYLON.Vector3.Maximize(max, bmax);
+    });
+    const center = min.add(max).scale(0.5);
+    const extents = max.subtract(min);
+    const radius = Math.max(extents.x, extents.y, extents.z) * 1.2 + 1;
+    camera.target = center;
+    camera.radius = radius;
+  };
+
+  const handleZoomToSelected = () => {
+    const sceneManager = SceneManager.getInstance();
+    const camera = sceneManager.getCamera();
+    if (!camera || !selectedNodeId) return;
+    const tree = SceneTreeManager.getInstance();
+    const node = tree.getNode(selectedNodeId);
+    if (node && node.position) {
+      const pos = new BABYLON.Vector3(node.position.x, node.position.y, node.position.z);
+      camera.target = pos;
+      camera.radius = Math.max(3, camera.radius * 0.6);
+    }
+  };
+
+  const handleTopView = () => { setCurrentView && setCurrentView('top'); const cam = SceneManager.getInstance().getCamera(); if (cam) { cam.alpha = -Math.PI / 2; cam.beta = 0.001; } };
+  const handleRightView = () => { setCurrentView && setCurrentView('right'); const cam = SceneManager.getInstance().getCamera(); if (cam) { cam.alpha = 0; cam.beta = Math.PI / 2.2; } };
+  const handleFrontView = () => { setCurrentView && setCurrentView('front'); const cam = SceneManager.getInstance().getCamera(); if (cam) { cam.alpha = Math.PI; cam.beta = Math.PI / 2.2; } };
+  const handleIsoView = () => { setCurrentView && setCurrentView('iso'); const cam = SceneManager.getInstance().getCamera(); if (cam) { cam.alpha = -Math.PI / 4; cam.beta = Math.PI / 4; } };
+
   return (
     <div className="professional-layout">
       {/* Route Warnings Panel - Top notification bar */}
@@ -490,6 +558,76 @@ export const ProfessionalModeLayout: React.FC = () => {
             >
               <Navigation size={18} />
               <span>Position</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
+        {/* View */}
+        <div className="tool-group">
+          <div className="group-label">View</div>
+          <div className="tool-buttons">
+            <button className="tool-btn" title="Reset View" onClick={handleResetView}>
+              <RotateCcw size={18} />
+              <span>Reset</span>
+            </button>
+            <button className="tool-btn" title="Zoom Fit" onClick={handleZoomFit}>
+              <Maximize2 size={18} />
+              <span>Fit</span>
+            </button>
+            <button className="tool-btn" title="Zoom to Selected" onClick={handleZoomToSelected} disabled={!selectedNodeId}>
+              <Target size={18} />
+              <span>Selected</span>
+            </button>
+            <ViewDropdown
+              onTopViewClick={handleTopView}
+              onRightViewClick={handleRightView}
+              onFrontViewClick={handleFrontView}
+              onIsoViewClick={handleIsoView}
+              currentView={currentView}
+            />
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
+        {/* Utilities */}
+        <div className="tool-group">
+          <div className="group-label">Utilities</div>
+          <div className="tool-buttons">
+            <SelectionLevelDropdown currentLevel={selectionLevel} onLevelChange={setSelectionLevel} />
+            <button className="tool-btn" title="Add Frame at Selection" onClick={handleAddFrame}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="12" x2="20" y2="12" stroke="#ff0000" strokeWidth="2.5" />
+                <polygon points="20,12 18,11 18,13" fill="#ff0000" />
+                <line x1="12" y1="12" x2="12" y2="4" stroke="#00ff00" strokeWidth="2.5" />
+                <polygon points="12,4 11,6 13,6" fill="#00ff00" />
+                <line x1="12" y1="12" x2="6" y2="18" stroke="#0000ff" strokeWidth="2.5" />
+                <polygon points="6,18 7.5,16.5 8,17.5" fill="#0000ff" />
+              </svg>
+              <span>Frame</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
+        {/* Align */}
+        <div className="tool-group">
+          <div className="group-label">Align</div>
+          <div className="tool-buttons">
+            <button className={`tool-btn ${alignMode === 'vertex' ? 'active' : ''}`} onClick={() => setAlignMode('vertex')} title="Align Vertex">
+              <CornerDownRight size={18} />
+              <span>Vertex</span>
+            </button>
+            <button className={`tool-btn ${alignMode === 'edge' ? 'active' : ''}`} onClick={() => setAlignMode('edge')} title="Align Edge">
+              <Minus size={18} />
+              <span>Edge</span>
+            </button>
+            <button className={`tool-btn ${alignMode === 'face' ? 'active' : ''}`} onClick={() => setAlignMode('face')} title="Align Face">
+              <Square size={18} />
+              <span>Face</span>
             </button>
           </div>
         </div>
