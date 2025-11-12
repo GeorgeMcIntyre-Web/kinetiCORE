@@ -46,14 +46,22 @@ import { ConnectionPointsRenderer } from '../../routing/ui/ConnectionPointsRende
 import { useRoutingStore } from '../store/routingStore';
 import { SceneManager } from '../../scene/SceneManager';
 import { KinematicExtractionPanel } from '../components/KinematicExtractionPanel';
+import { FloatingKinematicsPanel } from '../components/FloatingKinematicsPanel';
+import { FloatingKinematicsAnalysisPanel } from '../components/FloatingKinematicsAnalysisPanel';
+import { FloatingActuatorPanel } from '../components/FloatingActuatorPanel';
+import { FloatingComplexIKPanel } from '../components/FloatingComplexIKPanel';
+import { WholeBodyIKPanel } from '../components/WholeBodyIKPanel';
+import { ICPTestPanel } from '../components/ICPTestPanel';
 import { Scan, Settings } from 'lucide-react';
 import { RotateCcw, Target, CornerDownRight, Square } from 'lucide-react';
+import { Rocket, Calculator, GitBranch, Network, TestTube, Zap } from 'lucide-react';
 import { CreateDropdown } from '../components/CreateDropdown';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
 import { SnapSetupPopup } from '../components/SnapSetupPopup';
 import { ToolbarContainer } from '../components/ToolbarContainer';
 import { ViewDropdown } from '../components/ViewDropdown';
 import { SelectionLevelDropdown } from '../components/SelectionLevelDropdown';
+import { toast } from '../components/ToastNotifications';
 import './ProfessionalModeLayout.css';
 
 export const ProfessionalModeLayout: React.FC = () => {
@@ -84,7 +92,7 @@ export const ProfessionalModeLayout: React.FC = () => {
   const currentView = useEditorStore((state) => state.currentView);
   const setCurrentView = useEditorStore((state) => state.setCurrentView);
 
-  const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'analysis'>(
+  const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'analysis' | 'routing'>(
     'modeling'
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -95,6 +103,12 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [activeMeasurement, setActiveMeasurement] = useState<MeasurementType>(null);
   const [showDebugLabels, setShowDebugLabels] = useState(false);
   const [showKinematicExtractionPanel, setShowKinematicExtractionPanel] = useState(false);
+  const [showKinematicsPanel, setShowKinematicsPanel] = useState(false);
+  const [showKinematicsAnalysisPanel, setShowKinematicsAnalysisPanel] = useState(false);
+  const [showActuatorPanel, setShowActuatorPanel] = useState(false);
+  const [showComplexIKPanel, setShowComplexIKPanel] = useState(false);
+  const [showWholeBodyIKPanel, setShowWholeBodyIKPanel] = useState(false);
+  const [showICPTestPanel, setShowICPTestPanel] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showSnapSetupPopup, setShowSnapSetupPopup] = useState(false);
   const debugLabelsRef = useRef<RouteDebugLabels | null>(null);
@@ -411,6 +425,12 @@ export const ProfessionalModeLayout: React.FC = () => {
               onClick={() => setActiveWorkspace('simulation')}
             >
               Simulation
+            </button>
+            <button
+              className={`workspace-tab ${activeWorkspace === 'routing' ? 'active' : ''}`}
+              onClick={() => setActiveWorkspace('routing')}
+            >
+              Routing
             </button>
             <button
               className={`workspace-tab ${activeWorkspace === 'analysis' ? 'active' : ''}`}
@@ -738,55 +758,7 @@ export const ProfessionalModeLayout: React.FC = () => {
           </div>
         </div>
 
-        <div className="toolbar-separator"></div>
-
-        {/* Routing Tools */}
-        <div className="tool-group">
-          <div className="group-label">Routing</div>
-          <div className="tool-buttons">
-            <button
-              className={`tool-btn ${showDebugLabels ? 'active' : ''}`}
-              onClick={() => setShowDebugLabels(!showDebugLabels)}
-              title="Toggle Route Debug Labels (D)"
-            >
-              {showDebugLabels ? <Eye size={18} /> : <EyeOff size={18} />}
-              <span className="tool-btn-label">Labels</span>
-            </button>
-            <button
-              className="tool-btn"
-              onClick={handleToggleBabylonInspector}
-              title="Toggle Babylon Scene Inspector (Alt+I)"
-            >
-              <Search size={18} />
-              <span className="tool-btn-label">Inspector</span>
-            </button>
-            <button
-              className={`tool-btn ${showTemplatesPanel ? 'active' : ''}`}
-              onClick={() => setShowTemplatesPanel(!showTemplatesPanel)}
-              title="Open Route Templates Library"
-            >
-              <LayoutTemplate size={18} />
-              <span className="tool-btn-label">Templates</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="toolbar-separator"></div>
-
-        {/* Kinematics Tools */}
-        <div className="tool-group">
-          <div className="group-label">Kinematics</div>
-          <div className="tool-buttons">
-            <button
-              className={`tool-btn ${showKinematicExtractionPanel ? 'active' : ''}`}
-              onClick={() => setShowKinematicExtractionPanel(!showKinematicExtractionPanel)}
-              title="Auto Kinematic Extraction - Hierarchical BBox Pairing"
-            >
-              <Scan size={18} />
-              <span className="tool-btn-label">Auto Extract</span>
-            </button>
-          </div>
-        </div>
+        {/* Routing section moved to Routing tab */}
           </>
         )}
 
@@ -806,6 +778,109 @@ export const ProfessionalModeLayout: React.FC = () => {
                 <button className="tool-btn" title="Reset Simulation">
                   <RefreshCw size={18} />
                   <span>Reset</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="toolbar-separator"></div>
+
+            {/* Kinematics Tools moved here */}
+            <div className="tool-group">
+              <div className="group-label">Kinematics</div>
+              <div className="tool-buttons">
+                <button
+                  className="tool-btn"
+                  onClick={() => setShowKinematicsPanel(true)}
+                  title="Motion Panel"
+                >
+                  <Rocket size={18} />
+                  <span className="tool-btn-label">Motion</span>
+                </button>
+                <button
+                  className="tool-btn"
+                  onClick={() => setShowKinematicsAnalysisPanel(true)}
+                  title="Kinematics Analysis"
+                >
+                  <Calculator size={18} />
+                  <span className="tool-btn-label">Analysis</span>
+                </button>
+                <button
+                  className="tool-btn"
+                  onClick={() => setShowActuatorPanel(true)}
+                  title="Actuator Control"
+                >
+                  <div style={{ position: 'relative', width: 18, height: 18 }}>
+                    <Zap size={12} style={{ position: 'absolute', left: 1, top: 1 }} />
+                    <Settings size={12} style={{ position: 'absolute', right: 1, bottom: 1 }} />
+                  </div>
+                  <span className="tool-btn-label">Actuators</span>
+                </button>
+                <button
+                  className="tool-btn"
+                  onClick={() => setShowComplexIKPanel(true)}
+                  title="Complex IK Systems"
+                >
+                  <GitBranch size={18} />
+                  <span className="tool-btn-label">Complex IK</span>
+                </button>
+                <button
+                  className="tool-btn"
+                  onClick={() => setShowWholeBodyIKPanel(true)}
+                  title="FullBody IK"
+                >
+                  <Network size={18} />
+                  <span className="tool-btn-label">FullBody IK</span>
+                </button>
+                <button
+                  className={`tool-btn ${showKinematicExtractionPanel ? 'active' : ''}`}
+                  onClick={() => setShowKinematicExtractionPanel(!showKinematicExtractionPanel)}
+                  title="Auto Kinematic Extraction - Hierarchical BBox Pairing"
+                >
+                  <Scan size={18} />
+                  <span className="tool-btn-label">Auto Extract</span>
+                </button>
+                <button
+                  className="tool-btn"
+                  onClick={() => setShowICPTestPanel(true)}
+                  title="ICP Test Tool - Manual FIXED/MOVING Selection"
+                >
+                  <TestTube size={18} />
+                  <span className="tool-btn-label">ICP Test</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeWorkspace === 'routing' && (
+          <>
+            {/* Routing Tools moved from Modeling */}
+            <div className="tool-group">
+              <div className="group-label">Routing</div>
+              <div className="tool-buttons">
+                <button
+                  className={`tool-btn ${showDebugLabels ? 'active' : ''}`}
+                  onClick={() => setShowDebugLabels(!showDebugLabels)}
+                  title="Toggle Route Debug Labels (D)"
+                >
+                  {showDebugLabels ? <Eye size={18} /> : <EyeOff size={18} />}
+                  <span className="tool-btn-label">Labels</span>
+                </button>
+                <button
+                  className="tool-btn"
+                  onClick={handleToggleBabylonInspector}
+                  title="Toggle Babylon Scene Inspector (Alt+I)"
+                >
+                  <Search size={18} />
+                  <span className="tool-btn-label">Inspector</span>
+                </button>
+                <button
+                  className={`tool-btn ${showTemplatesPanel ? 'active' : ''}`}
+                  onClick={() => setShowTemplatesPanel(!showTemplatesPanel)}
+                  title="Open Route Templates Library"
+                >
+                  <LayoutTemplate size={18} />
+                  <span className="tool-btn-label">Templates</span>
                 </button>
               </div>
             </div>
@@ -916,6 +991,43 @@ export const ProfessionalModeLayout: React.FC = () => {
       />
 
       {/* Snap Setup Popup - Quick access from ribbon */}
+
+      {/* Kinematics Floating Panels (same components as Essentials) */}
+      <FloatingKinematicsPanel
+        isVisible={showKinematicsPanel}
+        onClose={() => setShowKinematicsPanel(false)}
+        zIndex={1001}
+      />
+      <FloatingKinematicsAnalysisPanel
+        isVisible={showKinematicsAnalysisPanel}
+        onClose={() => setShowKinematicsAnalysisPanel(false)}
+        zIndex={1002}
+      />
+      <FloatingActuatorPanel
+        isVisible={showActuatorPanel}
+        onClose={() => setShowActuatorPanel(false)}
+        zIndex={1003}
+      />
+      <FloatingComplexIKPanel
+        isVisible={showComplexIKPanel}
+        onClose={() => setShowComplexIKPanel(false)}
+        zIndex={1004}
+      />
+      <WholeBodyIKPanel
+        isVisible={showWholeBodyIKPanel}
+        onClose={() => setShowWholeBodyIKPanel(false)}
+        zIndex={1005}
+      />
+      <KinematicExtractionPanel
+        isVisible={showKinematicExtractionPanel}
+        onClose={() => setShowKinematicExtractionPanel(false)}
+        zIndex={1006}
+      />
+      <ICPTestPanel
+        isVisible={showICPTestPanel}
+        onClose={() => setShowICPTestPanel(false)}
+        zIndex={1007}
+      />
       <SnapSetupPopup isOpen={showSnapSetupPopup} onClose={() => setShowSnapSetupPopup(false)} />
     </div>
   );
