@@ -190,22 +190,23 @@
 .tool-buttons {
   display: flex;
   gap: 2px; /* tighter spacing to prevent scrollbar */
+  align-items: center; /* normalize vertical alignment across tabs */
 }
 
 .tool-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px; /* tighter vertical spacing to reduce total height */
-  padding: 2px 6px; /* keep compact */
+  gap: 2px; /* consistent spacing */
+  padding: 4px 8px; /* unified padding across tabs */
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 6px; /* match Essentials radius */
+  border-radius: 6px; /* unified corner radius */
   color: #e2e8f0;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 12px; /* match Essentials general text size */
-  min-width: 56px; /* allow slightly larger labels */
+  font-size: 12px; /* unified label size */
+  min-width: 64px; /* consistent width for all tool buttons */
 }
 
 .tool-btn:hover {
@@ -240,8 +241,8 @@
 
 /* Normalize icon sizes inside buttons for consistency */
 .tool-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 18px; /* unified icon size */
+  height: 18px;
 }
 
 .tool-btn svg {

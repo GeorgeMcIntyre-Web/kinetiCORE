@@ -63,7 +63,8 @@ button {
 }
 
 button:hover {
-  border-color: #646cff;
+  /* Use theme accent instead of hardcoded purple */
+  border-color: var(--kc-accent, #00f0ff);
 }
 
 button:focus,
@@ -183,7 +184,7 @@ button:focus-visible {
 
 /* Focus Ring with Smooth Transition */
 .focus-ring:focus-visible {
-  outline: 2px solid #646cff;
+  outline: 2px solid var(--kc-accent, #00f0ff);
   outline-offset: 2px;
   transition: outline-offset var(--transition-fast) var(--transition-timing);
 }

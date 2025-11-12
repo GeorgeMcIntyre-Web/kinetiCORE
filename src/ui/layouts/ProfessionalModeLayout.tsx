@@ -24,6 +24,8 @@ import {
   Pause,
   RefreshCw,
   Activity,
+  Layers,
+  Minus,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
@@ -535,40 +537,43 @@ export const ProfessionalModeLayout: React.FC = () => {
           <div className="group-label">Modify</div>
           <div className="tool-buttons">
             <button
-              className="tool-btn-small"
+              className="tool-btn"
               title={
-                selectedNodeIds.length === 2
+                  selectedNodeIds.length === 2
                   ? 'Union - Combine two objects into one'
                   : 'Union - Select exactly 2 objects (Ctrl+Click)'
               }
               disabled={selectedNodeIds.length !== 2}
               onClick={() => handleBooleanOperation('union')}
             >
-              Union
+              <Layers size={18} />
+              <span>Union</span>
             </button>
             <button
-              className="tool-btn-small"
+              className="tool-btn"
               title={
-                selectedNodeIds.length === 2
+                  selectedNodeIds.length === 2
                   ? 'Subtract - Remove 2nd object from 1st'
                   : 'Subtract - Select exactly 2 objects (Ctrl+Click)'
               }
               disabled={selectedNodeIds.length !== 2}
               onClick={() => handleBooleanOperation('subtract')}
             >
-              Subtract
+              <Minus size={18} />
+              <span>Subtract</span>
             </button>
             <button
-              className="tool-btn-small"
+              className="tool-btn"
               title={
-                selectedNodeIds.length === 2
+                  selectedNodeIds.length === 2
                   ? 'Intersect - Keep only overlapping volume'
                   : 'Intersect - Select exactly 2 objects (Ctrl+Click)'
               }
               disabled={selectedNodeIds.length !== 2}
               onClick={() => handleBooleanOperation('intersect')}
             >
-              Intersect
+              <LayoutTemplate size={18} />
+              <span>Intersect</span>
             </button>
           </div>
         </div>

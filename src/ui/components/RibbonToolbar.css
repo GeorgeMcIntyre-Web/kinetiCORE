@@ -63,11 +63,9 @@
 }
 
 .ribbon-btn:hover {
+  /* Match Professional hover: subtle accent tint only */
   background: rgba(var(--kc-accent-rgb), 0.1);
   border-color: rgba(var(--kc-accent-rgb), 0.2);
-  color: rgba(255, 255, 255, 1);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .ribbon-btn:active {
