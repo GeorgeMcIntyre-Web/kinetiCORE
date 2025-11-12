@@ -26,7 +26,9 @@ import {
   Activity,
   Layers,
   Minus,
-} from 'lucide-react';
+  Maximize2,
+  Box,
+  } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { DockableLayoutWrapper } from './DockableLayoutWrapper';
@@ -585,25 +587,28 @@ export const ProfessionalModeLayout: React.FC = () => {
           <div className="group-label">Measure</div>
           <div className="tool-buttons">
             <button
-              className="tool-btn-small"
+              className="tool-btn"
               title="Measure distance between two points"
               onClick={() => handleMeasurement('distance')}
             >
-              Distance
+              <Maximize2 size={18} />
+              <span>Distance</span>
             </button>
             <button
-              className="tool-btn-small"
+              className="tool-btn"
               title="Measure angle between three points"
               onClick={() => handleMeasurement('angle')}
             >
-              Angle
+              <RotateCw size={18} />
+              <span>Angle</span>
             </button>
             <button
-              className="tool-btn-small"
+              className="tool-btn"
               title="Measure volume of selected objects"
               onClick={() => handleMeasurement('volume')}
             >
-              Volume
+              <Box size={18} />
+              <span>Volume</span>
             </button>
           </div>
         </div>

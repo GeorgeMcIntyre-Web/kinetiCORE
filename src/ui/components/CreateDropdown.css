@@ -102,7 +102,7 @@
   position: relative;
   opacity: 1; /* Full opacity for clear visibility */
   transition: transform 0.2s ease, opacity 0.2s ease;
-  pointer-events: none;
+  pointer-events: auto; /* allow direct clicks on the chevron */
   width: 10px;
   height: 10px;
   display: flex;
