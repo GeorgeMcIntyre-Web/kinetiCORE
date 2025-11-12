@@ -2,12 +2,15 @@
   display: inline-flex; /* shrink-to-fit width */
   align-items: stretch; /* allow children (separators) to stretch full height */
   gap: 6px;
-  padding: 4px 8px; /* tighter to reveal borders */
-  /* DEBUG: emphasize container structure with requested background */
-  background: #1e2432;
-  border: 2px solid rgb(51, 56, 69);
+  padding: 6px 10px; /* slightly more breathing room inside */
+  /* Subtle gradient to separate from toolbar row background */
+  background: linear-gradient(180deg, #222838 0%, #1b2130 100%);
+  border: 1px solid rgb(51, 56, 69);
   border-radius: 6px; /* match Essentials floating toolbar radius */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25),
+              0 0 0 1px rgba(255, 255, 255, 0.03); /* subtle outer highlight */
   backdrop-filter: blur(8px);
+  margin: 4px 0; /* reveal toolbar row borders above/below */
 }
 
 .toolbar-container__title {
@@ -25,6 +28,11 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+/* Ensure separators are visible against container background */
+.toolbar-container .toolbar-separator {
+  background: #3a4154; /* slightly lighter than row separator */
 }
 
 /* DEBUG: temporarily hide all buttons inside the toolbar container to inspect structure */
