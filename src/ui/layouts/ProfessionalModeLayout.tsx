@@ -434,7 +434,7 @@ export const ProfessionalModeLayout: React.FC = () => {
 
         {/* Transform Tools */}
         <div className="tool-group">
-          <div className="group-label">Transform</div>
+          <div className="group-label center">Transform</div>
           <div className="tool-buttons">
             <button
               className={`tool-btn ${transformMode === 'translate' && transformGizmoEnabled ? 'active' : ''}`}

@@ -171,6 +171,14 @@
   letter-spacing: 0.5px;
   padding: 0 4px;
   white-space: nowrap;
+  text-align: center; /* center labels across all groups */
+  width: 100%;
+}
+
+/* Centered variant for specific groups (e.g., Transform) */
+.group-label.center {
+  text-align: center;
+  width: 100%;
 }
 
 .tool-buttons {
