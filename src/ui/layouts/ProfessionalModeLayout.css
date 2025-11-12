@@ -46,9 +46,9 @@
   padding: 6px 16px;
   background: transparent;
   border: none;
-  color: #a0aec0;
-  font-size: 13px;
-  font-weight: 500;
+  color: #e2e8f0; /* match Essentials header text tone */
+  font-size: 14px; /* align with Essentials text-sm */
+  font-weight: 600; /* crisper tab labels */
   cursor: pointer;
   border-radius: 4px;
   transition: all 0.2s;
@@ -164,13 +164,13 @@
 }
 
 .group-label {
-  font-size: 10px;
-  line-height: 14px; /* avoid top cropping */
-  color: #718096;
+  font-size: 12px; /* clearer like Essentials */
+  line-height: 16px;
+  color: #cbd5e1; /* lighter for readability */
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 0 4px; /* tighter padding */
-  white-space: nowrap; /* keep labels on one line */
+  padding: 0 4px;
+  white-space: nowrap;
 }
 
 .tool-buttons {
@@ -183,15 +183,15 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 2px 6px; /* tighter padding to fit more buttons */
+  padding: 2px 6px; /* keep compact */
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
   color: #e2e8f0;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 10px;
-  min-width: 48px; /* narrower to fit more buttons */
+  font-size: 12px; /* match Essentials general text size */
+  min-width: 56px; /* allow slightly larger labels */
 }
 
 .tool-btn:hover {
@@ -216,10 +216,10 @@
 }
 
 .tool-btn span {
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   white-space: nowrap;
-  line-height: 14px; /* ensure full glyph height */
+  line-height: 16px;
 }
 
 /* Normalize icon sizes inside buttons for consistency */
