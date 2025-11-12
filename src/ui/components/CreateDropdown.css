@@ -30,7 +30,7 @@
   overflow: hidden; /* Prevent chevron from overflowing */
   gap: 0;
   padding: 6px 10px 6px 12px !important; /* standardized padding */
-  margin: 0 2px !important; /* Add horizontal margin to prevent overlap with other buttons */
+  margin: 0 !important; /* spacing handled by parent gap */
   min-width: 80px; /* ensure content fits */
   width: auto;
   box-sizing: border-box; /* Include padding in width calculation */

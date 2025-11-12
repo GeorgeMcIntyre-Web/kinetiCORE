@@ -199,7 +199,7 @@
 
 .tool-buttons {
   display: flex;
-  gap: 2px; /* tighter spacing to prevent scrollbar */
+  gap: 6px; /* uniform spacing between ALL buttons */
   align-items: center; /* normalize vertical alignment across tabs */
 }
 
