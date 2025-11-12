@@ -35,11 +35,20 @@
   display: flex;
   align-items: center;
   gap: 24px;
+  min-width: 0; /* allow flex children (tabs) to shrink and avoid scroll */
 }
 
 .workspace-tabs {
   display: flex;
   gap: 4px;
+  flex-wrap: nowrap; /* keep tabs on one line */
+  overflow-x: hidden; /* prevent default scrollbar from showing */
+  -ms-overflow-style: none; /* IE/Edge hides scrollbar */
+  scrollbar-width: none; /* Firefox hides scrollbar */
+}
+
+.workspace-tabs::-webkit-scrollbar {
+  display: none; /* Chrome/Safari hides scrollbar */
 }
 
 .workspace-tab {
@@ -138,7 +147,7 @@
 .ribbon-toolbar {
   position: sticky;
   top: 48px; /* Below header */
-  height: 64px; /* Increased to prevent label clipping */
+  height: 64px; /* Fixed toolbar height */
   min-height: 64px;
   max-height: 64px;
   flex-shrink: 0; /* Don't shrink in flex container */
@@ -148,10 +157,10 @@
   display: flex;
   align-items: center;
   /* Provide breathing space so group labels aren't cut by top border */
-  padding: 6px 8px 6px 2px; /* Minimal left padding to move buttons left */
+  padding: 4px 8px 4px 2px; /* tighter vertical padding to avoid overflow */
   gap: 4px; /* tighter spacing to prevent scrollbar */
   overflow-x: hidden; /* Remove scrollbar - buttons should fit */
-  overflow-y: visible; /* allow labels to render cleanly */
+  overflow-y: hidden; /* prevent vertical scrollbar */
   z-index: 199; /* Below header, above content */
   backdrop-filter: blur(8px);
 }
@@ -165,7 +174,7 @@
 
 .group-label {
   font-size: 12px; /* clearer like Essentials */
-  line-height: 16px;
+  line-height: 14px; /* slightly tighter to fit toolbar */
   color: #cbd5e1; /* lighter for readability */
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -190,7 +199,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 1px; /* tighter vertical spacing to reduce total height */
   padding: 2px 6px; /* keep compact */
   background: transparent;
   border: 1px solid transparent;
@@ -227,7 +236,7 @@
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
-  line-height: 16px;
+  line-height: 14px; /* reduce to fit within fixed toolbar height */
 }
 
 /* Normalize icon sizes inside buttons for consistency */
