@@ -412,7 +412,7 @@ export const ProfessionalModeLayout: React.FC = () => {
 
       {/* Ribbon Toolbar wrapped in experiment container */}
       <div className="ribbon-toolbar">
-        <ToolbarContainer title="Tools" className="w-full" style={{ width: '100%' }}>
+        <ToolbarContainer>
         {activeWorkspace === 'modeling' && (
           <>
         {/* Creation Tools */}

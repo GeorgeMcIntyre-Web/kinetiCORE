@@ -146,17 +146,18 @@
 .ribbon-toolbar {
   position: sticky;
   top: 48px; /* Below header */
-  height: 64px; /* Fixed toolbar height */
-  min-height: 64px;
-  max-height: 64px;
+  height: auto; /* flexible height */
+  min-height: unset;
+  max-height: none;
   flex-shrink: 0; /* Don't shrink in flex container */
-  /* Match Essentials floating toolbar color */
-  background: rgba(26, 32, 44, 0.98);
-  border-bottom: 1px solid #4a5568;
+  /* Toolbar row background */
+  background: #1e2432;
+  border-bottom: 1px solid rgb(75, 85, 103); /* requested bottom border */
   display: flex;
   align-items: center;
+  justify-content: center; /* center container horizontally */
   /* Provide breathing space so group labels aren't cut by top border */
-  padding: 4px 8px 4px 2px; /* tighter vertical padding to avoid overflow */
+  padding: 4px 8px; /* tighter vertical padding for visible borders */
   gap: 4px; /* tighter spacing to prevent scrollbar */
   overflow-x: hidden; /* Remove scrollbar - buttons should fit */
   overflow-y: hidden; /* prevent vertical scrollbar */
@@ -172,15 +173,17 @@
 }
 
 .group-label {
-  font-size: 12px; /* clearer like Essentials */
-  line-height: 14px; /* slightly tighter to fit toolbar */
-  color: #cbd5e1; /* lighter for readability */
+  /* Match Essentials (Ribbon) label styling */
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  color: var(--kc-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 0 4px;
   white-space: nowrap;
-  text-align: center; /* center labels across all groups */
-  width: 100%;
+  margin-bottom: 2px;
+  padding: 0 4px;
+  text-align: left;
 }
 
 /* Centered variant for specific groups (e.g., Transform) */
@@ -294,8 +297,9 @@
 .toolbar-separator {
   width: 1px;
   height: 100%; /* fill ribbon height */
-  background: #4a5568;
+  background: #333845; /* requested separator color */
   margin: 0 2px; /* minimal margin */
+  align-self: stretch; /* extend from top to bottom within container */
 }
 
 /* Main Content */
