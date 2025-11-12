@@ -281,7 +281,16 @@ export const ProfessionalModeLayout: React.FC = () => {
       {/* Header */}
       <header className="professional-header">
         <div className="header-left">
-          <h1 className="logo">kinetiCORE</h1>
+          {/* Match Essentials logo block: icon + gradient text + tagline */}
+          <div className="flex items-center space-x-2 flex-shrink-0">
+            <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/50">
+              <span className="text-white font-bold text-sm">K</span>
+            </div>
+            <div className="hidden sm:block">
+              <h1 className="text-xl font-bold bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">kinetic CORE</h1>
+              <p className="text-xs text-gray-400">The Linux of Manufacturing Simulation</p>
+            </div>
+          </div>
           <div className="workspace-tabs">
             <button
               className={`workspace-tab ${activeWorkspace === 'modeling' ? 'active' : ''}`}

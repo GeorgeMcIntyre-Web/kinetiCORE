@@ -5,6 +5,9 @@
   flex-direction: column;
   height: 100vh;
   background: #1a202c;
+  /* Align accent with Essential mode (green) */
+  --kc-accent: #48bb78;           /* hex for green accent */
+  --kc-accent-rgb: 72, 187, 120;  /* rgb for translucency */
   color: #e2e8f0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,
     sans-serif;
@@ -17,13 +20,15 @@
   height: 48px;
   min-height: 48px;
   flex-shrink: 0;
-  background: #2d3748;
+  /* Align with Essentials toolbar tone */
+  background: rgba(26, 32, 44, 0.98);
   border-bottom: 1px solid #4a5568;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
   z-index: 200; /* Above warning panel */
+  backdrop-filter: blur(8px);
 }
 
 .header-left {
@@ -50,13 +55,13 @@
 }
 
 .workspace-tab.active {
-  background: #4a5568;
-  color: #fff;
+  background: var(--kc-accent);
+  color: #ffffff;
 }
 
 .workspace-tab:not(:disabled):hover {
-  background: #4a5568;
-  color: #fff;
+  background: rgba(var(--kc-accent-rgb), 0.15);
+  color: #ffffff;
 }
 
 .workspace-tab:disabled {
@@ -65,8 +70,8 @@
 }
 
 .mode-badge.professional {
-  background: rgba(66, 153, 225, 0.9);
-  color: white;
+  background: var(--kc-accent);
+  color: #ffffff;
 }
 
 .header-right {
@@ -113,7 +118,7 @@
 }
 
 .action-btn:not(:disabled):hover {
-  background: #4a5568;
+  background: var(--kc-accent);
   color: #fff;
 }
 
@@ -137,7 +142,8 @@
   min-height: 64px;
   max-height: 64px;
   flex-shrink: 0; /* Don't shrink in flex container */
-  background: #2d3748;
+  /* Match Essentials floating toolbar color */
+  background: rgba(26, 32, 44, 0.98);
   border-bottom: 1px solid #4a5568;
   display: flex;
   align-items: center;
@@ -147,6 +153,7 @@
   overflow-x: hidden; /* Remove scrollbar - buttons should fit */
   overflow-y: visible; /* allow labels to render cleanly */
   z-index: 199; /* Below header, above content */
+  backdrop-filter: blur(8px);
 }
 
 .tool-group {
@@ -188,14 +195,14 @@
 }
 
 .tool-btn:hover {
-  background: rgba(0, 217, 255, 0.1);
-  border-color: rgba(0, 217, 255, 0.3);
+  background: rgba(var(--kc-accent-rgb), 0.1);
+  border-color: rgba(var(--kc-accent-rgb), 0.3);
 }
 
 .tool-btn.active {
-  background: rgba(0, 217, 255, 0.2);
-  border-color: #00D9FF;
-  color: #00D9FF;
+  background: var(--kc-accent);
+  border-color: var(--kc-accent);
+  color: #ffffff;
 }
 
 .tool-btn:disabled {
@@ -226,7 +233,7 @@
 }
 
 .tool-btn.active svg {
-  color: var(--kc-accent, #00D9FF);
+  color: #ffffff;
 }
 
 .tool-btn-label {
