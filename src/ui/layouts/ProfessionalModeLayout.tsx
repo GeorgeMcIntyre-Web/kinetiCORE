@@ -66,7 +66,9 @@ export const ProfessionalModeLayout: React.FC = () => {
   const snapToolActive = useEditorStore((state) => state.snapToolActive);
   const setSnapToolActive = useEditorStore((state) => state.setSnapToolActive);
 
-  const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'analysis'>('modeling');
+  const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'analysis'>(
+    'modeling'
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [savedLayout, setSavedLayout] = useState<any>(null);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
@@ -86,8 +88,15 @@ export const ProfessionalModeLayout: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (ctx) ctx.font = `13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
 
-    const getTextWidth = (t: string) => (ctx ? ctx.measureText(t).width : Math.max(120, t.length * 7));
-    const PADDING = 16, ICON = 16, ARROW = 14, BADGES = 40, INDENT = 16; const MAX = 800, MIN = 240;
+    const getTextWidth = (t: string) =>
+      ctx ? ctx.measureText(t).width : Math.max(120, t.length * 7);
+    const PADDING = 16,
+      ICON = 16,
+      ARROW = 14,
+      BADGES = 40,
+      INDENT = 16;
+    const MAX = 800,
+      MIN = 240;
 
     const calcNodeWidth = (id: string, level = 0): number => {
       const tree = SceneTreeManager.getInstance();
@@ -113,11 +122,11 @@ export const ProfessionalModeLayout: React.FC = () => {
     };
 
     recalc();
-    
+
     // Use requestAnimationFrame for fast, smooth resizing
     let rafId: number | null = null;
     let pendingRecalc = false;
-    
+
     const scheduleRecalc = () => {
       if (pendingRecalc) return;
       pendingRecalc = true;
@@ -127,7 +136,7 @@ export const ProfessionalModeLayout: React.FC = () => {
         rafId = null;
       });
     };
-    
+
     const onTree = () => scheduleRecalc();
     window.addEventListener('scenetree-update', onTree);
     window.addEventListener('model-import-complete', onTree);
@@ -230,10 +239,14 @@ export const ProfessionalModeLayout: React.FC = () => {
   const handleBooleanOperation = async (operation: 'union' | 'subtract' | 'intersect') => {
     const { toast } = await import('../components/ToastNotifications');
     const { loading } = await import('../components/LoadingIndicator');
-    const { BooleanOperationCommand } = await import('../../history/commands/BooleanOperationCommand');
+    const { BooleanOperationCommand } = await import(
+      '../../history/commands/BooleanOperationCommand'
+    );
 
     if (selectedNodeIds.length !== 2) {
-      toast.warning('Please select exactly two objects for Boolean operations (Ctrl+Click to multi-select)');
+      toast.warning(
+        'Please select exactly two objects for Boolean operations (Ctrl+Click to multi-select)'
+      );
       return;
     }
 
@@ -252,7 +265,9 @@ export const ProfessionalModeLayout: React.FC = () => {
       toast.success(`Boolean ${operation} completed successfully`);
     } catch (error) {
       console.error('Boolean operation failed:', error);
-      toast.error(`Boolean operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(
+        `Boolean operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   };
 
@@ -287,7 +302,24 @@ export const ProfessionalModeLayout: React.FC = () => {
               <span className="text-white font-bold text-sm">K</span>
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-xl font-bold bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">kinetic CORE</h1>
+              <h1 className="text-xl font-bold">
+                <span className="bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">
+                  kinetic CORE
+                </span>
+                {/* Subtle PRO indicator: text-only, brighter green and slightly higher */}
+                <span
+                  className="ml-1 align-middle inline-flex items-center text-[9px] font-semibold uppercase tracking-wide"
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: '#22ff7a',
+                    position: 'relative',
+                    top: '-7px',
+                  }}
+                  aria-label="Professional Edition"
+                >
+                  PRO
+                </span>
+              </h1>
               <p className="text-xs text-gray-400">The Linux of Manufacturing Simulation</p>
             </div>
           </div>
@@ -311,7 +343,6 @@ export const ProfessionalModeLayout: React.FC = () => {
               Analysis
             </button>
           </div>
-          <span className="mode-badge professional">Professional Mode</span>
         </div>
         <div className="header-right">
           <div className="global-actions">
@@ -327,7 +358,7 @@ export const ProfessionalModeLayout: React.FC = () => {
             <div className="separator"></div>
             <button
               className="action-btn"
-              title={canUndo ? "Undo (Ctrl+Z)" : "Nothing to undo"}
+              title={canUndo ? 'Undo (Ctrl+Z)' : 'Nothing to undo'}
               disabled={!canUndo}
               onClick={undo}
             >
@@ -335,7 +366,7 @@ export const ProfessionalModeLayout: React.FC = () => {
             </button>
             <button
               className="action-btn"
-              title={canRedo ? "Redo (Ctrl+Y)" : "Nothing to redo"}
+              title={canRedo ? 'Redo (Ctrl+Y)' : 'Nothing to redo'}
               disabled={!canRedo}
               onClick={redo}
             >
@@ -354,7 +385,11 @@ export const ProfessionalModeLayout: React.FC = () => {
             value={userLevel}
             onChange={(e) => {
               const newLevel = e.target.value;
-              if (newLevel === 'essential' || newLevel === 'professional' || newLevel === 'expert') {
+              if (
+                newLevel === 'essential' ||
+                newLevel === 'professional' ||
+                newLevel === 'expert'
+              ) {
                 setUserLevel(newLevel);
               }
             }}
@@ -398,7 +433,7 @@ export const ProfessionalModeLayout: React.FC = () => {
             <button
               className={`tool-btn ${transformMode === 'translate' && transformGizmoEnabled ? 'active' : ''}`}
               disabled={!selectedNodeId}
-              title={selectedNodeId ? "Move" : "Select an object first"}
+              title={selectedNodeId ? 'Move' : 'Select an object first'}
               onClick={() => handleTransformTool('translate')}
             >
               <Move size={18} />
@@ -407,7 +442,7 @@ export const ProfessionalModeLayout: React.FC = () => {
             <button
               className={`tool-btn ${transformMode === 'rotate' && transformGizmoEnabled ? 'active' : ''}`}
               disabled={!selectedNodeId}
-              title={selectedNodeId ? "Rotate" : "Select an object first"}
+              title={selectedNodeId ? 'Rotate' : 'Select an object first'}
               onClick={() => handleTransformTool('rotate')}
             >
               <RotateCw size={18} />
@@ -416,7 +451,7 @@ export const ProfessionalModeLayout: React.FC = () => {
             <button
               className={`tool-btn ${transformMode === 'scale' && transformGizmoEnabled ? 'active' : ''}`}
               disabled={!selectedNodeId}
-              title={selectedNodeId ? "Scale" : "Select an object first"}
+              title={selectedNodeId ? 'Scale' : 'Select an object first'}
               onClick={() => handleTransformTool('scale')}
             >
               <Scale size={18} />
@@ -425,7 +460,13 @@ export const ProfessionalModeLayout: React.FC = () => {
             <button
               className={`tool-btn ${transformGizmoEnabled ? 'active' : ''}`}
               disabled={!selectedNodeId}
-              title={selectedNodeId ? (transformGizmoEnabled ? "Disable Transform Gizmo" : "Enable Transform Gizmo") : "Select an object first"}
+              title={
+                selectedNodeId
+                  ? transformGizmoEnabled
+                    ? 'Disable Transform Gizmo'
+                    : 'Enable Transform Gizmo'
+                  : 'Select an object first'
+              }
               onClick={() => setTransformGizmoEnabled(!transformGizmoEnabled)}
             >
               <Grab size={18} />
@@ -434,7 +475,7 @@ export const ProfessionalModeLayout: React.FC = () => {
             <button
               className="tool-btn"
               disabled={!selectedNodeId}
-              title={selectedNodeId ? "Duplicate (Ctrl+D)" : "Select an object first"}
+              title={selectedNodeId ? 'Duplicate (Ctrl+D)' : 'Select an object first'}
               onClick={handleCopy}
             >
               <Copy size={18} />
@@ -443,7 +484,11 @@ export const ProfessionalModeLayout: React.FC = () => {
             <button
               className="tool-btn"
               disabled={!selectedNodeId}
-              title={selectedNodeId ? "Quick Move Dialog (Relative/Absolute positioning)" : "Select an object first"}
+              title={
+                selectedNodeId
+                  ? 'Quick Move Dialog (Relative/Absolute positioning)'
+                  : 'Select an object first'
+              }
               onClick={() => setShowMoveDialog(true)}
             >
               <Navigation size={18} />
@@ -476,7 +521,11 @@ export const ProfessionalModeLayout: React.FC = () => {
           <div className="tool-buttons">
             <button
               className="tool-btn-small"
-              title={selectedNodeIds.length === 2 ? "Union - Combine two objects into one" : "Union - Select exactly 2 objects (Ctrl+Click)"}
+              title={
+                selectedNodeIds.length === 2
+                  ? 'Union - Combine two objects into one'
+                  : 'Union - Select exactly 2 objects (Ctrl+Click)'
+              }
               disabled={selectedNodeIds.length !== 2}
               onClick={() => handleBooleanOperation('union')}
             >
@@ -484,7 +533,11 @@ export const ProfessionalModeLayout: React.FC = () => {
             </button>
             <button
               className="tool-btn-small"
-              title={selectedNodeIds.length === 2 ? "Subtract - Remove 2nd object from 1st" : "Subtract - Select exactly 2 objects (Ctrl+Click)"}
+              title={
+                selectedNodeIds.length === 2
+                  ? 'Subtract - Remove 2nd object from 1st'
+                  : 'Subtract - Select exactly 2 objects (Ctrl+Click)'
+              }
               disabled={selectedNodeIds.length !== 2}
               onClick={() => handleBooleanOperation('subtract')}
             >
@@ -492,7 +545,11 @@ export const ProfessionalModeLayout: React.FC = () => {
             </button>
             <button
               className="tool-btn-small"
-              title={selectedNodeIds.length === 2 ? "Intersect - Keep only overlapping volume" : "Intersect - Select exactly 2 objects (Ctrl+Click)"}
+              title={
+                selectedNodeIds.length === 2
+                  ? 'Intersect - Keep only overlapping volume'
+                  : 'Intersect - Select exactly 2 objects (Ctrl+Click)'
+              }
               disabled={selectedNodeIds.length !== 2}
               onClick={() => handleBooleanOperation('intersect')}
             >
@@ -578,7 +635,6 @@ export const ProfessionalModeLayout: React.FC = () => {
               <Scan size={18} />
               <span className="tool-btn-label">Auto Extract</span>
             </button>
-
           </div>
         </div>
       </div>
@@ -632,11 +688,7 @@ export const ProfessionalModeLayout: React.FC = () => {
       />
 
       {/* Measurement Tools */}
-      <MeasurementTools
-        measurementType={activeMeasurement}
-        onClose={handleCloseMeasurement}
-      />
-
+      <MeasurementTools measurementType={activeMeasurement} onClose={handleCloseMeasurement} />
 
       {/* Route Selection Visuals - Cyan glow and connection handles */}
       <RouteSelectionVisuals />
@@ -667,11 +719,7 @@ export const ProfessionalModeLayout: React.FC = () => {
       />
 
       {/* Snap Setup Popup - Quick access from ribbon */}
-      <SnapSetupPopup
-        isOpen={showSnapSetupPopup}
-        onClose={() => setShowSnapSetupPopup(false)}
-      />
+      <SnapSetupPopup isOpen={showSnapSetupPopup} onClose={() => setShowSnapSetupPopup(false)} />
     </div>
   );
 };
-
