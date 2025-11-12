@@ -51,7 +51,7 @@
 .toolbar-container.compact .tool-btn {
   padding: 3px 7px;
   min-width: 52px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .toolbar-container.compact .tool-btn svg {
@@ -60,8 +60,8 @@
 }
 
 .toolbar-container.compact .tool-btn span {
-  font-size: 11px;
-  line-height: 13px;
+  font-size: 12px;
+  line-height: 14px;
 }
 
 /* Compact the dropdown-style buttons as well */
@@ -71,7 +71,7 @@
   height: 30px;
   padding: 3px 7px !important;
   border-radius: 6px !important;
-  font-size: 11px !important;
+  font-size: 12px !important;
 }
 
 .toolbar-container.compact .view-dropdown .view-dropdown-main-btn,
