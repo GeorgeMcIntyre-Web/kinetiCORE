@@ -169,21 +169,25 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  align-items: stretch; /* ensure consistent vertical start */
   gap: 4px;
+  padding-top: 2px; /* unify top offset across groups */
 }
 
 .group-label {
   /* Match Essentials (Ribbon) label styling */
   font-size: 10px;
   font-weight: 600;
-  line-height: 14px;
+  height: 14px;            /* fixed header height */
+  line-height: 14px;       /* vertically center text within header */
   color: var(--kc-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
-  margin-bottom: 2px;
+  margin: 0 0 4px 0;       /* consistent spacing below header */
   padding: 0 4px;
-  text-align: left;
+  text-align: center;      /* center within each section */
+  width: 100%;             /* span full section width for proper centering */
 }
 
 /* Centered variant for specific groups (e.g., Transform) */

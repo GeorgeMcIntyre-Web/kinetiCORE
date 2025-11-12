@@ -1,11 +1,11 @@
 .toolbar-container {
   display: inline-flex; /* shrink-to-fit width */
-  align-items: center; /* reduce vertical height */
+  align-items: stretch; /* allow children (separators) to stretch full height */
   gap: 6px;
   padding: 4px 8px; /* tighter to reveal borders */
   /* DEBUG: emphasize container structure with requested background */
   background: #1e2432;
-  border: 2px solid #ff0000;
+  border: 2px solid rgb(51, 56, 69);
   border-radius: 6px; /* match Essentials floating toolbar radius */
   backdrop-filter: blur(8px);
 }
