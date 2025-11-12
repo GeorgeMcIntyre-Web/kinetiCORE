@@ -150,8 +150,9 @@
   min-height: unset;
   max-height: none;
   flex-shrink: 0; /* Don't shrink in flex container */
-  /* Toolbar row background */
-  background: #1e2432;
+  /* Toolbar row background (parent) */
+  background: rgb(27, 32, 44);
+  border-top: 1px solid rgb(51, 56, 69);
   border-bottom: 1px solid rgb(75, 85, 103); /* requested bottom border */
   display: flex;
   align-items: center;
