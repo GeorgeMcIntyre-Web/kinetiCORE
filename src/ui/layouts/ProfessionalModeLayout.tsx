@@ -20,6 +20,10 @@ import {
   Search,
   Crosshair,
   Magnet,
+  Play,
+  Pause,
+  RefreshCw,
+  Activity,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
@@ -404,6 +408,8 @@ export const ProfessionalModeLayout: React.FC = () => {
 
       {/* Ribbon Toolbar */}
       <div className="ribbon-toolbar">
+        {activeWorkspace === 'modeling' && (
+          <>
         {/* Creation Tools */}
         <div className="tool-group">
           <div className="group-label">Creation</div>
@@ -637,6 +643,52 @@ export const ProfessionalModeLayout: React.FC = () => {
             </button>
           </div>
         </div>
+          </>
+        )}
+
+        {activeWorkspace === 'simulation' && (
+          <>
+            <div className="tool-group">
+              <div className="group-label">Simulation</div>
+              <div className="tool-buttons">
+                <button className="tool-btn" title="Start Simulation">
+                  <Play size={18} />
+                  <span>Start</span>
+                </button>
+                <button className="tool-btn" title="Pause Simulation">
+                  <Pause size={18} />
+                  <span>Pause</span>
+                </button>
+                <button className="tool-btn" title="Reset Simulation">
+                  <RefreshCw size={18} />
+                  <span>Reset</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeWorkspace === 'analysis' && (
+          <>
+            <div className="tool-group">
+              <div className="group-label">Analysis</div>
+              <div className="tool-buttons">
+                <button className="tool-btn" title="Placeholder">
+                  <Search size={18} />
+                  <span>Inspect</span>
+                </button>
+                <button className="tool-btn" title="Placeholder">
+                  <Activity size={18} />
+                  <span>Metrics</span>
+                </button>
+                <button className="tool-btn" title="Placeholder">
+                  <Download size={18} />
+                  <span>Export</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Main Content with Dockable Panels */}
