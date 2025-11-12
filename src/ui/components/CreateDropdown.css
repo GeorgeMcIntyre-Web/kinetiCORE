@@ -29,18 +29,18 @@
   position: relative;
   overflow: hidden; /* Prevent chevron from overflowing */
   gap: 0;
-  padding: 8px 6px 8px 16px !important; /* Increased padding for better spacing */
+  padding: 6px 10px 6px 12px !important; /* standardized padding */
   margin: 0 2px !important; /* Add horizontal margin to prevent overlap with other buttons */
-  min-width: 80px; /* Increased minimum width to ensure all content fits, especially "Cylinder" text */
+  min-width: 80px; /* ensure content fits */
   width: auto;
   box-sizing: border-box; /* Include padding in width calculation */
-  background: transparent !important; /* Match tool-btn background - override ribbon-btn */
-  border: 1px solid #30353c !important; /* Border for create shape button */
-  border-radius: 4px;
-  color: #7f8690 !important; /* Text and icon color */
+  background: #2a3145 !important; /* standardized base background to match toolbar buttons */
+  border: 1px solid #3a4154 !important; /* standardized border */
+  border-radius: 6px; /* match toolbar buttons */
+  color: #e2e8f0 !important; /* Text and icon color */
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .create-dropdown-content-wrapper {
@@ -122,8 +122,9 @@
 }
 
 .create-dropdown-main-btn:hover {
-  background: rgba(0, 217, 255, 0.1);
-  border-color: rgba(0, 217, 255, 0.3);
+  background: #323a50 !important; /* hover background to match toolbar buttons */
+  border-color: rgba(var(--kc-accent-rgb), 0.25) !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
 }
 
 .create-dropdown-main-btn:hover .create-dropdown-chevron {
@@ -169,8 +170,8 @@
 
 .create-dropdown-menu {
   position: fixed;
-  background: #252526;
-  border: 1px solid #3e3e42;
+  background: #20232c; /* slightly darker to sit above button */
+  border: 1px solid #333845; /* align with toolbar borders */
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   z-index: 10000; /* Very high z-index to ensure it's above everything */
@@ -184,10 +185,10 @@
 .create-dropdown-item {
   display: block !important;
   width: 100%;
-  padding: 8px 8px 8px 12px; /* Remove right padding, keep left padding */
+  padding: 8px 12px; /* balanced padding */
   background: transparent;
   border: none;
-  color: #cccccc;
+  color: #e2e8f0;
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left; /* Left align all content */
@@ -205,13 +206,13 @@
 }
 
 .create-dropdown-item:hover {
-  background: #2a2d2e;
+  background: #2a3145; /* match toolbar button base */
   color: #ffffff;
 }
 
 .create-dropdown-item.active {
-  background: #094771;
-  color: #ffffff;
+  background: rgba(var(--kc-accent-rgb), 0.18);
+  color: rgb(var(--kc-accent-rgb));
 }
 
 .create-dropdown-item.active:hover {

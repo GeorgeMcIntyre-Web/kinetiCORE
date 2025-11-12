@@ -6,8 +6,8 @@
   height: 100vh;
   background: #1a202c;
   color: #e2e8f0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,
-    sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
 /* Header */
@@ -55,8 +55,8 @@
   color: #e2e8f0; /* match Essentials header text tone */
   font-size: 14px; /* align with Essentials text-sm */
   font-weight: 600; /* crisper tab labels */
-  margin-top: 4px;   /* further increase tab height */
-  margin-bottom: 4px;/* further increase tab height */
+  margin-top: 4px; /* further increase tab height */
+  margin-bottom: 4px; /* further increase tab height */
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.2s;
@@ -179,16 +179,16 @@
   /* Match Essentials (Ribbon) label styling */
   font-size: 10px;
   font-weight: 600;
-  height: 14px;            /* fixed header height */
-  line-height: 14px;       /* vertically center text within header */
+  height: 14px; /* fixed header height */
+  line-height: 14px; /* vertically center text within header */
   color: var(--kc-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
-  margin: 0 0 4px 0;       /* consistent spacing below header */
+  margin: 0 0 4px 0; /* consistent spacing below header */
   padding: 0 4px;
-  text-align: center;      /* center within each section */
-  width: 100%;             /* span full section width for proper centering */
+  text-align: center; /* center within each section */
+  width: 100%; /* span full section width for proper centering */
 }
 
 /* Centered variant for specific groups (e.g., Transform) */
@@ -208,9 +208,10 @@
   flex-direction: column;
   align-items: center;
   gap: 2px; /* consistent spacing */
-  padding: 4px 8px; /* unified padding across tabs */
-  background: transparent;
-  border: 1px solid transparent;
+  padding: 6px 10px; /* slightly larger tap target */
+  /* Base contrast against container (#212634) */
+  background: #2a3145;
+  border: 1px solid #3a4154;
   border-radius: 6px; /* unified corner radius */
   color: #e2e8f0;
   cursor: pointer;
@@ -220,16 +221,19 @@
 }
 
 .tool-btn:hover {
-  /* Match theme-driven accent like Essentials current theme */
-  background: rgba(var(--kc-accent-rgb), 0.1);
-  border-color: rgba(var(--kc-accent-rgb), 0.2);
+  /* Subtle accent tint while preserving contrast */
+  background: #323a50;
+  border-color: rgba(var(--kc-accent-rgb), 0.25);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
 .tool-btn.active {
-  background: rgba(var(--kc-accent-rgb), 0.2);
-  border-color: rgba(var(--kc-accent-rgb), 0.4);
+  background: rgba(var(--kc-accent-rgb), 0.18);
+  border-color: rgba(var(--kc-accent-rgb), 0.45);
   color: rgb(var(--kc-accent-rgb));
-  box-shadow: 0 0 8px var(--kc-accent-glow);
+  box-shadow:
+    0 0 0 1px rgba(var(--kc-accent-rgb), 0.35),
+    0 0 10px var(--kc-accent-glow);
 }
 
 .tool-btn:disabled {
@@ -267,6 +271,12 @@
   background: transparent;
   border-color: transparent;
   color: #e2e8f0;
+}
+
+/* High contrast focus for accessibility */
+.tool-btn:focus-visible {
+  outline: 2px solid rgba(var(--kc-accent-rgb), 0.5);
+  outline-offset: 2px;
 }
 
 .tool-btn-label {

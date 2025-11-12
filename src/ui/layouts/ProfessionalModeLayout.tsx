@@ -480,7 +480,7 @@ export const ProfessionalModeLayout: React.FC = () => {
 
       {/* Ribbon Toolbar wrapped in experiment container */}
       <div className="ribbon-toolbar">
-        <ToolbarContainer>
+        <ToolbarContainer className="compact">
         {activeWorkspace === 'modeling' && (
           <>
         {/* Creation Tools */}

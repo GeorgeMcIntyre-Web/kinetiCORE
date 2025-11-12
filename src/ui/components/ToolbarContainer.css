@@ -37,5 +37,47 @@
   background: #333845; /* match requested separator tone */
 }
 
+/* Compact mode: reduce padding, icon size, and label size but keep readability */
+.toolbar-container.compact {
+  padding: 4px 8px;
+  gap: 6px;
+}
+
+.toolbar-container.compact .tool-group { gap: 2px; }
+.toolbar-container.compact .group-label { margin-bottom: 2px; }
+
+.toolbar-container.compact .tool-buttons { gap: 2px; }
+
+.toolbar-container.compact .tool-btn {
+  padding: 4px 8px;
+  min-width: 56px;
+  font-size: 11px;
+}
+
+.toolbar-container.compact .tool-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.toolbar-container.compact .tool-btn span {
+  font-size: 11px;
+  line-height: 14px;
+}
+
+/* Compact the dropdown-style buttons as well */
+.toolbar-container.compact .create-dropdown .create-dropdown-main-btn,
+.toolbar-container.compact .view-dropdown .view-dropdown-main-btn,
+.toolbar-container.compact .selection-level-dropdown .selection-level-dropdown-btn {
+  height: 32px;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+}
+
+.toolbar-container.compact .view-dropdown .view-dropdown-main-btn,
+.toolbar-container.compact .selection-level-dropdown .selection-level-dropdown-btn {
+  width: 52px;
+}
+
 /* DEBUG: temporarily hide all buttons inside the toolbar container to inspect structure */
 /* Buttons visible again for normal operation */
