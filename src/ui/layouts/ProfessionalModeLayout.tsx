@@ -2,6 +2,7 @@
 // Owner: George (Architecture)
 
 import React, { useState, useRef, useEffect } from 'react';
+import * as BABYLON from '@babylonjs/core';
 import {
   Move,
   RotateCw,
@@ -16,11 +17,18 @@ import {
   Eye,
   EyeOff,
   LayoutTemplate,
-  Grab,
   Search,
   Crosshair,
   Magnet,
-} from 'lucide-react';
+  Play,
+  Pause,
+  RefreshCw,
+  Activity,
+  Layers,
+  Minus,
+  Maximize2,
+  Box,
+  } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { DockableLayoutWrapper } from './DockableLayoutWrapper';
@@ -39,9 +47,13 @@ import { useRoutingStore } from '../store/routingStore';
 import { SceneManager } from '../../scene/SceneManager';
 import { KinematicExtractionPanel } from '../components/KinematicExtractionPanel';
 import { Scan, Settings } from 'lucide-react';
+import { RotateCcw, Target, CornerDownRight, Square } from 'lucide-react';
 import { CreateDropdown } from '../components/CreateDropdown';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
 import { SnapSetupPopup } from '../components/SnapSetupPopup';
+import { ToolbarContainer } from '../components/ToolbarContainer';
+import { ViewDropdown } from '../components/ViewDropdown';
+import { SelectionLevelDropdown } from '../components/SelectionLevelDropdown';
 import './ProfessionalModeLayout.css';
 
 export const ProfessionalModeLayout: React.FC = () => {
@@ -65,8 +77,16 @@ export const ProfessionalModeLayout: React.FC = () => {
   const loadPanelLayout = useEditorStore((state) => state.loadPanelLayout);
   const snapToolActive = useEditorStore((state) => state.snapToolActive);
   const setSnapToolActive = useEditorStore((state) => state.setSnapToolActive);
+  const alignMode = useEditorStore((state) => state.alignMode);
+  const setAlignMode = useEditorStore((state) => state.setAlignMode);
+  const selectionLevel = useEditorStore((state) => state.selectionLevel);
+  const setSelectionLevel = useEditorStore((state) => state.setSelectionLevel);
+  const currentView = useEditorStore((state) => state.currentView);
+  const setCurrentView = useEditorStore((state) => state.setCurrentView);
 
-  const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'analysis'>('modeling');
+  const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'analysis'>(
+    'modeling'
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [savedLayout, setSavedLayout] = useState<any>(null);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
@@ -86,8 +106,15 @@ export const ProfessionalModeLayout: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (ctx) ctx.font = `13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
 
-    const getTextWidth = (t: string) => (ctx ? ctx.measureText(t).width : Math.max(120, t.length * 7));
-    const PADDING = 16, ICON = 16, ARROW = 14, BADGES = 40, INDENT = 16; const MAX = 800, MIN = 240;
+    const getTextWidth = (t: string) =>
+      ctx ? ctx.measureText(t).width : Math.max(120, t.length * 7);
+    const PADDING = 16,
+      ICON = 16,
+      ARROW = 14,
+      BADGES = 40,
+      INDENT = 16;
+    const MAX = 800,
+      MIN = 240;
 
     const calcNodeWidth = (id: string, level = 0): number => {
       const tree = SceneTreeManager.getInstance();
@@ -113,11 +140,11 @@ export const ProfessionalModeLayout: React.FC = () => {
     };
 
     recalc();
-    
+
     // Use requestAnimationFrame for fast, smooth resizing
     let rafId: number | null = null;
     let pendingRecalc = false;
-    
+
     const scheduleRecalc = () => {
       if (pendingRecalc) return;
       pendingRecalc = true;
@@ -127,7 +154,7 @@ export const ProfessionalModeLayout: React.FC = () => {
         rafId = null;
       });
     };
-    
+
     const onTree = () => scheduleRecalc();
     window.addEventListener('scenetree-update', onTree);
     window.addEventListener('model-import-complete', onTree);
@@ -230,10 +257,14 @@ export const ProfessionalModeLayout: React.FC = () => {
   const handleBooleanOperation = async (operation: 'union' | 'subtract' | 'intersect') => {
     const { toast } = await import('../components/ToastNotifications');
     const { loading } = await import('../components/LoadingIndicator');
-    const { BooleanOperationCommand } = await import('../../history/commands/BooleanOperationCommand');
+    const { BooleanOperationCommand } = await import(
+      '../../history/commands/BooleanOperationCommand'
+    );
 
     if (selectedNodeIds.length !== 2) {
-      toast.warning('Please select exactly two objects for Boolean operations (Ctrl+Click to multi-select)');
+      toast.warning(
+        'Please select exactly two objects for Boolean operations (Ctrl+Click to multi-select)'
+      );
       return;
     }
 
@@ -252,7 +283,9 @@ export const ProfessionalModeLayout: React.FC = () => {
       toast.success(`Boolean ${operation} completed successfully`);
     } catch (error) {
       console.error('Boolean operation failed:', error);
-      toast.error(`Boolean operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(
+        `Boolean operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   };
 
@@ -273,6 +306,64 @@ export const ProfessionalModeLayout: React.FC = () => {
     }
   };
 
+  // Essentials-parity helpers
+  const handleAddFrame = () => {
+    const addPermanentFrame = (useEditorStore as any).getState().addPermanentFrame;
+    if (typeof addPermanentFrame === 'function') addPermanentFrame();
+  };
+
+  const handleResetView = () => {
+    const sceneManager = SceneManager.getInstance();
+    const camera = sceneManager.getCamera();
+    if (camera) {
+      camera.alpha = -Math.PI / 2;
+      camera.beta = Math.PI / 3;
+      camera.radius = 10;
+      camera.target = BABYLON.Vector3.Zero();
+    }
+  };
+
+  const handleZoomFit = () => {
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    const camera = sceneManager.getCamera();
+    if (!scene || !camera) return;
+    const meshes = scene.meshes.filter(m => m.isVisible && m.getTotalVertices() > 0);
+    if (meshes.length === 0) return;
+    let min = new BABYLON.Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
+    let max = new BABYLON.Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
+    meshes.forEach(m => {
+      const bi = m.getBoundingInfo();
+      const bmin = bi.boundingBox.minimumWorld;
+      const bmax = bi.boundingBox.maximumWorld;
+      min = BABYLON.Vector3.Minimize(min, bmin);
+      max = BABYLON.Vector3.Maximize(max, bmax);
+    });
+    const center = min.add(max).scale(0.5);
+    const extents = max.subtract(min);
+    const radius = Math.max(extents.x, extents.y, extents.z) * 1.2 + 1;
+    camera.target = center;
+    camera.radius = radius;
+  };
+
+  const handleZoomToSelected = () => {
+    const sceneManager = SceneManager.getInstance();
+    const camera = sceneManager.getCamera();
+    if (!camera || !selectedNodeId) return;
+    const tree = SceneTreeManager.getInstance();
+    const node = tree.getNode(selectedNodeId);
+    if (node && node.position) {
+      const pos = new BABYLON.Vector3(node.position.x, node.position.y, node.position.z);
+      camera.target = pos;
+      camera.radius = Math.max(3, camera.radius * 0.6);
+    }
+  };
+
+  const handleTopView = () => { setCurrentView && setCurrentView('top'); const cam = SceneManager.getInstance().getCamera(); if (cam) { cam.alpha = -Math.PI / 2; cam.beta = 0.001; } };
+  const handleRightView = () => { setCurrentView && setCurrentView('right'); const cam = SceneManager.getInstance().getCamera(); if (cam) { cam.alpha = 0; cam.beta = Math.PI / 2.2; } };
+  const handleFrontView = () => { setCurrentView && setCurrentView('front'); const cam = SceneManager.getInstance().getCamera(); if (cam) { cam.alpha = Math.PI; cam.beta = Math.PI / 2.2; } };
+  const handleIsoView = () => { setCurrentView && setCurrentView('iso'); const cam = SceneManager.getInstance().getCamera(); if (cam) { cam.alpha = -Math.PI / 4; cam.beta = Math.PI / 4; } };
+
   return (
     <div className="professional-layout">
       {/* Route Warnings Panel - Top notification bar */}
@@ -281,7 +372,33 @@ export const ProfessionalModeLayout: React.FC = () => {
       {/* Header */}
       <header className="professional-header">
         <div className="header-left">
-          <h1 className="logo">kinetiCORE</h1>
+          {/* Match Essentials logo block: icon + gradient text + tagline */}
+          <div className="flex items-center space-x-2 flex-shrink-0">
+            <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/50">
+              <span className="text-white font-bold text-sm">K</span>
+            </div>
+            <div className="hidden sm:block">
+              <h1 className="text-xl font-bold">
+                <span className="bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">
+                  kinetic CORE
+                </span>
+                {/* Subtle PRO indicator: text-only, brighter green and slightly higher */}
+                <span
+                  className="ml-1 align-middle inline-flex items-center text-[9px] font-semibold uppercase tracking-wide"
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: '#22ff7a',
+                    position: 'relative',
+                    top: '-7px',
+                  }}
+                  aria-label="Professional Edition"
+                >
+                  PRO
+                </span>
+              </h1>
+              <p className="text-xs text-gray-400">The Linux of Manufacturing Simulation</p>
+            </div>
+          </div>
           <div className="workspace-tabs">
             <button
               className={`workspace-tab ${activeWorkspace === 'modeling' ? 'active' : ''}`}
@@ -302,7 +419,6 @@ export const ProfessionalModeLayout: React.FC = () => {
               Analysis
             </button>
           </div>
-          <span className="mode-badge professional">Professional Mode</span>
         </div>
         <div className="header-right">
           <div className="global-actions">
@@ -318,7 +434,7 @@ export const ProfessionalModeLayout: React.FC = () => {
             <div className="separator"></div>
             <button
               className="action-btn"
-              title={canUndo ? "Undo (Ctrl+Z)" : "Nothing to undo"}
+              title={canUndo ? 'Undo (Ctrl+Z)' : 'Nothing to undo'}
               disabled={!canUndo}
               onClick={undo}
             >
@@ -326,7 +442,7 @@ export const ProfessionalModeLayout: React.FC = () => {
             </button>
             <button
               className="action-btn"
-              title={canRedo ? "Redo (Ctrl+Y)" : "Nothing to redo"}
+              title={canRedo ? 'Redo (Ctrl+Y)' : 'Nothing to redo'}
               disabled={!canRedo}
               onClick={redo}
             >
@@ -345,7 +461,11 @@ export const ProfessionalModeLayout: React.FC = () => {
             value={userLevel}
             onChange={(e) => {
               const newLevel = e.target.value;
-              if (newLevel === 'essential' || newLevel === 'professional' || newLevel === 'expert') {
+              if (
+                newLevel === 'essential' ||
+                newLevel === 'professional' ||
+                newLevel === 'expert'
+              ) {
                 setUserLevel(newLevel);
               }
             }}
@@ -358,8 +478,11 @@ export const ProfessionalModeLayout: React.FC = () => {
         </div>
       </header>
 
-      {/* Ribbon Toolbar */}
+      {/* Ribbon Toolbar wrapped in experiment container */}
       <div className="ribbon-toolbar">
+        <ToolbarContainer className="compact">
+        {activeWorkspace === 'modeling' && (
+          <>
         {/* Creation Tools */}
         <div className="tool-group">
           <div className="group-label">Creation</div>
@@ -384,21 +507,21 @@ export const ProfessionalModeLayout: React.FC = () => {
 
         {/* Transform Tools */}
         <div className="tool-group">
-          <div className="group-label">Transform</div>
+          <div className="group-label center">Transform</div>
           <div className="tool-buttons">
             <button
               className={`tool-btn ${transformMode === 'translate' && transformGizmoEnabled ? 'active' : ''}`}
               disabled={!selectedNodeId}
-              title={selectedNodeId ? "Move" : "Select an object first"}
+              title={selectedNodeId ? 'Translate' : 'Select an object first'}
               onClick={() => handleTransformTool('translate')}
             >
               <Move size={18} />
-              <span>Move</span>
+              <span>Translate</span>
             </button>
             <button
               className={`tool-btn ${transformMode === 'rotate' && transformGizmoEnabled ? 'active' : ''}`}
               disabled={!selectedNodeId}
-              title={selectedNodeId ? "Rotate" : "Select an object first"}
+              title={selectedNodeId ? 'Rotate' : 'Select an object first'}
               onClick={() => handleTransformTool('rotate')}
             >
               <RotateCw size={18} />
@@ -407,25 +530,17 @@ export const ProfessionalModeLayout: React.FC = () => {
             <button
               className={`tool-btn ${transformMode === 'scale' && transformGizmoEnabled ? 'active' : ''}`}
               disabled={!selectedNodeId}
-              title={selectedNodeId ? "Scale" : "Select an object first"}
+              title={selectedNodeId ? 'Scale' : 'Select an object first'}
               onClick={() => handleTransformTool('scale')}
             >
               <Scale size={18} />
               <span>Scale</span>
             </button>
-            <button
-              className={`tool-btn ${transformGizmoEnabled ? 'active' : ''}`}
-              disabled={!selectedNodeId}
-              title={selectedNodeId ? (transformGizmoEnabled ? "Disable Transform Gizmo" : "Enable Transform Gizmo") : "Select an object first"}
-              onClick={() => setTransformGizmoEnabled(!transformGizmoEnabled)}
-            >
-              <Grab size={18} />
-              <span>Gizmo</span>
-            </button>
+            
             <button
               className="tool-btn"
               disabled={!selectedNodeId}
-              title={selectedNodeId ? "Duplicate (Ctrl+D)" : "Select an object first"}
+              title={selectedNodeId ? 'Duplicate (Ctrl+D)' : 'Select an object first'}
               onClick={handleCopy}
             >
               <Copy size={18} />
@@ -434,12 +549,95 @@ export const ProfessionalModeLayout: React.FC = () => {
             <button
               className="tool-btn"
               disabled={!selectedNodeId}
-              title={selectedNodeId ? "Quick Move Dialog (Relative/Absolute positioning)" : "Select an object first"}
+              title={
+                selectedNodeId
+                  ? 'Quick Move Dialog (Relative/Absolute positioning)'
+                  : 'Select an object first'
+              }
               onClick={() => setShowMoveDialog(true)}
             >
               <Navigation size={18} />
               <span>Position</span>
             </button>
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
+        {/* View */}
+        <div className="tool-group">
+          <div className="group-label">View</div>
+          <div className="tool-buttons">
+            <button className="tool-btn" title="Reset View" onClick={handleResetView}>
+              <RotateCcw size={18} />
+              <span>Reset</span>
+            </button>
+            <button className="tool-btn" title="Zoom Fit" onClick={handleZoomFit}>
+              <Maximize2 size={18} />
+              <span>Fit</span>
+            </button>
+            <button className="tool-btn" title="Zoom to Selected" onClick={handleZoomToSelected} disabled={!selectedNodeId}>
+              <Target size={18} />
+              <span>Selected</span>
+            </button>
+            <ViewDropdown
+              onTopViewClick={handleTopView}
+              onRightViewClick={handleRightView}
+              onFrontViewClick={handleFrontView}
+              onIsoViewClick={handleIsoView}
+              currentView={currentView}
+            />
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
+        {/* Utilities */}
+        <div className="tool-group">
+          <div className="group-label">Utilities</div>
+          <div className="tool-buttons">
+            <SelectionLevelDropdown currentLevel={selectionLevel} onLevelChange={setSelectionLevel} />
+            <button className="tool-btn" title="Add Frame at Selection" onClick={handleAddFrame}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="12" x2="20" y2="12" stroke="#ff0000" strokeWidth="2.5" />
+                <polygon points="20,12 18,11 18,13" fill="#ff0000" />
+                <line x1="12" y1="12" x2="12" y2="4" stroke="#00ff00" strokeWidth="2.5" />
+                <polygon points="12,4 11,6 13,6" fill="#00ff00" />
+                <line x1="12" y1="12" x2="6" y2="18" stroke="#0000ff" strokeWidth="2.5" />
+                <polygon points="6,18 7.5,16.5 8,17.5" fill="#0000ff" />
+              </svg>
+              <span>Frame</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
+        {/* Align */}
+        <div className="tool-group">
+          <div className="group-label">Align</div>
+          <div className="tool-buttons">
+            <button className={`tool-btn ${alignMode === 'vertex' ? 'active' : ''}`} onClick={() => setAlignMode('vertex')} title="Align Vertex">
+              <CornerDownRight size={18} />
+              <span>Vertex</span>
+            </button>
+            <button className={`tool-btn ${alignMode === 'edge' ? 'active' : ''}`} onClick={() => setAlignMode('edge')} title="Align Edge">
+              <Minus size={18} />
+              <span>Edge</span>
+            </button>
+            <button className={`tool-btn ${alignMode === 'face' ? 'active' : ''}`} onClick={() => setAlignMode('face')} title="Align Face">
+              <Square size={18} />
+              <span>Face</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
+        {/* Snap Tools */}
+        <div className="tool-group">
+          <div className="group-label">Snap</div>
+          <div className="tool-buttons">
             <button
               className={`tool-btn ${snapToolActive ? 'active' : ''}`}
               title="Snap - Click first point on source object, then click target point"
@@ -466,28 +664,43 @@ export const ProfessionalModeLayout: React.FC = () => {
           <div className="group-label">Modify</div>
           <div className="tool-buttons">
             <button
-              className="tool-btn-small"
-              title={selectedNodeIds.length === 2 ? "Union - Combine two objects into one" : "Union - Select exactly 2 objects (Ctrl+Click)"}
+              className="tool-btn"
+              title={
+                  selectedNodeIds.length === 2
+                  ? 'Union - Combine two objects into one'
+                  : 'Union - Select exactly 2 objects (Ctrl+Click)'
+              }
               disabled={selectedNodeIds.length !== 2}
               onClick={() => handleBooleanOperation('union')}
             >
-              Union
+              <Layers size={18} />
+              <span>Union</span>
             </button>
             <button
-              className="tool-btn-small"
-              title={selectedNodeIds.length === 2 ? "Subtract - Remove 2nd object from 1st" : "Subtract - Select exactly 2 objects (Ctrl+Click)"}
+              className="tool-btn"
+              title={
+                  selectedNodeIds.length === 2
+                  ? 'Subtract - Remove 2nd object from 1st'
+                  : 'Subtract - Select exactly 2 objects (Ctrl+Click)'
+              }
               disabled={selectedNodeIds.length !== 2}
               onClick={() => handleBooleanOperation('subtract')}
             >
-              Subtract
+              <Minus size={18} />
+              <span>Subtract</span>
             </button>
             <button
-              className="tool-btn-small"
-              title={selectedNodeIds.length === 2 ? "Intersect - Keep only overlapping volume" : "Intersect - Select exactly 2 objects (Ctrl+Click)"}
+              className="tool-btn"
+              title={
+                  selectedNodeIds.length === 2
+                  ? 'Intersect - Keep only overlapping volume'
+                  : 'Intersect - Select exactly 2 objects (Ctrl+Click)'
+              }
               disabled={selectedNodeIds.length !== 2}
               onClick={() => handleBooleanOperation('intersect')}
             >
-              Intersect
+              <LayoutTemplate size={18} />
+              <span>Intersect</span>
             </button>
           </div>
         </div>
@@ -499,25 +712,28 @@ export const ProfessionalModeLayout: React.FC = () => {
           <div className="group-label">Measure</div>
           <div className="tool-buttons">
             <button
-              className="tool-btn-small"
+              className="tool-btn"
               title="Measure distance between two points"
               onClick={() => handleMeasurement('distance')}
             >
-              Distance
+              <Maximize2 size={18} />
+              <span>Distance</span>
             </button>
             <button
-              className="tool-btn-small"
+              className="tool-btn"
               title="Measure angle between three points"
               onClick={() => handleMeasurement('angle')}
             >
-              Angle
+              <RotateCw size={18} />
+              <span>Angle</span>
             </button>
             <button
-              className="tool-btn-small"
+              className="tool-btn"
               title="Measure volume of selected objects"
               onClick={() => handleMeasurement('volume')}
             >
-              Volume
+              <Box size={18} />
+              <span>Volume</span>
             </button>
           </div>
         </div>
@@ -569,9 +785,55 @@ export const ProfessionalModeLayout: React.FC = () => {
               <Scan size={18} />
               <span className="tool-btn-label">Auto Extract</span>
             </button>
-
           </div>
         </div>
+          </>
+        )}
+
+        {activeWorkspace === 'simulation' && (
+          <>
+            <div className="tool-group">
+              <div className="group-label">Simulation</div>
+              <div className="tool-buttons">
+                <button className="tool-btn" title="Start Simulation">
+                  <Play size={18} />
+                  <span>Start</span>
+                </button>
+                <button className="tool-btn" title="Pause Simulation">
+                  <Pause size={18} />
+                  <span>Pause</span>
+                </button>
+                <button className="tool-btn" title="Reset Simulation">
+                  <RefreshCw size={18} />
+                  <span>Reset</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeWorkspace === 'analysis' && (
+          <>
+            <div className="tool-group">
+              <div className="group-label">Analysis</div>
+              <div className="tool-buttons">
+                <button className="tool-btn" title="Placeholder">
+                  <Search size={18} />
+                  <span>Inspect</span>
+                </button>
+                <button className="tool-btn" title="Placeholder">
+                  <Activity size={18} />
+                  <span>Metrics</span>
+                </button>
+                <button className="tool-btn" title="Placeholder">
+                  <Download size={18} />
+                  <span>Export</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+        </ToolbarContainer>
       </div>
 
       {/* Main Content with Dockable Panels */}
@@ -623,11 +885,7 @@ export const ProfessionalModeLayout: React.FC = () => {
       />
 
       {/* Measurement Tools */}
-      <MeasurementTools
-        measurementType={activeMeasurement}
-        onClose={handleCloseMeasurement}
-      />
-
+      <MeasurementTools measurementType={activeMeasurement} onClose={handleCloseMeasurement} />
 
       {/* Route Selection Visuals - Cyan glow and connection handles */}
       <RouteSelectionVisuals />
@@ -658,11 +916,7 @@ export const ProfessionalModeLayout: React.FC = () => {
       />
 
       {/* Snap Setup Popup - Quick access from ribbon */}
-      <SnapSetupPopup
-        isOpen={showSnapSetupPopup}
-        onClose={() => setShowSnapSetupPopup(false)}
-      />
+      <SnapSetupPopup isOpen={showSnapSetupPopup} onClose={() => setShowSnapSetupPopup(false)} />
     </div>
   );
 };
-

@@ -9,7 +9,7 @@ import { LoadingIndicator } from './ui/components/LoadingIndicator';
 import { SplashScreen } from './ui/components/SplashScreen';
 import { ErrorBoundary } from './ui/components/ErrorBoundary';
 import { UserLevelProvider, useUserLevel } from './ui/core/UserLevelContext';
-import { ThemeProvider } from './ui/core/ThemeContext';
+import { ThemeProvider, useTheme } from './ui/core/ThemeContext';
 import { EssentialModeLayout } from './ui/layouts/EssentialModeLayout';
 import { ProfessionalModeLayout } from './ui/layouts/ProfessionalModeLayout';
 import { ExpertModeLayout } from './ui/layouts/ExpertModeLayout';
@@ -20,6 +20,7 @@ import { initializeServices } from './core/ServiceRegistry';
 // Main app content that switches layouts based on user level
 const AppContent: React.FC = () => {
   const { userLevel } = useUserLevel();
+  const { setTheme } = useTheme();
   const [showKinematicsPanel, setShowKinematicsPanel] = useState(false);
   const [projectManagerInitialized, setProjectManagerInitialized] = useState(false);
   const [initializationError, setInitializationError] = useState<string | undefined>(undefined);
@@ -57,6 +58,13 @@ const AppContent: React.FC = () => {
 
     initializeProjectManager();
   }, []);
+
+  // Ensure Essentials uses the cyan accent theme (to avoid purple hover)
+  React.useEffect(() => {
+    if (userLevel === 'essential') {
+      setTheme('cyan');
+    }
+  }, [userLevel, setTheme]);
 
   const handleRetry = () => {
     setInitializationError(undefined);

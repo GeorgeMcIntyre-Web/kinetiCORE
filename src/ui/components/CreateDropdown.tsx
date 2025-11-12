@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   ChevronDown, 
   Box, 
@@ -18,6 +19,8 @@ import {
   Diamond
 } from 'lucide-react';
 import './CreateDropdown.css';
+// Ensure shared ribbon button styles are available outside RibbonToolbar usage (Professional mode)
+import './RibbonToolbar.css';
 
 export interface CreateOption {
   id: string;
@@ -62,6 +65,14 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const chevronRef = useRef<HTMLSpanElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const toggleMenu = () => {
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (rect) {
+      setMenuPosition({ top: rect.bottom + 12, left: rect.left });
+    }
+    setIsOpen((prev) => !prev);
+  };
 
   const createOptions: CreateOption[] = [
     {
@@ -145,21 +156,32 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
 
   const currentOption = createOptions.find(option => option.id === currentShape) || createOptions[0];
 
-  // Calculate menu position when opened
+  // Calculate menu position when opened and on scroll/resize
   useEffect(() => {
-    if (isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setMenuPosition({
-        top: rect.bottom + 12, // Increased spacing to prevent overlap with button
-        left: rect.left
-      });
+    const updatePosition = () => {
+      if (buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        setMenuPosition({ top: rect.bottom + 12, left: rect.left });
+      }
+    };
+    if (isOpen) {
+      updatePosition();
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+      };
     }
   }, [isOpen]);
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside (consider both button wrapper and portal menu)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const inButton = dropdownRef.current && dropdownRef.current.contains(target);
+      const inMenu = menuRef.current && menuRef.current.contains(target);
+      if (!inButton && !inMenu) {
         setIsOpen(false);
       }
     };
@@ -181,7 +203,14 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
     // Clicking the chevron opens the dropdown
     e.stopPropagation();
     e.preventDefault();
-    setIsOpen(!isOpen);
+    toggleMenu();
+  };
+
+  const handleChevronMouseDown = (e: React.MouseEvent) => {
+    // Open on mousedown to avoid any click delay
+    e.stopPropagation();
+    e.preventDefault();
+    toggleMenu();
   };
 
   const handleMainButtonClick = (e: React.MouseEvent) => {
@@ -201,6 +230,7 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
       <div className="create-dropdown-button-group">
         {/* Main button with icon, text, and integrated arrow */}
         <button
+          type="button"
           ref={buttonRef}
           className="ribbon-btn create-dropdown-main-btn"
           onClick={handleMainButtonClick}
@@ -217,8 +247,9 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
           <span 
             ref={chevronRef}
             className="create-dropdown-chevron-wrapper"
-            onClick={handleChevronClick}
-          >
+            onMouseDown={handleChevronMouseDown}
+            onClick={(e) => { e.stopPropagation(); /* prevent double-toggle on click after mousedown */ }}
+            >
             <ChevronDown
               size={14}
               className={`create-dropdown-chevron ${isOpen ? 'open' : ''}`}
@@ -227,29 +258,34 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
         </button>
       </div>
 
-      {isOpen && (
-        <div
-          className="create-dropdown-menu"
-          style={{
-            top: `${menuPosition.top}px`,
-            left: `${menuPosition.left}px`
-          }}
-        >
-          {createOptions.map(option => (
-            <button
-              key={option.id}
-              className={`create-dropdown-item ${option.id === currentShape ? 'active' : ''}`}
-              onClick={() => handleItemClick(option)}
-              title={option.description}
-            >
-              <div className="item-content-wrapper">
-                <span className="item-icon">{option.icon}</span>
-                <span className="item-label">{option.label}</span>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
+      {isOpen && typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            ref={menuRef}
+            className="create-dropdown-menu"
+            style={{
+              position: 'fixed',
+              top: `${menuPosition.top}px`,
+              left: `${menuPosition.left}px`,
+              zIndex: 10000
+            }}
+          >
+            {createOptions.map(option => (
+              <button
+                key={option.id}
+                className={`create-dropdown-item ${option.id === currentShape ? 'active' : ''}`}
+                onClick={() => handleItemClick(option)}
+                title={option.description}
+              >
+                <div className="item-content-wrapper">
+                  <span className="item-icon">{option.icon}</span>
+                  <span className="item-label">{option.label}</span>
+                </div>
+              </button>
+            ))}
+          </div>,
+          document.body
+        )}
     </div>
   );
 };
