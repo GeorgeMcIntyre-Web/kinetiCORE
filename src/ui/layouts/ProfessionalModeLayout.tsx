@@ -16,7 +16,6 @@ import {
   Eye,
   EyeOff,
   LayoutTemplate,
-  Grab,
   Search,
   Crosshair,
   Magnet,
@@ -50,6 +49,7 @@ import { Scan, Settings } from 'lucide-react';
 import { CreateDropdown } from '../components/CreateDropdown';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
 import { SnapSetupPopup } from '../components/SnapSetupPopup';
+import { ToolbarContainer } from '../components/ToolbarContainer';
 import './ProfessionalModeLayout.css';
 
 export const ProfessionalModeLayout: React.FC = () => {
@@ -410,8 +410,9 @@ export const ProfessionalModeLayout: React.FC = () => {
         </div>
       </header>
 
-      {/* Ribbon Toolbar */}
+      {/* Ribbon Toolbar wrapped in experiment container */}
       <div className="ribbon-toolbar">
+        <ToolbarContainer title="Tools" className="w-full" style={{ width: '100%' }}>
         {activeWorkspace === 'modeling' && (
           <>
         {/* Creation Tools */}
@@ -443,11 +444,11 @@ export const ProfessionalModeLayout: React.FC = () => {
             <button
               className={`tool-btn ${transformMode === 'translate' && transformGizmoEnabled ? 'active' : ''}`}
               disabled={!selectedNodeId}
-              title={selectedNodeId ? 'Move' : 'Select an object first'}
+              title={selectedNodeId ? 'Translate' : 'Select an object first'}
               onClick={() => handleTransformTool('translate')}
             >
               <Move size={18} />
-              <span>Move</span>
+              <span>Translate</span>
             </button>
             <button
               className={`tool-btn ${transformMode === 'rotate' && transformGizmoEnabled ? 'active' : ''}`}
@@ -467,21 +468,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               <Scale size={18} />
               <span>Scale</span>
             </button>
-            <button
-              className={`tool-btn ${transformGizmoEnabled ? 'active' : ''}`}
-              disabled={!selectedNodeId}
-              title={
-                selectedNodeId
-                  ? transformGizmoEnabled
-                    ? 'Disable Transform Gizmo'
-                    : 'Enable Transform Gizmo'
-                  : 'Select an object first'
-              }
-              onClick={() => setTransformGizmoEnabled(!transformGizmoEnabled)}
-            >
-              <Grab size={18} />
-              <span>Gizmo</span>
-            </button>
+            
             <button
               className="tool-btn"
               disabled={!selectedNodeId}
@@ -708,6 +695,7 @@ export const ProfessionalModeLayout: React.FC = () => {
             </div>
           </>
         )}
+        </ToolbarContainer>
       </div>
 
       {/* Main Content with Dockable Panels */}
