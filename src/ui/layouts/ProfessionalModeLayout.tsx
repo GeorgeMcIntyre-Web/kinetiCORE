@@ -84,7 +84,7 @@ export const ProfessionalModeLayout: React.FC = () => {
   const currentView = useEditorStore((state) => state.currentView);
   const setCurrentView = useEditorStore((state) => state.setCurrentView);
 
-  const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'analysis'>(
+  const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'analysis' | 'routing'>(
     'modeling'
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -411,6 +411,12 @@ export const ProfessionalModeLayout: React.FC = () => {
               onClick={() => setActiveWorkspace('simulation')}
             >
               Simulation
+            </button>
+            <button
+              className={`workspace-tab ${activeWorkspace === 'routing' ? 'active' : ''}`}
+              onClick={() => setActiveWorkspace('routing')}
+            >
+              Routing
             </button>
             <button
               className={`workspace-tab ${activeWorkspace === 'analysis' ? 'active' : ''}`}
@@ -740,53 +746,7 @@ export const ProfessionalModeLayout: React.FC = () => {
 
         <div className="toolbar-separator"></div>
 
-        {/* Routing Tools */}
-        <div className="tool-group">
-          <div className="group-label">Routing</div>
-          <div className="tool-buttons">
-            <button
-              className={`tool-btn ${showDebugLabels ? 'active' : ''}`}
-              onClick={() => setShowDebugLabels(!showDebugLabels)}
-              title="Toggle Route Debug Labels (D)"
-            >
-              {showDebugLabels ? <Eye size={18} /> : <EyeOff size={18} />}
-              <span className="tool-btn-label">Labels</span>
-            </button>
-            <button
-              className="tool-btn"
-              onClick={handleToggleBabylonInspector}
-              title="Toggle Babylon Scene Inspector (Alt+I)"
-            >
-              <Search size={18} />
-              <span className="tool-btn-label">Inspector</span>
-            </button>
-            <button
-              className={`tool-btn ${showTemplatesPanel ? 'active' : ''}`}
-              onClick={() => setShowTemplatesPanel(!showTemplatesPanel)}
-              title="Open Route Templates Library"
-            >
-              <LayoutTemplate size={18} />
-              <span className="tool-btn-label">Templates</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="toolbar-separator"></div>
-
-        {/* Kinematics Tools */}
-        <div className="tool-group">
-          <div className="group-label">Kinematics</div>
-          <div className="tool-buttons">
-            <button
-              className={`tool-btn ${showKinematicExtractionPanel ? 'active' : ''}`}
-              onClick={() => setShowKinematicExtractionPanel(!showKinematicExtractionPanel)}
-              title="Auto Kinematic Extraction - Hierarchical BBox Pairing"
-            >
-              <Scan size={18} />
-              <span className="tool-btn-label">Auto Extract</span>
-            </button>
-          </div>
-        </div>
+        {/* Routing section moved to Routing tab */}
           </>
         )}
 
@@ -806,6 +766,58 @@ export const ProfessionalModeLayout: React.FC = () => {
                 <button className="tool-btn" title="Reset Simulation">
                   <RefreshCw size={18} />
                   <span>Reset</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="toolbar-separator"></div>
+
+            {/* Kinematics Tools moved here */}
+            <div className="tool-group">
+              <div className="group-label">Kinematics</div>
+              <div className="tool-buttons">
+                <button
+                  className={`tool-btn ${showKinematicExtractionPanel ? 'active' : ''}`}
+                  onClick={() => setShowKinematicExtractionPanel(!showKinematicExtractionPanel)}
+                  title="Auto Kinematic Extraction - Hierarchical BBox Pairing"
+                >
+                  <Scan size={18} />
+                  <span className="tool-btn-label">Auto Extract</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeWorkspace === 'routing' && (
+          <>
+            {/* Routing Tools moved from Modeling */}
+            <div className="tool-group">
+              <div className="group-label">Routing</div>
+              <div className="tool-buttons">
+                <button
+                  className={`tool-btn ${showDebugLabels ? 'active' : ''}`}
+                  onClick={() => setShowDebugLabels(!showDebugLabels)}
+                  title="Toggle Route Debug Labels (D)"
+                >
+                  {showDebugLabels ? <Eye size={18} /> : <EyeOff size={18} />}
+                  <span className="tool-btn-label">Labels</span>
+                </button>
+                <button
+                  className="tool-btn"
+                  onClick={handleToggleBabylonInspector}
+                  title="Toggle Babylon Scene Inspector (Alt+I)"
+                >
+                  <Search size={18} />
+                  <span className="tool-btn-label">Inspector</span>
+                </button>
+                <button
+                  className={`tool-btn ${showTemplatesPanel ? 'active' : ''}`}
+                  onClick={() => setShowTemplatesPanel(!showTemplatesPanel)}
+                  title="Open Route Templates Library"
+                >
+                  <LayoutTemplate size={18} />
+                  <span className="tool-btn-label">Templates</span>
                 </button>
               </div>
             </div>
