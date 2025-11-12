@@ -500,6 +500,15 @@ export const ProfessionalModeLayout: React.FC = () => {
               <Navigation size={18} />
               <span>Position</span>
             </button>
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
+        {/* Snap Tools */}
+        <div className="tool-group">
+          <div className="group-label">Snap</div>
+          <div className="tool-buttons">
             <button
               className={`tool-btn ${snapToolActive ? 'active' : ''}`}
               title="Snap - Click first point on source object, then click target point"
