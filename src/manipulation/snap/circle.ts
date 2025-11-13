@@ -8,6 +8,30 @@ export type PlaneBasis = { origin: BABYLON.Vector3; u: BABYLON.Vector3; v: BABYL
 export type CircleFit = { cx: number; cy: number; r: number; rms: number; ok: boolean };
 
 /**
+ * Configuration for circle-center snap detection
+ * Centralized thresholds for tuning circle detection behavior
+ */
+export type SnapCircleConfig = {
+  minFrontPoints: number;
+  minKeptPoints: number;
+  minCoverageRad: number;
+  maxRelRms: number;
+  minRadiusMeters: number;
+  innerRadiusFactor: number;
+  outerRadiusFactor: number;
+};
+
+export const DEFAULT_SNAP_CIRCLE_CONFIG: SnapCircleConfig = {
+  minFrontPoints: 16,
+  minKeptPoints: 24,
+  minCoverageRad: 7 * Math.PI / 6, // ~210°
+  maxRelRms: 0.08,
+  minRadiusMeters: 1e-3,
+  innerRadiusFactor: 0.6,
+  outerRadiusFactor: 1.4,
+};
+
+/**
  * Simple 3x3 symmetric eigen decomposition (power iteration for smallest eigenvalue)
  * Returns eigenvector for smallest eigenvalue (normal direction)
  */
