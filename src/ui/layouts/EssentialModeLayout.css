@@ -199,6 +199,36 @@
   font-size: 20px;
 }
 
+.essential-mode .professional-content {
+  flex: 1;
+  min-height: 0;
+}
+
+.essential-mode .essential-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.essential-mode .essential-main-layout {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.essential-mode .essential-sidebar {
+  width: var(--sidebar-width, 240px);
+  min-width: 200px;
+  max-width: 600px;
+  background: #1e2433;
+  border-right: 1px solid #303545;
+}
+
+.essential-mode .essential-viewport {
+  min-height: 0;
+  background: #1e1e24;
+}
+
 .welcome-text {
   margin: 0 0 16px 0;
   color: #a0aec0;

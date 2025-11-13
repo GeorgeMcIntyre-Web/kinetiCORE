@@ -3,7 +3,42 @@
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as BABYLON from '@babylonjs/core';
-import { Header } from '../components/Header';
+import {
+  Move,
+  RotateCw,
+  Scale,
+  Copy,
+  Save,
+  Upload,
+  Download,
+  Undo,
+  Redo,
+  Navigation,
+  Crosshair,
+  CornerDownRight,
+  Magnet,
+  Play,
+  Pause,
+  RefreshCw,
+  Activity,
+  Layers,
+  Minus,
+  Maximize2,
+  Box,
+  Settings,
+  Eye,
+  EyeOff,
+  LayoutTemplate,
+  Search,
+  Square,
+  Target,
+  Rocket,
+  Calculator,
+  GitBranch,
+  Network,
+  TestTube,
+  Zap,
+} from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { useAssetLibraryStore } from '../store/assetLibraryStore';
@@ -36,10 +71,17 @@ import { toast } from '../components/ToastNotifications';
 import { useTreeAutoResize } from '../hooks/useTreeAutoResize';
 import { PerformanceMonitor, usePerformanceMonitor } from '../components/debug/PerformanceMonitor';
 import { VersionDisplay } from '../components/VersionDisplay';
+import { ToolbarContainer } from '../components/ToolbarContainer';
+import { CreateDropdown } from '../components/CreateDropdown';
+import { SelectionLevelDropdown } from '../components/SelectionLevelDropdown';
+import { ViewDropdown } from '../components/ViewDropdown';
+import { MeasurementTools, MeasurementType } from '../components/MeasurementTools';
 import './EssentialModeLayout.css';
+import './ProfessionalModeLayout.css';
 
 export const EssentialModeLayout: React.FC = () => {
   const { userLevel, setUserLevel } = useUserLevel();
+  const createObject = useEditorStore((state) => state.createObject);
   const importModel = useEditorStore((state) => state.importModel);
   const loadWorld = useEditorStore((state) => state.loadWorld);
   const loadComprehensiveWorld = useEditorStore((state) => state.loadComprehensiveWorld);
@@ -47,7 +89,24 @@ export const EssentialModeLayout: React.FC = () => {
   const zoomToNode = useEditorStore((state) => state.zoomToNode);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
+  const setTransformMode = useEditorStore((state) => state.setTransformMode);
+  const transformMode = useEditorStore((state) => state.transformMode);
+  const transformGizmoEnabled = useEditorStore((state) => state.transformGizmoEnabled);
+  const setTransformGizmoEnabled = useEditorStore((state) => state.setTransformGizmoEnabled);
   const commandManager = useEditorStore((state) => state.commandManager);
+  const duplicateNode = useEditorStore((state) => state.duplicateNode);
+  const undo = useEditorStore((state) => state.undo);
+  const redo = useEditorStore((state) => state.redo);
+  const canUndo = useEditorStore((state) => state.canUndo());
+  const canRedo = useEditorStore((state) => state.canRedo());
+  const snapToolActive = useEditorStore((state) => state.snapToolActive);
+  const setSnapToolActive = useEditorStore((state) => state.setSnapToolActive);
+  const alignMode = useEditorStore((state) => state.alignMode);
+  const setAlignMode = useEditorStore((state) => state.setAlignMode);
+  const selectionLevel = useEditorStore((state) => state.selectionLevel);
+  const setSelectionLevel = useEditorStore((state) => state.setSelectionLevel);
+  const currentView = useEditorStore((state) => state.currentView);
+  const setCurrentView = useEditorStore((state) => state.setCurrentView);
   const toggleLibrary = useAssetLibraryStore((state) => state.toggleVisibility);
   const showProjectManager = useProjectManagerStore((state) => state.show);
 
@@ -88,6 +147,8 @@ export const EssentialModeLayout: React.FC = () => {
   const [showSnapDialog, setShowSnapDialog] = useState(false);
   const [showSnapSetupPopup, setShowSnapSetupPopup] = useState(false);
   const [showWarehousePanel, setShowWarehousePanel] = useState(false);
+  const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation'>('modeling');
+  const [activeMeasurement, setActiveMeasurement] = useState<MeasurementType>(null);
 
   // Resizable sidebar state
   const [sidebarWidth, setSidebarWidth] = useState(256); // Default 256px (w-64)
@@ -185,6 +246,90 @@ export const EssentialModeLayout: React.FC = () => {
 
     if (event.target) {
       event.target.value = '';
+    }
+  };
+
+  const handleImport = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleExport = () => {
+    setShowSaveDialog(true);
+  };
+
+  const handleTransformTool = (mode: 'translate' | 'rotate' | 'scale') => {
+    if (!selectedNodeId) return;
+
+    if (transformMode === mode) {
+      setTransformGizmoEnabled(!transformGizmoEnabled);
+      return;
+    }
+
+    setTransformMode(mode);
+    if (!transformGizmoEnabled) {
+      setTransformGizmoEnabled(true);
+    }
+  };
+
+  const handleCopy = () => {
+    if (selectedNodeId) {
+      duplicateNode(selectedNodeId);
+    }
+  };
+
+  const handleMeasurement = (type: MeasurementType) => {
+    setActiveMeasurement(type);
+  };
+
+  const handleCloseMeasurement = () => setActiveMeasurement(null);
+
+  const handleToggleBabylonInspector = async () => {
+    try {
+      const sceneManager = SceneManager.getInstance();
+      await sceneManager.toggleInspector();
+    } catch (error) {
+      console.error('[EssentialModeLayout] Failed to toggle inspector:', error);
+    }
+  };
+
+  const handleAddFrame = () => {
+    const addPermanentFrame = (useEditorStore as any).getState().addPermanentFrame;
+    if (typeof addPermanentFrame === 'function') {
+      addPermanentFrame();
+    }
+  };
+
+  const handleSimulationAction = (action: 'start' | 'pause' | 'reset') => {
+    toast.info(`Simulation ${action} coming soon`);
+  };
+
+  const handleBooleanOperation = async (operation: 'union' | 'subtract' | 'intersect') => {
+    const { loading } = await import('../components/LoadingIndicator');
+    const { BooleanOperationCommand } = await import('../../history/commands/BooleanOperationCommand');
+
+    if (selectedNodeIds.length !== 2) {
+      toast.warning('Please select exactly two objects for Boolean operations (Ctrl+Click to multi-select)');
+      return;
+    }
+
+    try {
+      loading.start(`Performing ${operation} operation...`, 'processing');
+
+      const command = new BooleanOperationCommand(
+        selectedNodeIds[0],
+        selectedNodeIds[1],
+        operation
+      );
+
+      await commandManager.execute(command);
+
+      loading.end();
+      toast.success(`Boolean ${operation} completed successfully`);
+    } catch (error) {
+      console.error('Boolean operation failed:', error);
+      toast.error(
+        `Boolean operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   };
 
@@ -545,93 +690,585 @@ export const EssentialModeLayout: React.FC = () => {
 
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-gray-50">
-      {/* Header with integrated Ribbon */}
-        <Header
-          currentMode={userLevel as 'essential' | 'professional' | 'expert'}
-          onModeChange={(mode) => setUserLevel(mode)}
-          onSettingsClick={() => setShowSettingsPanel(!showSettingsPanel)}
-          onHelpClick={() => toast.info('Help documentation coming soon')}
-          className="fixed top-0 left-0 right-0 z-50"
-          style={{ zIndex: 100 }}
-          ribbonProps={{
-            onKinematicsClick: () => setShowKinematicsPanel(!showKinematicsPanel),
-            onKinematicsAnalysisClick: () => setShowKinematicsAnalysisPanel(!showKinematicsAnalysisPanel),
-            onActuatorsClick: () => setShowActuatorPanel(!showActuatorPanel),
-            onComplexIKClick: () => setShowComplexIKPanel(!showComplexIKPanel),
-            onWholeBodyIKClick: () => setShowWholeBodyIKPanel(!showWholeBodyIKPanel),
-            onKinematicExtractionClick: () => setShowKinematicExtractionPanel(!showKinematicExtractionPanel),
-            onICPTestClick: () => setShowICPTestPanel(!showICPTestPanel),
-            onPhysicsClick: () => setShowPhysicsSettings(!showPhysicsSettings),
-            onCollisionsClick: () => setShowCollisionVisualizer(!showCollisionVisualizer),
-            onProjectionClick: handleCreateProjectionView,
-            onProjectManagerClick: showProjectManager,
-            onAssetLibraryClick: toggleLibrary,
-            onQuickMoveClick: () => setShowMoveDialog(true),
-            onSnapSetupClick: () => setShowSnapSetupPopup(true),
-            onResetViewClick: handleResetView,
-            onZoomFitClick: handleZoomFit,
-            onZoomToSelectedClick: handleZoomToSelected,
-            onTopViewClick: handleTopView,
-            onRightViewClick: handleRightView,
-            onFrontViewClick: handleFrontView,
-            onIsoViewClick: handleIsoView,
-            onWarehouseConfigClick: () => setShowWarehousePanel(!showWarehousePanel),
-            onWarehouseToggleClick: () => {
-              // Dispatch event to toggle warehouse visibility (handled by WarehousePanel's 'W' key handler)
-              window.dispatchEvent(new KeyboardEvent('keydown', { key: 'w', bubbles: true }));
-            },
-            onWarehouseResetCameraClick: () => {
-              // Dispatch custom event that WarehousePanel can listen to
-              window.dispatchEvent(new CustomEvent('warehouse-reset-camera'));
-            },
-          }}
-        />
-
-      {/* Main Content */}
-      {/* Offset main content by the header height so the sidebar/tree are never covered */}
-      <div
-        className="flex flex-1 overflow-hidden"
-        style={{
-          position: 'fixed',
-          top: 'var(--app-header-height, 96px)',
-          left: 0,
-          right: 0,
-          bottom: 0,
-        }}
-      >
-        {/* Left Sidebar - Resizable */}
-        <aside
-          className="border-r border-gray-200 bg-white flex-shrink-0 flex flex-col min-h-0 relative"
-          style={{ width: `${sidebarWidth}px` }}
-        >
-          <SceneTree />
-
-          {/* Resize Handle */}
-          <div
-            onMouseDown={handleMouseDown}
-            className="absolute top-0 right-0 w-1 h-full cursor-ew-resize hover:bg-blue-500 transition-colors z-50"
-            style={{
-              background: isResizing ? 'rgb(59, 130, 246)' : 'transparent',
-            }}
-          />
-        </aside>
-
-        {/* Main Viewport */}
-        <main className="flex-1 relative bg-gray-100">
-          <div id="viewport-essential" className="w-full h-full relative">
-            <SceneCanvas />
-            {/* Selection Indicator - Positioned inside viewport */}
-            <SelectionIndicator selectedNodeIds={selectedNodeIds} />
-
-            {/* Performance Monitor - Top-right of viewport */}
-            <PerformanceMonitor
-              enabled={performanceEnabled}
-              position="top-right"
-              detailed={true}
-            />
+    <div className="professional-layout essential-mode">
+      {/* Header */}
+      <header className="professional-header">
+        <div className="header-left">
+          <div className="flex items-center space-x-2 flex-shrink-0">
+            <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/50">
+              <span className="text-white font-bold text-sm">K</span>
+            </div>
+            <div className="hidden sm:block">
+              <h1 className="text-xl font-bold">
+                <span className="bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">
+                  kinetic CORE
+                </span>
+                <span
+                  className="ml-1 align-middle inline-flex items-center text-[9px] font-semibold uppercase tracking-wide"
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: '#ffd93b',
+                    position: 'relative',
+                    top: '-7px',
+                  }}
+                  aria-label="Essential Edition"
+                >
+                  Essential
+                </span>
+              </h1>
+              <p className="text-xs text-gray-400">The Linux of Manufacturing Simulation</p>
+            </div>
           </div>
-        </main>
+
+          <div className="workspace-tabs">
+            <button
+              className={`workspace-tab ${activeWorkspace === 'modeling' ? 'active' : ''}`}
+              onClick={() => setActiveWorkspace('modeling')}
+            >
+              Modeling
+            </button>
+            <button
+              className={`workspace-tab ${activeWorkspace === 'simulation' ? 'active' : ''}`}
+              onClick={() => setActiveWorkspace('simulation')}
+            >
+              Simulation
+            </button>
+          </div>
+        </div>
+        <div className="header-right">
+          <div className="global-actions">
+            <button className="action-btn" title="Save Project" onClick={saveProject}>
+              <Save size={18} />
+            </button>
+            <button className="action-btn" title="Import Model" onClick={handleImport}>
+              <Upload size={18} />
+            </button>
+            <button className="action-btn" title="Export Project" onClick={handleExport}>
+              <Download size={18} />
+            </button>
+            <button className="action-btn" title="Project Manager" onClick={showProjectManager}>
+              <LayoutTemplate size={18} />
+            </button>
+            <button className="action-btn" title="Asset Library" onClick={toggleLibrary}>
+              <Layers size={18} />
+            </button>
+            <div className="separator"></div>
+            <button
+              className="action-btn"
+              title={canUndo ? 'Undo (Ctrl+Z)' : 'Nothing to undo'}
+              disabled={!canUndo}
+              onClick={undo}
+            >
+              <Undo size={18} />
+            </button>
+            <button
+              className="action-btn"
+              title={canRedo ? 'Redo (Ctrl+Y)' : 'Nothing to redo'}
+              disabled={!canRedo}
+              onClick={redo}
+            >
+              <Redo size={18} />
+            </button>
+            <div className="separator"></div>
+            <button
+              className="action-btn"
+              title="Settings"
+              onClick={() => setShowSettingsPanel(!showSettingsPanel)}
+            >
+              <Settings size={18} />
+            </button>
+          </div>
+          <select
+            value={userLevel}
+            onChange={(e) => {
+              const newLevel = e.target.value;
+              if (newLevel === 'essential' || newLevel === 'professional' || newLevel === 'expert') {
+                setUserLevel(newLevel);
+              }
+            }}
+            className="user-level-select"
+          >
+            <option value="essential">Essential</option>
+            <option value="professional">Professional</option>
+            <option value="expert">Expert</option>
+          </select>
+        </div>
+      </header>
+
+      {/* Ribbon Toolbar */}
+      <div className="ribbon-toolbar">
+        <ToolbarContainer className="compact">
+          {activeWorkspace === 'modeling' && (
+            <>
+              {/* Creation Tools */}
+              <div className="tool-group">
+                <div className="group-label">Creation</div>
+                <div className="tool-buttons">
+                  <CreateDropdown
+                    onCreateBox={() => createObject('box')}
+                    onCreateSphere={() => createObject('sphere')}
+                    onCreateCylinder={() => createObject('cylinder')}
+                    onCreateCone={() => createObject('cone')}
+                    onCreateTorus={() => createObject('torus')}
+                    onCreatePlane={() => createObject('plane')}
+                    onCreateGround={() => createObject('ground')}
+                    onCreateCapsule={() => createObject('capsule')}
+                    onCreateDisc={() => createObject('disc')}
+                    onCreateTorusKnot={() => createObject('torusknot')}
+                    onCreatePolyhedron={() => createObject('polyhedron')}
+                  />
+                </div>
+              </div>
+
+              <div className="toolbar-separator"></div>
+
+              {/* Transform Tools */}
+              <div className="tool-group">
+                <div className="group-label">Transform</div>
+                <div className="tool-buttons">
+                  <button
+                    className={`tool-btn ${transformMode === 'translate' && transformGizmoEnabled ? 'active' : ''}`}
+                    disabled={!selectedNodeId}
+                    title={selectedNodeId ? 'Move' : 'Select an object first'}
+                    onClick={() => handleTransformTool('translate')}
+                  >
+                    <Move size={18} />
+                    <span>Move</span>
+                  </button>
+                  <button
+                    className={`tool-btn ${transformMode === 'rotate' && transformGizmoEnabled ? 'active' : ''}`}
+                    disabled={!selectedNodeId}
+                    title={selectedNodeId ? 'Rotate' : 'Select an object first'}
+                    onClick={() => handleTransformTool('rotate')}
+                  >
+                    <RotateCw size={18} />
+                    <span>Rotate</span>
+                  </button>
+                  <button
+                    className={`tool-btn ${transformMode === 'scale' && transformGizmoEnabled ? 'active' : ''}`}
+                    disabled={!selectedNodeId}
+                    title={selectedNodeId ? 'Scale' : 'Select an object first'}
+                    onClick={() => handleTransformTool('scale')}
+                  >
+                    <Scale size={18} />
+                    <span>Scale</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    disabled={!selectedNodeId}
+                    title={selectedNodeId ? 'Duplicate (Ctrl+D)' : 'Select an object first'}
+                    onClick={handleCopy}
+                  >
+                    <Copy size={18} />
+                    <span>Duplicate</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    disabled={!selectedNodeId}
+                    title={
+                      selectedNodeId
+                        ? 'Quick Move Dialog (Relative/Absolute positioning)'
+                        : 'Select an object first'
+                    }
+                    onClick={() => setShowMoveDialog(true)}
+                  >
+                    <Navigation size={18} />
+                    <span>Position</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="toolbar-separator"></div>
+
+              {/* Snap Tools */}
+              <div className="tool-group">
+                <div className="group-label">Snap</div>
+                <div className="tool-buttons">
+                  <button
+                    className={`tool-btn ${snapToolActive ? 'active' : ''}`}
+                    onClick={() => setSnapToolActive(!snapToolActive)}
+                    title="Snap - Click first point on source object, then click target point"
+                  >
+                    <Magnet size={18} />
+                    <span>Snap</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    onClick={() => setShowSnapSetupPopup(true)}
+                    title="Snap Setup"
+                  >
+                    <Crosshair size={18} />
+                    <span>Setup</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="toolbar-separator"></div>
+
+              {/* Modify Tools */}
+              <div className="tool-group">
+                <div className="group-label">Modify</div>
+                <div className="tool-buttons">
+                  <button
+                    className="tool-btn"
+                    title={
+                      selectedNodeIds.length === 2
+                        ? 'Union - Combine two objects into one'
+                        : 'Union - Select exactly 2 objects (Ctrl+Click)'
+                    }
+                    disabled={selectedNodeIds.length !== 2}
+                    onClick={() => handleBooleanOperation('union')}
+                  >
+                    <Layers size={18} />
+                    <span>Union</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    title={
+                      selectedNodeIds.length === 2
+                        ? 'Subtract - Remove 2nd object from 1st'
+                        : 'Subtract - Select exactly 2 objects (Ctrl+Click)'
+                    }
+                    disabled={selectedNodeIds.length !== 2}
+                    onClick={() => handleBooleanOperation('subtract')}
+                  >
+                    <Minus size={18} />
+                    <span>Subtract</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    title={
+                      selectedNodeIds.length === 2
+                        ? 'Intersect - Keep only overlapping volume'
+                        : 'Intersect - Select exactly 2 objects (Ctrl+Click)'
+                    }
+                    disabled={selectedNodeIds.length !== 2}
+                    onClick={() => handleBooleanOperation('intersect')}
+                  >
+                    <LayoutTemplate size={18} />
+                    <span>Intersect</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="toolbar-separator"></div>
+
+              {/* Measure Tools */}
+              <div className="tool-group">
+                <div className="group-label">Measure</div>
+                <div className="tool-buttons">
+                  <button
+                    className="tool-btn"
+                    title="Measure distance between two points"
+                    onClick={() => handleMeasurement('distance')}
+                  >
+                    <Maximize2 size={18} />
+                    <span>Distance</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    title="Measure angle between three points"
+                    onClick={() => handleMeasurement('angle')}
+                  >
+                    <RotateCw size={18} />
+                    <span>Angle</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    title="Measure volume of selected objects"
+                    onClick={() => handleMeasurement('volume')}
+                  >
+                    <Box size={18} />
+                    <span>Volume</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="toolbar-separator"></div>
+
+              {/* View Tools */}
+              <div className="tool-group">
+                <div className="group-label">View</div>
+                <div className="tool-buttons">
+                  <button className="tool-btn" title="Reset View" onClick={handleResetView}>
+                    <RotateCw size={18} />
+                    <span>Reset</span>
+                  </button>
+                  <button className="tool-btn" title="Zoom Fit" onClick={handleZoomFit}>
+                    <Maximize2 size={18} />
+                    <span>Fit</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    title="Zoom to Selected"
+                    onClick={handleZoomToSelected}
+                    disabled={!selectedNodeId}
+                  >
+                    <Target size={18} />
+                    <span>Selected</span>
+                  </button>
+                  <ViewDropdown
+                    onTopViewClick={handleTopView}
+                    onRightViewClick={handleRightView}
+                    onFrontViewClick={handleFrontView}
+                    onIsoViewClick={handleIsoView}
+                    currentView={currentView}
+                  />
+                </div>
+              </div>
+
+              <div className="toolbar-separator"></div>
+
+              {/* Utilities */}
+              <div className="tool-group">
+                <div className="group-label">Utilities</div>
+                <div className="tool-buttons">
+                  <SelectionLevelDropdown currentLevel={selectionLevel} onLevelChange={setSelectionLevel} />
+                  <button className="tool-btn" title="Add Frame at Selection" onClick={handleAddFrame}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="12" y1="12" x2="20" y2="12" stroke="#ff0000" strokeWidth="2.5" />
+                      <polygon points="20,12 18,11 18,13" fill="#ff0000" />
+                      <line x1="12" y1="12" x2="12" y2="4" stroke="#00ff00" strokeWidth="2.5" />
+                      <polygon points="12,4 11,6 13,6" fill="#00ff00" />
+                      <line x1="12" y1="12" x2="6" y2="18" stroke="#0000ff" strokeWidth="2.5" />
+                      <polygon points="6,18 7.5,16.5 8,17.5" fill="#0000ff" />
+                    </svg>
+                    <span>Frame</span>
+                  </button>
+                  <button className="tool-btn" title="Create Projection View" onClick={handleCreateProjectionView}>
+                    <LayoutTemplate size={18} />
+                    <span>Projection</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="toolbar-separator"></div>
+
+              {/* Align */}
+              <div className="tool-group">
+                <div className="group-label">Align</div>
+                <div className="tool-buttons">
+                  <button
+                    className={`tool-btn ${alignMode === 'vertex' ? 'active' : ''}`}
+                    onClick={() => setAlignMode('vertex')}
+                    title="Align Vertex"
+                  >
+                    <CornerDownRight size={18} />
+                    <span>Vertex</span>
+                  </button>
+                  <button
+                    className={`tool-btn ${alignMode === 'edge' ? 'active' : ''}`}
+                    onClick={() => setAlignMode('edge')}
+                    title="Align Edge"
+                  >
+                    <Minus size={18} />
+                    <span>Edge</span>
+                  </button>
+                  <button
+                    className={`tool-btn ${alignMode === 'face' ? 'active' : ''}`}
+                    onClick={() => setAlignMode('face')}
+                    title="Align Face"
+                  >
+                    <Square size={18} />
+                    <span>Face</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+          {activeWorkspace === 'simulation' && (
+            <>
+              <div className="tool-group">
+                <div className="group-label">Simulation</div>
+                <div className="tool-buttons">
+                  <button className="tool-btn" title="Start Simulation" onClick={() => handleSimulationAction('start')}>
+                    <Play size={18} />
+                    <span>Start</span>
+                  </button>
+                  <button className="tool-btn" title="Pause Simulation" onClick={() => handleSimulationAction('pause')}>
+                    <Pause size={18} />
+                    <span>Pause</span>
+                  </button>
+                  <button className="tool-btn" title="Reset Simulation" onClick={() => handleSimulationAction('reset')}>
+                    <RefreshCw size={18} />
+                    <span>Reset</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="toolbar-separator"></div>
+
+              <div className="tool-group">
+                <div className="group-label">Kinematics</div>
+                <div className="tool-buttons">
+                  <button className="tool-btn" onClick={() => setShowKinematicsPanel(true)} title="Motion Panel">
+                    <Rocket size={18} />
+                    <span className="tool-btn-label">Motion</span>
+                  </button>
+                  <button className="tool-btn" onClick={() => setShowKinematicsAnalysisPanel(true)} title="Kinematics Analysis">
+                    <Calculator size={18} />
+                    <span className="tool-btn-label">Analysis</span>
+                  </button>
+                  <button className="tool-btn" onClick={() => setShowActuatorPanel(true)} title="Actuator Control">
+                    <div style={{ position: 'relative', width: 18, height: 18 }}>
+                      <Zap size={12} style={{ position: 'absolute', left: 1, top: 1 }} />
+                      <Settings size={12} style={{ position: 'absolute', right: 1, bottom: 1 }} />
+                    </div>
+                    <span className="tool-btn-label">Actuators</span>
+                  </button>
+                  <button className="tool-btn" onClick={() => setShowComplexIKPanel(true)} title="Complex IK Systems">
+                    <GitBranch size={18} />
+                    <span className="tool-btn-label">Complex IK</span>
+                  </button>
+                  <button className="tool-btn" onClick={() => setShowWholeBodyIKPanel(true)} title="FullBody IK">
+                    <Network size={18} />
+                    <span className="tool-btn-label">FullBody IK</span>
+                  </button>
+                  <button className="tool-btn" onClick={() => setShowICPTestPanel(true)} title="ICP Test Tool">
+                    <TestTube size={18} />
+                    <span className="tool-btn-label">ICP Test</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+        </ToolbarContainer>
+      </div>
+
+      <div className="professional-content essential-content">
+        <div className="essential-main-layout">
+          <aside
+            className="essential-sidebar border-r border-gray-200 bg-white flex-shrink-0 flex flex-col min-h-0 relative"
+            style={{ width: `${sidebarWidth}px` }}
+          >
+            <SceneTree />
+
+            <div
+              onMouseDown={handleMouseDown}
+              className="absolute top-0 right-0 w-1 h-full cursor-ew-resize hover:bg-blue-500 transition-colors z-50"
+              style={{
+                background: isResizing ? 'rgb(59, 130, 246)' : 'transparent',
+              }}
+            />
+          </aside>
+
+          <main className="essential-viewport flex-1 relative bg-gray-100">
+            <div id="viewport-essential" className="w-full h-full relative">
+              <SceneCanvas />
+              <SelectionIndicator selectedNodeIds={selectedNodeIds} />
+              <PerformanceMonitor enabled={performanceEnabled} position="top-right" detailed />
+            </div>
+
+            {transform && (
+              <div
+                className="fixed"
+                style={{
+                  position: 'absolute',
+                  bottom: '16px',
+                  right: '12px',
+                  background: 'transparent',
+                  border: 'none',
+                  borderRadius: '10px',
+                  paddingTop: 0,
+                  paddingBottom: 0,
+                  paddingLeft: '12px',
+                  paddingRight: '12px',
+                  color: '#fff',
+                  boxShadow: 'none',
+                  fontWeight: '600',
+                  WebkitFontSmoothing: 'antialiased',
+                  MozOsxFontSmoothing: 'grayscale',
+                  minWidth: '280px',
+                  marginBottom: '16px',
+                  transformOrigin: 'bottom right',
+                }}
+              >
+                <div style={{ transform: 'scale(0.95)', transformOrigin: 'bottom right', padding: '8px 0' }}>
+                  <div className="flex justify-end mb-1">
+                    <button
+                      onClick={() => setCoordMode(coordMode === 'world' ? 'local' : 'world')}
+                      title={coordMode === 'world' ? 'Showing World coordinates. Click for Local.' : 'Showing Local coordinates. Click for World.'}
+                      style={{
+                        background: 'rgba(0,0,0,0.45)',
+                        border: '1px solid rgba(255,255,255,0.18)',
+                        color: '#fff',
+                        padding: '2px 6px',
+                        borderRadius: '8px',
+                        fontSize: '9px',
+                        lineHeight: 1,
+                      }}
+                    >
+                      {coordMode === 'world' ? 'World' : 'Local'}
+                    </button>
+                  </div>
+                  <div className="flex justify-between" style={{ fontSize: '11.5px' }}>
+                    <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                      <span style={{ color: '#D0021B', fontWeight: '500' }}>X:</span>
+                      <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.x.toFixed(1)}</span>
+                    </div>
+                    <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                      <span style={{ color: '#7ED321', fontWeight: '500' }}>Y:</span>
+                      <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.y.toFixed(1)}</span>
+                    </div>
+                    <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                      <span style={{ color: '#4A90E2', fontWeight: '500' }}>Z:</span>
+                      <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.z.toFixed(1)}</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between mt-1" style={{ fontSize: '11.5px' }}>
+                    <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                      <span style={{ color: '#D0021B', fontWeight: '500' }}>RX:</span>
+                      <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rx.toFixed(1)}°</span>
+                    </div>
+                    <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                      <span style={{ color: '#7ED321', fontWeight: '500' }}>RY:</span>
+                      <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.ry.toFixed(1)}°</span>
+                    </div>
+                    <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                      <span style={{ color: '#4A90E2', fontWeight: '500' }}>RZ:</span>
+                      <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rz.toFixed(1)}°</span>
+                    </div>
+                  </div>
+
+                  {lastPickedPoint && (() => {
+                    const userCoords = babylonToUser(lastPickedPoint);
+                    return (
+                      <div style={{
+                        borderTop: '1px solid rgba(255,255,255,0.1)',
+                        margin: '6px 0',
+                        paddingTop: '6px'
+                      }}>
+                        <div style={{
+                          fontSize: '9px',
+                          color: 'rgba(255,255,255,0.5)',
+                          marginBottom: '4px',
+                          fontWeight: '500'
+                        }}>
+                          Picked Point:
+                        </div>
+                        <div className="flex justify-between" style={{ fontSize: '11.5px' }}>
+                          <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                            <span style={{ color: '#D0021B', fontWeight: '500' }}>X:</span>
+                            <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.x.toFixed(3)}</span>
+                          </div>
+                          <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                            <span style={{ color: '#7ED321', fontWeight: '500' }}>Y:</span>
+                            <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.y.toFixed(3)}</span>
+                          </div>
+                          <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                            <span style={{ color: '#4A90E2', fontWeight: '500' }}>Z:</span>
+                            <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.z.toFixed(3)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+          </main>
+        </div>
       </div>
 
       {/* Hidden file inputs for ribbon buttons */}
@@ -718,117 +1355,6 @@ export const EssentialModeLayout: React.FC = () => {
         zIndex={1010}
       />
 
-      {/* Transform Display - Bottom-right corner */}
-      {transform && (
-        <div
-          className="fixed"
-          style={{
-            position: 'absolute',
-            bottom: '16px',
-            right: '12px',
-            background: 'transparent',
-            border: 'none',
-            borderRadius: '10px',
-            paddingTop: 0,
-            paddingBottom: 0,
-            paddingLeft: '12px',
-            paddingRight: '12px',
-            color: '#fff',
-            boxShadow: 'none',
-            fontWeight: '600',
-            WebkitFontSmoothing: 'antialiased',
-            MozOsxFontSmoothing: 'grayscale',
-            minWidth: '280px',
-            marginBottom: '16px', // Add bottom margin to prevent overlap with version
-            transformOrigin: 'bottom right',
-          }}
-        >
-          <div style={{ transform: 'scale(0.95)', transformOrigin: 'bottom right', padding: '8px 0' }}>
-          {/* Tiny coord mode toggle */}
-          <div className="flex justify-end mb-1">
-            <button
-              onClick={() => setCoordMode(coordMode === 'world' ? 'local' : 'world')}
-              title={coordMode === 'world' ? 'Showing World coordinates. Click for Local.' : 'Showing Local coordinates. Click for World.'}
-              style={{
-                background: 'rgba(0,0,0,0.45)',
-                border: '1px solid rgba(255,255,255,0.18)',
-                color: '#fff',
-                padding: '2px 6px',
-                borderRadius: '8px',
-                fontSize: '9px',
-                lineHeight: 1,
-              }}
-            >
-              {coordMode === 'world' ? 'World' : 'Local'}
-            </button>
-          </div>
-          <div className="flex justify-between" style={{ fontSize: '11.5px' }}>
-            <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-              <span style={{ color: '#D0021B', fontWeight: '500' }}>X:</span>
-              <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.x.toFixed(1)}</span>
-            </div>
-            <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-              <span style={{ color: '#7ED321', fontWeight: '500' }}>Y:</span>
-              <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.y.toFixed(1)}</span>
-            </div>
-            <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-              <span style={{ color: '#4A90E2', fontWeight: '500' }}>Z:</span>
-              <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.z.toFixed(1)}</span>
-            </div>
-          </div>
-          <div className="flex justify-between mt-1" style={{ fontSize: '11.5px' }}>
-            <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-              <span style={{ color: '#D0021B', fontWeight: '500' }}>RX:</span>
-              <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rx.toFixed(1)}°</span>
-            </div>
-            <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-              <span style={{ color: '#7ED321', fontWeight: '500' }}>RY:</span>
-              <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.ry.toFixed(1)}°</span>
-            </div>
-            <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-              <span style={{ color: '#4A90E2', fontWeight: '500' }}>RZ:</span>
-              <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rz.toFixed(1)}°</span>
-            </div>
-          </div>
-
-          {/* Picked Point Coordinates */}
-          {lastPickedPoint && (() => {
-            const userCoords = babylonToUser(lastPickedPoint);
-            return (
-              <div style={{
-                borderTop: '1px solid rgba(255,255,255,0.1)',
-                margin: '6px 0',
-                paddingTop: '6px'
-              }}>
-                <div style={{
-                  fontSize: '9px',
-                  color: 'rgba(255,255,255,0.5)',
-                  marginBottom: '4px',
-                  fontWeight: '500'
-                }}>
-                  Picked Point:
-                </div>
-                <div className="flex justify-between" style={{ fontSize: '11.5px' }}>
-                  <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                    <span style={{ color: '#D0021B', fontWeight: '500' }}>X:</span>
-                    <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.x.toFixed(3)}</span>
-                  </div>
-                  <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                    <span style={{ color: '#7ED321', fontWeight: '500' }}>Y:</span>
-                    <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.y.toFixed(3)}</span>
-                  </div>
-                  <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                    <span style={{ color: '#4A90E2', fontWeight: '500' }}>Z:</span>
-                    <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.z.toFixed(3)}</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-      </div>
-      )}
-
       {/* Hidden file inputs */}
       <input
         ref={fileInputRef}
@@ -870,6 +1396,8 @@ export const EssentialModeLayout: React.FC = () => {
         isOpen={showSnapSetupPopup}
         onClose={() => setShowSnapSetupPopup(false)}
       />
+
+      <MeasurementTools measurementType={activeMeasurement} onClose={handleCloseMeasurement} />
 
       {/* Project Manager Panel */}
       <ProjectManagerPanelV2 />
