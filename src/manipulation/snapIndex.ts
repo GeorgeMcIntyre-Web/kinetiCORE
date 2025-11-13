@@ -123,6 +123,9 @@ export function buildSnapIndex(mesh: BABYLON.Mesh, epsRatio = 1e-5): SnapIndex |
   return { vertsWorld, worldUpdateFlag: wm.updateFlag, hash, cell };
 }
 
+// Track meshes that are currently building snap index to avoid duplicate builds
+const buildingIndices = new WeakSet<BABYLON.Mesh>();
+
 export function ensureSnapIndex(mesh: BABYLON.Mesh): SnapIndex | null {
   const md = (mesh.metadata ??= {});
   const idx = md.__snapIndex as SnapIndex | undefined;
@@ -131,11 +134,22 @@ export function ensureSnapIndex(mesh: BABYLON.Mesh): SnapIndex | null {
 
   if (idx && idx.worldUpdateFlag === flag) return idx;
 
-  const built = buildSnapIndex(mesh);
-  if (!built) return null;
-  md.__snapIndex = built;
+  // PERFORMANCE FIX: Don't build index synchronously during snap queries
+  // This prevents freezing when loading objects with many vertices
+  // Return null to use legacy path, build index asynchronously
+  if (!buildingIndices.has(mesh)) {
+    buildingIndices.add(mesh);
+    // Build index asynchronously to avoid blocking main thread
+    requestAnimationFrame(() => {
+      const built = buildSnapIndex(mesh);
+      if (built) {
+        md.__snapIndex = built;
+      }
+      buildingIndices.delete(mesh);
+    });
+  }
 
-  return built;
+  return null; // Return null to use legacy scan path
 }
 
 // Query by pointer ray + pixel radius projected to world radius at depth
