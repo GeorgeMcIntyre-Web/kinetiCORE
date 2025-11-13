@@ -199,13 +199,6 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
     setIsOpen(false);
   };
 
-  const handleChevronClick = (e: React.MouseEvent) => {
-    // Clicking the chevron opens the dropdown
-    e.stopPropagation();
-    e.preventDefault();
-    toggleMenu();
-  };
-
   const handleChevronMouseDown = (e: React.MouseEvent) => {
     // Open on mousedown to avoid any click delay
     e.stopPropagation();
