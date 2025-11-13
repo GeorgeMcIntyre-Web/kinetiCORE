@@ -31,6 +31,8 @@ import {
   } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
+import { useAssetLibraryStore } from '../store/assetLibraryStore';
+import { useProjectManagerStore } from '../store/projectManagerStore';
 import { DockableLayoutWrapper } from './DockableLayoutWrapper';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 
@@ -91,6 +93,8 @@ export const ProfessionalModeLayout: React.FC = () => {
   const setSelectionLevel = useEditorStore((state) => state.setSelectionLevel);
   const currentView = useEditorStore((state) => state.currentView);
   const setCurrentView = useEditorStore((state) => state.setCurrentView);
+  const toggleLibrary = useAssetLibraryStore((state) => state.toggleVisibility);
+  const showProjectManager = useProjectManagerStore((state) => state.show);
 
   const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'analysis' | 'routing'>(
     'modeling'
@@ -450,6 +454,12 @@ export const ProfessionalModeLayout: React.FC = () => {
             </button>
             <button className="action-btn" title="Export" onClick={handleExport}>
               <Download size={18} />
+            </button>
+            <button className="action-btn" title="Project Manager" onClick={showProjectManager}>
+              <LayoutTemplate size={18} />
+            </button>
+            <button className="action-btn" title="Asset Library" onClick={toggleLibrary}>
+              <Layers size={18} />
             </button>
             <div className="separator"></div>
             <button
