@@ -64,10 +64,12 @@ interface SnapCache {
 
 /**
  * Transform local vertex to world space
+ * @deprecated Unused - kept for potential future use
  */
-function toWorld(v: BABYLON.Vector3, worldMatrix: BABYLON.Matrix): BABYLON.Vector3 {
-  if (!v || !worldMatrix) return v;
-  return BABYLON.Vector3.TransformCoordinates(v, worldMatrix);
+// @ts-ignore - Unused but kept for potential future use
+function toWorld(_v: BABYLON.Vector3, _worldMatrix: BABYLON.Matrix): BABYLON.Vector3 {
+  if (!_v || !_worldMatrix) return _v;
+  return BABYLON.Vector3.TransformCoordinates(_v, _worldMatrix);
 }
 
 /**

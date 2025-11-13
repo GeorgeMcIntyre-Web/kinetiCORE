@@ -193,7 +193,7 @@ export function showPreviewDot(
       
       // Verify the path is valid (not zero length)
       const pathLength = BABYLON.Vector3.Distance(edgeStart, edgeEnd);
-      if (pathLength < 0.001) {
+      if (pathLength < 0.001 && DEBUG_SNAP) {
         console.warn(`[SnappingHelper] Invalid line path: length=${pathLength.toFixed(6)}m`);
       }
       
@@ -305,8 +305,10 @@ export function showPreviewDot(
       const torusOuterRadius = torusMajorRadius + torusMinorRadius;
       const torusInnerRadius = torusMajorRadius - torusMinorRadius;
 
-      console.log(`[SnappingHelper] Torus dimensions: circleRadius=${(circleRadius * 1000).toFixed(3)}mm, diameter=${(torusDiameter * 1000).toFixed(3)}mm, thickness=${(ringThickness * 1000).toFixed(3)}mm`);
-      console.log(`[SnappingHelper] Torus radii: major=${(torusMajorRadius * 1000).toFixed(3)}mm, minor=${(torusMinorRadius * 1000).toFixed(3)}mm, outer=${(torusOuterRadius * 1000).toFixed(3)}mm, inner=${(torusInnerRadius * 1000).toFixed(3)}mm`);
+      if (DEBUG_SNAP) {
+        console.log(`[SnappingHelper] Torus dimensions: circleRadius=${(circleRadius * 1000).toFixed(3)}mm, diameter=${(torusDiameter * 1000).toFixed(3)}mm, thickness=${(ringThickness * 1000).toFixed(3)}mm`);
+        console.log(`[SnappingHelper] Torus radii: major=${(torusMajorRadius * 1000).toFixed(3)}mm, minor=${(torusMinorRadius * 1000).toFixed(3)}mm, outer=${(torusOuterRadius * 1000).toFixed(3)}mm, inner=${(torusInnerRadius * 1000).toFixed(3)}mm`);
+      }
       
       const ring = BABYLON.MeshBuilder.CreateTorus('snapPreviewCircle', {
         diameter: torusDiameter,
@@ -331,7 +333,9 @@ export function showPreviewDot(
         if (dotY < 0) {
           // Normal points down (0, -1, 0), rotate torus 180 degrees around X axis to flip Y-axis
           ring.rotationQuaternion = BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(1, 0, 0), Math.PI);
-          console.log(`[SnappingHelper] Torus rotation: Flipping 180° around X-axis for downward normal`);
+          if (DEBUG_SNAP) {
+            console.log(`[SnappingHelper] Torus rotation: Flipping 180° around X-axis for downward normal`);
+          }
         }
         // If dotY > 0, normal points up (0, 1, 0), torus is already correct - no rotation needed
       } else {
@@ -351,10 +355,14 @@ export function showPreviewDot(
           // Create rotation quaternion
           ring.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis, angle);
           
-          console.log(`[SnappingHelper] Torus rotation: axis=(${axis.x.toFixed(3)}, ${axis.y.toFixed(3)}, ${axis.z.toFixed(3)}), angle=${(angle * 180 / Math.PI).toFixed(1)}°, dotY=${dotY.toFixed(3)}`);
+          if (DEBUG_SNAP) {
+            console.log(`[SnappingHelper] Torus rotation: axis=(${axis.x.toFixed(3)}, ${axis.y.toFixed(3)}, ${axis.z.toFixed(3)}), angle=${(angle * 180 / Math.PI).toFixed(1)}°, dotY=${dotY.toFixed(3)}`);
+          }
         } else {
           // Y-axis and targetNormal are parallel (shouldn't happen due to check above, but handle it)
-          console.warn(`[SnappingHelper] Torus rotation: cross product too small (${crossLength.toFixed(6)}), using identity rotation`);
+          if (DEBUG_SNAP) {
+            console.warn(`[SnappingHelper] Torus rotation: cross product too small (${crossLength.toFixed(6)}), using identity rotation`);
+          }
         }
       }
       
@@ -374,13 +382,19 @@ export function showPreviewDot(
       BABYLON.Matrix.FromQuaternionToRef(quat, rotMatrix);
       const torusYAxis = BABYLON.Vector3.TransformNormal(new BABYLON.Vector3(0, 1, 0), rotMatrix);
       const torusAlignment = BABYLON.Vector3.Dot(torusYAxis.normalize(), targetNormal);
-      console.log(`[SnappingHelper] Torus orientation check: torusYAxis=(${torusYAxis.x.toFixed(6)}, ${torusYAxis.y.toFixed(6)}, ${torusYAxis.z.toFixed(6)}), targetNormal=(${targetNormal.x.toFixed(6)}, ${targetNormal.y.toFixed(6)}, ${targetNormal.z.toFixed(6)}), alignment=${torusAlignment.toFixed(6)} (should be ~1.0)`);
+      if (DEBUG_SNAP) {
+        console.log(`[SnappingHelper] Torus orientation check: torusYAxis=(${torusYAxis.x.toFixed(6)}, ${torusYAxis.y.toFixed(6)}, ${torusYAxis.z.toFixed(6)}), targetNormal=(${targetNormal.x.toFixed(6)}, ${targetNormal.y.toFixed(6)}, ${targetNormal.z.toFixed(6)}), alignment=${torusAlignment.toFixed(6)} (should be ~1.0)`);
+      }
       
       if (Math.abs(torusAlignment) < 0.9) {
-        console.warn(`[SnappingHelper] WARNING: Torus Y-axis not aligned with circle normal! Alignment=${torusAlignment.toFixed(3)}`);
+        if (DEBUG_SNAP) {
+          console.warn(`[SnappingHelper] WARNING: Torus Y-axis not aligned with circle normal! Alignment=${torusAlignment.toFixed(3)}`);
+        }
         // Try to fix: if alignment is close to -1, we're 180 degrees off
         if (torusAlignment < -0.9) {
-          console.warn(`[SnappingHelper] Attempting to fix: rotating 180° around X-axis`);
+          if (DEBUG_SNAP) {
+            console.warn(`[SnappingHelper] Attempting to fix: rotating 180° around X-axis`);
+          }
           const currentRot = ring.rotationQuaternion || BABYLON.Quaternion.Identity();
           const flipRot = BABYLON.Quaternion.RotationAxis(new BABYLON.Vector3(1, 0, 0), Math.PI);
           ring.rotationQuaternion = currentRot.multiply(flipRot);
@@ -399,9 +413,13 @@ export function showPreviewDot(
       ringMat.zOffset = -2;
       ring.material = ringMat;
       
-      console.log(`[SnappingHelper] Created center preview: orange circle ring (radius=${(circleRadius * 1000).toFixed(6)}mm, diameter=${(torusDiameter * 1000).toFixed(6)}mm, normal=(${targetNormal.x.toFixed(6)}, ${targetNormal.y.toFixed(6)}, ${targetNormal.z.toFixed(6)})) + orange dot at (${point.x.toFixed(6)}, ${point.y.toFixed(6)}, ${point.z.toFixed(6)})`);
+      if (DEBUG_SNAP) {
+        console.log(`[SnappingHelper] Created center preview: orange circle ring (radius=${(circleRadius * 1000).toFixed(6)}mm, diameter=${(torusDiameter * 1000).toFixed(6)}mm, normal=(${targetNormal.x.toFixed(6)}, ${targetNormal.y.toFixed(6)}, ${targetNormal.z.toFixed(6)})) + orange dot at (${point.x.toFixed(6)}, ${point.y.toFixed(6)}, ${point.z.toFixed(6)})`);
+      }
     } else {
-      console.warn(`[SnappingHelper] Center preview missing data: radius=${circleRadius}, normal=${!!circleNormal}`);
+      if (DEBUG_SNAP) {
+        console.warn(`[SnappingHelper] Center preview missing data: radius=${circleRadius}, normal=${!!circleNormal}`);
+      }
     }
     
     baseColor = isOnSelectedMesh
@@ -562,7 +580,9 @@ export function showPreviewDot(
         childMat.alpha = 1.0;
         childMat.zOffset = -10; // Match parent preview zOffset
         child.material = childMat;
-        console.log(`[SnappingHelper] Applied material to ${child.name}`);
+        if (DEBUG_SNAP) {
+          console.log(`[SnappingHelper] Applied material to ${child.name}`);
+        }
       }
     });
   }
@@ -575,7 +595,9 @@ export function showPreviewDot(
   }
   glowLayer.intensity = isOnSelectedMesh ? 3.0 : 2.0;
   glowLayer.addIncludedOnlyMesh(preview);
-  console.log(`[SnappingHelper] Added preview to glow layer, intensity=${glowLayer.intensity}`);
+  if (DEBUG_SNAP) {
+    console.log(`[SnappingHelper] Added preview to glow layer, intensity=${glowLayer.intensity}`);
+  }
   
   // For midpoint, add the line to glow layer if it exists
   if (snapType === 'midpoint') {
@@ -631,6 +653,8 @@ export function showPreviewDot(
   previewState.setPreviewIndicator(preview);
 
   // Debug: Confirm preview was created and configured
-  console.log(`[SnappingHelper] ✅ Preview created: name=${preview.name}, isVisible=${preview.isVisible}, isEnabled=${preview.isEnabled()}, layerMask=${preview.layerMask}, renderingGroupId=${preview.renderingGroupId}, position=(${preview.position.x.toFixed(3)}, ${preview.position.y.toFixed(3)}, ${preview.position.z.toFixed(3)})`);
+  if (DEBUG_SNAP) {
+    console.log(`[SnappingHelper] ✅ Preview created: name=${preview.name}, isVisible=${preview.isVisible}, isEnabled=${preview.isEnabled()}, layerMask=${preview.layerMask}, renderingGroupId=${preview.renderingGroupId}, position=(${preview.position.x.toFixed(3)}, ${preview.position.y.toFixed(3)}, ${preview.position.z.toFixed(3)})`);
+  }
 }
 

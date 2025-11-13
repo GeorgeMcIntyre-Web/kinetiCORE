@@ -3,7 +3,6 @@
 
 import * as BABYLON from '@babylonjs/core';
 import { SceneManager } from '../../scene/SceneManager';
-import { isSnapExcluded } from '../snapConstants';
 import { SnapResult } from './snapTypes';
 import { fitCircleToPoints } from './snapHelpers';
 import { DEBUG_SNAP } from './preview';

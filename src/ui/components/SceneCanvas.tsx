@@ -17,6 +17,7 @@ import { SceneManager } from '../../scene/SceneManager';
 import { babylonToUser } from '../../core/CoordinateSystem';
 import { toast } from './ToastNotifications';
 import { SnappingHelper } from '../../manipulation/SnappingHelper';
+import { DEBUG_SNAP, DEBUG_SNAP_DIAG } from '../../manipulation/snap/preview';
 
 export const SceneCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -174,6 +175,10 @@ export const SceneCanvas: React.FC = () => {
       (window as any).__snapReplay = (json: string) => {
         try {
           const snap = JSON.parse(json);
+          if (!scene) {
+            console.error('[SnapReplay] No scene available');
+            return;
+          }
           const engine = scene.getEngine();
           if (!engine) {
             console.error('[SnapReplay] No engine available');
@@ -213,7 +218,8 @@ export const SceneCanvas: React.FC = () => {
             if (snap.cam.maxZ !== undefined) {
               cam.maxZ = snap.cam.maxZ;
             }
-            cam._setDirty();
+            // Force camera update (private method, use type assertion)
+            (cam as any)._setDirty?.();
           }
 
           // Set forced pointer for next 2 frames (also expose to window for SceneCanvas access)
@@ -244,7 +250,9 @@ export const SceneCanvas: React.FC = () => {
           (window as any).__snapReplay(harnessJson);
           
           // Wait one frame then capture app results
+          if (!scene) return;
           scene.onBeforeRenderObservable.addOnce(() => {
+            if (!scene) return;
             const engine = scene.getEngine();
             const cam = scene.activeCamera;
             if (!engine || !cam) return;
@@ -291,6 +299,7 @@ App    : minPx=${appMinPx} near=${appNear} rw=${appRw} rh=${appRh} dpr=${appDpr.
       };
 
       // Clear forced pointer after 2 frames
+      if (!scene) return;
       scene.onBeforeRenderObservable.add(() => {
         if (forcedPointer) {
           forcedPointerFrames++;
@@ -957,7 +966,7 @@ App    : minPx=${appMinPx} near=${appNear} rw=${appRw} rh=${appRh} dpr=${appDpr.
               const screenSpacePixels = screenSpacePixelsCss * dpr; // render px
               
               // Parity check snapshot (once per 60 frames)
-              if (scene.getFrameId() % 60 === 0) {
+              if (DEBUG_SNAP_DIAG && scene.getFrameId() % 60 === 0) {
                 const snapShot = {
                   dpr,
                   rw: engine.getRenderWidth(),
@@ -967,7 +976,7 @@ App    : minPx=${appMinPx} near=${appNear} rw=${appRw} rh=${appRh} dpr=${appDpr.
                   threshPx: screenSpacePixels,
                   cam: {
                     pos: camera.position.asArray(),
-                    tgt: camera.getTarget().asArray(),
+                    tgt: (camera instanceof BABYLON.ArcRotateCamera ? camera.getTarget() : camera.position).asArray(),
                     fov: (camera as any).fov,
                     minZ: camera.minZ,
                     maxZ: camera.maxZ
@@ -977,22 +986,24 @@ App    : minPx=${appMinPx} near=${appNear} rw=${appRw} rh=${appRh} dpr=${appDpr.
               }
               
               // Sanity assertions
-              const harnessDpr = (window as any).__harnessDpr;
-              const harnessRw = (window as any).__harnessRw;
-              const harnessRh = (window as any).__harnessRh;
-              if (harnessDpr !== undefined && Math.abs(harnessDpr - dpr) > 0.01) {
-                console.warn(`[SnapDiag][Parity] DPR mismatch: app=${dpr.toFixed(3)} harness=${harnessDpr.toFixed(3)}`);
-              }
-              if (harnessRw !== undefined && harnessRw !== engine.getRenderWidth()) {
-                console.warn(`[SnapDiag][Parity] RW mismatch: app=${engine.getRenderWidth()} harness=${harnessRw}`);
-              }
-              if (harnessRh !== undefined && harnessRh !== engine.getRenderHeight()) {
-                console.warn(`[SnapDiag][Parity] RH mismatch: app=${engine.getRenderHeight()} harness=${harnessRh}`);
-              }
-              
-              // Assert pointer is in render px (no CSS unit)
-              if (pointerX !== scene.pointerX || pointerY !== scene.pointerY) {
-                console.warn(`[SnapDiag][Parity] Pointer mismatch: using scene.pointerX/Y directly`);
+              if (DEBUG_SNAP_DIAG) {
+                const harnessDpr = (window as any).__harnessDpr;
+                const harnessRw = (window as any).__harnessRw;
+                const harnessRh = (window as any).__harnessRh;
+                if (harnessDpr !== undefined && Math.abs(harnessDpr - dpr) > 0.01) {
+                  console.warn(`[SnapDiag][Parity] DPR mismatch: app=${dpr.toFixed(3)} harness=${harnessDpr.toFixed(3)}`);
+                }
+                if (harnessRw !== undefined && harnessRw !== engine.getRenderWidth()) {
+                  console.warn(`[SnapDiag][Parity] RW mismatch: app=${engine.getRenderWidth()} harness=${harnessRw}`);
+                }
+                if (harnessRh !== undefined && harnessRh !== engine.getRenderHeight()) {
+                  console.warn(`[SnapDiag][Parity] RH mismatch: app=${engine.getRenderHeight()} harness=${harnessRh}`);
+                }
+                
+                // Assert pointer is in render px (no CSS unit)
+                if (pointerX !== scene.pointerX || pointerY !== scene.pointerY) {
+                  console.warn(`[SnapDiag][Parity] Pointer mismatch: using scene.pointerX/Y directly`);
+                }
               }
               
               const snapSettings = {
@@ -1021,7 +1032,7 @@ App    : minPx=${appMinPx} near=${appNear} rw=${appRw} rh=${appRh} dpr=${appDpr.
               };
               
               // Use pickedPoint if available, otherwise use camera target as fallback
-              const snapPosition = generalPick?.pickedPoint || camera.getTarget();
+              const snapPosition = generalPick?.pickedPoint || (camera instanceof BABYLON.ArcRotateCamera ? camera.getTarget() : camera.position);
               
               const snapResult = snappingHelper.snapPosition(
                 snapPosition,
@@ -1044,7 +1055,7 @@ App    : minPx=${appMinPx} near=${appNear} rw=${appRw} rh=${appRh} dpr=${appDpr.
                 const center = snapResult.position.clone();
                 
                 // DEBUG: Compare position vs visualFeedback[0]
-                if (snapResult.visualFeedback[0]) {
+                if (DEBUG_SNAP && snapResult.visualFeedback[0]) {
                   const visualPos = snapResult.visualFeedback[0];
                   const posDiff = BABYLON.Vector3.Distance(center, visualPos);
                   if (posDiff > 0.0001) { // Only log if difference > 0.1mm
@@ -1071,7 +1082,9 @@ App    : minPx=${appMinPx} near=${appNear} rw=${appRw} rh=${appRh} dpr=${appDpr.
                   // Verify and normalize the normal
                   const normalLength = circleNormal.length();
                   if (Math.abs(normalLength - 1.0) > 0.001) {
-                    console.warn(`[SceneCanvas] Circle normal not normalized! Length=${normalLength.toFixed(6)}, normalizing...`);
+                    if (DEBUG_SNAP) {
+                      console.warn(`[SceneCanvas] Circle normal not normalized! Length=${normalLength.toFixed(6)}, normalizing...`);
+                    }
                     circleNormal.normalize();
                   }
                   

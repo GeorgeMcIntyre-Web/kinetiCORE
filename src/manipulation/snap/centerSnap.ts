@@ -157,7 +157,7 @@ export function snapToCenterStrategy(args: CenterSnapArgs): SnapResult {
           // Set metadata on SnapResult as well (preferred approach)
           circleNormal: snapPoint.circleNormal.clone(),
           circleRadius: circleResult.radius,
-          circleVertices: snapPoint.circleVertices.map(v => v.clone()),
+          circleVertices: snapPoint.circleVertices.map((v: BABYLON.Vector3) => v.clone()),
         };
       } else if (DEBUG_SNAP_DIAG && scene.getFrameId() % 60 === 0 && visiblePts.length > 0) {
         // Log when we have points but no circle detected
@@ -507,7 +507,7 @@ export function snapToCenterStrategy(args: CenterSnapArgs): SnapResult {
       // Set metadata on SnapResult as well (preferred approach)
       circleNormal: snapPoint.circleNormal.clone(),
       circleRadius: closestRadius,
-      circleVertices: snapPoint.circleVertices.map(v => v.clone()),
+      circleVertices: snapPoint.circleVertices.map((v: BABYLON.Vector3) => v.clone()),
     };
   }
   
