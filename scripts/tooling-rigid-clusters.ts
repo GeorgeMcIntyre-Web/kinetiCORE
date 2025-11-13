@@ -74,9 +74,10 @@ async function run() {
   const doc = await io.read(glbPath);
   const scene = doc.getRoot().getDefaultScene();
 
-  if (scene === undefined) {
+  if (scene === null || scene === undefined) {
     console.error('GLB has no default scene');
     process.exit(1);
+    return;
   }
 
   const sceneChildren = scene.listChildren();
@@ -153,10 +154,10 @@ function collectMeshInfos(root: Node): MeshNodeInfo[] {
     if (mesh) {
       mesh.listPrimitives().forEach((prim: Primitive) => {
         const pos = prim.getAttribute('POSITION');
-        if (pos === undefined) return;
+        if (pos === null || pos === undefined) return;
 
         const array = pos.getArray();
-        if (array === undefined) return;
+        if (array === null || array === undefined) return;
 
         const verts = pos.getCount();
         const bbox = computeBBox(array as Float32Array);
@@ -290,7 +291,6 @@ function summarizeCluster(
     totalVerts,
     height,
     areaXY,
-    volume: dx * dy * dz,
   };
 }
 
@@ -341,6 +341,13 @@ function detectFloorY(clusters: InternalCluster[]): number | null {
   return bestStart;
 }
 
+interface BaseStack {
+  id: number;
+  members: number[];          // cluster ids
+  topY: number;               // maxY of the stack
+  bbox: { min: [number, number, number]; max: [number, number, number] };
+}
+
 function classifyClusters(clusters: InternalCluster[]): TypedCluster[] {
   if (clusters.length === 0) return [];
 
@@ -352,94 +359,386 @@ function classifyClusters(clusters: InternalCluster[]): TypedCluster[] {
 
   console.log(`Detected floor Y: ${floorY.toFixed(4)}`);
 
-  const floorBand = 0.01; // ±10 mm
-  const areas = clusters.map(c => c.areaXY).sort((a, b) => a - b);
-  const maxArea = areas[areas.length - 1];
-  const baseAreaThreshold = maxArea * 0.3; // bases are the biggest footprints
+  const typed: TypedCluster[] = clusters.map(c => ({ ...c, type: 'loose' as ClusterType, attachedToBaseId: null }));
 
-  const heights = clusters.map(c => c.height).sort((a, b) => a - b);
-  const medianHeight = heights[Math.floor(heights.length / 2)];
-  const flatHeightThreshold = medianHeight * 0.7;
+  // 1) Seed: clusters that actually touch the floor
+  const floorBand = 0.01; // ±10mm
+  const floorSeeds = typed.filter(c => Math.abs(c.bbox.min[1] - floorY) <= floorBand);
 
-  const typed: TypedCluster[] = clusters.map(c => {
-    const minY = c.bbox.min[1];
-    const height = c.height;
-    const areaXY = c.areaXY;
-
-    const isOnFloor = Math.abs(minY - floorY) <= floorBand;
-    const isFlat = height <= flatHeightThreshold;
-    const isBigFootprint = areaXY >= baseAreaThreshold;
-
-    const isBase = isOnFloor && isFlat && isBigFootprint;
-
-    if (isBase) {
-      return { ...c, type: 'base' as ClusterType, attachedToBaseId: null };
-    }
-
-    return { ...c, type: 'loose' as ClusterType, attachedToBaseId: null };
-  });
-
-  const bases = typed.filter(c => c.type === 'base');
-
-  // Fallback: if no bases found, pick largest floor-touching clusters
-  if (bases.length === 0) {
-    const floorTouching = clusters.filter(c => Math.abs(c.bbox.min[1] - floorY) <= floorBand);
-    if (floorTouching.length > 0) {
-      const sortedByArea = [...floorTouching].sort((a, b) => b.areaXY - a.areaXY);
-      const fallbackBases = sortedByArea.slice(0, Math.min(3, sortedByArea.length));
-      
-      fallbackBases.forEach(c => {
-        const cluster = typed.find(t => t.id === c.id);
-        if (cluster) {
-          cluster.type = 'base';
-        }
-      });
-      
-      console.log(`Fallback: Selected ${fallbackBases.length} largest floor-touching clusters as bases`);
-    }
-  }
-
-  const finalBases = typed.filter(c => c.type === 'base');
-  if (finalBases.length === 0) {
-    console.log('No base clusters found even with fallback');
+  if (floorSeeds.length === 0) {
+    console.log('No floor-touching clusters found');
     return typed;
   }
 
-  console.log(`Found ${finalBases.length} base clusters`);
+  console.log(`Found ${floorSeeds.length} floor seed clusters`);
 
-  // Attach loose clusters to nearest overlapping base → mark as units
-  typed.forEach(cluster => {
-    if (cluster.type !== 'loose') return;
-
-    let bestBase: TypedCluster | undefined;
+  // 2) Grow base stacks upwards from each seed
+  let baseStacks = growBaseStacks(typed, floorSeeds);
+  
+  // 2a) Merge base stacks that are close together (within reasonable XY distance)
+  baseStacks = mergeNearbyBaseStacks(baseStacks);
+  
+  // 2b) Also merge large, flat clusters near the floor into base stacks
+  const maxArea = Math.max(...clusters.map(c => c.areaXY));
+  const largeClusterThreshold = maxArea * 0.2; // 20% of max area
+  const nearFloorThreshold = 0.5; // 500mm above floor
+  
+  const largeNearFloor = typed.filter(c => {
+    if (c.type !== 'loose') return false;
+    const isLarge = c.areaXY >= largeClusterThreshold;
+    // Check if cluster spans the floor (minY below or near floor, or intersects floor band)
+    const spansFloor = c.bbox.min[1] <= floorY + 0.1 || 
+                       (c.bbox.min[1] <= floorY + nearFloorThreshold && c.bbox.max[1] >= floorY - 0.1);
+    return isLarge && spansFloor;
+  });
+  
+  console.log(`Found ${largeNearFloor.length} large clusters near floor (area >= ${largeClusterThreshold.toFixed(4)}, minY <= ${(floorY + nearFloorThreshold).toFixed(4)})`);
+  
+  // Try to merge large near-floor clusters into existing base stacks
+  largeNearFloor.forEach(largeCluster => {
+    let bestStack: BaseStack | undefined;
     let bestScore = 0;
-
-    finalBases.forEach(base => {
-      const overlap = xyOverlapFractionCluster(cluster, base);
-      if (overlap <= 0.1) return; // need at least ten percent overlap
-
-      const verticalGap = cluster.bbox.min[1] - base.bbox.max[1];
-      const isGapReasonable = verticalGap >= -0.01 && verticalGap <= 0.25; // −10mm..250mm
-
-      if (!isGapReasonable) return;
-
-      const score = overlap / Math.max(verticalGap, 0.01);
-      if (score > bestScore) {
+    
+    baseStacks.forEach(stack => {
+      // Check if cluster spans the base stack vertically (cluster minY <= stack topY + tolerance)
+      // or sits on top (cluster minY >= stack topY - small tolerance)
+      const clusterBottom = largeCluster.bbox.min[1];
+      const stackTop = stack.topY;
+      const verticalOverlap = clusterBottom <= stackTop + 0.1 || 
+                              (clusterBottom >= stackTop - 0.1 && clusterBottom <= stackTop + 1.0);
+      if (!verticalOverlap) return;
+      
+      // Check if large cluster contains base stack in XY, or vice versa, or they overlap
+      const overlap = xyOverlapFractionFromBbox(largeCluster.bbox, stack.bbox);
+      
+      // Also check if one contains the other (even if overlap fraction is small due to size difference)
+      const largeContainsBase = 
+        largeCluster.bbox.min[0] <= stack.bbox.min[0] &&
+        largeCluster.bbox.max[0] >= stack.bbox.max[0] &&
+        largeCluster.bbox.min[2] <= stack.bbox.min[2] &&
+        largeCluster.bbox.max[2] >= stack.bbox.max[2];
+      
+      const baseContainsLarge = 
+        stack.bbox.min[0] <= largeCluster.bbox.min[0] &&
+        stack.bbox.max[0] >= largeCluster.bbox.max[0] &&
+        stack.bbox.min[2] <= largeCluster.bbox.min[2] &&
+        stack.bbox.max[2] >= largeCluster.bbox.max[2];
+      
+      const score = overlap > 0 ? overlap : (largeContainsBase || baseContainsLarge ? 0.5 : 0);
+      
+      if (score > bestScore && (overlap >= 0.005 || largeContainsBase || baseContainsLarge)) {
         bestScore = score;
-        bestBase = base;
+        bestStack = stack;
       }
     });
-
-    if (bestBase === undefined) return;
-
-    cluster.type = 'unit';
-    cluster.attachedToBaseId = bestBase.id;
+    
+    if (bestStack) {
+      console.log(`  Merged large cluster ${largeCluster.id} (area=${largeCluster.areaXY.toFixed(4)}, minY=${largeCluster.bbox.min[1].toFixed(4)}) into base stack ${bestStack.id} (score=${bestScore.toFixed(4)})`);
+      bestStack.members.push(largeCluster.id);
+      bestStack.topY = Math.max(bestStack.topY, largeCluster.bbox.max[1]);
+      bestStack.bbox = mergeBboxes([bestStack.bbox, largeCluster.bbox]);
+      largeCluster.type = 'base';
+    } else {
+      console.log(`  Could not merge large cluster ${largeCluster.id} (area=${largeCluster.areaXY.toFixed(4)}, minY=${largeCluster.bbox.min[1].toFixed(4)}) - no overlapping base stack`);
+    }
+  });
+  
+  // Debug: show stack sizes
+  baseStacks.forEach((stack, idx) => {
+    console.log(`  Base stack ${idx + 1}: ${stack.members.length} clusters, topY=${stack.topY.toFixed(4)}`);
   });
 
-  const unitCount = typed.filter(c => c.type === 'unit').length;
-  console.log(`Attached ${unitCount} clusters as units to bases`);
+  // Mark all members of each stack as base
+  baseStacks.forEach(stack => {
+    stack.members.forEach(id => {
+      const c = typed.find(x => x.id === id);
+      if (!c) return;
+      c.type = 'base';
+    });
+  });
+
+  console.log(`Built ${baseStacks.length} base stacks with ${baseStacks.reduce((sum, s) => sum + s.members.length, 0)} total clusters`);
+
+  // 3) Attach remaining clusters as units to nearest base stack
+  const looseBefore = typed.filter(c => c.type === 'loose').length;
+  console.log(`Before unit attachment: ${looseBefore} loose clusters`);
+  attachUnitsToBases(typed, baseStacks);
+
+  let unitCount = typed.filter(c => c.type === 'unit').length;
+  let baseCount = typed.filter(c => c.type === 'base').length;
+  let looseCount = typed.filter(c => c.type === 'loose').length;
+  console.log(`After attachUnitsToBases: ${baseCount} base, ${unitCount} unit, ${looseCount} loose`);
+
+  // Fallback: if we still have 0 units, promote tall loose clusters to units
+  if (unitCount === 0 && baseStacks.length > 0) {
+    const tallThreshold = 0.2;          // 200mm tall (lowered to catch more)
+    const minFootHeight = floorY - 0.5; // Allow clusters that start below floor
+
+    const tallLoose = typed
+      .filter(c => c.type === 'loose')
+      .filter(c => c.height >= tallThreshold && c.bbox.min[1] >= minFootHeight)
+      .sort((a, b) => b.height - a.height);
+
+    const maxPromote = 12;              // hard cap
+    const toPromote = tallLoose.slice(0, maxPromote);
+
+    console.log(`Fallback: Promoting ${toPromote.length} tall loose clusters to units`);
+
+    toPromote.forEach(c => {
+      // Attach to nearest base stack horizontally
+      let best: BaseStack | undefined;
+      let bestDist = Number.POSITIVE_INFINITY;
+
+      const cx = (c.bbox.min[0] + c.bbox.max[0]) * 0.5;
+      const cz = (c.bbox.min[2] + c.bbox.max[2]) * 0.5;
+
+      baseStacks.forEach(stack => {
+        const sx = (stack.bbox.min[0] + stack.bbox.max[0]) * 0.5;
+        const sz = (stack.bbox.min[2] + stack.bbox.max[2]) * 0.5;
+        const dx = cx - sx;
+        const dz = cz - sz;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist >= bestDist) return;
+        bestDist = dist;
+        best = stack;
+      });
+
+      if (!best) return;
+
+      c.type = 'unit';
+      c.attachedToBaseId = best.id;
+    });
+
+    unitCount = typed.filter(c => c.type === 'unit').length;
+    baseCount = typed.filter(c => c.type === 'base').length;
+    looseCount = typed.filter(c => c.type === 'loose').length;
+    console.log(
+      `Fallback promotion: ${unitCount} unit, ${baseCount} base, ${looseCount} loose`
+    );
+  }
+
+  const finalUnitCount = typed.filter(c => c.type === 'unit').length;
+  const finalBaseCount = typed.filter(c => c.type === 'base').length;
+  const finalLooseCount = typed.filter(c => c.type === 'loose').length;
+  console.log(`Final classification: ${finalBaseCount} base, ${finalUnitCount} unit, ${finalLooseCount} loose`);
 
   return typed;
+}
+
+/**
+ * Starting from floor seeds, climb upwards and merge clusters that:
+ *  - overlap in XY
+ *  - have a small vertical gap
+ */
+function growBaseStacks(
+  clusters: TypedCluster[],
+  seeds: TypedCluster[]
+): BaseStack[] {
+  const stacks: BaseStack[] = [];
+  const used = new Set<number>();
+
+  const verticalGapMax = 0.5; // 500mm (increased to allow pedestal growth)
+  const minOverlap = 0.02;      // 2% XY overlap (very low to catch any connection)
+
+  seeds.forEach(seed => {
+    if (used.has(seed.id)) return;
+
+    const stackMembers = new Set<number>();
+    stackMembers.add(seed.id);
+    used.add(seed.id);
+
+    let stackTopY = seed.bbox.max[1];
+    let stackBbox = { ...seed.bbox };
+    let changed = true;
+
+    while (changed) {
+      changed = false;
+
+      clusters.forEach(candidate => {
+        if (used.has(candidate.id)) return;
+
+        const gap = candidate.bbox.min[1] - stackTopY;
+        if (gap < -0.01) return;              // below or intersecting stack
+        if (gap > verticalGapMax) return;     // too far above
+
+        // Compare with the growing stack's merged bbox, not just the seed
+        const overlap = xyOverlapFractionFromBbox(candidate.bbox, stackBbox);
+        if (overlap < minOverlap) return;
+
+        stackMembers.add(candidate.id);
+        used.add(candidate.id);
+        stackTopY = Math.max(stackTopY, candidate.bbox.max[1]);
+        // Update stack bbox to include the new member
+        stackBbox = mergeBboxes([stackBbox, candidate.bbox]);
+        changed = true;
+      });
+    }
+
+    if (stackMembers.size === 0) return;
+
+    stacks.push({
+      id: seed.id,
+      members: Array.from(stackMembers),
+      topY: stackTopY,
+      bbox: stackBbox
+    });
+  });
+
+  return stacks;
+}
+
+/**
+ * Merge base stacks that are close together in XY to create larger base areas.
+ * This helps the large plate cluster overlap with the combined base.
+ */
+function mergeNearbyBaseStacks(stacks: BaseStack[]): BaseStack[] {
+  if (stacks.length <= 1) return stacks;
+  
+  const mergeDistance = 1.0; // 1m - merge stacks within this XY distance
+  const merged = new Set<number>();
+  const result: BaseStack[] = [];
+  
+  stacks.forEach((stack, i) => {
+    if (merged.has(i)) return;
+    
+    const combined = { ...stack };
+    merged.add(i);
+    
+    // Find nearby stacks to merge
+    stacks.forEach((other, j) => {
+      if (i === j || merged.has(j)) return;
+      
+      const centerA = [
+        (combined.bbox.min[0] + combined.bbox.max[0]) / 2,
+        (combined.bbox.min[2] + combined.bbox.max[2]) / 2
+      ];
+      const centerB = [
+        (other.bbox.min[0] + other.bbox.max[0]) / 2,
+        (other.bbox.min[2] + other.bbox.max[2]) / 2
+      ];
+      
+      const dx = centerA[0] - centerB[0];
+      const dz = centerA[1] - centerB[1];
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      
+      if (dist <= mergeDistance) {
+        // Merge other into combined
+        combined.members.push(...other.members);
+        combined.topY = Math.max(combined.topY, other.topY);
+        combined.bbox = mergeBboxes([combined.bbox, other.bbox]);
+        merged.add(j);
+      }
+    });
+    
+    result.push(combined);
+  });
+  
+  return result;
+}
+
+/** Attach all non-base clusters to the base stack they sit on. */
+function attachUnitsToBases(
+  clusters: TypedCluster[],
+  baseStacks: BaseStack[]
+): void {
+  const unitOverlapMin = 0.005;       // 0.5% (very low - just need any connection)
+  const unitGapMin = -0.2;            // −200mm (allow penetration)
+  const unitGapMax = 2.0;             // 2000mm (allow units well above base)
+
+  let attachedCount = 0;
+  let skippedOverlap = 0;
+  let skippedGap = 0;
+
+  clusters.forEach(cluster => {
+    if (cluster.type === 'base') return;
+
+    let best: BaseStack | undefined;
+    let bestScore = 0;
+    let bestOverlap = 0;
+    let bestGap = 0;
+
+    baseStacks.forEach(stack => {
+      const overlap = xyOverlapFractionFromBbox(cluster.bbox, stack.bbox);
+      if (overlap < unitOverlapMin) {
+        skippedOverlap++;
+        return;
+      }
+
+      const gap = cluster.bbox.min[1] - stack.topY;
+      if (gap < unitGapMin || gap > unitGapMax) {
+        skippedGap++;
+        return;
+      }
+
+      const score = overlap / Math.max(gap, 0.01);
+      if (score <= bestScore) return;
+
+      bestScore = score;
+      bestOverlap = overlap;
+      bestGap = gap;
+      best = stack;
+    });
+
+    if (!best) return;
+
+    cluster.type = 'unit';
+    cluster.attachedToBaseId = best.id;
+    attachedCount++;
+  });
+
+  console.log(`  Attached ${attachedCount} units (skipped ${skippedOverlap} for overlap, ${skippedGap} for gap)`);
+}
+
+function xyOverlapFractionFromBbox(
+  a: { min: [number, number, number]; max: [number, number, number] },
+  b: { min: [number, number, number]; max: [number, number, number] }
+): number {
+  const axMin = a.min[0];
+  const axMax = a.max[0];
+  const azMin = a.min[2];
+  const azMax = a.max[2];
+
+  const bxMin = b.min[0];
+  const bxMax = b.max[0];
+  const bzMin = b.min[2];
+  const bzMax = b.max[2];
+
+  const xOverlap = Math.max(0, Math.min(axMax, bxMax) - Math.max(axMin, bxMin));
+  const zOverlap = Math.max(0, Math.min(azMax, bzMax) - Math.max(azMin, bzMin));
+  const overlapArea = xOverlap * zOverlap;
+
+  if (overlapArea <= 0) return 0;
+
+  const areaA = (axMax - axMin) * (azMax - azMin);
+  const areaB = (bxMax - bxMin) * (bzMax - bzMin);
+  const minArea = Math.max(Math.min(areaA, areaB), 1e-6);
+
+  return overlapArea / minArea;
+}
+
+function mergeBboxes(
+  boxes: { min: [number, number, number]; max: [number, number, number] }[]
+): { min: [number, number, number]; max: [number, number, number] } {
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let minZ = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  let maxZ = Number.NEGATIVE_INFINITY;
+
+  boxes.forEach(b => {
+    if (b.min[0] < minX) minX = b.min[0];
+    if (b.min[1] < minY) minY = b.min[1];
+    if (b.min[2] < minZ) minZ = b.min[2];
+    if (b.max[0] > maxX) maxX = b.max[0];
+    if (b.max[1] > maxY) maxY = b.max[1];
+    if (b.max[2] > maxZ) maxZ = b.max[2];
+  });
+
+  return {
+    min: [minX, minY, minZ],
+    max: [maxX, maxY, maxZ]
+  };
 }
 
 function fallbackClassification(clusters: InternalCluster[]): TypedCluster[] {
