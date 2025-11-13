@@ -162,12 +162,6 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
       setWarehouse(warehouseModel);
     }
 
-    const ground = SceneManager.getInstance().getGround();
-    if (ground) {
-      ground.setEnabled(false);
-      ground.isVisible = false;
-    }
-
     const camera = CameraService.getInstance().getCamera();
     if (camera && camera instanceof BABYLON.ArcRotateCamera) {
       const widthM = config.width / 1000;

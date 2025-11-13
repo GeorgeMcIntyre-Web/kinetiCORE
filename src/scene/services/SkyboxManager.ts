@@ -3,9 +3,9 @@
 // Supports intensity/rotation/blur controls
 
 import * as BABYLON from '@babylonjs/core';
-import { GridMaterial } from '@babylonjs/materials/grid/gridMaterial';
-// import { createTriplanarFloor } from './TriplanarFloorShader'; // TODO: Implement TriplanarFloorShader
-import { setFloorMaterial, FloorKind, logMat } from '../materials/materials';
+import { SceneManager } from '../SceneManager';
+import { FloorType } from '../../core/types';
+import { GROUND_SIZE } from '../../core/constants';
 
 export type FloorMaterialType = 'grid' | 'stone' | 'concrete' | 'epoxy';
 
@@ -68,7 +68,7 @@ const DEFAULT_TRIPLANAR_CONFIG: TriplanarFloorConfig = {
 };
 
 const DEFAULT_FLOOR_CONFIG: FloorConfig = {
-  enabled: true,
+  enabled: false,
   materialType: 'grid',
   size: 'infinite',
   majorUnitFrequency: 10,
@@ -88,7 +88,7 @@ const DEFAULT_FLOOR_CONFIG: FloorConfig = {
 };
 
 const DEFAULT_CONFIG: SkyboxConfig = {
-  enabled: true,
+  enabled: false,
   skyPreset: 'day',
   intensity: 1.0,
   rotation: 0,
@@ -106,7 +106,7 @@ export class SkyboxManager {
   private skybox: BABYLON.Mesh | null = null;
   private skyboxTexture: BABYLON.CubeTexture | null = null;
   private config: SkyboxConfig = { ...DEFAULT_CONFIG };
-  private groundGrid: BABYLON.Mesh | null = null;
+  private lastFloorSize: 'infinite' | number = 'infinite';
 
   private constructor() {}
 
@@ -131,6 +131,10 @@ export class SkyboxManager {
    * Guarded to prevent overwrites
    */
   createSkybox(): void {
+    if (!this.config.enabled) {
+      console.log('[SkyboxManager] Skybox disabled - skipping creation');
+      return;
+    }
     if (!this.scene) {
       console.warn('[SkyboxManager] ⚠️ Scene not initialized');
       return;
@@ -469,199 +473,65 @@ export class SkyboxManager {
   }
 
   /**
-   * Create floor (grid or material-based)
+   * Create floor (grid or material-based) using the shared SceneManager ground/grid
    */
   async createGridFloor(): Promise<void> {
-    if (!this.scene) {
-      console.warn('[SkyboxManager] ⚠️ Scene not initialized');
+    const sceneManager = SceneManager.getInstance();
+    const ground = sceneManager.getGround();
+
+    if (!ground) {
+      console.warn('[SkyboxManager] ⚠️ Scene ground not initialized');
       return;
     }
 
-    // Don't create floor if disabled
-    if (!this.config.floor.enabled) {
-      if (this.groundGrid) {
-        this.groundGrid.dispose();
-        this.groundGrid = null;
-      }
-      return;
-    }
-
-    try {
-      // Dispose existing floor if present
-      if (this.groundGrid) {
-        this.groundGrid.dispose();
-        this.groundGrid = null;
-      }
-
-      const floorConfig = this.config.floor;
-      
-      // Determine ground size
-      const groundSize = floorConfig.size === 'infinite' 
-        ? 100000  // 100km - large enough to appear infinite
-        : floorConfig.size; // Use specified size
-
-      // Create floor based on material type
-      console.log(`[SkyboxManager] Creating floor - materialType: ${floorConfig.materialType}, size: ${groundSize}`);
-      if (floorConfig.materialType === 'grid') {
-        this.createGridFloorMesh(groundSize);
-        console.log('[SkyboxManager] ✅ Created grid floor');
-      } else {
-        // Create material-based floor (stone, concrete, epoxy)
-        await this.createMaterialFloor(floorConfig.materialType, groundSize);
-        console.log(`[SkyboxManager] ✅ Created ${floorConfig.materialType} floor`);
-      }
-      } catch (error) {
-        console.warn('[SkyboxManager] ⚠️ Failed to create floor:', error);
-      }
-    }
-
-  /**
-   * Create grid floor mesh
-   */
-  private createGridFloorMesh(groundSize: number): void {
-    this.groundGrid = BABYLON.MeshBuilder.CreateGround(
-      'skybox_grid_floor',
-      {
-        width: groundSize,
-        height: groundSize,
-        subdivisions: groundSize >= 100000 ? 200 : Math.max(50, Math.floor(groundSize / 500)),
-      },
-      this.scene!
-    );
-
-    // Create grid material with config values
-    const gridMaterial = new GridMaterial('grid_mat', this.scene!);
     const floorConfig = this.config.floor;
-    gridMaterial.majorUnitFrequency = floorConfig.majorUnitFrequency;
-    gridMaterial.minorUnitVisibility = floorConfig.minorUnitVisibility;
-    gridMaterial.gridRatio = floorConfig.gridRatio;
-    gridMaterial.mainColor = new BABYLON.Color3(floorConfig.mainColor[0], floorConfig.mainColor[1], floorConfig.mainColor[2]);
-    gridMaterial.lineColor = new BABYLON.Color3(floorConfig.lineColor[0], floorConfig.lineColor[1], floorConfig.lineColor[2]);
-    gridMaterial.opacity = floorConfig.opacity;
 
-    this.groundGrid.material = gridMaterial;
-    this.groundGrid.position = new BABYLON.Vector3(0, 0, 0);
-    this.groundGrid.receiveShadows = true;
-    this.groundGrid.isPickable = false;
+    if (!floorConfig.enabled) {
+      sceneManager.setGridOverlayVisible(false);
+      sceneManager.setFloorType('concrete-polished');
+      return;
+    }
 
-    console.log('[SkyboxManager] ✅ Created grid floor');
+    // Resize ground if needed
+    if (floorConfig.size !== this.lastFloorSize) {
+      if (floorConfig.size === 'infinite') {
+        sceneManager.resizeFloor(GROUND_SIZE, GROUND_SIZE);
+      } else {
+        const size = typeof floorConfig.size === 'number' ? floorConfig.size : GROUND_SIZE;
+        sceneManager.resizeFloor(size, size);
+      }
+      this.lastFloorSize = floorConfig.size;
+    }
+
+    if (floorConfig.materialType === 'grid') {
+      sceneManager.setFloorType('grid-only');
+      sceneManager.setGridOverlayOptions({
+        majorUnitFrequency: floorConfig.majorUnitFrequency,
+        minorUnitVisibility: floorConfig.minorUnitVisibility,
+        gridRatio: floorConfig.gridRatio,
+        mainColor: floorConfig.mainColor,
+        lineColor: floorConfig.lineColor,
+        opacity: floorConfig.opacity,
+      });
+      sceneManager.setGridOverlayVisible(true);
+    } else {
+      sceneManager.setGridOverlayVisible(false);
+      sceneManager.setFloorType(this.mapFloorMaterialToFloorType(floorConfig.materialType));
+    }
   }
 
-  /**
-   * Create material-based floor (stone, concrete, epoxy) using triplanar PBR shader
-   */
-  private async createMaterialFloor(materialType: FloorMaterialType, groundSize: number): Promise<void> {
-    if (!this.scene) {
-      console.warn('[SkyboxManager] ⚠️ Scene not initialized for material floor');
-      return;
-    }
-    
-    const floorConfig = this.config.floor;
-    // TODO: Re-enable triplanar floor shader once TriplanarFloorShader module is implemented
-    // const triplanarConfig = floorConfig.triplanar || DEFAULT_TRIPLANAR_CONFIG;
-    const textureUrls = floorConfig.textureUrls || {};
-    
-    console.log(`[SkyboxManager] Creating ${materialType} floor with size ${groundSize}`);
-
-    // TODO: Re-enable material presets when triplanar shader is implemented
-    /*
-    // Apply material-specific presets
-    let materialPreset: Partial<TriplanarFloorConfig> = {};
+  private mapFloorMaterialToFloorType(materialType: FloorMaterialType): FloorType {
     switch (materialType) {
       case 'stone':
-        materialPreset = { roughnessBias: 0.0, metallic: 0.01 };
-        break;
-      case 'concrete':
-        materialPreset = { roughnessBias: 0.0, metallic: 0.01 };
-        break;
+        return 'tiles-ceramic';
       case 'epoxy':
-        materialPreset = { roughnessBias: 0.08, metallic: 0.08 };
-        break;
-    }
-    const finalConfig = { ...triplanarConfig, ...materialPreset };
-    */
-    /*
-    if (textureUrls.baseColorUrl && textureUrls.normalUrl && textureUrls.roughAoUrl && 
-        textureUrls.microNormalUrl && textureUrls.noiseUrl) {
-      try {
-        const result = await createTriplanarFloor(
-          this.scene!,
-          {
-            baseColorUrl: textureUrls.baseColorUrl,
-            normalUrl: textureUrls.normalUrl,
-            roughAoUrl: textureUrls.roughAoUrl,
-            microNormalUrl: textureUrls.microNormalUrl,
-            noiseUrl: textureUrls.noiseUrl,
-          },
-          {
-            size: groundSize,
-            ...finalConfig,
-          }
-        );
-
-        if (result?.ground) {
-          this.groundGrid = result.ground;
-          this.groundGrid.position = new BABYLON.Vector3(0, 0, 0);
-          this.groundGrid.receiveShadows = true;
-          this.groundGrid.isPickable = false;
-
-          console.log(`[SkyboxManager] ✅ Created ${materialType} floor with triplanar PBR shader`);
-          return;
-        }
-      } catch (error) {
-        console.warn('[SkyboxManager] ⚠️ Failed to create triplanar floor, falling back to simple PBR:', error);
-      }
-    }
-    */
-
-    // Fallback: use material factory functions
-    this.groundGrid = BABYLON.MeshBuilder.CreateGround(
-      'skybox_material_floor',
-      {
-        width: groundSize,
-        height: groundSize,
-        subdivisions: groundSize >= 100000 ? 200 : Math.max(50, Math.floor(groundSize / 500)),
-      },
-      this.scene!
-    );
-
-    // Use robust factory pattern with proper material mapping
-    let floorKind: FloorKind;
-    switch (materialType) {
-      case 'stone':
-        floorKind = 'stone';
-        break;
+        return 'epoxy-gray';
       case 'concrete':
-        // Try triplanar first if textures available, otherwise sealed concrete
-        if (textureUrls.baseColorUrl && textureUrls.normalUrl && 
-            textureUrls.roughAoUrl && textureUrls.microNormalUrl && textureUrls.noiseUrl) {
-          floorKind = 'triplanarConcrete';
-        } else {
-          floorKind = 'sealedConcrete';
-        }
-        break;
-      case 'epoxy':
-        floorKind = 'epoxy';
-        break;
+        return 'concrete-polished';
+      case 'grid':
       default:
-        floorKind = 'sealedConcrete';
-        break;
+        return 'grid-only';
     }
-
-    // Use robust setter with proper disposal
-    setFloorMaterial(this.scene!, this.groundGrid, floorKind);
-    
-    this.groundGrid.position = new BABYLON.Vector3(0, 0, 0);
-    this.groundGrid.receiveShadows = true;
-    this.groundGrid.isPickable = false;
-
-    // Set scene environment intensity for better specular separation
-    if (this.scene!.environmentTexture) {
-      this.scene!.environmentIntensity = 1.2;
-    }
-
-    console.log(`[SkyboxManager] ✅ Created ${materialType} floor (kind: ${floorKind})`);
-    logMat(this.groundGrid.material);
   }
 
   /**
@@ -669,9 +539,7 @@ export class SkyboxManager {
    */
   updateConfig(config: Partial<SkyboxConfig>): void {
     // Capture old values before update for change detection
-    const oldFloorSize = this.config.floor.size;
-    const oldFloorMaterialType = this.config.floor.materialType;
-    const oldFloorEnabled = this.config.floor.enabled;
+    const previousFloorConfig: FloorConfig = { ...this.config.floor };
     
     // Handle nested floor config updates
     if (config.floor !== undefined) {
@@ -715,50 +583,104 @@ export class SkyboxManager {
       this.createGridFloor().catch(err => console.warn('[SkyboxManager] Failed to create floor:', err));
     } else if (!this.config.enabled && this.skybox) {
       this.disposeSkybox();
-      if (this.groundGrid) {
-        this.groundGrid.dispose();
-        this.groundGrid = null;
-      }
+      SceneManager.getInstance().setGridOverlayVisible(false);
     }
 
     // If floor config changed, recreate grid floor
-    if (this.config.enabled && this.scene && config.floor !== undefined) {
-      // Check if material type changed - compare with old value
-      const materialTypeChanged = config.floor.materialType !== undefined && 
-                                  config.floor.materialType !== oldFloorMaterialType;
-      
-      // Check if size actually changed - compare with old value
-      const sizeChanged = config.floor.size !== undefined && 
-                          config.floor.size !== oldFloorSize;
-      
-      // Check if enabled changed - compare with old value
-      const enabledChanged = config.floor.enabled !== undefined && 
-                             config.floor.enabled !== oldFloorEnabled;
-      
-      if (materialTypeChanged || sizeChanged || enabledChanged) {
-        console.log(`[SkyboxManager] Floor config changed - materialType: ${oldFloorMaterialType} -> ${this.config.floor.materialType}, size: ${oldFloorSize} -> ${this.config.floor.size}, enabled: ${oldFloorEnabled} -> ${this.config.floor.enabled}`);
-        console.log(`[SkyboxManager] Triggers - materialTypeChanged: ${materialTypeChanged}, sizeChanged: ${sizeChanged}, enabledChanged: ${enabledChanged}`);
-        this.createGridFloor().catch(err => {
-          console.error('[SkyboxManager] ❌ Failed to recreate floor:', err);
-        });
-      }
+    if (this.scene && config.floor !== undefined) {
+      this.handleFloorConfigUpdate(config.floor, previousFloorConfig);
+    }
+  }
+
+  private didGridSettingsChange(update: Partial<FloorConfig>, previous: FloorConfig): boolean {
+    if (
+      update.majorUnitFrequency !== undefined &&
+      update.majorUnitFrequency !== previous.majorUnitFrequency
+    ) {
+      return true;
+    }
+    if (
+      update.minorUnitVisibility !== undefined &&
+      update.minorUnitVisibility !== previous.minorUnitVisibility
+    ) {
+      return true;
+    }
+    if (update.gridRatio !== undefined && update.gridRatio !== previous.gridRatio) {
+      return true;
+    }
+    if (update.opacity !== undefined && update.opacity !== previous.opacity) {
+      return true;
+    }
+    if (
+      update.mainColor !== undefined &&
+      !this.areColorArraysEqual(update.mainColor, previous.mainColor)
+    ) {
+      return true;
+    }
+    if (
+      update.lineColor !== undefined &&
+      !this.areColorArraysEqual(update.lineColor, previous.lineColor)
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  private areColorArraysEqual(
+    a?: [number, number, number],
+    b?: [number, number, number]
+  ): boolean {
+    if (!a || !b) {
+      return a === b;
+    }
+    return a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
+  }
+
+  private applyGridOverlaySettings(): void {
+    const floorConfig = this.config.floor;
+    if (!floorConfig.enabled || floorConfig.materialType !== 'grid') {
+      return;
     }
 
-    // Update triplanar shader uniforms if material exists and is a shader material
-    if (this.groundGrid && this.groundGrid.material && config.floor?.triplanar) {
-      const mat = this.groundGrid.material as any;
-      if (mat.setFloat && mat.getClassName && mat.getClassName() === 'ShaderMaterial') {
-        const triplanar = { ...this.config.floor.triplanar, ...config.floor.triplanar };
-        mat.setFloat('uMacroScale', triplanar.macroScale);
-        mat.setFloat('uMicroScale', triplanar.microScale);
-        mat.setFloat('uNoiseScale', triplanar.noiseScale);
-        mat.setFloat('uNoiseStrength', triplanar.noiseStrength);
-        mat.setFloat('uRoughnessBias', triplanar.roughnessBias);
-        mat.setFloat('uAOWeight', triplanar.aoWeight);
-        mat.setFloat('uMetallic', triplanar.metallic);
-        mat.setFloat('uNormalStrength', triplanar.normalStrength);
-        mat.setFloat('uMicroNormalStrength', triplanar.microNormalStrength);
-      }
+    const sceneManager = SceneManager.getInstance();
+    sceneManager.setGridOverlayOptions({
+      majorUnitFrequency: floorConfig.majorUnitFrequency,
+      minorUnitVisibility: floorConfig.minorUnitVisibility,
+      gridRatio: floorConfig.gridRatio,
+      mainColor: floorConfig.mainColor,
+      lineColor: floorConfig.lineColor,
+      opacity: floorConfig.opacity,
+    });
+    sceneManager.setGridOverlayVisible(true);
+  }
+
+  private handleFloorConfigUpdate(update: Partial<FloorConfig>, previous: FloorConfig): void {
+    const materialTypeChanged =
+      update.materialType !== undefined && update.materialType !== previous.materialType;
+    const sizeChanged = update.size !== undefined && update.size !== previous.size;
+    const enabledChanged = update.enabled !== undefined && update.enabled !== previous.enabled;
+    const gridSettingsChanged = this.didGridSettingsChange(update, previous);
+
+    if (!materialTypeChanged && !sizeChanged && !enabledChanged && !gridSettingsChanged) {
+      return;
+    }
+
+    if (!this.scene) {
+      return;
+    }
+
+    if (materialTypeChanged || sizeChanged || enabledChanged) {
+      console.log(
+        `[SkyboxManager] Floor config changed - materialType: ${previous.materialType} -> ${this.config.floor.materialType}, size: ${previous.size} -> ${this.config.floor.size}, enabled: ${previous.enabled} -> ${this.config.floor.enabled}`
+      );
+      console.log(
+        `[SkyboxManager] Triggers - materialTypeChanged: ${materialTypeChanged}, sizeChanged: ${sizeChanged}, enabledChanged: ${enabledChanged}`
+      );
+      this.createGridFloor().catch((err) => {
+        console.error('[SkyboxManager] ❌ Failed to apply floor settings:', err);
+      });
+    } else if (gridSettingsChanged) {
+      this.applyGridOverlaySettings();
     }
   }
 
@@ -767,6 +689,16 @@ export class SkyboxManager {
    */
   getConfig(): SkyboxConfig {
     return { ...this.config };
+  }
+
+  getFloorConfig(): FloorConfig {
+    return { ...this.config.floor };
+  }
+
+  updateFloorConfig(update: Partial<FloorConfig>): void {
+    const previous = { ...this.config.floor };
+    this.config.floor = { ...this.config.floor, ...update };
+    this.handleFloorConfigUpdate(update, previous);
   }
 
   /**
@@ -814,10 +746,6 @@ export class SkyboxManager {
    */
   dispose(): void {
     this.disposeSkybox();
-    if (this.groundGrid) {
-      this.groundGrid.dispose();
-      this.groundGrid = null;
-    }
     this.scene = null;
   }
 

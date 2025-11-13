@@ -125,13 +125,6 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     const warehouseModel = new WarehouseModel(scene, config);
     setWarehouse(warehouseModel);
 
-    // Hide the default ground plane - we use warehouse's parking lot and grass instead
-    const ground = SceneManager.getInstance().getGround();
-    if (ground) {
-      ground.setEnabled(false);
-      ground.isVisible = false;
-    }
-
     // Configure camera for EXTERIOR view - position OUTSIDE the warehouse
     const camera = CameraService.getInstance().getCamera();
     if (camera && camera instanceof BABYLON.ArcRotateCamera) {

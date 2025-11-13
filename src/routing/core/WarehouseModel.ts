@@ -137,46 +137,7 @@ export class WarehouseModel {
    * AGGRESSIVE MODE: Disposes ALL ground planes to ensure clean skybox-only ground
    */
   private hideGroundPlane(): void {
-    console.log('[WarehouseModel] 🔍 AGGRESSIVE ground cleanup mode...');
-    console.log(`[WarehouseModel] Total meshes in scene: ${this.scene.meshes.length}`);
-
-    // AGGRESSIVE: Dispose ALL meshes that could be ground planes
-    const allMeshes = [...this.scene.meshes]; // Copy array since we'll be disposing
-    let disposedCount = 0;
-
-    for (const mesh of allMeshes) {
-      const meshName = mesh.name.toLowerCase();
-
-      // Skip warehouse meshes AND skybox meshes - we want to keep those
-      if (meshName.includes('warehouse') || meshName.includes('skybox')) {
-        continue;
-      }
-
-      // Dispose any mesh that could be a ground plane:
-      // 1. Has "ground", "floor", "plane", "parking", or "grid" in name
-      // 2. OR is positioned at Y=0 with large XZ dimensions (typical ground plane)
-      const isGroundName = meshName.includes('ground') ||
-                          meshName.includes('floor') ||
-                          meshName.includes('plane') ||
-                          meshName.includes('parking') ||
-                          meshName.includes('grid');
-
-      if (isGroundName) {
-        try {
-          console.log(`[WarehouseModel] 🗑️ DISPOSING ground mesh: "${mesh.name}" (material: ${mesh.material?.name || 'none'})`);
-          mesh.dispose();
-          disposedCount++;
-        } catch (e) {
-          console.warn(`[WarehouseModel] ⚠️ Could not dispose "${mesh.name}":`, e);
-          // Fallback: just hide it
-          mesh.setEnabled(false);
-          mesh.isVisible = false;
-          mesh.visibility = 0;
-        }
-      }
-    }
-
-    console.log(`[WarehouseModel] 📊 DISPOSED ${disposedCount} ground meshes (skybox bottom will now be visible)`);
+    console.log('[WarehouseModel] Ground cleanup skipped - using shared scene grid.');
   }
 
   /**

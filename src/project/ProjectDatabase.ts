@@ -41,6 +41,7 @@ export class ProjectDatabase {
   private static instance: ProjectDatabase | null = null;
   private db: IDBDatabase | null = null;
   private isInitialized = false;
+  private initializationPromise: Promise<void> | null = null;
 
   private constructor() {}
 
@@ -58,27 +59,77 @@ export class ProjectDatabase {
    * Initialize database
    */
   public async initialize(): Promise<void> {
-    if (this.isInitialized) return;
+    if (this.isInitialized) {
+      return;
+    }
 
-    return new Promise((resolve, reject) => {
+    if (this.initializationPromise) {
+      return this.initializationPromise;
+    }
+
+    if (typeof indexedDB === 'undefined') {
+      throw new Error('IndexedDB is not available in this environment. Project data persistence is disabled.');
+    }
+
+    this.initializationPromise = new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
+      let settled = false;
 
-      request.onerror = () => {
-        reject(new Error('Failed to open project database'));
+      const cleanup = () => {
+        settled = true;
+        clearTimeout(timeoutId);
       };
 
-      request.onsuccess = () => {
+      const resolveOnce = () => {
+        if (settled) return;
+        cleanup();
         this.db = request.result;
         this.isInitialized = true;
         console.log('[ProjectDatabase] Initialized successfully');
         resolve();
       };
 
+      const rejectOnce = (error: Error) => {
+        if (settled) return;
+        cleanup();
+        reject(error);
+      };
+
+      const timeoutId = window.setTimeout(() => {
+        rejectOnce(
+          new Error(
+            'Project database initialization timed out. Close other KinetiCORE tabs or clear application data and try again.'
+          )
+        );
+      }, 8000);
+
+      request.onerror = () => {
+        rejectOnce(
+          new Error(`Failed to open project database: ${request.error?.message ?? 'Unknown error'}`)
+        );
+      };
+
+      request.onblocked = () => {
+        rejectOnce(
+          new Error(
+            'Project database upgrade is blocked by another open KinetiCORE tab. Please close other tabs and reload.'
+          )
+        );
+      };
+
+      request.onsuccess = () => {
+        resolveOnce();
+      };
+
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
         this.createStores(db);
       };
+    }).finally(() => {
+      this.initializationPromise = null;
     });
+
+    return this.initializationPromise;
   }
 
   /**
