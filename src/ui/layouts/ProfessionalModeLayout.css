@@ -6,8 +6,8 @@
   height: 100vh;
   background: #1a202c;
   color: #e2e8f0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,
-    sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
 /* Header */
@@ -17,46 +17,59 @@
   height: 48px;
   min-height: 48px;
   flex-shrink: 0;
-  background: #2d3748;
+  /* Align with Essentials toolbar tone */
+  background: rgba(26, 32, 44, 0.98);
   border-bottom: 1px solid #4a5568;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
   z-index: 200; /* Above warning panel */
+  backdrop-filter: blur(8px);
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: 24px;
+  min-width: 0; /* allow flex children (tabs) to shrink and avoid scroll */
 }
 
 .workspace-tabs {
   display: flex;
   gap: 4px;
+  flex-wrap: nowrap; /* keep tabs on one line */
+  overflow-x: hidden; /* prevent default scrollbar from showing */
+  -ms-overflow-style: none; /* IE/Edge hides scrollbar */
+  scrollbar-width: none; /* Firefox hides scrollbar */
+}
+
+.workspace-tabs::-webkit-scrollbar {
+  display: none; /* Chrome/Safari hides scrollbar */
 }
 
 .workspace-tab {
-  padding: 6px 16px;
+  padding: 8px 16px; /* increase vertical padding for taller tabs */
   background: transparent;
   border: none;
-  color: #a0aec0;
-  font-size: 13px;
-  font-weight: 500;
+  color: #e2e8f0; /* match Essentials header text tone */
+  font-size: 14px; /* align with Essentials text-sm */
+  font-weight: 600; /* crisper tab labels */
+  margin-top: 4px; /* further increase tab height */
+  margin-bottom: 4px; /* further increase tab height */
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 6px;
   transition: all 0.2s;
 }
 
 .workspace-tab.active {
-  background: #4a5568;
-  color: #fff;
+  background: var(--kc-accent);
+  color: #ffffff;
 }
 
 .workspace-tab:not(:disabled):hover {
-  background: #4a5568;
-  color: #fff;
+  background: rgba(var(--kc-accent-rgb), 0.15);
+  color: #ffffff;
 }
 
 .workspace-tab:disabled {
@@ -65,8 +78,8 @@
 }
 
 .mode-badge.professional {
-  background: rgba(66, 153, 225, 0.9);
-  color: white;
+  background: var(--kc-accent);
+  color: #ffffff;
 }
 
 .header-right {
@@ -113,7 +126,7 @@
 }
 
 .action-btn:not(:disabled):hover {
-  background: #4a5568;
+  background: var(--kc-accent);
   color: #fff;
 }
 
@@ -133,69 +146,94 @@
 .ribbon-toolbar {
   position: sticky;
   top: 48px; /* Below header */
-  height: 64px; /* Increased to prevent label clipping */
-  min-height: 64px;
-  max-height: 64px;
+  height: auto; /* flexible height */
+  min-height: unset;
+  max-height: none;
   flex-shrink: 0; /* Don't shrink in flex container */
-  background: #2d3748;
-  border-bottom: 1px solid #4a5568;
+  /* Toolbar row background (parent) */
+  background: rgb(27, 32, 44);
+  border-top: 1px solid rgb(51, 56, 69);
+  border-bottom: 1px solid rgb(75, 85, 103); /* requested bottom border */
   display: flex;
   align-items: center;
+  justify-content: center; /* center container horizontally */
   /* Provide breathing space so group labels aren't cut by top border */
-  padding: 6px 8px 6px 2px; /* Minimal left padding to move buttons left */
+  padding: 4px 8px; /* tighter vertical padding for visible borders */
   gap: 4px; /* tighter spacing to prevent scrollbar */
   overflow-x: hidden; /* Remove scrollbar - buttons should fit */
-  overflow-y: visible; /* allow labels to render cleanly */
+  overflow-y: hidden; /* prevent vertical scrollbar */
   z-index: 199; /* Below header, above content */
+  backdrop-filter: blur(8px);
 }
 
 .tool-group {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  align-items: stretch; /* ensure consistent vertical start */
   gap: 4px;
+  padding-top: 2px; /* unify top offset across groups */
 }
 
 .group-label {
+  /* Match Essentials (Ribbon) label styling */
   font-size: 10px;
-  line-height: 14px; /* avoid top cropping */
-  color: #718096;
+  font-weight: 600;
+  height: 14px; /* fixed header height */
+  line-height: 14px; /* vertically center text within header */
+  color: var(--kc-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 0 4px; /* tighter padding */
-  white-space: nowrap; /* keep labels on one line */
+  white-space: nowrap;
+  margin: 0 0 4px 0; /* consistent spacing below header */
+  padding: 0 4px;
+  text-align: center; /* center within each section */
+  width: 100%; /* span full section width for proper centering */
+}
+
+/* Centered variant for specific groups (e.g., Transform) */
+.group-label.center {
+  text-align: center;
+  width: 100%;
 }
 
 .tool-buttons {
   display: flex;
-  gap: 2px; /* tighter spacing to prevent scrollbar */
+  gap: 6px; /* uniform spacing between ALL buttons */
+  align-items: center; /* normalize vertical alignment across tabs */
 }
 
 .tool-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 2px 6px; /* tighter padding to fit more buttons */
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
+  gap: 2px; /* consistent spacing */
+  padding: 6px 10px; /* slightly larger tap target */
+  /* Base contrast against container (#212634) */
+  background: #2a3145;
+  border: 1px solid #3a4154;
+  border-radius: 6px; /* unified corner radius */
   color: #e2e8f0;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 10px;
-  min-width: 48px; /* narrower to fit more buttons */
+  font-size: 12px; /* unified label size */
+  min-width: 64px; /* consistent width for all tool buttons */
 }
 
 .tool-btn:hover {
-  background: rgba(0, 217, 255, 0.1);
-  border-color: rgba(0, 217, 255, 0.3);
+  /* Subtle accent tint while preserving contrast */
+  background: #323a50;
+  border-color: rgba(var(--kc-accent-rgb), 0.25);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
 .tool-btn.active {
-  background: rgba(0, 217, 255, 0.2);
-  border-color: #00D9FF;
-  color: #00D9FF;
+  background: rgba(var(--kc-accent-rgb), 0.18);
+  border-color: rgba(var(--kc-accent-rgb), 0.45);
+  color: rgb(var(--kc-accent-rgb));
+  box-shadow:
+    0 0 0 1px rgba(var(--kc-accent-rgb), 0.35),
+    0 0 10px var(--kc-accent-glow);
 }
 
 .tool-btn:disabled {
@@ -209,16 +247,16 @@
 }
 
 .tool-btn span {
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   white-space: nowrap;
-  line-height: 14px; /* ensure full glyph height */
+  line-height: 14px; /* reduce to fit within fixed toolbar height */
 }
 
 /* Normalize icon sizes inside buttons for consistency */
 .tool-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 18px; /* unified icon size */
+  height: 18px;
 }
 
 .tool-btn svg {
@@ -226,7 +264,19 @@
 }
 
 .tool-btn.active svg {
-  color: var(--kc-accent, #00D9FF);
+  color: inherit;
+}
+
+.tool-btn:disabled:hover {
+  background: transparent;
+  border-color: transparent;
+  color: #e2e8f0;
+}
+
+/* High contrast focus for accessibility */
+.tool-btn:focus-visible {
+  outline: 2px solid rgba(var(--kc-accent-rgb), 0.5);
+  outline-offset: 2px;
 }
 
 .tool-btn-label {
@@ -262,8 +312,9 @@
 .toolbar-separator {
   width: 1px;
   height: 100%; /* fill ribbon height */
-  background: #4a5568;
+  background: #333845; /* requested separator color */
   margin: 0 2px; /* minimal margin */
+  align-self: stretch; /* extend from top to bottom within container */
 }
 
 /* Main Content */

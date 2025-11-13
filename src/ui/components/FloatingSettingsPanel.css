@@ -506,6 +506,64 @@
   min-width: 80px;
 }
 
+/* Help card */
+.help-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: var(--settings-surface);
+  border: 1px solid var(--settings-border);
+  border-radius: 8px;
+}
+
+.help-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--settings-text);
+}
+
+.help-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.help-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--settings-text);
+}
+
+.help-card-subtitle {
+  font-size: 12px;
+  color: var(--settings-text-secondary);
+}
+
+.help-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.help-card-btn {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Black theme for primary action inside help card */
+.help-card .settings-btn-primary {
+  background: #111111;
+  color: var(--settings-text);
+  border: 1px solid var(--settings-border);
+}
+
+.help-card .settings-btn-primary:hover {
+  background: #1b1b1b;
+  border-color: #4a4a4a;
+}
+
 /* Animation for tab switching */
 .settings-content {
   animation: fadeIn 0.2s ease-in-out;

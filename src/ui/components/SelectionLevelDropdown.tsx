@@ -94,7 +94,7 @@ export const SelectionLevelDropdown: React.FC<SelectionLevelDropdownProps> = ({
     <div className="selection-level-dropdown" ref={dropdownRef}>
       <button
         ref={buttonRef}
-        className="selection-level-dropdown-btn ribbon-btn"
+        className="selection-level-dropdown-btn"
         onClick={handleMainButtonClick}
         title={`${currentOption.description} (Click to change)`}
       >

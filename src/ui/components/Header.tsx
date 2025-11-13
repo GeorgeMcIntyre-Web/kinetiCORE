@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Menu, X, Settings, HelpCircle, Zap, ZapOff, ZapIcon } from 'lucide-react';
 import { zIndex, colors } from '../styles/design-tokens';
 import { RibbonToolbar, RibbonToolbarProps } from './RibbonToolbar';
-import { useTheme } from '../core/ThemeContext';
 import './Header.css';
 
 export interface HeaderProps {
@@ -47,7 +46,6 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
-  const { theme, toggleTheme } = useTheme();
 
   const currentModeConfig = modeConfig[currentMode];
   const CurrentModeIcon = currentModeConfig.icon;
@@ -75,7 +73,9 @@ export const Header: React.FC<HeaderProps> = ({
     window.addEventListener('resize', onResize);
     return () => {
       window.removeEventListener('resize', onResize);
-      try { ro && ro.disconnect && ro.disconnect(); } catch {}
+      try {
+        ro && ro.disconnect && ro.disconnect();
+      } catch {}
     };
   }, []);
 
@@ -96,7 +96,25 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-white font-bold text-sm">K</span>
           </div>
           <div className="hidden sm:block">
-            <h1 className="text-xl font-bold bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">kinetic CORE</h1>
+            <h1 className="text-xl font-bold">
+              <span className="bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">
+                kinetic CORE
+              </span>
+              {currentMode === 'essential' && (
+                <span
+                  className="ml-1 align-middle inline-flex items-center text-[9px] font-semibold uppercase tracking-wide"
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: '#ffd93b',
+                    position: 'relative',
+                    top: '-7px',
+                  }}
+                  aria-label="Essential Edition"
+                >
+                  Essential
+                </span>
+              )}
+            </h1>
             <p className="text-xs text-gray-400">The Linux of Manufacturing Simulation</p>
           </div>
         </div>
@@ -108,90 +126,88 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
 
-        {/* Right side: Theme + Mode Switcher + Actions */}
+        {/* Right side: Mode Switcher + Actions */}
         <div className="flex items-center space-x-2 flex-shrink-0">
-          {/* Theme toggle */}
-          <button
-            onClick={toggleTheme}
-            className="hidden md:inline-flex items-center gap-2 px-2 py-1.5 rounded-md border bg-white border-gray-200 hover:bg-gray-50 transition-colors"
-            title={`Theme: ${theme}`}
-          >
-            <span
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: 'var(--kc-accent)' }}
-            />
-          </button>
           {/* Mode Switcher - Desktop */}
           <div className="hidden md:block">
-        <div className="relative">
-          <button
-            onClick={() => setIsModeMenuOpen(!isModeMenuOpen)}
-            className={`
+            <div className="relative">
+              <button
+                onClick={() => setIsModeMenuOpen(!isModeMenuOpen)}
+                className={`
               flex items-center space-x-1 px-2 py-1.5 rounded-md border
               transition-colors duration-200
-              ${isModeMenuOpen 
-                ? 'bg-gray-50 border-gray-300' 
-                : 'bg-white border-gray-200 hover:bg-gray-50'
+              ${
+                isModeMenuOpen
+                  ? 'bg-gray-50 border-gray-300'
+                  : 'bg-white border-gray-200 hover:bg-gray-50'
               }
             `}
-            title={`${currentModeConfig.label} - ${currentModeConfig.description}`}
-          >
-            <CurrentModeIcon 
-              className="w-3.5 h-3.5" 
-              style={{ color: currentModeConfig.color }}
-            />
-            <div className={`w-1.5 h-1.5 rounded-full`} style={{ backgroundColor: currentModeConfig.color }} />
-          </button>
+                title={`${currentModeConfig.label} - ${currentModeConfig.description}`}
+              >
+                <CurrentModeIcon
+                  className="w-3.5 h-3.5"
+                  style={{ color: currentModeConfig.color }}
+                />
+                <div
+                  className={`w-1.5 h-1.5 rounded-full`}
+                  style={{ backgroundColor: currentModeConfig.color }}
+                />
+              </button>
 
-          {/* Mode Dropdown */}
-          {isModeMenuOpen && (
-            <div className="absolute top-full right-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-              <div className="p-2">
-                {Object.entries(modeConfig).map(([mode, config]) => {
-                  const Icon = config.icon;
-                  const isActive = mode === currentMode;
-                  
-                  return (
-                    <button
-                      key={mode}
-                      onClick={() => {
-                        onModeChange(mode as 'essential' | 'professional' | 'expert');
-                        setIsModeMenuOpen(false);
-                      }}
-                      className={`mode-option ${
-                        isActive 
-                          ? 'bg-blue-50 border border-blue-200' 
-                          : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      <Icon 
-                        className="w-5 h-5 mt-0.5 flex-shrink-0" 
-                        style={{ color: config.color }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2">
-                          <span className={`text-sm font-medium ${isActive ? 'text-blue-900' : 'text-gray-900'}`}>
-                            {config.label}
-                          </span>
-                          {isActive && (
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: config.color }} />
-                          )}
-                        </div>
-                        <p className={`text-xs mt-1 ${isActive ? 'text-blue-700' : 'text-gray-500'}`}>
-                          {config.description}
-                        </p>
-                      </div>
-                      {mode === 'essential' && <kbd className="keyboard-hint">Ctrl+1</kbd>}
-                      {mode === 'professional' && <kbd className="keyboard-hint">Ctrl+2</kbd>}
-                      {mode === 'expert' && <kbd className="keyboard-hint">Ctrl+3</kbd>}
-                    </button>
-                  );
-                })}
-              </div>
+              {/* Mode Dropdown */}
+              {isModeMenuOpen && (
+                <div className="absolute top-full right-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                  <div className="p-2">
+                    {Object.entries(modeConfig).map(([mode, config]) => {
+                      const Icon = config.icon;
+                      const isActive = mode === currentMode;
+
+                      return (
+                        <button
+                          key={mode}
+                          onClick={() => {
+                            onModeChange(mode as 'essential' | 'professional' | 'expert');
+                            setIsModeMenuOpen(false);
+                          }}
+                          className={`mode-option ${
+                            isActive ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          <Icon
+                            className="w-5 h-5 mt-0.5 flex-shrink-0"
+                            style={{ color: config.color }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2">
+                              <span
+                                className={`text-sm font-medium ${isActive ? 'text-blue-900' : 'text-gray-900'}`}
+                              >
+                                {config.label}
+                              </span>
+                              {isActive && (
+                                <div
+                                  className="w-2 h-2 rounded-full"
+                                  style={{ backgroundColor: config.color }}
+                                />
+                              )}
+                            </div>
+                            <p
+                              className={`text-xs mt-1 ${isActive ? 'text-blue-700' : 'text-gray-500'}`}
+                            >
+                              {config.description}
+                            </p>
+                          </div>
+                          {mode === 'essential' && <kbd className="keyboard-hint">Ctrl+1</kbd>}
+                          {mode === 'professional' && <kbd className="keyboard-hint">Ctrl+2</kbd>}
+                          {mode === 'expert' && <kbd className="keyboard-hint">Ctrl+3</kbd>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
           {/* Action Buttons */}
           <button
@@ -200,14 +216,6 @@ export const Header: React.FC<HeaderProps> = ({
             title="Settings"
           >
             <Settings className="w-5 h-5" />
-          </button>
-
-          <button
-            onClick={onHelpClick}
-            className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors duration-200"
-            title="Help & Documentation"
-          >
-            <HelpCircle className="w-5 h-5" />
           </button>
 
           {/* Mobile Menu Button */}
@@ -230,7 +238,7 @@ export const Header: React.FC<HeaderProps> = ({
               {Object.entries(modeConfig).map(([mode, config]) => {
                 const Icon = config.icon;
                 const isActive = mode === currentMode;
-                
+
                 return (
                   <button
                     key={mode}
@@ -241,23 +249,22 @@ export const Header: React.FC<HeaderProps> = ({
                     className={`
                       w-full flex items-center space-x-3 p-3 rounded-lg
                       transition-colors duration-200 text-left
-                      ${isActive 
-                        ? 'bg-blue-50 border border-blue-200' 
-                        : 'hover:bg-gray-50'
-                      }
+                      ${isActive ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'}
                     `}
                   >
-                    <Icon 
-                      className="w-5 h-5 flex-shrink-0" 
-                      style={{ color: config.color }}
-                    />
+                    <Icon className="w-5 h-5 flex-shrink-0" style={{ color: config.color }} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
-                        <span className={`text-sm font-medium ${isActive ? 'text-blue-900' : 'text-gray-900'}`}>
+                        <span
+                          className={`text-sm font-medium ${isActive ? 'text-blue-900' : 'text-gray-900'}`}
+                        >
                           {config.label}
                         </span>
                         {isActive && (
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: config.color }} />
+                          <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: config.color }}
+                          />
                         )}
                       </div>
                       <p className={`text-xs mt-1 ${isActive ? 'text-blue-700' : 'text-gray-500'}`}>
@@ -274,10 +281,7 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Click outside to close mode menu */}
       {isModeMenuOpen && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setIsModeMenuOpen(false)}
-        />
+        <div className="fixed inset-0 z-40" onClick={() => setIsModeMenuOpen(false)} />
       )}
     </header>
   );

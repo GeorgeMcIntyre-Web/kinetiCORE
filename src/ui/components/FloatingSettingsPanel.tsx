@@ -18,7 +18,11 @@ import {
   Sliders,
   Database,
   Cloud,
+  HelpCircle,
+  Book,
+  ExternalLink,
 } from 'lucide-react';
+import { toast } from './ToastNotifications';
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { useEditorStore } from '../store/editorStore';
 import { useUserLevel } from '../core/UserLevelContext';
@@ -134,6 +138,44 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
               <option value="de">Deutsch</option>
               <option value="zh">中文</option>
             </select>
+          </div>
+        </div>
+        <div className="settings-compact-group">
+          <h4 className="settings-group-title">
+            <HelpCircle size={16} />
+            Help & Documentation
+          </h4>
+          <div className="help-card">
+            <div className="help-card-header">
+              <Book size={18} />
+              <div className="help-card-text">
+                <div className="help-card-title">Explore the docs</div>
+                <div className="help-card-subtitle">Guides, tutorials, and API references</div>
+              </div>
+            </div>
+            <div className="help-card-actions">
+              <button
+                className="settings-btn settings-btn-primary help-card-btn"
+                onClick={() => {
+                  try {
+                    window.open('https://docs.kineticore.app', '_blank', 'noopener,noreferrer');
+                  } catch {
+                    toast.info('Help documentation coming soon');
+                  }
+                }}
+                title="Open Documentation"
+              >
+                Open Docs
+                <ExternalLink size={14} style={{ marginLeft: 8 }} />
+              </button>
+              <button
+                className="settings-btn settings-btn-secondary help-card-btn"
+                onClick={() => toast.info('Keyboard shortcuts coming soon')}
+                title="View Keyboard Shortcuts"
+              >
+                Shortcuts
+              </button>
+            </div>
           </div>
         </div>
       </div>
