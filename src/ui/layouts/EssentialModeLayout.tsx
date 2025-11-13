@@ -17,6 +17,7 @@ import { FloatingComplexIKPanel } from '../components/FloatingComplexIKPanel';
 import { WholeBodyIKPanel } from '../components/WholeBodyIKPanel';
 import { KinematicExtractionPanel } from '../components/KinematicExtractionPanel';
 import { ICPTestPanel } from '../components/ICPTestPanel';
+import { AutoKinematicsTestButton } from '../components/AutoKinematicsTestButton';
 import { FloatingPhysicsPanel } from '../components/FloatingPhysicsPanel';
 import { FloatingCollisionPanel } from '../components/FloatingCollisionPanel';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
@@ -80,6 +81,7 @@ export const EssentialModeLayout: React.FC = () => {
   const [showWholeBodyIKPanel, setShowWholeBodyIKPanel] = useState(false);
   const [showKinematicExtractionPanel, setShowKinematicExtractionPanel] = useState(false);
   const [showICPTestPanel, setShowICPTestPanel] = useState(false);
+  const [showAutoKinematicsTest, setShowAutoKinematicsTest] = useState(false);
   const [showPhysicsSettings, setShowPhysicsSettings] = useState(false);
   const [showCollisionVisualizer, setShowCollisionVisualizer] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
@@ -562,6 +564,7 @@ export const EssentialModeLayout: React.FC = () => {
             onWholeBodyIKClick: () => setShowWholeBodyIKPanel(!showWholeBodyIKPanel),
             onKinematicExtractionClick: () => setShowKinematicExtractionPanel(!showKinematicExtractionPanel),
             onICPTestClick: () => setShowICPTestPanel(!showICPTestPanel),
+            onAutoKinematicsTestClick: () => setShowAutoKinematicsTest(!showAutoKinematicsTest),
             onPhysicsClick: () => setShowPhysicsSettings(!showPhysicsSettings),
             onCollisionsClick: () => setShowCollisionVisualizer(!showCollisionVisualizer),
             onProjectionClick: handleCreateProjectionView,
@@ -693,6 +696,29 @@ export const EssentialModeLayout: React.FC = () => {
         onClose={() => setShowICPTestPanel(false)}
         zIndex={1007}
       />
+
+      {/* Auto Kinematics Test Button - Fixed bottom-right */}
+      {showAutoKinematicsTest && (
+        <div
+          className="fixed"
+          style={{
+            position: 'fixed',
+            bottom: '80px',
+            right: '20px',
+            zIndex: 1008,
+          }}
+        >
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => setShowAutoKinematicsTest(false)}
+              className="self-end text-gray-400 hover:text-white text-xs px-2"
+            >
+              ✕ Close
+            </button>
+            <AutoKinematicsTestButton />
+          </div>
+        </div>
+      )}
 
       <FloatingPhysicsPanel
         isVisible={showPhysicsSettings}

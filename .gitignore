@@ -209,3 +209,28 @@ wrangler-debug.toml
 # Large texture files (exceed GitHub 100MB limit - use Git LFS if needed)
 public/assets/textures/grass/*.png
 public/assets/textures/asphalt/*.jpg
+
+# Debug and test scripts
+test-*.cjs
+test-*.js
+debug-*.cjs
+debug-*.js
+
+# Backup files
+*.backup
+*_OLD.ts
+*_OLD.js
+
+# Analysis and test documentation
+ANALYZE_*.md
+EXTRACT_*.md
+GOAL_*.md
+NEXT_SESSION*.md
+PWA_*.md
+QUICK_*.md
+RUN_*.md
+TEST_*.md
+
+# Debug folders
+src/babylon/kinematics/debug/
+src/*/debug/

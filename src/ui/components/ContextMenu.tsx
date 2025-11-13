@@ -5,7 +5,7 @@
 import { useEffect, useState, useRef } from 'react';
 import {
   Copy, Trash2, Eye, EyeOff, Lock, Unlock, Edit3, ZoomIn,
-  Box, Circle, Cylinder as CylinderIcon, Folder, Play, Save, Download
+  Box, Circle, Cylinder as CylinderIcon, Folder, Play, Save, Download, Search
 } from 'lucide-react';
 
 export interface ContextMenuItem {
@@ -165,6 +165,7 @@ export const useNodeContextMenu = () => {
       onZoom: () => void;
       onSaveToLibrary: () => void;
       onExportGLB: () => void;
+      onInspectKinematics: () => void;
     }
   ): ContextMenuItem[] => {
     return [
@@ -186,6 +187,12 @@ export const useNodeContextMenu = () => {
         label: 'Save to Library',
         icon: <Save size={16} />,
         action: actions.onSaveToLibrary,
+        disabled: _nodeType === 'world',
+      },
+      {
+        label: 'Inspect Kinematics',
+        icon: <Search size={16} />,
+        action: actions.onInspectKinematics,
         disabled: _nodeType === 'world',
       },
       {
