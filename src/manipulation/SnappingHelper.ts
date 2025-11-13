@@ -699,7 +699,7 @@ export class SnappingHelper {
    */
   private snapToVertex(
     position: BABYLON.Vector3,
-    snapDistance: number,
+    _snapDistance: number,
     excludeMeshIds: string[],
     camera?: BABYLON.Camera,
     screenSpacePixels?: number,
@@ -744,15 +744,16 @@ export class SnappingHelper {
         screenPos = { x: pointerScreenX, y: pointerScreenY };
       } else {
         // FALLBACK: Project world position to screen space (may hit ground/grid)
-        const worldMatrix = scene.getTransformMatrix();
         const viewport = camera.viewport.toGlobal(
           scene.getEngine().getRenderWidth(),
           scene.getEngine().getRenderHeight()
         );
+        // Use Identity for world matrix (position is already in world space)
+        // Use scene transform matrix (view * projection combined) as second parameter
         const projected = BABYLON.Vector3.Project(
           position,
-          worldMatrix,
-          camera.getProjectionMatrix(),
+          BABYLON.Matrix.Identity(),
+          scene.getTransformMatrix(),
           viewport
         );
         screenPos = { x: projected.x, y: projected.y };
@@ -1313,15 +1314,16 @@ export class SnappingHelper {
     // Convert position to screen space if camera provided
     let screenPos: { x: number; y: number } | null = null;
     if (camera && screenSpacePixels !== undefined) {
-      const worldMatrix = scene.getTransformMatrix();
       const viewport = camera.viewport.toGlobal(
         scene.getEngine().getRenderWidth(),
         scene.getEngine().getRenderHeight()
       );
+      // Use Identity for world matrix (position is already in world space)
+      // Use scene transform matrix (view * projection combined) as second parameter
       const projected = BABYLON.Vector3.Project(
         position,
-        worldMatrix,
-        camera.getProjectionMatrix(),
+        BABYLON.Matrix.Identity(),
+        scene.getTransformMatrix(),
         viewport
       );
       screenPos = { x: projected.x, y: projected.y };
@@ -1420,15 +1422,14 @@ export class SnappingHelper {
     if (closestPoint) {
       if (camera && screenSpacePixels !== undefined && screenPos) {
         // Check screen-space distance for preview
-        const worldMatrix = scene.getTransformMatrix();
         const viewport = camera.viewport.toGlobal(
           scene.getEngine().getRenderWidth(),
           scene.getEngine().getRenderHeight()
         );
         const projected = BABYLON.Vector3.Project(
           closestPoint,
-          worldMatrix,
-          camera.getProjectionMatrix(),
+          BABYLON.Matrix.Identity(),
+          scene.getTransformMatrix(),
           viewport
         );
         const screenDist = Math.sqrt(
@@ -1480,15 +1481,16 @@ export class SnappingHelper {
     // Convert position to screen space if camera provided
     let screenPos: { x: number; y: number } | null = null;
     if (camera && screenSpacePixels !== undefined) {
-      const worldMatrix = scene.getTransformMatrix();
       const viewport = camera.viewport.toGlobal(
         scene.getEngine().getRenderWidth(),
         scene.getEngine().getRenderHeight()
       );
+      // Use Identity for world matrix (position is already in world space)
+      // Use scene transform matrix (view * projection combined) as second parameter
       const projected = BABYLON.Vector3.Project(
         position,
-        worldMatrix,
-        camera.getProjectionMatrix(),
+        BABYLON.Matrix.Identity(),
+        scene.getTransformMatrix(),
         viewport
       );
       screenPos = { x: projected.x, y: projected.y };
@@ -1952,15 +1954,14 @@ export class SnappingHelper {
         // Use screen-space distance if available (for consistency with preview), otherwise use world-space
         if (camera && screenSpacePixels !== undefined && screenPos) {
           // Check screen-space distance to face center
-          const worldMatrix = scene.getTransformMatrix();
           const viewport = camera.viewport.toGlobal(
             scene.getEngine().getRenderWidth(),
             scene.getEngine().getRenderHeight()
           );
           const projected = BABYLON.Vector3.Project(
             closestPoint,
-            worldMatrix,
-            camera.getProjectionMatrix(),
+            BABYLON.Matrix.Identity(),
+            scene.getTransformMatrix(),
             viewport
           );
           const screenDist = Math.sqrt(
@@ -1977,15 +1978,14 @@ export class SnappingHelper {
       } else {
         // Regular face snap (no center calculated) - use normal distance check
         if (camera && screenSpacePixels !== undefined && screenPos) {
-          const worldMatrix = scene.getTransformMatrix();
           const viewport = camera.viewport.toGlobal(
             scene.getEngine().getRenderWidth(),
             scene.getEngine().getRenderHeight()
           );
           const projected = BABYLON.Vector3.Project(
             closestPoint,
-            worldMatrix,
-            camera.getProjectionMatrix(),
+            BABYLON.Matrix.Identity(),
+            scene.getTransformMatrix(),
             viewport
           );
           const screenDist = Math.sqrt(
@@ -2443,15 +2443,16 @@ export class SnappingHelper {
     // Get screen position for screen-space distance checking
     let screenPos: BABYLON.Vector2 | null = null;
     if (camera && screenSpacePixels !== undefined) {
-      const worldMatrix = scene.getTransformMatrix();
       const viewport = camera.viewport.toGlobal(
         scene.getEngine().getRenderWidth(),
         scene.getEngine().getRenderHeight()
       );
+      // Use Identity for world matrix (position is already in world space)
+      // Use scene transform matrix (view * projection combined) as second parameter
       const projected = BABYLON.Vector3.Project(
         position,
-        worldMatrix,
-        camera.getProjectionMatrix(),
+        BABYLON.Matrix.Identity(),
+        scene.getTransformMatrix(),
         viewport
       );
       screenPos = new BABYLON.Vector2(projected.x, projected.y);
@@ -2692,15 +2693,14 @@ export class SnappingHelper {
 
       if (camera && screenSpacePixels !== undefined && screenPos) {
         // Use screen-space distance for preview
-        const worldMatrix = scene.getTransformMatrix();
         const viewport = camera.viewport.toGlobal(
           scene.getEngine().getRenderWidth(),
           scene.getEngine().getRenderHeight()
         );
         const projected = BABYLON.Vector3.Project(
           circle.center,
-          worldMatrix,
-          camera.getProjectionMatrix(),
+          BABYLON.Matrix.Identity(),
+          scene.getTransformMatrix(),
           viewport
         );
         const screenDist = Math.sqrt(
@@ -2736,15 +2736,14 @@ export class SnappingHelper {
       if (withinRange) {
         const comparisonDistance = (camera && screenSpacePixels !== undefined && screenPos) ? 
           (() => {
-            const worldMatrix = scene.getTransformMatrix();
             const viewport = camera.viewport.toGlobal(
               scene.getEngine().getRenderWidth(),
               scene.getEngine().getRenderHeight()
             );
             const projected = BABYLON.Vector3.Project(
               circle.center,
-              worldMatrix,
-              camera.getProjectionMatrix(),
+              BABYLON.Matrix.Identity(),
+              scene.getTransformMatrix(),
               viewport
             );
             return Math.sqrt(
@@ -2842,15 +2841,16 @@ export class SnappingHelper {
     // Convert position to screen space if camera provided
     let screenPos: { x: number; y: number } | null = null;
     if (camera && screenSpacePixels !== undefined) {
-      const worldMatrix = scene.getTransformMatrix();
       const viewport = camera.viewport.toGlobal(
         scene.getEngine().getRenderWidth(),
         scene.getEngine().getRenderHeight()
       );
+      // Use Identity for world matrix (position is already in world space)
+      // Use scene transform matrix (view * projection combined) as second parameter
       const projected = BABYLON.Vector3.Project(
         position,
-        worldMatrix,
-        camera.getProjectionMatrix(),
+        BABYLON.Matrix.Identity(),
+        scene.getTransformMatrix(),
         viewport
       );
       screenPos = { x: projected.x, y: projected.y };
@@ -2888,15 +2888,14 @@ export class SnappingHelper {
     if (closestCenter) {
       if (camera && screenSpacePixels !== undefined && screenPos) {
         // Check screen-space distance for preview
-        const worldMatrix = scene.getTransformMatrix();
         const viewport = camera.viewport.toGlobal(
           scene.getEngine().getRenderWidth(),
           scene.getEngine().getRenderHeight()
         );
         const projected = BABYLON.Vector3.Project(
           closestCenter,
-          worldMatrix,
-          camera.getProjectionMatrix(),
+          BABYLON.Matrix.Identity(),
+          scene.getTransformMatrix(),
           viewport
         );
         const screenDist = Math.sqrt(
@@ -3555,15 +3554,16 @@ export class SnappingHelper {
     // Convert position to screen space if camera and screen-space threshold provided
     let screenPos: { x: number; y: number } | null = null;
     if (camera && screenSpacePixels !== undefined) {
-      const worldMatrix = scene.getTransformMatrix();
       const viewport = camera.viewport.toGlobal(
         scene.getEngine().getRenderWidth(),
         scene.getEngine().getRenderHeight()
       );
+      // Use Identity for world matrix (position is already in world space)
+      // Use scene transform matrix (view * projection combined) as second parameter
       const projected = BABYLON.Vector3.Project(
         position,
-        worldMatrix,
-        camera.getProjectionMatrix(),
+        BABYLON.Matrix.Identity(),
+        scene.getTransformMatrix(),
         viewport
       );
       screenPos = { x: projected.x, y: projected.y };
@@ -3728,15 +3728,14 @@ export class SnappingHelper {
         // Edge midpoint - check distance
         if (camera && screenSpacePixels !== undefined && screenPos) {
           // Check screen-space distance for preview
-          const worldMatrix = scene.getTransformMatrix();
           const viewport = camera.viewport.toGlobal(
             scene.getEngine().getRenderWidth(),
             scene.getEngine().getRenderHeight()
           );
           const projected = BABYLON.Vector3.Project(
             closestMidpoint,
-            worldMatrix,
-            camera.getProjectionMatrix(),
+            BABYLON.Matrix.Identity(),
+            scene.getTransformMatrix(),
             viewport
           );
           const screenDist = Math.sqrt(
@@ -3751,15 +3750,14 @@ export class SnappingHelper {
       } else if (isFaceCenter) {
         // Face center - check distance
         if (camera && screenSpacePixels !== undefined && screenPos) {
-          const worldMatrix = scene.getTransformMatrix();
           const viewport = camera.viewport.toGlobal(
             scene.getEngine().getRenderWidth(),
             scene.getEngine().getRenderHeight()
           );
           const projected = BABYLON.Vector3.Project(
             closestMidpoint,
-            worldMatrix,
-            camera.getProjectionMatrix(),
+            BABYLON.Matrix.Identity(),
+            scene.getTransformMatrix(),
             viewport
           );
           const screenDist = Math.sqrt(
@@ -3824,15 +3822,16 @@ export class SnappingHelper {
     // Convert position to screen space if camera provided
     let screenPos: { x: number; y: number } | null = null;
     if (camera && screenSpacePixels !== undefined) {
-      const worldMatrix = scene.getTransformMatrix();
       const viewport = camera.viewport.toGlobal(
         scene.getEngine().getRenderWidth(),
         scene.getEngine().getRenderHeight()
       );
+      // Use Identity for world matrix (position is already in world space)
+      // Use scene transform matrix (view * projection combined) as second parameter
       const projected = BABYLON.Vector3.Project(
         position,
-        worldMatrix,
-        camera.getProjectionMatrix(),
+        BABYLON.Matrix.Identity(),
+        scene.getTransformMatrix(),
         viewport
       );
       screenPos = { x: projected.x, y: projected.y };
@@ -3952,15 +3951,14 @@ export class SnappingHelper {
             
             // When using screen-space snapping, prioritize intersections closest in screen space
             if (camera && screenSpacePixels !== undefined && screenPos) {
-              const worldMatrix = scene.getTransformMatrix();
               const viewport = camera.viewport.toGlobal(
                 scene.getEngine().getRenderWidth(),
                 scene.getEngine().getRenderHeight()
               );
               const projected = BABYLON.Vector3.Project(
                 intersectionPoint,
-                worldMatrix,
-                camera.getProjectionMatrix(),
+                BABYLON.Matrix.Identity(),
+                scene.getTransformMatrix(),
                 viewport
               );
               const screenDist = Math.sqrt(
@@ -4047,15 +4045,14 @@ export class SnappingHelper {
               
               // When using screen-space snapping, prioritize intersections closest in screen space
               if (camera && screenSpacePixels !== undefined && screenPos) {
-                const worldMatrix = scene.getTransformMatrix();
                 const viewport = camera.viewport.toGlobal(
                   scene.getEngine().getRenderWidth(),
                   scene.getEngine().getRenderHeight()
                 );
                 const projected = BABYLON.Vector3.Project(
                   intersection,
-                  worldMatrix,
-                  camera.getProjectionMatrix(),
+                  BABYLON.Matrix.Identity(),
+                  scene.getTransformMatrix(),
                   viewport
                 );
                 const screenDist = Math.sqrt(
@@ -4219,15 +4216,16 @@ export class SnappingHelper {
     // Convert position to screen space if camera provided
     let screenPos: { x: number; y: number } | null = null;
     if (camera && screenSpacePixels !== undefined) {
-      const worldMatrix = scene.getTransformMatrix();
       const viewport = camera.viewport.toGlobal(
         scene.getEngine().getRenderWidth(),
         scene.getEngine().getRenderHeight()
       );
+      // Use Identity for world matrix (position is already in world space)
+      // Use scene transform matrix (view * projection combined) as second parameter
       const projected = BABYLON.Vector3.Project(
         position,
-        worldMatrix,
-        camera.getProjectionMatrix(),
+        BABYLON.Matrix.Identity(),
+        scene.getTransformMatrix(),
         viewport
       );
       screenPos = { x: projected.x, y: projected.y };
@@ -4287,15 +4285,14 @@ export class SnappingHelper {
     if (closestPoint) {
       if (camera && screenSpacePixels !== undefined && screenPos) {
         // Check screen-space distance for preview
-        const worldMatrix = scene.getTransformMatrix();
         const viewport = camera.viewport.toGlobal(
           scene.getEngine().getRenderWidth(),
           scene.getEngine().getRenderHeight()
         );
         const projected = BABYLON.Vector3.Project(
           closestPoint,
-          worldMatrix,
-          camera.getProjectionMatrix(),
+          BABYLON.Matrix.Identity(),
+          scene.getTransformMatrix(),
           viewport
         );
         const screenDist = Math.sqrt(
@@ -4339,15 +4336,16 @@ export class SnappingHelper {
     // Convert position to screen space if camera provided
     let screenPos: { x: number; y: number } | null = null;
     if (camera && screenSpacePixels !== undefined) {
-      const worldMatrix = scene.getTransformMatrix();
       const viewport = camera.viewport.toGlobal(
         scene.getEngine().getRenderWidth(),
         scene.getEngine().getRenderHeight()
       );
+      // Use Identity for world matrix (position is already in world space)
+      // Use scene transform matrix (view * projection combined) as second parameter
       const projected = BABYLON.Vector3.Project(
         position,
-        worldMatrix,
-        camera.getProjectionMatrix(),
+        BABYLON.Matrix.Identity(),
+        scene.getTransformMatrix(),
         viewport
       );
       screenPos = { x: projected.x, y: projected.y };
@@ -4397,15 +4395,14 @@ export class SnappingHelper {
     if (closestCorner) {
       if (camera && screenSpacePixels !== undefined && screenPos) {
         // Check screen-space distance for preview
-        const worldMatrix = scene.getTransformMatrix();
         const viewport = camera.viewport.toGlobal(
           scene.getEngine().getRenderWidth(),
           scene.getEngine().getRenderHeight()
         );
         const projected = BABYLON.Vector3.Project(
           closestCorner,
-          worldMatrix,
-          camera.getProjectionMatrix(),
+          BABYLON.Matrix.Identity(),
+          scene.getTransformMatrix(),
           viewport
         );
         const screenDist = Math.sqrt(

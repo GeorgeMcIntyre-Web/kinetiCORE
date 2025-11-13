@@ -150,8 +150,8 @@ export function queryNearestVertex(
   if (!idx) return null;
 
   const engine = mesh.getScene().getEngine();
-  const rw = engine.getRenderWidth();
-  const rh = engine.getRenderHeight();
+  const rw = engine.getRenderWidth();  // Use CSS pixels (same as pointer coordinates)
+  const rh = engine.getRenderHeight();  // Use CSS pixels (same as pointer coordinates)
   const ray = mesh.getScene().createPickingRay(pointerX, pointerY, BABYLON.Matrix.Identity(), camera, true);
 
   // Approximate world radius from pixel radius using depth at ray origin + focal length
@@ -179,15 +179,15 @@ export function queryNearestVertex(
     // Use a more efficient approach: only compute distances for first 2000, then sort top 500
     const sampleSize = Math.min(candidates.length, 2000);
     const withDist = new Array(sampleSize);
-    for (let idx = 0; idx < sampleSize; idx++) {
-      const i = candidates[idx];
+    for (let j = 0; j < sampleSize; j++) {
+      const i = candidates[j];
       const vx = idx.vertsWorld[i];
       const vy = idx.vertsWorld[i + 1];
       const vz = idx.vertsWorld[i + 2];
       const dx = vx - c.x;
       const dy = vy - c.y;
       const dz = vz - c.z;
-      withDist[idx] = { i, distSq: dx * dx + dy * dy + dz * dz };
+      withDist[j] = { i, distSq: dx * dx + dy * dy + dz * dz };
     }
     // Sort and take top 500
     withDist.sort((a, b) => a.distSq - b.distSq);
@@ -213,10 +213,12 @@ export function queryNearestVertex(
 
     // Screen px distance to pointer
     tmp.set(x, y, z);
+    // Use Identity for world matrix (vertex is already in world space)
+    // Use scene transform matrix (view * projection combined) as second parameter
     const s = BABYLON.Vector3.Project(
       tmp,
+      BABYLON.Matrix.Identity(),
       mesh.getScene().getTransformMatrix(),
-      camera.getProjectionMatrix(),
       viewport
     );
 
