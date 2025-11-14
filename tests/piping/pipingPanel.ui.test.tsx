@@ -2,7 +2,7 @@
 // Owner: Agent 1 (George)
 // Basic React component tests for piping UI
 
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import { PipingPanel } from '../../src/ui/piping/PipingPanel';
 import { pipingStore } from '../../src/domain/factoryServices/piping/pipingStore';
 
@@ -52,65 +52,76 @@ describe('PipingPanel UI', () => {
     it('should show nodes section', () => {
       render(<PipingPanel isVisible={true} onClose={() => {}} />);
 
-      // Look for "Nodes" text (might be in a heading or label)
-      const nodesText = screen.getByText(/nodes/i);
+      // Look for "Nodes (0)" text - exact match to avoid ambiguity
+      const nodesText = screen.getByText(/^Nodes \(\d+\)$/);
       expect(nodesText).toBeInTheDocument();
     });
 
     it('should show segments section', () => {
       render(<PipingPanel isVisible={true} onClose={() => {}} />);
 
-      // Look for "Segments" text
-      const segmentsText = screen.getByText(/segments/i);
+      // Look for "Segments (0)" text - exact match to avoid ambiguity
+      const segmentsText = screen.getByText(/^Segments \(\d+\)$/);
       expect(segmentsText).toBeInTheDocument();
     });
 
     it('should display node count', () => {
-      const network = pipingStore.createNetwork({
-        name: 'Test',
-        serviceType: 'water',
-      });
-
-      pipingStore.createNode(network.id, {
-        position: { x: 0, y: 0, z: 0 },
-        kind: 'endpoint',
-        serviceType: 'water',
-      });
-
+      // Render panel first - it will create a default network
       render(<PipingPanel isVisible={true} onClose={() => {}} />);
 
-      // Should show "Nodes (1)" or similar
-      expect(screen.getByText(/nodes.*1/i)).toBeInTheDocument();
+      // Get the auto-created network
+      const networks = pipingStore.getAllNetworks();
+      expect(networks.length).toBeGreaterThan(0);
+      const network = networks[0];
+
+      // Add a node to the active network wrapped in act()
+      act(() => {
+        pipingStore.createNode(network.id, {
+          position: { x: 0, y: 0, z: 0 },
+          kind: 'endpoint',
+          serviceType: 'water',
+        });
+      });
+
+      // Should show "Nodes (1)" - use function matcher because React splits text nodes
+      expect(screen.getByText((content, element) => {
+        return element?.textContent === 'Nodes (1)';
+      })).toBeInTheDocument();
     });
 
     it('should display segment count', () => {
-      const network = pipingStore.createNetwork({
-        name: 'Test',
-        serviceType: 'water',
-      });
-
-      const node1 = pipingStore.createNode(network.id, {
-        position: { x: 0, y: 0, z: 0 },
-        kind: 'endpoint',
-        serviceType: 'water',
-      });
-
-      const node2 = pipingStore.createNode(network.id, {
-        position: { x: 10, y: 0, z: 0 },
-        kind: 'endpoint',
-        serviceType: 'water',
-      });
-
-      pipingStore.createSegment(network.id, {
-        fromNodeId: node1!.id,
-        toNodeId: node2!.id,
-        nominalDiameterMm: 40,
-      });
-
+      // Render panel first - it will create a default network
       render(<PipingPanel isVisible={true} onClose={() => {}} />);
 
-      // Should show "Segments (1)" or similar
-      expect(screen.getByText(/segments.*1/i)).toBeInTheDocument();
+      // Get the auto-created network
+      const networks = pipingStore.getAllNetworks();
+      expect(networks.length).toBeGreaterThan(0);
+      const network = networks[0];
+
+      act(() => {
+        const node1 = pipingStore.createNode(network.id, {
+          position: { x: 0, y: 0, z: 0 },
+          kind: 'endpoint',
+          serviceType: 'water',
+        });
+
+        const node2 = pipingStore.createNode(network.id, {
+          position: { x: 10, y: 0, z: 0 },
+          kind: 'endpoint',
+          serviceType: 'water',
+        });
+
+        pipingStore.createSegment(network.id, {
+          fromNodeId: node1!.id,
+          toNodeId: node2!.id,
+          nominalDiameterMm: 40,
+        });
+      });
+
+      // Should show "Segments (1)" - use function matcher because React splits text nodes
+      expect(screen.getByText((content, element) => {
+        return element?.textContent === 'Segments (1)';
+      })).toBeInTheDocument();
     });
   });
 
@@ -207,36 +218,44 @@ describe('PipingPanel UI', () => {
 
   describe('Warnings Display', () => {
     it('should show warning indicator for segments with issues', () => {
-      const network = pipingStore.createNetwork({
-        name: 'Test',
-        serviceType: 'steam',
-      });
-
-      const node1 = pipingStore.createNode(network.id, {
-        position: { x: 0, y: 0, z: 0 },
-        kind: 'endpoint',
-        serviceType: 'steam',
-      });
-
-      const node2 = pipingStore.createNode(network.id, {
-        position: { x: 0.05, y: 0, z: 0 }, // Very close
-        kind: 'endpoint',
-        serviceType: 'steam',
-      });
-
-      pipingStore.createSegment(network.id, {
-        fromNodeId: node1!.id,
-        toNodeId: node2!.id,
-        nominalDiameterMm: 50,
-        hasInsulation: false, // Steam without insulation
-      });
-
+      // Render panel first - it will create a default network
       render(<PipingPanel isVisible={true} onClose={() => {}} />);
+
+      // Get the auto-created network and update it to steam
+      const networks = pipingStore.getAllNetworks();
+      expect(networks.length).toBeGreaterThan(0);
+      const network = networks[0];
+
+      act(() => {
+        // Update network to steam
+        pipingStore.updateNetwork(network.id, { serviceType: 'steam' });
+
+        const node1 = pipingStore.createNode(network.id, {
+          position: { x: 0, y: 0, z: 0 },
+          kind: 'endpoint',
+          serviceType: 'steam',
+        });
+
+        const node2 = pipingStore.createNode(network.id, {
+          position: { x: 0.05, y: 0, z: 0 }, // Very close
+          kind: 'endpoint',
+          serviceType: 'steam',
+        });
+
+        pipingStore.createSegment(network.id, {
+          fromNodeId: node1!.id,
+          toNodeId: node2!.id,
+          nominalDiameterMm: 50,
+          hasInsulation: false, // Steam without insulation
+        });
+      });
 
       // Panel should display warnings
       // (exact implementation depends on PipingSegmentList)
-      // We verify the segment appears in the list
-      expect(screen.getByText(/segments.*1/i)).toBeInTheDocument();
+      // We verify the segment appears in the list with count
+      expect(screen.getByText((content, element) => {
+        return element?.textContent === 'Segments (1)';
+      })).toBeInTheDocument();
     });
   });
 });

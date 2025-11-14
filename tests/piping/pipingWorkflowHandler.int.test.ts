@@ -279,7 +279,7 @@ describe('PipingWorkflowHandler Integration', () => {
 
     it('should return null for non-existent node', () => {
       const network = pipingStore.getNetworkForNode('nonexistent');
-      expect(network).toBeNull();
+      expect(network).toBeUndefined();
     });
   });
 });

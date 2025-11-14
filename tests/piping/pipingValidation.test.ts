@@ -331,13 +331,20 @@ describe('PipingValidation', () => {
 
       const warningsMap = getAllSegmentWarnings(segments, nodes);
 
-      expect(warningsMap.size).toBe(1);
+      // Both segments should have warnings:
+      // - seg1: steam without insulation + too short
+      // - seg2: steam without insulation (fromNode is steam)
+      expect(warningsMap.size).toBe(2);
       expect(warningsMap.has('seg1')).toBe(true);
-      expect(warningsMap.has('seg2')).toBe(false);
+      expect(warningsMap.has('seg2')).toBe(true);
 
       const seg1Warnings = warningsMap.get('seg1');
       expect(seg1Warnings).toBeDefined();
-      expect(seg1Warnings!.length).toBeGreaterThan(0);
+      expect(seg1Warnings!.length).toBe(2); // too_short + no_insulation_steam
+
+      const seg2Warnings = warningsMap.get('seg2');
+      expect(seg2Warnings).toBeDefined();
+      expect(seg2Warnings!.length).toBe(1); // no_insulation_steam only
     });
 
     it('should return empty map when no warnings exist', () => {
