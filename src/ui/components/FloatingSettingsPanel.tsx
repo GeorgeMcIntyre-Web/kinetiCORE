@@ -7,7 +7,6 @@ import {
   Settings,
   User,
   Move,
-  Crosshair,
   Zap,
   Eye,
   Folder,
@@ -73,30 +72,8 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
   const {
     positionIncrement,
     rotationIncrement,
-    snapEnabled,
-    snapToGrid,
-    gridSize,
-    snapToVertex,
-    snapToEdge,
-    snapToFace,
-    snapToCenter,
-    snapToObject,
-    snapToMidpoint,
-    snapToIntersection,
-    snapBBoxCorner,
     setPositionIncrement,
     setRotationIncrement,
-    setSnapEnabled,
-    setSnapToGrid,
-    setGridSize,
-    setSnapToVertex,
-    setSnapToEdge,
-    setSnapToFace,
-    setSnapToCenter,
-    setSnapToObject,
-    setSnapToMidpoint,
-    setSnapToIntersection,
-    setSnapBBoxCorner,
   } = useEditorStore();
 
   const handleBackgroundColorChange = (hex: string) => {
@@ -283,167 +260,11 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
         </div>
       </div>
 
-      <div className="settings-group">
-        <h4 className="settings-group-title">
-          <Grid3X3 size={16} />
-          Grid Settings
-        </h4>
-        <div className="settings-option">
-          <label className="settings-label">Grid size (mm)</label>
-          <input
-            type="number"
-            className="settings-input"
-            value={gridSize}
-            onChange={(e) => setGridSize(Number(e.target.value))}
-            min="1"
-            max="10000"
-            step="1"
-          />
-        </div>
-        <div className="settings-option">
-          <label className="settings-checkbox">
-            <input type="checkbox" defaultChecked />
-            <span className="checkmark"></span>
-            Show grid
-          </label>
-        </div>
-      </div>
     </div>
   );
 
   // Snap Settings Component
-  const SnapSettings = () => (
-    <div className="settings-section">
-      <div className="settings-group">
-        <h4 className="settings-group-title">
-          <Crosshair size={16} />
-          Snap Configuration
-        </h4>
-        <div className="settings-option">
-          <label className="settings-checkbox">
-            <input
-              type="checkbox"
-              checked={snapEnabled}
-              onChange={(e) => setSnapEnabled(e.target.checked)}
-            />
-            <span className="checkmark"></span>
-            Enable snapping
-          </label>
-        </div>
-
-        {/* Smart Snap Selector explanation */}
-        <div className="settings-info" style={{ marginTop: '16px' }}>
-          <h5 style={{ fontSize: '13px', color: '#e2e8f0', marginBottom: '8px', fontWeight: 500 }}>
-            Smart Snap Selector
-          </h5>
-          <p style={{ fontSize: '12px', color: '#94a3b8', margin: '8px 0' }}>
-            Automatically detects the best snap type based on proximity.
-            Enable/disable individual snap types below.
-          </p>
-          <p style={{ fontSize: '11px', color: '#64748b', margin: '8px 0', fontStyle: 'italic' }}>
-            Priority: Vertex → Midpoint → Center → Intersection → Edge → BBox → Face → Normal → Object
-          </p>
-        </div>
-
-        {/* Individual Snap Type Toggles */}
-        <div style={{ marginTop: '20px' }}>
-          <h5 style={{ fontSize: '13px', color: '#e2e8f0', marginBottom: '12px', fontWeight: 500 }}>
-            Snap Types
-          </h5>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <label className="settings-checkbox">
-              <input
-                type="checkbox"
-                checked={snapToVertex}
-                onChange={(e) => setSnapToVertex(e.target.checked)}
-              />
-              <span className="checkmark"></span>
-              Vertex
-            </label>
-            <label className="settings-checkbox">
-              <input
-                type="checkbox"
-                checked={snapToMidpoint}
-                onChange={(e) => setSnapToMidpoint(e.target.checked)}
-              />
-              <span className="checkmark"></span>
-              Midpoint
-            </label>
-            <label className="settings-checkbox">
-              <input
-                type="checkbox"
-                checked={snapToCenter}
-                onChange={(e) => setSnapToCenter(e.target.checked)}
-              />
-              <span className="checkmark"></span>
-              Center
-            </label>
-            <label className="settings-checkbox" style={{ opacity: 0.5, cursor: 'not-allowed', color: '#666' }}>
-              <input
-                type="checkbox"
-                checked={snapToIntersection}
-                disabled={true}
-                onChange={() => {}}
-                style={{ cursor: 'not-allowed' }}
-              />
-              <span className="checkmark"></span>
-              Intersection
-            </label>
-            <label className="settings-checkbox">
-              <input
-                type="checkbox"
-                checked={snapToEdge}
-                onChange={(e) => setSnapToEdge(e.target.checked)}
-              />
-              <span className="checkmark"></span>
-              Edge
-            </label>
-            <label className="settings-checkbox">
-              <input
-                type="checkbox"
-                checked={snapBBoxCorner}
-                onChange={(e) => setSnapBBoxCorner(e.target.checked)}
-              />
-              <span className="checkmark"></span>
-              BBox Corner
-            </label>
-            <label className="settings-checkbox">
-              <input
-                type="checkbox"
-                checked={snapToFace}
-                onChange={(e) => setSnapToFace(e.target.checked)}
-              />
-              <span className="checkmark"></span>
-              Face
-            </label>
-            <label className="settings-checkbox">
-              <input
-                type="checkbox"
-                checked={snapToObject}
-                onChange={(e) => setSnapToObject(e.target.checked)}
-              />
-              <span className="checkmark"></span>
-              Object
-            </label>
-          </div>
-        </div>
-
-        {/* Grid snap toggle */}
-        <div className="settings-option" style={{ marginTop: '20px' }}>
-          <label className="settings-checkbox">
-            <input
-              type="checkbox"
-              checked={snapToGrid}
-              onChange={(e) => setSnapToGrid(e.target.checked)}
-            />
-            <span className="checkmark"></span>
-            Enable grid snapping
-          </label>
-        </div>
-      </div>
-    </div>
-  );
-
+  
   // Physics Settings Component
   const PhysicsSettings = () => (
     <div className="settings-section">
@@ -631,7 +452,6 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
     { id: 'general', label: 'General', icon: <User size={16} />, component: <GeneralSettings /> },
     { id: 'floor', label: 'Floor', icon: <Grid3X3 size={16} />, component: <FloorSettingsPanel /> },
     { id: 'transform', label: 'Transform', icon: <Move size={16} />, component: <TransformSettings /> },
-    { id: 'snap', label: 'Snap', icon: <Crosshair size={16} />, component: <SnapSettings /> },
     { id: 'physics', label: 'Physics', icon: <Zap size={16} />, component: <PhysicsSettings /> },
     { id: 'view', label: 'View', icon: <Eye size={16} />, component: <ViewSettings /> },
     { id: 'project', label: 'Project', icon: <Folder size={16} />, component: <ProjectSettings /> },
@@ -677,20 +497,7 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
           <button
             className="settings-btn settings-btn-secondary"
             onClick={() => {
-              // Reset all settings to defaults
-              setSnapEnabled(true);
-              setSnapToGrid(false);
-              setSnapToVertex(true);
-              setSnapToEdge(false);
-              setSnapToFace(true);
-              setSnapToCenter(true);
-              setSnapToObject(true);
-              setSnapToMidpoint(true);
-              setSnapToIntersection(true);
-              setSnapBBoxCorner(true);
-              setGridSize(100);
-              // Smart selector enables all snap types by default
-              console.log('[Settings] Reset to defaults');
+              console.log('[Settings] Reset to defaults - snap settings handled via Snap Setup button');
             }}
           >
             Reset to Defaults
