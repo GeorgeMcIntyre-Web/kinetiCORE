@@ -12,6 +12,8 @@
 import { NodeIO, type Node, type Primitive } from '@gltf-transform/core';
 import fs from 'node:fs';
 import path from 'node:path';
+import { classifyClusters, bboxGap, detectFloorY, type InternalCluster } from '../src/dev/tooling/RigidClusterCore';
+import { checkRigidClustersInvariants, assertInvariants } from '../src/dev/tooling/PipelineInvariants';
 
 type BBox = { min: [number, number, number]; max: [number, number, number] };
 
@@ -169,8 +171,26 @@ async function run() {
   const clusters = buildRigidClusters(meshInfos);
   console.log(`Built ${clusters.length} rigid clusters`);
 
+  // Use extracted classifyClusters function
   const typedClusters = classifyClusters(clusters);
-  console.log(`Classified: ${typedClusters.filter(c => c.type === 'base').length} base, ${typedClusters.filter(c => c.type === 'unit').length} unit, ${typedClusters.filter(c => c.type === 'loose').length} loose`);
+  
+  const floorY = detectFloorY(clusters);
+  if (floorY !== null) {
+    console.log(`Detected floor Y: ${floorY.toFixed(4)}`);
+  }
+  
+  const baseCount = typedClusters.filter(c => c.type === 'base').length;
+  const unitCount = typedClusters.filter(c => c.type === 'unit').length;
+  const looseCount = typedClusters.filter(c => c.type === 'loose').length;
+  console.log(`Classified: ${baseCount} base, ${unitCount} unit, ${looseCount} loose`);
+
+  // Runtime invariant checks
+  const violations = checkRigidClustersInvariants(typedClusters);
+  if (violations.length > 0) {
+    console.error('Invariant violations detected:');
+    violations.forEach(v => console.error(`  [${v.step}] ${v.message}`));
+    assertInvariants(violations);
+  }
 
   const meshNameById = new Map<number, string>();
   meshInfos.forEach(info => {
@@ -258,7 +278,7 @@ function collectMeshInfos(root: Node): MeshNodeInfo[] {
 /* Clustering by bbox adjacency                                       */
 /* ------------------------------------------------------------------ */
 
-type InternalCluster = Cluster & { meshIds: number[] };
+// InternalCluster type is now imported from RigidClusterCore
 
 function buildRigidClusters(meshInfos: MeshNodeInfo[]): InternalCluster[] {
   const n = meshInfos.length;
@@ -372,12 +392,17 @@ function summarizeCluster(
 /* ------------------------------------------------------------------ */
 /* Classification: base / unit / loose                                */
 /* ------------------------------------------------------------------ */
+/* NOTE: Classification functions are now imported from RigidClusterCore.ts */
+/* The old function definitions below are kept for reference but are unused. */
 
 type TypedCluster = InternalCluster & {
   type: ClusterType;
   attachedToBaseId: number | null;
 };
 
+// OLD - Now using imported classifyClusters from RigidClusterCore
+// Keeping for reference - can be removed later
+/*
 function detectFloorY(clusters: InternalCluster[]): number | null {
   if (clusters.length === 0) return null;
 
@@ -763,7 +788,11 @@ function attachUnitsToBases(
 
   console.log(`  Attached ${attachedCount} units (skipped ${skippedOverlap} for overlap, ${skippedGap} for gap)`);
 }
+*/
 
+// Imported helper functions are now used from RigidClusterCore
+// Keeping local geometry helpers that are still used by buildRigidClusters
+/*
 function xyOverlapFractionFromBbox(
   a: { min: [number, number, number]; max: [number, number, number] },
   b: { min: [number, number, number]; max: [number, number, number] }
@@ -790,31 +819,7 @@ function xyOverlapFractionFromBbox(
 
   return overlapArea / minArea;
 }
-
-function mergeBboxes(
-  boxes: { min: [number, number, number]; max: [number, number, number] }[]
-): { min: [number, number, number]; max: [number, number, number] } {
-  let minX = Number.POSITIVE_INFINITY;
-  let minY = Number.POSITIVE_INFINITY;
-  let minZ = Number.POSITIVE_INFINITY;
-  let maxX = Number.NEGATIVE_INFINITY;
-  let maxY = Number.NEGATIVE_INFINITY;
-  let maxZ = Number.NEGATIVE_INFINITY;
-
-  boxes.forEach(b => {
-    if (b.min[0] < minX) minX = b.min[0];
-    if (b.min[1] < minY) minY = b.min[1];
-    if (b.min[2] < minZ) minZ = b.min[2];
-    if (b.max[0] > maxX) maxX = b.max[0];
-    if (b.max[1] > maxY) maxY = b.max[1];
-    if (b.max[2] > maxZ) maxZ = b.max[2];
-  });
-
-  return {
-    min: [minX, minY, minZ],
-    max: [maxX, maxY, maxZ]
-  };
-}
+*/
 
 function fallbackClassification(clusters: InternalCluster[]): TypedCluster[] {
   const maxArea = Math.max(...clusters.map(c => c.areaXY));

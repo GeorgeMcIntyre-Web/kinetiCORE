@@ -343,3 +343,71 @@ Names are **only** used for:
 
 To verify naming-free behavior, the unit builder includes a `--randomize-names` flag (future enhancement) that scrambles all node names and asserts the kinematic structure remains unchanged.
 
+## Runtime Invariants
+
+The pipeline includes runtime invariant checks after each step to catch errors early:
+
+### Rigid Clustering Invariants
+- At least one base cluster exists (when clusters are found)
+- All bounding boxes are valid (min ≤ max for all axes)
+
+### Joint Segmentation Invariants
+- All joints reference existing parent clusters
+- All joints reference existing child clusters
+
+### Unit Builder Invariants
+- Links exist when clusters exist
+- All units are non-empty (have at least one cluster)
+- All units reference existing base links
+- All units reference existing primary links
+- All joints map to existing links (parent and child clusters found in links)
+
+Invariant violations are reported in:
+- Console output during pipeline execution
+- Regression test results (`invariantsOk` field)
+- Batch manifest (`invariantsOk` and `invariantReason` fields)
+
+## Testing
+
+### Unit Tests
+Run unit tests for core clustering and classification logic:
+```bash
+npm test
+```
+
+Tests include:
+- Synthetic fixtures (Fixture A, B, C) for floor detection and base stack building
+- Unit graph builder tests with hard-coded joint lists
+- Ford Fides adapter tests with minimal JSON samples
+
+### Regression Tests
+Run full pipeline regression tests on all fixtures:
+```bash
+npm run tooling:regression
+```
+
+With name randomization (tests that kinematic structure is unchanged when IDs are randomized):
+```bash
+npm run tooling:regression -- --randomize-names
+```
+
+### Golden Snapshot Test
+The `9X_110_GEO` fixture has a golden units snapshot that is compared against live pipeline output:
+- Golden file: `src/dev/tooling/golden/9X_110_GEO.units.golden.json`
+- Test: `tests/GoldenUnits_9X_110_GEO.spec.ts`
+
+The golden test verifies:
+- Same unit, link, and joint counts
+- Same linkId counts per unit (up to reordering)
+- Same (baseLinkId, primaryLinkId) pairs (up to reordering)
+
+All comparisons are name-agnostic and robust to ID renaming.
+
+### Batch Processing
+Process all fixtures in a folder:
+```bash
+npm run tooling:pipeline:batch "C:/path/to/fixtures/folder"
+```
+
+The batch manifest includes invariant status for each fixture.
+

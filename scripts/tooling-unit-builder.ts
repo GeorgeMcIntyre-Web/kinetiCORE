@@ -21,6 +21,11 @@ import type {
   KinematicUnit,
   UnitFeatures,
 } from '../src/dev/tooling/MechanicalModel';
+import {
+  checkJointSegmentationInvariants,
+  checkUnitBuilderInvariants,
+  assertInvariants,
+} from '../src/dev/tooling/PipelineInvariants';
 
 const glbPath = process.argv[2];
 
@@ -69,11 +74,27 @@ async function run() {
   const model = buildMechanicalModel(clustersJson, jointsJson);
   console.log(`Built model: ${model.clusters.length} clusters, ${model.joints.length} joints`);
 
+  // Runtime invariant checks after joint segmentation
+  const jointViolations = checkJointSegmentationInvariants(model.joints, model);
+  if (jointViolations.length > 0) {
+    console.error('Joint segmentation invariant violations:');
+    jointViolations.forEach(v => console.error(`  [${v.step}] ${v.message}`));
+    assertInvariants(jointViolations);
+  }
+
   const links = buildLinkGraph(model);
   console.log(`Built ${links.length} links`);
 
   const units = buildKinematicUnits(model, links);
   console.log(`Built ${units.length} kinematic units`);
+
+  // Runtime invariant checks after unit builder
+  const unitViolations = checkUnitBuilderInvariants(model, links, units);
+  if (unitViolations.length > 0) {
+    console.error('Unit builder invariant violations:');
+    unitViolations.forEach(v => console.error(`  [${v.step}] ${v.message}`));
+    assertInvariants(unitViolations);
+  }
 
   const features = computeUnitFeatures(units, model, links);
   console.log(`Computed features for ${features.length} units`);

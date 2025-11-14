@@ -55,6 +55,9 @@
     "requireBaseLink": true,
     "requireAcyclicGraph": true,
     "requireUnitsForJoints": true,
-    "testNameRandomization": false
-  }
+    "testNameRandomization": true
+  },
+  "nameRandomizationFixtures": [
+    "9X_110_GEO"
+  ]
 }

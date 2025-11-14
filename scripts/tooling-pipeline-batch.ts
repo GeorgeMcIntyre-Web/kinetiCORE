@@ -17,6 +17,8 @@ interface FixtureResult {
   success: boolean;
   selectedAdapter?: string;
   errors: string[];
+  invariantsOk?: boolean;
+  invariantReason?: string;
   generatedFiles: {
     treeInspector?: string;
     rigidClusters?: string;
@@ -37,6 +39,8 @@ interface BatchManifest {
     successful: number;
     failed: number;
     adapters: Record<string, number>;
+    invariantsOk: number;
+    invariantsFailed: number;
   };
 }
 
@@ -101,6 +105,9 @@ async function run() {
     }
   });
 
+  const invariantsOk = results.filter(r => r.invariantsOk === true).length;
+  const invariantsFailed = results.filter(r => r.invariantsOk === false).length;
+
   const batchManifest: BatchManifest = {
     timestamp: new Date().toISOString(),
     rootFolder,
@@ -110,6 +117,8 @@ async function run() {
       successful: results.filter(r => r.success).length,
       failed: results.filter(r => !r.success).length,
       adapters,
+      invariantsOk,
+      invariantsFailed,
     },
   };
 
@@ -122,6 +131,7 @@ async function run() {
   console.log(`Total fixtures: ${batchManifest.summary.total}`);
   console.log(`Successful: ${batchManifest.summary.successful}`);
   console.log(`Failed: ${batchManifest.summary.failed}`);
+  console.log(`Invariants: ${batchManifest.summary.invariantsOk} OK, ${batchManifest.summary.invariantsFailed} failed`);
   console.log(`Adapters:`);
   Object.entries(adapters).forEach(([adapter, count]) => {
     console.log(`  ${adapter}: ${count}`);
@@ -189,6 +199,44 @@ async function processFixture(glbPath: string): Promise<FixtureResult> {
         unitFeatures: manifest.steps?.unitFeatures,
         pipelineManifest: manifestPath,
       };
+
+      // Check invariants if units.json exists
+      if (result.generatedFiles.units && fs.existsSync(result.generatedFiles.units)) {
+        try {
+          const { checkUnitBuilderInvariants } = await import('../src/dev/tooling/PipelineInvariants');
+          const unitsData = JSON.parse(fs.readFileSync(result.generatedFiles.units, 'utf8'));
+          const clustersPath = result.generatedFiles.rigidClusters;
+          if (clustersPath && fs.existsSync(clustersPath)) {
+            const clusters = JSON.parse(fs.readFileSync(clustersPath, 'utf8'));
+            const model = {
+              nodes: [],
+              meshes: [],
+              clusters: clusters.map((c: any) => ({
+                id: `cluster_${c.id}`,
+                nodeIds: [],
+                meshIds: c.meshNames || [],
+                bboxMin: c.bbox.min,
+                bboxMax: c.bbox.max,
+                meshCount: c.stats.meshCount,
+                totalVerts: c.stats.totalVerts,
+              })),
+              links: unitsData.links || [],
+              joints: unitsData.joints || [],
+            };
+            const violations = checkUnitBuilderInvariants(model, unitsData.links || [], unitsData.units || []);
+            if (violations.length > 0) {
+              result.invariantsOk = false;
+              result.invariantReason = violations.map(v => v.message).join('; ');
+            } else {
+              result.invariantsOk = true;
+            }
+          }
+        } catch (err) {
+          // Invariant check failed, but don't fail the whole pipeline
+          result.invariantsOk = false;
+          result.invariantReason = err instanceof Error ? err.message : String(err);
+        }
+      }
     } else {
       result.errors.push('Pipeline manifest not found after run');
     }
