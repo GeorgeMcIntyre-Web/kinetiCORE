@@ -19,8 +19,8 @@ export class SceneManager {
   private floorMaterialManager: FloorMaterialManager | null = null;
   private gridOverlay: BABYLON.Mesh | null = null;
   private gridOverlayOptions: GridOverlayOptions = { ...DEFAULT_GRID_OPTIONS };
-  private gridOverlayVisible: boolean = false;
-  private currentFloorType: FloorType = 'concrete-polished';
+  private gridOverlayVisible: boolean = true;
+  private currentFloorType: FloorType = 'grid-only';
   private isInitialized: boolean = false;
   private inspectorModulesPromise: Promise<void> | null = null;
   private targetingWidget: TargetingWidget | null = null;
@@ -99,7 +99,7 @@ export class SceneManager {
     // Initialize floor material manager
     this.floorMaterialManager = new FloorMaterialManager(this.scene);
 
-    // Apply default floor material (neutral polished concrete)
+    // Apply default floor material (grid-only drafting view)
     const floorMaterial = this.floorMaterialManager.createFloorMaterial(this.currentFloorType);
     this.ground.material = floorMaterial;
     this.ground.receiveShadows = true;
@@ -107,10 +107,10 @@ export class SceneManager {
     // Create grid overlay for spatial reference - always visible by default
     this.gridOverlay = this.floorMaterialManager.createGridOverlay(
       this.ground,
-      false,
+      true,
       this.gridOverlayOptions
     );
-    this.gridOverlayVisible = false;
+    this.gridOverlayVisible = true;
     console.log('🔲 Grid overlay created; default visibility set to:', this.gridOverlay?.isEnabled());
 
     // Defensive check: Ensure floor and grid are visible (floor should always be visible, grid depends on type)

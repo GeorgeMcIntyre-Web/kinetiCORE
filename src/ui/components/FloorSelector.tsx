@@ -25,14 +25,14 @@ const FLOOR_OPTIONS: FloorOption[] = [
 ];
 
 export const FloorSelector: React.FC = () => {
-  const [currentFloor, setCurrentFloor] = React.useState<FloorType>('concrete-polished');
-  const [showGrid, setShowGrid] = React.useState(true);
+  const sceneManager = SceneManager.getInstance();
+  const [currentFloor, setCurrentFloor] = React.useState<FloorType>(sceneManager.getFloorType());
+  const [showGrid, setShowGrid] = React.useState(sceneManager.isGridOverlayVisible());
 
   const handleFloorChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const newFloor = event.target.value as FloorType;
     setCurrentFloor(newFloor);
 
-    const sceneManager = SceneManager.getInstance();
     sceneManager.setFloorType(newFloor);
   };
 
@@ -40,7 +40,6 @@ export const FloorSelector: React.FC = () => {
     const newShowGrid = !showGrid;
     setShowGrid(newShowGrid);
 
-    const sceneManager = SceneManager.getInstance();
     sceneManager.setGridOverlayVisible(newShowGrid);
   };
 
