@@ -8,6 +8,7 @@
  */
 
 import type { MechanicalModel, KinematicJoint } from './MechanicalModel';
+import { createRequire } from 'node:module';
 import type { ToolingStructureProfile } from './ToolingStructureAnalyzer';
 
 /**
@@ -59,8 +60,9 @@ export class FordFidesJointAdapter implements JointAdapter {
   canHandle(meta: ToolingMetadata): boolean {
     // Check if we have a JSON file that looks like Ford Fides format
     // Look for JSON files with array of units containing Joints arrays
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const fs = require('node:fs');
+    // Use synchronous fs for canHandle (not async)
+    const requireFs = createRequire(import.meta.url);
+    const fs = requireFs('node:fs');
     for (const jsonPath of meta.auxJsonPaths) {
       try {
         if (!fs.existsSync(jsonPath)) continue;

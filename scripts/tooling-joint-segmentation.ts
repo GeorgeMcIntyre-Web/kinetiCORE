@@ -81,7 +81,53 @@ async function run() {
     process.exit(1);
   }
 
-  const doc = await io.read(glbPath);
+  // Try to read the GLB - if it fails due to Draco compression, decompress it first
+  let doc;
+  let tempGlbPath: string | null = null;
+  
+  try {
+    doc = await io.read(glbPath);
+  } catch (err: any) {
+    if (err?.message?.includes('KHR_draco_mesh_compression')) {
+      console.log('GLB uses Draco compression. Decompressing...');
+      
+      // Create a temporary decompressed GLB file
+      const tempDir = path.join(path.dirname(glbPath), '.temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      const glbName = path.basename(glbPath, '.glb');
+      tempGlbPath = path.join(tempDir, `${glbName}_decompressed.glb`);
+      
+      // Use gltf-transform copy to decompress (copy without compression = decompress)
+      // Quote paths to handle spaces
+      const { spawn } = await import('node:child_process');
+      await new Promise<void>((resolve, reject) => {
+        const proc = spawn('npx', ['@gltf-transform/cli', 'copy', `"${glbPath}"`, `"${tempGlbPath}"`], {
+          stdio: 'inherit',
+          shell: true,
+        });
+        
+        proc.on('close', (code) => {
+          if (code === 0) {
+            resolve();
+          } else {
+            reject(new Error(`Decompression failed with code ${code}`));
+          }
+        });
+        
+        proc.on('error', (err) => {
+          reject(err);
+        });
+      });
+      
+      console.log('Decompression complete. Processing decompressed GLB...');
+      doc = await io.read(tempGlbPath);
+    } else {
+      throw err;
+    }
+  }
   const scene = doc.getRoot().getDefaultScene();
   if (!scene) {
     console.error('GLB has no default scene');
@@ -128,6 +174,16 @@ async function run() {
   fs.writeFileSync(outPath, JSON.stringify(out, null, 2), 'utf8');
 
   console.log('Joint segmentation JSON written to:', outPath);
+  
+  // Clean up temporary decompressed GLB if it was created
+  if (tempGlbPath && fs.existsSync(tempGlbPath)) {
+    try {
+      fs.unlinkSync(tempGlbPath);
+      console.log('Cleaned up temporary decompressed GLB');
+    } catch (err) {
+      console.warn('Failed to clean up temporary GLB:', err);
+    }
+  }
 }
 
 /* ------------------------------------------------------------------ */
