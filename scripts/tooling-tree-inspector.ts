@@ -7,6 +7,7 @@
 
 import { NodeIO } from '@gltf-transform/core';
 import path from 'node:path';
+import fs from 'node:fs';
 
 type BBox = { min: [number, number, number]; max: [number, number, number] };
 
@@ -35,7 +36,127 @@ if (!glbPathFromCli) {
 }
 
 (async () => {
-  const doc = await io.read(glbPathFromCli);
+  let doc;
+  try {
+    // Try normal read first
+    doc = await io.read(glbPathFromCli);
+  } catch (err: any) {
+    // If it fails due to Draco, try reading just the JSON chunk manually
+    if (err?.message?.includes('KHR_draco_mesh_compression')) {
+      console.error('GLB uses Draco compression. Attempting to extract structure from JSON chunk...');
+      // Read GLB file manually to extract JSON chunk
+      const buffer = fs.readFileSync(glbPathFromCli);
+      const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+      
+      // GLB format: 12-byte header + chunks
+      // Header: magic (4) + version (4) + length (4)
+      const magic = view.getUint32(0, true);
+      if (magic !== 0x46546c67) { // "glTF"
+        throw new Error('Invalid GLB file');
+      }
+      
+      const version = view.getUint32(4, true);
+      const totalLength = view.getUint32(8, true);
+      
+      // First chunk is JSON (usually)
+      let offset = 12;
+      const jsonChunkLength = view.getUint32(offset, true);
+      const jsonChunkType = view.getUint32(offset + 4, true);
+      
+      if (jsonChunkType !== 0x4e4f534a) { // "JSON"
+        throw new Error('Expected JSON chunk first');
+      }
+      
+      const jsonText = new TextDecoder().decode(
+        buffer.subarray(offset + 8, offset + 8 + jsonChunkLength)
+      );
+      const gltfJson = JSON.parse(jsonText);
+      
+      // Work directly with JSON structure for tree inspection
+      // This bypasses the need for full GLB parsing
+      console.log('===========================================================');
+      console.log(' GLB TREE INSPECTOR (JSON-ONLY MODE)');
+      console.log('===========================================================');
+      console.log('File :', path.resolve(glbPathFromCli));
+      console.log('');
+      
+      // Extract scene structure from JSON
+      const scenes = gltfJson.scenes || [];
+      if (scenes.length === 0) {
+        console.error('No scenes found in GLB');
+        process.exit(1);
+      }
+      
+      const nodes = gltfJson.nodes || [];
+      const meshes = gltfJson.meshes || [];
+      const accessors = gltfJson.accessors || [];
+      
+      // Build node lookup
+      const nodeMap = new Map<number, any>();
+      nodes.forEach((node: any, index: number) => {
+        nodeMap.set(index, node);
+      });
+      
+      // Build mesh lookup with accessor info
+      const meshInfoMap = new Map<number, any>();
+      meshes.forEach((mesh: any, index: number) => {
+        let totalVerts = 0;
+        let bboxMin: [number, number, number] | null = null;
+        let bboxMax: [number, number, number] | null = null;
+        
+        if (mesh.primitives) {
+          mesh.primitives.forEach((prim: any) => {
+            if (prim.attributes?.POSITION !== undefined) {
+              const accessor = accessors[prim.attributes.POSITION];
+              if (accessor) {
+                totalVerts += accessor.count || 0;
+                if (accessor.min && accessor.max) {
+                  const min = accessor.min as [number, number, number];
+                  const max = accessor.max as [number, number, number];
+                  if (!bboxMin) {
+                    bboxMin = [...min];
+                    bboxMax = [...max];
+                  } else {
+                    bboxMin[0] = Math.min(bboxMin[0], min[0]);
+                    bboxMin[1] = Math.min(bboxMin[1], min[1]);
+                    bboxMin[2] = Math.min(bboxMin[2], min[2]);
+                    bboxMax![0] = Math.max(bboxMax![0], max[0]);
+                    bboxMax![1] = Math.max(bboxMax![1], max[1]);
+                    bboxMax![2] = Math.max(bboxMax![2], max[2]);
+                  }
+                }
+              }
+            }
+          });
+        }
+        
+        meshInfoMap.set(index, {
+          name: mesh.name || `mesh_${index}`,
+          vertexCount: totalVerts,
+          primitiveCount: mesh.primitives?.length || 0,
+          bboxMin,
+          bboxMax,
+        });
+      });
+      
+      // Print tree structure
+      scenes.forEach((scene: any, sceneIndex: number) => {
+        const sceneName = scene.name || `Scene_${sceneIndex}`;
+        console.log(`Scene ${sceneIndex}: ${sceneName}`);
+        
+        if (scene.nodes) {
+          scene.nodes.forEach((nodeIndex: number) => {
+            printNodeFromJSON(nodes[nodeIndex], nodeIndex, nodeMap, meshInfoMap, '  ');
+          });
+        }
+      });
+      
+      process.exit(0);
+    } else {
+      throw err;
+    }
+  }
+  
   const scene = doc.getRoot().getDefaultScene();
 
   if (!scene) {
@@ -252,5 +373,40 @@ function printUnitTree(
 function pad(value: string, width: number): string {
   if (value.length >= width) return value;
   return value + ' '.repeat(width - value.length);
+}
+
+function printNodeFromJSON(
+  node: any,
+  nodeIndex: number,
+  nodeMap: Map<number, any>,
+  meshInfoMap: Map<number, any>,
+  indent: string
+) {
+  const nodeName = node.name || `(node ${nodeIndex})`;
+  let meshSuffix = '';
+  
+  if (node.mesh !== undefined) {
+    const meshInfo = meshInfoMap.get(node.mesh);
+    if (meshInfo) {
+      const meshName = meshInfo.name;
+      meshSuffix = `  [mesh: ${meshName} | verts: ${meshInfo.vertexCount} | prims: ${meshInfo.primitiveCount}`;
+      if (meshInfo.bboxMin && meshInfo.bboxMax) {
+        meshSuffix += ` | bbox: (${meshInfo.bboxMin.map((n: number) => n.toFixed(1)).join(', ')}) → (${meshInfo.bboxMax.map((n: number) => n.toFixed(1)).join(', ')})]`;
+      } else {
+        meshSuffix += ']';
+      }
+    }
+  }
+  
+  console.log(`${indent}- ${nodeName}${meshSuffix}`);
+  
+  if (node.children) {
+    node.children.forEach((childIndex: number) => {
+      const childNode = nodeMap.get(childIndex);
+      if (childNode) {
+        printNodeFromJSON(childNode, childIndex, nodeMap, meshInfoMap, indent + '  ');
+      }
+    });
+  }
 }
 
