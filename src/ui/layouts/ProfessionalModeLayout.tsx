@@ -52,6 +52,7 @@ import { FloatingActuatorPanel } from '../components/FloatingActuatorPanel';
 import { FloatingComplexIKPanel } from '../components/FloatingComplexIKPanel';
 import { WholeBodyIKPanel } from '../components/WholeBodyIKPanel';
 import { ICPTestPanel } from '../components/ICPTestPanel';
+import { PipingPanel } from '../piping/PipingPanel';
 import { Scan, Settings } from 'lucide-react';
 import { RotateCcw, Target, CornerDownRight, Square } from 'lucide-react';
 import { Rocket, Calculator, GitBranch, Network, TestTube, Zap } from 'lucide-react';
@@ -90,6 +91,8 @@ export const ProfessionalModeLayout: React.FC = () => {
   const setSelectionLevel = useEditorStore((state) => state.setSelectionLevel);
   const currentView = useEditorStore((state) => state.currentView);
   const setCurrentView = useEditorStore((state) => state.setCurrentView);
+  const pipingModeEnabled = useEditorStore((state) => state.pipingModeEnabled);
+  const setPipingModeEnabled = useEditorStore((state) => state.setPipingModeEnabled);
 
   const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'analysis' | 'routing'>(
     'modeling'
@@ -1026,6 +1029,10 @@ export const ProfessionalModeLayout: React.FC = () => {
         isVisible={showICPTestPanel}
         onClose={() => setShowICPTestPanel(false)}
         zIndex={1007}
+      />
+      <PipingPanel
+        isVisible={pipingModeEnabled}
+        onClose={() => setPipingModeEnabled(false)}
       />
       <SnapSetupPopup isOpen={showSnapSetupPopup} onClose={() => setShowSnapSetupPopup(false)} />
     </div>

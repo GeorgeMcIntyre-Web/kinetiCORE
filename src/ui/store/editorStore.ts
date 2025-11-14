@@ -86,6 +86,9 @@ interface EditorState {
   // Edit mode state
   editModeEnabled: boolean;
   attachedJointId: string | null;
+
+  // Piping mode state
+  pipingModeEnabled: boolean;
   
   // Project Manager Integration
   projectManager: ProjectManager;
@@ -291,6 +294,9 @@ interface EditorState {
   // Edit mode actions
   setEditModeEnabled: (enabled: boolean) => void;
   attachJoint: (jointId: string | null) => void;
+
+  // Piping mode actions
+  setPipingModeEnabled: (enabled: boolean) => void;
 
   // Transform settings actions
   setPositionIncrement: (value: number) => void;
@@ -666,6 +672,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
   // Edit mode state
   editModeEnabled: false,
   attachedJointId: null,
+
+  // Piping mode state
+  pipingModeEnabled: false,
 
   // Project Manager Integration
   projectManager: ProjectManager.getInstance(),
@@ -3363,6 +3372,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
   // Edit mode actions
   setEditModeEnabled: (enabled) => set({ editModeEnabled: enabled }),
   attachJoint: (jointId) => set({ attachedJointId: jointId }),
+
+  // Piping mode actions
+  setPipingModeEnabled: (enabled) => set({ pipingModeEnabled: enabled }),
 
   // Transform settings setters
   setPositionIncrement: (value: number) => set({ positionIncrement: value }),

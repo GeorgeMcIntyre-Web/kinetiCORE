@@ -31,6 +31,7 @@ import {
   Camera,
   Magnet,
   PlayCircle,
+  Droplets,
 } from 'lucide-react';
 import { loadOBJFile } from '../../loaders/obj/OBJLoader';
 import { SceneManager } from '../../scene/SceneManager';
@@ -145,6 +146,7 @@ export interface RibbonToolbarProps {
   onWarehouseConfigClick?: () => void;
   onWarehouseToggleClick?: () => void;
   onWarehouseResetCameraClick?: () => void;
+  onPipingClick?: () => void;
 }
 
 export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
@@ -173,9 +175,14 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onWarehouseConfigClick,
   onWarehouseToggleClick,
   onWarehouseResetCameraClick,
+  onPipingClick,
 }) => {
   const { userLevel } = useUserLevel();
   const [showWarehousePanel, setShowWarehousePanel] = useState(false);
+
+  // Piping mode state
+  const pipingModeEnabled = useEditorStore((state) => state.pipingModeEnabled);
+  const setPipingModeEnabled = useEditorStore((state) => state.setPipingModeEnabled);
   
   // Store connections
   const transformMode = useEditorStore((state) => state.transformMode);
@@ -523,6 +530,16 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
               <line x1="12" y1="12" x2="6" y2="18" stroke="#0000ff" strokeWidth="2.5" />
               <polygon points="6,18 7.5,16.5 8,17.5" fill="#0000ff" />
             </svg>
+          </button>
+          <button
+            className={`ribbon-btn ${pipingModeEnabled ? 'active' : ''}`}
+            onClick={() => {
+              setPipingModeEnabled(!pipingModeEnabled);
+              onPipingClick?.();
+            }}
+            title="Factory Piping - Design water, air, and steam networks"
+          >
+            <Droplets size={32} />
           </button>
         </div>
       </div>

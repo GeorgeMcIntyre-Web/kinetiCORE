@@ -21,6 +21,7 @@ import { AutoKinematicsTestButton } from '../components/AutoKinematicsTestButton
 import { FloatingPhysicsPanel } from '../components/FloatingPhysicsPanel';
 import { FloatingCollisionPanel } from '../components/FloatingCollisionPanel';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
+import { PipingPanel } from '../piping/PipingPanel';
 import { MoveObjectDialog } from '../components/MoveObjectDialog';
 import { SnapSettingsDialog } from '../components/SnapSettingsDialog';
 import { SnapSetupPopup } from '../components/SnapSetupPopup';
@@ -588,6 +589,11 @@ export const EssentialModeLayout: React.FC = () => {
               // Dispatch custom event that WarehousePanel can listen to
               window.dispatchEvent(new CustomEvent('warehouse-reset-camera'));
             },
+            onPipingClick: () => {
+              const setPipingMode = useEditorStore.getState().setPipingModeEnabled;
+              const currentMode = useEditorStore.getState().pipingModeEnabled;
+              setPipingMode(!currentMode);
+            },
           }}
         />
 
@@ -736,6 +742,11 @@ export const EssentialModeLayout: React.FC = () => {
         isVisible={showSettingsPanel}
         onClose={() => setShowSettingsPanel(false)}
         zIndex={1009}
+      />
+
+      <PipingPanel
+        isVisible={useEditorStore((state) => state.pipingModeEnabled)}
+        onClose={() => useEditorStore.getState().setPipingModeEnabled(false)}
       />
 
       <WarehousePanel
