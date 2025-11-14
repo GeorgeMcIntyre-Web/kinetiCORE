@@ -121,7 +121,10 @@ export interface PipingSelection {
 /**
  * Supported placement modes for node elevation
  */
-export type PipingPlacementMode = 'on_floor' | 'fixed_elevation';
+export type PipingPlacementMode =
+  | 'on_floor'
+  | 'at_elevation'
+  | 'snap_to_existing';
 
 /**
  * Placement settings that govern how new nodes inherit elevation
@@ -130,8 +133,11 @@ export interface PipingPlacementSettings {
   /** How elevation is determined during placement */
   mode: PipingPlacementMode;
 
-  /** Elevation in meters when using fixed_elevation mode */
-  defaultElevation: number;
+  /** Target elevation along Z when using elevation-driven modes */
+  defaultElevationZ: number;
+
+  /** Cached Z from the last snapped node when using snap mode */
+  snapReferenceZ: number | null;
 }
 
 /**

@@ -1,7 +1,12 @@
 // Unit tests for piping store
 // Owner: Agent 1 (George)
 
-import { pipingStore } from '../../src/domain/factoryServices/piping/pipingStore';
+import {
+  pipingStore,
+  getCurrentPlacementMode,
+  getDefaultElevationZ as getDefaultElevationZSelector,
+  getEffectiveElevationZ,
+} from '../../src/domain/factoryServices/piping/pipingStore';
 import { PIPING_DEFAULT_PLACEMENT_SETTINGS } from '../../src/domain/factoryServices/piping/pipingDefaults';
 import { PipingNetwork } from '../../src/domain/factoryServices/piping/pipingTypes';
 
@@ -349,29 +354,55 @@ describe('PipingStore', () => {
       expect(placement).toEqual(PIPING_DEFAULT_PLACEMENT_SETTINGS);
     });
 
-    it('should update placement settings with valid values', () => {
-      pipingStore.updatePlacementSettings({
-        mode: 'fixed_elevation',
-        defaultElevation: 2.5,
-      });
-
-      const placement = pipingStore.getPlacementSettings();
-      expect(placement.mode).toBe('fixed_elevation');
-      expect(placement.defaultElevation).toBe(2.5);
+    it('should update placement mode via setter', () => {
+      pipingStore.setPlacementMode('at_elevation');
+      expect(pipingStore.getPlacementMode()).toBe('at_elevation');
     });
 
-    it('should clamp invalid elevation values and reset back to defaults', () => {
-      pipingStore.updatePlacementSettings({
-        mode: 'fixed_elevation',
-        defaultElevation: -5,
-      });
+    it('should clamp invalid elevation values and allow reset', () => {
+      pipingStore.setPlacementMode('at_elevation');
+      pipingStore.setDefaultElevationZ(-5);
 
       const placementAfterClamp = pipingStore.getPlacementSettings();
-      expect(placementAfterClamp.defaultElevation).toBe(0);
+      expect(placementAfterClamp.defaultElevationZ).toBe(0);
 
       pipingStore.resetPlacementSettings();
       const placementAfterReset = pipingStore.getPlacementSettings();
       expect(placementAfterReset).toEqual(PIPING_DEFAULT_PLACEMENT_SETTINGS);
+    });
+
+    it('should store snap reference and use it for effective elevation', () => {
+      pipingStore.setPlacementMode('snap_to_existing');
+      pipingStore.setSnapReferenceZ(4.2);
+
+      const resolved = pipingStore.getEffectivePlacementElevation(null);
+      expect(resolved).toBeCloseTo(4.2);
+    });
+
+    it('should fall back to defaults when snap reference is missing', () => {
+      pipingStore.setPlacementMode('snap_to_existing');
+      pipingStore.setSnapReferenceZ(null);
+
+      const resolved = pipingStore.getEffectivePlacementElevation(null);
+      expect(resolved).toBe(
+        PIPING_DEFAULT_PLACEMENT_SETTINGS.defaultElevationZ
+      );
+    });
+
+    it('should expose selector helpers', () => {
+      const placement = pipingStore.getPlacementSettings();
+      expect(getCurrentPlacementMode(placement)).toBe(placement.mode);
+      expect(getDefaultElevationZSelector(placement)).toBe(
+        placement.defaultElevationZ
+      );
+
+      const next = {
+        ...placement,
+        mode: 'at_elevation' as const,
+        defaultElevationZ: 5,
+      };
+      expect(getEffectiveElevationZ(next, null)).toBe(5);
+      expect(getEffectiveElevationZ(next, 10)).toBe(5);
     });
   });
 });

@@ -23,6 +23,10 @@ import {
  */
 type ChangeListener = () => void;
 
+type PlacementSettingsUpdate = Partial<PipingPlacementSettings> & {
+  defaultElevation?: number;
+};
+
 /**
  * Framework-agnostic piping store
  * Provides CRUD operations and selection state
@@ -391,37 +395,77 @@ class PipingStore {
   }
 
   /**
-   * Update placement settings and persist them
+   * Convenience selector for placement mode
    */
-  updatePlacementSettings(
-    updates: Partial<PipingPlacementSettings>
-  ): void {
-    const next = this.normalizePlacementSettings({
-      ...this.placementSettings,
-      ...updates,
-    });
+  getPlacementMode(): PipingPlacementMode {
+    return selectCurrentPlacementMode(this.placementSettings);
+  }
 
-    if (this.havePlacementSettingsChanged(next) === false) {
+  /**
+   * Convenience selector for default elevation along Z
+   */
+  getDefaultElevationZ(): number {
+    return selectDefaultElevationZ(this.placementSettings);
+  }
+
+  /**
+   * Resolve the elevation that should be used for the next placement
+   */
+  getEffectivePlacementElevation(floorZ: number | null): number {
+    return selectEffectiveElevationZ(this.placementSettings, floorZ);
+  }
+
+  /**
+   * Expose current snap reference Z (mostly for debugging/tests)
+   */
+  getSnapReferenceZ(): number | null {
+    return this.placementSettings.snapReferenceZ;
+  }
+
+  /**
+   * Set placement mode with validation
+   */
+  setPlacementMode(mode: PipingPlacementMode): void {
+    if (this.isValidPlacementMode(mode) === false) {
       return;
     }
 
-    this.placementSettings = next;
-    this.persistPlacementSettings(next);
-    this.notify();
+    this.applyPlacementSettings({ mode });
+  }
+
+  /**
+   * Set the default elevation used by elevation modes
+   */
+  setDefaultElevationZ(elevationZ: number): void {
+    if (Number.isFinite(elevationZ) === false) {
+      return;
+    }
+
+    const clamped = Math.max(0, elevationZ);
+    this.applyPlacementSettings({ defaultElevationZ: clamped });
+  }
+
+  /**
+   * Set or clear the snap reference elevation
+   */
+  setSnapReferenceZ(z: number | null): void {
+    if (z === null) {
+      this.applyPlacementSettings({ snapReferenceZ: null });
+      return;
+    }
+
+    if (Number.isFinite(z) === false) {
+      return;
+    }
+
+    this.applyPlacementSettings({ snapReferenceZ: z });
   }
 
   /**
    * Reset placement settings back to defaults
    */
   resetPlacementSettings(): void {
-    const next = this.cloneDefaultPlacementSettings();
-    if (this.havePlacementSettingsChanged(next) === false) {
-      return;
-    }
-
-    this.placementSettings = next;
-    this.persistPlacementSettings(next);
-    this.notify();
+    this.applyPlacementSettings(this.cloneDefaultPlacementSettings());
   }
 
   // ============================================================================
@@ -488,6 +532,21 @@ class PipingStore {
     return `${prefix}_${this.nextId++}_${Date.now()}`;
   }
 
+  private applyPlacementSettings(update: PlacementSettingsUpdate): void {
+    const next = this.normalizePlacementSettings({
+      ...this.placementSettings,
+      ...update,
+    });
+
+    if (this.havePlacementSettingsChanged(next) === false) {
+      return;
+    }
+
+    this.placementSettings = next;
+    this.persistPlacementSettings(next);
+    this.notify();
+  }
+
   private cloneDefaultPlacementSettings(): PipingPlacementSettings {
     return { ...PIPING_DEFAULT_PLACEMENT_SETTINGS };
   }
@@ -513,7 +572,7 @@ class PipingStore {
     }
 
     try {
-      const parsed = JSON.parse(raw) as Partial<PipingPlacementSettings>;
+      const parsed = JSON.parse(raw) as PlacementSettingsUpdate;
       if (typeof parsed !== 'object' || parsed === null) {
         return null;
       }
@@ -528,19 +587,33 @@ class PipingStore {
   }
 
   private normalizePlacementSettings(
-    settings: PipingPlacementSettings
+    settings: PlacementSettingsUpdate
   ): PipingPlacementSettings {
     const mode = this.isValidPlacementMode(settings.mode)
       ? settings.mode
       : PIPING_DEFAULT_PLACEMENT_SETTINGS.mode;
 
-    const defaultElevation = Number.isFinite(settings.defaultElevation)
-      ? Math.max(0, settings.defaultElevation)
-      : PIPING_DEFAULT_PLACEMENT_SETTINGS.defaultElevation;
+    const elevationSource =
+      settings.defaultElevationZ ?? settings.defaultElevation;
+
+    const defaultElevationZ = Number.isFinite(elevationSource)
+      ? Math.max(0, elevationSource as number)
+      : PIPING_DEFAULT_PLACEMENT_SETTINGS.defaultElevationZ;
+
+    const snapCandidate =
+      settings.snapReferenceZ === undefined
+        ? PIPING_DEFAULT_PLACEMENT_SETTINGS.snapReferenceZ
+        : settings.snapReferenceZ;
+
+    const snapReferenceZ =
+      typeof snapCandidate === 'number' && Number.isFinite(snapCandidate)
+        ? snapCandidate
+        : null;
 
     return {
       mode,
-      defaultElevation,
+      defaultElevationZ,
+      snapReferenceZ,
     };
   }
 
@@ -549,7 +622,8 @@ class PipingStore {
   ): boolean {
     return (
       next.mode !== this.placementSettings.mode ||
-      next.defaultElevation !== this.placementSettings.defaultElevation
+      next.defaultElevationZ !== this.placementSettings.defaultElevationZ ||
+      next.snapReferenceZ !== this.placementSettings.snapReferenceZ
     );
   }
 
@@ -558,7 +632,11 @@ class PipingStore {
       return true;
     }
 
-    if (mode === 'fixed_elevation') {
+    if (mode === 'at_elevation') {
+      return true;
+    }
+
+    if (mode === 'snap_to_existing') {
       return true;
     }
 
@@ -599,3 +677,53 @@ class PipingStore {
 
 // Singleton instance
 export const pipingStore = new PipingStore();
+
+function selectCurrentPlacementMode(
+  settings: PipingPlacementSettings
+): PipingPlacementMode {
+  return settings.mode;
+}
+
+function selectDefaultElevationZ(
+  settings: PipingPlacementSettings
+): number {
+  return settings.defaultElevationZ;
+}
+
+function selectEffectiveElevationZ(
+  settings: PipingPlacementSettings,
+  floorZ: number | null
+): number {
+  if (settings.mode === 'on_floor') {
+    if (isFiniteNumber(floorZ)) {
+      return floorZ;
+    }
+    return 0;
+  }
+
+  if (settings.mode === 'at_elevation') {
+    return settings.defaultElevationZ;
+  }
+
+  if (settings.mode === 'snap_to_existing') {
+    if (isFiniteNumber(settings.snapReferenceZ)) {
+      return settings.snapReferenceZ;
+    }
+    if (isFiniteNumber(floorZ)) {
+      return floorZ;
+    }
+    return settings.defaultElevationZ;
+  }
+
+  return settings.defaultElevationZ;
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+export {
+  selectCurrentPlacementMode as getCurrentPlacementMode,
+  selectDefaultElevationZ as getDefaultElevationZ,
+  selectEffectiveElevationZ as getEffectiveElevationZ,
+};

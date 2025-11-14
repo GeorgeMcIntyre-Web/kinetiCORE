@@ -19,8 +19,9 @@ import { X } from 'lucide-react';
 
 const SERVICE_TYPES: PipingServiceType[] = ['water', 'air', 'steam', 'vacuum'];
 const PLACEMENT_MODES: { value: PipingPlacementMode; label: string }[] = [
-  { value: 'on_floor', label: 'Snap to floor (Y = 0)' },
-  { value: 'fixed_elevation', label: 'Fixed elevation' },
+  { value: 'on_floor', label: 'Snap to floor (Z reference)' },
+  { value: 'at_elevation', label: 'Fixed elevation' },
+  { value: 'snap_to_existing', label: 'Snap to existing node' },
 ];
 
 interface PipingPanelProps {
@@ -80,7 +81,7 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
   }, [isVisible, networks.length]);
 
   const handlePlacementModeChange = (mode: PipingPlacementMode) => {
-    pipingStore.updatePlacementSettings({ mode });
+    pipingStore.setPlacementMode(mode);
   };
 
   const handleDefaultElevationChange = (value: string) => {
@@ -89,7 +90,7 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
       return;
     }
 
-    pipingStore.updatePlacementSettings({ defaultElevation: parsed });
+    pipingStore.setDefaultElevationZ(parsed);
   };
 
   const handleResetPlacementSettings = () => {
@@ -98,8 +99,8 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
 
   const isPlacementAtDefaults =
     placementSettings.mode === PIPING_DEFAULT_PLACEMENT_SETTINGS.mode &&
-    placementSettings.defaultElevation ===
-      PIPING_DEFAULT_PLACEMENT_SETTINGS.defaultElevation;
+    placementSettings.defaultElevationZ ===
+      PIPING_DEFAULT_PLACEMENT_SETTINGS.defaultElevationZ;
 
   if (!isVisible) {
     return null;
@@ -307,14 +308,14 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
             htmlFor="placement-elevation-input"
             style={{ fontSize: '12px', color: '#94a3b8' }}
           >
-            Default Elevation (m)
+            Default Elevation Z (scene units)
           </label>
           <input
             id="placement-elevation-input"
             type="number"
             min={0}
             step={0.1}
-            value={placementSettings.defaultElevation}
+            value={placementSettings.defaultElevationZ}
             onChange={(event) => handleDefaultElevationChange(event.target.value)}
             style={{
               width: '100%',
@@ -328,7 +329,7 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
           />
           <div style={{ fontSize: '11px', color: '#94a3b8' }}>
             Defaults: {PIPING_DEFAULT_PLACEMENT_SETTINGS.mode.replace('_', ' ')} •{' '}
-            {PIPING_DEFAULT_PLACEMENT_SETTINGS.defaultElevation.toFixed(1)} m
+            {PIPING_DEFAULT_PLACEMENT_SETTINGS.defaultElevationZ.toFixed(1)} units
           </div>
         </div>
 

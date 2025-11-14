@@ -265,16 +265,14 @@ describe('PipingPanel UI', () => {
       render(<PipingPanel isVisible={true} onClose={() => {}} />);
 
       expect(screen.getByLabelText('Placement Mode')).toBeInTheDocument();
-      expect(screen.getByLabelText('Default Elevation (m)')).toBeInTheDocument();
+      expect(screen.getByLabelText('Default Elevation Z (scene units)')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /reset to defaults/i })).toBeInTheDocument();
     });
 
     it('should reset placement settings when reset button is clicked', () => {
       act(() => {
-        pipingStore.updatePlacementSettings({
-          mode: 'fixed_elevation',
-          defaultElevation: 3,
-        });
+        pipingStore.setPlacementMode('at_elevation');
+        pipingStore.setDefaultElevationZ(3);
       });
 
       render(<PipingPanel isVisible={true} onClose={() => {}} />);
