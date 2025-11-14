@@ -12,6 +12,8 @@
 import { NodeIO, type Node, type Primitive } from '@gltf-transform/core';
 import fs from 'node:fs';
 import path from 'node:path';
+import { classifyClusters, bboxGap, detectFloorY, type InternalCluster } from '../src/dev/tooling/RigidClusterCore';
+import { checkRigidClustersInvariants, assertInvariants } from '../src/dev/tooling/PipelineInvariants';
 
 type BBox = { min: [number, number, number]; max: [number, number, number] };
 
@@ -51,6 +53,8 @@ type ClusterJson = {
   meshNames: string[];
 };
 
+// Note: gltf-transform doesn't support Draco compression directly
+// GLB files with Draco compression need to be decompressed first
 const io = new NodeIO();
 
 const glbPath = process.argv[2];
@@ -61,17 +65,80 @@ if (glbPath === undefined) {
 }
 
 run().catch(err => {
-  console.error('Rigid cluster analysis failed:', err);
+  if (err?.message?.includes('KHR_draco_mesh_compression')) {
+    console.error('Rigid cluster analysis failed: GLB uses Draco compression.');
+    console.error('To fix this, install the Draco extension:');
+    console.error('  npm install @gltf-transform/draco');
+    console.error('');
+    console.error('Alternatively, decompress the GLB file using gltf-transform:');
+    console.error('  npx @gltf-transform/cli draco <input.glb> <output.glb>');
+  } else {
+    console.error('Rigid cluster analysis failed:', err);
+  }
   process.exit(1);
 });
 
 async function run() {
+  // Debug: log the received path to help diagnose path issues
+  if (process.env.DEBUG_PATHS) {
+    console.log('[DEBUG] Received GLB path:', JSON.stringify(glbPath));
+    console.log('[DEBUG] Path length:', glbPath.length);
+  }
+  
   if (!fs.existsSync(glbPath)) {
     console.error('GLB not found:', glbPath);
+    console.error('Path length:', glbPath.length);
+    console.error('Please check that the path is correct and the file exists.');
     process.exit(1);
   }
 
-  const doc = await io.read(glbPath);
+  // Try to read the GLB - if it fails due to Draco compression, decompress it first
+  let doc;
+  let tempGlbPath: string | null = null;
+  
+  try {
+    doc = await io.read(glbPath);
+  } catch (err: any) {
+    if (err?.message?.includes('KHR_draco_mesh_compression')) {
+      console.log('GLB uses Draco compression. Decompressing...');
+      
+      // Create a temporary decompressed GLB file
+      const tempDir = path.join(path.dirname(glbPath), '.temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      const glbName = path.basename(glbPath, '.glb');
+      tempGlbPath = path.join(tempDir, `${glbName}_decompressed.glb`);
+      
+      // Use gltf-transform copy to decompress (copy without compression = decompress)
+      // Quote paths to handle spaces
+      const { spawn } = await import('node:child_process');
+      await new Promise<void>((resolve, reject) => {
+        const proc = spawn('npx', ['@gltf-transform/cli', 'copy', `"${glbPath}"`, `"${tempGlbPath}"`], {
+          stdio: 'inherit',
+          shell: true,
+        });
+        
+        proc.on('close', (code) => {
+          if (code === 0) {
+            resolve();
+          } else {
+            reject(new Error(`Decompression failed with code ${code}`));
+          }
+        });
+        
+        proc.on('error', (err) => {
+          reject(err);
+        });
+      });
+      
+      console.log('Decompression complete. Processing decompressed GLB...');
+      doc = await io.read(tempGlbPath);
+    } else {
+      throw err;
+    }
+  }
   const scene = doc.getRoot().getDefaultScene();
 
   if (scene === null || scene === undefined) {
@@ -104,8 +171,26 @@ async function run() {
   const clusters = buildRigidClusters(meshInfos);
   console.log(`Built ${clusters.length} rigid clusters`);
 
+  // Use extracted classifyClusters function
   const typedClusters = classifyClusters(clusters);
-  console.log(`Classified: ${typedClusters.filter(c => c.type === 'base').length} base, ${typedClusters.filter(c => c.type === 'unit').length} unit, ${typedClusters.filter(c => c.type === 'loose').length} loose`);
+  
+  const floorY = detectFloorY(clusters);
+  if (floorY !== null) {
+    console.log(`Detected floor Y: ${floorY.toFixed(4)}`);
+  }
+  
+  const baseCount = typedClusters.filter(c => c.type === 'base').length;
+  const unitCount = typedClusters.filter(c => c.type === 'unit').length;
+  const looseCount = typedClusters.filter(c => c.type === 'loose').length;
+  console.log(`Classified: ${baseCount} base, ${unitCount} unit, ${looseCount} loose`);
+
+  // Runtime invariant checks
+  const violations = checkRigidClustersInvariants(typedClusters);
+  if (violations.length > 0) {
+    console.error('Invariant violations detected:');
+    violations.forEach(v => console.error(`  [${v.step}] ${v.message}`));
+    assertInvariants(violations);
+  }
 
   const meshNameById = new Map<number, string>();
   meshInfos.forEach(info => {
@@ -134,6 +219,16 @@ async function run() {
   fs.writeFileSync(outPath, JSON.stringify(json, null, 2), 'utf8');
 
   console.log('Rigid cluster JSON written to:', outPath);
+  
+  // Clean up temporary decompressed GLB if it was created
+  if (tempGlbPath && fs.existsSync(tempGlbPath)) {
+    try {
+      fs.unlinkSync(tempGlbPath);
+      console.log('Cleaned up temporary decompressed GLB');
+    } catch (err) {
+      console.warn('Failed to clean up temporary GLB:', err);
+    }
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -183,7 +278,7 @@ function collectMeshInfos(root: Node): MeshNodeInfo[] {
 /* Clustering by bbox adjacency                                       */
 /* ------------------------------------------------------------------ */
 
-type InternalCluster = Cluster & { meshIds: number[] };
+// InternalCluster type is now imported from RigidClusterCore
 
 function buildRigidClusters(meshInfos: MeshNodeInfo[]): InternalCluster[] {
   const n = meshInfos.length;
@@ -297,12 +392,17 @@ function summarizeCluster(
 /* ------------------------------------------------------------------ */
 /* Classification: base / unit / loose                                */
 /* ------------------------------------------------------------------ */
+/* NOTE: Classification functions are now imported from RigidClusterCore.ts */
+/* The old function definitions below are kept for reference but are unused. */
 
 type TypedCluster = InternalCluster & {
   type: ClusterType;
   attachedToBaseId: number | null;
 };
 
+// OLD - Now using imported classifyClusters from RigidClusterCore
+// Keeping for reference - can be removed later
+/*
 function detectFloorY(clusters: InternalCluster[]): number | null {
   if (clusters.length === 0) return null;
 
@@ -688,7 +788,11 @@ function attachUnitsToBases(
 
   console.log(`  Attached ${attachedCount} units (skipped ${skippedOverlap} for overlap, ${skippedGap} for gap)`);
 }
+*/
 
+// Imported helper functions are now used from RigidClusterCore
+// Keeping local geometry helpers that are still used by buildRigidClusters
+/*
 function xyOverlapFractionFromBbox(
   a: { min: [number, number, number]; max: [number, number, number] },
   b: { min: [number, number, number]; max: [number, number, number] }
@@ -715,31 +819,7 @@ function xyOverlapFractionFromBbox(
 
   return overlapArea / minArea;
 }
-
-function mergeBboxes(
-  boxes: { min: [number, number, number]; max: [number, number, number] }[]
-): { min: [number, number, number]; max: [number, number, number] } {
-  let minX = Number.POSITIVE_INFINITY;
-  let minY = Number.POSITIVE_INFINITY;
-  let minZ = Number.POSITIVE_INFINITY;
-  let maxX = Number.NEGATIVE_INFINITY;
-  let maxY = Number.NEGATIVE_INFINITY;
-  let maxZ = Number.NEGATIVE_INFINITY;
-
-  boxes.forEach(b => {
-    if (b.min[0] < minX) minX = b.min[0];
-    if (b.min[1] < minY) minY = b.min[1];
-    if (b.min[2] < minZ) minZ = b.min[2];
-    if (b.max[0] > maxX) maxX = b.max[0];
-    if (b.max[1] > maxY) maxY = b.max[1];
-    if (b.max[2] > maxZ) maxZ = b.max[2];
-  });
-
-  return {
-    min: [minX, minY, minZ],
-    max: [maxX, maxY, maxZ]
-  };
-}
+*/
 
 function fallbackClassification(clusters: InternalCluster[]): TypedCluster[] {
   const maxArea = Math.max(...clusters.map(c => c.areaXY));

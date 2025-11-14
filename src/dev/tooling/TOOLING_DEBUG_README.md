@@ -1,4 +1,4 @@
-# 9X_110_GEO Tooling Explorer & Attachment Analyzer
+# 9X_110_GEO Tooling Explorer & Kinematics Pipeline
 
 ## Overview
 
@@ -7,6 +7,51 @@ This directory contains developer tools to analyze the large fixture model `9X_1
 1. **Scene Structure Analysis**: Inspect meshes, rigid clusters, and unit candidates
 2. **Joint Visualization**: Overlay joints from JSON onto the 3D scene
 3. **Geometric Attachment Discovery**: Find unit-to-base attachments using pure geometry (no name-based logic)
+4. **Universal Kinematics Pipeline**: Naming-free, OEM-agnostic unit building from geometry and joints
+
+## Tooling Pipeline
+
+The tooling analysis follows a 4-step pipeline that is completely **naming-free** - no kinematic decisions depend on string patterns like `CLAMP-UNIT`, `UNIT_101`, etc.
+
+### Step 1: Tree Inspector
+```bash
+npx tsx scripts/tooling-tree-inspector.ts "C:/path/to/fixture.glb"
+```
+Outputs: Scene structure overview (mesh counts, node hierarchy)
+
+### Step 2: Rigid Clusters
+```bash
+npx tsx scripts/tooling-rigid-clusters.ts "C:/path/to/fixture.glb"
+```
+Outputs: `<fixture>.rigid-clusters.json`
+
+- Detects welded/bolted rigid bodies using geometry adjacency
+- Classifies clusters as `base`, `unit`, or `loose`
+- Uses floor detection and base stack building (no name patterns)
+
+### Step 3: Joint Segmentation
+```bash
+npx tsx scripts/tooling-joint-segmentation.ts "C:/path/to/fixture.glb" "C:/path/to/fixture.json"
+```
+Outputs: `<fixture>.joint-segmentation.json`
+
+- Maps OEM joint data (Ford Fides JSON) to GLB nodes
+- Extracts joint axes, origins, types, and limits
+- Uses NodeId paths only to locate nodes, not for semantics
+
+### Step 4: Unit Builder (NEW)
+```bash
+npm run tooling:units "C:/path/to/fixture.glb"
+```
+Outputs: 
+- `<fixture>.units.json` - Links, joints, and kinematic units
+- `<fixture>.unit-features.json` - Geometric and joint features per unit
+
+**This is the core naming-free unit builder:**
+- Builds link graph from joint connections (no name patterns)
+- Groups clusters into kinematic units based on joint topology
+- Computes universal features (geometry, contact, joints)
+- Works across Ford Fides, TMS/NX, and future OEM formats
 
 ## Data Files
 
@@ -23,14 +68,41 @@ The JSON file contains fitted-joints data with:
   - `FromVector` / `ToVector`: axis and anchor in world space
   - `TransformationMatrix`, `RmsError`, `MaxError`, `PointCount*`
 
-## Running the Debug Page
+## Running the Debug Pages
+
+### Kinematics Debug (Recommended)
+
+1. Run the full pipeline first:
+   ```bash
+   npx tsx scripts/tooling-rigid-clusters.ts "C:/path/to/fixture.glb"
+   npx tsx scripts/tooling-joint-segmentation.ts "C:/path/to/fixture.glb" "C:/path/to/fixture.json"
+   npm run tooling:units "C:/path/to/fixture.glb"
+   ```
+
+2. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+3. Open the kinematics debug page:
+   ```
+   http://localhost:5173/debug/9x-110-kinematics-debug.html
+   ```
+
+4. The page will automatically load:
+   - GLB model
+   - `*.rigid-clusters.json`
+   - `*.units.json` (or falls back to `*.joint-segmentation.json`)
+   - `*.unit-features.json` (if available)
+
+### Tooling Explorer (Legacy)
 
 1. Start the development server:
    ```bash
    npm run dev
    ```
 
-2. Open the debug page in your browser:
+2. Open the tooling debug page:
    ```
    http://localhost:5173/debug/9x-110-tooling-debug.html
    ```
@@ -40,15 +112,54 @@ The JSON file contains fitted-joints data with:
 
 ## Console Commands
 
-Once the page is loaded, you can use these commands in the browser console:
+### Kinematics Debug API (`window.kinDebug`)
 
-### `toolingDebug.logOverview()`
+Once the kinematics debug page is loaded, use these commands:
+
+#### `kinDebug.listUnits()`
+Lists all kinematic units with their joints and features:
+```
+Units (new format):
+  unit_0:
+    Joints: 2
+    Clusters: 5
+    Height: 0.234m
+    Extent: 0.123 x 0.234 x 0.456m
+    Joints: 1 revolute, 1 prismatic
+      - joint_0 (revolute): -45 to 45
+      - joint_1 (prismatic): 0 to 100
+```
+
+#### `kinDebug.highlightUnit(unitId)`
+Highlights a specific unit in yellow:
+```js
+kinDebug.highlightUnit('unit_0');
+// Call again to clear highlight
+kinDebug.highlightUnit('unit_0');
+```
+
+#### `kinDebug.setJoint(unitId, jointId, value)`
+Sets a joint value (applies transformation):
+```js
+kinDebug.setJoint('unit_0', 'joint_0', 30); // 30 degrees for revolute
+kinDebug.setJoint('unit_1', 'joint_1', 50);  // 50mm for prismatic
+```
+
+#### `kinDebug.resetAllJoints()`
+Resets all joint transforms to zero.
+
+#### `kinDebug.toggleAxes()`
+Toggles visibility of joint axis visualizations.
+
+### Tooling Explorer API (`window.toolingDebug`)
+
+#### `toolingDebug.logOverview()`
 Logs a summary of the scene structure:
 - Total mesh count
 - Base clusters detected
 - Unit candidates with cluster counts and volumes
 
-### `await toolingDebug.overlayJoints()`
+#### `await toolingDebug.overlayJoints()`
 Loads joints from the JSON file and creates visual gizmos:
 - **Green spheres + lines**: Prismatic joints
 - **Red spheres + lines**: Hinge joints
@@ -59,7 +170,7 @@ To remove the overlay:
 toolingDebugOverlay.dispose();
 ```
 
-### `toolingDebug.analyzeAttachments()`
+#### `toolingDebug.analyzeAttachments()`
 Analyzes geometric attachments between units and base clusters:
 - Computes XY projection overlap
 - Checks vertical gap between unit bottom and base top
@@ -188,10 +299,117 @@ All code follows these conventions:
 
 ## Files
 
+### Core Types
+- `MechanicalModel.ts`: Canonical types for universal kinematics (RigidCluster, KinematicJoint, Link, KinematicUnit, UnitFeatures)
+
+### Adapters
+- `JointAdapters.ts`: OEM-agnostic joint adapter interface and implementations (FordFidesJointAdapter, TmsNxJointAdapter)
+
+### Scripts
+- `scripts/tooling-tree-inspector.ts`: Scene structure inspection
+- `scripts/tooling-rigid-clusters.ts`: Rigid cluster detection and classification
+- `scripts/tooling-joint-segmentation.ts`: Joint mapping from OEM JSON to GLB
+- `scripts/tooling-unit-builder.ts`: **Universal unit builder** (naming-free, graph-based)
+
+### Debug Pages
 - `ToolingConfig.ts`: Configuration with file paths
 - `ToolingSceneExplorer.ts`: Scene structure analysis
 - `ToolingJointOverlay.ts`: Joint visualization
 - `UnitAttachmentAnalyzer.ts`: Geometric attachment discovery
-- `debug/9x-110-tooling-debug.html`: Debug page HTML
-- `debug/9x-110-tooling-debug.ts`: Debug page TypeScript
+- `debug/9x-110-tooling-debug.html`: Legacy tooling explorer
+- `debug/9x-110-tooling-debug.ts`: Legacy tooling explorer TypeScript
+- `debug/9x-110-kinematics-debug.html`: **Kinematics debug page** (uses units.json)
+- `debug/9x-110-kinematics-debug.ts`: **Kinematics debug page TypeScript**
+
+## Naming-Free Constraint
+
+**Critical rule**: All kinematic logic must be naming-free. This means:
+
+✅ **Allowed:**
+- Geometry adjacency (bbox overlap, gap detection)
+- Joint parent/child relationships
+- Graph connectivity (link building)
+- Cluster classification by size/position
+
+❌ **Forbidden:**
+- Pattern matching on `node.name` (e.g., `/CLAMP-UNIT/`, `/UNIT_\d+/`)
+- Using names to decide what moves or how links are built
+- Name-based unit grouping
+
+Names are **only** used for:
+- UI labels and console output
+- Optional consistency checks (e.g., "unit named CLAMP but geometry says PIN")
+- Operator navigation
+
+To verify naming-free behavior, the unit builder includes a `--randomize-names` flag (future enhancement) that scrambles all node names and asserts the kinematic structure remains unchanged.
+
+## Runtime Invariants
+
+The pipeline includes runtime invariant checks after each step to catch errors early:
+
+### Rigid Clustering Invariants
+- At least one base cluster exists (when clusters are found)
+- All bounding boxes are valid (min ≤ max for all axes)
+
+### Joint Segmentation Invariants
+- All joints reference existing parent clusters
+- All joints reference existing child clusters
+
+### Unit Builder Invariants
+- Links exist when clusters exist
+- All units are non-empty (have at least one cluster)
+- All units reference existing base links
+- All units reference existing primary links
+- All joints map to existing links (parent and child clusters found in links)
+
+Invariant violations are reported in:
+- Console output during pipeline execution
+- Regression test results (`invariantsOk` field)
+- Batch manifest (`invariantsOk` and `invariantReason` fields)
+
+## Testing
+
+### Unit Tests
+Run unit tests for core clustering and classification logic:
+```bash
+npm test
+```
+
+Tests include:
+- Synthetic fixtures (Fixture A, B, C) for floor detection and base stack building
+- Unit graph builder tests with hard-coded joint lists
+- Ford Fides adapter tests with minimal JSON samples
+
+### Regression Tests
+Run full pipeline regression tests on all fixtures:
+```bash
+npm run tooling:regression
+```
+
+With name randomization (tests that kinematic structure is unchanged when IDs are randomized):
+```bash
+npm run tooling:regression -- --randomize-names
+```
+
+### Golden Snapshot Test
+The `9X_110_GEO` fixture has a golden units snapshot that is compared against live pipeline output:
+- Golden file: `src/dev/tooling/golden/9X_110_GEO.units.golden.json`
+- Test: `tests/GoldenUnits_9X_110_GEO.spec.ts`
+
+The golden test verifies:
+- Same unit, link, and joint counts
+- Same linkId counts per unit (up to reordering)
+- Same (baseLinkId, primaryLinkId) pairs (up to reordering)
+
+All comparisons are name-agnostic and robust to ID renaming.
+
+**Note for v1**: The current golden snapshot for `9X_110_GEO` has zero units by design - this locks in the current v1 behaviour. When real unit segmentation is implemented for this fixture, the golden file must be regenerated as part of that change.
+
+### Batch Processing
+Process all fixtures in a folder:
+```bash
+npm run tooling:pipeline:batch "C:/path/to/fixtures/folder"
+```
+
+The batch manifest includes invariant status for each fixture.
 

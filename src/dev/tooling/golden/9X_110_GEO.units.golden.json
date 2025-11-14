@@ -1,0 +1,7 @@
+{
+  "_comment": "v1 golden snapshot - zero units by design. Regenerate when implementing real unit segmentation for 9X_110_GEO.",
+  "unitCount": 0,
+  "linkCount": 54,
+  "jointCount": 5,
+  "units": []
+}
