@@ -109,6 +109,19 @@ export interface ClearanceRequirements {
 /**
  * Constraints that routes must satisfy
  */
+export interface RoutePlacementOptions {
+  /** Placement mode applied when creating the route */
+  mode: 'on_floor' | 'fixed_height';
+  /** Preferred elevation for fixed-height placement (scene units, Z-up) */
+  defaultElevation: number;
+  /** Allow gradual transitions between floor and elevated sections */
+  allowMixedElevation?: boolean;
+  /** Maximum allowed elevation delta per segment (meters) */
+  maxElevationDelta?: number;
+  /** Tolerance for treating a waypoint as "on floor" (meters) */
+  floorSnapTolerance?: number;
+}
+
 export interface RouteConstraints {
   /** Minimum bend radius allowed */
   minBendRadius: number;
@@ -118,6 +131,8 @@ export interface RouteConstraints {
   supportSpacing: number;
   /** Clearance requirements */
   clearance: ClearanceRequirements;
+  /** Optional placement rules for elevation-aware routes */
+  placement?: RoutePlacementOptions;
 }
 
 /**
@@ -147,7 +162,13 @@ export interface Route {
 /**
  * Constraint violation types
  */
-export type ViolationType = 'bend_radius' | 'clearance' | 'support_spacing' | 'length';
+export type ViolationType =
+  | 'bend_radius'
+  | 'clearance'
+  | 'support_spacing'
+  | 'length'
+  | 'elevation'
+  | 'topology';
 
 /**
  * Severity levels for constraint violations

@@ -9,8 +9,15 @@ import {
   ValidationResult,
   RouteConstraints,
   RouteSegment,
+  RoutePlacementOptions,
 } from '../core/types';
 import { ConstraintValidator } from '../pathfinding/ConstraintValidator';
+
+const MIN_SEGMENT_LENGTH = 0.001;
+const MIN_WAYPOINT_COUNT = 2;
+const DEFAULT_ELEVATION_TOLERANCE = 0.01;
+const DEFAULT_SLOPE_WARNING_DELTA = 0.05;
+const DEFAULT_SLOPE_ERROR_DELTA = 0.3;
 
 /**
  * Enhanced validation result with segment-specific violations
@@ -64,6 +71,8 @@ export class RouteValidator extends ConstraintValidator {
     const baseResult = this.validateRoute(route, obstacles);
     violations.push(...baseResult.violations);
 
+    violations.push(...this.checkDegenerateSegments(route, segmentViolations));
+
     // Check route length
     violations.push(...this.checkRouteLength(route));
 
@@ -77,6 +86,8 @@ export class RouteValidator extends ConstraintValidator {
 
     // Check bend radius with more detail
     violations.push(...this.checkBendRadiusDetailed(route.segments, route.constraints, segmentViolations));
+
+    violations.push(...this.checkElevationConstraints(route));
 
     // Check collisions with obstacles
     violations.push(...this.checkCollisions(route, obstacles, segmentViolations));
@@ -97,6 +108,46 @@ export class RouteValidator extends ConstraintValidator {
       segmentViolations,
       status,
     };
+  }
+
+  private checkDegenerateSegments(
+    route: Route,
+    segmentViolations: Map<string, ConstraintViolation[]>
+  ): ConstraintViolation[] {
+    const violations: ConstraintViolation[] = [];
+
+    for (const segment of route.segments) {
+      if (segment.length >= MIN_SEGMENT_LENGTH) {
+        continue;
+      }
+
+      const violation: ConstraintViolation = {
+        type: 'topology',
+        severity: 'error',
+        location: { ...segment.startPoint },
+        message: `Segment "${segment.id}" has near-zero length (${segment.length.toFixed(4)}m).`,
+      };
+
+      violations.push(violation);
+      this.appendSegmentViolation(segmentViolations, segment.id, violation);
+    }
+
+    return violations;
+  }
+
+  private checkElevationConstraints(route: Route): ConstraintViolation[] {
+    const placement = route.constraints.placement;
+    if (!placement) {
+      return [];
+    }
+
+    const waypoints = route.getWaypoints();
+    if (waypoints.length === 0) {
+      return [];
+    }
+
+    const evaluation = evaluateElevationProfile(waypoints, placement);
+    return evaluation.violations;
   }
 
   /**
@@ -291,21 +342,37 @@ export class RouteValidator extends ConstraintValidator {
         }
       }
 
-      if (segmentCollisions.length > 0) {
-        violations.push(...segmentCollisions);
-
-        // Add to segment violations
-        if (!segmentViolations.has(segment.id)) {
-          segmentViolations.set(segment.id, []);
-        }
-        segmentViolations.get(segment.id)!.push(...segmentCollisions);
+      if (segmentCollisions.length === 0) {
+        continue;
       }
+
+      violations.push(...segmentCollisions);
+      this.appendSegmentViolationList(segmentViolations, segment.id, segmentCollisions);
     }
 
     return violations;
   }
 
-  /**
+  private appendSegmentViolationList(
+    segmentViolations: Map<string, ConstraintViolation[]>,
+    segmentId: string,
+    violations: ConstraintViolation[]
+  ): void {
+    if (!segmentViolations.has(segmentId)) {
+      segmentViolations.set(segmentId, []);
+    }
+    segmentViolations.get(segmentId)!.push(...violations);
+  }
+
+  private appendSegmentViolation(
+    segmentViolations: Map<string, ConstraintViolation[]>,
+    segmentId: string,
+    violation: ConstraintViolation
+  ): void {
+    this.appendSegmentViolationList(segmentViolations, segmentId, [violation]);
+  }
+
+    /**
    * Get suggested fixes for validation issues
    */
   getSuggestedFixes(validationResult: EnhancedValidationResult): string[] {
@@ -344,6 +411,12 @@ export class RouteValidator extends ConstraintValidator {
             `Add support points between segments exceeding ${validationResult.violations.find((v) => v.type === 'support_spacing')?.message.split(' ')[3] || 'maximum'} spacing`
           );
           break;
+        case 'elevation':
+          suggestions.push('Adjust node elevations to match the active placement mode.');
+          break;
+        case 'topology':
+          suggestions.push('Remove overlapping or zero-length segments before generating geometry.');
+          break;
       }
     }
 
@@ -374,6 +447,180 @@ export class RouteValidator extends ConstraintValidator {
   }
 }
 
+export type ElevationValidationStatus = 'valid' | 'warning' | 'error';
+
+export interface ElevationRuleOptions extends RoutePlacementOptions {}
+
+export interface ElevationValidationResult {
+  status: ElevationValidationStatus;
+  violations: ConstraintViolation[];
+}
+
+export function evaluateElevationProfile(
+  waypoints: Vector3[],
+  options?: ElevationRuleOptions
+): ElevationValidationResult {
+  if (!options) {
+    return { status: 'valid', violations: [] };
+  }
+
+  const violations: ConstraintViolation[] = [];
+  const sanitized = filterFiniteWaypoints(waypoints);
+
+  if (sanitized.length === 0) {
+    violations.push(createElevationViolation('Route has no valid waypoints.', 'error'));
+    return finalizeElevationValidation(violations);
+  }
+
+  if (sanitized.length < MIN_WAYPOINT_COUNT) {
+    violations.push(createElevationViolation('Route must contain at least two waypoints.', 'error', sanitized[0]));
+    return finalizeElevationValidation(violations);
+  }
+
+  if (options.mode === 'fixed_height') {
+    violations.push(
+      ...validateFixedElevation(sanitized, options.defaultElevation, options.floorSnapTolerance)
+    );
+    return finalizeElevationValidation(violations);
+  }
+
+  violations.push(
+    ...validateFloorElevation(
+      sanitized,
+      options.floorSnapTolerance,
+      options.maxElevationDelta,
+      options.allowMixedElevation
+    )
+  );
+
+  return finalizeElevationValidation(violations);
+}
+
+function validateFloorElevation(
+  points: Vector3[],
+  tolerance?: number,
+  maxDelta?: number,
+  allowMixed?: boolean
+): ConstraintViolation[] {
+  const violations: ConstraintViolation[] = [];
+  const snapTolerance = tolerance ?? DEFAULT_ELEVATION_TOLERANCE;
+  const maxStepDelta = maxDelta ?? DEFAULT_SLOPE_ERROR_DELTA;
+  const warningDelta = Math.min(maxStepDelta, DEFAULT_SLOPE_WARNING_DELTA);
+  const baseline = points[0].z;
+
+  for (const point of points) {
+    const delta = Math.abs(point.z - baseline);
+    if (delta <= snapTolerance) {
+      continue;
+    }
+
+    if (delta <= warningDelta) {
+      violations.push(
+        createElevationViolation(
+          `Slope detected at (${point.x.toFixed(2)}, ${point.y.toFixed(2)}, ${point.z.toFixed(
+            2
+          )}) - verify platform grade.`,
+          allowMixed ? 'warning' : 'error',
+          point
+        )
+      );
+      continue;
+    }
+
+    if (delta <= maxStepDelta && allowMixed) {
+      violations.push(
+        createElevationViolation(
+          `Mixed elevation segment detected (${delta.toFixed(2)}m). Ensure riser nodes are intentional.`,
+          'warning',
+          point
+        )
+      );
+      continue;
+    }
+
+    violations.push(
+      createElevationViolation(
+        `Elevation delta ${delta.toFixed(2)}m exceeds allowed floor tolerance.`,
+        'error',
+        point
+      )
+    );
+  }
+
+  return violations;
+}
+
+function validateFixedElevation(
+  points: Vector3[],
+  targetElevation: number,
+  tolerance?: number
+): ConstraintViolation[] {
+  const violations: ConstraintViolation[] = [];
+
+  if (!Number.isFinite(targetElevation)) {
+    violations.push(createElevationViolation('Fixed-height placement requires a valid elevation.', 'error'));
+    return violations;
+  }
+
+  const elevationTolerance = tolerance ?? DEFAULT_ELEVATION_TOLERANCE;
+
+  for (const point of points) {
+    const delta = Math.abs(point.z - targetElevation);
+    if (delta <= elevationTolerance) {
+      continue;
+    }
+
+    violations.push(
+      createElevationViolation(
+        `Waypoint at (${point.x.toFixed(2)}, ${point.y.toFixed(2)}, ${point.z.toFixed(
+          2
+        )}) deviates ${delta.toFixed(2)}m from fixed elevation ${targetElevation.toFixed(2)}m.`,
+        'error',
+        point
+      )
+    );
+  }
+
+  return violations;
+}
+
+function filterFiniteWaypoints(points: Vector3[]): Vector3[] {
+  return points
+    .filter(
+      (point) =>
+        Number.isFinite(point.x) &&
+        Number.isFinite(point.y) &&
+        Number.isFinite(point.z)
+    )
+    .map((point) => ({ ...point }));
+}
+
+function createElevationViolation(
+  message: string,
+  severity: 'error' | 'warning',
+  location?: Vector3
+): ConstraintViolation {
+  return {
+    type: 'elevation',
+    severity,
+    location: location ? { ...location } : { x: 0, y: 0, z: 0 },
+    message,
+  };
+}
+
+function finalizeElevationValidation(
+  violations: ConstraintViolation[]
+): ElevationValidationResult {
+  if (violations.some((violation) => violation.severity === 'error')) {
+    return { status: 'error', violations };
+  }
+
+  if (violations.some((violation) => violation.severity === 'warning')) {
+    return { status: 'warning', violations };
+  }
+
+  return { status: 'valid', violations };
+}
 
 
 
