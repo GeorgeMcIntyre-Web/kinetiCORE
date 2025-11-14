@@ -12,6 +12,13 @@ import {
   CreateSegmentConfig,
 } from './pipingTypes';
 
+export type PipingPlacementMode = 'floor' | 'elevation' | 'snap';
+
+export interface PipingPlacementSettings {
+  mode: PipingPlacementMode;
+  defaultElevationMm: number;
+}
+
 /**
  * Change listener callback type
  */
@@ -28,6 +35,10 @@ class PipingStore {
     networkId: null,
     nodeId: null,
     segmentId: null,
+  };
+  private placementSettings: PipingPlacementSettings = {
+    mode: 'floor',
+    defaultElevationMm: 0,
   };
   private listeners: Set<ChangeListener> = new Set();
   private nextId = 1;
@@ -372,6 +383,52 @@ class PipingStore {
   }
 
   // ============================================================================
+  // PLACEMENT SETTINGS
+  // ============================================================================
+
+  /**
+   * Get placement settings for node placement UX
+   */
+  getPlacementSettings(): PipingPlacementSettings {
+    return { ...this.placementSettings };
+  }
+
+  /**
+   * Update placement mode
+   */
+  setPlacementMode(mode: PipingPlacementMode): void {
+    if (this.placementSettings.mode === mode) {
+      return;
+    }
+
+    this.placementSettings = {
+      ...this.placementSettings,
+      mode,
+    };
+    this.notify();
+  }
+
+  /**
+   * Update default elevation used for placement when in elevation mode
+   */
+  setPlacementElevation(defaultElevationMm: number): void {
+    if (!Number.isFinite(defaultElevationMm)) {
+      return;
+    }
+
+    const clamped = Math.max(0, Math.min(10000, Math.round(defaultElevationMm)));
+    if (clamped === this.placementSettings.defaultElevationMm) {
+      return;
+    }
+
+    this.placementSettings = {
+      ...this.placementSettings,
+      defaultElevationMm: clamped,
+    };
+    this.notify();
+  }
+
+  // ============================================================================
   // UTILITY METHODS
   // ============================================================================
 
@@ -422,6 +479,10 @@ class PipingStore {
   clear(): void {
     this.networks.clear();
     this.clearSelection();
+    this.placementSettings = {
+      mode: 'floor',
+      defaultElevationMm: 0,
+    };
     this.notify();
   }
 

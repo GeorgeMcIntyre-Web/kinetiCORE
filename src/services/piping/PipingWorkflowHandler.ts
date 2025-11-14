@@ -251,12 +251,17 @@ export class PipingWorkflowHandler {
    * Apply placement mode offsets to the clicked point
    */
   private computePlacementPoint(basePoint: BABYLON.Vector3): BABYLON.Vector3 {
-    const { pipingPlacementMode, pipingDefaultElevationMm } = useEditorStore.getState();
-    if (pipingPlacementMode !== 'fixed_height') {
+    const { mode, defaultElevationMm } = pipingStore.getPlacementSettings();
+
+    if (mode === 'floor') {
       return basePoint.clone();
     }
 
-    const offsetMeters = pipingDefaultElevationMm / 1000;
+    if (mode === 'snap') {
+      return basePoint.clone();
+    }
+
+    const offsetMeters = defaultElevationMm / 1000;
     if (offsetMeters === 0) {
       return basePoint.clone();
     }

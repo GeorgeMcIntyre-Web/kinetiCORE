@@ -49,7 +49,7 @@ type ObjectType =
   | 'torusknot'
   | 'polyhedron';
 type SnapMode = 'point-to-point' | 'frame-to-frame';
-export type PipingPlacementMode = 'floor' | 'fixed_height';
+export type PipingPlacementMode = 'floor' | 'elevation' | 'snap';
 
 interface SnapPoint {
   x: number;

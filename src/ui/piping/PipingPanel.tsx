@@ -10,7 +10,8 @@ import { PipingNodeList } from './PipingNodeList';
 import { PipingSegmentList } from './PipingSegmentList';
 import { PipingInspector } from './PipingInspector';
 import { X, HelpCircle } from 'lucide-react';
-import { useEditorStore, PipingPlacementMode } from '../store/editorStore';
+import { PipingPlacementMode, PipingPlacementSettings } from '../../domain/factoryServices/piping/pipingStore';
+import { PLACEMENT_MODE_OPTIONS } from './placementModes';
 
 const SERVICE_TYPES: PipingServiceType[] = ['water', 'air', 'steam', 'vacuum'];
 
@@ -26,10 +27,9 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
   const [networks, setNetworks] = useState<PipingNetwork[]>([]);
   const [activeNetworkId, setActiveNetworkId] = useState<string | null>(null);
   const [description, setDescription] = useState<string[]>([]);
-  const placementMode = useEditorStore((state) => state.pipingPlacementMode);
-  const defaultElevationMm = useEditorStore((state) => state.pipingDefaultElevationMm);
-  const setPlacementMode = useEditorStore((state) => state.setPipingPlacementMode);
-  const setDefaultElevationMm = useEditorStore((state) => state.setPipingDefaultElevationMm);
+  const [placementSettings, setPlacementSettings] = useState<PipingPlacementSettings>(
+    pipingStore.getPlacementSettings()
+  );
   const placementIds = useId();
 
   // Subscribe to piping store changes
@@ -41,7 +41,6 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
       const selection = pipingStore.getSelection();
       setActiveNetworkId(selection.networkId);
 
-      // Update description for active network
       if (selection.networkId !== null) {
         const network = pipingStore.getNetwork(selection.networkId);
         if (network !== undefined) {
@@ -50,6 +49,8 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
       } else {
         setDescription([]);
       }
+
+      setPlacementSettings(pipingStore.getPlacementSettings());
     };
 
     updateState();
@@ -72,22 +73,25 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
   }, [isVisible, networks.length]);
 
   const handlePlacementModeChange = (mode: PipingPlacementMode) => {
-    if (mode === placementMode) {
+    if (mode === placementSettings.mode) {
       return;
     }
-    setPlacementMode(mode);
+
+    pipingStore.setPlacementMode(mode);
   };
 
   const handleDefaultElevationChange = (value: string) => {
     if (value === '') {
-      setDefaultElevationMm(0);
+      pipingStore.setPlacementElevation(0);
       return;
     }
+
     const parsed = parseFloat(value);
     if (Number.isFinite(parsed) === false) {
       return;
     }
-    setDefaultElevationMm(parsed);
+
+    pipingStore.setPlacementElevation(parsed);
   };
 
   if (!isVisible) {
@@ -96,8 +100,6 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
 
   const activeNetwork = activeNetworkId !== null ? pipingStore.getNetwork(activeNetworkId) : null;
   const placementLegendId = `${placementIds}-placement`;
-  const floorHintId = `${placementIds}-floor`;
-  const fixedHintId = `${placementIds}-fixed`;
   const elevationHelpId = `${placementIds}-help`;
 
   return (
@@ -314,8 +316,8 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
                   </div>
                   <button
                     type="button"
-                    aria-label="Why use fixed height placement?"
-                    title="Use fixed height to drop nodes at a standard overhead run. Common offsets: 500, 1000, or 2000 mm."
+                    aria-label="Why use elevation placement?"
+                    title="Use elevation mode to drop nodes at a standard overhead run. Common offsets: 500, 1000, or 2000 mm."
                     style={{
                       border: 'none',
                       background: 'transparent',
@@ -349,86 +351,63 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
                     Node placement mode
                   </legend>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label
-                      style={{
-                        display: 'flex',
-                        gap: '10px',
-                        border:
-                          placementMode === 'floor' ? '1px solid #06b6d4' : '1px solid #1f2937',
-                        borderRadius: '6px',
-                        padding: '8px 10px',
-                        backgroundColor: '#0b1629',
-                        cursor: 'pointer',
-                        alignItems: 'flex-start',
-                      }}
-                    >
-                      <input
-                        type="radio"
-                        name="piping-placement-mode"
-                        value="floor"
-                        checked={placementMode === 'floor'}
-                        onChange={() => handlePlacementModeChange('floor')}
-                        aria-describedby={floorHintId}
-                        style={{ marginTop: '4px' }}
-                      />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>
-                          On floor
-                        </div>
-                        <p
-                          id={floorHintId}
+                    {PLACEMENT_MODE_OPTIONS.map((option) => {
+                      const hintId = `${placementIds}-${option.value}-hint`;
+                      const isActive = placementSettings.mode === option.value;
+
+                      return (
+                        <label
+                          key={option.value}
                           style={{
-                            margin: '2px 0 0',
-                            fontSize: '12px',
-                            color: '#94a3b8',
-                            lineHeight: 1.4,
+                            display: 'flex',
+                            gap: '10px',
+                            border: isActive ? '1px solid #06b6d4' : '1px solid #1f2937',
+                            borderRadius: '6px',
+                            padding: '8px 10px',
+                            backgroundColor: '#0b1629',
+                            cursor: 'pointer',
+                            alignItems: 'flex-start',
                           }}
                         >
-                          Nodes land exactly on the surface you click.
-                        </p>
-                      </div>
-                    </label>
-                    <label
-                      style={{
-                        display: 'flex',
-                        gap: '10px',
-                        border:
-                          placementMode === 'fixed_height'
-                            ? '1px solid #06b6d4'
-                            : '1px solid #1f2937',
-                        borderRadius: '6px',
-                        padding: '8px 10px',
-                        backgroundColor: '#0b1629',
-                        cursor: 'pointer',
-                        alignItems: 'flex-start',
-                      }}
-                    >
-                      <input
-                        type="radio"
-                        name="piping-placement-mode"
-                        value="fixed_height"
-                        checked={placementMode === 'fixed_height'}
-                        onChange={() => handlePlacementModeChange('fixed_height')}
-                        aria-describedby={fixedHintId}
-                        style={{ marginTop: '4px' }}
-                      />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>
-                          Fixed height above floor
-                        </div>
-                        <p
-                          id={fixedHintId}
-                          style={{
-                            margin: '2px 0 0',
-                            fontSize: '12px',
-                            color: '#94a3b8',
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          Nodes land at floor height plus the offset below along the up-axis.
-                        </p>
-                      </div>
-                    </label>
+                          <input
+                            type="radio"
+                            name="piping-placement-mode"
+                            value={option.value}
+                            checked={isActive}
+                            onChange={() => handlePlacementModeChange(option.value)}
+                            aria-describedby={hintId}
+                            style={{ marginTop: '4px' }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>
+                              {option.label}
+                            </div>
+                            <p
+                              id={hintId}
+                              style={{
+                                margin: '2px 0 0',
+                                fontSize: '12px',
+                                color: '#94a3b8',
+                                lineHeight: 1.4,
+                              }}
+                            >
+                              {option.description}
+                            </p>
+                            {option.helper && (
+                              <p
+                                style={{
+                                  margin: '4px 0 0',
+                                  fontSize: '11px',
+                                  color: '#64748b',
+                                }}
+                              >
+                                {option.helper}
+                              </p>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
                 </fieldset>
 
@@ -449,7 +428,7 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
                   min="0"
                   max="6000"
                   step="50"
-                  value={defaultElevationMm}
+                  value={placementSettings.defaultElevationMm}
                   onChange={(e) => handleDefaultElevationChange(e.target.value)}
                   aria-describedby={elevationHelpId}
                   style={{
