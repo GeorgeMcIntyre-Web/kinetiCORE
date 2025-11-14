@@ -40,7 +40,7 @@
 import * as BABYLON from '@babylonjs/core';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import { ActuatorSystem } from '../../kinematics/actuation/ActuatorSystem';
-import type { HardwareActuator, HardwareCommand } from '../../kinematics/device/UnifiedDeviceDefinition';
+import type { HardwareActuator } from '../../kinematics/device/UnifiedDeviceDefinition';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { toolingJsonToJoints, type ToolingFileJson } from '../io/ToolingJsonAdapter';
 import type { KinematicModelExport, JointDefinitionOutput } from '../io/Schemas';
@@ -85,7 +85,7 @@ export class ToolingFixtureAnimator {
   constructor(scene: BABYLON.Scene) {
     this.scene = scene;
     this.kinematicsManager = KinematicsManager.getInstance();
-    this.actuatorSystem = ActuatorSystem.getInstance();
+    this.actuatorSystem = new ActuatorSystem();
     this.fkSolver = ForwardKinematicsSolver.getInstance();
     this.sceneTree = SceneTreeManager.getInstance();
   }
@@ -164,7 +164,7 @@ export class ToolingFixtureAnimator {
       // Register in SceneTree if missing
       if (!parentNode && parentBabylon) {
         parentNode = this.sceneTree.createNode(
-          'transform',
+          'link',
           parentBabylon.name,
           null, // parent will be set if needed
           undefined // position
@@ -178,7 +178,7 @@ export class ToolingFixtureAnimator {
       if (!childNode && childBabylon) {
         const parentId = parentNode?.id || jointDef.parentId;
         childNode = this.sceneTree.createNode(
-          'transform',
+          'link',
           childBabylon.name,
           parentId,
           undefined // position
@@ -237,15 +237,23 @@ export class ToolingFixtureAnimator {
       id: actuatorId,
       name: `${jointDef.id} Actuator`,
       type: jointType === 'prismatic' ? 'linear_actuator' : 'servo_motor',
+      controlMode: 'position',
+      controlledJoints: [joint.id],
+      specs: {
+        forceRange: {
+          min: 0,
+          max: 100, // Default force limit
+        },
+        ctrlRange: {
+          min: jointDef.limits.lower,
+          max: jointDef.limits.upper,
+        },
+      },
       state: {
+        enabled: true,
         value: 0,
         velocity: 0,
-        effort: 0,
-        isMoving: false,
-      },
-      limits: {
-        min: jointDef.limits.lower,
-        max: jointDef.limits.upper,
+        fault: false,
       },
       coordination: [
         {

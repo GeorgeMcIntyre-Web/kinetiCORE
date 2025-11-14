@@ -401,7 +401,7 @@ export class ToolingSceneExplorer {
    */
   private groupIntoUnits(
     unitSideClusters: RigidCluster[],
-    baseClusters: RigidCluster[]
+    _baseClusters: RigidCluster[]
   ): UnitCandidate[] {
     const PROXIMITY_THRESHOLD = 0.5; // 50cm in XY plane
     const units: UnitCandidate[] = [];
