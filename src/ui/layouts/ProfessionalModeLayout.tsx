@@ -886,6 +886,23 @@ export const ProfessionalModeLayout: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            <div className="toolbar-separator"></div>
+
+            {/* Factory Services */}
+            <div className="tool-group">
+              <div className="group-label">Factory Services</div>
+              <div className="tool-buttons">
+                <button
+                  className={`tool-btn ${pipingModeEnabled ? 'active' : ''}`}
+                  onClick={() => setPipingModeEnabled(!pipingModeEnabled)}
+                  title="Factory Piping - Design water, air, and steam networks"
+                >
+                  <Building2 size={18} />
+                  <span className="tool-btn-label">Piping</span>
+                </button>
+              </div>
+            </div>
           </>
         )}
 
