@@ -403,6 +403,8 @@ The golden test verifies:
 
 All comparisons are name-agnostic and robust to ID renaming.
 
+**Note for v1**: The current golden snapshot for `9X_110_GEO` has zero units by design - this locks in the current v1 behaviour. When real unit segmentation is implemented for this fixture, the golden file must be regenerated as part of that change.
+
 ### Batch Processing
 Process all fixtures in a folder:
 ```bash

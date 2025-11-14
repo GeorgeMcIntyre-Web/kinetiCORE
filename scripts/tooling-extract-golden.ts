@@ -3,6 +3,10 @@
  * 
  * Usage:
  *   npx tsx scripts/tooling-extract-golden.ts <path-to-units.json> <output-path>
+ * 
+ * Note: For v1, 9X_110_GEO has zero units by design - this golden is locking in
+ * the current behaviour. When we implement real unit segmentation for this fixture,
+ * we must regenerate this golden file as part of that change.
  */
 
 import fs from 'node:fs';
