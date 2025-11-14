@@ -582,11 +582,12 @@ function setupKinematicsAPI() {
       
       if (activeUnitsData) {
         console.log(`Units (${currentMode}):`);
+        console.log(`  Summary: ${activeUnitsData.units.length} units, ${activeUnitsData.links.length} links, ${activeUnitsData.joints.length} joints`);
         activeUnitsData.units.forEach((unit) => {
           const features = activeFeaturesData?.units.find(f => f.unitId === unit.id);
           console.log(`  ${unit.id}:`);
-          console.log(`    Joints: ${unit.jointIds.length}`);
-          console.log(`    Clusters: ${unit.clusterIds.length}`);
+          console.log(`    baseLinkId: ${unit.baseLinkId}, primaryLinkId: ${unit.primaryLinkId}, linkIds.length: ${unit.clusterIds.length}`);
+          console.log(`    Joints: ${unit.jointIds.length}, Clusters: ${unit.clusterIds.length}`);
           if (features) {
             console.log(`    Height: ${features.height.toFixed(3)}m`);
             console.log(`    Extent: ${features.extentX.toFixed(3)} x ${features.extentY.toFixed(3)} x ${features.extentZ.toFixed(3)}m`);
@@ -808,6 +809,99 @@ function setupKinematicsAPI() {
         });
         console.log(`  Base links: ${baseLinks.length}`);
       }
+    },
+
+    logV2Diagnostics: async () => {
+      if (currentMode !== 'v2') {
+        console.log('Switch to v2 mode first with kinDebug.toggleMode()');
+        return;
+      }
+
+      if (!unitsDataV2 || !rigidClustersData) {
+        console.log('V2 units data not loaded');
+        return;
+      }
+
+      // Reconstruct model from loaded data
+      const clusters = rigidClustersData.clusters.map(c => ({
+        id: `cluster_${c.id}`,
+        nodeIds: [],
+        meshIds: c.meshNames,
+        bboxMin: c.bbox.min as [number, number, number],
+        bboxMax: c.bbox.max as [number, number, number],
+        meshCount: 0,
+        totalVerts: 0,
+      }));
+
+      const model = {
+        nodes: [],
+        meshes: [],
+        clusters,
+        links: [],
+        joints: unitsDataV2.joints,
+      };
+
+      const links = unitsDataV2.links.map(l => ({
+        id: l.id,
+        clusterIds: Array.isArray(l.clusterIds) ? l.clusterIds : [l.clusterIds],
+      }));
+
+      // Detect floorY
+      let floorY: number | null = null;
+      if (clusters.length > 0) {
+        const mins = clusters.map(c => c.bboxMin[1]).sort((a, b) => a - b);
+        const bandTolerance = 0.005;
+        let bestStart = mins[0];
+        let bestCount = 1;
+        let currentStart = mins[0];
+        let currentCount = 1;
+        
+        for (let i = 1; i < mins.length; i++) {
+          const y = mins[i];
+          if (y - currentStart <= bandTolerance) {
+            currentCount++;
+          } else {
+            if (currentCount > bestCount) {
+              bestStart = currentStart;
+              bestCount = currentCount;
+            }
+            currentStart = y;
+            currentCount = 1;
+          }
+        }
+        if (currentCount > bestCount) {
+          bestStart = currentStart;
+        }
+        floorY = bestStart;
+      }
+
+      const { logV2Diagnostics } = await import('../src/dev/tooling/UnitBuilderV2');
+      const diagnostics = logV2Diagnostics(model, links, floorY);
+      
+      console.log('V2 Diagnostics:');
+      console.log(`  Mode: ${currentMode}`);
+      console.log(`  Joints: ${diagnostics.jointCount} (${diagnostics.revoluteCount} revolute, ${diagnostics.prismaticCount} prismatic)`);
+      console.log(`  Links: ${diagnostics.linkCount} (${diagnostics.baseLinkCount} base, ${diagnostics.unitCandidateLinkCount} candidate units)`);
+      console.log(`  Floor Y: ${diagnostics.floorY?.toFixed(4) ?? 'null'}`);
+      console.log(`  Base links: ${diagnostics.baseLinks.join(', ')}`);
+      console.log('\n  Joint details:');
+      diagnostics.joints.forEach(j => {
+        console.log(`    ${j.jointId} (${j.type}):`);
+        console.log(`      parent: ${j.parentClusterId} -> link ${j.parentLinkId ?? 'null'}`);
+        console.log(`      child:  ${j.childClusterId} -> link ${j.childLinkId ?? 'null'}`);
+      });
+    },
+
+    listUnitsV2: () => {
+      if (!unitsDataV2) {
+        console.log('V2 units not loaded');
+        return;
+      }
+
+      console.log(`V2 Summary: ${unitsDataV2.units.length} units, ${unitsDataV2.links.length} links, ${unitsDataV2.joints.length} joints`);
+      unitsDataV2.units.forEach(unit => {
+        console.log(`  ${unit.id}: baseLinkId=${unit.baseLinkId}, primaryLinkId=${unit.primaryLinkId}, linkIds.length=${unit.clusterIds.length}`);
+      });
     }
   };
 
