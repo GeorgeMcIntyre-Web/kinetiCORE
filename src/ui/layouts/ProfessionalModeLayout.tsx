@@ -29,6 +29,8 @@ import {
   Maximize2,
   Box,
   Building2,
+  Plus,
+  Link,
   } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
@@ -98,6 +100,7 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'analysis' | 'routing'>(
     'modeling'
   );
+  const [pipingQuickMode, setPipingQuickMode] = useState<'none' | 'node' | 'segment'>('none');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [savedLayout, setSavedLayout] = useState<any>(null);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
@@ -380,6 +383,24 @@ export const ProfessionalModeLayout: React.FC = () => {
   const handleRightView = () => { setCurrentView && setCurrentView('right'); const cam = SceneManager.getInstance().getCamera(); if (cam) { cam.alpha = 0; cam.beta = Math.PI / 2.2; } };
   const handleFrontView = () => { setCurrentView && setCurrentView('front'); const cam = SceneManager.getInstance().getCamera(); if (cam) { cam.alpha = Math.PI; cam.beta = Math.PI / 2.2; } };
   const handleIsoView = () => { setCurrentView && setCurrentView('iso'); const cam = SceneManager.getInstance().getCamera(); if (cam) { cam.alpha = -Math.PI / 4; cam.beta = Math.PI / 4; } };
+
+  const handlePipingQuickNode = () => {
+    // Enable piping mode if not already enabled
+    if (!pipingModeEnabled) {
+      setPipingModeEnabled(true);
+    }
+    // Toggle node creation mode
+    setPipingQuickMode(pipingQuickMode === 'node' ? 'none' : 'node');
+  };
+
+  const handlePipingQuickSegment = () => {
+    // Enable piping mode if not already enabled
+    if (!pipingModeEnabled) {
+      setPipingModeEnabled(true);
+    }
+    // Toggle segment creation mode
+    setPipingQuickMode(pipingQuickMode === 'segment' ? 'none' : 'segment');
+  };
 
   return (
     <div className="professional-layout">
@@ -901,6 +922,22 @@ export const ProfessionalModeLayout: React.FC = () => {
                 >
                   <Building2 size={18} />
                   <span className="tool-btn-label">Piping</span>
+                </button>
+                <button
+                  className={`tool-btn ${pipingQuickMode === 'node' ? 'active' : ''}`}
+                  onClick={handlePipingQuickNode}
+                  title="Add Node - Click in viewport to create piping nodes"
+                >
+                  <Plus size={18} />
+                  <span className="tool-btn-label">Add Node</span>
+                </button>
+                <button
+                  className={`tool-btn ${pipingQuickMode === 'segment' ? 'active' : ''}`}
+                  onClick={handlePipingQuickSegment}
+                  title="Add Segment - Shift+click nodes to connect them"
+                >
+                  <Link size={18} />
+                  <span className="tool-btn-label">Add Segment</span>
                 </button>
               </div>
             </div>
