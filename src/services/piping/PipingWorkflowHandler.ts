@@ -5,8 +5,10 @@
 import * as BABYLON from '@babylonjs/core';
 import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
 import { getDefaultDiameter } from '../../domain/factoryServices/piping/pipingRules';
+import { PipingNetwork, Position3D } from '../../domain/factoryServices/piping/pipingTypes';
 import { useEditorStore } from '../../ui/store/editorStore';
 import { PipingSceneService } from './PipingSceneService';
+import { resolvePipingHitForPlacement } from './pipingPlacementResolver';
 
 /**
  * Handles piping workflow interactions in the viewport
@@ -90,47 +92,82 @@ export class PipingWorkflowHandler {
 
   /**
    * Handle normal click to place a new node
+   *
+   * Multi-floor guidance:
+   * - Use the exact mesh hit so sloped or raised surfaces remain accurate.
+   * - FUTURE WORK: tag mezzanine meshes with metadata to adjust placementSettings.defaultFloorHeight dynamically.
+   * - FUTURE WORK: persist per-network default floor heights for facilities with multiple deck levels.
    */
   private handleNodePlacement(pointerInfo: BABYLON.PointerInfo): void {
-    if (!pointerInfo.pickInfo?.pickedPoint) {
-      return;
-    }
-
-    // Get or create default network
-    const networks = pipingStore.getAllNetworks();
-    let activeNetwork = networks.length > 0 ? networks[0] : null;
-
-    if (!activeNetwork) {
-      // Create default water network
-      activeNetwork = pipingStore.createNetwork({
-        name: 'Water Network 1',
-        serviceType: 'water',
-      });
-    }
-
-    if (!activeNetwork) {
-      console.error('[PipingWorkflowHandler] Failed to create default network');
-      return;
-    }
-
-    const pickedPoint = pointerInfo.pickInfo.pickedPoint;
-    const floorCandidate = pickedPoint.y;
-    const elevation = pipingStore.getEffectivePlacementElevation(floorCandidate);
-
-    // Create node at picked point
-    const node = pipingStore.createNode(activeNetwork.id, {
-      position: {
-        x: pickedPoint.x,
-        y: elevation,
-        z: pickedPoint.z,
-      },
-      kind: 'endpoint',
-      serviceType: activeNetwork.serviceType,
+    const placementDecision = resolvePipingHitForPlacement({
+      pickInfo: pointerInfo.pickInfo ?? null,
+      pickResolver: this.pipingSceneService,
+      placementSettings: useEditorStore.getState().pipingPlacementSettings,
     });
 
-    if (node) {
-      console.log('[PipingWorkflowHandler] Created node:', node.id, 'at', pickedPoint);
+    if (placementDecision.kind === 'no-placement') {
+      console.debug('[PipingWorkflowHandler] Skipped node placement:', placementDecision.reason);
+      return;
     }
+
+    if (placementDecision.kind === 'snap-to-node') {
+      pipingStore.setSelectedNode(placementDecision.nodeId);
+      pipingStore.setSelectedSegment(null);
+      console.debug('[PipingWorkflowHandler] Snapped to existing node:', placementDecision.nodeId);
+      return;
+    }
+
+    const activeNetwork = this.getOrCreateActiveNetwork();
+    if (!activeNetwork) {
+      console.error('[PipingWorkflowHandler] Unable to resolve active network for placement');
+      return;
+    }
+
+    this.createNodeAtPosition(activeNetwork, placementDecision.position);
+  }
+
+  private getOrCreateActiveNetwork(): PipingNetwork | null {
+    const selection = pipingStore.getSelection();
+    if (selection.networkId) {
+      const selectedNetwork = pipingStore.getNetwork(selection.networkId);
+      if (selectedNetwork) {
+        return selectedNetwork;
+      }
+    }
+
+    const networks = pipingStore.getAllNetworks();
+    if (networks.length > 0) {
+      const firstNetwork = networks[0];
+      pipingStore.setActiveNetwork(firstNetwork.id);
+      return firstNetwork;
+    }
+
+    const createdNetwork = pipingStore.createNetwork({
+      name: 'Water Network 1',
+      serviceType: 'water',
+    });
+
+    if (!createdNetwork) {
+      return null;
+    }
+
+    pipingStore.setActiveNetwork(createdNetwork.id);
+    return createdNetwork;
+  }
+
+  private createNodeAtPosition(network: PipingNetwork, position: Position3D): void {
+    const node = pipingStore.createNode(network.id, {
+      position,
+      kind: 'endpoint',
+      serviceType: network.serviceType,
+    });
+
+    if (!node) {
+      console.error('[PipingWorkflowHandler] Failed to create node for network:', network.id);
+      return;
+    }
+
+    console.log('[PipingWorkflowHandler] Created node:', node.id, 'at', position);
   }
 
   /**

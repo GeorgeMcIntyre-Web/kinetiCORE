@@ -97,6 +97,14 @@ This checklist ensures the Factory Piping system is ready for production use and
 
 ---
 
+### Edge Cases (Placement)
+
+- [ ] Click in empty space → no node is created and the handler logs a debug skip (no crash).
+- [ ] Click near an existing node → cursor snaps to that node and elevation settings are ignored.
+- [ ] Hit non-floor mesh → placement follows the selected mode (default follow-surface, project-to-floor/fixed-elevation remain deterministic).
+
+---
+
 ### 5. Viewport Node/Segment Creation - Primary Workflow
 
 **The main workflow is viewport-based click interaction (not console-based).** This is the production workflow users will follow.
