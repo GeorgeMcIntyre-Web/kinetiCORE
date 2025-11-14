@@ -10,6 +10,8 @@ import {
   CreateNetworkConfig,
   CreateNodeConfig,
   CreateSegmentConfig,
+  PipingPlacementSettings,
+  PipingPlacementMode,
 } from './pipingTypes';
 
 /**
@@ -28,6 +30,10 @@ class PipingStore {
     networkId: null,
     nodeId: null,
     segmentId: null,
+  };
+  private placementSettings: PipingPlacementSettings = {
+    mode: 'on_floor',
+    defaultElevation: 1,
   };
   private listeners: Set<ChangeListener> = new Set();
   private nextId = 1;
@@ -421,12 +427,56 @@ class PipingStore {
    */
   clear(): void {
     this.networks.clear();
-    this.clearSelection();
+    this.selection = {
+      networkId: null,
+      nodeId: null,
+      segmentId: null,
+    };
+    this.placementSettings = this.createDefaultPlacementSettings();
+    this.nextId = 1;
     this.notify();
   }
 
   private generateId(prefix: string): string {
     return `${prefix}_${this.nextId++}_${Date.now()}`;
+  }
+
+  // ============================================================================
+  // PLACEMENT SETTINGS
+  // ============================================================================
+
+  getPlacementSettings(): PipingPlacementSettings {
+    return { ...this.placementSettings };
+  }
+
+  setPlacementMode(mode: PipingPlacementMode): void {
+    if (this.placementSettings.mode === mode) {
+      return;
+    }
+    this.placementSettings = { ...this.placementSettings, mode };
+    this.notify();
+  }
+
+  setDefaultElevation(elevation: number): void {
+    if (!Number.isFinite(elevation)) {
+      return;
+    }
+    const clamped = Math.max(0, elevation);
+    if (this.placementSettings.defaultElevation === clamped) {
+      return;
+    }
+    this.placementSettings = {
+      ...this.placementSettings,
+      defaultElevation: clamped,
+    };
+    this.notify();
+  }
+
+  private createDefaultPlacementSettings(): PipingPlacementSettings {
+    return {
+      mode: 'on_floor',
+      defaultElevation: 1,
+    };
   }
 }
 

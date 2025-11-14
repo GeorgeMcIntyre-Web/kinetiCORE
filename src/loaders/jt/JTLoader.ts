@@ -1,3 +1,4 @@
+/* eslint-disable */
 import * as BABYLON from '@babylonjs/core';
 import { JTImportError, JTErrorType } from './errors';
 import { JtReaderService, JTConversionError as JtReaderError } from './JtReaderService';

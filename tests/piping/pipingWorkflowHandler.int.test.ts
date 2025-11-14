@@ -2,7 +2,10 @@
 // Owner: Agent 1 (George)
 // Tests the workflow state machine and segment creation logic
 
-import { PipingWorkflowHandler } from '../../src/services/piping/PipingWorkflowHandler';
+import {
+  PipingWorkflowHandler,
+  computeNodePositionFromHit,
+} from '../../src/services/piping/PipingWorkflowHandler';
 import { pipingStore } from '../../src/domain/factoryServices/piping/pipingStore';
 
 describe('PipingWorkflowHandler Integration', () => {
@@ -163,6 +166,57 @@ describe('PipingWorkflowHandler Integration', () => {
       expect(node!.position.y).toBe(2);
       expect(node!.position.z).toBe(3);
       expect(node!.serviceType).toBe('water');
+    });
+  });
+
+  describe('Height-aware placement', () => {
+    const hitPoint = { x: 4, y: 0, z: 2 };
+
+    it('should keep floor height in on_floor mode', () => {
+      const settings = pipingStore.getPlacementSettings();
+      const position = computeNodePositionFromHit(hitPoint, settings);
+      expect(position.y).toBe(hitPoint.y);
+    });
+
+    it('should offset elevation in fixed_height mode', () => {
+      const position = computeNodePositionFromHit(hitPoint, {
+        mode: 'fixed_height',
+        defaultElevation: 1.25,
+      });
+      expect(position.y).toBeCloseTo(hitPoint.y + 1.25);
+    });
+
+    it('should only apply new settings to newly created nodes', () => {
+      const network = pipingStore.createNetwork({
+        name: 'Height Test',
+        serviceType: 'water',
+      });
+
+      pipingStore.setPlacementMode('fixed_height');
+      pipingStore.setDefaultElevation(2);
+      const firstPosition = computeNodePositionFromHit(
+        hitPoint,
+        pipingStore.getPlacementSettings()
+      );
+      const firstNode = pipingStore.createNode(network.id, {
+        position: firstPosition,
+        kind: 'endpoint',
+        serviceType: network.serviceType,
+      });
+
+      pipingStore.setDefaultElevation(0.5);
+      const secondPosition = computeNodePositionFromHit(
+        hitPoint,
+        pipingStore.getPlacementSettings()
+      );
+      const secondNode = pipingStore.createNode(network.id, {
+        position: secondPosition,
+        kind: 'endpoint',
+        serviceType: network.serviceType,
+      });
+
+      expect(firstNode?.position.y).toBeCloseTo(hitPoint.y + 2);
+      expect(secondNode?.position.y).toBeCloseTo(hitPoint.y + 0.5);
     });
   });
 

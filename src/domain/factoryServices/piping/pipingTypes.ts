@@ -29,6 +29,22 @@ export interface Position3D {
 }
 
 /**
+ * Placement modes for automatic node elevation
+ */
+export type PipingPlacementMode = 'on_floor' | 'fixed_height';
+
+/**
+ * Settings that control how new nodes are placed in 3D
+ */
+export interface PipingPlacementSettings {
+  mode: PipingPlacementMode;
+  /**
+   * Default elevation offset in scene units (meters)
+   */
+  defaultElevation: number;
+}
+
+/**
  * A control point (node) in a piping network
  * Represents connection points, supports, branches, or equipment
  */

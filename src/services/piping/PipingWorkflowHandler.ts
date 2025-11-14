@@ -5,8 +5,46 @@
 import * as BABYLON from '@babylonjs/core';
 import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
 import { getDefaultDiameter } from '../../domain/factoryServices/piping/pipingRules';
+import {
+  PipingPlacementSettings,
+  Position3D,
+} from '../../domain/factoryServices/piping/pipingTypes';
 import { useEditorStore } from '../../ui/store/editorStore';
 import { PipingSceneService } from './PipingSceneService';
+
+type Vector3Like = {
+  x: number;
+  y: number;
+  z: number;
+};
+
+const UP_AXIS: 'y' | 'z' = 'y';
+
+export function computeNodePositionFromHit(
+  hitPoint: Vector3Like,
+  settings: PipingPlacementSettings
+): Position3D {
+  const position: Position3D = {
+    x: hitPoint.x,
+    y: hitPoint.y,
+    z: hitPoint.z,
+  };
+
+  if (settings.mode !== 'fixed_height') {
+    return position;
+  }
+
+  const floorHeight = UP_AXIS === 'y' ? hitPoint.y : hitPoint.z;
+  const targetHeight = floorHeight + settings.defaultElevation;
+
+  if (UP_AXIS === 'y') {
+    position.y = targetHeight;
+    return position;
+  }
+
+  position.z = targetHeight;
+  return position;
+}
 
 /**
  * Handles piping workflow interactions in the viewport
@@ -114,14 +152,12 @@ export class PipingWorkflowHandler {
     }
 
     const pickedPoint = pointerInfo.pickInfo.pickedPoint;
+    const placementSettings = pipingStore.getPlacementSettings();
+    const nodePosition = computeNodePositionFromHit(pickedPoint, placementSettings);
 
     // Create node at picked point
     const node = pipingStore.createNode(activeNetwork.id, {
-      position: {
-        x: pickedPoint.x,
-        y: pickedPoint.y,
-        z: pickedPoint.z,
-      },
+      position: nodePosition,
       kind: 'endpoint',
       serviceType: activeNetwork.serviceType,
     });

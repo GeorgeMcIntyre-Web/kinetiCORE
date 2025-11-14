@@ -140,7 +140,7 @@ export function snapToFaceStrategy(args: FaceSnapArgs): SnapResult {
             
             const edge1 = v1.subtract(v0);
             const edge2 = v2.subtract(v0);
-            let triNormal = BABYLON.Vector3.Cross(edge1, edge2);
+            const triNormal = BABYLON.Vector3.Cross(edge1, edge2);
             if (triNormal.length() > 0.0001) {
               triNormal.normalize();
               const worldTriNormal = BABYLON.Vector3.TransformNormal(triNormal, worldMatrix).normalize();
@@ -176,7 +176,7 @@ export function snapToFaceStrategy(args: FaceSnapArgs): SnapResult {
               
               const edge1 = v1.subtract(v0);
               const edge2 = v2.subtract(v0);
-              let triNormal = BABYLON.Vector3.Cross(edge1, edge2);
+              const triNormal = BABYLON.Vector3.Cross(edge1, edge2);
               if (triNormal.length() > 0.0001) {
                 triNormal.normalize();
                 const worldTriNormal = BABYLON.Vector3.TransformNormal(triNormal, worldMatrix).normalize();
@@ -370,7 +370,7 @@ export function snapToFaceStrategy(args: FaceSnapArgs): SnapResult {
               // Calculate triangle normal
               const edge1 = v1.subtract(v0);
               const edge2 = v2.subtract(v0);
-              let triNormal = BABYLON.Vector3.Cross(edge1, edge2);
+              const triNormal = BABYLON.Vector3.Cross(edge1, edge2);
               if (triNormal.length() > 0.0001) {
                 triNormal.normalize();
                 // Transform to world space
@@ -413,7 +413,7 @@ export function snapToFaceStrategy(args: FaceSnapArgs): SnapResult {
               
               const edge1 = v1.subtract(v0);
               const edge2 = v2.subtract(v0);
-              let triNormal = BABYLON.Vector3.Cross(edge1, edge2);
+              const triNormal = BABYLON.Vector3.Cross(edge1, edge2);
               if (triNormal.length() > 0.0001) {
                 triNormal.normalize();
                 const worldTriNormal = BABYLON.Vector3.TransformNormal(triNormal, worldMatrix).normalize();

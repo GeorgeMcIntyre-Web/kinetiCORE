@@ -755,7 +755,7 @@ export class SnappingHelper {
    * Find closest points between two line segments
    * @deprecated Used only by disabled intersection snapping
    */
-  // @ts-ignore - Unused but kept for when intersection snapping is re-enabled
+  // @ts-expect-error - Unused but kept for when intersection snapping is re-enabled
   private closestPointsBetweenSegments(
     a1: BABYLON.Vector3,
     a2: BABYLON.Vector3,

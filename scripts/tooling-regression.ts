@@ -173,7 +173,7 @@ async function testFixture(
 
       // Check invariants using PipelineInvariants
       try {
-        const { checkUnitBuilderInvariants, assertInvariants } = await import('../src/dev/tooling/PipelineInvariants');
+        const { checkUnitBuilderInvariants } = await import('../src/dev/tooling/PipelineInvariants');
         const model = {
           nodes: [],
           meshes: [],

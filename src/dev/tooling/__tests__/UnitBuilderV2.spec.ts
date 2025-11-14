@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { MechanicalModel, Link, KinematicJoint, KinematicUnit } from '../MechanicalModel';
+import type { MechanicalModel, Link, KinematicJoint } from '../MechanicalModel';
 import { buildLinkGraphV2, buildKinematicUnitsV2 } from '../UnitBuilderV2';
 
 describe('UnitBuilderV2', () => {
@@ -47,7 +47,7 @@ describe('UnitBuilderV2', () => {
       joints,
     };
 
-    const links = buildLinkGraphV2(model);
+    const _links = buildLinkGraphV2(model);
     
     // Should create 3 links (one per cluster, since they're connected by joints)
     // Actually, wait - if clusters are connected by joints, they should be in the same link

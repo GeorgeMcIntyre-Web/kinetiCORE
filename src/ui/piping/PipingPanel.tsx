@@ -5,13 +5,19 @@
 import React, { useState, useEffect } from 'react';
 import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
 import { describePipingNetwork } from '../../domain/factoryServices/piping/pipingDescription';
-import { PipingNetwork, PipingServiceType } from '../../domain/factoryServices/piping/pipingTypes';
+import {
+  PipingNetwork,
+  PipingServiceType,
+  PipingPlacementMode,
+  PipingPlacementSettings,
+} from '../../domain/factoryServices/piping/pipingTypes';
 import { PipingNodeList } from './PipingNodeList';
 import { PipingSegmentList } from './PipingSegmentList';
 import { PipingInspector } from './PipingInspector';
 import { X } from 'lucide-react';
 
 const SERVICE_TYPES: PipingServiceType[] = ['water', 'air', 'steam', 'vacuum'];
+const PLACEMENT_PRESETS = [0.5, 1, 2];
 
 interface PipingPanelProps {
   isVisible: boolean;
@@ -25,6 +31,9 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
   const [networks, setNetworks] = useState<PipingNetwork[]>([]);
   const [activeNetworkId, setActiveNetworkId] = useState<string | null>(null);
   const [description, setDescription] = useState<string[]>([]);
+  const [placementSettings, setPlacementSettings] = useState<PipingPlacementSettings>(
+    pipingStore.getPlacementSettings()
+  );
 
   // Subscribe to piping store changes
   useEffect(() => {
@@ -44,6 +53,8 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
       } else {
         setDescription([]);
       }
+
+      setPlacementSettings(pipingStore.getPlacementSettings());
     };
 
     updateState();
@@ -64,6 +75,25 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
       pipingStore.setActiveNetwork(network.id);
     }
   }, [isVisible, networks.length]);
+
+  const handlePlacementModeChange = (mode: PipingPlacementMode): void => {
+    pipingStore.setPlacementMode(mode);
+  };
+
+  const handleElevationChange = (value: string): void => {
+    if (value.trim() === '') {
+      return;
+    }
+    const parsed = parseFloat(value);
+    if (Number.isNaN(parsed)) {
+      return;
+    }
+    pipingStore.setDefaultElevation(parsed);
+  };
+
+  const handlePresetClick = (preset: number): void => {
+    pipingStore.setDefaultElevation(preset);
+  };
 
   if (!isVisible) {
     return null;
@@ -256,17 +286,162 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
 
       {/* Tab Content */}
       <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
-        {activeTab === 'network' && activeNetwork !== null && activeNetwork !== undefined && (
-          <div>
-            <PipingNodeList networkId={activeNetwork.id} nodes={activeNetwork.nodes} />
-            <div style={{ height: '16px' }} />
-            <PipingSegmentList
-              networkId={activeNetwork.id}
-              segments={activeNetwork.segments}
-              nodes={activeNetwork.nodes}
-            />
-          </div>
-        )}
+          {activeTab === 'network' && activeNetwork !== null && activeNetwork !== undefined && (
+            <div>
+              <div
+                style={{
+                  padding: '12px',
+                  border: '1px solid #334155',
+                  borderRadius: '8px',
+                  backgroundColor: '#0f172a',
+                  marginBottom: '16px',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: '#f1f5f9',
+                    marginBottom: '8px',
+                  }}
+                >
+                  Node Placement
+                </div>
+
+                <div>
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: '#94a3b8',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    Placement mode
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '13px',
+                        color: '#e2e8f0',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="piping-placement-mode"
+                        value="on_floor"
+                        checked={placementSettings.mode === 'on_floor'}
+                        onChange={() => handlePlacementModeChange('on_floor')}
+                      />
+                      On floor
+                    </label>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '13px',
+                        color: '#e2e8f0',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="piping-placement-mode"
+                        value="fixed_height"
+                        checked={placementSettings.mode === 'fixed_height'}
+                        onChange={() => handlePlacementModeChange('fixed_height')}
+                      />
+                      Fixed height above floor
+                    </label>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '14px' }}>
+                  <label
+                    htmlFor="placement-default-elevation"
+                    style={{
+                      fontSize: '12px',
+                      color: '#94a3b8',
+                      display: 'block',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    Default elevation (m)
+                  </label>
+                  <input
+                    id="placement-default-elevation"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={placementSettings.defaultElevation}
+                    onChange={(e) => handleElevationChange(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      backgroundColor: '#0a1424',
+                      border: '1px solid #334155',
+                      borderRadius: '4px',
+                      color: '#f1f5f9',
+                      fontSize: '13px',
+                    }}
+                  />
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      color: '#64748b',
+                      marginTop: '4px',
+                    }}
+                  >
+                    Applied when placement mode is fixed height.
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: '12px',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '8px',
+                  }}
+                >
+                  {PLACEMENT_PRESETS.map((preset) => {
+                    const isActive = placementSettings.defaultElevation === preset;
+                    return (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => handlePresetClick(preset)}
+                        aria-label={`${preset.toFixed(1)} m preset`}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: '4px',
+                          border: isActive ? '1px solid #06b6d4' : '1px solid #334155',
+                          backgroundColor: isActive ? '#082032' : 'transparent',
+                          color: '#e2e8f0',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {preset.toFixed(1)} m
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <PipingNodeList networkId={activeNetwork.id} nodes={activeNetwork.nodes} />
+              <div style={{ height: '16px' }} />
+              <PipingSegmentList
+                networkId={activeNetwork.id}
+                segments={activeNetwork.segments}
+                nodes={activeNetwork.nodes}
+              />
+            </div>
+          )}
 
         {activeTab === 'network' && activeNetwork === null && (
           <div

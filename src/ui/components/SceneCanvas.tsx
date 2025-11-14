@@ -479,7 +479,7 @@ App    : minPx=${appMinPx} near=${appNear} rw=${appRw} rh=${appRh} dpr=${appDpr.
             // Handle snap frame picking (if enabled) - takes priority over normal selection
             const isPickingSnapFrame = useEditorStore.getState().isPickingSnapFrame;
             if (isPickingSnapFrame && pickResult.hit && pickResult.pickedMesh) {
-              let pickedMesh = pickResult.pickedMesh;
+              const pickedMesh = pickResult.pickedMesh;
               const tree = SceneTreeManager.getInstance();
 
               console.log('[Frame Picking] Clicked mesh:', pickedMesh.name, 'uniqueId:', pickedMesh.uniqueId);

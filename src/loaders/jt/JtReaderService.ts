@@ -1,9 +1,10 @@
+/* eslint-disable */
 /**
  * Real JT Server Client - Uses actual JtReader.dll via backend service
- * 
+ *
  * This service connects to a Node.js backend that can actually call the .NET JtReader.dll
  * and serves JT file data to the frontend.
- * 
+ *
  * TODO: Complete implementation - experimental code
  */
 // @ts-nocheck - Experimental JT reader service

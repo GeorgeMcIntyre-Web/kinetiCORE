@@ -61,8 +61,8 @@ describe('Fixture A – plate + pedestals + unit + loose', () => {
     const typed = classifyClusters(clusters);
 
     const base = typed.filter(c => c.type === 'base');
-    const units = typed.filter(c => c.type === 'unit');
-    const loose = typed.filter(c => c.type === 'loose');
+    const _units = typed.filter(c => c.type === 'unit');
+    const _loose = typed.filter(c => c.type === 'loose');
 
     // Note: Cluster 5 (unit column) may be merged into base if it touches the plate at Y=0.30
     // Cluster 6 (loose bracket) may be promoted to unit if it's tall enough
@@ -113,8 +113,8 @@ describe('Fixture B – same geometry shifted up', () => {
 
     const typed = classifyClusters(clusters);
     const base = typed.filter(c => c.type === 'base');
-    const units = typed.filter(c => c.type === 'unit');
-    const loose = typed.filter(c => c.type === 'loose');
+    const _units = typed.filter(c => c.type === 'unit');
+    const _loose = typed.filter(c => c.type === 'loose');
 
     // Note: Cluster 5 (unit column) may be merged into base if it touches the plate at Y=1.30
     // Cluster 6 (loose bracket) may be promoted to unit if it's tall enough

@@ -469,7 +469,7 @@ export function analyzeJoint(
   console.log(`  Translation: (${m[12].toFixed(4)}, ${m[13].toFixed(4)}, ${m[14].toFixed(4)}), magnitude: ${Math.sqrt(m[12]*m[12] + m[13]*m[13] + m[14]*m[14]).toFixed(4)}`);
   console.log(`  Type detected: ${result.type.toUpperCase()}`);
 
-  let type: 'revolute' | 'prismatic' = result.type;
+  const type: 'revolute' | 'prismatic' = result.type;
   let axis: BABYLON.Vector3 = result.axis;
   let fromVector: BABYLON.Vector3;
   let toVector: BABYLON.Vector3;
