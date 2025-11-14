@@ -172,12 +172,9 @@ function buildMechanicalModel(
   jointsJson.units.forEach(unit => {
     unit.joints.forEach(segJoint => {
       // Find clusters that contain meshes from this unit
-      const unitClusterIds = new Set<string>();
-      unit.meshIds.forEach(meshId => {
-        // meshIds in segmented unit are numeric indices, not names
-        // We need to map them differently - for now, try to find by mesh name pattern
-        // This is a limitation we'll work around
-      });
+      // Note: meshIds in segmented unit are numeric indices, not names
+      // We need to map them differently - for now, try to find by mesh name pattern
+      // This is a limitation we'll work around
 
       // For now, use a simplified approach: map joints to clusters via mesh names
       // This will be refined when we have better mesh ID mapping
@@ -221,7 +218,7 @@ function buildMechanicalModel(
 function findClusterForJoint(
   joint: SegmentedJointJson,
   clusters: RigidCluster[],
-  clusterIdByMeshName: Map<string, string>,
+  _clusterIdByMeshName: Map<string, string>,
 ): string | null {
   // Try to find cluster by node path or mesh name
   // This is simplified - in practice we'd need better mapping
@@ -424,7 +421,7 @@ function buildUnitsFromBaseLink(
 function computeUnitFeatures(
   units: KinematicUnit[],
   model: MechanicalModel,
-  links: Link[],
+  _links: Link[],
 ): UnitFeatures[] {
   // Find base plane (lowest Y value among base clusters)
   let basePlaneY = Number.POSITIVE_INFINITY;

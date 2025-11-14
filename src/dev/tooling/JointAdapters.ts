@@ -59,6 +59,7 @@ export class FordFidesJointAdapter implements JointAdapter {
   canHandle(meta: ToolingMetadata): boolean {
     // Check if we have a JSON file that looks like Ford Fides format
     // Look for JSON files with array of units containing Joints arrays
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const fs = require('node:fs');
     for (const jsonPath of meta.auxJsonPaths) {
       try {
