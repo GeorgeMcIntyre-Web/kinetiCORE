@@ -26,11 +26,30 @@ import {
   checkUnitBuilderInvariants,
   assertInvariants,
 } from '../src/dev/tooling/PipelineInvariants';
+import {
+  buildLinkGraphV2,
+  buildKinematicUnitsV2,
+} from '../src/dev/tooling/UnitBuilderV2';
 
-const glbPath = process.argv[2];
+// Parse arguments
+const args = process.argv.slice(2);
+let glbPath: string | undefined;
+let mode: 'v1' | 'v2' = 'v1';
+
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--mode' && i + 1 < args.length) {
+    const modeValue = args[i + 1];
+    if (modeValue === 'v1' || modeValue === 'v2') {
+      mode = modeValue;
+      i++; // Skip next arg
+    }
+  } else if (!glbPath && !args[i].startsWith('--')) {
+    glbPath = args[i];
+  }
+}
 
 if (glbPath === undefined) {
-  console.error('Usage: npx tsx scripts/tooling-unit-builder.ts <path-to-glb>');
+  console.error('Usage: npx tsx scripts/tooling-unit-builder.ts <path-to-glb> [--mode v1|v2]');
   process.exit(1);
 }
 
@@ -82,11 +101,22 @@ async function run() {
     assertInvariants(jointViolations);
   }
 
-  const links = buildLinkGraph(model);
-  console.log(`Built ${links.length} links`);
-
-  const units = buildKinematicUnits(model, links);
-  console.log(`Built ${units.length} kinematic units`);
+  // Use v2 builder if mode is v2
+  let links: Link[];
+  let units: KinematicUnit[];
+  
+  if (mode === 'v2') {
+    console.log('Using V2 unit builder (experimental)');
+    links = buildLinkGraphV2(model);
+    console.log(`Built ${links.length} links (v2)`);
+    units = buildKinematicUnitsV2(model, links);
+    console.log(`Built ${units.length} kinematic units (v2)`);
+  } else {
+    links = buildLinkGraph(model);
+    console.log(`Built ${links.length} links`);
+    units = buildKinematicUnits(model, links);
+    console.log(`Built ${units.length} kinematic units`);
+  }
 
   // Runtime invariant checks after unit builder
   const unitViolations = checkUnitBuilderInvariants(model, links, units);
@@ -99,8 +129,13 @@ async function run() {
   const features = computeUnitFeatures(units, model, links);
   console.log(`Computed features for ${features.length} units`);
 
-  const unitsOutPath = makeUnitsOutputPath(glbPath);
-  const featuresOutPath = makeFeaturesOutputPath(glbPath);
+  // For v2, output to separate files to avoid breaking v1
+  const unitsOutPath = mode === 'v2' 
+    ? makeUnitsOutputPathV2(glbPath)
+    : makeUnitsOutputPath(glbPath);
+  const featuresOutPath = mode === 'v2'
+    ? makeFeaturesOutputPathV2(glbPath)
+    : makeFeaturesOutputPath(glbPath);
 
   const unitsOutput = {
     links,
@@ -574,5 +609,17 @@ function makeFeaturesOutputPath(glbPathLocal: string): string {
   const dir = path.dirname(glbPathLocal);
   const base = path.basename(glbPathLocal, path.extname(glbPathLocal));
   return path.join(dir, `${base}.unit-features.json`);
+}
+
+function makeUnitsOutputPathV2(glbPathLocal: string): string {
+  const dir = path.dirname(glbPathLocal);
+  const base = path.basename(glbPathLocal, path.extname(glbPathLocal));
+  return path.join(dir, `${base}.units-v2.json`);
+}
+
+function makeFeaturesOutputPathV2(glbPathLocal: string): string {
+  const dir = path.dirname(glbPathLocal);
+  const base = path.basename(glbPathLocal, path.extname(glbPathLocal));
+  return path.join(dir, `${base}.unit-features-v2.json`);
 }
 

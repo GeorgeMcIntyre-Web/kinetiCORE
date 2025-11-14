@@ -35,11 +35,28 @@ interface PipelineManifest {
   errors?: string[];
 }
 
-const glbPath = process.argv[2];
-const jointsJsonPath = process.argv[3];
+// Parse arguments
+const args = process.argv.slice(2);
+let glbPath: string | undefined;
+let jointsJsonPath: string | undefined;
+let mode: 'v1' | 'v2' = 'v1';
+
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--mode' && i + 1 < args.length) {
+    const modeValue = args[i + 1];
+    if (modeValue === 'v1' || modeValue === 'v2') {
+      mode = modeValue;
+      i++; // Skip next arg
+    }
+  } else if (!glbPath && !args[i].startsWith('--')) {
+    glbPath = args[i];
+  } else if (!jointsJsonPath && !args[i].startsWith('--') && args[i] !== glbPath) {
+    jointsJsonPath = args[i];
+  }
+}
 
 if (!glbPath) {
-  console.error('Usage: npx tsx scripts/tooling-pipeline.ts <path-to-glb> [optional: path-to-joints-json]');
+  console.error('Usage: npx tsx scripts/tooling-pipeline.ts <path-to-glb> [optional: path-to-joints-json] [--mode v1|v2]');
   process.exit(1);
 }
 
@@ -153,13 +170,18 @@ async function run() {
 
     // Step 4: Unit Builder (requires clusters + joints)
     if (manifest.steps.rigidClusters && manifest.steps.jointSegmentation) {
-      const unitsPath = path.join(baseDir, `${fixtureName}.units.json`);
-      const featuresPath = path.join(baseDir, `${fixtureName}.unit-features.json`);
+      // For v2, use separate file names
+      const unitsPath = mode === 'v2'
+        ? path.join(baseDir, `${fixtureName}.units-v2.json`)
+        : path.join(baseDir, `${fixtureName}.units.json`);
+      const featuresPath = mode === 'v2'
+        ? path.join(baseDir, `${fixtureName}.unit-features-v2.json`)
+        : path.join(baseDir, `${fixtureName}.unit-features.json`);
       const unitsNeedsRun = !fs.existsSync(unitsPath) || !fs.existsSync(featuresPath);
       
       if (unitsNeedsRun) {
-        console.log('[4/4] Running unit builder...');
-        await runUnitBuilder(glbPath);
+        console.log(`[4/4] Running unit builder (${mode})...`);
+        await runUnitBuilder(glbPath, mode);
         if (fs.existsSync(unitsPath)) {
           manifest.steps.units = unitsPath;
           console.log(`  ✓ Units: ${unitsPath}`);
@@ -169,7 +191,7 @@ async function run() {
           console.log(`  ✓ Unit features: ${featuresPath}`);
         }
       } else {
-        console.log('[4/4] Units exist, skipping');
+        console.log(`[4/4] Units exist (${mode}), skipping`);
         manifest.steps.units = unitsPath;
         manifest.steps.unitFeatures = featuresPath;
       }
@@ -303,11 +325,15 @@ async function runJointSegmentation(glbPath: string, jointsJsonPath: string): Pr
   });
 }
 
-async function runUnitBuilder(glbPath: string): Promise<void> {
+async function runUnitBuilder(glbPath: string, mode: 'v1' | 'v2' = 'v1'): Promise<void> {
   return new Promise((resolve, reject) => {
     // Quote path to handle spaces when using shell: true
     const quotedPath = glbPath.includes(' ') ? `"${glbPath}"` : glbPath;
-    const proc = spawn('npx', ['tsx', 'scripts/tooling-unit-builder.ts', quotedPath], {
+    const args = ['tsx', 'scripts/tooling-unit-builder.ts', quotedPath];
+    if (mode === 'v2') {
+      args.push('--mode', 'v2');
+    }
+    const proc = spawn('npx', args, {
       stdio: 'inherit',
       shell: true,
     });
