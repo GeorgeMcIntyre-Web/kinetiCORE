@@ -183,6 +183,26 @@ async function run() {
       }
     }
 
+    // Step 5: Generate structure profile (if clusters exist)
+    if (manifest.steps.rigidClusters) {
+      const profilePath = path.join(baseDir, `${fixtureName}.structure-profile.json`);
+      const profileNeedsRun = !fs.existsSync(profilePath);
+      
+      if (profileNeedsRun) {
+        try {
+          console.log('[5/5] Generating structure profile...');
+          const profile = await ToolingStructureAnalyzer.analyzeFromPipeline(fixtureName, baseDir);
+          fs.writeFileSync(profilePath, JSON.stringify(profile, null, 2), 'utf8');
+          console.log(`  ✓ Structure profile: ${profilePath}`);
+        } catch (err) {
+          console.log(`  ⚠ Structure profile generation failed: ${err instanceof Error ? err.message : String(err)}`);
+          // Don't fail the pipeline if profile generation fails
+        }
+      } else {
+        console.log('[5/5] Structure profile exists, skipping');
+      }
+    }
+
     manifest.success = manifest.errors?.length === 0;
     
     // Write manifest
