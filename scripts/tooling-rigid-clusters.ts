@@ -51,6 +51,8 @@ type ClusterJson = {
   meshNames: string[];
 };
 
+// Note: gltf-transform doesn't support Draco compression directly
+// GLB files with Draco compression need to be decompressed first
 const io = new NodeIO();
 
 const glbPath = process.argv[2];
@@ -61,17 +63,42 @@ if (glbPath === undefined) {
 }
 
 run().catch(err => {
-  console.error('Rigid cluster analysis failed:', err);
+  if (err?.message?.includes('KHR_draco_mesh_compression')) {
+    console.error('Rigid cluster analysis failed: GLB uses Draco compression.');
+    console.error('To fix this, install the Draco extension:');
+    console.error('  npm install @gltf-transform/draco');
+    console.error('');
+    console.error('Alternatively, decompress the GLB file using gltf-transform:');
+    console.error('  npx @gltf-transform/cli draco <input.glb> <output.glb>');
+  } else {
+    console.error('Rigid cluster analysis failed:', err);
+  }
   process.exit(1);
 });
 
 async function run() {
+  // Debug: log the received path to help diagnose path issues
+  if (process.env.DEBUG_PATHS) {
+    console.log('[DEBUG] Received GLB path:', JSON.stringify(glbPath));
+    console.log('[DEBUG] Path length:', glbPath.length);
+  }
+  
   if (!fs.existsSync(glbPath)) {
     console.error('GLB not found:', glbPath);
+    console.error('Path length:', glbPath.length);
+    console.error('Please check that the path is correct and the file exists.');
     process.exit(1);
   }
 
-  const doc = await io.read(glbPath);
+  let doc;
+  try {
+    doc = await io.read(glbPath);
+  } catch (err: any) {
+    if (err?.message?.includes('KHR_draco_mesh_compression')) {
+      throw err; // Re-throw to be caught by outer catch handler
+    }
+    throw err;
+  }
   const scene = doc.getRoot().getDefaultScene();
 
   if (scene === null || scene === undefined) {
