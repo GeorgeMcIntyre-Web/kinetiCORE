@@ -39,6 +39,7 @@ import {
   DEFAULT_PIPING_PLACEMENT_SETTINGS,
   PipingPlacementSettings,
 } from '../../domain/factoryServices/piping/pipingPlacement';
+import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
 
 type ObjectType =
   | 'box'
@@ -691,9 +692,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
   editModeEnabled: false,
   attachedJointId: null,
 
-  // Piping mode state
-  pipingModeEnabled: false,
-  pipingPlacementSettings: { ...DEFAULT_PIPING_PLACEMENT_SETTINGS },
+    // Piping mode state
+    pipingModeEnabled: false,
+    pipingPlacementSettings: pipingStore.getPlacementSettings(),
 
   // Project Manager Integration
   projectManager: ProjectManager.getInstance(),
@@ -3394,13 +3395,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
   // Piping mode actions
   setPipingModeEnabled: (enabled) => set({ pipingModeEnabled: enabled }),
-  updatePipingPlacementSettings: (updates) =>
-    set((state) => ({
-      pipingPlacementSettings: {
-        ...state.pipingPlacementSettings,
-        ...updates,
-      },
-    })),
+    updatePipingPlacementSettings: (updates) => {
+      const updated = pipingStore.updatePlacementSettings(updates);
+      set({ pipingPlacementSettings: updated });
+    },
 
   // Transform settings setters
   setPositionIncrement: (value: number) => set({ positionIncrement: value }),
