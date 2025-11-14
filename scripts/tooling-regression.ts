@@ -125,17 +125,22 @@ async function testFixture(
 
   try {
     // Run pipeline
-    const args = ['tsx', 'scripts/tooling-pipeline.ts', fixture.glb];
+    // Quote paths to handle spaces when using shell: true
+    const quotedGlbPath = fixture.glb.includes(' ') ? `"${fixture.glb}"` : fixture.glb;
+    const args = ['tsx', 'scripts/tooling-pipeline.ts', quotedGlbPath];
     if (fixture.jointsJson) {
-      args.push(fixture.jointsJson);
+      const quotedJointsPath = fixture.jointsJson.includes(' ') ? `"${fixture.jointsJson}"` : fixture.jointsJson;
+      args.push(quotedJointsPath);
     }
 
     await runCommand('npx', args);
 
     // Load outputs
+    // Use GLB filename (not fixture ID) to match pipeline output naming
     const baseDir = path.dirname(fixture.glb);
-    const clustersPath = path.join(baseDir, `${fixture.id}.rigid-clusters.json`);
-    const unitsPath = path.join(baseDir, `${fixture.id}.units.json`);
+    const glbBaseName = path.basename(fixture.glb, '.glb');
+    const clustersPath = path.join(baseDir, `${glbBaseName}.rigid-clusters.json`);
+    const unitsPath = path.join(baseDir, `${glbBaseName}.units.json`);
 
     if (!fs.existsSync(clustersPath)) {
       result.errors.push('Missing rigid-clusters.json');

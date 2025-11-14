@@ -215,7 +215,9 @@ async function run() {
 
 async function runTreeInspector(glbPath: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const proc = spawn('npx', ['tsx', 'scripts/tooling-tree-inspector.ts', glbPath], {
+    // Quote path to handle spaces when using shell: true
+    const quotedPath = glbPath.includes(' ') ? `"${glbPath}"` : glbPath;
+    const proc = spawn('npx', ['tsx', 'scripts/tooling-tree-inspector.ts', quotedPath], {
       stdio: 'inherit',
       shell: true,
     });
@@ -236,7 +238,9 @@ async function runTreeInspector(glbPath: string): Promise<void> {
 
 async function runRigidClusters(glbPath: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const proc = spawn('npx', ['tsx', 'scripts/tooling-rigid-clusters.ts', glbPath], {
+    // Quote path to handle spaces when using shell: true
+    const quotedPath = glbPath.includes(' ') ? `"${glbPath}"` : glbPath;
+    const proc = spawn('npx', ['tsx', 'scripts/tooling-rigid-clusters.ts', quotedPath], {
       stdio: 'inherit',
       shell: true,
     });
@@ -257,7 +261,10 @@ async function runRigidClusters(glbPath: string): Promise<void> {
 
 async function runJointSegmentation(glbPath: string, jointsJsonPath: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const proc = spawn('npx', ['tsx', 'scripts/tooling-joint-segmentation.ts', glbPath, jointsJsonPath], {
+    // Quote paths to handle spaces when using shell: true
+    const quotedGlbPath = glbPath.includes(' ') ? `"${glbPath}"` : glbPath;
+    const quotedJointsPath = jointsJsonPath.includes(' ') ? `"${jointsJsonPath}"` : jointsJsonPath;
+    const proc = spawn('npx', ['tsx', 'scripts/tooling-joint-segmentation.ts', quotedGlbPath, quotedJointsPath], {
       stdio: 'inherit',
       shell: true,
     });
@@ -278,7 +285,9 @@ async function runJointSegmentation(glbPath: string, jointsJsonPath: string): Pr
 
 async function runUnitBuilder(glbPath: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const proc = spawn('npx', ['tsx', 'scripts/tooling-unit-builder.ts', glbPath], {
+    // Quote path to handle spaces when using shell: true
+    const quotedPath = glbPath.includes(' ') ? `"${glbPath}"` : glbPath;
+    const proc = spawn('npx', ['tsx', 'scripts/tooling-unit-builder.ts', quotedPath], {
       stdio: 'inherit',
       shell: true,
     });
