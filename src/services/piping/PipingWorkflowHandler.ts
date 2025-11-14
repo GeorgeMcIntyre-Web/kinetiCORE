@@ -3,10 +3,21 @@
 // Manages click-to-place nodes and Shift+click segment creation
 
 import * as BABYLON from '@babylonjs/core';
+import { Vector3 } from '../../core/types';
 import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
 import { getDefaultDiameter } from '../../domain/factoryServices/piping/pipingRules';
-import { PipingNetwork, Position3D } from '../../domain/factoryServices/piping/pipingTypes';
+import {
+  PipingNetwork,
+  PipingNode,
+  PipingServiceType,
+  Position3D,
+} from '../../domain/factoryServices/piping/pipingTypes';
 import { useEditorStore } from '../../ui/store/editorStore';
+import {
+  ElevationRuleOptions,
+  ElevationValidationResult,
+  evaluateElevationProfile,
+} from '../../routing/validation/RouteValidator';
 import { PipingSceneService } from './PipingSceneService';
 import { resolvePipingHitForPlacement } from './pipingPlacementResolver';
 
@@ -170,6 +181,44 @@ export class PipingWorkflowHandler {
     console.log('[PipingWorkflowHandler] Created node:', node.id, 'at', position);
   }
 
+  private validateSegmentElevation(
+    sourceNode: PipingNode,
+    destinationNode: PipingNode
+  ): ElevationValidationResult {
+    const options = this.getElevationOptionsForService(sourceNode.serviceType);
+    const points: Vector3[] = [{ ...sourceNode.position }, { ...destinationNode.position }];
+    return evaluateElevationProfile(points, options);
+  }
+
+  private getElevationOptionsForService(serviceType: PipingServiceType): ElevationRuleOptions {
+    const baseOptions: ElevationRuleOptions = {
+      maxElevationDelta: 2.5,
+      maxElevationSpan: 8,
+      allowMixedElevation: true,
+      minNodeCount: 2,
+      minNodesForMixedElevation: 2,
+      floorSnapTolerance: 0.05,
+    };
+
+    if (serviceType === 'steam') {
+      return {
+        ...baseOptions,
+        maxElevationDelta: 1.25,
+        maxElevationSpan: 4,
+      };
+    }
+
+    if (serviceType === 'cable_tray') {
+      return {
+        ...baseOptions,
+        maxElevationDelta: 1.0,
+        maxElevationSpan: 3,
+      };
+    }
+
+    return baseOptions;
+  }
+
   /**
    * Handle Shift+click on a node to start segment creation
    */
@@ -240,21 +289,45 @@ export class PipingWorkflowHandler {
       return;
     }
 
-    // Get source node to determine service type
-    const sourceNode = pipingStore.getNode(sourceNodeId);
-    if (!sourceNode) {
-      console.error('[PipingWorkflowHandler] Source node not found');
-      this.cancelPendingOperation();
-      return;
-    }
+      // Get source node to determine service type
+      const sourceNode = pipingStore.getNode(sourceNodeId);
+      if (!sourceNode) {
+        console.error('[PipingWorkflowHandler] Source node not found');
+        this.cancelPendingOperation();
+        return;
+      }
 
-    // Create segment
-    const segment = pipingStore.createSegment(network.id, {
-      fromNodeId: sourceNodeId,
-      toNodeId: destNodeId,
-      nominalDiameterMm: getDefaultDiameter(sourceNode.serviceType),
-      hasInsulation: false,
-    });
+      const destinationNode = pipingStore.getNode(destNodeId);
+      if (!destinationNode) {
+        console.error('[PipingWorkflowHandler] Destination node not found');
+        this.cancelPendingOperation();
+        return;
+      }
+
+      const elevationValidation = this.validateSegmentElevation(sourceNode, destinationNode);
+      if (elevationValidation.status === 'ERROR') {
+        console.warn(
+          '[PipingWorkflowHandler] Segment rejected due to elevation rules:',
+          elevationValidation.violations[0]?.message ?? 'Unknown violation'
+        );
+        this.cancelPendingOperation();
+        return;
+      }
+
+      if (elevationValidation.status === 'WARNING') {
+        console.warn(
+          '[PipingWorkflowHandler] Elevation warning:',
+          elevationValidation.violations[0]?.message ?? 'Check vertical run'
+        );
+      }
+
+      // Create segment
+      const segment = pipingStore.createSegment(network.id, {
+        fromNodeId: sourceNodeId,
+        toNodeId: destNodeId,
+        nominalDiameterMm: getDefaultDiameter(sourceNode.serviceType),
+        hasInsulation: false,
+      });
 
     if (segment) {
       console.log('[PipingWorkflowHandler] Created segment:', segment.id);
