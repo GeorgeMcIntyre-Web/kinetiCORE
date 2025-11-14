@@ -455,7 +455,8 @@ function updateInfoDisplay() {
       kinDebug.toggleMode()<br/>
       kinDebug.listUnits()<br/>
       kinDebug.highlightUnit(unitId)<br/>
-      kinDebug.setJoint(unitId, jointId, value)
+      kinDebug.setJoint(unitId, jointId, value)<br/>
+      kinDebug.describeJoint(jointId)
     </div>
   `);
 }
@@ -902,6 +903,107 @@ function setupKinematicsAPI() {
       unitsDataV2.units.forEach(unit => {
         console.log(`  ${unit.id}: baseLinkId=${unit.baseLinkId}, primaryLinkId=${unit.primaryLinkId}, linkIds.length=${unit.clusterIds.length}`);
       });
+    },
+
+    describeJoint: (jointId: string) => {
+      const activeUnitsData = currentMode === 'v2' ? unitsDataV2 : unitsData;
+      if (!activeUnitsData) {
+        console.log('No units data loaded');
+        return;
+      }
+
+      const joint = activeUnitsData.joints.find(j => j.id === jointId);
+      if (!joint) {
+        console.log(`Joint not found: ${jointId}`);
+        return;
+      }
+
+      // Find parent and child links
+      const parentLink = activeUnitsData.links.find(link => 
+        link.clusterIds.includes(joint.parentClusterId)
+      );
+      const childLink = activeUnitsData.links.find(link => 
+        link.clusterIds.includes(joint.childClusterId)
+      );
+
+      // Get cluster bbox info
+      let parentBbox: { minY: number; maxY: number; areaXY: number } | null = null;
+      let childBbox: { minY: number; maxY: number; areaXY: number } | null = null;
+
+      if (rigidClustersData) {
+        const parentCluster = rigidClustersData.clusters.find(c => 
+          `cluster_${c.id}` === joint.parentClusterId
+        );
+        const childCluster = rigidClustersData.clusters.find(c => 
+          `cluster_${c.id}` === joint.childClusterId
+        );
+
+        if (parentCluster) {
+          parentBbox = {
+            minY: parentCluster.bbox.min[1],
+            maxY: parentCluster.bbox.max[1],
+            areaXY: (parentCluster.bbox.max[0] - parentCluster.bbox.min[0]) * 
+                   (parentCluster.bbox.max[2] - parentCluster.bbox.min[2]),
+          };
+        }
+
+        if (childCluster) {
+          childBbox = {
+            minY: childCluster.bbox.min[1],
+            maxY: childCluster.bbox.max[1],
+            areaXY: (childCluster.bbox.max[0] - childCluster.bbox.min[0]) * 
+                   (childCluster.bbox.max[2] - childCluster.bbox.min[2]),
+          };
+        }
+      }
+
+      console.log(`Joint ${jointId} (${joint.type}):`);
+      console.log(`  Parent cluster: ${joint.parentClusterId} -> Link: ${parentLink?.id ?? 'null'}`);
+      if (parentBbox) {
+        console.log(`    Bbox: minY=${parentBbox.minY.toFixed(4)}, maxY=${parentBbox.maxY.toFixed(4)}, areaXY=${parentBbox.areaXY.toFixed(4)}`);
+      }
+      console.log(`  Child cluster: ${joint.childClusterId} -> Link: ${childLink?.id ?? 'null'}`);
+      if (childBbox) {
+        console.log(`    Bbox: minY=${childBbox.minY.toFixed(4)}, maxY=${childBbox.maxY.toFixed(4)}, areaXY=${childBbox.areaXY.toFixed(4)}`);
+      }
+      console.log(`  Range: ${joint.min} to ${joint.max}`);
+      console.log(`  Origin: [${joint.origin[0].toFixed(4)}, ${joint.origin[1].toFixed(4)}, ${joint.origin[2].toFixed(4)}]`);
+      console.log(`  Axis: [${joint.axis[0].toFixed(4)}, ${joint.axis[1].toFixed(4)}, ${joint.axis[2].toFixed(4)}]`);
+
+      // Temporarily highlight parent and child links
+      const meshes = scene.meshes.filter(m => m instanceof BABYLON.Mesh) as BABYLON.Mesh[];
+      const parentColor = new BABYLON.Color3(0, 1, 0); // Green for parent
+      const childColor = new BABYLON.Color3(1, 0, 1); // Magenta for child
+
+      meshes.forEach(mesh => {
+        const cluster = meshNameToCluster.get(mesh.name);
+        if (!cluster) return;
+
+        const clusterId = `cluster_${cluster.id}`;
+        let shouldHighlight = false;
+        let highlightColor: BABYLON.Color3 | null = null;
+
+        if (clusterId === joint.parentClusterId) {
+          shouldHighlight = true;
+          highlightColor = parentColor;
+        } else if (clusterId === joint.childClusterId) {
+          shouldHighlight = true;
+          highlightColor = childColor;
+        }
+
+        if (shouldHighlight && highlightColor) {
+          let mat = mesh.material as BABYLON.StandardMaterial;
+          if (!mat || !(mat instanceof BABYLON.StandardMaterial)) {
+            mat = new BABYLON.StandardMaterial(`mat_${mesh.name}`, scene);
+            mesh.material = mat;
+          }
+
+          mat.diffuseColor = highlightColor;
+          mat.emissiveColor = highlightColor.scale(0.5);
+        }
+      });
+
+      console.log('Highlighted parent link (green) and child link (magenta)');
     }
   };
 

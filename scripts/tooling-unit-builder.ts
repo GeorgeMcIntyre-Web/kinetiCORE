@@ -108,10 +108,8 @@ async function run() {
   
   if (mode === 'v2') {
     console.log('Using V2 unit builder (experimental)');
-    links = buildLinkGraphV2(model);
-    console.log(`Built ${links.length} links (v2)`);
     
-    // Get floorY from rigid clusters JSON if available
+    // Get floorY from rigid clusters JSON if available (needed for buildLinkGraphV2)
     let floorY: number | null = null;
     try {
       const clustersJson = JSON.parse(fs.readFileSync(clustersPath, 'utf8')) as RigidClusterJson[];
@@ -145,6 +143,9 @@ async function run() {
     } catch (err) {
       console.warn('Could not detect floorY from clusters:', err);
     }
+    
+    links = buildLinkGraphV2(model, floorY);
+    console.log(`Built ${links.length} links (v2)`);
     
     units = buildKinematicUnitsV2(model, links, floorY);
     console.log(`Built ${units.length} kinematic units (v2)`);

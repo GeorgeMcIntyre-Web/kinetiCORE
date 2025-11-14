@@ -150,5 +150,113 @@ describe('UnitBuilderV2', () => {
       expect(linksExplicit.length).toBeGreaterThan(0);
     }
   });
+
+  // V2-only test: synthetic fixture with base + column + arm + clamp
+  it('v2: builds units from base + column + arm + clamp structure', () => {
+    const clusters = [
+      // Base (floor plate - large, flat, at floor)
+      { 
+        id: 'base_floor', 
+        nodeIds: [], 
+        meshIds: [], 
+        bboxMin: [0, 0, 0] as [number, number, number], 
+        bboxMax: [2, 0.05, 2] as [number, number, number], 
+        meshCount: 1, 
+        totalVerts: 100 
+      },
+      // Column (vertical, attached to base)
+      { 
+        id: 'column', 
+        nodeIds: [], 
+        meshIds: [], 
+        bboxMin: [0.9, 0.05, 0.9] as [number, number, number], 
+        bboxMax: [1.1, 1.0, 1.1] as [number, number, number], 
+        meshCount: 1, 
+        totalVerts: 100 
+      },
+      // Arm (horizontal, attached to column)
+      { 
+        id: 'arm', 
+        nodeIds: [], 
+        meshIds: [], 
+        bboxMin: [0.5, 1.0, 0.5] as [number, number, number], 
+        bboxMax: [1.5, 1.1, 1.5] as [number, number, number], 
+        meshCount: 1, 
+        totalVerts: 100 
+      },
+      // Clamp (at end of arm)
+      { 
+        id: 'clamp', 
+        nodeIds: [], 
+        meshIds: [], 
+        bboxMin: [1.4, 1.0, 1.4] as [number, number, number], 
+        bboxMax: [1.6, 1.2, 1.6] as [number, number, number], 
+        meshCount: 1, 
+        totalVerts: 100 
+      },
+    ];
+
+    const joints: KinematicJoint[] = [
+      {
+        id: 'J_base_column',
+        type: 'revolute',
+        parentClusterId: 'base_floor',
+        childClusterId: 'column',
+        axis: [0, 1, 0],
+        origin: [1.0, 0.05, 1.0],
+        min: -180,
+        max: 180,
+      },
+      {
+        id: 'J_column_arm',
+        type: 'revolute',
+        parentClusterId: 'column',
+        childClusterId: 'arm',
+        axis: [0, 0, 1],
+        origin: [1.0, 1.0, 1.0],
+        min: -90,
+        max: 90,
+      },
+      {
+        id: 'J_arm_clamp',
+        type: 'prismatic',
+        parentClusterId: 'arm',
+        childClusterId: 'clamp',
+        axis: [0, 1, 0],
+        origin: [1.5, 1.0, 1.5],
+        min: 0,
+        max: 0.1,
+      },
+    ];
+
+    const model: MechanicalModel = {
+      nodes: [],
+      meshes: [],
+      clusters,
+      links: [],
+      joints,
+    };
+
+    const floorY = 0.0;
+    const links = buildLinkGraphV2(model, floorY);
+    const units = buildKinematicUnitsV2(model, links, floorY);
+
+    // Should create at least 1 unit with multiple links
+    expect(units.length).toBeGreaterThan(0);
+    expect(links.length).toBeGreaterThan(1);
+
+    // Verify unit structure
+    const unit = units[0];
+    expect(unit.baseLinkId).toBeDefined();
+    expect(unit.primaryLinkId).toBeDefined();
+    expect(unit.jointIds.length).toBeGreaterThan(0);
+    expect(unit.clusterIds.length).toBeGreaterThan(0);
+
+    // Verify that all joints belong to some unit
+    const allUnitJointIds = new Set(units.flatMap(u => u.jointIds));
+    model.joints.forEach(joint => {
+      expect(allUnitJointIds.has(joint.id)).toBe(true);
+    });
+  });
 });
 
