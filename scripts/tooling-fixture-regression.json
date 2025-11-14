@@ -1,0 +1,61 @@
+{
+  "fixtures": [
+    {
+      "id": "9X_110_GEO",
+      "glb": "C:/Users/George/source/repos/kinetiCORE_DATA/Tooling/9X_110_GEO.glb",
+      "jointsJson": "C:/Users/George/source/repos/kinetiCORE_DATA/Tooling/9X_110_GEO.json"
+    },
+    {
+      "id": "8X-140_GEO",
+      "glb": "C:/Users/George/source/repos/kinetiCORE_DATA/Tooling/8X-140_GEO.glb",
+      "jointsJson": null
+    },
+    {
+      "id": "8X-140-1E1_LH",
+      "glb": "C:/Users/George/source/repos/kinetiCORE_DATA/Tooling/8X-140-1E1_LH.glb",
+      "jointsJson": null
+    },
+    {
+      "id": "8X-140-2E1_RH",
+      "glb": "C:/Users/George/source/repos/kinetiCORE_DATA/Tooling/8X-140-2E1_RH.glb",
+      "jointsJson": null
+    },
+    {
+      "id": "016ZF_20142435_130",
+      "glb": "C:/Users/George/source/repos/kinetiCORE_DATA/Tooling/016ZF_20142435_130.glb",
+      "jointsJson": null
+    },
+    {
+      "id": "016ZF_20142452_110",
+      "glb": "C:/Users/George/source/repos/kinetiCORE_DATA/Tooling/016ZF_20142452_110.glb",
+      "jointsJson": null
+    },
+    {
+      "id": "2172493000_M00_GJR_DSH_BRD_ASY_BQ010_02",
+      "glb": "C:/Users/George/source/repos/kinetiCORE_DATA/Tooling/testing_data/2172493000_M00_GJR_DSH_BRD_ASY_BQ010_02/2172493000_M00_GJR_DSH_BRD_ASY_BQ010_02.glb",
+      "jointsJson": null
+    },
+    {
+      "id": "2172504000_M00_GJR_DSH_BRD_ASY_BQ020_02",
+      "glb": "C:/Users/George/source/repos/kinetiCORE_DATA/Tooling/testing_data/2172504000_M00_GJR_DSH_BRD_ASY_BQ020_02/2172504000_M00_GJR_DSH_BRD_ASY_BQ020_02.glb",
+      "jointsJson": null
+    },
+    {
+      "id": "2172520000_M00_DSH_BRD_ASY_BQ040",
+      "glb": "C:/Users/George/source/repos/kinetiCORE_DATA/Tooling/testing_data/2172520000_M00_DSH_BRD_ASY_BQ040/2172520000_M00_DSH_BRD_ASY_BQ040.glb",
+      "jointsJson": null
+    },
+    {
+      "id": "2174530000_M00_GJR_RR_FLR_CM030_T01",
+      "glb": "C:/Users/George/source/repos/kinetiCORE_DATA/Tooling/testing_data/2174530000_M00_GJR_RR FLR_CM030_T01/2174530000_M00_GJR_RR FLR_CM030_T01.glb",
+      "jointsJson": null
+    }
+  ],
+  "invariants": {
+    "requireBaseLink": true,
+    "requireAcyclicGraph": true,
+    "requireUnitsForJoints": true,
+    "testNameRandomization": false
+  }
+}
+
