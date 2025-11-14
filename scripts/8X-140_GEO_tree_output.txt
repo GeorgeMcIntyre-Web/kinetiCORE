@@ -1,0 +1,2723 @@
+GLB uses Draco compression. Attempting to extract structure from JSON chunk...
+===========================================================
+ GLB TREE INSPECTOR (JSON-ONLY MODE)
+===========================================================
+File : C:\Users\georgem\source\repos\kinetiCORE_data\Tooling\testing_data\8X-140_GEO\016ZF_20142435_140_CI00.glb
+
+Scene 0: Scene_0
+  - 016ZF_20142435_140_CI00
+    - UNIT_104
+      - RH
+        - MOVING_1
+          - ORDER
+            - CLAMP_ARM_KPL_63_A80
+              - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_0 | verts: 4746 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+              - HOLES_pdl
+              - Rotation_Point
+          - STANDARDS
+            - ASC019_03  [mesh: mesh_1 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - 100_SPACER
+              - UFS_013_01_pdl_solid  [mesh: mesh_2 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+          - FASTENERS
+            - screws_pdl_08
+              - (node 16)  [mesh: mesh_3 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 17)  [mesh: mesh_4 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+            - screws_pdl_09
+              - (node 19)  [mesh: mesh_5 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 20)  [mesh: mesh_6 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+        - FIXED
+          - 300_FABRICATION
+            - 300_001
+              - Ext_01
+                - Ext_01_solid  [mesh: mesh_7 | verts: 878 | prims: 1 | bbox: (3.7, 1.3, -0.4) ΓåÆ (4.0, 1.6, -0.4)]
+                - HOLES_pdl
+                - HOLES_pdl_01
+            - 300_002
+              - Ext_02_1
+                - Ext_01_solid  [mesh: mesh_8 | verts: 870 | prims: 1 | bbox: (3.7, 1.2, -0.4) ΓåÆ (4.0, 1.5, -0.4)]
+                - HOLES_pdl
+                - HOLES_pdl_01
+            - 300_003_01
+              - Ext_01_1  [mesh: mesh_9 | verts: 164 | prims: 1 | bbox: (2.7, 1.2, 0.1) ΓåÆ (2.7, 1.4, 0.9)]
+            - 300_003
+              - Ext_01_01  [mesh: mesh_10 | verts: 164 | prims: 1 | bbox: (2.7, 1.2, 0.1) ΓåÆ (2.7, 1.4, 0.9)]
+            - 300_004_01
+              - Ext_08  [mesh: mesh_11 | verts: 18 | prims: 1 | bbox: (2.0, 0.4, 0.0) ΓåÆ (2.0, 0.4, 0.1)]
+            - 300_004
+              - Ext_09  [mesh: mesh_12 | verts: 18 | prims: 1 | bbox: (2.0, 0.4, 0.0) ΓåÆ (2.0, 0.4, 0.1)]
+            - 300_005
+              - material_465_pdl  [mesh: mesh_13 | verts: 312 | prims: 1 | bbox: (-0.1, -0.1, -0.5) ΓåÆ (0.1, 0.1, 0.5)]
+          - FASTENERS
+            - M10
+              - 1
+                - screws_pdl_01
+                  - (node 47)  [mesh: mesh_14 | verts: 153 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 48)  [mesh: mesh_15 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_03
+                  - (node 50)  [mesh: mesh_16 | verts: 153 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 51)  [mesh: mesh_17 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_02
+                  - (node 53)  [mesh: mesh_18 | verts: 153 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 54)  [mesh: mesh_19 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_04
+                  - (node 56)  [mesh: mesh_20 | verts: 153 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 57)  [mesh: mesh_21 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - M8
+              - 2
+                - screws_pdl
+                  - (node 61)  [mesh: mesh_22 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 62)  [mesh: mesh_23 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_01
+                  - (node 64)  [mesh: mesh_24 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 65)  [mesh: mesh_25 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - 3
+                - screws_pdl
+                  - (node 68)  [mesh: mesh_26 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 69)  [mesh: mesh_27 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_01
+                  - (node 71)  [mesh: mesh_28 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 72)  [mesh: mesh_29 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - 2_01
+                - screws_pdl
+                  - (node 75)  [mesh: mesh_30 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 76)  [mesh: mesh_31 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_01
+                  - (node 78)  [mesh: mesh_32 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 79)  [mesh: mesh_33 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 1
+              - screws_pdl_08
+                - (node 82)  [mesh: mesh_34 | verts: 175 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 83)  [mesh: mesh_35 | verts: 211 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_09
+                - (node 85)  [mesh: mesh_36 | verts: 175 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 86)  [mesh: mesh_37 | verts: 211 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - WeldWashers_pdl  [mesh: mesh_38 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - WeldWashers_pdl_01  [mesh: mesh_39 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 01
+              - screws_pdl_03
+                - (node 91)  [mesh: mesh_40 | verts: 156 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 92)  [mesh: mesh_41 | verts: 217 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 94)  [mesh: mesh_42 | verts: 156 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 95)  [mesh: mesh_43 | verts: 217 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 97)  [mesh: mesh_44 | verts: 156 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 98)  [mesh: mesh_45 | verts: 217 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl
+                - (node 100)  [mesh: mesh_46 | verts: 156 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 101)  [mesh: mesh_47 | verts: 217 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_17
+              - 102_M5x0_8x45_SOC_HEAD_CAP_SCREW
+                - (node 104)  [mesh: mesh_48 | verts: 624 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 105)  [mesh: mesh_49 | verts: 203 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+              - 102_M5x0_8x45_SOC_HEAD_CAP_SCREW_02
+                - (node 107)  [mesh: mesh_50 | verts: 624 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 108)  [mesh: mesh_51 | verts: 203 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+            - SET_21
+              - 101_M6x1_0x15_SOC_HEAD_CAP_SCREW
+                - (node 111)  [mesh: mesh_52 | verts: 151 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 112)  [mesh: mesh_53 | verts: 211 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - 101_M6x1_0x15_SOC_HEAD_CAP_SCREW_02  [mesh: mesh_54 | verts: 362 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - WeldWashers_pdl  [mesh: mesh_55 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - WeldWashers_pdl_01  [mesh: mesh_56 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_01
+              - screws_pdl
+                - (node 118)  [mesh: mesh_57 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 119)  [mesh: mesh_58 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 121)  [mesh: mesh_59 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 122)  [mesh: mesh_60 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 124)  [mesh: mesh_61 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 125)  [mesh: mesh_62 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 127)  [mesh: mesh_63 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 128)  [mesh: mesh_64 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_02
+              - screws_pdl
+                - (node 131)  [mesh: mesh_65 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 132)  [mesh: mesh_66 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 134)  [mesh: mesh_67 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 135)  [mesh: mesh_68 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 137)  [mesh: mesh_69 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 138)  [mesh: mesh_70 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 140)  [mesh: mesh_71 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 141)  [mesh: mesh_72 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_03
+              - screws_pdl
+                - (node 144)  [mesh: mesh_73 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 145)  [mesh: mesh_74 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 147)  [mesh: mesh_75 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 148)  [mesh: mesh_76 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 150)  [mesh: mesh_77 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 151)  [mesh: mesh_78 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 153)  [mesh: mesh_79 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 154)  [mesh: mesh_80 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_04
+              - screws_pdl
+                - (node 157)  [mesh: mesh_81 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 158)  [mesh: mesh_82 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 160)  [mesh: mesh_83 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 161)  [mesh: mesh_84 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 163)  [mesh: mesh_85 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 164)  [mesh: mesh_86 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 166)  [mesh: mesh_87 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 167)  [mesh: mesh_88 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - 302_L_BLOCK
+            - 302
+              - Ext_01_solid  [mesh: mesh_89 | verts: 681 | prims: 1 | bbox: (2.5, 1.0, 0.6) ΓåÆ (2.6, 1.1, 0.6)]
+              - HOLES_pdl
+              - HOLES_pdl_01
+          - 301_FABRICATION
+            - 301_002
+              - Ext_01
+                - Ext_01_solid  [mesh: mesh_90 | verts: 878 | prims: 1 | bbox: (3.7, 1.3, -0.4) ΓåÆ (4.0, 1.6, -0.4)]
+                - HOLES_pdl
+                - HOLES_pdl_01
+            - 301_003
+              - 301_003
+                - 301_003_solid
+                  - (node 182)  [mesh: mesh_91 | verts: 1477 | prims: 1 | bbox: (3.5, 1.0, 1.4) ΓåÆ (3.6, 1.2, 1.8)]
+                  - (node 183)  [mesh: mesh_92 | verts: 452 | prims: 1 | bbox: (3.6, 1.1, 1.6) ΓåÆ (3.6, 1.2, 1.8)]
+                - HOLES_pdl
+                - HOLES_pdl_01
+                - HOLES_pdl_02
+                - HOLES_pdl_03
+            - 301_001
+              - Ext_01_solid  [mesh: mesh_93 | verts: 1679 | prims: 1 | bbox: (4.3, 1.0, 0.1) ΓåÆ (4.5, 1.0, 0.5)]
+              - HOLES_pdl_04
+              - HOLES_pdl_01
+              - HOLES_pdl
+              - HOLES_pdl_02
+            - 301_005
+              - Ext_01_solid  [mesh: mesh_94 | verts: 527 | prims: 1 | bbox: (1.8, 1.0, 0.5) ΓåÆ (2.0, 1.1, 0.5)]
+              - HOLES_pdl
+            - 301_004_01
+              - CoSys
+          - ORDERS
+            - 004_STOP_BLOCK_FLAT  [mesh: mesh_95 | verts: 596 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - 004_STOP_BLOCK_FLAT_03  [mesh: mesh_96 | verts: 596 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - 005_PROXIMITY_SENSOR
+              - S1  [mesh: mesh_97 | verts: 7803 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - m12_lead_connector_sat
+                - S2  [mesh: mesh_98 | verts: 846 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S3  [mesh: mesh_99 | verts: 450 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S4  [mesh: mesh_100 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S5  [mesh: mesh_101 | verts: 769 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - 20bubble  [mesh: mesh_102 | verts: 287 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - CoSys
+              - S2  [mesh: mesh_103 | verts: 8595 | prims: 1 | bbox: (-0.0, 0.0, 0.0) ΓåÆ (-0.0, 0.0, 0.0)]
+            - VU_63_1_BR2_A05_T12_01
+              - POWER_CLAMP  [mesh: mesh_104 | verts: 10553 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+              - Rotation_Point
+              - S2_01  [mesh: mesh_105 | verts: 3259 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+              - m12_lead_connector_sat
+                - S1  [mesh: mesh_106 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S2  [mesh: mesh_107 | verts: 846 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S3  [mesh: mesh_108 | verts: 450 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S4  [mesh: mesh_109 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S5  [mesh: mesh_110 | verts: 769 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - S2_02  [mesh: mesh_111 | verts: 3259 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+            - VU_63_1_BR2_A05_T12
+              - POWER_CLAMP  [mesh: mesh_112 | verts: 10553 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+              - Rotation_Point
+              - S2_01  [mesh: mesh_113 | verts: 3259 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+              - m12_lead_connector_sat
+                - S1  [mesh: mesh_114 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S2  [mesh: mesh_115 | verts: 846 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S3  [mesh: mesh_116 | verts: 450 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S4  [mesh: mesh_117 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S5  [mesh: mesh_118 | verts: 769 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - S2_02  [mesh: mesh_119 | verts: 3259 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+          - STANDARDS
+            - 2__WAY_HITCH
+              - SPACERS
+                - hole3_pdl  [mesh: mesh_120 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - hole3_pdl_01  [mesh: mesh_121 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - 2_WAY______DOCK___BLKS
+                - wedge_02
+                  - block_pdl_02+
+                    - block_pdl_02_solid  [mesh: mesh_122 | verts: 50 | prims: 1 | bbox: (2.6, -0.9, 0.7) ΓåÆ (2.6, -0.9, 0.8)]
+                    - HOLES_pdl
+                - wedge_01
+                  - block_pdl_02+
+                    - block_pdl_02_solid  [mesh: mesh_123 | verts: 50 | prims: 1 | bbox: (2.6, -0.9, 0.7) ΓåÆ (2.6, -0.9, 0.8)]
+                    - HOLES_pdl
+              - MOUNTING_PLATE
+                - CoSys
+                - PLATE
+                  - block_pdl
+                    - block_pdl_solid  [mesh: mesh_124 | verts: 1070 | prims: 1 | bbox: (2.4, -1.1, 0.7) ΓåÆ (2.6, -0.9, 0.7)]
+                    - HOLES_pdl
+                    - HOLES_pdl_01
+                - BLOCK
+                  - block_pdl_01
+                    - block_pdl_01_solid  [mesh: mesh_125 | verts: 308 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - HOLES_pdl
+                - BLOCK_01
+                  - block_pdl_02
+                    - block_pdl_01_solid  [mesh: mesh_126 | verts: 308 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - HOLES_pdl
+              - screws
+                - screws_pdl_03
+                  - (node 265)  [mesh: mesh_127 | verts: 153 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 266)  [mesh: mesh_128 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_02
+                  - (node 268)  [mesh: mesh_129 | verts: 153 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 269)  [mesh: mesh_130 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_01
+                  - (node 271)  [mesh: mesh_131 | verts: 153 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 272)  [mesh: mesh_132 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl
+                  - (node 274)  [mesh: mesh_133 | verts: 153 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 275)  [mesh: mesh_134 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - scrws
+                  - screws_pdl
+                    - (node 278)  [mesh: mesh_135 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 279)  [mesh: mesh_136 | verts: 207 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+                  - screws_pdl_01
+                    - (node 281)  [mesh: mesh_137 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 282)  [mesh: mesh_138 | verts: 207 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+                  - screws_pdl_02
+                    - (node 284)  [mesh: mesh_139 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 285)  [mesh: mesh_140 | verts: 207 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+                  - screws_pdl_03
+                    - (node 287)  [mesh: mesh_141 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 288)  [mesh: mesh_142 | verts: 207 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+            - SPACER_03
+              - UFS_013_01_pdl_solid  [mesh: mesh_143 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+            - SPACER
+              - UFS_013_01_pdl_solid  [mesh: mesh_144 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+          - 303_SENSOR_BRACKET
+            - 303
+              - Ext_10_solid  [mesh: mesh_145 | verts: 560 | prims: 1 | bbox: (2.3, 1.1, 0.3) ΓåÆ (2.4, 1.2, 0.4)]
+              - HOLES_pdl_01
+              - HOLES_pdl_02
+          - 304_SENSOR_BRACKET
+            - 304
+              - Ext_01_solid  [mesh: mesh_146 | verts: 561 | prims: 1 | bbox: (4.3, 0.8, 0.5) ΓåÆ (4.3, 0.9, 0.6)]
+              - HOLES_pdl_01
+              - HOLES_pdl
+              - HOLES_pdl_02
+            - CoSys
+          - 305_BLOCK
+            - Ext_02
+              - Ext_01_solid  [mesh: mesh_147 | verts: 2026 | prims: 1 | bbox: (3.6, 1.1, 1.7) ΓåÆ (3.7, 1.3, 1.8)]
+              - HOLES_pdl_03
+              - HOLES_pdl_02
+              - HOLES_pdl_01
+              - HOLES_pdl
+          - 306_BLOCK
+            - Ext_01
+              - Ext_01_solid  [mesh: mesh_148 | verts: 2026 | prims: 1 | bbox: (3.6, 1.1, 1.7) ΓåÆ (3.7, 1.3, 1.8)]
+              - HOLES_pdl_03
+              - HOLES_pdl_02
+              - HOLES_pdl_01
+              - HOLES_pdl
+        - MOVING_2
+          - STANDARDS
+            - ASC019_02  [mesh: mesh_149 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - 100_SPACER_
+              - UFS_013_01_pdl_solid  [mesh: mesh_150 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+          - ORDER
+            - CLAMP_ARM_KPL_63_A80_01
+              - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_151 | verts: 4746 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+              - HOLES_pdl
+              - Rotation_Point
+            - CoSys
+          - FASTENERS
+            - screws_pdl_08
+              - (node 335)  [mesh: mesh_152 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 336)  [mesh: mesh_153 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+            - screws_pdl_09
+              - (node 338)  [mesh: mesh_154 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 339)  [mesh: mesh_155 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+      - WIRE
+        - OPEN
+          - OPEN_RH
+            - MOVING_2
+              - STANDARDS
+                - ASC019_02  [mesh: mesh_156 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                - 100_SPACER_
+                  - UFS_013_01_pdl_solid  [mesh: mesh_157 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - HOLES_pdl
+              - ORDER
+                - CLAMP_ARM_KPL_63_A80_01
+                  - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_158 | verts: 4746 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+                  - HOLES_pdl
+                  - Rotation_Point
+                - CoSys
+              - FASTENERS
+                - screws_pdl_08  [mesh: mesh_159 | verts: 831 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_09  [mesh: mesh_160 | verts: 831 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - MOVING_1
+              - ORDER
+                - CLAMP_ARM_KPL_63_A80
+                  - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_161 | verts: 4746 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+                  - HOLES_pdl
+                  - Rotation_Point
+              - STANDARDS
+                - ASC019_03  [mesh: mesh_162 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                - 100_SPACER
+                  - UFS_013_01_pdl_solid  [mesh: mesh_163 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - HOLES_pdl
+              - FASTENERS
+                - screws_pdl_08  [mesh: mesh_164 | verts: 831 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_09  [mesh: mesh_165 | verts: 831 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - OPEN_LH
+            - MOVING_2
+              - STANDARDS
+                - ASC019_02  [mesh: mesh_166 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                - 100_SPACER_
+                  - UFS_013_01_pdl_solid  [mesh: mesh_167 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - HOLES_pdl
+              - ORDER
+                - CLAMP_ARM_KPL_63_A80_01
+                  - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_168 | verts: 4758 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+                  - HOLES_pdl
+                  - Rotation_Point
+                - CoSys
+              - FASTENERS
+                - screws_pdl_08  [mesh: mesh_169 | verts: 835 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_09  [mesh: mesh_170 | verts: 835 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - MOVING_1
+              - ORDER
+                - CLAMP_ARM_KPL_63_A80
+                  - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_171 | verts: 4758 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+                  - HOLES_pdl
+                  - Rotation_Point
+              - STANDARDS
+                - ASC019_03  [mesh: mesh_172 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                - 100_SPACER
+                  - UFS_013_01_pdl_solid  [mesh: mesh_173 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - HOLES_pdl
+              - FASTENERS
+                - screws_pdl_08  [mesh: mesh_174 | verts: 835 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_09  [mesh: mesh_175 | verts: 835 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+      - LH
+        - MOVING_1
+          - ORDER
+            - CLAMP_ARM_KPL_63_A80
+              - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_176 | verts: 4758 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+              - HOLES_pdl
+              - Rotation_Point
+          - STANDARDS
+            - ASC019_03  [mesh: mesh_177 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - 100_SPACER
+              - UFS_013_01_pdl_solid  [mesh: mesh_178 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+          - FASTENERS
+            - screws_pdl_08
+              - (node 416)  [mesh: mesh_179 | verts: 629 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 417)  [mesh: mesh_180 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - screws_pdl_09
+              - (node 419)  [mesh: mesh_181 | verts: 629 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 420)  [mesh: mesh_182 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - FIXED
+          - 300_FABRICATION
+            - 300_001
+              - Ext_01
+                - Ext_01_solid  [mesh: mesh_183 | verts: 868 | prims: 1 | bbox: (3.7, 1.3, 0.4) ΓåÆ (4.0, 1.6, 0.4)]
+                - HOLES_pdl
+                - HOLES_pdl_01
+            - 300_002
+              - Ext_02_1
+                - Ext_01_solid  [mesh: mesh_184 | verts: 868 | prims: 1 | bbox: (3.7, 1.2, 0.4) ΓåÆ (4.0, 1.5, 0.4)]
+                - HOLES_pdl
+                - HOLES_pdl_01
+            - 300_003_01
+              - Ext_01_1  [mesh: mesh_185 | verts: 164 | prims: 1 | bbox: (2.7, 1.2, -0.9) ΓåÆ (2.7, 1.4, -0.1)]
+            - 300_003
+              - Ext_01_01  [mesh: mesh_186 | verts: 164 | prims: 1 | bbox: (2.7, 1.2, -0.9) ΓåÆ (2.7, 1.4, -0.1)]
+            - 300_004_01
+              - Ext_08  [mesh: mesh_187 | verts: 18 | prims: 1 | bbox: (2.0, 0.4, -0.1) ΓåÆ (2.0, 0.4, -0.0)]
+            - 300_004
+              - Ext_09  [mesh: mesh_188 | verts: 18 | prims: 1 | bbox: (2.0, 0.4, -0.1) ΓåÆ (2.0, 0.4, -0.0)]
+            - 300_005
+              - material_465_pdl  [mesh: mesh_189 | verts: 312 | prims: 1 | bbox: (-0.1, -0.1, -0.5) ΓåÆ (0.1, 0.1, 0.5)]
+          - FASTENERS
+            - M10
+              - 1
+                - screws_pdl_01
+                  - (node 447)  [mesh: mesh_190 | verts: 154 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 448)  [mesh: mesh_191 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_03
+                  - (node 450)  [mesh: mesh_192 | verts: 154 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 451)  [mesh: mesh_193 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_02
+                  - (node 453)  [mesh: mesh_194 | verts: 154 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 454)  [mesh: mesh_195 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_04
+                  - (node 456)  [mesh: mesh_196 | verts: 154 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 457)  [mesh: mesh_197 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - M8
+              - 2
+                - screws_pdl
+                  - (node 461)  [mesh: mesh_198 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 462)  [mesh: mesh_199 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_01
+                  - (node 464)  [mesh: mesh_200 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 465)  [mesh: mesh_201 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - 3
+                - screws_pdl
+                  - (node 468)  [mesh: mesh_202 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 469)  [mesh: mesh_203 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_01
+                  - (node 471)  [mesh: mesh_204 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 472)  [mesh: mesh_205 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - 2_01
+                - screws_pdl
+                  - (node 475)  [mesh: mesh_206 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 476)  [mesh: mesh_207 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_01
+                  - (node 478)  [mesh: mesh_208 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 479)  [mesh: mesh_209 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 1
+              - screws_pdl_08
+                - (node 482)  [mesh: mesh_210 | verts: 175 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 483)  [mesh: mesh_211 | verts: 210 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_09
+                - (node 485)  [mesh: mesh_212 | verts: 175 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 486)  [mesh: mesh_213 | verts: 210 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - WeldWashers_pdl  [mesh: mesh_214 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - WeldWashers_pdl_01  [mesh: mesh_215 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 01
+              - screws_pdl_03
+                - (node 491)  [mesh: mesh_216 | verts: 156 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 492)  [mesh: mesh_217 | verts: 212 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 494)  [mesh: mesh_218 | verts: 156 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 495)  [mesh: mesh_219 | verts: 212 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 497)  [mesh: mesh_220 | verts: 156 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 498)  [mesh: mesh_221 | verts: 212 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl
+                - (node 500)  [mesh: mesh_222 | verts: 156 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 501)  [mesh: mesh_223 | verts: 212 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_17
+              - 102_M5x0_8x45_SOC_HEAD_CAP_SCREW
+                - (node 504)  [mesh: mesh_224 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 505)  [mesh: mesh_225 | verts: 210 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - 102_M5x0_8x45_SOC_HEAD_CAP_SCREW_02
+                - (node 507)  [mesh: mesh_226 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 508)  [mesh: mesh_227 | verts: 210 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_21
+              - 101_M6x1_0x15_SOC_HEAD_CAP_SCREW
+                - (node 511)  [mesh: mesh_228 | verts: 151 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 512)  [mesh: mesh_229 | verts: 212 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - 101_M6x1_0x15_SOC_HEAD_CAP_SCREW_02  [mesh: mesh_230 | verts: 363 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - WeldWashers_pdl  [mesh: mesh_231 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - WeldWashers_pdl_01  [mesh: mesh_232 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_01
+              - screws_pdl
+                - (node 518)  [mesh: mesh_233 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 519)  [mesh: mesh_234 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 521)  [mesh: mesh_235 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 522)  [mesh: mesh_236 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 524)  [mesh: mesh_237 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 525)  [mesh: mesh_238 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 527)  [mesh: mesh_239 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 528)  [mesh: mesh_240 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_02
+              - screws_pdl
+                - (node 531)  [mesh: mesh_241 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 532)  [mesh: mesh_242 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 534)  [mesh: mesh_243 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 535)  [mesh: mesh_244 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 537)  [mesh: mesh_245 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 538)  [mesh: mesh_246 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 540)  [mesh: mesh_247 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 541)  [mesh: mesh_248 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_03
+              - screws_pdl
+                - (node 544)  [mesh: mesh_249 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 545)  [mesh: mesh_250 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 547)  [mesh: mesh_251 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 548)  [mesh: mesh_252 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 550)  [mesh: mesh_253 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 551)  [mesh: mesh_254 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 553)  [mesh: mesh_255 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 554)  [mesh: mesh_256 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_04
+              - screws_pdl
+                - (node 557)  [mesh: mesh_257 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 558)  [mesh: mesh_258 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 560)  [mesh: mesh_259 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 561)  [mesh: mesh_260 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 563)  [mesh: mesh_261 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 564)  [mesh: mesh_262 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 566)  [mesh: mesh_263 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 567)  [mesh: mesh_264 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - 302_L_BLOCK
+            - 302
+              - Ext_01_solid  [mesh: mesh_265 | verts: 680 | prims: 1 | bbox: (2.5, 1.0, -0.6) ΓåÆ (2.6, 1.1, -0.6)]
+              - HOLES_pdl
+              - HOLES_pdl_01
+          - 301_FABRICATION
+            - 301_002
+              - Ext_01
+                - Ext_01_solid  [mesh: mesh_266 | verts: 868 | prims: 1 | bbox: (3.7, 1.3, 0.4) ΓåÆ (4.0, 1.6, 0.4)]
+                - HOLES_pdl
+                - HOLES_pdl_01
+            - 301_003
+              - 301_003
+                - 301_003_solid
+                  - (node 582)  [mesh: mesh_267 | verts: 1472 | prims: 1 | bbox: (3.5, 1.0, -1.8) ΓåÆ (3.6, 1.2, -1.4)]
+                  - (node 583)  [mesh: mesh_268 | verts: 452 | prims: 1 | bbox: (3.6, 1.1, -1.8) ΓåÆ (3.6, 1.2, -1.6)]
+                - HOLES_pdl
+                - HOLES_pdl_01
+                - HOLES_pdl_02
+                - HOLES_pdl_03
+            - 301_001
+              - Ext_01_solid  [mesh: mesh_269 | verts: 1673 | prims: 1 | bbox: (4.3, 1.0, -0.5) ΓåÆ (4.5, 1.0, -0.1)]
+              - HOLES_pdl_04
+              - HOLES_pdl_01
+              - HOLES_pdl
+              - HOLES_pdl_02
+            - 301_005
+              - Ext_01_solid  [mesh: mesh_270 | verts: 527 | prims: 1 | bbox: (1.8, 1.0, -0.5) ΓåÆ (2.0, 1.1, -0.5)]
+              - HOLES_pdl
+            - 301_004_01
+              - CoSys
+          - ORDERS
+            - 004_STOP_BLOCK_FLAT  [mesh: mesh_271 | verts: 596 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - 004_STOP_BLOCK_FLAT_03  [mesh: mesh_272 | verts: 596 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - 005_PROXIMITY_SENSOR
+              - S1  [mesh: mesh_273 | verts: 7701 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - m12_lead_connector_sat
+                - S2  [mesh: mesh_274 | verts: 836 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S3  [mesh: mesh_275 | verts: 440 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S4  [mesh: mesh_276 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S5  [mesh: mesh_277 | verts: 773 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - 20bubble  [mesh: mesh_278 | verts: 287 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - CoSys
+              - S2  [mesh: mesh_279 | verts: 9313 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (-0.0, 0.0, -0.0)]
+            - VU_63_1_BR2_A05_T12_01
+              - POWER_CLAMP  [mesh: mesh_280 | verts: 10423 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+              - Rotation_Point
+              - S2_01  [mesh: mesh_281 | verts: 3263 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+              - m12_lead_connector_sat
+                - S1  [mesh: mesh_282 | verts: 517 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S2  [mesh: mesh_283 | verts: 836 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S3  [mesh: mesh_284 | verts: 440 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S4  [mesh: mesh_285 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S5  [mesh: mesh_286 | verts: 773 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - S2_02  [mesh: mesh_287 | verts: 3263 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+            - VU_63_1_BR2_A05_T12
+              - POWER_CLAMP  [mesh: mesh_288 | verts: 10423 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+              - Rotation_Point
+              - S2_01  [mesh: mesh_289 | verts: 3263 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+              - m12_lead_connector_sat
+                - S1  [mesh: mesh_290 | verts: 517 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S2  [mesh: mesh_291 | verts: 836 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S3  [mesh: mesh_292 | verts: 440 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S4  [mesh: mesh_293 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S5  [mesh: mesh_294 | verts: 773 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - S2_02  [mesh: mesh_295 | verts: 3263 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+          - STANDARDS
+            - 2__WAY_HITCH
+              - SPACERS
+                - hole3_pdl  [mesh: mesh_296 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - hole3_pdl_01  [mesh: mesh_297 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - 2_WAY______DOCK___BLKS
+                - wedge_02
+                  - block_pdl_02+
+                    - block_pdl_02_solid  [mesh: mesh_298 | verts: 50 | prims: 1 | bbox: (2.6, -0.9, -0.8) ΓåÆ (2.6, -0.9, -0.7)]
+                    - HOLES_pdl
+                - wedge_01
+                  - block_pdl_02+
+                    - block_pdl_02_solid  [mesh: mesh_299 | verts: 50 | prims: 1 | bbox: (2.6, -0.9, -0.8) ΓåÆ (2.6, -0.9, -0.7)]
+                    - HOLES_pdl
+              - MOUNTING_PLATE
+                - CoSys
+                - PLATE
+                  - block_pdl
+                    - block_pdl_solid  [mesh: mesh_300 | verts: 1062 | prims: 1 | bbox: (2.4, -1.1, -0.7) ΓåÆ (2.6, -0.9, -0.7)]
+                    - HOLES_pdl
+                    - HOLES_pdl_01
+                - BLOCK
+                  - block_pdl_01
+                    - block_pdl_01_solid  [mesh: mesh_301 | verts: 310 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - HOLES_pdl
+                - BLOCK_01
+                  - block_pdl_02
+                    - block_pdl_01_solid  [mesh: mesh_302 | verts: 310 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - HOLES_pdl
+              - screws
+                - screws_pdl_03
+                  - (node 665)  [mesh: mesh_303 | verts: 154 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 666)  [mesh: mesh_304 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_02
+                  - (node 668)  [mesh: mesh_305 | verts: 154 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 669)  [mesh: mesh_306 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_01
+                  - (node 671)  [mesh: mesh_307 | verts: 154 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 672)  [mesh: mesh_308 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl
+                  - (node 674)  [mesh: mesh_309 | verts: 154 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 675)  [mesh: mesh_310 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - scrws
+                  - screws_pdl
+                    - (node 678)  [mesh: mesh_311 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 679)  [mesh: mesh_312 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_01
+                    - (node 681)  [mesh: mesh_313 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 682)  [mesh: mesh_314 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_02
+                    - (node 684)  [mesh: mesh_315 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 685)  [mesh: mesh_316 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_03
+                    - (node 687)  [mesh: mesh_317 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 688)  [mesh: mesh_318 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SPACER_03
+              - UFS_013_01_pdl_solid  [mesh: mesh_319 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+            - SPACER
+              - UFS_013_01_pdl_solid  [mesh: mesh_320 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+          - 303_SENSOR_BRACKET
+            - 303
+              - Ext_10_solid  [mesh: mesh_321 | verts: 559 | prims: 1 | bbox: (2.3, 1.1, -0.4) ΓåÆ (2.4, 1.2, -0.3)]
+              - HOLES_pdl_01
+              - HOLES_pdl_02
+          - 304_SENSOR_BRACKET
+            - 304
+              - Ext_01_solid  [mesh: mesh_322 | verts: 562 | prims: 1 | bbox: (4.3, 0.8, -0.6) ΓåÆ (4.3, 0.9, -0.5)]
+              - HOLES_pdl_01
+              - HOLES_pdl
+              - HOLES_pdl_02
+            - CoSys
+          - 305_BLOCK
+            - Ext_02
+              - Ext_01_solid  [mesh: mesh_323 | verts: 2027 | prims: 1 | bbox: (3.6, 1.1, -1.8) ΓåÆ (3.7, 1.3, -1.7)]
+              - HOLES_pdl_03
+              - HOLES_pdl_02
+              - HOLES_pdl_01
+              - HOLES_pdl
+          - 306_BLOCK
+            - Ext_01
+              - Ext_01_solid  [mesh: mesh_324 | verts: 2030 | prims: 1 | bbox: (3.6, 1.1, -1.8) ΓåÆ (3.7, 1.3, -1.7)]
+              - HOLES_pdl_03
+              - HOLES_pdl_02
+              - HOLES_pdl_01
+              - HOLES_pdl
+        - MOVING_2
+          - STANDARDS
+            - ASC019_02  [mesh: mesh_325 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - 100_SPACER_
+              - UFS_013_01_pdl_solid  [mesh: mesh_326 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+          - ORDER
+            - CLAMP_ARM_KPL_63_A80_01
+              - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_327 | verts: 4758 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+              - HOLES_pdl
+              - Rotation_Point
+            - CoSys
+          - FASTENERS
+            - screws_pdl_08
+              - (node 735)  [mesh: mesh_328 | verts: 629 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 736)  [mesh: mesh_329 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - screws_pdl_09
+              - (node 738)  [mesh: mesh_330 | verts: 629 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 739)  [mesh: mesh_331 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+    - UNIT_102
+      - RH
+        - MOVING_1
+          - ORDER
+            - CLAMP_ARM_KPL_63_A80
+              - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_332 | verts: 4758 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+              - HOLES_pdl
+              - Rotation_Point
+          - STANDARD
+            - 100_SPACER
+              - UFS_013_01_pdl_solid  [mesh: mesh_333 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+            - ASC019_03  [mesh: mesh_334 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - FASTENERS
+            - screws_pdl_02
+              - (node 755)  [mesh: mesh_335 | verts: 629 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 756)  [mesh: mesh_336 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - screws_pdl_01
+              - (node 758)  [mesh: mesh_337 | verts: 629 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 759)  [mesh: mesh_338 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - FIXED
+          - FASTENERS
+            - screws_pdl
+              - (node 763)  [mesh: mesh_339 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 764)  [mesh: mesh_340 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - screws_pdl_04
+              - (node 766)  [mesh: mesh_341 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 767)  [mesh: mesh_342 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - screws_pdl_03
+              - (node 769)  [mesh: mesh_343 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 770)  [mesh: mesh_344 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - screws_pdl_02
+              - (node 772)  [mesh: mesh_345 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 773)  [mesh: mesh_346 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - screws_pdl_01
+              - (node 775)  [mesh: mesh_347 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 776)  [mesh: mesh_348 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - screws_pdl_05
+              - (node 778)  [mesh: mesh_349 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 779)  [mesh: mesh_350 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 01
+              - screws_pdl_03
+                - (node 782)  [mesh: mesh_351 | verts: 156 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 783)  [mesh: mesh_352 | verts: 217 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 785)  [mesh: mesh_353 | verts: 156 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 786)  [mesh: mesh_354 | verts: 217 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 788)  [mesh: mesh_355 | verts: 156 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 789)  [mesh: mesh_356 | verts: 217 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl
+                - (node 791)  [mesh: mesh_357 | verts: 156 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 792)  [mesh: mesh_358 | verts: 217 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 03
+              - screws_pdl_09
+                - (node 795)  [mesh: mesh_359 | verts: 175 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 796)  [mesh: mesh_360 | verts: 211 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_08
+                - (node 798)  [mesh: mesh_361 | verts: 175 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 799)  [mesh: mesh_362 | verts: 211 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_17
+              - CoSys
+              - 102_M5x0_8x50_SOC_HEAD_CAP_SCREW
+                - (node 803)  [mesh: mesh_363 | verts: 624 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 804)  [mesh: mesh_364 | verts: 203 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+              - 102_M5x0_8x50_SOC_HEAD_CAP_SCREW_02
+                - (node 806)  [mesh: mesh_365 | verts: 624 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 807)  [mesh: mesh_366 | verts: 203 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+            - SET_21
+              - 101_M6x1_0x15_SOC_HEAD_CAP_SCREW
+                - (node 810)  [mesh: mesh_367 | verts: 151 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 811)  [mesh: mesh_368 | verts: 211 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - 101_M6x1_0x15_SOC_HEAD_CAP_SCREW_02  [mesh: mesh_369 | verts: 362 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - WeldWashers_pdl  [mesh: mesh_370 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - WeldWashers_pdl_01  [mesh: mesh_371 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 005_Weld_Washer_02  [mesh: mesh_372 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 005_Weld_Washer  [mesh: mesh_373 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_01
+              - screws_pdl
+                - (node 819)  [mesh: mesh_374 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 820)  [mesh: mesh_375 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 822)  [mesh: mesh_376 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 823)  [mesh: mesh_377 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 825)  [mesh: mesh_378 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 826)  [mesh: mesh_379 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 828)  [mesh: mesh_380 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 829)  [mesh: mesh_381 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_04
+              - screws_pdl
+                - (node 832)  [mesh: mesh_382 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 833)  [mesh: mesh_383 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 835)  [mesh: mesh_384 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 836)  [mesh: mesh_385 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 838)  [mesh: mesh_386 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 839)  [mesh: mesh_387 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 841)  [mesh: mesh_388 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 842)  [mesh: mesh_389 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_03
+              - screws_pdl
+                - (node 845)  [mesh: mesh_390 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 846)  [mesh: mesh_391 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 848)  [mesh: mesh_392 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 849)  [mesh: mesh_393 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 851)  [mesh: mesh_394 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 852)  [mesh: mesh_395 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 854)  [mesh: mesh_396 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 855)  [mesh: mesh_397 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_02
+              - screws_pdl
+                - (node 858)  [mesh: mesh_398 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 859)  [mesh: mesh_399 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 861)  [mesh: mesh_400 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 862)  [mesh: mesh_401 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 864)  [mesh: mesh_402 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 865)  [mesh: mesh_403 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 867)  [mesh: mesh_404 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 868)  [mesh: mesh_405 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 1_RC
+              - screws_pdl_01
+                - (node 871)  [mesh: mesh_406 | verts: 154 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 872)  [mesh: mesh_407 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 874)  [mesh: mesh_408 | verts: 154 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 875)  [mesh: mesh_409 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 877)  [mesh: mesh_410 | verts: 154 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 878)  [mesh: mesh_411 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_04
+                - (node 880)  [mesh: mesh_412 | verts: 154 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 881)  [mesh: mesh_413 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - 301_FABRICATION
+            - 301_001
+              - Ext_01_RC
+                - Ext_01_solid  [mesh: mesh_414 | verts: 868 | prims: 1 | bbox: (3.7, 1.3, 0.4) ΓåÆ (4.0, 1.6, 0.4)]
+                - HOLES_pdl
+                - HOLES_pdl_01
+            - 301_002
+              - Ext_01_solid  [mesh: mesh_415 | verts: 1916 | prims: 1 | bbox: (1.8, 1.0, 0.1) ΓåÆ (2.0, 1.0, 0.5)]
+              - HOLES_pdl_01
+              - HOLES_pdl_02
+              - HOLES_pdl_04
+              - HOLES_pdl_05
+            - 301_003
+              - 301_003
+                - 301_003_solid
+                  - (node 897)  [mesh: mesh_416 | verts: 1477 | prims: 1 | bbox: (3.5, 1.0, -1.8) ΓåÆ (3.6, 1.2, -1.4)]
+                  - (node 898)  [mesh: mesh_417 | verts: 452 | prims: 1 | bbox: (3.6, 1.1, -1.8) ΓåÆ (3.6, 1.2, -1.6)]
+                - HOLES_pdl
+                - HOLES_pdl_01
+                - HOLES_pdl_02
+                - HOLES_pdl_03
+              - CoSys
+            - 301_004
+              - Ext_01_solid  [mesh: mesh_418 | verts: 527 | prims: 1 | bbox: (1.8, 1.0, 0.5) ΓåÆ (2.0, 1.1, 0.5)]
+              - HOLES_pdl
+          - ORDERS
+            - 006_STOP_BLOCK_FLAT  [mesh: mesh_419 | verts: 596 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - 006_STOP_BLOCK_FLAT_02  [mesh: mesh_420 | verts: 596 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - 004_PROXIMITY_SENSOR
+              - S1  [mesh: mesh_421 | verts: 7803 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - m12_lead_connector_sat
+                - S1  [mesh: mesh_422 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S2  [mesh: mesh_423 | verts: 846 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S3  [mesh: mesh_424 | verts: 450 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S4  [mesh: mesh_425 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S5  [mesh: mesh_426 | verts: 769 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - 20bubble  [mesh: mesh_427 | verts: 287 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - CoSys
+              - S2  [mesh: mesh_428 | verts: 8595 | prims: 1 | bbox: (-0.0, 0.0, 0.0) ΓåÆ (-0.0, 0.0, 0.0)]
+            - VU_63_1_BR2_A05_T12_01
+              - POWER_CLAMP  [mesh: mesh_429 | verts: 10423 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+              - Rotation_Point
+              - S2_01  [mesh: mesh_430 | verts: 3263 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+              - m12_lead_connector_sat
+                - S1  [mesh: mesh_431 | verts: 517 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S2  [mesh: mesh_432 | verts: 836 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S3  [mesh: mesh_433 | verts: 440 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S4  [mesh: mesh_434 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S5  [mesh: mesh_435 | verts: 773 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - S2_02  [mesh: mesh_436 | verts: 3263 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+            - VU_63_1_BR2_A05_T12
+              - POWER_CLAMP  [mesh: mesh_437 | verts: 10422 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+              - Rotation_Point
+              - S2_01  [mesh: mesh_438 | verts: 3263 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+              - m12_lead_connector_sat
+                - S1  [mesh: mesh_439 | verts: 517 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S2  [mesh: mesh_440 | verts: 836 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S3  [mesh: mesh_441 | verts: 440 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S4  [mesh: mesh_442 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S5  [mesh: mesh_443 | verts: 773 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - S2_02  [mesh: mesh_444 | verts: 3263 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+          - STANDARDS
+            - 4_WAY_HITCH
+              - ADJUSTERS
+                - hole4_pdl  [mesh: mesh_445 | verts: 592 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - hole4_pdl_01  [mesh: mesh_446 | verts: 592 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - ADJUSTER
+                  - CoSys
+                  - block_pdl
+                    - block_pdl_solid  [mesh: mesh_447 | verts: 308 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - HOLES_pdl
+                - ADJUSTER2
+                  - block_pdl_01
+                    - block_pdl_solid  [mesh: mesh_448 | verts: 308 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - HOLES_pdl
+              - RECEIVER
+                - block_pdl_3
+                  - block_pdl_3_solid  [mesh: mesh_449 | verts: 2154 | prims: 1 | bbox: (3.9, -1.0, 0.8) ΓåÆ (4.0, -0.9, 0.8)]
+                  - HOLES_pdl_02
+                  - HOLES_pdl
+                  - HOLES_pdl_01_02
+                  - HOLES_pdl_01_01_01
+              - screws
+                - screws_pdl_pattern
+                  - screws_pdl_4
+                    - (node 967)  [mesh: mesh_450 | verts: 631 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 968)  [mesh: mesh_451 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+                  - screws_pdl_3
+                    - (node 970)  [mesh: mesh_452 | verts: 631 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 971)  [mesh: mesh_453 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+                  - screws_pdl_2
+                    - (node 973)  [mesh: mesh_454 | verts: 631 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 974)  [mesh: mesh_455 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+                  - screws_pdl
+                    - (node 976)  [mesh: mesh_456 | verts: 631 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 977)  [mesh: mesh_457 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+                - screws_pdl_01_pattern
+                  - screws_pdl_01
+                    - (node 980)  [mesh: mesh_458 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 981)  [mesh: mesh_459 | verts: 207 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+                  - screws_pdl_01_2
+                    - (node 983)  [mesh: mesh_460 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 984)  [mesh: mesh_461 | verts: 207 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+                - screws_pdl_pattern_1
+                  - screws_pdl_4
+                    - (node 987)  [mesh: mesh_462 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 988)  [mesh: mesh_463 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl
+                    - (node 990)  [mesh: mesh_464 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 991)  [mesh: mesh_465 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_2
+                    - (node 993)  [mesh: mesh_466 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 994)  [mesh: mesh_467 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_3
+                    - (node 996)  [mesh: mesh_468 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 997)  [mesh: mesh_469 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_01_pattern_01
+                  - screws_pdl_01
+                    - (node 1000)  [mesh: mesh_470 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 1001)  [mesh: mesh_471 | verts: 207 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+                  - screws_pdl_01_2
+                    - (node 1003)  [mesh: mesh_472 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 1004)  [mesh: mesh_473 | verts: 207 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+              - LOCK_SCREW
+                - cylinder_pdl  [mesh: mesh_474 | verts: 767 | prims: 1 | bbox: (4.0, -1.0, 0.8) ΓåÆ (4.0, -0.9, 0.9)]
+              - WASHER
+                - SPEC_WASHER_2
+                  - cylinder_pdl
+                    - cylinder_pdl_solid  [mesh: mesh_475 | verts: 282 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - SPEC_WASHER_3
+                  - cylinder_pdl  [mesh: mesh_476 | verts: 282 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - SPEC_WASHER_4
+                  - cylinder_pdl  [mesh: mesh_477 | verts: 282 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - SPEC_WASHER
+                  - cylinder_pdl  [mesh: mesh_478 | verts: 282 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - LOCK_SCREW_01
+                - cylinder_pdl  [mesh: mesh_479 | verts: 767 | prims: 1 | bbox: (4.0, -1.0, 0.8) ΓåÆ (4.0, -0.9, 0.9)]
+              - BUSHING
+                - cylinder_pdl  [mesh: mesh_480 | verts: 256 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - MTG__________PLATE
+                - CoSys
+                - block_pdl_03
+                  - block_pdl_03_solid  [mesh: mesh_481 | verts: 1897 | prims: 1 | bbox: (3.9, -1.1, 0.8) ΓåÆ (4.0, -0.9, 0.8)]
+                  - HOLES_pdl_04
+                  - HOLES_pdl_03
+            - SPACER_02
+              - UFS_013_01_pdl_solid  [mesh: mesh_482 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+            - SPACER
+              - UFS_013_01_pdl_solid  [mesh: mesh_483 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+          - 300_FABRICATION
+            - 300_001
+              - Ext_01_solid  [mesh: mesh_484 | verts: 870 | prims: 1 | bbox: (3.7, 1.2, -0.4) ΓåÆ (4.0, 1.5, -0.4)]
+              - HOLES_pdl_01
+              - HOLES_pdl
+            - 300_002
+              - material_465_pdl  [mesh: mesh_485 | verts: 320 | prims: 1 | bbox: (-0.1, -0.1, -0.5) ΓåÆ (0.1, 0.1, 0.5)]
+            - 300_003
+              - Ext_01_RC
+                - Ext_01_solid  [mesh: mesh_486 | verts: 868 | prims: 1 | bbox: (3.7, 1.3, 0.4) ΓåÆ (4.0, 1.6, 0.4)]
+                - HOLES_pdl
+                - HOLES_pdl_01
+            - 300_004_01
+              - Ext_01_1  [mesh: mesh_487 | verts: 164 | prims: 1 | bbox: (2.7, 1.2, 0.1) ΓåÆ (2.7, 1.4, 0.9)]
+            - 300_005_01
+              - CoSys
+            - 300_004
+              - Ext_01_1  [mesh: mesh_488 | verts: 164 | prims: 1 | bbox: (2.7, 1.2, 0.1) ΓåÆ (2.7, 1.4, 0.9)]
+          - 302_L_BLOCK
+            - Ext_03
+              - Ext_01_solid  [mesh: mesh_489 | verts: 682 | prims: 1 | bbox: (2.5, 1.0, -0.6) ΓåÆ (2.6, 1.1, -0.6)]
+              - HOLES_pdl
+              - HOLES_pdl_01
+          - 303_SENSOR_BRACKET
+            - 303
+              - Ext_10_solid  [mesh: mesh_490 | verts: 878 | prims: 1 | bbox: (2.3, 1.1, 0.3) ΓåÆ (2.3, 1.2, 0.4)]
+              - HOLES_pdl_01
+              - HOLES_pdl_02
+          - 304_SENSOR_BRACKET
+            - Ext_02
+              - Ext_01_solid  [mesh: mesh_491 | verts: 724 | prims: 1 | bbox: (2.1, 0.6, -0.3) ΓåÆ (2.2, 0.7, -0.3)]
+              - HOLES_pdl_01
+              - HOLES_pdl
+          - Ext_01
+            - Ext_01_solid  [mesh: mesh_492 | verts: 2027 | prims: 1 | bbox: (3.6, 1.1, -1.8) ΓåÆ (3.7, 1.3, -1.7)]
+            - HOLES_pdl_03
+            - HOLES_pdl_02
+            - HOLES_pdl_01
+            - HOLES_pdl
+          - Ext_02
+            - Ext_01_solid  [mesh: mesh_493 | verts: 2030 | prims: 1 | bbox: (3.6, 1.1, -1.8) ΓåÆ (3.7, 1.3, -1.7)]
+            - HOLES_pdl_03
+            - HOLES_pdl_02
+            - HOLES_pdl_01
+            - HOLES_pdl
+        - MOVING_2
+          - STANDARD
+            - 100_SPACER
+              - UFS_013_01_pdl_solid  [mesh: mesh_494 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+            - ASC019_02  [mesh: mesh_495 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - ORDER
+            - CLAMP_ARM_KPL_63_A80_01
+              - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_496 | verts: 4758 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+              - HOLES_pdl
+              - Rotation_Point
+          - FASTENERS
+            - screws_pdl_08_01
+              - (node 1091)  [mesh: mesh_497 | verts: 629 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 1092)  [mesh: mesh_498 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - screws_pdl_09_01
+              - (node 1094)  [mesh: mesh_499 | verts: 629 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 1095)  [mesh: mesh_500 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+      - WIRE
+        - OPEN
+          - OPEN_RH
+            - MOVING_1
+              - ORDER
+                - CLAMP_ARM_KPL_63_A80
+                  - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_501 | verts: 4758 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+                  - HOLES_pdl
+                  - Rotation_Point
+              - STANDARD
+                - 100_SPACER
+                  - UFS_013_01_pdl_solid  [mesh: mesh_502 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - HOLES_pdl
+                - ASC019_03  [mesh: mesh_503 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                - 100_SPACER_RC
+                  - UFS_013_01_pdl_solid  [mesh: mesh_504 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - HOLES_pdl
+              - FASTENERS
+                - screws_pdl_02  [mesh: mesh_505 | verts: 835 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_01  [mesh: mesh_506 | verts: 835 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - MOVING_2
+              - STANDARD
+                - 100_SPACER
+                  - UFS_013_01_pdl_solid  [mesh: mesh_507 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - HOLES_pdl
+                - ASC019_02  [mesh: mesh_508 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+              - ORDER
+                - CLAMP_ARM_KPL_63_A80_01
+                  - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_509 | verts: 4758 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+                  - HOLES_pdl
+                  - Rotation_Point
+              - FASTENERS
+                - screws_pdl_08_01  [mesh: mesh_510 | verts: 835 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_09_01  [mesh: mesh_511 | verts: 835 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - OPEN_LH
+            - MOVING_1
+              - ORDER
+                - CLAMP_ARM_KPL_63_A80
+                  - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_512 | verts: 4746 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+                  - HOLES_pdl
+                  - Rotation_Point
+              - STANDARD
+                - 100_SPACER
+                  - UFS_013_01_pdl_solid  [mesh: mesh_513 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - HOLES_pdl
+                - ASC019_03  [mesh: mesh_514 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                - 100_SPACER_RC
+                  - UFS_013_01_pdl_solid  [mesh: mesh_515 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - HOLES_pdl
+              - FASTENERS
+                - screws_pdl_02  [mesh: mesh_516 | verts: 831 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_01  [mesh: mesh_517 | verts: 831 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - MOVING_2
+              - STANDARD
+                - 100_SPACER
+                  - UFS_013_01_pdl_solid  [mesh: mesh_518 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - HOLES_pdl
+                - ASC019_02  [mesh: mesh_519 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+              - ORDER
+                - CLAMP_ARM_KPL_63_A80_01
+                  - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_520 | verts: 4746 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+                  - HOLES_pdl
+                  - Rotation_Point
+              - FASTENERS
+                - screws_pdl_08_01  [mesh: mesh_521 | verts: 831 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_09_01  [mesh: mesh_522 | verts: 831 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+      - LH
+        - MOVING_1
+          - ORDER
+            - CLAMP_ARM_KPL_63_A80
+              - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_523 | verts: 4746 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+              - HOLES_pdl
+              - Rotation_Point
+          - STANDARD
+            - 100_SPACER
+              - UFS_013_01_pdl_solid  [mesh: mesh_524 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+            - ASC019_03  [mesh: mesh_525 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - FASTENERS
+            - screws_pdl_02
+              - (node 1176)  [mesh: mesh_526 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 1177)  [mesh: mesh_527 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+            - screws_pdl_01
+              - (node 1179)  [mesh: mesh_528 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 1180)  [mesh: mesh_529 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+        - FIXED
+          - FASTENERS
+            - screws_pdl
+              - (node 1184)  [mesh: mesh_530 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 1185)  [mesh: mesh_531 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - screws_pdl_04
+              - (node 1187)  [mesh: mesh_532 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 1188)  [mesh: mesh_533 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - screws_pdl_03
+              - (node 1190)  [mesh: mesh_534 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 1191)  [mesh: mesh_535 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - screws_pdl_02
+              - (node 1193)  [mesh: mesh_536 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 1194)  [mesh: mesh_537 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - screws_pdl_01
+              - (node 1196)  [mesh: mesh_538 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 1197)  [mesh: mesh_539 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - screws_pdl_05
+              - (node 1199)  [mesh: mesh_540 | verts: 180 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 1200)  [mesh: mesh_541 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 01
+              - screws_pdl_03
+                - (node 1203)  [mesh: mesh_542 | verts: 156 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1204)  [mesh: mesh_543 | verts: 212 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 1206)  [mesh: mesh_544 | verts: 156 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1207)  [mesh: mesh_545 | verts: 212 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 1209)  [mesh: mesh_546 | verts: 156 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1210)  [mesh: mesh_547 | verts: 212 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl
+                - (node 1212)  [mesh: mesh_548 | verts: 156 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1213)  [mesh: mesh_549 | verts: 212 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 03
+              - screws_pdl_09
+                - (node 1216)  [mesh: mesh_550 | verts: 175 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1217)  [mesh: mesh_551 | verts: 210 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_08
+                - (node 1219)  [mesh: mesh_552 | verts: 175 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1220)  [mesh: mesh_553 | verts: 210 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_17
+              - CoSys
+              - 102_M5x0_8x50_SOC_HEAD_CAP_SCREW
+                - (node 1224)  [mesh: mesh_554 | verts: 624 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1225)  [mesh: mesh_555 | verts: 210 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+              - 102_M5x0_8x50_SOC_HEAD_CAP_SCREW_02
+                - (node 1227)  [mesh: mesh_556 | verts: 624 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1228)  [mesh: mesh_557 | verts: 210 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+            - SET_21
+              - 101_M6x1_0x15_SOC_HEAD_CAP_SCREW
+                - (node 1231)  [mesh: mesh_558 | verts: 151 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1232)  [mesh: mesh_559 | verts: 212 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - 101_M6x1_0x15_SOC_HEAD_CAP_SCREW_02  [mesh: mesh_560 | verts: 363 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - WeldWashers_pdl  [mesh: mesh_561 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - WeldWashers_pdl_01  [mesh: mesh_562 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 005_Weld_Washer_02  [mesh: mesh_563 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 005_Weld_Washer  [mesh: mesh_564 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_01
+              - screws_pdl
+                - (node 1240)  [mesh: mesh_565 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1241)  [mesh: mesh_566 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 1243)  [mesh: mesh_567 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1244)  [mesh: mesh_568 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 1246)  [mesh: mesh_569 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1247)  [mesh: mesh_570 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 1249)  [mesh: mesh_571 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1250)  [mesh: mesh_572 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_04
+              - screws_pdl
+                - (node 1253)  [mesh: mesh_573 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1254)  [mesh: mesh_574 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 1256)  [mesh: mesh_575 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1257)  [mesh: mesh_576 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 1259)  [mesh: mesh_577 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1260)  [mesh: mesh_578 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 1262)  [mesh: mesh_579 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1263)  [mesh: mesh_580 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_03
+              - screws_pdl
+                - (node 1266)  [mesh: mesh_581 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1267)  [mesh: mesh_582 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 1269)  [mesh: mesh_583 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1270)  [mesh: mesh_584 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 1272)  [mesh: mesh_585 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1273)  [mesh: mesh_586 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 1275)  [mesh: mesh_587 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1276)  [mesh: mesh_588 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_02
+              - screws_pdl
+                - (node 1279)  [mesh: mesh_589 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1280)  [mesh: mesh_590 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 1282)  [mesh: mesh_591 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1283)  [mesh: mesh_592 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 1285)  [mesh: mesh_593 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1286)  [mesh: mesh_594 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 1288)  [mesh: mesh_595 | verts: 157 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1289)  [mesh: mesh_596 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 1_RC
+              - screws_pdl_01
+                - (node 1292)  [mesh: mesh_597 | verts: 153 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1293)  [mesh: mesh_598 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 1295)  [mesh: mesh_599 | verts: 153 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1296)  [mesh: mesh_600 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 1298)  [mesh: mesh_601 | verts: 153 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1299)  [mesh: mesh_602 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_04
+                - (node 1301)  [mesh: mesh_603 | verts: 153 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1302)  [mesh: mesh_604 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - 301_FABRICATION
+            - 301_001
+              - Ext_01_RC
+                - Ext_01_solid  [mesh: mesh_605 | verts: 880 | prims: 1 | bbox: (3.7, 1.3, -0.4) ΓåÆ (4.0, 1.6, -0.4)]
+                - HOLES_pdl
+                - HOLES_pdl_01
+            - 301_002
+              - Ext_01_solid  [mesh: mesh_606 | verts: 1918 | prims: 1 | bbox: (1.8, 1.0, -0.5) ΓåÆ (2.0, 1.0, -0.1)]
+              - HOLES_pdl_01
+              - HOLES_pdl_02
+              - HOLES_pdl_04
+              - HOLES_pdl_05
+            - 301_003
+              - 301_003
+                - 301_003_solid
+                  - (node 1318)  [mesh: mesh_607 | verts: 1473 | prims: 1 | bbox: (3.5, 1.0, 1.4) ΓåÆ (3.6, 1.2, 1.8)]
+                  - (node 1319)  [mesh: mesh_608 | verts: 452 | prims: 1 | bbox: (3.6, 1.1, 1.6) ΓåÆ (3.6, 1.2, 1.8)]
+                - HOLES_pdl
+                - HOLES_pdl_01
+                - HOLES_pdl_02
+                - HOLES_pdl_03
+              - CoSys
+            - 301_004
+              - Ext_01_solid  [mesh: mesh_609 | verts: 527 | prims: 1 | bbox: (1.8, 1.0, -0.5) ΓåÆ (2.0, 1.1, -0.5)]
+              - HOLES_pdl
+          - ORDERS
+            - 006_STOP_BLOCK_FLAT  [mesh: mesh_610 | verts: 596 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - 006_STOP_BLOCK_FLAT_02  [mesh: mesh_611 | verts: 596 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - 004_PROXIMITY_SENSOR
+              - S1  [mesh: mesh_612 | verts: 7701 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - m12_lead_connector_sat
+                - S1  [mesh: mesh_613 | verts: 517 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S2  [mesh: mesh_614 | verts: 836 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S3  [mesh: mesh_615 | verts: 440 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S4  [mesh: mesh_616 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S5  [mesh: mesh_617 | verts: 773 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - 20bubble  [mesh: mesh_618 | verts: 287 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - CoSys
+              - S2  [mesh: mesh_619 | verts: 9313 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (-0.0, 0.0, -0.0)]
+            - VU_63_1_BR2_A05_T12_01
+              - POWER_CLAMP  [mesh: mesh_620 | verts: 10553 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+              - Rotation_Point
+              - S2_01  [mesh: mesh_621 | verts: 3259 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+              - m12_lead_connector_sat
+                - S1  [mesh: mesh_622 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S2  [mesh: mesh_623 | verts: 846 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S3  [mesh: mesh_624 | verts: 450 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S4  [mesh: mesh_625 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S5  [mesh: mesh_626 | verts: 769 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - S2_02  [mesh: mesh_627 | verts: 3259 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+            - VU_63_1_BR2_A05_T12
+              - POWER_CLAMP  [mesh: mesh_628 | verts: 10553 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+              - Rotation_Point
+              - S2_01  [mesh: mesh_629 | verts: 3259 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+              - m12_lead_connector_sat
+                - S1  [mesh: mesh_630 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S2  [mesh: mesh_631 | verts: 846 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S3  [mesh: mesh_632 | verts: 450 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S4  [mesh: mesh_633 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S5  [mesh: mesh_634 | verts: 769 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - S2_02  [mesh: mesh_635 | verts: 3259 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+          - STANDARDS
+            - 4_WAY_HITCH
+              - ADJUSTERS
+                - hole4_pdl  [mesh: mesh_636 | verts: 592 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - hole4_pdl_01  [mesh: mesh_637 | verts: 592 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - ADJUSTER
+                  - CoSys
+                  - block_pdl
+                    - block_pdl_solid  [mesh: mesh_638 | verts: 308 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - HOLES_pdl
+                - ADJUSTER2
+                  - block_pdl_01
+                    - block_pdl_solid  [mesh: mesh_639 | verts: 308 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - HOLES_pdl
+              - RECEIVER
+                - block_pdl_3
+                  - block_pdl_3_solid  [mesh: mesh_640 | verts: 2154 | prims: 1 | bbox: (3.9, -1.0, -0.8) ΓåÆ (4.0, -0.9, -0.8)]
+                  - HOLES_pdl_02
+                  - HOLES_pdl
+                  - HOLES_pdl_01_02
+                  - HOLES_pdl_01_01_01
+              - screws
+                - screws_pdl_pattern
+                  - screws_pdl_4
+                    - (node 1388)  [mesh: mesh_641 | verts: 631 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 1389)  [mesh: mesh_642 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+                  - screws_pdl_3
+                    - (node 1391)  [mesh: mesh_643 | verts: 631 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 1392)  [mesh: mesh_644 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+                  - screws_pdl_2
+                    - (node 1394)  [mesh: mesh_645 | verts: 631 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 1395)  [mesh: mesh_646 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+                  - screws_pdl
+                    - (node 1397)  [mesh: mesh_647 | verts: 631 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 1398)  [mesh: mesh_648 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+                - screws_pdl_01_pattern
+                  - screws_pdl_01
+                    - (node 1401)  [mesh: mesh_649 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 1402)  [mesh: mesh_650 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_01_2
+                    - (node 1404)  [mesh: mesh_651 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 1405)  [mesh: mesh_652 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_pattern_1
+                  - screws_pdl_4
+                    - (node 1408)  [mesh: mesh_653 | verts: 178 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 1409)  [mesh: mesh_654 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl
+                    - (node 1411)  [mesh: mesh_655 | verts: 178 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 1412)  [mesh: mesh_656 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_2
+                    - (node 1414)  [mesh: mesh_657 | verts: 178 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 1415)  [mesh: mesh_658 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_3
+                    - (node 1417)  [mesh: mesh_659 | verts: 178 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 1418)  [mesh: mesh_660 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_01_pattern_01
+                  - screws_pdl_01
+                    - (node 1421)  [mesh: mesh_661 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 1422)  [mesh: mesh_662 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_01_2
+                    - (node 1424)  [mesh: mesh_663 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - (node 1425)  [mesh: mesh_664 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - LOCK_SCREW
+                - cylinder_pdl  [mesh: mesh_665 | verts: 762 | prims: 1 | bbox: (4.0, -1.0, -0.9) ΓåÆ (4.0, -0.9, -0.8)]
+              - WASHER
+                - SPEC_WASHER_2
+                  - cylinder_pdl
+                    - cylinder_pdl_solid  [mesh: mesh_666 | verts: 282 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - SPEC_WASHER_3
+                  - cylinder_pdl  [mesh: mesh_667 | verts: 282 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - SPEC_WASHER_4
+                  - cylinder_pdl  [mesh: mesh_668 | verts: 282 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - SPEC_WASHER
+                  - cylinder_pdl  [mesh: mesh_669 | verts: 282 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - LOCK_SCREW_01
+                - cylinder_pdl  [mesh: mesh_670 | verts: 762 | prims: 1 | bbox: (4.0, -1.0, -0.9) ΓåÆ (4.0, -0.9, -0.8)]
+              - BUSHING
+                - cylinder_pdl  [mesh: mesh_671 | verts: 254 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - MTG__________PLATE
+                - CoSys
+                - block_pdl_03
+                  - block_pdl_03_solid  [mesh: mesh_672 | verts: 1885 | prims: 1 | bbox: (3.9, -1.1, -0.8) ΓåÆ (4.0, -0.9, -0.8)]
+                  - HOLES_pdl_04
+                  - HOLES_pdl_03
+            - SPACER_02
+              - UFS_013_01_pdl_solid  [mesh: mesh_673 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+            - SPACER
+              - UFS_013_01_pdl_solid  [mesh: mesh_674 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+          - 300_FABRICATION
+            - 300_001
+              - Ext_01_solid  [mesh: mesh_675 | verts: 868 | prims: 1 | bbox: (3.7, 1.2, 0.4) ΓåÆ (4.0, 1.5, 0.4)]
+              - HOLES_pdl_01
+              - HOLES_pdl
+            - 300_002
+              - material_465_pdl  [mesh: mesh_676 | verts: 320 | prims: 1 | bbox: (-0.1, -0.1, -0.5) ΓåÆ (0.1, 0.1, 0.5)]
+            - 300_003
+              - Ext_01_RC
+                - Ext_01_solid  [mesh: mesh_677 | verts: 880 | prims: 1 | bbox: (3.7, 1.3, -0.4) ΓåÆ (4.0, 1.6, -0.4)]
+                - HOLES_pdl
+                - HOLES_pdl_01
+            - 300_004_01
+              - Ext_01_1  [mesh: mesh_678 | verts: 164 | prims: 1 | bbox: (2.7, 1.2, -0.9) ΓåÆ (2.7, 1.4, -0.1)]
+            - 300_005_01
+              - CoSys
+            - 300_004
+              - Ext_01_1  [mesh: mesh_679 | verts: 164 | prims: 1 | bbox: (2.7, 1.2, -0.9) ΓåÆ (2.7, 1.4, -0.1)]
+          - 302_L_BLOCK
+            - Ext_03
+              - Ext_01_solid  [mesh: mesh_680 | verts: 684 | prims: 1 | bbox: (2.5, 1.0, 0.6) ΓåÆ (2.6, 1.1, 0.6)]
+              - HOLES_pdl
+              - HOLES_pdl_01
+          - 303_SENSOR_BRACKET
+            - 303
+              - Ext_10_solid  [mesh: mesh_681 | verts: 876 | prims: 1 | bbox: (2.3, 1.1, -0.4) ΓåÆ (2.3, 1.2, -0.3)]
+              - HOLES_pdl_01
+              - HOLES_pdl_02
+          - 304_SENSOR_BRACKET
+            - Ext_02
+              - Ext_01_solid  [mesh: mesh_682 | verts: 726 | prims: 1 | bbox: (2.1, 0.6, 0.3) ΓåÆ (2.2, 0.7, 0.3)]
+              - HOLES_pdl_01
+              - HOLES_pdl
+          - Ext_01
+            - Ext_01_solid  [mesh: mesh_683 | verts: 2029 | prims: 1 | bbox: (3.6, 1.1, 1.7) ΓåÆ (3.7, 1.3, 1.8)]
+            - HOLES_pdl_03
+            - HOLES_pdl_02
+            - HOLES_pdl_01
+            - HOLES_pdl
+          - Ext_02
+            - Ext_01_solid  [mesh: mesh_684 | verts: 2030 | prims: 1 | bbox: (3.6, 1.1, 1.7) ΓåÆ (3.7, 1.3, 1.8)]
+            - HOLES_pdl_03
+            - HOLES_pdl_02
+            - HOLES_pdl_01
+            - HOLES_pdl
+        - MOVING_2
+          - STANDARD
+            - 100_SPACER
+              - UFS_013_01_pdl_solid  [mesh: mesh_685 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+            - ASC019_02  [mesh: mesh_686 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - ORDER
+            - CLAMP_ARM_KPL_63_A80_01
+              - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_687 | verts: 4746 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+              - HOLES_pdl
+              - Rotation_Point
+          - FASTENERS
+            - screws_pdl_08_01
+              - (node 1512)  [mesh: mesh_688 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 1513)  [mesh: mesh_689 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+            - screws_pdl_09_01
+              - (node 1515)  [mesh: mesh_690 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 1516)  [mesh: mesh_691 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+    - UNIT_101
+      - RH
+        - FIXED
+          - FASTENERS
+            - SET_01
+              - 01
+                - 100_M20x2_5_HEXAGON_JAM_NUT  [mesh: mesh_692 | verts: 148 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl
+                  - (node 1525)  [mesh: mesh_693 | verts: 492 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 1526)  [mesh: mesh_694 | verts: 220 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+              - 02
+                - 100_M20x2_5_HEXAGON_JAM_NUT  [mesh: mesh_695 | verts: 148 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl
+                  - (node 1530)  [mesh: mesh_696 | verts: 492 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 1531)  [mesh: mesh_697 | verts: 220 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+              - 03
+                - 100_M20x2_5_HEXAGON_JAM_NUT  [mesh: mesh_698 | verts: 148 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl
+                  - (node 1535)  [mesh: mesh_699 | verts: 492 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 1536)  [mesh: mesh_700 | verts: 220 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+              - 04
+                - 100_M20x2_5_HEXAGON_JAM_NUT  [mesh: mesh_701 | verts: 148 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl
+                  - (node 1540)  [mesh: mesh_702 | verts: 492 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 1541)  [mesh: mesh_703 | verts: 220 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+              - 05
+                - 100_M20x2_5_HEXAGON_JAM_NUT  [mesh: mesh_704 | verts: 148 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl
+                  - (node 1545)  [mesh: mesh_705 | verts: 492 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 1546)  [mesh: mesh_706 | verts: 220 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+              - 06
+                - 100_M20x2_5_HEXAGON_JAM_NUT  [mesh: mesh_707 | verts: 148 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl
+                  - (node 1550)  [mesh: mesh_708 | verts: 492 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 1551)  [mesh: mesh_709 | verts: 220 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+            - SET_05
+              - screws_pdl_pattern
+                - screws_pdl_002
+                  - (node 1555)  [mesh: mesh_710 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 1556)  [mesh: mesh_711 | verts: 216 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_004
+                  - (node 1558)  [mesh: mesh_712 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 1559)  [mesh: mesh_713 | verts: 216 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_003
+                  - (node 1561)  [mesh: mesh_714 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 1562)  [mesh: mesh_715 | verts: 216 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl
+                  - (node 1564)  [mesh: mesh_716 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 1565)  [mesh: mesh_717 | verts: 216 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_6
+              - screws_pdl_pattern
+                - screws_pdl_004
+                  - (node 1569)  [mesh: mesh_718 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 1570)  [mesh: mesh_719 | verts: 216 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_003
+                  - (node 1572)  [mesh: mesh_720 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 1573)  [mesh: mesh_721 | verts: 216 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl
+                  - (node 1575)  [mesh: mesh_722 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 1576)  [mesh: mesh_723 | verts: 216 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl_002
+                  - (node 1578)  [mesh: mesh_724 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 1579)  [mesh: mesh_725 | verts: 216 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+          - ORDER
+            - AUTOMATION
+              - Trunking
+                - 150x40
+                  - Ext_01  [mesh: mesh_726 | verts: 328 | prims: 1 | bbox: (1.3, 1.6, -0.6) ΓåÆ (4.2, 1.7, -0.5)]
+                  - CoSys
+              - DESG_AUT02_02_02_R0B_03
+                - STANDARDS
+                  - VALVE_BANK_MOUNTING_BRACKET
+                    - REXROTH_T_NUT_M6
+                      - Ext_02  [mesh: mesh_727 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_01  [mesh: mesh_728 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_03  [mesh: mesh_729 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_04  [mesh: mesh_730 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                    - REXROTH_PROFILE_360
+                      - REXROTH_PROFILE  [mesh: mesh_731 | verts: 498 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (0.0, 0.0, 0.6)]
+                    - REXROTH_T_NUT_M8
+                      - Ext_02  [mesh: mesh_732 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_03  [mesh: mesh_733 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                    - REXROTH_CAP
+                      - REXROTH_CAP  [mesh: mesh_734 | verts: 360 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - REXROTH_GUSSET
+                      - M8_2
+                        - Ext_02  [mesh: mesh_735 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - M8_1
+                        - Ext_03  [mesh: mesh_736 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - GUSSET_BRACKET
+                        - Ext_01  [mesh: mesh_737 | verts: 52 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.1, 0.0, 0.1)]
+                      - FASTENERS
+                        - Rev_02  [mesh: mesh_738 | verts: 776 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.1, 0.0, 0.1)]
+                        - Rev_01  [mesh: mesh_739 | verts: 776 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.1, 0.0, 0.1)]
+                    - REXROTH_PROFILE_160
+                      - CoSys
+                      - B4
+                        - B4_solid  [mesh: mesh_740 | verts: 852 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.2, 0.0, 0.0)]
+                    - REXROTH_CAP_01
+                      - REXROTH_CAP  [mesh: mesh_741 | verts: 360 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - ALUMINIUM_GUSSET
+                      - GUSSET_PLATE  [mesh: mesh_742 | verts: 737 | prims: 1 | bbox: (0.1, -0.4, -0.1) ΓåÆ (0.2, -0.4, 0.0)]
+                - FASTENERS
+                  - M6_LockWasher  [mesh: mesh_743 | verts: 271 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - M6_LockWasher_01  [mesh: mesh_744 | verts: 271 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - M6_LockWasher_02  [mesh: mesh_745 | verts: 271 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - M6_LockWasher_03  [mesh: mesh_746 | verts: 271 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl  [mesh: mesh_747 | verts: 362 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_01  [mesh: mesh_748 | verts: 362 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_02  [mesh: mesh_749 | verts: 362 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_03  [mesh: mesh_750 | verts: 362 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - DESG_AUT22_04_02_ref
+                - 300_05_solid  [mesh: mesh_751 | verts: 1807 | prims: 1 | bbox: (-13.0, -4.0, 19.2) ΓåÆ (-12.6, -3.8, 19.5)]
+                - HOLES_pdl_01
+                - HOLES_pdl
+                - SMC_Stand_alone_valve
+                  - 1_10
+                    - S01  [mesh: mesh_752 | verts: 36 | prims: 1 | bbox: (1.7, -0.0, 0.4) ΓåÆ (1.8, -0.0, 0.6)]
+                    - S02  [mesh: mesh_753 | verts: 773 | prims: 1 | bbox: (1.7, -0.0, 0.6) ΓåÆ (1.7, -0.0, 0.6)]
+                    - S03  [mesh: mesh_754 | verts: 140 | prims: 1 | bbox: (1.8, -0.0, 0.6) ΓåÆ (1.8, -0.0, 0.6)]
+                    - S05  [mesh: mesh_755 | verts: 450 | prims: 1 | bbox: (1.7, -0.0, 0.6) ΓåÆ (1.7, -0.0, 0.6)]
+                    - S06  [mesh: mesh_756 | verts: 2884 | prims: 1 | bbox: (1.7, -0.0, 0.6) ΓåÆ (1.8, -0.0, 0.6)]
+                    - S07  [mesh: mesh_757 | verts: 771 | prims: 1 | bbox: (1.7, -0.0, 0.6) ΓåÆ (1.7, -0.0, 0.6)]
+                    - S09  [mesh: mesh_758 | verts: 450 | prims: 1 | bbox: (1.7, -0.0, 0.6) ΓåÆ (1.7, -0.0, 0.6)]
+                    - S10  [mesh: mesh_759 | verts: 846 | prims: 1 | bbox: (1.7, -0.0, 0.6) ΓåÆ (1.7, -0.0, 0.7)]
+                  - 11_20
+                    - S11  [mesh: mesh_760 | verts: 513 | prims: 1 | bbox: (1.7, -0.0, 0.7) ΓåÆ (1.8, -0.0, 0.7)]
+                    - S14  [mesh: mesh_761 | verts: 1417 | prims: 1 | bbox: (1.7, -0.1, 0.5) ΓåÆ (1.8, -0.0, 0.5)]
+                    - S15  [mesh: mesh_762 | verts: 139 | prims: 1 | bbox: (1.7, -0.1, 0.5) ΓåÆ (1.7, -0.1, 0.5)]
+                    - S16  [mesh: mesh_763 | verts: 139 | prims: 1 | bbox: (1.7, 0.0, 0.5) ΓåÆ (1.7, 0.1, 0.5)]
+                    - S17  [mesh: mesh_764 | verts: 139 | prims: 1 | bbox: (1.7, 0.0, 0.5) ΓåÆ (1.7, 0.1, 0.5)]
+                    - S18  [mesh: mesh_765 | verts: 218 | prims: 1 | bbox: (1.7, -0.1, 0.5) ΓåÆ (1.7, -0.1, 0.5)]
+                    - S19  [mesh: mesh_766 | verts: 218 | prims: 1 | bbox: (1.7, -0.1, 0.5) ΓåÆ (1.7, -0.1, 0.5)]
+                    - S20  [mesh: mesh_767 | verts: 3271 | prims: 1 | bbox: (1.7, -0.1, 0.4) ΓåÆ (1.8, -0.0, 0.6)]
+                  - 21_23
+                    - S21  [mesh: mesh_768 | verts: 1301 | prims: 1 | bbox: (1.7, -0.0, 0.6) ΓåÆ (1.7, -0.0, 0.6)]
+                    - S22  [mesh: mesh_769 | verts: 365 | prims: 1 | bbox: (1.7, -0.0, 0.6) ΓåÆ (1.7, -0.0, 0.6)]
+                    - S23  [mesh: mesh_770 | verts: 9473 | prims: 1 | bbox: (1.7, -0.0, 0.6) ΓåÆ (1.7, -0.0, 0.6)]
+                  - KRL10_03S_01  [mesh: mesh_771 | verts: 1235 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - KRL10_03S  [mesh: mesh_772 | verts: 1235 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - TBEN_LG_8DIP_8DOP_01
+                  - Connector
+                    - S1  [mesh: mesh_773 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S2  [mesh: mesh_774 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S3  [mesh: mesh_775 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                    - S4  [mesh: mesh_776 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S5  [mesh: mesh_777 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - Connector_01
+                    - S1  [mesh: mesh_778 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S2  [mesh: mesh_779 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S3  [mesh: mesh_780 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                    - S4  [mesh: mesh_781 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S5  [mesh: mesh_782 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - Connector_02
+                    - S1  [mesh: mesh_783 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S2  [mesh: mesh_784 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S3  [mesh: mesh_785 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                    - S4  [mesh: mesh_786 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S5  [mesh: mesh_787 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - Connector_03
+                    - S1  [mesh: mesh_788 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S2  [mesh: mesh_789 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S3  [mesh: mesh_790 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                    - S4  [mesh: mesh_791 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S5  [mesh: mesh_792 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - Connector_04
+                    - S1  [mesh: mesh_793 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S2  [mesh: mesh_794 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S3  [mesh: mesh_795 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                    - S4  [mesh: mesh_796 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S5  [mesh: mesh_797 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - Connector_05
+                    - S1  [mesh: mesh_798 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S2  [mesh: mesh_799 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S3  [mesh: mesh_800 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                    - S4  [mesh: mesh_801 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S5  [mesh: mesh_802 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - Connector_06
+                    - S1  [mesh: mesh_803 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S2  [mesh: mesh_804 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S3  [mesh: mesh_805 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                    - S4  [mesh: mesh_806 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S5  [mesh: mesh_807 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - Connector_07
+                    - S1  [mesh: mesh_808 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S2  [mesh: mesh_809 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S3  [mesh: mesh_810 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                    - S4  [mesh: mesh_811 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S5  [mesh: mesh_812 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - Connector_08
+                    - S1  [mesh: mesh_813 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S2  [mesh: mesh_814 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S3  [mesh: mesh_815 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                    - S4  [mesh: mesh_816 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S5  [mesh: mesh_817 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - Connector_09
+                    - S1  [mesh: mesh_818 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S2  [mesh: mesh_819 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S3  [mesh: mesh_820 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                    - S4  [mesh: mesh_821 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - S5  [mesh: mesh_822 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - Rev_01
+                    - (node 1719)  [mesh: mesh_823 | verts: 1422 | prims: 1 | bbox: (-14.9, -9.8, 19.3) ΓåÆ (-14.8, -9.8, 19.4)]
+                    - (node 1720)  [mesh: mesh_824 | verts: 485 | prims: 1 | bbox: (-14.8, -9.8, 19.4) ΓåÆ (-14.8, -9.8, 19.4)]
+                    - (node 1721)  [mesh: mesh_825 | verts: 2 | prims: 1 | bbox: (-14.9, -9.8, 19.3) ΓåÆ (-14.9, -9.8, 19.3)]
+                  - Rev_02
+                    - (node 1723)  [mesh: mesh_826 | verts: 1422 | prims: 1 | bbox: (-14.9, -9.8, 19.3) ΓåÆ (-14.8, -9.8, 19.4)]
+                    - (node 1724)  [mesh: mesh_827 | verts: 485 | prims: 1 | bbox: (-14.8, -9.8, 19.4) ΓåÆ (-14.8, -9.8, 19.4)]
+                    - (node 1725)  [mesh: mesh_828 | verts: 2 | prims: 1 | bbox: (-14.9, -9.8, 19.3) ΓåÆ (-14.9, -9.8, 19.3)]
+                  - TBEN_LG_8DIP_8DOP_sat  [mesh: mesh_829 | verts: 24119 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.2, 0.0)]
+                  - CoSys
+                - DESG_AUT22_04_02_ref
+                  - 300_05_solid  [mesh: mesh_830 | verts: 1807 | prims: 1 | bbox: (-13.0, -4.0, 19.2) ΓåÆ (-12.6, -3.8, 19.5)]
+                  - HOLES_pdl_01
+                  - HOLES_pdl
+                  - SMC_Stand_alone_valve
+                    - 1_10
+                      - S01  [mesh: mesh_831 | verts: 36 | prims: 1 | bbox: (1.7, -0.0, 0.4) ΓåÆ (1.8, -0.0, 0.6)]
+                      - S02  [mesh: mesh_832 | verts: 773 | prims: 1 | bbox: (1.7, -0.0, 0.6) ΓåÆ (1.7, -0.0, 0.6)]
+                      - S03  [mesh: mesh_833 | verts: 140 | prims: 1 | bbox: (1.8, -0.0, 0.6) ΓåÆ (1.8, -0.0, 0.6)]
+                      - S05  [mesh: mesh_834 | verts: 450 | prims: 1 | bbox: (1.7, -0.0, 0.6) ΓåÆ (1.7, -0.0, 0.6)]
+                      - S06  [mesh: mesh_835 | verts: 2884 | prims: 1 | bbox: (1.7, -0.0, 0.6) ΓåÆ (1.8, -0.0, 0.6)]
+                      - S07  [mesh: mesh_836 | verts: 771 | prims: 1 | bbox: (1.7, -0.0, 0.6) ΓåÆ (1.7, -0.0, 0.6)]
+                      - S09  [mesh: mesh_837 | verts: 450 | prims: 1 | bbox: (1.7, -0.0, 0.6) ΓåÆ (1.7, -0.0, 0.6)]
+                      - S10  [mesh: mesh_838 | verts: 846 | prims: 1 | bbox: (1.7, -0.0, 0.6) ΓåÆ (1.7, -0.0, 0.7)]
+                    - 11_20
+                      - S11  [mesh: mesh_839 | verts: 513 | prims: 1 | bbox: (1.7, -0.0, 0.7) ΓåÆ (1.8, -0.0, 0.7)]
+                      - S14  [mesh: mesh_840 | verts: 1417 | prims: 1 | bbox: (1.7, -0.1, 0.5) ΓåÆ (1.8, -0.0, 0.5)]
+                      - S15  [mesh: mesh_841 | verts: 139 | prims: 1 | bbox: (1.7, -0.1, 0.5) ΓåÆ (1.7, -0.1, 0.5)]
+                      - S16  [mesh: mesh_842 | verts: 139 | prims: 1 | bbox: (1.7, 0.0, 0.5) ΓåÆ (1.7, 0.1, 0.5)]
+                      - S17  [mesh: mesh_843 | verts: 139 | prims: 1 | bbox: (1.7, 0.0, 0.5) ΓåÆ (1.7, 0.1, 0.5)]
+                      - S18  [mesh: mesh_844 | verts: 218 | prims: 1 | bbox: (1.7, -0.1, 0.5) ΓåÆ (1.7, -0.1, 0.5)]
+                      - S19  [mesh: mesh_845 | verts: 218 | prims: 1 | bbox: (1.7, -0.1, 0.5) ΓåÆ (1.7, -0.1, 0.5)]
+                      - S20  [mesh: mesh_846 | verts: 3271 | prims: 1 | bbox: (1.7, -0.1, 0.4) ΓåÆ (1.8, -0.0, 0.6)]
+                    - 21_23
+                      - S21  [mesh: mesh_847 | verts: 1301 | prims: 1 | bbox: (1.7, -0.0, 0.6) ΓåÆ (1.7, -0.0, 0.6)]
+                      - S22  [mesh: mesh_848 | verts: 365 | prims: 1 | bbox: (1.7, -0.0, 0.6) ΓåÆ (1.7, -0.0, 0.6)]
+                      - S23  [mesh: mesh_849 | verts: 9473 | prims: 1 | bbox: (1.7, -0.0, 0.6) ΓåÆ (1.7, -0.0, 0.6)]
+                    - KRL10_03S_01  [mesh: mesh_850 | verts: 1235 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - KRL10_03S  [mesh: mesh_851 | verts: 1235 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - TBEN_LG_8DIP_8DOP_01
+                    - Connector
+                      - S1  [mesh: mesh_852 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S2  [mesh: mesh_853 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S3  [mesh: mesh_854 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                      - S4  [mesh: mesh_855 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S5  [mesh: mesh_856 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - Connector_01
+                      - S1  [mesh: mesh_857 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S2  [mesh: mesh_858 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S3  [mesh: mesh_859 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                      - S4  [mesh: mesh_860 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S5  [mesh: mesh_861 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - Connector_02
+                      - S1  [mesh: mesh_862 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S2  [mesh: mesh_863 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S3  [mesh: mesh_864 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                      - S4  [mesh: mesh_865 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S5  [mesh: mesh_866 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - Connector_03
+                      - S1  [mesh: mesh_867 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S2  [mesh: mesh_868 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S3  [mesh: mesh_869 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                      - S4  [mesh: mesh_870 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S5  [mesh: mesh_871 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - Connector_04
+                      - S1  [mesh: mesh_872 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S2  [mesh: mesh_873 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S3  [mesh: mesh_874 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                      - S4  [mesh: mesh_875 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S5  [mesh: mesh_876 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - Connector_05
+                      - S1  [mesh: mesh_877 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S2  [mesh: mesh_878 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S3  [mesh: mesh_879 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                      - S4  [mesh: mesh_880 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S5  [mesh: mesh_881 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - Connector_06
+                      - S1  [mesh: mesh_882 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S2  [mesh: mesh_883 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S3  [mesh: mesh_884 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                      - S4  [mesh: mesh_885 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S5  [mesh: mesh_886 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - Connector_07
+                      - S1  [mesh: mesh_887 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S2  [mesh: mesh_888 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S3  [mesh: mesh_889 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                      - S4  [mesh: mesh_890 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S5  [mesh: mesh_891 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - Connector_08
+                      - S1  [mesh: mesh_892 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S2  [mesh: mesh_893 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S3  [mesh: mesh_894 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                      - S4  [mesh: mesh_895 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S5  [mesh: mesh_896 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - Connector_09
+                      - S1  [mesh: mesh_897 | verts: 1631 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S2  [mesh: mesh_898 | verts: 997 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S3  [mesh: mesh_899 | verts: 1383 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                      - S4  [mesh: mesh_900 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                      - S5  [mesh: mesh_901 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - Rev_01
+                      - (node 1819)  [mesh: mesh_902 | verts: 1422 | prims: 1 | bbox: (-14.9, -9.8, 19.3) ΓåÆ (-14.8, -9.8, 19.4)]
+                      - (node 1820)  [mesh: mesh_903 | verts: 485 | prims: 1 | bbox: (-14.8, -9.8, 19.4) ΓåÆ (-14.8, -9.8, 19.4)]
+                      - (node 1821)  [mesh: mesh_904 | verts: 2 | prims: 1 | bbox: (-14.9, -9.8, 19.3) ΓåÆ (-14.9, -9.8, 19.3)]
+                    - Rev_02
+                      - (node 1823)  [mesh: mesh_905 | verts: 1422 | prims: 1 | bbox: (-14.9, -9.8, 19.3) ΓåÆ (-14.8, -9.8, 19.4)]
+                      - (node 1824)  [mesh: mesh_906 | verts: 485 | prims: 1 | bbox: (-14.8, -9.8, 19.4) ΓåÆ (-14.8, -9.8, 19.4)]
+                      - (node 1825)  [mesh: mesh_907 | verts: 2 | prims: 1 | bbox: (-14.9, -9.8, 19.3) ΓåÆ (-14.9, -9.8, 19.3)]
+                    - TBEN_LG_8DIP_8DOP_sat  [mesh: mesh_908 | verts: 24119 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.2, 0.0)]
+                    - CoSys
+              - DESG_AUT02_02_02_R0B_01
+                - STANDARDS
+                  - VALVE_BANK_MOUNTING_BRACKET
+                    - REXROTH_T_NUT_M6
+                      - Ext_02  [mesh: mesh_909 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_01  [mesh: mesh_910 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_03  [mesh: mesh_911 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_04  [mesh: mesh_912 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                    - REXROTH_PROFILE_360
+                      - REXROTH_PROFILE  [mesh: mesh_913 | verts: 498 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (0.0, 0.0, 0.6)]
+                    - REXROTH_T_NUT_M8
+                      - Ext_02  [mesh: mesh_914 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_03  [mesh: mesh_915 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                    - REXROTH_CAP
+                      - REXROTH_CAP  [mesh: mesh_916 | verts: 360 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - REXROTH_GUSSET
+                      - M8_2
+                        - Ext_02  [mesh: mesh_917 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - M8_1
+                        - Ext_03  [mesh: mesh_918 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - GUSSET_BRACKET
+                        - Ext_01  [mesh: mesh_919 | verts: 52 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.1, 0.0, 0.1)]
+                      - FASTENERS
+                        - Rev_02  [mesh: mesh_920 | verts: 776 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.1, 0.0, 0.1)]
+                        - Rev_01  [mesh: mesh_921 | verts: 776 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.1, 0.0, 0.1)]
+                    - REXROTH_PROFILE_160
+                      - CoSys
+                      - B4
+                        - B4_solid  [mesh: mesh_922 | verts: 852 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.2, 0.0, 0.0)]
+                    - REXROTH_CAP_01
+                      - REXROTH_CAP  [mesh: mesh_923 | verts: 360 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - ALUMINIUM_GUSSET
+                      - GUSSET_PLATE  [mesh: mesh_924 | verts: 737 | prims: 1 | bbox: (0.1, -0.4, -0.1) ΓåÆ (0.2, -0.4, 0.0)]
+                - FASTENERS
+                  - M6_LockWasher  [mesh: mesh_925 | verts: 271 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - M6_LockWasher_01  [mesh: mesh_926 | verts: 271 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - M6_LockWasher_02  [mesh: mesh_927 | verts: 271 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - M6_LockWasher_03  [mesh: mesh_928 | verts: 271 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl  [mesh: mesh_929 | verts: 362 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_01  [mesh: mesh_930 | verts: 362 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_02  [mesh: mesh_931 | verts: 362 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_03  [mesh: mesh_932 | verts: 362 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - DESG_AUT02_02_02_R0B_011
+                - STANDARDS
+                  - VALVE_BANK_MOUNTING_BRACKET
+                    - REXROTH_T_NUT_M6
+                      - Ext_02  [mesh: mesh_933 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_01  [mesh: mesh_934 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_03  [mesh: mesh_935 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_04  [mesh: mesh_936 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                    - REXROTH_PROFILE_360
+                      - REXROTH_PROFILE  [mesh: mesh_937 | verts: 498 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (0.0, 0.0, 0.6)]
+                    - REXROTH_T_NUT_M8
+                      - Ext_02  [mesh: mesh_938 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_03  [mesh: mesh_939 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                    - REXROTH_CAP
+                      - REXROTH_CAP  [mesh: mesh_940 | verts: 360 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - REXROTH_GUSSET
+                      - M8_2
+                        - Ext_02  [mesh: mesh_941 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - M8_1
+                        - Ext_03  [mesh: mesh_942 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - GUSSET_BRACKET
+                        - Ext_01  [mesh: mesh_943 | verts: 52 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.1, 0.0, 0.1)]
+                      - FASTENERS
+                        - Rev_02  [mesh: mesh_944 | verts: 776 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.1, 0.0, 0.1)]
+                        - Rev_01  [mesh: mesh_945 | verts: 776 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.1, 0.0, 0.1)]
+                    - REXROTH_PROFILE_160
+                      - CoSys
+                      - B4
+                        - B4_solid  [mesh: mesh_946 | verts: 852 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.2, 0.0, 0.0)]
+                    - REXROTH_CAP_01
+                      - REXROTH_CAP  [mesh: mesh_947 | verts: 360 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - ALUMINIUM_GUSSET
+                      - GUSSET_PLATE  [mesh: mesh_948 | verts: 737 | prims: 1 | bbox: (0.1, -0.4, -0.1) ΓåÆ (0.2, -0.4, 0.0)]
+              - DESG_AUT02_02_02_R0B_031
+                - STANDARDS
+                  - VALVE_BANK_MOUNTING_BRACKET
+                    - REXROTH_T_NUT_M6
+                      - Ext_02  [mesh: mesh_949 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_01  [mesh: mesh_950 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_03  [mesh: mesh_951 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_04  [mesh: mesh_952 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                    - REXROTH_PROFILE_360
+                      - REXROTH_PROFILE  [mesh: mesh_953 | verts: 498 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (0.0, 0.0, 0.6)]
+                    - REXROTH_T_NUT_M8
+                      - Ext_02  [mesh: mesh_954 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_03  [mesh: mesh_955 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                    - REXROTH_CAP
+                      - REXROTH_CAP  [mesh: mesh_956 | verts: 360 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - REXROTH_GUSSET
+                      - M8_2
+                        - Ext_02  [mesh: mesh_957 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - M8_1
+                        - Ext_03  [mesh: mesh_958 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - GUSSET_BRACKET
+                        - Ext_01  [mesh: mesh_959 | verts: 52 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.1, 0.0, 0.1)]
+                      - FASTENERS
+                        - Rev_02  [mesh: mesh_960 | verts: 776 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.1, 0.0, 0.1)]
+                        - Rev_01  [mesh: mesh_961 | verts: 776 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.1, 0.0, 0.1)]
+                    - REXROTH_PROFILE_160
+                      - CoSys
+                      - B4
+                        - B4_solid  [mesh: mesh_962 | verts: 852 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.2, 0.0, 0.0)]
+                    - REXROTH_CAP_01
+                      - REXROTH_CAP  [mesh: mesh_963 | verts: 360 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - ALUMINIUM_GUSSET
+                      - GUSSET_PLATE  [mesh: mesh_964 | verts: 737 | prims: 1 | bbox: (0.1, -0.4, -0.1) ΓåÆ (0.2, -0.4, 0.0)]
+              - DESG_AUT02_02_02_R0B_0312
+                - STANDARDS
+                  - VALVE_BANK_MOUNTING_BRACKET
+                    - REXROTH_T_NUT_M6
+                      - Ext_02  [mesh: mesh_965 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_01  [mesh: mesh_966 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_03  [mesh: mesh_967 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_04  [mesh: mesh_968 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                    - REXROTH_PROFILE_360
+                      - REXROTH_PROFILE  [mesh: mesh_969 | verts: 498 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (0.0, 0.0, 0.6)]
+                    - REXROTH_T_NUT_M8
+                      - Ext_02  [mesh: mesh_970 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - Ext_03  [mesh: mesh_971 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                    - REXROTH_CAP
+                      - REXROTH_CAP  [mesh: mesh_972 | verts: 360 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - REXROTH_GUSSET
+                      - M8_2
+                        - Ext_02  [mesh: mesh_973 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - M8_1
+                        - Ext_03  [mesh: mesh_974 | verts: 298 | prims: 1 | bbox: (-0.0, -0.0, 0.1) ΓåÆ (-0.0, 0.0, 0.1)]
+                      - GUSSET_BRACKET
+                        - Ext_01  [mesh: mesh_975 | verts: 52 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.1, 0.0, 0.1)]
+                      - FASTENERS
+                        - Rev_02  [mesh: mesh_976 | verts: 776 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.1, 0.0, 0.1)]
+                        - Rev_01  [mesh: mesh_977 | verts: 776 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.1, 0.0, 0.1)]
+                    - REXROTH_PROFILE_160
+                      - CoSys
+                      - B4
+                        - B4_solid  [mesh: mesh_978 | verts: 852 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.2, 0.0, 0.0)]
+                    - REXROTH_CAP_01
+                      - REXROTH_CAP  [mesh: mesh_979 | verts: 360 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                    - ALUMINIUM_GUSSET
+                      - GUSSET_PLATE  [mesh: mesh_980 | verts: 737 | prims: 1 | bbox: (0.1, -0.4, -0.1) ΓåÆ (0.2, -0.4, 0.0)]
+            - DATUM_HOLE_LABEL_02
+              - DESG_L01_01_R00_sat  [mesh: mesh_981 | verts: 1130 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - DATUM_HOLE_LABEL_03
+              - DESG_L01_01_R00_sat  [mesh: mesh_982 | verts: 1130 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - DATUM_HOLE_LABEL_04
+              - DESG_L01_01_R00_sat  [mesh: mesh_983 | verts: 1130 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - DATUM_HOLE_LABEL_06
+              - DESG_L01_01_R00_sat  [mesh: mesh_984 | verts: 1130 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - DATUM_HOLE_LABEL_07
+              - DESG_L01_01_R00_sat  [mesh: mesh_985 | verts: 1130 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - DATUM_HOLE_LABEL_08
+              - DESG_L01_01_R00_sat  [mesh: mesh_986 | verts: 1130 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - DATUM_HOLE_LABEL_10
+              - DESG_L01_01_R00_sat  [mesh: mesh_987 | verts: 1130 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - PROTECTIVE_CAPS
+              - Rev_01_solid  [mesh: mesh_988 | verts: 558 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - PROTECTIVE_CAPS_02
+              - Rev_01_solid  [mesh: mesh_989 | verts: 558 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - PROTECTIVE_CAPS_03
+              - Rev_01_solid  [mesh: mesh_990 | verts: 558 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - PROTECTIVE_CAPS_05
+              - Rev_01_solid  [mesh: mesh_991 | verts: 558 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - PROTECTIVE_CAPS_06
+              - Rev_01_solid  [mesh: mesh_992 | verts: 558 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - PROTECTIVE_CAPS_07
+              - Rev_01_solid  [mesh: mesh_993 | verts: 558 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - PROTECTIVE_CAPS_08
+              - Rev_01_solid  [mesh: mesh_994 | verts: 558 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - PROTECTIVE_CAPS_10
+              - Rev_01_solid  [mesh: mesh_995 | verts: 558 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - DATUM_HOLE_LABEL
+              - DESG_L01_01_R00_sat  [mesh: mesh_996 | verts: 1130 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - TOOL_NAME_LABEL
+              - Ext_01_solid  [mesh: mesh_997 | verts: 740 | prims: 1 | bbox: (-0.1, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+              - HOLES_pdl
+          - STANDARDS
+            - Foundation_Plates
+              - FOUND_PLATE_01
+                - Weld_Plates
+                  - 303_06
+                    - Ext_01  [mesh: mesh_998 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, 0.6) ΓåÆ (0.8, -0.8, 0.7)]
+                    - CoSys
+                  - 303_01
+                    - Ext_01  [mesh: mesh_999 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, 0.6) ΓåÆ (0.8, -0.8, 0.7)]
+                    - CoSys
+                - 001_FOUNDATION_PLATES
+                  - Ext_01  [mesh: mesh_1000 | verts: 1502 | prims: 1 | bbox: (-0.9, -0.4, -0.2) ΓåÆ (-0.6, -0.1, -0.1)]
+                  - CoSys
+              - FOUND_PLATE_06
+                - Weld_Plates
+                  - 303_01
+                    - Ext_01  [mesh: mesh_1001 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, 0.6) ΓåÆ (0.8, -0.8, 0.7)]
+                - 001_FOUNDATION_PLATES
+                  - Ext_01  [mesh: mesh_1002 | verts: 1502 | prims: 1 | bbox: (-0.9, -0.4, -0.2) ΓåÆ (-0.6, -0.1, -0.1)]
+                  - CoSys
+              - FOUND_PLATE_05
+                - 001_FOUNDATION_PLATES
+                  - Ext_01  [mesh: mesh_1003 | verts: 1502 | prims: 1 | bbox: (-0.9, -0.4, -0.2) ΓåÆ (-0.6, -0.1, -0.1)]
+                  - CoSys
+                - Weld_Plates
+                  - 303_01
+                    - Ext_01  [mesh: mesh_1004 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, 0.6) ΓåÆ (0.8, -0.8, 0.7)]
+                    - CoSys
+              - FOUND_PLATE_04
+                - 001_FOUNDATION_PLATES
+                  - Ext_01  [mesh: mesh_1005 | verts: 1502 | prims: 1 | bbox: (-0.9, -0.4, -0.2) ΓåÆ (-0.6, -0.1, -0.1)]
+                  - CoSys
+                - Weld_Plates
+                  - 303_06
+                    - Ext_01  [mesh: mesh_1006 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, 0.6) ΓåÆ (0.8, -0.8, 0.7)]
+                    - CoSys
+                  - 303_01
+                    - Ext_01  [mesh: mesh_1007 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, 0.6) ΓåÆ (0.8, -0.8, 0.7)]
+                    - CoSys
+              - FOUND_PLATE_03
+                - 001_FOUNDATION_PLATES
+                  - Ext_01  [mesh: mesh_1008 | verts: 1502 | prims: 1 | bbox: (-0.9, -0.4, -0.2) ΓåÆ (-0.6, -0.1, -0.1)]
+                  - CoSys
+                - Weld_Plates
+                  - 303_06
+                    - Ext_01  [mesh: mesh_1009 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, 0.6) ΓåÆ (0.8, -0.8, 0.7)]
+                    - CoSys
+                  - 303_01
+                    - Ext_01  [mesh: mesh_1010 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, 0.6) ΓåÆ (0.8, -0.8, 0.7)]
+                    - CoSys
+              - FOUND_PLATE_02
+                - 001_FOUNDATION_PLATES
+                  - Ext_01  [mesh: mesh_1011 | verts: 1502 | prims: 1 | bbox: (-0.9, -0.4, -0.2) ΓåÆ (-0.6, -0.1, -0.1)]
+                  - CoSys
+                - Weld_Plates
+                  - 303_06
+                    - Ext_01  [mesh: mesh_1012 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, 0.6) ΓåÆ (0.8, -0.8, 0.7)]
+                    - CoSys
+                  - 303_01
+                    - Ext_01  [mesh: mesh_1013 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, 0.6) ΓåÆ (0.8, -0.8, 0.7)]
+                    - CoSys
+            - 2_Valves_16_Inputs
+              - CoSys
+          - 300_FABRICATION
+            - 300_001
+              - Ext_01
+                - Ext_01_solid  [mesh: mesh_1014 | verts: 4907 | prims: 1 | bbox: (1.6, 1.0, 0.3) ΓåÆ (4.6, 1.7, 0.4)]
+                - HOLES_pdl
+                - HOLES_pdl_01
+                - HOLES_pdl_01_01
+                - HOLES_pdl_03
+                - HOLES_pdl_01_02
+                - HOLES_pdl_04
+                - HOLES_pdl_01_03
+                - HOLES_pdl_05
+                - HOLES_pdl_01_04
+                - HOLES_pdl_06
+            - 300_002_05
+              - Ext_01
+                - Ext_01_solid  [mesh: mesh_1015 | verts: 166 | prims: 1 | bbox: (5.3, -1.1, -0.6) ΓåÆ (5.4, -1.0, -0.5)]
+                - CoSys
+            - 300_002_04
+              - Ext_01
+                - Ext_01_solid  [mesh: mesh_1016 | verts: 166 | prims: 1 | bbox: (5.3, -1.1, -0.6) ΓåÆ (5.4, -1.0, -0.5)]
+                - CoSys
+            - 300_002_03
+              - Ext_01
+                - Ext_01_solid  [mesh: mesh_1017 | verts: 166 | prims: 1 | bbox: (5.3, -1.1, -0.6) ΓåÆ (5.4, -1.0, -0.5)]
+                - CoSys
+            - 300_002_02
+              - Ext_01
+                - Ext_01_solid  [mesh: mesh_1018 | verts: 166 | prims: 1 | bbox: (5.3, -1.1, -0.6) ΓåÆ (5.4, -1.0, -0.5)]
+                - CoSys
+            - 300_002_01
+              - Ext_01
+                - Ext_01_solid  [mesh: mesh_1019 | verts: 166 | prims: 1 | bbox: (5.3, -1.1, -0.6) ΓåÆ (5.4, -1.0, -0.5)]
+                - CoSys
+            - 300_002
+              - Ext_01
+                - Ext_01_solid  [mesh: mesh_1020 | verts: 168 | prims: 1 | bbox: (5.3, -1.1, -0.6) ΓåÆ (5.4, -1.0, -0.5)]
+                - CoSys
+            - 300_003_01
+              - Ext_01  [mesh: mesh_1021 | verts: 208 | prims: 1 | bbox: (1.3, -1.6, -0.7) ΓåÆ (4.3, -1.4, -0.5)]
+              - CoSys
+            - 300_004_03
+              - Ext_03  [mesh: mesh_1022 | verts: 280 | prims: 1 | bbox: (5.5, 1.1, -0.7) ΓåÆ (5.7, 1.6, -0.5)]
+            - 300_004_02
+              - Ext_03  [mesh: mesh_1023 | verts: 280 | prims: 1 | bbox: (5.5, 1.1, -0.7) ΓåÆ (5.7, 1.6, -0.5)]
+            - 300_004_01
+              - Ext_03  [mesh: mesh_1024 | verts: 280 | prims: 1 | bbox: (5.5, 1.1, -0.7) ΓåÆ (5.7, 1.6, -0.5)]
+            - 300_004
+              - Ext_03  [mesh: mesh_1025 | verts: 280 | prims: 1 | bbox: (5.5, 1.1, -0.7) ΓåÆ (5.7, 1.6, -0.5)]
+            - 300_003
+              - Ext_01  [mesh: mesh_1026 | verts: 208 | prims: 1 | bbox: (1.3, -1.6, -0.7) ΓåÆ (4.3, -1.4, -0.5)]
+              - CoSys
+          - 301_PLATE
+            - Ext_02
+              - Ext_02_solid  [mesh: mesh_1027 | verts: 2734 | prims: 1 | bbox: (1.7, 0.7, 0.4) ΓåÆ (2.1, 1.4, 0.4)]
+              - HOLES_pdl
+              - HOLES_pdl_01
+              - HOLES_pdl_02
+              - HOLES_pdl_03
+              - HOLES_pdl_04
+          - 302_PLATE
+            - Ext_01
+              - Ext_01_solid  [mesh: mesh_1028 | verts: 1593 | prims: 1 | bbox: (3.7, 0.7, 0.4) ΓåÆ (3.9, 1.4, 0.4)]
+              - HOLES_pdl_02
+              - HOLES_pdl
+              - HOLES_pdl_01
+              - HOLES_pdl_03
+      - LH
+        - FIXED
+          - FASTENERS
+            - SET_01
+              - 01
+                - 100_M20x2_5_HEXAGON_JAM_NUT  [mesh: mesh_1029 | verts: 148 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl
+                  - (node 2141)  [mesh: mesh_1030 | verts: 491 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 2142)  [mesh: mesh_1031 | verts: 216 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+              - 02
+                - 100_M20x2_5_HEXAGON_JAM_NUT  [mesh: mesh_1032 | verts: 148 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl
+                  - (node 2146)  [mesh: mesh_1033 | verts: 491 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 2147)  [mesh: mesh_1034 | verts: 216 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+              - 03
+                - 100_M20x2_5_HEXAGON_JAM_NUT  [mesh: mesh_1035 | verts: 148 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl
+                  - (node 2151)  [mesh: mesh_1036 | verts: 491 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 2152)  [mesh: mesh_1037 | verts: 216 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+              - 04
+                - 100_M20x2_5_HEXAGON_JAM_NUT  [mesh: mesh_1038 | verts: 148 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl
+                  - (node 2156)  [mesh: mesh_1039 | verts: 491 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 2157)  [mesh: mesh_1040 | verts: 216 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+              - 05
+                - 100_M20x2_5_HEXAGON_JAM_NUT  [mesh: mesh_1041 | verts: 148 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl
+                  - (node 2161)  [mesh: mesh_1042 | verts: 491 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 2162)  [mesh: mesh_1043 | verts: 216 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+              - 06
+                - 100_M20x2_5_HEXAGON_JAM_NUT  [mesh: mesh_1044 | verts: 148 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - screws_pdl
+                  - (node 2166)  [mesh: mesh_1045 | verts: 491 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 2167)  [mesh: mesh_1046 | verts: 216 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+            - SET_05
+              - screws_pdl_pattern
+                - screws_pdl_002
+                  - (node 2171)  [mesh: mesh_1047 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 2172)  [mesh: mesh_1048 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+                - screws_pdl_004
+                  - (node 2174)  [mesh: mesh_1049 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 2175)  [mesh: mesh_1050 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+                - screws_pdl_003
+                  - (node 2177)  [mesh: mesh_1051 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 2178)  [mesh: mesh_1052 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+                - screws_pdl
+                  - (node 2180)  [mesh: mesh_1053 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 2181)  [mesh: mesh_1054 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+            - SET_6
+              - screws_pdl_pattern
+                - screws_pdl_004
+                  - (node 2185)  [mesh: mesh_1055 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 2186)  [mesh: mesh_1056 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+                - screws_pdl_003
+                  - (node 2188)  [mesh: mesh_1057 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 2189)  [mesh: mesh_1058 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+                - screws_pdl
+                  - (node 2191)  [mesh: mesh_1059 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 2192)  [mesh: mesh_1060 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+                - screws_pdl_002
+                  - (node 2194)  [mesh: mesh_1061 | verts: 177 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 2195)  [mesh: mesh_1062 | verts: 214 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+          - ORDER
+            - AUTOMATION
+              - Trunking
+                - 150x40
+                  - Ext_01  [mesh: mesh_1063 | verts: 325 | prims: 1 | bbox: (1.3, 1.6, 0.5) ΓåÆ (4.2, 1.7, 0.6)]
+                  - CoSys
+            - DATUM_HOLE_LABEL_02
+              - DESG_L01_01_R00_sat  [mesh: mesh_1064 | verts: 1130 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - DATUM_HOLE_LABEL_03
+              - DESG_L01_01_R00_sat  [mesh: mesh_1065 | verts: 1130 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - DATUM_HOLE_LABEL_04
+              - DESG_L01_01_R00_sat  [mesh: mesh_1066 | verts: 1130 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - DATUM_HOLE_LABEL_06
+              - DESG_L01_01_R00_sat  [mesh: mesh_1067 | verts: 1130 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - DATUM_HOLE_LABEL_07
+              - DESG_L01_01_R00_sat  [mesh: mesh_1068 | verts: 1130 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - DATUM_HOLE_LABEL_08
+              - DESG_L01_01_R00_sat  [mesh: mesh_1069 | verts: 1130 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - DATUM_HOLE_LABEL_10
+              - DESG_L01_01_R00_sat  [mesh: mesh_1070 | verts: 1130 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - PROTECTIVE_CAPS
+              - Rev_01_solid  [mesh: mesh_1071 | verts: 555 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - PROTECTIVE_CAPS_02
+              - Rev_01_solid  [mesh: mesh_1072 | verts: 555 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - PROTECTIVE_CAPS_03
+              - Rev_01_solid  [mesh: mesh_1073 | verts: 555 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - PROTECTIVE_CAPS_05
+              - Rev_01_solid  [mesh: mesh_1074 | verts: 555 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - PROTECTIVE_CAPS_06
+              - Rev_01_solid  [mesh: mesh_1075 | verts: 555 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - PROTECTIVE_CAPS_07
+              - Rev_01_solid  [mesh: mesh_1076 | verts: 555 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - PROTECTIVE_CAPS_08
+              - Rev_01_solid  [mesh: mesh_1077 | verts: 555 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - PROTECTIVE_CAPS_10
+              - Rev_01_solid  [mesh: mesh_1078 | verts: 555 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - DATUM_HOLE_LABEL
+              - DESG_L01_01_R00_sat  [mesh: mesh_1079 | verts: 1130 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - TOOL_NAME_LABEL
+              - Ext_01_solid  [mesh: mesh_1080 | verts: 740 | prims: 1 | bbox: (-0.1, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+              - HOLES_pdl
+          - STANDARDS
+            - Foundation_Plates
+              - FOUND_PLATE_01
+                - Weld_Plates
+                  - 303_06
+                    - Ext_01  [mesh: mesh_1081 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, -0.7) ΓåÆ (0.8, -0.8, -0.6)]
+                    - CoSys
+                  - 303_01
+                    - Ext_01  [mesh: mesh_1082 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, -0.7) ΓåÆ (0.8, -0.8, -0.6)]
+                    - CoSys
+                - 001_FOUNDATION_PLATES
+                  - Ext_01  [mesh: mesh_1083 | verts: 1505 | prims: 1 | bbox: (-0.9, -0.4, 0.1) ΓåÆ (-0.6, -0.1, 0.2)]
+                  - CoSys
+              - FOUND_PLATE_06
+                - Weld_Plates
+                  - 303_01
+                    - Ext_01  [mesh: mesh_1084 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, -0.7) ΓåÆ (0.8, -0.8, -0.6)]
+                - 001_FOUNDATION_PLATES
+                  - Ext_01  [mesh: mesh_1085 | verts: 1505 | prims: 1 | bbox: (-0.9, -0.4, 0.1) ΓåÆ (-0.6, -0.1, 0.2)]
+                  - CoSys
+              - FOUND_PLATE_05
+                - 001_FOUNDATION_PLATES
+                  - Ext_01  [mesh: mesh_1086 | verts: 1505 | prims: 1 | bbox: (-0.9, -0.4, 0.1) ΓåÆ (-0.6, -0.1, 0.2)]
+                  - CoSys
+                - Weld_Plates
+                  - 303_01
+                    - Ext_01  [mesh: mesh_1087 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, -0.7) ΓåÆ (0.8, -0.8, -0.6)]
+                    - CoSys
+              - FOUND_PLATE_04
+                - 001_FOUNDATION_PLATES
+                  - Ext_01  [mesh: mesh_1088 | verts: 1505 | prims: 1 | bbox: (-0.9, -0.4, 0.1) ΓåÆ (-0.6, -0.1, 0.2)]
+                  - CoSys
+                - Weld_Plates
+                  - 303_06
+                    - Ext_01  [mesh: mesh_1089 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, -0.7) ΓåÆ (0.8, -0.8, -0.6)]
+                    - CoSys
+                  - 303_01
+                    - Ext_01  [mesh: mesh_1090 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, -0.7) ΓåÆ (0.8, -0.8, -0.6)]
+                    - CoSys
+              - FOUND_PLATE_03
+                - 001_FOUNDATION_PLATES
+                  - Ext_01  [mesh: mesh_1091 | verts: 1505 | prims: 1 | bbox: (-0.9, -0.4, 0.1) ΓåÆ (-0.6, -0.1, 0.2)]
+                  - CoSys
+                - Weld_Plates
+                  - 303_06
+                    - Ext_01  [mesh: mesh_1092 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, -0.7) ΓåÆ (0.8, -0.8, -0.6)]
+                    - CoSys
+                  - 303_01
+                    - Ext_01  [mesh: mesh_1093 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, -0.7) ΓåÆ (0.8, -0.8, -0.6)]
+                    - CoSys
+              - FOUND_PLATE_02
+                - 001_FOUNDATION_PLATES
+                  - Ext_01  [mesh: mesh_1094 | verts: 1505 | prims: 1 | bbox: (-0.9, -0.4, 0.1) ΓåÆ (-0.6, -0.1, 0.2)]
+                  - CoSys
+                - Weld_Plates
+                  - 303_06
+                    - Ext_01  [mesh: mesh_1095 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, -0.7) ΓåÆ (0.8, -0.8, -0.6)]
+                    - CoSys
+                  - 303_01
+                    - Ext_01  [mesh: mesh_1096 | verts: 24 | prims: 1 | bbox: (0.7, -0.8, -0.7) ΓåÆ (0.8, -0.8, -0.6)]
+                    - CoSys
+            - 2_Valves_16_Inputs
+              - CoSys
+          - 300_FABRICATION
+            - 300_001
+              - Ext_01
+                - Ext_01_solid  [mesh: mesh_1097 | verts: 4922 | prims: 1 | bbox: (1.6, 1.0, -0.4) ΓåÆ (4.6, 1.7, -0.3)]
+                - HOLES_pdl
+                - HOLES_pdl_01
+                - HOLES_pdl_01_01
+                - HOLES_pdl_03
+                - HOLES_pdl_01_02
+                - HOLES_pdl_04
+                - HOLES_pdl_01_03
+                - HOLES_pdl_05
+                - HOLES_pdl_01_04
+                - HOLES_pdl_06
+            - 300_002_05
+              - Ext_01
+                - Ext_01_solid  [mesh: mesh_1098 | verts: 166 | prims: 1 | bbox: (5.3, -1.1, 0.5) ΓåÆ (5.4, -1.0, 0.6)]
+                - CoSys
+            - 300_002_04
+              - Ext_01
+                - Ext_01_solid  [mesh: mesh_1099 | verts: 166 | prims: 1 | bbox: (5.3, -1.1, 0.5) ΓåÆ (5.4, -1.0, 0.6)]
+                - CoSys
+            - 300_002_03
+              - Ext_01
+                - Ext_01_solid  [mesh: mesh_1100 | verts: 166 | prims: 1 | bbox: (5.3, -1.1, 0.5) ΓåÆ (5.4, -1.0, 0.6)]
+                - CoSys
+            - 300_002_02
+              - Ext_01
+                - Ext_01_solid  [mesh: mesh_1101 | verts: 166 | prims: 1 | bbox: (5.3, -1.1, 0.5) ΓåÆ (5.4, -1.0, 0.6)]
+                - CoSys
+            - 300_002_01
+              - Ext_01
+                - Ext_01_solid  [mesh: mesh_1102 | verts: 166 | prims: 1 | bbox: (5.3, -1.1, 0.5) ΓåÆ (5.4, -1.0, 0.6)]
+                - CoSys
+            - 300_002
+              - Ext_01
+                - Ext_01_solid  [mesh: mesh_1103 | verts: 166 | prims: 1 | bbox: (5.3, -1.1, 0.5) ΓåÆ (5.4, -1.0, 0.6)]
+                - CoSys
+            - 300_003_01
+              - Ext_01  [mesh: mesh_1104 | verts: 208 | prims: 1 | bbox: (1.3, -1.6, 0.5) ΓåÆ (4.3, -1.4, 0.7)]
+              - CoSys
+            - 300_004_03
+              - Ext_03  [mesh: mesh_1105 | verts: 280 | prims: 1 | bbox: (5.5, 1.1, 0.5) ΓåÆ (5.7, 1.6, 0.7)]
+            - 300_004_02
+              - Ext_03  [mesh: mesh_1106 | verts: 280 | prims: 1 | bbox: (5.5, 1.1, 0.5) ΓåÆ (5.7, 1.6, 0.7)]
+            - 300_004_01
+              - Ext_03  [mesh: mesh_1107 | verts: 280 | prims: 1 | bbox: (5.5, 1.1, 0.5) ΓåÆ (5.7, 1.6, 0.7)]
+            - 300_004
+              - Ext_03  [mesh: mesh_1108 | verts: 280 | prims: 1 | bbox: (5.5, 1.1, 0.5) ΓåÆ (5.7, 1.6, 0.7)]
+            - 300_003
+              - Ext_01  [mesh: mesh_1109 | verts: 208 | prims: 1 | bbox: (1.3, -1.6, 0.5) ΓåÆ (4.3, -1.4, 0.7)]
+              - CoSys
+          - 301_PLATE
+            - Ext_02
+              - Ext_02_solid  [mesh: mesh_1110 | verts: 2744 | prims: 1 | bbox: (1.7, 0.7, -0.4) ΓåÆ (2.1, 1.4, -0.4)]
+              - HOLES_pdl
+              - HOLES_pdl_01
+              - HOLES_pdl_02
+              - HOLES_pdl_03
+              - HOLES_pdl_04
+          - 302_PLATE
+            - Ext_01
+              - Ext_01_solid  [mesh: mesh_1111 | verts: 1596 | prims: 1 | bbox: (3.7, 0.7, -0.4) ΓåÆ (3.9, 1.4, -0.4)]
+              - HOLES_pdl_02
+              - HOLES_pdl
+              - HOLES_pdl_01
+              - HOLES_pdl_03
+    - UNIT_106
+      - RH
+        - FIXED
+          - ORDER
+            - STOP_BLOCK_FLAT  [mesh: mesh_1112 | verts: 596 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - STOP_BLOCK_FLAT_02  [mesh: mesh_1113 | verts: 596 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - VU_63_1_BR2_A05_T12
+              - POWER_CLAMP  [mesh: mesh_1114 | verts: 10553 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+              - Rotation_Point
+              - S2_01  [mesh: mesh_1115 | verts: 3259 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+              - m12_lead_connector_sat
+                - S1  [mesh: mesh_1116 | verts: 515 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S2  [mesh: mesh_1117 | verts: 846 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S3  [mesh: mesh_1118 | verts: 450 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S4  [mesh: mesh_1119 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S5  [mesh: mesh_1120 | verts: 769 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - S2_02  [mesh: mesh_1121 | verts: 3259 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+          - 301_PLATE
+            - 301
+              - Ext_03_solid  [mesh: mesh_1122 | verts: 1584 | prims: 1 | bbox: (2.4, 0.8, -0.1) ΓåÆ (2.6, 0.9, 0.0)]
+              - HOLES_pdl_03
+              - HOLES_pdl_02
+              - HOLES_pdl_01
+              - HOLES_pdl
+          - FASTENERS
+            - Set_04
+              - screws_pdl
+                - (node 2394)  [mesh: mesh_1123 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2395)  [mesh: mesh_1124 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+              - screws_pdl_01
+                - (node 2397)  [mesh: mesh_1125 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2398)  [mesh: mesh_1126 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+              - screws_pdl_02
+                - (node 2400)  [mesh: mesh_1127 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2401)  [mesh: mesh_1128 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+              - screws_pdl_03
+                - (node 2403)  [mesh: mesh_1129 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2404)  [mesh: mesh_1130 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+            - SET_07
+              - screws_pdl_01
+                - (node 2407)  [mesh: mesh_1131 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2408)  [mesh: mesh_1132 | verts: 207 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+              - screws_pdl_02
+                - (node 2410)  [mesh: mesh_1133 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2411)  [mesh: mesh_1134 | verts: 207 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+              - screws_pdl_03
+                - (node 2413)  [mesh: mesh_1135 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2414)  [mesh: mesh_1136 | verts: 207 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+              - screws_pdl
+                - (node 2416)  [mesh: mesh_1137 | verts: 626 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2417)  [mesh: mesh_1138 | verts: 207 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+            - Set_07
+              - screws_pdl
+                - (node 2420)  [mesh: mesh_1139 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2421)  [mesh: mesh_1140 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+              - screws_pdl_01
+                - (node 2423)  [mesh: mesh_1141 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2424)  [mesh: mesh_1142 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+              - screws_pdl_02
+                - (node 2426)  [mesh: mesh_1143 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2427)  [mesh: mesh_1144 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+              - screws_pdl_03
+                - (node 2429)  [mesh: mesh_1145 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2430)  [mesh: mesh_1146 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+            - Set_01
+              - screws_pdl
+                - (node 2433)  [mesh: mesh_1147 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2434)  [mesh: mesh_1148 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+              - screws_pdl_01
+                - (node 2436)  [mesh: mesh_1149 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2437)  [mesh: mesh_1150 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+              - screws_pdl_02
+                - (node 2439)  [mesh: mesh_1151 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2440)  [mesh: mesh_1152 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+              - screws_pdl_03
+                - (node 2442)  [mesh: mesh_1153 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2443)  [mesh: mesh_1154 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+          - STD
+            - SPACER_03
+              - UFS_013_01_pdl_solid  [mesh: mesh_1155 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+            - SPACER
+              - UFS_013_01_pdl_solid  [mesh: mesh_1156 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+          - 300_RISER
+            - 300
+              - Ext_02_solid  [mesh: mesh_1157 | verts: 3018 | prims: 1 | bbox: (2.7, 1.1, 0.4) ΓåÆ (2.7, 1.4, 1.0)]
+              - HOLES_pdl_02
+              - HOLES_pdl
+              - HOLES_pdl_02_01
+              - HOLES_pdl_01
+              - HOLES_pdl_03
+              - HOLES_pdl_02_02
+              - HOLES_pdl_02_03
+              - HOLES_pdl_04
+              - HOLES_pdl_02_01_01
+              - HOLES_pdl_01_01
+              - HOLES_pdl_03_01
+              - HOLES_pdl_02_02_01
+        - MOVING
+          - ORDERS
+            - STOP_BLOCK_CROWNED  [mesh: mesh_1158 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - STOP_BLOCK_CROWNED_03  [mesh: mesh_1159 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - CLAMP_ARM_KPL_63_A80
+              - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_1160 | verts: 4746 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+              - HOLES_pdl
+              - Rotation_Point
+          - FASTENERS
+            - Set_03
+              - screws_pdl
+                - (node 2477)  [mesh: mesh_1161 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2478)  [mesh: mesh_1162 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+              - screws_pdl_01
+                - (node 2480)  [mesh: mesh_1163 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2481)  [mesh: mesh_1164 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+              - screws_pdl_02
+                - (node 2483)  [mesh: mesh_1165 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2484)  [mesh: mesh_1166 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+              - screws_pdl_03
+                - (node 2486)  [mesh: mesh_1167 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2487)  [mesh: mesh_1168 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+            - Set_02
+              - screws_pdl
+                - (node 2490)  [mesh: mesh_1169 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2491)  [mesh: mesh_1170 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+              - screws_pdl_01
+                - (node 2493)  [mesh: mesh_1171 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2494)  [mesh: mesh_1172 | verts: 204 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+          - 302_PLATE
+            - 302
+              - Ext_01_solid  [mesh: mesh_1173 | verts: 1470 | prims: 1 | bbox: (2.0, 1.3, -0.1) ΓåÆ (2.2, 1.3, -0.0)]
+              - HOLES_pdl_02
+              - HOLES_pdl_01_01
+              - HOLES_pdl_01
+              - HOLES_pdl
+          - STD
+            - SPACER_03
+              - UFS_013_01_pdl_solid  [mesh: mesh_1174 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+            - SPACER
+              - UFS_013_01_pdl_solid  [mesh: mesh_1175 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+      - WIRE
+        - OPEN
+          - OPEN_RH
+            - MOVING
+              - ORDERS
+                - STOP_BLOCK_CROWNED  [mesh: mesh_1176 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                - STOP_BLOCK_CROWNED_03  [mesh: mesh_1177 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                - CLAMP_ARM_KPL_63_A80
+                  - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_1178 | verts: 4746 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+                  - HOLES_pdl
+                  - Rotation_Point
+              - FASTENERS
+                - Set_03
+                  - screws_pdl  [mesh: mesh_1179 | verts: 831 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_01  [mesh: mesh_1180 | verts: 831 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_02  [mesh: mesh_1181 | verts: 831 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_03  [mesh: mesh_1182 | verts: 831 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - Set_02
+                  - screws_pdl  [mesh: mesh_1183 | verts: 831 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_01  [mesh: mesh_1184 | verts: 831 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - 302_PLATE
+                - 302
+                  - Ext_01_solid  [mesh: mesh_1185 | verts: 1470 | prims: 1 | bbox: (2.0, 1.3, -0.1) ΓåÆ (2.2, 1.3, -0.0)]
+                  - HOLES_pdl_02
+                  - HOLES_pdl_01_01
+                  - HOLES_pdl_01
+                  - HOLES_pdl
+              - STD
+                - SPACER_03
+                  - UFS_013_01_pdl_solid  [mesh: mesh_1186 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - HOLES_pdl
+                - SPACER
+                  - UFS_013_01_pdl_solid  [mesh: mesh_1187 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - HOLES_pdl
+          - OPEN_LH
+            - MOVING
+              - ORDERS
+                - STOP_BLOCK_CROWNED  [mesh: mesh_1188 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                - STOP_BLOCK_CROWNED_03  [mesh: mesh_1189 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+                - CLAMP_ARM_KPL_63_A80
+                  - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_1190 | verts: 4758 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+                  - HOLES_pdl
+                  - Rotation_Point
+              - FASTENERS
+                - Set_03
+                  - screws_pdl  [mesh: mesh_1191 | verts: 835 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_01  [mesh: mesh_1192 | verts: 835 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_02  [mesh: mesh_1193 | verts: 835 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_03  [mesh: mesh_1194 | verts: 835 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - Set_02
+                  - screws_pdl  [mesh: mesh_1195 | verts: 835 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - screws_pdl_01  [mesh: mesh_1196 | verts: 835 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - 302_PLATE
+                - 302
+                  - Ext_01_solid  [mesh: mesh_1197 | verts: 1467 | prims: 1 | bbox: (2.0, 1.3, 0.0) ΓåÆ (2.2, 1.3, 0.1)]
+                  - HOLES_pdl_02
+                  - HOLES_pdl_01_01
+                  - HOLES_pdl_01
+                  - HOLES_pdl
+              - STD
+                - SPACER_03
+                  - UFS_013_01_pdl_solid  [mesh: mesh_1198 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - HOLES_pdl
+                - SPACER
+                  - UFS_013_01_pdl_solid  [mesh: mesh_1199 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - HOLES_pdl
+      - LH
+        - FIXED
+          - ORDER
+            - STOP_BLOCK_FLAT  [mesh: mesh_1200 | verts: 596 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - STOP_BLOCK_FLAT_02  [mesh: mesh_1201 | verts: 596 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - VU_63_1_BR2_A05_T12
+              - POWER_CLAMP  [mesh: mesh_1202 | verts: 10422 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+              - Rotation_Point
+              - S2_01  [mesh: mesh_1203 | verts: 3263 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+              - m12_lead_connector_sat
+                - S1  [mesh: mesh_1204 | verts: 517 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S2  [mesh: mesh_1205 | verts: 836 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S3  [mesh: mesh_1206 | verts: 440 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S4  [mesh: mesh_1207 | verts: 138 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - S5  [mesh: mesh_1208 | verts: 773 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - S2_02  [mesh: mesh_1209 | verts: 3263 | prims: 1 | bbox: (-0.3, -0.1, -0.0) ΓåÆ (-0.3, -0.1, 0.0)]
+          - 301_PLATE
+            - 301
+              - Ext_03_solid  [mesh: mesh_1210 | verts: 1574 | prims: 1 | bbox: (2.4, 0.8, -0.0) ΓåÆ (2.6, 0.9, 0.1)]
+              - HOLES_pdl_03
+              - HOLES_pdl_02
+              - HOLES_pdl_01
+              - HOLES_pdl
+          - FASTENERS
+            - Set_04
+              - screws_pdl
+                - (node 2601)  [mesh: mesh_1211 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2602)  [mesh: mesh_1212 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 2604)  [mesh: mesh_1213 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2605)  [mesh: mesh_1214 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 2607)  [mesh: mesh_1215 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2608)  [mesh: mesh_1216 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 2610)  [mesh: mesh_1217 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2611)  [mesh: mesh_1218 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - SET_07
+              - screws_pdl_01
+                - (node 2614)  [mesh: mesh_1219 | verts: 628 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2615)  [mesh: mesh_1220 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+              - screws_pdl_02
+                - (node 2617)  [mesh: mesh_1221 | verts: 628 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2618)  [mesh: mesh_1222 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+              - screws_pdl_03
+                - (node 2620)  [mesh: mesh_1223 | verts: 628 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2621)  [mesh: mesh_1224 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+              - screws_pdl
+                - (node 2623)  [mesh: mesh_1225 | verts: 628 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2624)  [mesh: mesh_1226 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+            - Set_07
+              - screws_pdl
+                - (node 2627)  [mesh: mesh_1227 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2628)  [mesh: mesh_1228 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+              - screws_pdl_01
+                - (node 2630)  [mesh: mesh_1229 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2631)  [mesh: mesh_1230 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+              - screws_pdl_02
+                - (node 2633)  [mesh: mesh_1231 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2634)  [mesh: mesh_1232 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+              - screws_pdl_03
+                - (node 2636)  [mesh: mesh_1233 | verts: 627 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2637)  [mesh: mesh_1234 | verts: 208 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+            - Set_01
+              - screws_pdl
+                - (node 2640)  [mesh: mesh_1235 | verts: 629 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2641)  [mesh: mesh_1236 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 2643)  [mesh: mesh_1237 | verts: 629 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2644)  [mesh: mesh_1238 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 2646)  [mesh: mesh_1239 | verts: 629 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2647)  [mesh: mesh_1240 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 2649)  [mesh: mesh_1241 | verts: 629 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2650)  [mesh: mesh_1242 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - STD
+            - SPACER_03
+              - UFS_013_01_pdl_solid  [mesh: mesh_1243 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+            - SPACER
+              - UFS_013_01_pdl_solid  [mesh: mesh_1244 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+          - 300_RISER
+            - 300
+              - Ext_02_solid  [mesh: mesh_1245 | verts: 3020 | prims: 1 | bbox: (2.7, 1.1, -1.0) ΓåÆ (2.7, 1.4, -0.4)]
+              - HOLES_pdl_02
+              - HOLES_pdl
+              - HOLES_pdl_02_01
+              - HOLES_pdl_01
+              - HOLES_pdl_03
+              - HOLES_pdl_02_02
+              - HOLES_pdl_02_03
+              - HOLES_pdl_04
+              - HOLES_pdl_02_01_01
+              - HOLES_pdl_01_01
+              - HOLES_pdl_03_01
+              - HOLES_pdl_02_02_01
+        - MOVING
+          - ORDERS
+            - STOP_BLOCK_CROWNED  [mesh: mesh_1246 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - STOP_BLOCK_CROWNED_03  [mesh: mesh_1247 | verts: 306 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - CLAMP_ARM_KPL_63_A80
+              - TUENKERS_KPL_63_A80_278309_SPANNARM_sat_solid  [mesh: mesh_1248 | verts: 4758 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+              - HOLES_pdl
+              - Rotation_Point
+          - FASTENERS
+            - Set_03
+              - screws_pdl
+                - (node 2684)  [mesh: mesh_1249 | verts: 629 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2685)  [mesh: mesh_1250 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 2687)  [mesh: mesh_1251 | verts: 629 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2688)  [mesh: mesh_1252 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_02
+                - (node 2690)  [mesh: mesh_1253 | verts: 629 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2691)  [mesh: mesh_1254 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_03
+                - (node 2693)  [mesh: mesh_1255 | verts: 629 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2694)  [mesh: mesh_1256 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - Set_02
+              - screws_pdl
+                - (node 2697)  [mesh: mesh_1257 | verts: 629 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2698)  [mesh: mesh_1258 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - screws_pdl_01
+                - (node 2700)  [mesh: mesh_1259 | verts: 629 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 2701)  [mesh: mesh_1260 | verts: 206 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - 302_PLATE
+            - 302
+              - Ext_01_solid  [mesh: mesh_1261 | verts: 1467 | prims: 1 | bbox: (2.0, 1.3, 0.0) ΓåÆ (2.2, 1.3, 0.1)]
+              - HOLES_pdl_02
+              - HOLES_pdl_01_01
+              - HOLES_pdl_01
+              - HOLES_pdl
+          - STD
+            - SPACER_03
+              - UFS_013_01_pdl_solid  [mesh: mesh_1262 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl
+            - SPACER
+              - UFS_013_01_pdl_solid  [mesh: mesh_1263 | verts: 450 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - HOLES_pdl

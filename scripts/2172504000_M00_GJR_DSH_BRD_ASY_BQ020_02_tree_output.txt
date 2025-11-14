@@ -1,0 +1,1080 @@
+GLB uses Draco compression. Attempting to extract structure from JSON chunk...
+===========================================================
+ GLB TREE INSPECTOR (JSON-ONLY MODE)
+===========================================================
+File : C:\Users\georgem\source\repos\kinetiCORE_data\Tooling\testing_data\2172504000_M00_GJR_DSH_BRD_ASY_BQ020_02\2172504000_M00_GJR_DSH_BRD_ASY_BQ020_02.glb
+
+Scene 0: Scene_0
+  - 2172504000_M00_GJR_DSH_BRD_ASY_BQ020_02
+    - 2172504020_M00_BASE-UNIT
+      - 2172504020_FIXED
+        - MOVEMENT
+          - NORELEM_NLM_07710-2430_ANNEAU_LEVAGE_ART
+            - (node 5)  [mesh: mesh_0 | verts: 2353 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 6)  [mesh: mesh_1 | verts: 44 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - NORELEM_NLM_07710-2430_ANNEAU_LEVAGE_ART
+            - (node 8)  [mesh: mesh_2 | verts: 2353 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 9)  [mesh: mesh_3 | verts: 44 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - NORELEM_NLM_07710-2430_ANNEAU_LEVAGE_ART
+            - (node 11)  [mesh: mesh_4 | verts: 2353 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 12)  [mesh: mesh_5 | verts: 44 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - NORELEM_NLM_07710-2430_ANNEAU_LEVAGE_ART
+            - (node 14)  [mesh: mesh_6 | verts: 2353 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 15)  [mesh: mesh_7 | verts: 44 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - MEASURING
+          - K689910313_M01_SUPPORT_ROMER_H300  [mesh: mesh_8 | verts: 680 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.2, 0.1, 0.3)]
+          - K689910313_M01_SUPPORT_ROMER_H300  [mesh: mesh_9 | verts: 680 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.2, 0.1, 0.3)]
+          - PINNULE_REFERENCE  [mesh: mesh_10 | verts: 1655 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+          - PINNULE_REFERENCE  [mesh: mesh_11 | verts: 1655 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+          - PINNULE_REFERENCE  [mesh: mesh_12 | verts: 1655 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+          - PINNULE_REFERENCE  [mesh: mesh_13 | verts: 1655 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+        - AUTOMATION
+          - DESG_AUT22_02_350
+            - (node 25)  [mesh: mesh_14 | verts: 946 | prims: 1 | bbox: (-0.2, 0.0, 0.0) ΓåÆ (0.2, 0.2, 0.4)]
+            - (node 26)  [mesh: mesh_15 | verts: 560 | prims: 1 | bbox: (-0.2, 0.0, 0.1) ΓåÆ (0.2, 0.2, 0.4)]
+            - (node 27)  [mesh: mesh_16 | verts: 144 | prims: 1 | bbox: (-0.2, 0.1, 0.4) ΓåÆ (0.2, 0.1, 0.4)]
+            - (node 28)  [mesh: mesh_17 | verts: 144 | prims: 1 | bbox: (-0.2, 0.1, 0.0) ΓåÆ (0.2, 0.1, 0.4)]
+            - (node 29)  [mesh: mesh_18 | verts: 120 | prims: 1 | bbox: (-0.2, 0.1, 0.4) ΓåÆ (0.2, 0.1, 0.4)]
+            - (node 30)  [mesh: mesh_19 | verts: 600 | prims: 1 | bbox: (-0.2, 0.2, 0.4) ΓåÆ (0.2, 0.2, 0.4)]
+          - DESG_AUT22_02_600
+            - (node 32)  [mesh: mesh_20 | verts: 946 | prims: 1 | bbox: (-0.3, 0.0, 0.0) ΓåÆ (0.3, 0.2, 0.4)]
+            - (node 33)  [mesh: mesh_21 | verts: 560 | prims: 1 | bbox: (-0.3, 0.0, 0.1) ΓåÆ (0.3, 0.2, 0.4)]
+            - (node 34)  [mesh: mesh_22 | verts: 144 | prims: 1 | bbox: (-0.3, 0.1, 0.4) ΓåÆ (0.3, 0.1, 0.4)]
+            - (node 35)  [mesh: mesh_23 | verts: 144 | prims: 1 | bbox: (-0.3, 0.1, 0.0) ΓåÆ (0.3, 0.1, 0.4)]
+            - (node 36)  [mesh: mesh_24 | verts: 120 | prims: 1 | bbox: (-0.3, 0.1, 0.4) ΓåÆ (0.3, 0.1, 0.4)]
+            - (node 37)  [mesh: mesh_25 | verts: 600 | prims: 1 | bbox: (-0.3, 0.2, 0.4) ΓåÆ (0.3, 0.2, 0.4)]
+          - AC60X-F10-6-A-X2119
+            - (node 39)  [mesh: mesh_26 | verts: 818 | prims: 1 | bbox: (0.0, -0.0, -0.2) ΓåÆ (0.1, 0.0, 0.1)]
+            - (node 40)  [mesh: mesh_27 | verts: 36 | prims: 1 | bbox: (0.0, -0.0, -0.2) ΓåÆ (0.0, 0.0, -0.2)]
+            - (node 41)  [mesh: mesh_28 | verts: 4955 | prims: 1 | bbox: (-0.0, -0.0, -0.2) ΓåÆ (0.2, 0.1, 0.1)]
+            - (node 42)  [mesh: mesh_29 | verts: 320 | prims: 1 | bbox: (-0.2, -0.0, -0.0) ΓåÆ (0.3, 0.0, 0.0)]
+            - (node 43)  [mesh: mesh_30 | verts: 2236 | prims: 1 | bbox: (-0.1, -0.0, -0.1) ΓåÆ (-0.0, 0.0, 0.0)]
+            - (node 44)  [mesh: mesh_31 | verts: 4286 | prims: 1 | bbox: (-0.1, -0.0, -0.1) ΓåÆ (0.1, 0.0, 0.0)]
+            - (node 45)  [mesh: mesh_32 | verts: 1714 | prims: 1 | bbox: (0.1, -0.0, 0.1) ΓåÆ (0.1, 0.0, 0.2)]
+            - (node 46)  [mesh: mesh_33 | verts: 60 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (-0.0, 0.0, 0.0)]
+            - (node 47)  [mesh: mesh_34 | verts: 6862 | prims: 1 | bbox: (-0.1, -0.0, -0.1) ΓåÆ (-0.0, 0.0, -0.0)]
+            - (node 48)  [mesh: mesh_35 | verts: 2088 | prims: 1 | bbox: (-0.1, -0.0, -0.1) ΓåÆ (-0.0, 0.0, -0.1)]
+            - (node 49)  [mesh: mesh_36 | verts: 830 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (-0.0, 0.0, 0.1)]
+          - ENET 4 PORT  [mesh: mesh_37 | verts: 19214 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.3, 0.1, 0.1)]
+          - DESG_AUT22_06_04
+            - (node 52)  [mesh: mesh_38 | verts: 828 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (0.1, 0.1, 0.3)]
+            - (node 53)  [mesh: mesh_39 | verts: 560 | prims: 1 | bbox: (-0.1, 0.0, 0.0) ΓåÆ (0.1, 0.1, 0.3)]
+            - (node 54)  [mesh: mesh_40 | verts: 80 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.2)]
+            - (node 55)  [mesh: mesh_41 | verts: 104 | prims: 1 | bbox: (-0.1, 0.1, 0.3) ΓåÆ (0.1, 0.1, 0.3)]
+            - (node 56)  [mesh: mesh_42 | verts: 152 | prims: 1 | bbox: (-0.1, 0.1, 0.0) ΓåÆ (0.1, 0.1, 0.3)]
+            - (node 57)  [mesh: mesh_43 | verts: 80 | prims: 1 | bbox: (-0.0, 0.1, 0.3) ΓåÆ (0.0, 0.1, 0.3)]
+            - (node 58)  [mesh: mesh_44 | verts: 800 | prims: 1 | bbox: (-0.0, 0.0, 0.0) ΓåÆ (0.0, 0.1, 0.3)]
+            - (node 59)  [mesh: mesh_45 | verts: 15959 | prims: 1 | bbox: (-0.0, 0.0, 0.0) ΓåÆ (0.0, 0.0, 0.3)]
+          - DESG_AUT22_03_8P
+            - (node 61)  [mesh: mesh_46 | verts: 1212 | prims: 1 | bbox: (-0.1, 0.0, 0.0) ΓåÆ (0.1, 0.1, 0.3)]
+            - (node 62)  [mesh: mesh_47 | verts: 560 | prims: 1 | bbox: (-0.1, 0.0, 0.0) ΓåÆ (0.1, 0.1, 0.3)]
+            - (node 63)  [mesh: mesh_48 | verts: 104 | prims: 1 | bbox: (-0.1, 0.1, 0.3) ΓåÆ (0.1, 0.1, 0.3)]
+            - (node 64)  [mesh: mesh_49 | verts: 152 | prims: 1 | bbox: (-0.1, 0.1, 0.0) ΓåÆ (0.1, 0.1, 0.3)]
+            - (node 65)  [mesh: mesh_50 | verts: 80 | prims: 1 | bbox: (-0.1, 0.1, 0.3) ΓåÆ (0.1, 0.1, 0.3)]
+            - (node 66)  [mesh: mesh_51 | verts: 800 | prims: 1 | bbox: (-0.1, 0.0, 0.0) ΓåÆ (0.1, 0.1, 0.3)]
+          - DESG_AUT22_03_4P
+            - (node 68)  [mesh: mesh_52 | verts: 1114 | prims: 1 | bbox: (-0.1, 0.0, 0.0) ΓåÆ (0.1, 0.1, 0.3)]
+            - (node 69)  [mesh: mesh_53 | verts: 560 | prims: 1 | bbox: (-0.1, 0.0, 0.0) ΓåÆ (0.1, 0.1, 0.3)]
+            - (node 70)  [mesh: mesh_54 | verts: 104 | prims: 1 | bbox: (-0.1, 0.1, 0.2) ΓåÆ (0.1, 0.1, 0.2)]
+            - (node 71)  [mesh: mesh_55 | verts: 152 | prims: 1 | bbox: (-0.1, 0.1, 0.0) ΓåÆ (0.1, 0.1, 0.2)]
+            - (node 72)  [mesh: mesh_56 | verts: 80 | prims: 1 | bbox: (-0.1, 0.1, 0.2) ΓåÆ (0.1, 0.1, 0.2)]
+            - (node 73)  [mesh: mesh_57 | verts: 800 | prims: 1 | bbox: (-0.1, 0.0, 0.0) ΓåÆ (0.1, 0.1, 0.3)]
+        - 2172504021_M00_PLATE
+          - (node 75)  [mesh: mesh_58 | verts: 224 | prims: 1 | bbox: (-0.2, -0.9, 1.1) ΓåÆ (0.4, 0.9, 1.1)]
+          - (node 76)  [mesh: mesh_59 | verts: 864 | prims: 1 | bbox: (-0.2, -1.0, 1.1) ΓåÆ (0.4, 1.0, 1.1)]
+          - (node 77)  [mesh: mesh_60 | verts: 306 | prims: 1 | bbox: (-0.2, -1.0, 1.1) ΓåÆ (0.4, 1.0, 1.1)]
+          - (node 78)  [mesh: mesh_61 | verts: 180 | prims: 1 | bbox: (-0.2, -0.6, 1.1) ΓåÆ (0.4, 0.7, 1.1)]
+        - 2047_K689910000_M00_PROTECTION_PIED  [mesh: mesh_62 | verts: 352 | prims: 1 | bbox: (-0.1, -0.1, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+        - 2047_K689910000_M00_PROTECTION_PIED  [mesh: mesh_63 | verts: 352 | prims: 1 | bbox: (-0.1, -0.1, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+        - 4999_MARTIN_TECHNOLOGIE_Z000150087_IMMATRICULATION
+          - (node 82)  [mesh: mesh_64 | verts: 48 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+          - (node 83)  [mesh: mesh_65 | verts: 376 | prims: 1 | bbox: (-0.1, -0.1, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+        - 4998_MARTIN_TECHNOLOGIE_Z000231820_REPERE_MAP
+          - (node 85)  [mesh: mesh_66 | verts: 32 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 86)  [mesh: mesh_67 | verts: 212 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - 4998_MARTIN_TECHNOLOGIE_Z000231820_REPERE_MAP
+          - (node 88)  [mesh: mesh_68 | verts: 32 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 89)  [mesh: mesh_69 | verts: 212 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - 4998_MARTIN_TECHNOLOGIE_Z000231820_REPERE_MAP
+          - (node 91)  [mesh: mesh_70 | verts: 32 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 92)  [mesh: mesh_71 | verts: 212 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - 4998_MARTIN_TECHNOLOGIE_Z000231820_REPERE_MAP
+          - (node 94)  [mesh: mesh_72 | verts: 32 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 95)  [mesh: mesh_73 | verts: 212 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - 2000_K689911512_M00_ROND_PROTEC_PIN  [mesh: mesh_74 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - 2000_K689911512_M00_ROND_PROTEC_PIN  [mesh: mesh_75 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - 2000_K689911512_M00_ROND_PROTEC_PIN  [mesh: mesh_76 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - 2000_K689911512_M00_ROND_PROTEC_PIN  [mesh: mesh_77 | verts: 248 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+    - 2172504040_M00_CLAMP-UNIT
+      - 2172504040_MOVING
+        - SMC_MGPA50TF-75Z-XC35W_VERIN_COMPACT_GUIDE_TIGE
+          - (node 103)  [mesh: mesh_78 | verts: 1192 | prims: 1 | bbox: (-0.0, -0.1, -0.2) ΓåÆ (0.0, 0.1, 0.0)]
+          - (node 104)  [mesh: mesh_79 | verts: 80 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 105)  [mesh: mesh_80 | verts: 160 | prims: 1 | bbox: (-0.0, -0.1, 0.0) ΓåÆ (0.0, 0.1, 0.0)]
+        - 2172504043_M00_PLATE  [mesh: mesh_81 | verts: 54 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.2, 0.1, 0.0)]
+        - 2172504042_M00_L_BRACKET
+          - (node 108)
+          - (node 109)
+          - (node 110)
+          - (node 111)
+          - (node 112)
+          - (node 113)
+          - (node 114)
+          - (node 115)
+          - (node 116)
+          - (node 117)
+          - (node 118)  [mesh: mesh_82 | verts: 80 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - (node 119)  [mesh: mesh_83 | verts: 920 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.1, 0.2, 0.0)]
+          - (node 120)  [mesh: mesh_84 | verts: 40 | prims: 1 | bbox: (0.0, 0.1, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+        - 2172504044_M00_L_BRACKET  [mesh: mesh_85 | verts: 36 | prims: 1 | bbox: (0.0, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+        - 2172504044_M00_L_BRACKET  [mesh: mesh_86 | verts: 36 | prims: 1 | bbox: (0.0, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+        - Copy (1) of Copy (1) of Copy (1) of 2172493043_M00_MYLAR
+          - (node 124)
+          - (node 125)
+          - (node 126)
+          - (node 127)
+          - (node 128)  [mesh: mesh_87 | verts: 377 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+          - (node 129)  [mesh: mesh_88 | verts: 117 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+          - (node 130)  [mesh: mesh_89 | verts: 8 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+        - Copy (1) of 2172493043_M00_MYLAR
+          - (node 132)
+          - (node 133)  [mesh: mesh_90 | verts: 436 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+          - (node 134)  [mesh: mesh_91 | verts: 163 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+          - (node 135)  [mesh: mesh_92 | verts: 115 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+          - (node 136)  [mesh: mesh_93 | verts: 100 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+        - Copy (1) of 2172504044_M00_L_BRACKET
+          - (node 138)
+          - (node 139)
+          - (node 140)
+          - (node 141)  [mesh: mesh_94 | verts: 160 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+          - (node 142)  [mesh: mesh_95 | verts: 484 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+        - DESG_S02_01_01_AF17
+          - (node 144)  [mesh: mesh_96 | verts: 484 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 145)  [mesh: mesh_97 | verts: 52 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - opc95287.f01.0029  [mesh: mesh_98 | verts: 222 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - opc95287.f01.0029  [mesh: mesh_99 | verts: 222 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - opc95287.f01.0029  [mesh: mesh_100 | verts: 222 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+      - 2172504040_FIXED
+        - DESG_RT07_08_200
+          - (node 151)  [mesh: mesh_101 | verts: 160 | prims: 1 | bbox: (-0.0, 0.2, 0.0) ΓåÆ (0.0, 0.2, 0.0)]
+          - (node 152)  [mesh: mesh_102 | verts: 551 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.3, 0.2)]
+          - (node 153)  [mesh: mesh_103 | verts: 200 | prims: 1 | bbox: (-0.0, 0.1, 0.2) ΓåÆ (0.0, 0.1, 0.2)]
+          - (node 154)  [mesh: mesh_104 | verts: 657 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.3, 0.2)]
+          - (node 155)  [mesh: mesh_105 | verts: 240 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.2, 0.2)]
+        - 2172504041_M00_L_BRACKET  [mesh: mesh_106 | verts: 48 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+        - 2172504045_M00_L_BRACKET  [mesh: mesh_107 | verts: 48 | prims: 1 | bbox: (-0.1, 0.0, -0.0) ΓåÆ (0.1, 0.2, 0.0)]
+        - Copy (1) of 2172504043_M00_PLATE  [mesh: mesh_108 | verts: 52 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+        - Copy (1) of 2172493045_M00_MYLAR
+          - (node 160)  [mesh: mesh_109 | verts: 42 | prims: 1 | bbox: (0.2, 0.6, 0.5) ΓåÆ (0.2, 0.6, 0.5)]
+          - (node 161)  [mesh: mesh_110 | verts: 2 | prims: 1 | bbox: (0.2, 0.6, 0.5) ΓåÆ (0.2, 0.6, 0.5)]
+          - (node 162)
+        - 4XXX_MGPA50TF-75Z-XC35W_M _VER_CPCT_GUI_50_C75
+          - SMC_MGPA50TF-75Z-XC35W_VERIN_COMPACT_GUIDE_CORPS
+            - (node 165)  [mesh: mesh_111 | verts: 2672 | prims: 1 | bbox: (-0.0, -0.1, -0.1) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 166)  [mesh: mesh_112 | verts: 408 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+            - (node 167)  [mesh: mesh_113 | verts: 960 | prims: 1 | bbox: (-0.0, -0.1, -0.1) ΓåÆ (0.0, 0.1, -0.0)]
+          - _MGPA50-Z-XC35W  [mesh: mesh_114 | verts: 775 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.1)]
+          - _MGPA50-Z-XC35W_SCRAPER22  [mesh: mesh_115 | verts: 1098 | prims: 1 | bbox: (0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.1)]
+          - 4XXX_SENSTRONIC_C126304Q050311N+SDPQ05RC.CATProduct
+          - 4XXX_SENSTRONIC_C126304Q050311N+SDPQ05RC.CATProduct
+      - OPEN_POSITION
+        - 2172504040_MOVING
+          - SMC_MGPA50TF-75Z-XC35W_VERIN_COMPACT_GUIDE_TIGE
+            - (node 175)  [mesh: mesh_116 | verts: 1192 | prims: 1 | bbox: (-0.0, -0.1, -0.2) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 176)  [mesh: mesh_117 | verts: 80 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 177)  [mesh: mesh_118 | verts: 160 | prims: 1 | bbox: (-0.0, -0.1, 0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - 2172504043_M00_PLATE  [mesh: mesh_119 | verts: 54 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.2, 0.1, 0.0)]
+          - 2172504042_M00_L_BRACKET
+            - (node 180)
+            - (node 181)
+            - (node 182)
+            - (node 183)
+            - (node 184)
+            - (node 185)
+            - (node 186)
+            - (node 187)
+            - (node 188)
+            - (node 189)
+            - (node 190)  [mesh: mesh_120 | verts: 80 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 191)  [mesh: mesh_121 | verts: 920 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.1, 0.2, 0.0)]
+            - (node 192)  [mesh: mesh_122 | verts: 40 | prims: 1 | bbox: (0.0, 0.1, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+          - 2172504044_M00_L_BRACKET  [mesh: mesh_123 | verts: 36 | prims: 1 | bbox: (0.0, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+          - 2172504044_M00_L_BRACKET  [mesh: mesh_124 | verts: 36 | prims: 1 | bbox: (0.0, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+          - Copy (1) of Copy (1) of Copy (1) of 2172493043_M00_MYLAR
+            - (node 196)
+            - (node 197)
+            - (node 198)
+            - (node 199)
+            - (node 200)  [mesh: mesh_125 | verts: 377 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+            - (node 201)  [mesh: mesh_126 | verts: 117 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+            - (node 202)  [mesh: mesh_127 | verts: 8 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+          - Copy (1) of 2172493043_M00_MYLAR
+            - (node 204)
+            - (node 205)  [mesh: mesh_128 | verts: 436 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+            - (node 206)  [mesh: mesh_129 | verts: 163 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+            - (node 207)  [mesh: mesh_130 | verts: 115 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+            - (node 208)  [mesh: mesh_131 | verts: 100 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+          - Copy (1) of 2172504044_M00_L_BRACKET
+            - (node 210)
+            - (node 211)
+            - (node 212)
+            - (node 213)  [mesh: mesh_132 | verts: 160 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+            - (node 214)  [mesh: mesh_133 | verts: 484 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+          - DESG_S02_01_01_AF17
+            - (node 216)  [mesh: mesh_134 | verts: 484 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 217)  [mesh: mesh_135 | verts: 52 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - opc95287.f01.0029  [mesh: mesh_136 | verts: 222 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - opc95287.f01.0029  [mesh: mesh_137 | verts: 222 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - opc95287.f01.0029  [mesh: mesh_138 | verts: 222 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+    - 2172504060_M00_CLAMP-UNIT
+      - 2172504040_M00_CLAMP-UNIT
+        - 2172504040_MOVING
+          - SMC_MGPA50TF-75Z-XC35W_VERIN_COMPACT_GUIDE_TIGE
+            - (node 225)  [mesh: mesh_139 | verts: 1192 | prims: 1 | bbox: (-0.0, -0.1, -0.2) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 226)  [mesh: mesh_140 | verts: 80 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 227)  [mesh: mesh_141 | verts: 160 | prims: 1 | bbox: (-0.0, -0.1, 0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - 2172504043_M00_PLATE  [mesh: mesh_142 | verts: 54 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.2, 0.1, 0.0)]
+          - 2172504042_M00_L_BRACKET
+            - (node 230)
+            - (node 231)
+            - (node 232)
+            - (node 233)
+            - (node 234)
+            - (node 235)
+            - (node 236)
+            - (node 237)
+            - (node 238)
+            - (node 239)
+            - (node 240)  [mesh: mesh_143 | verts: 80 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 241)  [mesh: mesh_144 | verts: 920 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.1, 0.2, 0.0)]
+            - (node 242)  [mesh: mesh_145 | verts: 40 | prims: 1 | bbox: (0.0, 0.1, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+          - 2172504044_M00_L_BRACKET  [mesh: mesh_146 | verts: 36 | prims: 1 | bbox: (0.0, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+          - 2172504044_M00_L_BRACKET  [mesh: mesh_147 | verts: 36 | prims: 1 | bbox: (0.0, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+          - Copy (1) of Copy (1) of Copy (1) of 2172493043_M00_MYLAR
+            - (node 246)
+            - (node 247)
+            - (node 248)
+            - (node 249)
+            - (node 250)  [mesh: mesh_148 | verts: 377 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+            - (node 251)  [mesh: mesh_149 | verts: 117 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+            - (node 252)  [mesh: mesh_150 | verts: 8 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+          - Copy (1) of 2172493043_M00_MYLAR
+            - (node 254)
+            - (node 255)  [mesh: mesh_151 | verts: 436 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+            - (node 256)  [mesh: mesh_152 | verts: 163 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+            - (node 257)  [mesh: mesh_153 | verts: 115 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+            - (node 258)  [mesh: mesh_154 | verts: 100 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+          - Copy (1) of 2172504044_M00_L_BRACKET
+            - (node 260)
+            - (node 261)
+            - (node 262)
+            - (node 263)  [mesh: mesh_155 | verts: 160 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+            - (node 264)  [mesh: mesh_156 | verts: 484 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+          - DESG_S02_01_01_AF17
+            - (node 266)  [mesh: mesh_157 | verts: 484 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 267)  [mesh: mesh_158 | verts: 52 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - opc95287.f01.0029  [mesh: mesh_159 | verts: 222 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - opc95287.f01.0029  [mesh: mesh_160 | verts: 222 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - opc95287.f01.0029  [mesh: mesh_161 | verts: 222 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - 2172504040_FIXED
+          - DESG_RT07_08_200
+            - (node 273)  [mesh: mesh_162 | verts: 160 | prims: 1 | bbox: (-0.0, 0.2, 0.0) ΓåÆ (0.0, 0.2, 0.0)]
+            - (node 274)  [mesh: mesh_163 | verts: 551 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.3, 0.2)]
+            - (node 275)  [mesh: mesh_164 | verts: 200 | prims: 1 | bbox: (-0.0, 0.1, 0.2) ΓåÆ (0.0, 0.1, 0.2)]
+            - (node 276)  [mesh: mesh_165 | verts: 657 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.3, 0.2)]
+            - (node 277)  [mesh: mesh_166 | verts: 240 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.2, 0.2)]
+          - 2172504041_M00_L_BRACKET  [mesh: mesh_167 | verts: 48 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+          - 2172504045_M00_L_BRACKET  [mesh: mesh_168 | verts: 48 | prims: 1 | bbox: (-0.1, 0.0, -0.0) ΓåÆ (0.1, 0.2, 0.0)]
+          - Copy (1) of 2172504043_M00_PLATE  [mesh: mesh_169 | verts: 52 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+          - Copy (1) of 2172493045_M00_MYLAR
+            - (node 282)  [mesh: mesh_170 | verts: 42 | prims: 1 | bbox: (0.2, 0.6, 0.5) ΓåÆ (0.2, 0.6, 0.5)]
+            - (node 283)  [mesh: mesh_171 | verts: 2 | prims: 1 | bbox: (0.2, 0.6, 0.5) ΓåÆ (0.2, 0.6, 0.5)]
+            - (node 284)
+          - 4XXX_MGPA50TF-75Z-XC35W_M _VER_CPCT_GUI_50_C75
+            - SMC_MGPA50TF-75Z-XC35W_VERIN_COMPACT_GUIDE_CORPS
+              - (node 287)  [mesh: mesh_172 | verts: 2672 | prims: 1 | bbox: (-0.0, -0.1, -0.1) ΓåÆ (0.0, 0.1, 0.0)]
+              - (node 288)  [mesh: mesh_173 | verts: 408 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+              - (node 289)  [mesh: mesh_174 | verts: 960 | prims: 1 | bbox: (-0.0, -0.1, -0.1) ΓåÆ (0.0, 0.1, -0.0)]
+            - _MGPA50-Z-XC35W  [mesh: mesh_175 | verts: 775 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.1)]
+            - _MGPA50-Z-XC35W_SCRAPER22  [mesh: mesh_176 | verts: 1098 | prims: 1 | bbox: (0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.1)]
+            - 4XXX_SENSTRONIC_C126304Q050311N+SDPQ05RC.CATProduct
+            - 4XXX_SENSTRONIC_C126304Q050311N+SDPQ05RC.CATProduct
+        - OPEN_POSITION
+          - 2172504040_MOVING
+            - SMC_MGPA50TF-75Z-XC35W_VERIN_COMPACT_GUIDE_TIGE
+              - (node 297)  [mesh: mesh_177 | verts: 1192 | prims: 1 | bbox: (-0.0, -0.1, -0.2) ΓåÆ (0.0, 0.1, 0.0)]
+              - (node 298)  [mesh: mesh_178 | verts: 80 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 299)  [mesh: mesh_179 | verts: 160 | prims: 1 | bbox: (-0.0, -0.1, 0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - 2172504043_M00_PLATE  [mesh: mesh_180 | verts: 54 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.2, 0.1, 0.0)]
+            - 2172504042_M00_L_BRACKET
+              - (node 302)
+              - (node 303)
+              - (node 304)
+              - (node 305)
+              - (node 306)
+              - (node 307)
+              - (node 308)
+              - (node 309)
+              - (node 310)
+              - (node 311)
+              - (node 312)  [mesh: mesh_181 | verts: 80 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+              - (node 313)  [mesh: mesh_182 | verts: 920 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.1, 0.2, 0.0)]
+              - (node 314)  [mesh: mesh_183 | verts: 40 | prims: 1 | bbox: (0.0, 0.1, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+            - 2172504044_M00_L_BRACKET  [mesh: mesh_184 | verts: 36 | prims: 1 | bbox: (0.0, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+            - 2172504044_M00_L_BRACKET  [mesh: mesh_185 | verts: 36 | prims: 1 | bbox: (0.0, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+            - Copy (1) of Copy (1) of Copy (1) of 2172493043_M00_MYLAR
+              - (node 318)
+              - (node 319)
+              - (node 320)
+              - (node 321)
+              - (node 322)  [mesh: mesh_186 | verts: 377 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+              - (node 323)  [mesh: mesh_187 | verts: 117 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+              - (node 324)  [mesh: mesh_188 | verts: 8 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+            - Copy (1) of 2172493043_M00_MYLAR
+              - (node 326)
+              - (node 327)  [mesh: mesh_189 | verts: 436 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+              - (node 328)  [mesh: mesh_190 | verts: 163 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+              - (node 329)  [mesh: mesh_191 | verts: 115 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+              - (node 330)  [mesh: mesh_192 | verts: 100 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+            - Copy (1) of 2172504044_M00_L_BRACKET
+              - (node 332)
+              - (node 333)
+              - (node 334)
+              - (node 335)  [mesh: mesh_193 | verts: 160 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+              - (node 336)  [mesh: mesh_194 | verts: 484 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+            - DESG_S02_01_01_AF17
+              - (node 338)  [mesh: mesh_195 | verts: 484 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 339)  [mesh: mesh_196 | verts: 52 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - opc95287.f01.0029  [mesh: mesh_197 | verts: 222 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - opc95287.f01.0029  [mesh: mesh_198 | verts: 222 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - opc95287.f01.0029  [mesh: mesh_199 | verts: 222 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+    - 2172504080_M00_CLAMP-UNIT
+      - 2172504080_OPEN
+        - 2172504080_MOVING
+          - 2172504082_M00_PLATE
+            - (node 347)  [mesh: mesh_200 | verts: 32 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+            - (node 348)  [mesh: mesh_201 | verts: 16 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (-0.0, 0.0, 0.1)]
+          - 2172504083_M00_PLATE
+            - (node 350)  [mesh: mesh_202 | verts: 146 | prims: 1 | bbox: (-0.1, -0.2, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 351)  [mesh: mesh_203 | verts: 10 | prims: 1 | bbox: (-0.0, -0.2, 0.0) ΓåÆ (0.0, -0.1, 0.0)]
+          - 2172504085_M00_MYLAR
+            - (node 353)
+            - (node 354)  [mesh: mesh_204 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+            - (node 355)  [mesh: mesh_205 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+            - (node 356)  [mesh: mesh_206 | verts: 220 | prims: 1 | bbox: (0.1, 0.6, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+          - 2172504084_M00_PLATE
+            - (node 358)  [mesh: mesh_207 | verts: 28 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (0.0, -0.0, 0.1)]
+            - (node 359)  [mesh: mesh_208 | verts: 8 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (-0.0, -0.0, 0.1)]
+          - 2172504087_M00_MYLAR
+            - (node 361)
+            - (node 362)  [mesh: mesh_209 | verts: 80 | prims: 1 | bbox: (0.1, 0.6, 0.6) ΓåÆ (0.1, 0.6, 0.6)]
+            - (node 363)  [mesh: mesh_210 | verts: 196 | prims: 1 | bbox: (0.1, 0.5, 0.6) ΓåÆ (0.1, 0.6, 0.6)]
+            - (node 364)  [mesh: mesh_211 | verts: 80 | prims: 1 | bbox: (0.1, 0.6, 0.6) ΓåÆ (0.1, 0.6, 0.6)]
+          - 2172504091_M00_MYLAR
+            - (node 366)  [mesh: mesh_212 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+            - (node 367)  [mesh: mesh_213 | verts: 196 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.8, 0.6)]
+            - (node 368)  [mesh: mesh_214 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+          - 2172504097_M00_MYLAR
+            - (node 370)
+            - (node 371)  [mesh: mesh_215 | verts: 164 | prims: 1 | bbox: (0.2, 0.6, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+            - (node 372)  [mesh: mesh_216 | verts: 112 | prims: 1 | bbox: (0.2, 0.6, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+            - (node 373)  [mesh: mesh_217 | verts: 80 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+          - 2172504099_M00_MYLAR
+            - (node 375)
+            - (node 376)  [mesh: mesh_218 | verts: 100 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+            - (node 377)  [mesh: mesh_219 | verts: 192 | prims: 1 | bbox: (0.1, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+            - (node 378)  [mesh: mesh_220 | verts: 96 | prims: 1 | bbox: (0.1, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+          - 8um634_25_144
+            - (node 380)  [mesh: mesh_221 | verts: 40 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 381)  [mesh: mesh_222 | verts: 256 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 382)  [mesh: mesh_223 | verts: 444 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 383)  [mesh: mesh_224 | verts: 428 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 384)  [mesh: mesh_225 | verts: 80 | prims: 1 | bbox: (-0.1, 0.0, -0.0) ΓåÆ (-0.1, 0.1, 0.0)]
+      - 2172504080_FIXED
+        - DESG_RT07_05_400
+          - (node 387)  [mesh: mesh_226 | verts: 560 | prims: 1 | bbox: (-0.0, 0.0, 0.0) ΓåÆ (0.0, 0.2, 0.4)]
+          - (node 388)  [mesh: mesh_227 | verts: 313 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.2, 0.4)]
+          - (node 389)  [mesh: mesh_228 | verts: 400 | prims: 1 | bbox: (-0.0, 0.0, 0.0) ΓåÆ (0.0, 0.2, 0.4)]
+          - (node 390)  [mesh: mesh_229 | verts: 500 | prims: 1 | bbox: (-0.0, 0.1, 0.2) ΓåÆ (0.0, 0.1, 0.3)]
+          - (node 391)  [mesh: mesh_230 | verts: 860 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.2, 0.4)]
+        - 2172504081_M00_PLATE
+          - (node 393)  [mesh: mesh_231 | verts: 62 | prims: 1 | bbox: (-0.0, -0.1, 0.0) ΓåÆ (-0.0, -0.0, 0.0)]
+          - (node 394)  [mesh: mesh_232 | verts: 28 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (-0.0, -0.0, 0.0)]
+          - (node 395)  [mesh: mesh_233 | verts: 124 | prims: 1 | bbox: (-0.1, -0.1, 0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - (node 396)  [mesh: mesh_234 | verts: 2 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (-0.0, -0.0, 0.0)]
+          - (node 397)
+        - DESG_S02_01_02_AF17
+          - (node 399)  [mesh: mesh_235 | verts: 542 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 400)  [mesh: mesh_236 | verts: 52 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - 2172504095_M00_MYLAR
+          - (node 402)
+          - (node 403)  [mesh: mesh_237 | verts: 166 | prims: 1 | bbox: (0.1, 0.6, 0.7) ΓåÆ (0.1, 0.6, 0.7)]
+          - (node 404)  [mesh: mesh_238 | verts: 138 | prims: 1 | bbox: (0.1, 0.6, 0.6) ΓåÆ (0.1, 0.7, 0.7)]
+          - (node 405)  [mesh: mesh_239 | verts: 80 | prims: 1 | bbox: (0.1, 0.6, 0.7) ΓåÆ (0.1, 0.6, 0.7)]
+          - (node 406)  [mesh: mesh_240 | verts: 8 | prims: 1 | bbox: (0.1, 0.6, 0.6) ΓåÆ (0.1, 0.7, 0.7)]
+        - 2172504089_M00_MYLAR
+          - (node 408)
+          - (node 409)  [mesh: mesh_241 | verts: 80 | prims: 1 | bbox: (0.1, 0.5, 0.7) ΓåÆ (0.1, 0.5, 0.7)]
+          - (node 410)  [mesh: mesh_242 | verts: 220 | prims: 1 | bbox: (0.1, 0.5, 0.6) ΓåÆ (0.1, 0.6, 0.7)]
+          - (node 411)  [mesh: mesh_243 | verts: 80 | prims: 1 | bbox: (0.1, 0.5, 0.7) ΓåÆ (0.1, 0.5, 0.7)]
+        - 4XXX_DESTACO_82M-3E030063L8_SERRAGE_63
+          - (node 413)  [mesh: mesh_244 | verts: 2 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 414)  [mesh: mesh_245 | verts: 3258 | prims: 1 | bbox: (-0.0, -0.3, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+          - (node 415)  [mesh: mesh_246 | verts: 816 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+          - (node 416)  [mesh: mesh_247 | verts: 60 | prims: 1 | bbox: (0.0, 0.1, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - (node 417)  [mesh: mesh_248 | verts: 1120 | prims: 1 | bbox: (-0.0, -0.3, -0.0) ΓåÆ (0.1, -0.0, 0.0)]
+          - (node 418)  [mesh: mesh_249 | verts: 60 | prims: 1 | bbox: (-0.0, -0.3, -0.0) ΓåÆ (0.1, -0.1, 0.0)]
+      - 2172504080_MOVING
+        - 2172504082_M00_PLATE
+          - (node 421)  [mesh: mesh_250 | verts: 32 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+          - (node 422)  [mesh: mesh_251 | verts: 16 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (-0.0, 0.0, 0.1)]
+        - 2172504083_M00_PLATE
+          - (node 424)  [mesh: mesh_252 | verts: 146 | prims: 1 | bbox: (-0.1, -0.2, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 425)  [mesh: mesh_253 | verts: 10 | prims: 1 | bbox: (-0.0, -0.2, 0.0) ΓåÆ (0.0, -0.1, 0.0)]
+        - 2172504085_M00_MYLAR
+          - (node 427)
+          - (node 428)  [mesh: mesh_254 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+          - (node 429)  [mesh: mesh_255 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+          - (node 430)  [mesh: mesh_256 | verts: 220 | prims: 1 | bbox: (0.1, 0.6, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+        - 2172504084_M00_PLATE
+          - (node 432)  [mesh: mesh_257 | verts: 28 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (0.0, -0.0, 0.1)]
+          - (node 433)  [mesh: mesh_258 | verts: 8 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (-0.0, -0.0, 0.1)]
+        - 2172504087_M00_MYLAR
+          - (node 435)
+          - (node 436)  [mesh: mesh_259 | verts: 80 | prims: 1 | bbox: (0.1, 0.6, 0.6) ΓåÆ (0.1, 0.6, 0.6)]
+          - (node 437)  [mesh: mesh_260 | verts: 196 | prims: 1 | bbox: (0.1, 0.5, 0.6) ΓåÆ (0.1, 0.6, 0.6)]
+          - (node 438)  [mesh: mesh_261 | verts: 80 | prims: 1 | bbox: (0.1, 0.6, 0.6) ΓåÆ (0.1, 0.6, 0.6)]
+        - 2172504091_M00_MYLAR
+          - (node 440)  [mesh: mesh_262 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+          - (node 441)  [mesh: mesh_263 | verts: 196 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.8, 0.6)]
+          - (node 442)  [mesh: mesh_264 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+        - 2172504097_M00_MYLAR
+          - (node 444)
+          - (node 445)  [mesh: mesh_265 | verts: 164 | prims: 1 | bbox: (0.2, 0.6, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+          - (node 446)  [mesh: mesh_266 | verts: 112 | prims: 1 | bbox: (0.2, 0.6, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+          - (node 447)  [mesh: mesh_267 | verts: 80 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+        - 2172504099_M00_MYLAR
+          - (node 449)
+          - (node 450)  [mesh: mesh_268 | verts: 100 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+          - (node 451)  [mesh: mesh_269 | verts: 192 | prims: 1 | bbox: (0.1, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+          - (node 452)  [mesh: mesh_270 | verts: 96 | prims: 1 | bbox: (0.1, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+        - 8um634_25_144
+          - (node 454)  [mesh: mesh_271 | verts: 40 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 455)  [mesh: mesh_272 | verts: 256 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 456)  [mesh: mesh_273 | verts: 444 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - (node 457)  [mesh: mesh_274 | verts: 428 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - (node 458)  [mesh: mesh_275 | verts: 80 | prims: 1 | bbox: (-0.1, 0.0, -0.0) ΓåÆ (-0.1, 0.1, 0.0)]
+    - 2172504100_M00_CLAMP-UNIT
+      - 2172504080_M00_CLAMP-UNIT
+        - 2172504080_OPEN
+          - 2172504080_MOVING
+            - 2172504082_M00_PLATE
+              - (node 464)  [mesh: mesh_276 | verts: 32 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+              - (node 465)  [mesh: mesh_277 | verts: 16 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (-0.0, 0.0, 0.1)]
+            - 2172504083_M00_PLATE
+              - (node 467)  [mesh: mesh_278 | verts: 146 | prims: 1 | bbox: (-0.1, -0.2, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 468)  [mesh: mesh_279 | verts: 10 | prims: 1 | bbox: (-0.0, -0.2, 0.0) ΓåÆ (0.0, -0.1, 0.0)]
+            - 2172504085_M00_MYLAR
+              - (node 470)
+              - (node 471)  [mesh: mesh_280 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+              - (node 472)  [mesh: mesh_281 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+              - (node 473)  [mesh: mesh_282 | verts: 220 | prims: 1 | bbox: (0.1, 0.6, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+            - 2172504084_M00_PLATE
+              - (node 475)  [mesh: mesh_283 | verts: 28 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (0.0, -0.0, 0.1)]
+              - (node 476)  [mesh: mesh_284 | verts: 8 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (-0.0, -0.0, 0.1)]
+            - 2172504087_M00_MYLAR
+              - (node 478)
+              - (node 479)  [mesh: mesh_285 | verts: 80 | prims: 1 | bbox: (0.1, 0.6, 0.6) ΓåÆ (0.1, 0.6, 0.6)]
+              - (node 480)  [mesh: mesh_286 | verts: 196 | prims: 1 | bbox: (0.1, 0.5, 0.6) ΓåÆ (0.1, 0.6, 0.6)]
+              - (node 481)  [mesh: mesh_287 | verts: 80 | prims: 1 | bbox: (0.1, 0.6, 0.6) ΓåÆ (0.1, 0.6, 0.6)]
+            - 2172504091_M00_MYLAR
+              - (node 483)  [mesh: mesh_288 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+              - (node 484)  [mesh: mesh_289 | verts: 196 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.8, 0.6)]
+              - (node 485)  [mesh: mesh_290 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+            - 2172504097_M00_MYLAR
+              - (node 487)
+              - (node 488)  [mesh: mesh_291 | verts: 164 | prims: 1 | bbox: (0.2, 0.6, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+              - (node 489)  [mesh: mesh_292 | verts: 112 | prims: 1 | bbox: (0.2, 0.6, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+              - (node 490)  [mesh: mesh_293 | verts: 80 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+            - 2172504099_M00_MYLAR
+              - (node 492)
+              - (node 493)  [mesh: mesh_294 | verts: 100 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+              - (node 494)  [mesh: mesh_295 | verts: 192 | prims: 1 | bbox: (0.1, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+              - (node 495)  [mesh: mesh_296 | verts: 96 | prims: 1 | bbox: (0.1, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+            - 8um634_25_144
+              - (node 497)  [mesh: mesh_297 | verts: 40 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 498)  [mesh: mesh_298 | verts: 256 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 499)  [mesh: mesh_299 | verts: 444 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+              - (node 500)  [mesh: mesh_300 | verts: 428 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+              - (node 501)  [mesh: mesh_301 | verts: 80 | prims: 1 | bbox: (-0.1, 0.0, -0.0) ΓåÆ (-0.1, 0.1, 0.0)]
+        - 2172504080_FIXED
+          - DESG_RT07_05_400
+            - (node 504)  [mesh: mesh_302 | verts: 560 | prims: 1 | bbox: (-0.0, 0.0, 0.0) ΓåÆ (0.0, 0.2, 0.4)]
+            - (node 505)  [mesh: mesh_303 | verts: 313 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.2, 0.4)]
+            - (node 506)  [mesh: mesh_304 | verts: 400 | prims: 1 | bbox: (-0.0, 0.0, 0.0) ΓåÆ (0.0, 0.2, 0.4)]
+            - (node 507)  [mesh: mesh_305 | verts: 500 | prims: 1 | bbox: (-0.0, 0.1, 0.2) ΓåÆ (0.0, 0.1, 0.3)]
+            - (node 508)  [mesh: mesh_306 | verts: 860 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.2, 0.4)]
+          - 2172504081_M00_PLATE
+            - (node 510)  [mesh: mesh_307 | verts: 62 | prims: 1 | bbox: (-0.0, -0.1, 0.0) ΓåÆ (-0.0, -0.0, 0.0)]
+            - (node 511)  [mesh: mesh_308 | verts: 28 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (-0.0, -0.0, 0.0)]
+            - (node 512)  [mesh: mesh_309 | verts: 124 | prims: 1 | bbox: (-0.1, -0.1, 0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 513)  [mesh: mesh_310 | verts: 2 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (-0.0, -0.0, 0.0)]
+            - (node 514)
+          - DESG_S02_01_02_AF17
+            - (node 516)  [mesh: mesh_311 | verts: 542 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 517)  [mesh: mesh_312 | verts: 52 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - 2172504095_M00_MYLAR
+            - (node 519)
+            - (node 520)  [mesh: mesh_313 | verts: 166 | prims: 1 | bbox: (0.1, 0.6, 0.7) ΓåÆ (0.1, 0.6, 0.7)]
+            - (node 521)  [mesh: mesh_314 | verts: 138 | prims: 1 | bbox: (0.1, 0.6, 0.6) ΓåÆ (0.1, 0.7, 0.7)]
+            - (node 522)  [mesh: mesh_315 | verts: 80 | prims: 1 | bbox: (0.1, 0.6, 0.7) ΓåÆ (0.1, 0.6, 0.7)]
+            - (node 523)  [mesh: mesh_316 | verts: 8 | prims: 1 | bbox: (0.1, 0.6, 0.6) ΓåÆ (0.1, 0.7, 0.7)]
+          - 2172504089_M00_MYLAR
+            - (node 525)
+            - (node 526)  [mesh: mesh_317 | verts: 80 | prims: 1 | bbox: (0.1, 0.5, 0.7) ΓåÆ (0.1, 0.5, 0.7)]
+            - (node 527)  [mesh: mesh_318 | verts: 220 | prims: 1 | bbox: (0.1, 0.5, 0.6) ΓåÆ (0.1, 0.6, 0.7)]
+            - (node 528)  [mesh: mesh_319 | verts: 80 | prims: 1 | bbox: (0.1, 0.5, 0.7) ΓåÆ (0.1, 0.5, 0.7)]
+          - 4XXX_DESTACO_82M-3E030063L8_SERRAGE_63
+            - (node 530)  [mesh: mesh_320 | verts: 2 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 531)  [mesh: mesh_321 | verts: 3258 | prims: 1 | bbox: (-0.0, -0.3, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+            - (node 532)  [mesh: mesh_322 | verts: 816 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+            - (node 533)  [mesh: mesh_323 | verts: 60 | prims: 1 | bbox: (0.0, 0.1, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 534)  [mesh: mesh_324 | verts: 1120 | prims: 1 | bbox: (-0.0, -0.3, -0.0) ΓåÆ (0.1, -0.0, 0.0)]
+            - (node 535)  [mesh: mesh_325 | verts: 60 | prims: 1 | bbox: (-0.0, -0.3, -0.0) ΓåÆ (0.1, -0.1, 0.0)]
+        - 2172504080_MOVING
+          - 2172504082_M00_PLATE
+            - (node 538)  [mesh: mesh_326 | verts: 32 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+            - (node 539)  [mesh: mesh_327 | verts: 16 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (-0.0, 0.0, 0.1)]
+          - 2172504083_M00_PLATE
+            - (node 541)  [mesh: mesh_328 | verts: 146 | prims: 1 | bbox: (-0.1, -0.2, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 542)  [mesh: mesh_329 | verts: 10 | prims: 1 | bbox: (-0.0, -0.2, 0.0) ΓåÆ (0.0, -0.1, 0.0)]
+          - 2172504085_M00_MYLAR
+            - (node 544)
+            - (node 545)  [mesh: mesh_330 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+            - (node 546)  [mesh: mesh_331 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+            - (node 547)  [mesh: mesh_332 | verts: 220 | prims: 1 | bbox: (0.1, 0.6, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+          - 2172504084_M00_PLATE
+            - (node 549)  [mesh: mesh_333 | verts: 28 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (0.0, -0.0, 0.1)]
+            - (node 550)  [mesh: mesh_334 | verts: 8 | prims: 1 | bbox: (-0.1, -0.0, 0.0) ΓåÆ (-0.0, -0.0, 0.1)]
+          - 2172504087_M00_MYLAR
+            - (node 552)
+            - (node 553)  [mesh: mesh_335 | verts: 80 | prims: 1 | bbox: (0.1, 0.6, 0.6) ΓåÆ (0.1, 0.6, 0.6)]
+            - (node 554)  [mesh: mesh_336 | verts: 196 | prims: 1 | bbox: (0.1, 0.5, 0.6) ΓåÆ (0.1, 0.6, 0.6)]
+            - (node 555)  [mesh: mesh_337 | verts: 80 | prims: 1 | bbox: (0.1, 0.6, 0.6) ΓåÆ (0.1, 0.6, 0.6)]
+          - 2172504091_M00_MYLAR
+            - (node 557)  [mesh: mesh_338 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+            - (node 558)  [mesh: mesh_339 | verts: 196 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.8, 0.6)]
+            - (node 559)  [mesh: mesh_340 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.1, 0.7, 0.6)]
+          - 2172504097_M00_MYLAR
+            - (node 561)
+            - (node 562)  [mesh: mesh_341 | verts: 164 | prims: 1 | bbox: (0.2, 0.6, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+            - (node 563)  [mesh: mesh_342 | verts: 112 | prims: 1 | bbox: (0.2, 0.6, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+            - (node 564)  [mesh: mesh_343 | verts: 80 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+          - 2172504099_M00_MYLAR
+            - (node 566)
+            - (node 567)  [mesh: mesh_344 | verts: 100 | prims: 1 | bbox: (0.2, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+            - (node 568)  [mesh: mesh_345 | verts: 192 | prims: 1 | bbox: (0.1, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+            - (node 569)  [mesh: mesh_346 | verts: 96 | prims: 1 | bbox: (0.1, 0.7, 0.5) ΓåÆ (0.2, 0.7, 0.5)]
+          - 8um634_25_144
+            - (node 571)  [mesh: mesh_347 | verts: 40 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 572)  [mesh: mesh_348 | verts: 256 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 573)  [mesh: mesh_349 | verts: 444 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 574)  [mesh: mesh_350 | verts: 428 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 575)  [mesh: mesh_351 | verts: 80 | prims: 1 | bbox: (-0.1, 0.0, -0.0) ΓåÆ (-0.1, 0.1, 0.0)]
+    - 2172504120_M00_CLAMP-UNIT
+      - 2172504120_MOVING
+        - 2172504121_M00_MYLAR
+          - (node 579)  [mesh: mesh_352 | verts: 80 | prims: 1 | bbox: (-0.2, 0.5, 0.6) ΓåÆ (-0.1, 0.5, 0.6)]
+          - (node 580)  [mesh: mesh_353 | verts: 168 | prims: 1 | bbox: (-0.2, 0.5, 0.6) ΓåÆ (-0.0, 0.5, 0.6)]
+          - (node 581)  [mesh: mesh_354 | verts: 40 | prims: 1 | bbox: (-0.1, 0.5, 0.6) ΓåÆ (-0.1, 0.5, 0.6)]
+        - 8um504_25_144
+          - (node 583)  [mesh: mesh_355 | verts: 748 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - (node 584)  [mesh: mesh_356 | verts: 398 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - (node 585)  [mesh: mesh_357 | verts: 80 | prims: 1 | bbox: (-0.1, 0.0, -0.0) ΓåÆ (-0.1, 0.1, 0.0)]
+        - 2172504127_M00_L-BRACKET
+          - (node 587)  [mesh: mesh_358 | verts: 160 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, -0.0)]
+          - (node 588)  [mesh: mesh_359 | verts: 322 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+          - (node 589)  [mesh: mesh_360 | verts: 40 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+          - (node 590)  [mesh: mesh_361 | verts: 80 | prims: 1 | bbox: (0.1, 0.0, -0.0) ΓåÆ (0.1, 0.0, -0.0)]
+      - 2172504120_FIXED
+        - 4XXX_DESTACO_82M-3E030050L8_SERRAGE_50
+          - (node 593)  [mesh: mesh_362 | verts: 2 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 594)  [mesh: mesh_363 | verts: 3472 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+          - (node 595)  [mesh: mesh_364 | verts: 1120 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+          - (node 596)  [mesh: mesh_365 | verts: 60 | prims: 1 | bbox: (0.0, 0.1, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - (node 597)  [mesh: mesh_366 | verts: 1320 | prims: 1 | bbox: (-0.0, -0.3, -0.0) ΓåÆ (0.1, -0.0, 0.0)]
+          - (node 598)  [mesh: mesh_367 | verts: 472 | prims: 1 | bbox: (-0.0, -0.3, -0.0) ΓåÆ (0.1, -0.1, 0.0)]
+        - 2172504127_M00_PLATE  [mesh: mesh_368 | verts: 24 | prims: 1 | bbox: (-0.2, -0.0, 0.0) ΓåÆ (-0.0, 0.0, 0.0)]
+        - 2172504125_M00_AVALOIR
+          - (node 601)  [mesh: mesh_369 | verts: 248 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+          - (node 602)  [mesh: mesh_370 | verts: 92 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, -0.0, 0.0)]
+          - (node 603)  [mesh: mesh_371 | verts: 240 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, -0.0, 0.0)]
+        - 2172504125_M00_L-BRACKET
+          - (node 605)  [mesh: mesh_372 | verts: 160 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, -0.0)]
+          - (node 606)  [mesh: mesh_373 | verts: 356 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+          - (node 607)  [mesh: mesh_374 | verts: 80 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.0, -0.0)]
+          - (node 608)  [mesh: mesh_375 | verts: 80 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, -0.0)]
+        - DESG_RT07_05_400
+          - (node 610)  [mesh: mesh_376 | verts: 560 | prims: 1 | bbox: (-0.0, 0.0, 0.0) ΓåÆ (0.0, 0.2, 0.4)]
+          - (node 611)  [mesh: mesh_377 | verts: 313 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.2, 0.4)]
+          - (node 612)  [mesh: mesh_378 | verts: 400 | prims: 1 | bbox: (-0.0, 0.0, 0.0) ΓåÆ (0.0, 0.2, 0.4)]
+          - (node 613)  [mesh: mesh_379 | verts: 500 | prims: 1 | bbox: (-0.0, 0.1, 0.2) ΓåÆ (0.0, 0.1, 0.3)]
+          - (node 614)  [mesh: mesh_380 | verts: 860 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.2, 0.4)]
+        - 2172504123_M00_MYLAR
+          - (node 616)  [mesh: mesh_381 | verts: 164 | prims: 1 | bbox: (-0.1, 0.5, 0.7) ΓåÆ (-0.0, 0.5, 0.7)]
+          - (node 617)  [mesh: mesh_382 | verts: 112 | prims: 1 | bbox: (-0.1, 0.5, 0.6) ΓåÆ (-0.0, 0.5, 0.7)]
+          - (node 618)  [mesh: mesh_383 | verts: 80 | prims: 1 | bbox: (-0.1, 0.5, 0.7) ΓåÆ (-0.1, 0.5, 0.7)]
+      - 2172504120_OPEN
+        - 2172504120_MOVING
+          - 2172504121_M00_MYLAR
+            - (node 622)  [mesh: mesh_384 | verts: 80 | prims: 1 | bbox: (-0.2, 0.5, 0.6) ΓåÆ (-0.1, 0.5, 0.6)]
+            - (node 623)  [mesh: mesh_385 | verts: 168 | prims: 1 | bbox: (-0.2, 0.5, 0.6) ΓåÆ (-0.0, 0.5, 0.6)]
+            - (node 624)  [mesh: mesh_386 | verts: 40 | prims: 1 | bbox: (-0.1, 0.5, 0.6) ΓåÆ (-0.1, 0.5, 0.6)]
+          - 8um504_25_144
+            - (node 626)  [mesh: mesh_387 | verts: 748 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 627)  [mesh: mesh_388 | verts: 398 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 628)  [mesh: mesh_389 | verts: 80 | prims: 1 | bbox: (-0.1, 0.0, -0.0) ΓåÆ (-0.1, 0.1, 0.0)]
+          - 2172504127_M00_L-BRACKET
+            - (node 630)  [mesh: mesh_390 | verts: 160 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, -0.0)]
+            - (node 631)  [mesh: mesh_391 | verts: 322 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+            - (node 632)  [mesh: mesh_392 | verts: 40 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+            - (node 633)  [mesh: mesh_393 | verts: 80 | prims: 1 | bbox: (0.1, 0.0, -0.0) ΓåÆ (0.1, 0.0, -0.0)]
+    - 2172504140_M00_CLAMP-UNIT
+      - 2172504120_M00_CLAMP-UNIT
+        - 2172504120_MOVING
+          - 2172504121_M00_MYLAR
+            - (node 638)  [mesh: mesh_394 | verts: 80 | prims: 1 | bbox: (-0.2, 0.5, 0.6) ΓåÆ (-0.1, 0.5, 0.6)]
+            - (node 639)  [mesh: mesh_395 | verts: 168 | prims: 1 | bbox: (-0.2, 0.5, 0.6) ΓåÆ (-0.0, 0.5, 0.6)]
+            - (node 640)  [mesh: mesh_396 | verts: 40 | prims: 1 | bbox: (-0.1, 0.5, 0.6) ΓåÆ (-0.1, 0.5, 0.6)]
+          - 8um504_25_144
+            - (node 642)  [mesh: mesh_397 | verts: 748 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 643)  [mesh: mesh_398 | verts: 398 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 644)  [mesh: mesh_399 | verts: 80 | prims: 1 | bbox: (-0.1, 0.0, -0.0) ΓåÆ (-0.1, 0.1, 0.0)]
+          - 2172504127_M00_L-BRACKET
+            - (node 646)  [mesh: mesh_400 | verts: 160 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, -0.0)]
+            - (node 647)  [mesh: mesh_401 | verts: 322 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+            - (node 648)  [mesh: mesh_402 | verts: 40 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+            - (node 649)  [mesh: mesh_403 | verts: 80 | prims: 1 | bbox: (0.1, 0.0, -0.0) ΓåÆ (0.1, 0.0, -0.0)]
+        - 2172504120_FIXED
+          - 4XXX_DESTACO_82M-3E030050L8_SERRAGE_50
+            - (node 652)  [mesh: mesh_404 | verts: 2 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 653)  [mesh: mesh_405 | verts: 3472 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+            - (node 654)  [mesh: mesh_406 | verts: 1120 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+            - (node 655)  [mesh: mesh_407 | verts: 60 | prims: 1 | bbox: (0.0, 0.1, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 656)  [mesh: mesh_408 | verts: 1320 | prims: 1 | bbox: (-0.0, -0.3, -0.0) ΓåÆ (0.1, -0.0, 0.0)]
+            - (node 657)  [mesh: mesh_409 | verts: 472 | prims: 1 | bbox: (-0.0, -0.3, -0.0) ΓåÆ (0.1, -0.1, 0.0)]
+          - 2172504127_M00_PLATE  [mesh: mesh_410 | verts: 24 | prims: 1 | bbox: (-0.2, -0.0, 0.0) ΓåÆ (-0.0, 0.0, 0.0)]
+          - 2172504125_M00_AVALOIR
+            - (node 660)  [mesh: mesh_411 | verts: 248 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+            - (node 661)  [mesh: mesh_412 | verts: 92 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, -0.0, 0.0)]
+            - (node 662)  [mesh: mesh_413 | verts: 240 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, -0.0, 0.0)]
+          - 2172504125_M00_L-BRACKET
+            - (node 664)  [mesh: mesh_414 | verts: 160 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, -0.0)]
+            - (node 665)  [mesh: mesh_415 | verts: 356 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+            - (node 666)  [mesh: mesh_416 | verts: 80 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.0, -0.0)]
+            - (node 667)  [mesh: mesh_417 | verts: 80 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, -0.0)]
+          - DESG_RT07_05_400
+            - (node 669)  [mesh: mesh_418 | verts: 560 | prims: 1 | bbox: (-0.0, 0.0, 0.0) ΓåÆ (0.0, 0.2, 0.4)]
+            - (node 670)  [mesh: mesh_419 | verts: 313 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.2, 0.4)]
+            - (node 671)  [mesh: mesh_420 | verts: 400 | prims: 1 | bbox: (-0.0, 0.0, 0.0) ΓåÆ (0.0, 0.2, 0.4)]
+            - (node 672)  [mesh: mesh_421 | verts: 500 | prims: 1 | bbox: (-0.0, 0.1, 0.2) ΓåÆ (0.0, 0.1, 0.3)]
+            - (node 673)  [mesh: mesh_422 | verts: 860 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.2, 0.4)]
+          - 2172504123_M00_MYLAR
+            - (node 675)  [mesh: mesh_423 | verts: 164 | prims: 1 | bbox: (-0.1, 0.5, 0.7) ΓåÆ (-0.0, 0.5, 0.7)]
+            - (node 676)  [mesh: mesh_424 | verts: 112 | prims: 1 | bbox: (-0.1, 0.5, 0.6) ΓåÆ (-0.0, 0.5, 0.7)]
+            - (node 677)  [mesh: mesh_425 | verts: 80 | prims: 1 | bbox: (-0.1, 0.5, 0.7) ΓåÆ (-0.1, 0.5, 0.7)]
+        - 2172504120_OPEN
+          - 2172504120_MOVING
+            - 2172504121_M00_MYLAR
+              - (node 681)  [mesh: mesh_426 | verts: 80 | prims: 1 | bbox: (-0.2, 0.5, 0.6) ΓåÆ (-0.1, 0.5, 0.6)]
+              - (node 682)  [mesh: mesh_427 | verts: 168 | prims: 1 | bbox: (-0.2, 0.5, 0.6) ΓåÆ (-0.0, 0.5, 0.6)]
+              - (node 683)  [mesh: mesh_428 | verts: 40 | prims: 1 | bbox: (-0.1, 0.5, 0.6) ΓåÆ (-0.1, 0.5, 0.6)]
+            - 8um504_25_144
+              - (node 685)  [mesh: mesh_429 | verts: 748 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+              - (node 686)  [mesh: mesh_430 | verts: 398 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+              - (node 687)  [mesh: mesh_431 | verts: 80 | prims: 1 | bbox: (-0.1, 0.0, -0.0) ΓåÆ (-0.1, 0.1, 0.0)]
+            - 2172504127_M00_L-BRACKET
+              - (node 689)  [mesh: mesh_432 | verts: 160 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, -0.0)]
+              - (node 690)  [mesh: mesh_433 | verts: 322 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+              - (node 691)  [mesh: mesh_434 | verts: 40 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+              - (node 692)  [mesh: mesh_435 | verts: 80 | prims: 1 | bbox: (0.1, 0.0, -0.0) ΓåÆ (0.1, 0.0, -0.0)]
+    - 2172504160_M00_PIN-UNIT
+      - 2172504160_OPEN
+        - 2172504160_MOVING
+          - 2172504161_M00_PLATE  [mesh: mesh_436 | verts: 36 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.2, 0.0)]
+          - 2172504162_M00_BRACKET  [mesh: mesh_437 | verts: 24 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - 2172504164_M00_PIN-RETAINER
+            - (node 699)  [mesh: mesh_438 | verts: 194 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 700)  [mesh: mesh_439 | verts: 159 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 701)  [mesh: mesh_440 | verts: 241 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 702)  [mesh: mesh_441 | verts: 80 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, -0.0, -0.0)]
+            - (node 703)  [mesh: mesh_442 | verts: 168 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+          - 2172504165_M00_MYLAR
+            - (node 705)  [mesh: mesh_443 | verts: 100 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+            - (node 706)  [mesh: mesh_444 | verts: 176 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+            - (node 707)  [mesh: mesh_445 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+          - G866242416_M00_CYLINDRICAL_PIN_D8,05  [mesh: mesh_446 | verts: 1137 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+      - 2172504160_FIXED
+        - DESG_RT07_08_250
+          - (node 711)  [mesh: mesh_447 | verts: 240 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.2, 0.3)]
+          - (node 712)  [mesh: mesh_448 | verts: 737 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.3, 0.3)]
+          - (node 713)  [mesh: mesh_449 | verts: 248 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.2, 0.2)]
+          - (node 714)  [mesh: mesh_450 | verts: 200 | prims: 1 | bbox: (-0.0, 0.1, 0.2) ΓåÆ (0.0, 0.1, 0.3)]
+          - (node 715)  [mesh: mesh_451 | verts: 551 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.3, 0.3)]
+        - 4XXX_DESTACO_85D5-2D4L810H04
+          - (node 717)
+          - (node 718)
+          - (node 719)
+          - (node 720)  [mesh: mesh_452 | verts: 4 | prims: 1 | bbox: (-0.0, -0.2, -0.0) ΓåÆ (-0.0, -0.2, 0.0)]
+          - (node 721)  [mesh: mesh_453 | verts: 8244 | prims: 1 | bbox: (-0.3, -0.2, -0.0) ΓåÆ (0.1, 0.1, 0.1)]
+          - (node 722)  [mesh: mesh_454 | verts: 2776 | prims: 1 | bbox: (-0.2, -0.2, -0.0) ΓåÆ (0.1, 0.1, 0.1)]
+        - 2172504163_M00_L-BRACKET  [mesh: mesh_455 | verts: 36 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, 0.1)]
+      - 2172504160_MOVING
+        - 2172504161_M00_PLATE  [mesh: mesh_456 | verts: 36 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.2, 0.0)]
+        - 2172504162_M00_BRACKET  [mesh: mesh_457 | verts: 24 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+        - 2172504164_M00_PIN-RETAINER
+          - (node 728)  [mesh: mesh_458 | verts: 194 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 729)  [mesh: mesh_459 | verts: 159 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 730)  [mesh: mesh_460 | verts: 241 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 731)  [mesh: mesh_461 | verts: 80 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, -0.0, -0.0)]
+          - (node 732)  [mesh: mesh_462 | verts: 168 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+        - 2172504165_M00_MYLAR
+          - (node 734)  [mesh: mesh_463 | verts: 100 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+          - (node 735)  [mesh: mesh_464 | verts: 176 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+          - (node 736)  [mesh: mesh_465 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+        - G866242416_M00_CYLINDRICAL_PIN_D8,05  [mesh: mesh_466 | verts: 1137 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+    - 2172504180_M00_PIN-UNIT
+      - 2172504160_M00_PIN-UNIT
+        - 2172504160_OPEN
+          - 2172504160_MOVING
+            - 2172504161_M00_PLATE  [mesh: mesh_467 | verts: 36 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.2, 0.0)]
+            - 2172504162_M00_BRACKET  [mesh: mesh_468 | verts: 24 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - 2172504164_M00_PIN-RETAINER
+              - (node 745)  [mesh: mesh_469 | verts: 194 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 746)  [mesh: mesh_470 | verts: 159 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 747)  [mesh: mesh_471 | verts: 241 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 748)  [mesh: mesh_472 | verts: 80 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, -0.0, -0.0)]
+              - (node 749)  [mesh: mesh_473 | verts: 168 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+            - 2172504165_M00_MYLAR
+              - (node 751)  [mesh: mesh_474 | verts: 100 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+              - (node 752)  [mesh: mesh_475 | verts: 176 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+              - (node 753)  [mesh: mesh_476 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+            - G866242416_M00_CYLINDRICAL_PIN_D8,05  [mesh: mesh_477 | verts: 1137 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+        - 2172504160_FIXED
+          - DESG_RT07_08_250
+            - (node 757)  [mesh: mesh_478 | verts: 240 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.2, 0.3)]
+            - (node 758)  [mesh: mesh_479 | verts: 737 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.3, 0.3)]
+            - (node 759)  [mesh: mesh_480 | verts: 248 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.2, 0.2)]
+            - (node 760)  [mesh: mesh_481 | verts: 200 | prims: 1 | bbox: (-0.0, 0.1, 0.2) ΓåÆ (0.0, 0.1, 0.3)]
+            - (node 761)  [mesh: mesh_482 | verts: 551 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.3, 0.3)]
+          - 4XXX_DESTACO_85D5-2D4L810H04
+            - (node 763)
+            - (node 764)
+            - (node 765)
+            - (node 766)  [mesh: mesh_483 | verts: 4 | prims: 1 | bbox: (-0.0, -0.2, -0.0) ΓåÆ (-0.0, -0.2, 0.0)]
+            - (node 767)  [mesh: mesh_484 | verts: 8244 | prims: 1 | bbox: (-0.3, -0.2, -0.0) ΓåÆ (0.1, 0.1, 0.1)]
+            - (node 768)  [mesh: mesh_485 | verts: 2776 | prims: 1 | bbox: (-0.2, -0.2, -0.0) ΓåÆ (0.1, 0.1, 0.1)]
+          - 2172504163_M00_L-BRACKET  [mesh: mesh_486 | verts: 36 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, 0.1)]
+        - 2172504160_MOVING
+          - 2172504161_M00_PLATE  [mesh: mesh_487 | verts: 36 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.2, 0.0)]
+          - 2172504162_M00_BRACKET  [mesh: mesh_488 | verts: 24 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - 2172504164_M00_PIN-RETAINER
+            - (node 774)  [mesh: mesh_489 | verts: 194 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 775)  [mesh: mesh_490 | verts: 159 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 776)  [mesh: mesh_491 | verts: 241 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 777)  [mesh: mesh_492 | verts: 80 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, -0.0, -0.0)]
+            - (node 778)  [mesh: mesh_493 | verts: 168 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+          - 2172504165_M00_MYLAR
+            - (node 780)  [mesh: mesh_494 | verts: 100 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+            - (node 781)  [mesh: mesh_495 | verts: 176 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+            - (node 782)  [mesh: mesh_496 | verts: 80 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+          - G866242416_M00_CYLINDRICAL_PIN_D8,05  [mesh: mesh_497 | verts: 1137 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+    - 2172504200_M00_CLAMP-UNIT
+      - 2172504200_MOVING
+        - 8um634_25_144
+          - (node 787)  [mesh: mesh_498 | verts: 40 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 788)  [mesh: mesh_499 | verts: 256 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 789)  [mesh: mesh_500 | verts: 444 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - (node 790)  [mesh: mesh_501 | verts: 428 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - (node 791)  [mesh: mesh_502 | verts: 80 | prims: 1 | bbox: (-0.1, 0.0, -0.0) ΓåÆ (-0.1, 0.1, 0.0)]
+        - 2172504201_M00_L_BRACKET  [mesh: mesh_503 | verts: 60 | prims: 1 | bbox: (-0.3, -0.1, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - 2172504209_M00_MYLAR
+          - (node 794)  [mesh: mesh_504 | verts: 164 | prims: 1 | bbox: (-0.0, 0.0, 0.6) ΓåÆ (0.0, 0.1, 0.6)]
+          - (node 795)  [mesh: mesh_505 | verts: 112 | prims: 1 | bbox: (-0.0, 0.0, 0.6) ΓåÆ (0.0, 0.1, 0.7)]
+          - (node 796)  [mesh: mesh_506 | verts: 80 | prims: 1 | bbox: (-0.0, 0.0, 0.6) ΓåÆ (0.0, 0.0, 0.6)]
+        - 2172504203_M00_MYLAR
+          - (node 798)  [mesh: mesh_507 | verts: 164 | prims: 1 | bbox: (0.0, -0.0, 0.6) ΓåÆ (0.1, 0.0, 0.6)]
+          - (node 799)  [mesh: mesh_508 | verts: 112 | prims: 1 | bbox: (0.0, -0.0, 0.6) ΓåÆ (0.1, 0.0, 0.6)]
+          - (node 800)  [mesh: mesh_509 | verts: 80 | prims: 1 | bbox: (0.1, -0.0, 0.6) ΓåÆ (0.1, -0.0, 0.6)]
+        - 2172504205_M00_MYLAR
+          - (node 802)
+          - (node 803)  [mesh: mesh_510 | verts: 164 | prims: 1 | bbox: (0.1, 0.0, 0.6) ΓåÆ (0.2, 0.0, 0.6)]
+          - (node 804)  [mesh: mesh_511 | verts: 112 | prims: 1 | bbox: (0.1, 0.0, 0.6) ΓåÆ (0.2, 0.0, 0.6)]
+          - (node 805)  [mesh: mesh_512 | verts: 80 | prims: 1 | bbox: (0.1, 0.0, 0.6) ΓåÆ (0.1, 0.0, 0.6)]
+      - 2172504200_FIXED
+        - 4XXX_DESTACO_82M-3E030063L8_SERRAGE_63
+          - (node 808)  [mesh: mesh_513 | verts: 2 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 809)  [mesh: mesh_514 | verts: 3258 | prims: 1 | bbox: (-0.0, -0.3, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+          - (node 810)  [mesh: mesh_515 | verts: 816 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+          - (node 811)  [mesh: mesh_516 | verts: 60 | prims: 1 | bbox: (0.0, 0.1, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - (node 812)  [mesh: mesh_517 | verts: 1120 | prims: 1 | bbox: (-0.0, -0.3, -0.0) ΓåÆ (0.1, -0.0, 0.0)]
+          - (node 813)  [mesh: mesh_518 | verts: 60 | prims: 1 | bbox: (-0.0, -0.3, -0.0) ΓåÆ (0.1, -0.1, 0.0)]
+        - Copy (1) of 2172504287_M00_SENSOR-BRACKET
+          - (node 815)  [mesh: mesh_519 | verts: 170 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+          - (node 816)  [mesh: mesh_520 | verts: 96 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - SICK_GTB10_P4211_BEF-WN-MULTI2
+          - SICK_BEF-WN-MULTI2
+            - 3D-WINKEL_S085641  [mesh: mesh_521 | verts: 793 | prims: 1 | bbox: (0.1, 1.2, 0.9) ΓåÆ (0.2, 1.2, 1.0)]
+            - Washer ISO 7089 - 5_Washer ISO 7089 - 5  [mesh: mesh_522 | verts: 306 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - ISO 10511-M5-N_ISO 10511-M5-N
+              - (node 822)  [mesh: mesh_523 | verts: 1586 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 823)  [mesh: mesh_524 | verts: 66 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 3D-PLATTE_MIT_GEWINDEBOLZEN_9263835  [mesh: mesh_525 | verts: 949 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, -0.0, 0.0)]
+          - VIS_CHC_M4_30  [mesh: mesh_526 | verts: 270 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - VIS_CHC_M4_30  [mesh: mesh_527 | verts: 270 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - SICK_GTB10-P4211
+            - axe optique  [mesh: mesh_528 | verts: 160 | prims: 1 | bbox: (0.0, 0.1, -0.1) ΓåÆ (0.9, 0.1, -0.1)]
+            - _SICK_GTB10_P4211_Order_no_1064694_1_2
+              - (node 830)  [mesh: mesh_529 | verts: 4552 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 831)  [mesh: mesh_530 | verts: 290 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 832)  [mesh: mesh_531 | verts: 667 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 833)  [mesh: mesh_532 | verts: 240 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 834)  [mesh: mesh_533 | verts: 560 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 835)  [mesh: mesh_534 | verts: 4 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - DESG_RT07_05_450
+          - (node 837)  [mesh: mesh_535 | verts: 560 | prims: 1 | bbox: (-0.0, 0.0, 0.0) ΓåÆ (0.0, 0.2, 0.5)]
+          - (node 838)  [mesh: mesh_536 | verts: 313 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.2, 0.5)]
+          - (node 839)  [mesh: mesh_537 | verts: 400 | prims: 1 | bbox: (-0.0, 0.0, 0.0) ΓåÆ (0.0, 0.2, 0.5)]
+          - (node 840)  [mesh: mesh_538 | verts: 500 | prims: 1 | bbox: (-0.0, 0.1, 0.3) ΓåÆ (0.0, 0.1, 0.4)]
+          - (node 841)  [mesh: mesh_539 | verts: 860 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.0, 0.2, 0.5)]
+        - 2172504213_M00_MYLAR
+          - (node 843)
+          - (node 844)  [mesh: mesh_540 | verts: 80 | prims: 1 | bbox: (0.0, 0.0, 0.7) ΓåÆ (0.0, 0.1, 0.7)]
+          - (node 845)  [mesh: mesh_541 | verts: 220 | prims: 1 | bbox: (0.0, -0.0, 0.6) ΓåÆ (0.0, 0.1, 0.7)]
+          - (node 846)  [mesh: mesh_542 | verts: 80 | prims: 1 | bbox: (0.0, 0.1, 0.7) ΓåÆ (0.0, 0.1, 0.7)]
+        - 2172504211_M00_MYLAR
+          - (node 848)  [mesh: mesh_543 | verts: 140 | prims: 1 | bbox: (-0.0, 0.0, 0.7) ΓåÆ (0.0, 0.0, 0.7)]
+          - (node 849)  [mesh: mesh_544 | verts: 176 | prims: 1 | bbox: (-0.0, 0.0, 0.7) ΓåÆ (0.0, 0.1, 0.7)]
+          - (node 850)  [mesh: mesh_545 | verts: 80 | prims: 1 | bbox: (-0.0, 0.0, 0.7) ΓåÆ (0.0, 0.0, 0.7)]
+        - 2172504207_M00_L_BRACKET
+          - (node 852)  [mesh: mesh_546 | verts: 80 | prims: 1 | bbox: (0.0, 0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 853)  [mesh: mesh_547 | verts: 160 | prims: 1 | bbox: (0.1, -0.0, 0.0) ΓåÆ (0.1, 0.0, 0.0)]
+          - (node 854)  [mesh: mesh_548 | verts: 240 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.1, 0.0, 0.0)]
+          - (node 855)  [mesh: mesh_549 | verts: 692 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.1, 0.0, 0.0)]
+        - DESG_05_LB02_02_01_370M
+          - (node 857)  [mesh: mesh_550 | verts: 32 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+          - (node 858)  [mesh: mesh_551 | verts: 328 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+          - (node 859)  [mesh: mesh_552 | verts: 140 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 860)  [mesh: mesh_553 | verts: 160 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+          - (node 861)  [mesh: mesh_554 | verts: 80 | prims: 1 | bbox: (0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.1)]
+      - 2172504200_OPEN
+        - 2172504200_MOVING
+          - 8um634_25_144
+            - (node 865)  [mesh: mesh_555 | verts: 40 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 866)  [mesh: mesh_556 | verts: 256 | prims: 1 | bbox: (0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 867)  [mesh: mesh_557 | verts: 444 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 868)  [mesh: mesh_558 | verts: 428 | prims: 1 | bbox: (-0.1, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 869)  [mesh: mesh_559 | verts: 80 | prims: 1 | bbox: (-0.1, 0.0, -0.0) ΓåÆ (-0.1, 0.1, 0.0)]
+          - 2172504201_M00_L_BRACKET  [mesh: mesh_560 | verts: 60 | prims: 1 | bbox: (-0.3, -0.1, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - 2172504209_M00_MYLAR
+            - (node 872)  [mesh: mesh_561 | verts: 164 | prims: 1 | bbox: (-0.0, 0.0, 0.6) ΓåÆ (0.0, 0.1, 0.6)]
+            - (node 873)  [mesh: mesh_562 | verts: 112 | prims: 1 | bbox: (-0.0, 0.0, 0.6) ΓåÆ (0.0, 0.1, 0.7)]
+            - (node 874)  [mesh: mesh_563 | verts: 80 | prims: 1 | bbox: (-0.0, 0.0, 0.6) ΓåÆ (0.0, 0.0, 0.6)]
+          - 2172504203_M00_MYLAR
+            - (node 876)  [mesh: mesh_564 | verts: 164 | prims: 1 | bbox: (0.0, -0.0, 0.6) ΓåÆ (0.1, 0.0, 0.6)]
+            - (node 877)  [mesh: mesh_565 | verts: 112 | prims: 1 | bbox: (0.0, -0.0, 0.6) ΓåÆ (0.1, 0.0, 0.6)]
+            - (node 878)  [mesh: mesh_566 | verts: 80 | prims: 1 | bbox: (0.1, -0.0, 0.6) ΓåÆ (0.1, -0.0, 0.6)]
+          - 2172504205_M00_MYLAR
+            - (node 880)
+            - (node 881)  [mesh: mesh_567 | verts: 164 | prims: 1 | bbox: (0.1, 0.0, 0.6) ΓåÆ (0.2, 0.0, 0.6)]
+            - (node 882)  [mesh: mesh_568 | verts: 112 | prims: 1 | bbox: (0.1, 0.0, 0.6) ΓåÆ (0.2, 0.0, 0.6)]
+            - (node 883)  [mesh: mesh_569 | verts: 80 | prims: 1 | bbox: (0.1, 0.0, 0.6) ΓåÆ (0.1, 0.0, 0.6)]
+    - 2172504240_M00_SUPPORT-UNIT
+      - FIXED
+        - 2172504241_M00_MYLAR
+          - (node 887)
+          - (node 888)  [mesh: mesh_570 | verts: 80 | prims: 1 | bbox: (0.2, 0.0, 0.7) ΓåÆ (0.2, 0.0, 0.7)]
+          - (node 889)  [mesh: mesh_571 | verts: 156 | prims: 1 | bbox: (0.2, 0.0, 0.6) ΓåÆ (0.3, 0.0, 0.7)]
+          - (node 890)  [mesh: mesh_572 | verts: 40 | prims: 1 | bbox: (0.2, 0.0, 0.7) ΓåÆ (0.2, 0.0, 0.7)]
+        - DESG_RT07_08_400
+          - (node 892)  [mesh: mesh_573 | verts: 240 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.2, 0.4)]
+          - (node 893)  [mesh: mesh_574 | verts: 737 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.3, 0.4)]
+          - (node 894)  [mesh: mesh_575 | verts: 248 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.2, 0.2)]
+          - (node 895)  [mesh: mesh_576 | verts: 200 | prims: 1 | bbox: (-0.0, 0.1, 0.4) ΓåÆ (0.0, 0.1, 0.4)]
+          - (node 896)  [mesh: mesh_577 | verts: 551 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.3, 0.4)]
+    - 2172504280_M00_PIN-UNIT
+      - 2172504280_FIXED
+        - RMT_SENSTRONIC_4009_DETECTEUR_D18_4010_SDPL18
+          - 4009_SENSTRONIC_A_1202_12_L_1810_11_KTK_DETECTEUR
+            - (node 901)  [mesh: mesh_578 | verts: 553 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+            - (node 902)  [mesh: mesh_579 | verts: 80 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - 4010_SENSTRONIC_SDPL18_PL_BRIDE_DETECTEUR_D18  [mesh: mesh_580 | verts: 2002 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+        - 2172504281_M00_L-BRACKET
+          - (node 905)  [mesh: mesh_581 | verts: 160 | prims: 1 | bbox: (0.0, 0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+          - (node 906)  [mesh: mesh_582 | verts: 356 | prims: 1 | bbox: (0.0, 0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 907)  [mesh: mesh_583 | verts: 160 | prims: 1 | bbox: (0.0, 0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+        - 2172504285_M00_PLATE  [mesh: mesh_584 | verts: 30 | prims: 1 | bbox: (-0.2, -0.1, 0.0) ΓåÆ (-0.0, 0.1, 0.0)]
+        - 2172504287_M00_SENSOR-BRACKET
+          - (node 910)  [mesh: mesh_585 | verts: 166 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+          - (node 911)  [mesh: mesh_586 | verts: 96 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - 2172504289_M00_SENSOR-BRACKET
+          - (node 913)  [mesh: mesh_587 | verts: 170 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+          - (node 914)  [mesh: mesh_588 | verts: 96 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - G866242420_M00_CYLINDRICAL_PIN_D12,05  [mesh: mesh_589 | verts: 1172 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+        - RMT_SENSTRONIC_4009_DETECTEUR_D18_4010_SDPL18
+          - 4009_SENSTRONIC_A_1202_12_L_1810_11_KTK_DETECTEUR
+            - (node 918)  [mesh: mesh_590 | verts: 553 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+            - (node 919)  [mesh: mesh_591 | verts: 80 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - 4010_SENSTRONIC_SDPL18_PL_BRIDE_DETECTEUR_D18  [mesh: mesh_592 | verts: 2002 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+        - DESG_LPR01_0101_AT
+          - (node 922)  [mesh: mesh_593 | verts: 64 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 923)  [mesh: mesh_594 | verts: 353 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 924)  [mesh: mesh_595 | verts: 263 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+          - (node 925)  [mesh: mesh_596 | verts: 266 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+        - 2172504282_M00_L-BRACKET
+          - (node 927)  [mesh: mesh_597 | verts: 160 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, -0.0)]
+          - (node 928)  [mesh: mesh_598 | verts: 356 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+          - (node 929)  [mesh: mesh_599 | verts: 80 | prims: 1 | bbox: (0.1, 0.0, -0.0) ΓåÆ (0.1, 0.0, -0.0)]
+          - (node 930)  [mesh: mesh_600 | verts: 80 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, -0.0)]
+        - DESG_RT07_08_300
+          - (node 932)  [mesh: mesh_601 | verts: 240 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.2, 0.3)]
+          - (node 933)  [mesh: mesh_602 | verts: 737 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.3, 0.3)]
+          - (node 934)  [mesh: mesh_603 | verts: 248 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.2, 0.2)]
+          - (node 935)  [mesh: mesh_604 | verts: 200 | prims: 1 | bbox: (-0.0, 0.1, 0.3) ΓåÆ (0.0, 0.1, 0.3)]
+          - (node 936)  [mesh: mesh_605 | verts: 551 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.3, 0.3)]
+        - 2172504283_M00_AVALOIR
+          - (node 938)  [mesh: mesh_606 | verts: 232 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.2)]
+          - (node 939)  [mesh: mesh_607 | verts: 92 | prims: 1 | bbox: (-0.0, -0.1, 0.0) ΓåÆ (0.0, -0.0, 0.0)]
+          - (node 940)  [mesh: mesh_608 | verts: 240 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, -0.0, 0.0)]
+    - 2172504300_M00_PIN-UNIT
+      - 2172504280_M00_PIN-UNIT
+        - 2172504280_FIXED
+          - RMT_SENSTRONIC_4009_DETECTEUR_D18_4010_SDPL18
+            - 4009_SENSTRONIC_A_1202_12_L_1810_11_KTK_DETECTEUR
+              - (node 946)  [mesh: mesh_609 | verts: 553 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+              - (node 947)  [mesh: mesh_610 | verts: 80 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 4010_SENSTRONIC_SDPL18_PL_BRIDE_DETECTEUR_D18  [mesh: mesh_611 | verts: 2002 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+          - 2172504281_M00_L-BRACKET
+            - (node 950)  [mesh: mesh_612 | verts: 160 | prims: 1 | bbox: (0.0, 0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+            - (node 951)  [mesh: mesh_613 | verts: 356 | prims: 1 | bbox: (0.0, 0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 952)  [mesh: mesh_614 | verts: 160 | prims: 1 | bbox: (0.0, 0.0, -0.1) ΓåÆ (0.0, 0.0, -0.0)]
+          - 2172504285_M00_PLATE  [mesh: mesh_615 | verts: 30 | prims: 1 | bbox: (-0.2, -0.1, 0.0) ΓåÆ (-0.0, 0.1, 0.0)]
+          - 2172504287_M00_SENSOR-BRACKET
+            - (node 955)  [mesh: mesh_616 | verts: 166 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+            - (node 956)  [mesh: mesh_617 | verts: 96 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - 2172504289_M00_SENSOR-BRACKET
+            - (node 958)  [mesh: mesh_618 | verts: 170 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+            - (node 959)  [mesh: mesh_619 | verts: 96 | prims: 1 | bbox: (-0.0, -0.0, 0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - G866242420_M00_CYLINDRICAL_PIN_D12,05  [mesh: mesh_620 | verts: 1172 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.1)]
+          - RMT_SENSTRONIC_4009_DETECTEUR_D18_4010_SDPL18
+            - 4009_SENSTRONIC_A_1202_12_L_1810_11_KTK_DETECTEUR
+              - (node 963)  [mesh: mesh_621 | verts: 553 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.1, 0.0, 0.0)]
+              - (node 964)  [mesh: mesh_622 | verts: 80 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 4010_SENSTRONIC_SDPL18_PL_BRIDE_DETECTEUR_D18  [mesh: mesh_623 | verts: 2002 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+          - DESG_LPR01_0101_AT
+            - (node 967)  [mesh: mesh_624 | verts: 64 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 968)  [mesh: mesh_625 | verts: 353 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 969)  [mesh: mesh_626 | verts: 263 | prims: 1 | bbox: (-0.0, -0.0, -0.1) ΓåÆ (0.0, 0.0, 0.0)]
+            - (node 970)  [mesh: mesh_627 | verts: 266 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, -0.0)]
+          - 2172504282_M00_L-BRACKET
+            - (node 972)  [mesh: mesh_628 | verts: 160 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, -0.0)]
+            - (node 973)  [mesh: mesh_629 | verts: 356 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+            - (node 974)  [mesh: mesh_630 | verts: 80 | prims: 1 | bbox: (0.1, 0.0, -0.0) ΓåÆ (0.1, 0.0, -0.0)]
+            - (node 975)  [mesh: mesh_631 | verts: 80 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.0, 0.1, -0.0)]
+          - DESG_RT07_08_300
+            - (node 977)  [mesh: mesh_632 | verts: 240 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.2, 0.3)]
+            - (node 978)  [mesh: mesh_633 | verts: 737 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.3, 0.3)]
+            - (node 979)  [mesh: mesh_634 | verts: 248 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.2, 0.2)]
+            - (node 980)  [mesh: mesh_635 | verts: 200 | prims: 1 | bbox: (-0.0, 0.1, 0.3) ΓåÆ (0.0, 0.1, 0.3)]
+            - (node 981)  [mesh: mesh_636 | verts: 551 | prims: 1 | bbox: (-0.0, 0.1, 0.0) ΓåÆ (0.0, 0.3, 0.3)]
+          - 2172504283_M00_AVALOIR
+            - (node 983)  [mesh: mesh_637 | verts: 232 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.0, 0.0, 0.2)]
+            - (node 984)  [mesh: mesh_638 | verts: 92 | prims: 1 | bbox: (-0.0, -0.1, 0.0) ΓåÆ (0.0, -0.0, 0.0)]
+            - (node 985)  [mesh: mesh_639 | verts: 240 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, -0.0, 0.0)]
+    - 2172504320_M00_SENSOR-UNIT
+      - 2172504320_MOVING
+        - 2172504322_M00_PIN-RETAINER
+          - (node 989)  [mesh: mesh_640 | verts: 289 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - (node 990)  [mesh: mesh_641 | verts: 107 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+        - 2XXX_K689910096_M00_CENTRAGE_DIN_D16  [mesh: mesh_642 | verts: 410 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+        - DETECTION_ECROU_SENSTRONIC_M09
+          - SDPM14C_ASM_ASM
+            - PART449
+              - (node 995)  [mesh: mesh_643 | verts: 19837 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - (node 996)  [mesh: mesh_644 | verts: 384 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - 4029_M09_C12T305L040932_DETEC_ECROU_SENSTRONIC  [mesh: mesh_645 | verts: 22987 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+      - 2172504320_FIXED
+        - 4000_DESTACO_86P40-202-D8-00-6_PORTE_PILOTE_D16_C60  [mesh: mesh_646 | verts: 10499 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.1, 0.2, 0.0)]
+        - 2172504321_M00_L_BRACKET  [mesh: mesh_647 | verts: 36 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+        - 2172504323_M00_L_BRACKET_M00_L_BRACKET  [mesh: mesh_648 | verts: 36 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+      - 2172504320_OPEN
+        - 2172504320_MOVING
+          - 2172504322_M00_PIN-RETAINER
+            - (node 1005)  [mesh: mesh_649 | verts: 289 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 1006)  [mesh: mesh_650 | verts: 107 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - 2XXX_K689910096_M00_CENTRAGE_DIN_D16  [mesh: mesh_651 | verts: 410 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - DETECTION_ECROU_SENSTRONIC_M09
+            - SDPM14C_ASM_ASM
+              - PART449
+                - (node 1011)  [mesh: mesh_652 | verts: 19837 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1012)  [mesh: mesh_653 | verts: 384 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 4029_M09_C12T305L040932_DETEC_ECROU_SENSTRONIC  [mesh: mesh_654 | verts: 22987 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+    - 2172504340_M00_SENSOR-UNIT
+      - 2172504320_M00_SENSOR-UNIT
+        - 2172504320_MOVING
+          - 2172504322_M00_PIN-RETAINER
+            - (node 1018)  [mesh: mesh_655 | verts: 289 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - (node 1019)  [mesh: mesh_656 | verts: 107 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+          - 2XXX_K689910096_M00_CENTRAGE_DIN_D16  [mesh: mesh_657 | verts: 410 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+          - DETECTION_ECROU_SENSTRONIC_M09
+            - SDPM14C_ASM_ASM
+              - PART449
+                - (node 1024)  [mesh: mesh_658 | verts: 19837 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                - (node 1025)  [mesh: mesh_659 | verts: 384 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - 4029_M09_C12T305L040932_DETEC_ECROU_SENSTRONIC  [mesh: mesh_660 | verts: 22987 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+        - 2172504320_FIXED
+          - 4000_DESTACO_86P40-202-D8-00-6_PORTE_PILOTE_D16_C60  [mesh: mesh_661 | verts: 10499 | prims: 1 | bbox: (-0.0, -0.1, -0.0) ΓåÆ (0.1, 0.2, 0.0)]
+          - 2172504321_M00_L_BRACKET  [mesh: mesh_662 | verts: 36 | prims: 1 | bbox: (0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+          - 2172504323_M00_L_BRACKET_M00_L_BRACKET  [mesh: mesh_663 | verts: 36 | prims: 1 | bbox: (-0.0, 0.0, -0.0) ΓåÆ (0.1, 0.1, 0.0)]
+        - 2172504320_OPEN
+          - 2172504320_MOVING
+            - 2172504322_M00_PIN-RETAINER
+              - (node 1034)  [mesh: mesh_664 | verts: 289 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+              - (node 1035)  [mesh: mesh_665 | verts: 107 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+            - 2XXX_K689910096_M00_CENTRAGE_DIN_D16  [mesh: mesh_666 | verts: 410 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+            - DETECTION_ECROU_SENSTRONIC_M09
+              - SDPM14C_ASM_ASM
+                - PART449
+                  - (node 1040)  [mesh: mesh_667 | verts: 19837 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+                  - (node 1041)  [mesh: mesh_668 | verts: 384 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.0, 0.0)]
+              - 4029_M09_C12T305L040932_DETEC_ECROU_SENSTRONIC  [mesh: mesh_669 | verts: 22987 | prims: 1 | bbox: (-0.0, -0.0, -0.0) ΓåÆ (0.0, 0.1, 0.0)]
+    - DASHBOARD_ASSY_S020_LHD_STD_ASSY_00
+      - DASHBOARD_ASSY_S020_LHD_STD_00
+        - P027632299-AN-RAIDISSEUR CENT COLLECTEUR AUVENT-DAD-DAG-P1H  [mesh: mesh_670 | verts: 15338 | prims: 1 | bbox: (-0.1, -0.5, 0.6) ΓåÆ (0.1, 0.5, 0.7)]
+        - P029002798-R-SUPPORT G ESSUIE VITRE-DAG-P1H  [mesh: mesh_671 | verts: 5890 | prims: 1 | bbox: (0.1, -0.7, 0.5) ΓåÆ (0.2, -0.6, 0.6)]
+        - P028859036-S-SUPPORT D ESSUIE VITRE-P1H-TT  [mesh: mesh_672 | verts: 5882 | prims: 1 | bbox: (0.1, 0.6, 0.5) ΓåÆ (0.2, 0.7, 0.6)]
+        - CX-00101524---ECROU H SOUD M6X100 AC8-TT  [mesh: mesh_673 | verts: 612 | prims: 1 | bbox: (0.1, -0.7, 0.6) ΓåÆ (0.2, -0.7, 0.6)]
+        - CX-00095477---ECROU H SOUD M6X100 AC8-TT  [mesh: mesh_674 | verts: 616 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+        - CX-00104143---ECROU H SOUD M6X100 AC8-TT  [mesh: mesh_675 | verts: 936 | prims: 1 | bbox: (-0.0, -0.3, 0.7) ΓåÆ (0.0, 0.3, 0.7)]
+    - DASHBOARD_ASSY_S020_RHD_STD_00
+      - DASHBOARD_ASSY_S010_RHD_STD_00
+        - P032638679-X-COLLECTEUR AUVENT SD-DAD-P1H  [mesh: mesh_676 | verts: 24150 | prims: 1 | bbox: (-0.0, -0.7, 0.5) ΓåÆ (0.3, 0.7, 0.7)]
+        - P027973723-M-SUPPORT AV FIX BAC BATTERIE-DAD-DAG-P1H  [mesh: mesh_677 | verts: 2095 | prims: 1 | bbox: (-0.0, -0.1, 0.6) ΓåÆ (0.0, 0.0, 0.7)]
+        - P038857666-O-RENFORT CENTRAL AUVENT-DAD-DAG-P1H  [mesh: mesh_678 | verts: 8206 | prims: 1 | bbox: (-0.1, -0.5, 0.6) ΓåÆ (0.1, 0.5, 0.7)]
+        - CX-00110366---VIS % CL SOUD ANN M6X100 L25 AC8 ZS5 FP-TT  [mesh: mesh_679 | verts: 1690 | prims: 1 | bbox: (-0.1, -0.1, 0.6) ΓåÆ (-0.0, -0.0, 0.6)]
+        - CX-00108273---VIS CL SOUD ANN M6X100 L20 AC8 FP-DAD
+          - (node 1058)  [mesh: mesh_680 | verts: 1322 | prims: 1 | bbox: (0.1, -0.3, 0.6) ΓåÆ (0.1, 0.1, 0.6)]
+          - (node 1059)  [mesh: mesh_681 | verts: 1322 | prims: 1 | bbox: (0.1, -0.3, 0.6) ΓåÆ (0.1, 0.1, 0.6)]
+      - P029002798-R-SUPPORT G ESSUIE VITRE-DAG-P1H  [mesh: mesh_682 | verts: 5890 | prims: 1 | bbox: (0.1, -0.7, 0.5) ΓåÆ (0.2, -0.6, 0.6)]
+      - P027632299-AN-RAIDISSEUR CENT COLLECTEUR AUVENT-DAD-DAG-P1H  [mesh: mesh_683 | verts: 15338 | prims: 1 | bbox: (-0.1, -0.5, 0.6) ΓåÆ (0.1, 0.5, 0.7)]
+      - CX-00101524---ECROU H SOUD M6X100 AC8-TT  [mesh: mesh_684 | verts: 612 | prims: 1 | bbox: (0.1, -0.7, 0.6) ΓåÆ (0.2, -0.7, 0.6)]
+      - CX-00095477---ECROU H SOUD M6X100 AC8-TT  [mesh: mesh_685 | verts: 616 | prims: 1 | bbox: (0.1, 0.7, 0.6) ΓåÆ (0.2, 0.7, 0.6)]
+      - CX-00104143---ECROU H SOUD M6X100 AC8-TT  [mesh: mesh_686 | verts: 936 | prims: 1 | bbox: (-0.0, -0.3, 0.7) ΓåÆ (0.0, 0.3, 0.7)]
+    - 2172503000_M00_TTB_DSH_BRD_ASY_BQ020_01
+      - REUSE
+        - kaa31580s.f01.0039  [mesh: mesh_687 | verts: 65960 | prims: 1 | bbox: (-0.7, -0.8, -0.0) ΓåÆ (0.6, 0.6, 0.3)]
+        - kaa31581s.f01.0039  [mesh: mesh_688 | verts: 12424 | prims: 1 | bbox: (-1.2, -0.7, 0.3) ΓåÆ (1.2, 0.7, 0.5)]
+        - kaa31583s.f01.0039
+          - (node 1070)  [mesh: mesh_689 | verts: 4992 | prims: 1 | bbox: (-0.0, -0.8, 0.6) ΓåÆ (0.0, 0.8, 1.7)]
+          - (node 1071)  [mesh: mesh_690 | verts: 4576 | prims: 1 | bbox: (-0.1, -1.5, 0.7) ΓåÆ (0.1, 1.5, 1.5)]
+          - (node 1072)  [mesh: mesh_691 | verts: 18684 | prims: 1 | bbox: (-0.5, -1.5, 0.1) ΓåÆ (0.5, 1.5, 1.7)]
