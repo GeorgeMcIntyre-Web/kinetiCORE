@@ -1,0 +1,230 @@
+[
+  {
+    "UnitName": "UNIT_112",
+    "Joints": [
+      {
+        "Name": "C1",
+        "ElectricalName": "UNIT_112L",
+        "NodeId": "9X_110_GEO/UNIT_112/LH/MOVING",
+        "HideId": "9X_110_GEO/UNIT_112/WIRE/OPEN_LH/MOVING",
+        "Type": 1,
+        "MaxValue": 89.99996615342559,
+        "MinValue": 0,
+        "ToVector": {
+          "X": 2.006999969482422,
+          "Y": -1.1640007048845291,
+          "Z": 1.4885003566741943
+        },
+        "FromVector": {
+          "X": 2.006999969482422,
+          "Y": -0.1640007048845291,
+          "Z": 1.4885003566741943
+        },
+        "PointCountClose": 7049,
+        "PointCountOpen": 7049,
+        "RmsError": 1.2928797755631457E-07,
+        "MaxError": 5.094421119431114E-07,
+        "TransformationMatrix": [
+          "0.0000     0.0000     1.0000     0.5185",
+          "-0.0000     1.0000     -0.0000     0.0000",
+          "-1.0000     -0.0000     0.0000     3.4955",
+          "0.0000     0.0000     0.0000     1.0000"
+        ]
+      }
+    ]
+  },
+  {
+    "UnitName": "UNIT_108",
+    "Joints": [
+      {
+        "Name": "C1",
+        "ElectricalName": "UNIT_108R",
+        "NodeId": "9X_110_GEO/UNIT_108/RH/MOVING",
+        "HideId": "9X_110_GEO/UNIT_108/WIRE/OPEN/MOVING",
+        "Type": 0,
+        "MaxValue": 0.04999949783197662,
+        "MinValue": 0,
+        "ToVector": {
+          "X": -1.3929086151165393E-07,
+          "Y": -3.0246110327425413E-07,
+          "Z": -0.04999949783086777
+        },
+        "FromVector": {
+          "X": 0,
+          "Y": 0,
+          "Z": 0
+        },
+        "PointCountClose": 9144,
+        "PointCountOpen": 9144,
+        "RmsError": 3.740028821944742E-08,
+        "MaxError": 2.2087610604517374E-07,
+        "TransformationMatrix": [
+          "1.0000     -0.0000     -0.0000     0.0000",
+          "0.0000     1.0000     -0.0000     0.0000",
+          "0.0000     0.0000     1.0000     0.0500",
+          "0.0000     0.0000     0.0000     1.0000"
+        ]
+      }
+    ]
+  },
+  {
+    "UnitName": "UNIT_120",
+    "Joints": [
+      {
+        "Name": "C1",
+        "ElectricalName": "UNIT_120",
+        "NodeId": "9X_110_GEO/UNIT_120/RH/MOVING_02",
+        "HideId": "9X_110_GEO/UNIT_120/WIRE/OPEN/OPEN_RH/MOVING",
+        "Type": 1,
+        "MaxValue": 90.00000540684012,
+        "MinValue": 0,
+        "ToVector": {
+          "X": 1.7099998593330383,
+          "Y": -0.7429998815059662,
+          "Z": 1.3239993453025818
+        },
+        "FromVector": {
+          "X": 1.7099998593330383,
+          "Y": 0.2570001184940338,
+          "Z": 1.3239993453025818
+        },
+        "PointCountClose": 6979,
+        "PointCountOpen": 6979,
+        "RmsError": 4.919881590098629E-08,
+        "MaxError": 2.747732165876122E-07,
+        "TransformationMatrix": [
+          "-0.0000     -0.0000     1.0000     0.3860",
+          "-0.0000     1.0000     0.0000     -0.0000",
+          "-1.0000     -0.0000     -0.0000     3.0340",
+          "0.0000     0.0000     0.0000     1.0000"
+        ]
+      }
+    ]
+  },
+  {
+    "UnitName": "UNIT_114",
+    "Joints": [
+      {
+        "Name": "C1",
+        "ElectricalName": "UNIT_114R",
+        "NodeId": "9X_110_GEO/UNIT_114/RH/MOVING",
+        "HideId": "9X_110_GEO/UNIT_114/WIRE/OPEN/OPEN_RH/MOVING",
+        "Type": 1,
+        "MaxValue": 105.00001914489644,
+        "MinValue": 0,
+        "ToVector": {
+          "X": 3.3731947567506975,
+          "Y": 1.2274847066557988,
+          "Z": 1.4135006419348553
+        },
+        "FromVector": {
+          "X": 2.950577074285445,
+          "Y": 0.3211766494988238,
+          "Z": 1.4135004215142255
+        },
+        "PointCountClose": 5843,
+        "PointCountOpen": 5843,
+        "RmsError": 1.370795489977962E-07,
+        "MaxError": 5.754521647208544E-07,
+        "TransformationMatrix": [
+          "-0.0340     0.4822     -0.8754     4.1334",
+          "0.4822     0.7752     0.4082     -1.9274",
+          "0.8754     -0.4082     -0.2588     -0.6726",
+          "0.0000     0.0000     0.0000     1.0000"
+        ]
+      },
+      {
+        "Name": "C2",
+        "ElectricalName": "UNIT_114L",
+        "NodeId": "9X_110_GEO/UNIT_114/LH/MOVING",
+        "HideId": "9X_110_GEO/UNIT_114/WIRE/OPEN/OPEN_LH/MOVING",
+        "Type": 1,
+        "MaxValue": 105.00001773341455,
+        "MinValue": 0,
+        "ToVector": {
+          "X": 2.5279593918201924,
+          "Y": 0.5851315268674409,
+          "Z": 1.4135002010935958
+        },
+        "FromVector": {
+          "X": 2.950577074285445,
+          "Y": -0.32117653028953425,
+          "Z": 1.4135004215142255
+        },
+        "PointCountClose": 5825,
+        "PointCountOpen": 5825,
+        "RmsError": 1.3975709276935546E-07,
+        "MaxError": 6.112262779891399E-07,
+        "TransformationMatrix": [
+          "-0.0340     -0.4822     -0.8754     4.1334",
+          "-0.4822     0.7752     -0.4082     1.9274",
+          "0.8754     0.4082     -0.2588     -0.6726",
+          "0.0000     0.0000     0.0000     1.0000"
+        ]
+      }
+    ]
+  },
+  {
+    "UnitName": "UNIT_116",
+    "Joints": [
+      {
+        "Name": "C1",
+        "ElectricalName": "UNIT_116R",
+        "NodeId": "9X_110_GEO/UNIT_116/RH/MOVING",
+        "HideId": "9X_110_GEO/UNIT_116/WIRE/OPEN/OPEN_LH/MOVING",
+        "Type": 1,
+        "MaxValue": 105.0000176419886,
+        "MinValue": 0,
+        "ToVector": {
+          "X": 2.3428905229707198,
+          "Y": 1.3995932449292021,
+          "Z": 4.612691930500979
+        },
+        "FromVector": {
+          "X": 3.3367489283810747,
+          "Y": 1.297499980669359,
+          "Z": 4.655381922161277
+        },
+        "PointCountClose": 5799,
+        "PointCountOpen": 5799,
+        "RmsError": 1.1404556355526744E-07,
+        "MaxError": 4.7214244070321364E-07,
+        "TransformationMatrix": [
+          "-0.2588     0.0000     -0.9659     5.7410",
+          "0.0000     1.0000     0.0000     0.8680",
+          "0.9659     -0.0000     -0.2588     -1.5782",
+          "0.0000     0.0000     0.0000     1.0000"
+        ]
+      },
+      {
+        "Name": "C2",
+        "ElectricalName": "UNIT_116L",
+        "NodeId": "9X_110_GEO/UNIT_116/RH/MOVING",
+        "HideId": "9X_110_GEO/UNIT_116/WIRE/OPEN/OPEN_RH/MOVING",
+        "Type": 1,
+        "MaxValue": 105.00001764136603,
+        "MinValue": 0,
+        "ToVector": {
+          "X": 3.4760000593403704,
+          "Y": 1.4294999837875366,
+          "Z": 1.4134999604524467
+        },
+        "FromVector": {
+          "X": 3.4760000593403704,
+          "Y": 0.4294999837875366,
+          "Z": 1.4134999604524467
+        },
+        "PointCountClose": 5799,
+        "PointCountOpen": 5799,
+        "RmsError": 1.1333152179693362E-07,
+        "MaxError": 4.7150805954436E-07,
+        "TransformationMatrix": [
+          "-0.2588     -0.0000     -0.9659     5.7410",
+          "0.0000     1.0000     -0.0000     -0.0000",
+          "0.9659     -0.0000     -0.2588     -1.5782",
+          "0.0000     0.0000     0.0000     1.0000"
+        ]
+      }
+    ]
+  }
+]

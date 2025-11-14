@@ -30,6 +30,7 @@ import {
   Eye,
   Camera,
   Magnet,
+  PlayCircle,
 } from 'lucide-react';
 import { loadOBJFile } from '../../loaders/obj/OBJLoader';
 import { SceneManager } from '../../scene/SceneManager';
@@ -126,6 +127,7 @@ export interface RibbonToolbarProps {
   onWholeBodyIKClick?: () => void;
   onKinematicExtractionClick?: () => void;
   onICPTestClick?: () => void;
+  onAutoKinematicsTestClick?: () => void;
   onPhysicsClick?: () => void;
   onCollisionsClick?: () => void;
   onProjectionClick?: () => void;
@@ -153,6 +155,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   onWholeBodyIKClick,
   onKinematicExtractionClick,
   onICPTestClick,
+  onAutoKinematicsTestClick,
   onPhysicsClick,
   onCollisionsClick,
   onProjectionClick: _onProjectionClick,
@@ -579,6 +582,9 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           </button>
           <button className="ribbon-btn" onClick={onICPTestClick} title="ICP Test Tool - Manual FIXED/MOVING Selection">
             <TestTube size={32} />
+          </button>
+          <button className="ribbon-btn" onClick={onAutoKinematicsTestClick} title="Auto Kinematics Full Pipeline Test - 9X_110_GEO.glb">
+            <PlayCircle size={32} />
           </button>
         </div>
       </div>

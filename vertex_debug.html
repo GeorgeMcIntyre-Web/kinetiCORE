@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Vertex Debug Harness — STL Screen-Space Projection</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  html, body { margin:0; height:100%; background:#0b0e12; color:#eaeef2; font:14px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial;}
+  .wrap { position:fixed; inset:0; display:grid; grid-template-rows:auto 1fr; }
+  .toolbar {
+    display:flex; gap:.75rem; align-items:center; padding:.5rem .75rem; background:#121720; border-bottom:1px solid #1e2838;
+    position:relative; z-index:3;
+  }
+  .toolbar input[type="number"] { width:6rem; background:#0f141d; color:#eaeef2; border:1px solid #263247; border-radius:6px; padding:.25rem .5rem; }
+  .toolbar button, .toolbar label {
+    background:#1a2433; color:#eaeef2; border:1px solid #2a3a54; border-radius:8px; padding:.4rem .7rem; cursor:pointer;
+  }
+  .toolbar button:hover, .toolbar label:hover { background:#223048; }
+  .pane { position:relative; }
+  #render { position:absolute; inset:0; }
+  #overlay { position:absolute; inset:0; pointer-events:none; }
+  .legend {
+    position:absolute; right:12px; bottom:12px; z-index:2;
+    background:rgba(10,14,18,.8); border:1px solid #253247; border-radius:10px; padding:.6rem .8rem; min-width:260px;
+    font-size:12px; color:#cdd6e3;
+  }
+  .legend .row { display:flex; justify-content:space-between; gap:.75rem; }
+  .pill { display:inline-block; min-width:10px; height:10px; border-radius:50%; margin-right:.5rem; vertical-align:middle; }
+  .g { background:#00d07e; }   /* in frustum */
+  .y { background:#ffd24a; }   /* within threshold */
+  .b { background:#58a6ff; }   /* closest */
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toolbar">
+    <label><input id="file" type="file" accept=".stl,model/stl" style="display:none;">Choose STL…</label>
+    <button id="btnLoadDefault">Load Default</button>
+    <div style="margin-left:12px; opacity:.85">Screen threshold (CSS px):</div>
+    <input id="inpThresh" type="number" value="500" min="1" step="1" />
+    <div style="opacity:.85">Decimate to ~ points:</div>
+    <input id="inpBudget" type="number" value="20000" min="1000" step="1000" />
+    <div style="opacity:.85">Point size:</div>
+    <input id="inpDot" type="number" value="2" min="1" step="1" />
+    <button id="btnResetCam">Reset Camera</button>
+    <div style="margin-left:auto; opacity:.7" id="status">idle</div>
+  </div>
+  <div class="pane">
+    <canvas id="render"></canvas>
+    <canvas id="overlay"></canvas>
+    <div class="legend" id="legend">
+      <div class="row"><span><span class="pill g"></span>in frustum</span><span id="legIn">0</span></div>
+      <div class="row"><span><span class="pill y"></span>within threshold</span><span id="legNear">0</span></div>
+      <div class="row"><span><span class="pill b"></span>closest px</span><span id="legMin">—</span></div>
+      <hr style="border:none; border-top:1px solid #233044; margin:.45rem 0;">
+      <div class="row"><span>vertices (raw)</span><span id="legRaw">—</span></div>
+      <div class="row"><span>decimated</span><span id="legDec">—</span></div>
+      <div class="row"><span>DPR</span><span id="legDpr">—</span></div>
+      <div class="row"><span>camera dist (m)</span><span id="legCam">—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Babylon CDN -->
+<script src="https://cdn.jsdelivr.net/npm/babylonjs@6.46.0/babylon.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/babylonjs-loaders@6.46.0/babylonjs.loaders.min.js"></script>
+
+<script>
+(() => {
+  // Guard-y helpers
+  const qs = (id) => document.getElementById(id);
+  const statusEl = qs('status');
+  const setStatus = (s) => statusEl.textContent = s;
+
+  // DOM
+  const canvas3D = qs('render');
+  const canvas2D = qs('overlay');
+  const fileInput = qs('file');
+  const btnDefault = qs('btnLoadDefault');
+  const btnResetCam = qs('btnResetCam');
+  const inpThresh = qs('inpThresh');
+  const inpBudget = qs('inpBudget');
+  const inpDot = qs('inpDot');
+
+  const legIn = qs('legIn'), legNear = qs('legNear'), legMin = qs('legMin');
+  const legRaw = qs('legRaw'), legDec = qs('legDec'), legDpr = qs('legDpr'), legCam = qs('legCam');
+
+  // Babylon setup
+  const engine = new BABYLON.Engine(canvas3D, true, { preserveDrawingBuffer:true, stencil:true, disableWebGL2Support:false });
+  const scene = new BABYLON.Scene(engine);
+  scene.useRightHandedSystem = false;
+  scene.createDefaultLight(true);
+
+  const camera = new BABYLON.ArcRotateCamera("cam", Math.PI*0.25, Math.PI*0.35, 1.2, new BABYLON.Vector3(0,0,0), scene);
+  camera.attachControl(canvas3D, true);
+  camera.wheelDeltaPercentage = 0.02;
+  camera.minZ = 0.001;
+  camera.maxZ = 10000;
+  camera.lowerRadiusLimit = 0.05;
+
+  const dpr = window.devicePixelRatio || 1;
+  const resize = () => {
+    const w = canvas3D.clientWidth || window.innerWidth;
+    const h = canvas3D.clientHeight || window.innerHeight - (qs('toolbar')?.offsetHeight || 0);
+    canvas3D.width = w * dpr;
+    canvas3D.height = h * dpr;
+    canvas2D.width = w * dpr;
+    canvas2D.height = h * dpr;
+    canvas3D.style.width = w + 'px';
+    canvas3D.style.height = h + 'px';
+    canvas2D.style.width = w + 'px';
+    canvas2D.style.height = h + 'px';
+    engine.resize();
+  };
+  window.addEventListener('resize', resize, { passive:true });
+  resize();
+
+  // Globals
+  let loadedRoot = null;
+  let mesh = null;
+  let worldVertsCache = null; // Float32Array world-space vertices
+  let cacheFlag = -1;
+
+  const getPositionsArray = (m) => {
+    if (m === null) return null;
+    const src = (m.isAnInstance ? m.sourceMesh : m);
+    if (src === null) return null;
+    const pos = src.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+    if (pos === null) return null;
+    return (pos instanceof Float32Array) ? pos : new Float32Array(pos);
+  };
+
+  const buildWorldVerts = (m) => {
+    if (m === null) return null;
+    const positions = getPositionsArray(m);
+    if (positions === null) return null;
+    m.computeWorldMatrix(true);
+    const wm = m.getWorldMatrix();
+    const count = positions.length;
+    const out = new Float32Array(count);
+    const v = new BABYLON.Vector3();
+
+    for (let i = 0; i < count; i += 3) {
+      v.set(positions[i], positions[i+1], positions[i+2]);
+      const w = BABYLON.Vector3.TransformCoordinates(v, wm);
+      out[i] = w.x; out[i+1] = w.y; out[i+2] = w.z;
+    }
+
+    return out;
+  };
+
+  const ensureWorldVerts = (m) => {
+    const flag = m.getWorldMatrix().updateFlag;
+    if (worldVertsCache && cacheFlag === flag) return worldVertsCache;
+    worldVertsCache = buildWorldVerts(m);
+    cacheFlag = flag;
+    return worldVertsCache;
+  };
+
+  const projectToScreen = (worldV, cam) => {
+    if (cam === null) return null;
+    const engineW = engine.getRenderWidth(true);
+    const engineH = engine.getRenderHeight(true);
+    const viewport = cam.viewport.toGlobal(engineW, engineH);
+    const proj = BABYLON.Vector3.Project(worldV, scene.getTransformMatrix(), cam.getProjectionMatrix(), viewport);
+    if (Number.isNaN(proj.x) || Number.isNaN(proj.y) || Number.isNaN(proj.z)) return null;
+    // Frustum 0..1 with tiny tolerance
+    if (proj.z < -0.001 || proj.z > 1.001) return null;
+    // Allow a small 2px border to avoid edge drops
+    if (proj.x < -2 || proj.x > engineW + 2) return null;
+    if (proj.y < -2 || proj.y > engineH + 2) return null;
+    return { x: proj.x, y: proj.y, z: proj.z, rw: engineW, rh: engineH };
+  };
+
+  // Draw helpers
+  const ctx = canvas2D.getContext('2d');
+  const clearOverlay = () => { ctx.clearRect(0,0,canvas2D.width, canvas2D.height); };
+  const dot = (x,y,r,style) => {
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+    ctx.fillStyle = style; ctx.fill();
+  };
+  const ring = (x,y,r,style, line=2) => {
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+    ctx.lineWidth = line; ctx.strokeStyle = style; ctx.stroke();
+  };
+
+  const loadSTLFromURL = async (url) => {
+    setStatus('loading ' + url);
+    // clean old
+    if (loadedRoot) { loadedRoot.dispose(); loadedRoot = null; mesh = null; worldVertsCache = null; }
+    const result = await BABYLON.SceneLoader.ImportMeshAsync("", "", url, scene);
+    if (!result || result.meshes.length === 0) { setStatus('failed to load'); return; }
+    loadedRoot = new BABYLON.TransformNode("root", scene);
+    result.meshes.forEach(m => { if (m && m !== scene.getMeshByName("__root__")) m.parent = loadedRoot; });
+
+    // pick the biggest mesh (most vertices)
+    let pick = null, maxVerts = -1;
+    for (const m of result.meshes) {
+      if (!m || !(m instanceof BABYLON.Mesh)) continue;
+      const pos = getPositionsArray(m);
+      if (!pos) continue;
+      if (pos.length > maxVerts) { maxVerts = pos.length; pick = m; }
+    }
+
+    mesh = pick;
+    if (mesh === null) { setStatus('no mesh positions found'); return; }
+
+    // center & scale into view gently
+    const bb = mesh.getBoundingInfo().boundingBox;
+    const center = bb.centerWorld.clone();
+    const extent = bb.extendSizeWorld.length();
+    camera.setTarget(center);
+    if (extent > 0) camera.radius = extent * 1.8;
+
+    setStatus('loaded: ' + url + '  (' + (maxVerts/3|0) + ' verts)');
+  };
+
+  // UI events
+  btnDefault.addEventListener('click', () => {
+    const url = './MH5_BASE_AXIS.stl';
+    loadSTLFromURL(url).catch(err => {
+      console.error('Load error:', err);
+      setStatus('error: ' + err.message);
+    });
+  });
+
+  const fileLabel = document.querySelector('label');
+  if (fileLabel) {
+    fileLabel.addEventListener('click', (e) => {
+      if (e.target.tagName !== 'INPUT') fileInput.click();
+    });
+  }
+
+  fileInput.addEventListener('change', async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const blobURL = URL.createObjectURL(f);
+    await loadSTLFromURL(blobURL).catch(err => {
+      console.error('Load error:', err);
+      setStatus('error: ' + err.message);
+    });
+  });
+
+  btnResetCam.addEventListener('click', () => {
+    if (mesh === null) return;
+    const bb = mesh.getBoundingInfo().boundingBox;
+    camera.setTarget(bb.centerWorld.clone());
+    const extent = bb.extendSizeWorld.length();
+    if (extent > 0) camera.radius = extent * 1.8;
+  });
+
+  // Main render + overlay pass
+  scene.onBeforeRenderObservable.add(() => {
+    if (mesh === null) { clearOverlay(); return; }
+
+    // Read UI
+    const cssThresh = Math.max(1, parseFloat(inpThresh.value) || 500);
+    const pointBudget = Math.max(1000, parseInt(inpBudget.value) || 20000);
+    const dotR = Math.max(1, parseFloat(inpDot.value) || 2);
+
+    // DPR-correct threshold
+    const dpr = 1 / engine.getHardwareScalingLevel();
+    const screenThresh = cssThresh * dpr;
+
+    // Pointers in render pixels
+    const px = scene.pointerX, py = scene.pointerY;
+    const pointer = { x: px, y: py };
+
+    // World verts (cached by updateFlag)
+    const wv = ensureWorldVerts(mesh);
+    if (wv === null) { clearOverlay(); return; }
+
+    // Decimate stride to keep ~pointBudget points
+    const vertCount = (wv.length / 3)|0;
+    const stride = Math.max(1, Math.ceil(vertCount / pointBudget));
+
+    // Stats
+    let inFrustum = 0, near = 0, closestPx = Infinity, closestScreen = null, rawCount = vertCount, decCount = 0;
+
+    // Draw
+    clearOverlay();
+    ctx.save();
+    ctx.scale(dpr, dpr); // draw in CSS pixels for readability
+
+    // Project and draw points
+    const temp = new BABYLON.Vector3();
+    for (let i = 0; i < wv.length; i += 3 * stride) {
+      temp.set(wv[i], wv[i+1], wv[i+2]);
+      const s = projectToScreen(temp, camera);
+      if (s === null) continue;
+      inFrustum++;
+      decCount++;
+
+      const dx = s.x - pointer.x;
+      const dy = s.y - pointer.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist < closestPx) { closestPx = dist; closestScreen = s; }
+      if (dist <= screenThresh) { near++; dot(s.x/dpr, s.y/dpr, dotR, '#ffd24a'); continue; } // yellow
+      dot(s.x/dpr, s.y/dpr, dotR, '#00d07e'); // green
+    }
+
+    // Closest ring
+    if (closestScreen) ring(closestScreen.x/dpr, closestScreen.y/dpr, 6, '#58a6ff', 2);
+
+    ctx.restore();
+
+    // Info
+    legIn.textContent = inFrustum.toString();
+    legNear.textContent = near.toString();
+    legMin.textContent = Number.isFinite(closestPx) ? closestPx.toFixed(1) + ' px' : '—';
+    legRaw.textContent = rawCount.toLocaleString();
+    legDec.textContent = decCount.toLocaleString();
+    legDpr.textContent = (1 / engine.getHardwareScalingLevel()).toFixed(2);
+    const camDist = BABYLON.Vector3.Distance(camera.globalPosition || camera.position, camera.target);
+    legCam.textContent = camDist.toFixed(3);
+
+    // Console pulse (lightweight)
+    if (scene.getFrameId() % 60 === 0) {
+      console.log(`[Harness] verts=${rawCount} dec=${decCount} inFrustum=${inFrustum} near=${near} minPx=${Number.isFinite(closestPx)?closestPx.toFixed(1):'—'} dpr=${(1/engine.getHardwareScalingLevel()).toFixed(2)} camDist=${camDist.toFixed(3)}`);
+    }
+  });
+
+  engine.runRenderLoop(() => scene.render());
+})();
+</script>
+</body>
+</html>
+

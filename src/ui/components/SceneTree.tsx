@@ -549,6 +549,10 @@ const TreeNode: React.FC<TreeNodeProps> = ({
         onExportGLB: () => {
           handleExportGLB();
         },
+        onInspectKinematics: () => {
+          const { openKinematicsInspector } = useEditorStore.getState();
+          openKinematicsInspector(node.id);
+        },
       })
     : [];
 

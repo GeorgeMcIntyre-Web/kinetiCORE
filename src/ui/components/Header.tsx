@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Menu, X, Settings, HelpCircle, Zap, ZapOff, ZapIcon } from 'lucide-react';
+import { Menu, X, Settings, Zap, ZapOff, ZapIcon } from 'lucide-react';
 import { zIndex, colors } from '../styles/design-tokens';
 import { RibbonToolbar, RibbonToolbarProps } from './RibbonToolbar';
 import './Header.css';
@@ -39,7 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentMode,
   onModeChange,
   onSettingsClick,
-  onHelpClick,
+  onHelpClick: _onHelpClick,
   className = '',
   style = {},
   ribbonProps,

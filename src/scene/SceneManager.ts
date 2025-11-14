@@ -83,6 +83,12 @@ export class SceneManager {
     this.scene.clearColor = new BABYLON.Color4(0.71, 0.78, 0.82, 1.0); // Cloudy sky (#B5C7D1)
     console.log('🎨 Scene initialized with cloudy sky background:', this.scene.clearColor);
 
+    // Set scene for debug tools
+    if (typeof window !== 'undefined' && (window as any).debugTools) {
+      (window as any).debugTools.setScene(this.scene);
+      console.log('🔧 Debug tools initialized. Type window.debugTools.help() in console.');
+    }
+
     // Initialize lighting service
     this.lightingService.initialize(this.scene);
 

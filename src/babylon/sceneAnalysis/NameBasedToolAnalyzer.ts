@@ -152,7 +152,7 @@ export class NameBasedToolAnalyzer {
       console.log(`[NameBasedToolAnalyzer] Found ${unitNodes.length} UNIT_XXX nodes`);
     }
 
-    // Step 2: For each UNIT, find RH/LH sides
+    // Step 2: For each UNIT, find RH/LH sides (with robust fallbacks)
     for (const unitNode of unitNodes) {
       const unitName = getNativeName(unitNode);
 
@@ -160,18 +160,57 @@ export class NameBasedToolAnalyzer {
         console.log(`[NameBasedToolAnalyzer] Analyzing unit: ${unitName}`);
       }
 
-      const sides = this.findSideNodes(unitNode, opts);
+      let sides = this.findSideNodes(unitNode, opts);
 
+      // If no explicit side nodes, try to infer by scanning descendants
       if (sides.length === 0) {
-        if (opts.verbose) {
-          console.warn(`[NameBasedToolAnalyzer] Unit ${unitName} has no RH/LH sides, skipping`);
-        }
+        const inferred = this.inferSidesFromDescendants(unitNode, opts);
+        const processSide = (side: 'RH' | 'LH') => {
+          const fixed = inferred[side].fixed;
+          const moving = inferred[side].moving;
+          if (fixed.length === 0 && moving.length === 0) return;
+
+          if (opts.verbose) {
+            console.log(`[NameBasedToolAnalyzer] Inferred side ${side} for ${unitName}: FIXED=${fixed.length}, MOVING=${moving.length}`);
+          }
+
+          // Create FIXED units
+          for (const fixedNode of fixed) {
+            const id = uuid();
+            const nodeIds = collectDescendantIds(fixedNode);
+            const wt = getWorldTransform(fixedNode);
+            units.push({ id, name: `${unitName}/${side}/FIXED`, root: nodeId(fixedNode), type: 'fixture' as ToolUnitType, isFixed: true, nodes: nodeIds });
+            anchors[id] = { position: wt.position, rotation: wt.rotation };
+          }
+
+          // Create MOVING units
+          for (const movingNode of moving) {
+            const id = uuid();
+            const nodeIds = collectDescendantIds(movingNode);
+            const wt = getWorldTransform(movingNode);
+            const movingName = getNativeName(movingNode);
+            let type: ToolUnitType = 'gripper';
+            if (unitName.includes('CLAMP')) type = 'clamp';
+            else if (unitName.includes('PIN')) type = 'pin';
+            else if (unitName.includes('DUMP')) type = 'dump';
+            else if (unitName.includes('SLIDE')) type = 'slide';
+            units.push({ id, name: `${unitName}/${side}/${movingName}`, root: nodeId(movingNode), type, isFixed: false, nodes: nodeIds });
+            anchors[id] = { position: wt.position, rotation: wt.rotation };
+          }
+        };
+
+        processSide('RH');
+        processSide('LH');
+
+        // Done with this UNIT
         continue;
       }
 
       // Step 3: For each side (RH/LH), find FIXED and MOVING nodes
       for (const sideNode of sides) {
-        const sideName = getNativeName(sideNode) as 'RH' | 'LH';
+        // Normalize side name: accept 'RH'/'LH' or 'OPEN_RH*'/'OPEN_LH*'
+        const rawSide = getNativeName(sideNode);
+        const sideName = rawSide.startsWith('OPEN_RH') ? 'RH' : rawSide.startsWith('OPEN_LH') ? 'LH' : (rawSide as 'RH' | 'LH');
         const { fixed, moving: movingUnderSide } = this.findFixedAndMovingNodes(sideNode, opts);
 
         // Also check for MOVING nodes under WIRE/OPEN_XX (alternate pattern)
@@ -318,7 +357,69 @@ export class NameBasedToolAnalyzer {
       }
     }
 
+    // Fallback: Some units omit explicit RH/LH nodes and put MOVING under WIRE/OPEN_RH or OPEN_LH
+    if (sideNodes.length === 0) {
+      for (const child of children) {
+        const name = getNativeName(child);
+        if (name === 'WIRE') {
+          const wireChildren = (child as any).getChildren ? (child as any).getChildren() as BABYLON.Node[] : [];
+          for (const wc of wireChildren) {
+            const wname = getNativeName(wc);
+            if (/^OPEN_RH/i.test(wname) || /^OPEN_LH/i.test(wname)) {
+              sideNodes.push(wc);
+              if (opts.verbose) {
+                console.log(`[NameBasedToolAnalyzer] Fallback side via WIRE: ${wname}`);
+              }
+            }
+          }
+        }
+      }
+    }
+
     return sideNodes;
+  }
+
+  /**
+   * Fallback: infer sides by scanning entire UNIT subtree and grouping by nearest RH/LH/OPEN_RH/OPEN_LH ancestor.
+   * Returns a map of side name ('RH' | 'LH') to arrays of FIXED and MOVING nodes found under that side.
+   */
+  private inferSidesFromDescendants(unitNode: BABYLON.Node, opts: Required<NameBasedAnalyzeOptions>): Record<'RH' | 'LH', { fixed: BABYLON.Node[]; moving: BABYLON.Node[]; }>
+  {
+    const result: Record<'RH' | 'LH', { fixed: BABYLON.Node[]; moving: BABYLON.Node[]; }> = {
+      RH: { fixed: [], moving: [] },
+      LH: { fixed: [], moving: [] },
+    };
+
+    type StackItem = { node: BABYLON.Node; currentSide: 'RH' | 'LH' | null };
+    const stack: StackItem[] = [{ node: unitNode, currentSide: null }];
+    const sideRegexRH = /^(OPEN_)?RH$/i;
+    const sideRegexLH = /^(OPEN_)?LH$/i;
+
+    while (stack.length) {
+      const { node, currentSide } = stack.pop()!;
+      const name = getNativeName(node);
+
+      // Update side context if this node declares a side
+      let side: 'RH' | 'LH' | null = currentSide;
+      if (sideRegexRH.test(name)) side = 'RH';
+      else if (sideRegexLH.test(name)) side = 'LH';
+
+      // Collect FIXED/MOVING under the current side context
+      if (side) {
+        if (name === 'FIXED') result[side].fixed.push(node);
+        if (name === 'MOVING' || name.startsWith('MOVING_')) result[side].moving.push(node);
+      }
+
+      const children = (node as any).getChildren ? (node as any).getChildren() as BABYLON.Node[] : [];
+      for (const child of children) stack.push({ node: child, currentSide: side });
+    }
+
+    if (opts.verbose) {
+      const rh = result.RH, lh = result.LH;
+      console.log(`[NameBasedToolAnalyzer] Fallback inference under UNIT '${getNativeName(unitNode)}': RH fixed=${rh.fixed.length}, RH moving=${rh.moving.length}, LH fixed=${lh.fixed.length}, LH moving=${lh.moving.length}`);
+    }
+
+    return result;
   }
 
   /**

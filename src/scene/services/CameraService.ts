@@ -2,6 +2,7 @@
 // Owner: Cole
 
 import * as BABYLON from '@babylonjs/core';
+import { LAYER_UI } from '../../manipulation/snapConstants';
 import {
   CAMERA_MIN_RADIUS,
   CAMERA_MAX_RADIUS,
@@ -53,6 +54,11 @@ export class CameraService {
       BABYLON.Vector3.Zero(),
       scene
     );
+
+    // Enable camera to render UI layer (snap previews, measurements, indicators)
+    // Default Babylon layerMask is 0x0FFFFFFF (bits 0-27)
+    // We need to include LAYER_UI (bit 29) for preview visibility
+    this.camera.layerMask |= LAYER_UI;
 
     // Camera controls
     this.camera.attachControl(canvas, true);

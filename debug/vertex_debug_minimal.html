@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Minimal Vertex Debug</title>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: monospace; }
+    #renderCanvas { width: 100%; height: 100vh; display: block; }
+    #info { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.7); padding: 10px; }
+  </style>
+</head>
+<body>
+  <canvas id="renderCanvas"></canvas>
+  <div id="info">Loading...</div>
+
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+
+  <script>
+(async () => {
+  const canvas = document.getElementById('renderCanvas');
+  const info = document.getElementById('info');
+
+  // Create engine and scene
+  const engine = new BABYLON.Engine(canvas, true);
+  const scene = new BABYLON.Scene(engine);
+  scene.clearColor = new BABYLON.Color3(0.1, 0.1, 0.15);
+
+  // Camera
+  const camera = new BABYLON.ArcRotateCamera(
+    'camera',
+    Math.PI / 4,
+    Math.PI / 3,
+    5,
+    BABYLON.Vector3.Zero(),
+    scene
+  );
+  camera.attachControl(canvas, true);
+  camera.wheelPrecision = 50;
+  camera.minZ = 0.0001;  // Remove near clipping
+  camera.maxZ = 10000;   // Remove far clipping
+
+  // Disable all picking helpers and UI overlays
+  scene.constantlyUpdateMeshUnderPointer = false;
+
+  // Disable highlight layer (white circle around mesh on hover)
+  scene.highlightLayers = [];
+
+  // Lights
+  new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0, 1, 0), scene);
+  new BABYLON.HemisphericLight('light2', new BABYLON.Vector3(0, -1, 0), scene);
+
+  // Show all vertices as small orange dots in the scene
+  let allVerticesDots = null;
+
+  // Load STL
+  info.textContent = 'Loading STL...';
+  const stlPath = '/public/library/manufacturing/models/motoman/mh5/meshes/mh5/visual/MH5_BASE_AXIS.stl';
+
+  let mesh = null;
+  let vertices = null;
+
+  console.log('[Debug] Attempting to load STL from:', stlPath);
+
+  try {
+    const result = await BABYLON.SceneLoader.ImportMeshAsync('', '', stlPath, scene);
+    console.log('[Debug] Import result:', result);
+
+    if (!result.meshes || result.meshes.length === 0) {
+      throw new Error('No meshes in import result');
+    }
+
+    mesh = result.meshes[1] || result.meshes[0]; // Sometimes [0] is root node
+    console.log('[Debug] Mesh:', mesh, 'vertices:', mesh.getTotalVertices());
+
+    // White material like the full harness
+    mesh.material = new BABYLON.StandardMaterial('mat', scene);
+    mesh.material.diffuseColor = new BABYLON.Color3(1, 1, 1);
+    mesh.material.specularColor = new BABYLON.Color3(0.3, 0.3, 0.3);
+
+    // Get vertices
+    const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+    if (!positions) {
+      throw new Error('No position data in mesh');
+    }
+
+    mesh.computeWorldMatrix(true);
+    const worldMatrix = mesh.getWorldMatrix();
+
+    // Transform to world space
+    vertices = [];
+    for (let i = 0; i < positions.length; i += 3) {
+      const local = new BABYLON.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+      const world = BABYLON.Vector3.TransformCoordinates(local, worldMatrix);
+      vertices.push(world);
+    }
+
+    console.log('[Debug] Loaded', vertices.length, 'vertices');
+
+    // Center camera
+    mesh.refreshBoundingInfo();
+    const bb = mesh.getBoundingInfo().boundingBox;
+    console.log('[Debug] Bounding box center:', bb.centerWorld);
+    console.log('[Debug] Bounding box size:', bb.extendSizeWorld.length());
+    console.log('[Debug] Mesh position:', mesh.position);
+
+    camera.setTarget(bb.centerWorld);
+    camera.radius = bb.extendSizeWorld.length() * 2;
+
+    console.log('[Debug] Camera target:', camera.target);
+    console.log('[Debug] Camera radius:', camera.radius);
+
+    // Store initial camera radius for adaptive zoom scaling
+    const initialCameraRadius = camera.radius;
+    console.log('[Debug] Initial camera radius for scaling:', initialCameraRadius);
+
+    // Create point cloud showing ALL vertices as small black dots
+    const pcs = new BABYLON.PointsCloudSystem('allVertices', 2, scene);
+    pcs.addPoints(vertices.length, (particle, i) => {
+      particle.position = vertices[i];
+    });
+    allVerticesDots = pcs.buildMeshAsync().then(m => {
+      const mat = new BABYLON.StandardMaterial('vertMat', scene);
+      mat.emissiveColor = new BABYLON.Color3(0, 0, 0); // Black
+      mat.diffuseColor = new BABYLON.Color3(0, 0, 0); // Black
+      mat.pointsCloud = true;
+      mat.pointSize = 2;
+      m.material = mat;
+      console.log('[Debug] Created point cloud with', vertices.length, 'black dots');
+      return m;
+    });
+
+    info.textContent = `Loaded ${vertices.length} vertices. Move mouse to snap.`;
+  } catch (err) {
+    info.textContent = 'Error loading STL: ' + err.message;
+    console.error('[Debug] Load error:', err);
+  }
+
+  // Store candidate vertices for circle detection
+  let candidateVertices = [];
+  let displayedCandidates = []; // Snapshot of what orange dots are showing
+
+  // Create orange dots to show candidates (separate from black dots)
+  let candidateDots = null;
+  let currentBuildId = 0; // Track which build is current
+
+  // Project world point to screen
+  function projectToScreen(worldPos) {
+    const viewport = camera.viewport.toGlobal(
+      engine.getRenderWidth(),
+      engine.getRenderHeight()
+    );
+
+    return BABYLON.Vector3.Project(
+      worldPos,
+      BABYLON.Matrix.Identity(),
+      scene.getTransformMatrix(),
+      viewport
+    );
+  }
+
+  // Find candidates with adaptive radius + spatial clustering
+  let moveCount = 0;
+  let initialCameraRadius = null;
+  let rawCandidateCount = 0;
+  let adaptiveRadiusValue = 100;
+  let zoomFactorValue = 1.0;
+
+  scene.onPointerMove = () => {
+    if (!mesh || !vertices || vertices.length === 0) {
+      info.textContent = `Waiting for mesh to load...`;
+      return;
+    }
+
+    // Capture initial camera radius on first move
+    if (initialCameraRadius === null) {
+      initialCameraRadius = camera.radius;
+      console.log('[Debug] Initial camera radius captured:', initialCameraRadius);
+    }
+
+    const pickX = scene.pointerX;
+    const pickY = scene.pointerY;
+
+    // Debug: log first few calls
+    if (moveCount < 5) {
+      console.log(`[Mouse ${moveCount}] pickX=${pickX}, pickY=${pickY}, vertices=${vertices.length}`);
+      moveCount++;
+    }
+
+    // Basic bounds check - if pointer is invalid, show error
+    if (!Number.isFinite(pickX) || !Number.isFinite(pickY)) {
+      console.log('[Mouse] Invalid pointer coordinates');
+      info.textContent = `Invalid pointer: ${pickX}, ${pickY}`;
+      return;
+    }
+
+    // Collect ALL vertices within pixel radius - no limit!
+    const PIXEL_RADIUS = 10; // Fixed 10px radius
+    candidateVertices = [];
+
+    for (const vertex of vertices) {
+      const screen = projectToScreen(vertex);
+
+      if (!screen) continue;
+
+      // Check if in front of camera
+      if (screen.z < 0 || screen.z > 1) continue;
+
+      const dx = screen.x - pickX;
+      const dy = screen.y - pickY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      // Only consider vertices within radius
+      if (dist <= PIXEL_RADIUS) {
+        candidateVertices.push(vertex);
+      }
+    }
+
+    rawCandidateCount = candidateVertices.length;
+
+    // DEDUPLICATE vertices by position (STL files have duplicate vertices)
+    const uniqueVertices = [];
+    const EPSILON = 0.0001; // Tolerance for considering vertices identical
+
+    for (const vertex of candidateVertices) {
+      // Check if this vertex position already exists
+      const isDuplicate = uniqueVertices.some(v =>
+        Math.abs(v.x - vertex.x) < EPSILON &&
+        Math.abs(v.y - vertex.y) < EPSILON &&
+        Math.abs(v.z - vertex.z) < EPSILON
+      );
+
+      if (!isDuplicate) {
+        uniqueVertices.push(vertex);
+      }
+    }
+
+    // Use deduplicated vertices from now on
+    candidateVertices = uniqueVertices;
+
+    adaptiveRadiusValue = PIXEL_RADIUS;
+    zoomFactorValue = camera.radius / initialCameraRadius;
+
+    // Debug logging (first few moves only)
+    if (moveCount < 5) {
+      console.log(`[Candidates] Found ${candidateVertices.length} unique candidates (${rawCandidateCount} raw), radius=${PIXEL_RADIUS}px`);
+      if (candidateVertices.length > 0) {
+        // Log first candidate distance
+        const firstScreen = projectToScreen(candidateVertices[0]);
+        if (firstScreen) {
+          const dx = firstScreen.x - pickX;
+          const dy = firstScreen.y - pickY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          console.log(`[Candidates] First candidate screen dist: ${dist.toFixed(1)}px at (${firstScreen.x.toFixed(0)}, ${firstScreen.y.toFixed(0)})`);
+        }
+      }
+    }
+
+    // Remove old candidate dots immediately
+    if (candidateDots) {
+      candidateDots.dispose();
+      candidateDots = null;
+    }
+
+    // Increment build ID to invalidate any in-flight async operations
+    currentBuildId++;
+    const thisBuildId = currentBuildId;
+
+    // Clear displayedCandidates immediately when we dispose dots
+    displayedCandidates = [];
+
+    // Create new orange dots for candidates
+    if (candidateVertices.length > 0) {
+      // Capture these candidates at this moment - DEEP COPY to prevent mutation
+      const candidatesSnapshot = candidateVertices.map(v => new BABYLON.Vector3(v.x, v.y, v.z));
+
+      const pcs = new BABYLON.PointsCloudSystem('candidates', 6, scene);
+      pcs.addPoints(candidatesSnapshot.length, (particle, i) => {
+        particle.position = candidatesSnapshot[i];
+      });
+      pcs.buildMeshAsync().then(m => {
+        // Check if this build is still current - if not, dispose and exit
+        if (thisBuildId !== currentBuildId) {
+          m.dispose();
+          return;
+        }
+
+        const mat = new BABYLON.StandardMaterial('candMat', scene);
+        mat.emissiveColor = new BABYLON.Color3(1, 0.6, 0); // Bright orange
+        mat.disableLighting = true; // Make it fully bright, ignore lighting
+        mat.pointsCloud = true;
+        mat.pointSize = 6; // Larger than black dots (which are size 2)
+        m.material = mat;
+
+        // Set as active dots and update displayedCandidates TOGETHER
+        candidateDots = m;
+        displayedCandidates = candidatesSnapshot;
+
+        // Update info text to match what's actually displayed
+        info.textContent = `${displayedCandidates.length} orange dots - Click to log`;
+
+        console.log(`[Candidates] Rendered ${displayedCandidates.length} orange dots`);
+      });
+    } else {
+      // No candidates - update info immediately
+      info.textContent = `No vertices within 10px`;
+    }
+
+    // Info text will be updated when dots actually render
+    // Don't show candidateVertices count - it's misleading!
+  };
+
+  // Click handler - log candidates for circle detection
+  // IMPORTANT: Use displayedCandidates (snapshot) instead of candidateVertices
+  scene.onPointerDown = () => {
+    if (displayedCandidates.length > 0) {
+      console.log('[Circle Detection] Candidates:', displayedCandidates.length);
+      console.log('[Circle Detection] Vertices:', displayedCandidates.map((v, i) => ({
+        index: i,
+        x: v.x,
+        y: v.y,
+        z: v.z
+      })));
+      info.textContent = `Logged ${displayedCandidates.length} candidates to console`;
+    } else {
+      console.log('[Circle Detection] No candidates');
+      info.textContent = `No candidates to log`;
+    }
+  };
+
+  // Resize
+  window.addEventListener('resize', () => engine.resize());
+
+  // Render loop
+  engine.runRenderLoop(() => scene.render());
+})();
+  </script>
+</body>
+</html>

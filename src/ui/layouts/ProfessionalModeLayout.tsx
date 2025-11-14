@@ -64,7 +64,6 @@ import { ProjectManagerPanelV2 } from '../components/ProjectManager/ProjectManag
 import { ToolbarContainer } from '../components/ToolbarContainer';
 import { ViewDropdown } from '../components/ViewDropdown';
 import { SelectionLevelDropdown } from '../components/SelectionLevelDropdown';
-import { toast } from '../components/ToastNotifications';
 import './ProfessionalModeLayout.css';
 
 export const ProfessionalModeLayout: React.FC = () => {

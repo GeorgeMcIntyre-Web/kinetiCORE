@@ -11,6 +11,8 @@
 
 import * as BABYLON from '@babylonjs/core';
 import { parseURDF } from './URDFLoader';
+import { enableSnapForMesh } from '../../manipulation/snapConstants';
+import { buildSnapIndex } from '../../manipulation/snapIndex';
 // import { parseURDFMeshPaths } from './AutoURDFMeshLoader'; // Unused
 
 /**
@@ -303,6 +305,39 @@ export async function loadURDFWithMeshes(
         // Apply RPY rotation (converted from Z-up to Y-up)
         if (origin.rpy[0] !== 0 || origin.rpy[1] !== 0 || origin.rpy[2] !== 0) {
           applyRPYRotation(mesh, origin.rpy);
+        }
+
+        // Normalize mesh for robust snap detection
+        if (mesh instanceof BABYLON.Mesh) {
+          enableSnapForMesh(mesh);
+
+          // Tag as snap target for deterministic filtering
+          if (!mesh.metadata) mesh.metadata = {};
+          mesh.metadata.isSnapTarget = true;
+          mesh.isPickable = true;
+          mesh.alwaysSelectAsActiveMesh = true;
+          mesh.computeWorldMatrix(true);
+
+          // Build snap index for fast vertex snapping (welds duplicates + spatial hash)
+          buildSnapIndex(mesh);
+
+          // Ensure child meshes are also pickable (some STL importers create nested children)
+          mesh.getChildMeshes(false).forEach(c => { if (c) c.isPickable = true; });
+
+          // Check for negative/non-uniform scale
+          const scaleProduct = mesh.scaling.x * mesh.scaling.y * mesh.scaling.z;
+          if (scaleProduct < 0) {
+            console.warn(`[URDF] Negative scale detected on ${mesh.name}`);
+          }
+
+          if (mesh.material && 'backFaceCulling' in mesh.material) {
+            (mesh.material as BABYLON.StandardMaterial).backFaceCulling = false;
+          }
+
+          // Ensure normals are computed (skip if frozen for animation)
+          if (!mesh.areNormalsFrozen && !mesh.isWorldMatrixFrozen) {
+            mesh.createNormals(false);
+          }
         }
 
         meshes.push(mesh);
@@ -678,6 +713,52 @@ async function loadMeshFile(
             // Apply scale with Y/Z swap
             if (scale) {
               mesh.scaling = new BABYLON.Vector3(scale[0], scale[2], scale[1]);
+            }
+
+            // Normalize mesh for robust snap detection (MH5-specific stability)
+            // This fixes issues with STL caps and thin parts that have inconsistent normals/backfaces
+            if (mesh instanceof BABYLON.Mesh) {
+              // Enable for snap detection
+              enableSnapForMesh(mesh);
+
+              // Tag as snap target for deterministic filtering
+              if (!mesh.metadata) mesh.metadata = {};
+              mesh.metadata.isSnapTarget = true;
+
+              // Check for negative/non-uniform scale that inverts normals
+              const scaleProduct = mesh.scaling.x * mesh.scaling.y * mesh.scaling.z;
+              if (scaleProduct < 0) {
+                console.warn(`[URDF] Negative scale detected on ${mesh.name}, disabling backface culling`);
+                // Negative scale inverts winding order - disable backface culling
+                if (mesh.material && 'backFaceCulling' in mesh.material) {
+                  (mesh.material as BABYLON.StandardMaterial).backFaceCulling = false;
+                }
+              } else {
+                // Normal scale - still disable backface culling for thin STL parts
+                if (mesh.material && 'backFaceCulling' in mesh.material) {
+                  (mesh.material as BABYLON.StandardMaterial).backFaceCulling = false;
+                }
+              }
+
+              // Ensure normals are computed for accurate face/edge detection
+              // Skip if matrix is frozen (would be on animated joints)
+              if (!mesh.areNormalsFrozen && !mesh.isWorldMatrixFrozen) {
+                mesh.createNormals(false);
+              }
+
+              // Ensure mesh is always considered active for picking
+              mesh.alwaysSelectAsActiveMesh = true;
+
+              // Force world matrix computation (but don't freeze - allow joint animation)
+              mesh.computeWorldMatrix(true);
+
+              // Build snap index for fast vertex snapping (welds duplicates + spatial hash)
+              buildSnapIndex(mesh);
+
+              // Ensure child meshes are also pickable (some STL importers create nested children)
+              mesh.getChildMeshes(false).forEach(child => {
+                if (child) child.isPickable = true;
+              });
             }
 
             meshesToReturn.push(mesh);
