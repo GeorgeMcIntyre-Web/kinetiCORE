@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- feat(factory-piping): elevation-aware node placement
+  - New placement modes (floor, elevation, snap) to keep node heights intentional
+  - Default elevation settings per network, persisted through serialization and UI
+  - Validation + E2E coverage for placement workflows and warning banners
+  - UX and accessibility improvements (placement tab, HUD badge, keyboard shortcuts)
+
 ## [0.2.0] - 2025-01-29
 
 ### Fixed - Rotary TCP Movement
