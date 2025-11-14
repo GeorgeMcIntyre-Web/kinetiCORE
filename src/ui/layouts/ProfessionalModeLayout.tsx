@@ -28,6 +28,7 @@ import {
   Minus,
   Maximize2,
   Box,
+  Building2,
   } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
