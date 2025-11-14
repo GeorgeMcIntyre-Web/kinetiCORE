@@ -1,574 +1,305 @@
-// Floor Settings Panel - Controls floor material and grid independent of skybox
-// Owner: Skybox System
+// Floor & Grid Settings Panel - controls floor material and a single grid overlay
+// Owner: Scene/Rendering Team
 
 import React, { useEffect, useState } from 'react';
 import { Eye, Grid3X3, Palette } from 'lucide-react';
-import {
-  SkyboxManager,
-  FloorConfig,
-  FloorMaterialType,
-} from '../../scene/services/SkyboxManager';
+import { FloorType } from '../../core/types';
 import { SceneManager } from '../../scene/SceneManager';
-import './SkyboxSettingsPanel.css';
+import { GridOverlayOptions } from '../../scene/FloorMaterialManager';
+import './FloorSettingsPanel.css';
+
+type GridSettings = Required<GridOverlayOptions> & { visible: boolean };
+type NumericGridOptionKey = 'majorUnitFrequency' | 'minorUnitVisibility' | 'gridRatio' | 'opacity';
+
+const FLOOR_OPTIONS: { value: FloorType; label: string; description: string }[] = [
+  { value: 'concrete-polished', label: 'Polished Concrete', description: 'Smooth concrete floor' },
+  { value: 'concrete-raw', label: 'Raw Concrete', description: 'Rough concrete texture' },
+  { value: 'epoxy-gray', label: 'Epoxy Gray', description: 'Smooth gray epoxy coating' },
+  { value: 'epoxy-white', label: 'Epoxy White', description: 'Smooth white epoxy coating' },
+  { value: 'tiles-ceramic', label: 'Ceramic Tiles', description: 'Glossy tile floor' },
+  { value: 'metal-checker', label: 'Metal Checker', description: 'Diamond plate metal' },
+  { value: 'asphalt', label: 'Asphalt', description: 'Dark asphalt surface' },
+  { value: 'wood-industrial', label: 'Industrial Wood', description: 'Wood flooring' },
+  { value: 'grid-only', label: 'Grid Only', description: 'Transparent floor with grid' },
+];
+
+const COLOR_CHANNELS = ['R', 'G', 'B'];
+
+const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 
 export const FloorSettingsPanel: React.FC = () => {
-  const skyboxManager = SkyboxManager.getInstance();
-  const [floorConfig, setFloorConfig] = useState<FloorConfig>(
-    skyboxManager.getFloorConfig()
-  );
+  const sceneManager = SceneManager.getInstance();
+  const [sceneReady, setSceneReady] = useState<boolean>(() => !!sceneManager.getScene());
+  const [floorType, setFloorType] = useState<FloorType>(() => sceneManager.getFloorType());
+  const [gridSettings, setGridSettings] = useState<GridSettings>(() => ({
+    ...sceneManager.getGridOverlayOptions(),
+    visible: sceneManager.isGridOverlayVisible(),
+  }));
 
   useEffect(() => {
-    let canceled = false;
+    if (sceneReady) {
+      return;
+    }
 
-    const attachScene = () => {
-      const scene = SceneManager.getInstance().getScene();
-      if (!scene) {
-        if (!canceled) {
-          setTimeout(attachScene, 250);
-        }
+    let timeoutId: number | null = null;
+
+    const pollForScene = () => {
+      if (sceneManager.getScene()) {
+        setSceneReady(true);
+        setFloorType(sceneManager.getFloorType());
+        setGridSettings({
+          ...sceneManager.getGridOverlayOptions(),
+          visible: sceneManager.isGridOverlayVisible(),
+        });
         return;
       }
-      skyboxManager.initialize(scene);
+      timeoutId = window.setTimeout(pollForScene, 250);
     };
 
-    attachScene();
+    pollForScene();
     return () => {
-      canceled = true;
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
     };
-  }, [skyboxManager]);
+  }, [sceneManager, sceneReady]);
 
-  const updateFloorConfig = (updates: Partial<FloorConfig>) => {
-    const next = { ...floorConfig, ...updates };
-    setFloorConfig(next);
-    skyboxManager.updateFloorConfig(updates);
+  const updateNumericOption = (key: NumericGridOptionKey, value: number) => {
+    if (!sceneReady) return;
+    setGridSettings((prev) => ({ ...prev, [key]: value }));
+    sceneManager.setGridOverlayOptions({ [key]: value } as GridOverlayOptions);
   };
 
-  const updateTriplanar = (updates: Partial<NonNullable<FloorConfig['triplanar']>>) => {
-    if (!floorConfig.triplanar) return;
-    const nextTriplanar = { ...floorConfig.triplanar, ...updates };
-    updateFloorConfig({ triplanar: nextTriplanar });
+  const updateColorChannel = (type: 'mainColor' | 'lineColor', index: number, rawValue: number) => {
+    if (!sceneReady) return;
+    setGridSettings((prev) => {
+      const nextColor = [...prev[type]] as [number, number, number];
+      nextColor[index] = clamp(rawValue);
+      sceneManager.setGridOverlayOptions({ [type]: nextColor } as GridOverlayOptions);
+      return { ...prev, [type]: nextColor };
+    });
   };
 
-  const isGridFloorActive =
-    floorConfig.enabled && floorConfig.materialType === 'grid';
-  const gridControlsDisabled = !isGridFloorActive;
+  const handleGridVisibilityChange = (visible: boolean) => {
+    if (!sceneReady) return;
+    setGridSettings((prev) => ({ ...prev, visible }));
+    sceneManager.setGridOverlayVisible(visible);
+  };
 
-  const fixedSizeValue =
-    typeof floorConfig.size === 'number' ? floorConfig.size : 1000;
+  const handleFloorChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextType = event.target.value as FloorType;
+    if (nextType === floorType || !sceneReady) {
+      return;
+    }
+    setFloorType(nextType);
+    sceneManager.setFloorType(nextType);
+    if (nextType === 'grid-only' && !gridSettings.visible) {
+      handleGridVisibilityChange(true);
+    }
+  };
 
   return (
-    <div className="skybox-settings-panel">
-      <div className="skybox-settings-header">
+    <div className="floor-settings-panel">
+      <div className="floor-settings-header">
         <Grid3X3 size={20} />
-        <h3>Floor Settings</h3>
+        <h3>Floor &amp; Grid Settings</h3>
       </div>
 
-      <div className="skybox-settings-content">
-        {/* Enable Floor Toggle */}
-        <div className="skybox-setting-group">
-          <label className="skybox-setting-label">
-            <Eye size={16} />
-            <span>Enable Floor</span>
-          </label>
-          <label className="skybox-toggle">
-            <input
-              type="checkbox"
-              checked={floorConfig.enabled}
-              onChange={(e) => updateFloorConfig({ enabled: e.target.checked })}
-            />
-            <span className="skybox-toggle-slider"></span>
-          </label>
-        </div>
-
-        {/* Floor Material Type */}
-        <div className="skybox-setting-group">
-          <label className="skybox-setting-label">
+      <div className="floor-settings-content">
+        <div className="floor-setting-group">
+          <label className="floor-setting-label">
             <Palette size={16} />
             <span>Floor Material</span>
           </label>
           <select
-            value={floorConfig.materialType}
-            onChange={(e) => {
-              const newMaterialType = e.target.value as FloorMaterialType;
-              if (floorConfig.materialType !== newMaterialType) {
-                updateFloorConfig({ materialType: newMaterialType });
-              }
-            }}
-            className="skybox-select"
-            disabled={!floorConfig.enabled}
-            style={{
-              width: '100%',
-              padding: '6px 8px',
-              background: 'rgba(30, 30, 35, 0.95)',
-              border: '1px solid rgba(80, 80, 85, 0.8)',
-              borderRadius: '4px',
-              color: '#e0e0e0',
-              fontSize: '13px',
-              cursor: floorConfig.enabled ? 'pointer' : 'not-allowed',
-            }}
+            value={floorType}
+            onChange={handleFloorChange}
+            disabled={!sceneReady}
+            className="floor-select"
           >
-            <option value="grid">Grid (Default)</option>
-            <option value="stone">Stone</option>
-            <option value="concrete">Concrete</option>
-            <option value="epoxy">Epoxy</option>
+            {FLOOR_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </div>
 
-        {/* Floor Size */}
-        <div className="skybox-setting-group">
-          <label className="skybox-setting-label">
-            <Grid3X3 size={16} />
-            <span>Floor Size</span>
+        <div className="floor-setting-group">
+          <label className="floor-setting-label">
+            <Eye size={16} />
+            <span>Show Grid Overlay</span>
           </label>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: floorConfig.enabled ? 'pointer' : 'not-allowed',
-              }}
-            >
-              <input
-                type="radio"
-                name="floorSize"
-                checked={floorConfig.size === 'infinite'}
-                onChange={() => updateFloorConfig({ size: 'infinite' })}
-                disabled={!floorConfig.enabled}
-              />
-              <span>Infinite</span>
-            </label>
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: floorConfig.enabled ? 'pointer' : 'not-allowed',
-              }}
-            >
-              <input
-                type="radio"
-                name="floorSize"
-                checked={typeof floorConfig.size === 'number'}
-                onChange={() =>
-                  updateFloorConfig({
-                    size: typeof floorConfig.size === 'number' ? floorConfig.size : 1000,
-                  })
-                }
-                disabled={!floorConfig.enabled}
-              />
-              <span>Fixed:</span>
-              <input
-                type="number"
-                min="100"
-                max="1000000"
-                step="100"
-                value={fixedSizeValue}
-                onChange={(e) => {
-                  const newSize = parseFloat(e.target.value);
-                  if (!isNaN(newSize) && newSize >= 100) {
-                    updateFloorConfig({ size: newSize });
-                  }
-                }}
-                onBlur={(e) => {
-                  const newSize = parseFloat(e.target.value);
-                  if (isNaN(newSize) || newSize < 100) {
-                    updateFloorConfig({ size: 1000 });
-                  }
-                }}
-                disabled={!floorConfig.enabled || floorConfig.size === 'infinite'}
-                style={{
-                  width: '80px',
-                  padding: '4px 6px',
-                  background: 'rgba(30, 30, 35, 0.95)',
-                  border: '1px solid rgba(80, 80, 85, 0.8)',
-                  borderRadius: '3px',
-                  color: '#e0e0e0',
-                  fontSize: '12px',
-                }}
-              />
-            </label>
-          </div>
+          <label className="floor-toggle">
+            <input
+              type="checkbox"
+              checked={gridSettings.visible}
+              onChange={(e) => handleGridVisibilityChange(e.target.checked)}
+              disabled={!sceneReady}
+            />
+            <span className="floor-toggle-slider"></span>
+          </label>
         </div>
 
-        {/* Grid Settings */}
-        {floorConfig.materialType === 'grid' && (
-          <>
-            <div className="skybox-setting-group">
-              <label className="skybox-setting-label">
-                <Grid3X3 size={16} />
-                <span>Major Grid Spacing</span>
-                <span className="skybox-setting-value">{floorConfig.majorUnitFrequency}</span>
+        <div className="floor-setting-group">
+          <label className="floor-setting-label">
+            <Grid3X3 size={16} />
+            <span>Major Grid Frequency</span>
+            <span className="floor-setting-value">{gridSettings.majorUnitFrequency}</span>
+          </label>
+          <input
+            type="range"
+            min={1}
+            max={20}
+            step={1}
+            value={gridSettings.majorUnitFrequency}
+            onChange={(e) => updateNumericOption('majorUnitFrequency', parseInt(e.target.value, 10))}
+            className="floor-slider"
+            disabled={!sceneReady}
+          />
+        </div>
+
+        <div className="floor-setting-group">
+          <label className="floor-setting-label">
+            <Grid3X3 size={16} />
+            <span>Minor Line Visibility</span>
+            <span className="floor-setting-value">{gridSettings.minorUnitVisibility.toFixed(2)}</span>
+          </label>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={gridSettings.minorUnitVisibility}
+            onChange={(e) => updateNumericOption('minorUnitVisibility', parseFloat(e.target.value))}
+            className="floor-slider"
+            disabled={!sceneReady}
+          />
+        </div>
+
+        <div className="floor-setting-group">
+          <label className="floor-setting-label">
+            <Grid3X3 size={16} />
+            <span>Grid Ratio</span>
+            <span className="floor-setting-value">{gridSettings.gridRatio.toFixed(2)} m</span>
+          </label>
+          <input
+            type="range"
+            min={0.1}
+            max={2}
+            step={0.05}
+            value={gridSettings.gridRatio}
+            onChange={(e) => updateNumericOption('gridRatio', parseFloat(e.target.value))}
+            className="floor-slider"
+            disabled={!sceneReady}
+          />
+        </div>
+
+        <div className="floor-setting-group">
+          <label className="floor-setting-label">
+            <Eye size={16} />
+            <span>Grid Opacity</span>
+            <span className="floor-setting-value">{gridSettings.opacity.toFixed(2)}</span>
+          </label>
+          <input
+            type="range"
+            min={0.1}
+            max={1}
+            step={0.01}
+            value={gridSettings.opacity}
+            onChange={(e) => updateNumericOption('opacity', parseFloat(e.target.value))}
+            className="floor-slider"
+            disabled={!sceneReady}
+          />
+        </div>
+
+        <div className="floor-setting-group">
+          <label className="floor-setting-label">
+            <Palette size={16} />
+            <span>Main Grid Color</span>
+            <span className="floor-setting-value">
+              rgb(
+              {gridSettings.mainColor
+                .map((value) => Math.round(value * 255))
+                .join(', ')}
+              )
+            </span>
+          </label>
+          <div
+            className="floor-color-preview"
+            style={{
+              backgroundColor: `rgb(${gridSettings.mainColor
+                .map((value) => Math.round(value * 255))
+                .join(', ')})`,
+            }}
+          />
+          {gridSettings.mainColor.map((value, index) => (
+            <div key={`main-${index}`} className="floor-channel">
+              <label className="floor-setting-label">
+                <span>{COLOR_CHANNELS[index]}</span>
+                <span className="floor-setting-value">{Math.round(value * 255)}</span>
               </label>
               <input
                 type="range"
-                min="1"
-                max="50"
-                step="1"
-                value={floorConfig.majorUnitFrequency}
-                onChange={(e) =>
-                  updateFloorConfig({ majorUnitFrequency: parseInt(e.target.value, 10) })
-                }
-                className="skybox-slider"
-                disabled={gridControlsDisabled}
+                min={0}
+                max={1}
+                step={0.01}
+                value={value}
+                onChange={(e) => updateColorChannel('mainColor', index, parseFloat(e.target.value))}
+                className="floor-slider"
+                disabled={!sceneReady}
               />
             </div>
+          ))}
+        </div>
 
-            <div className="skybox-setting-group">
-              <label className="skybox-setting-label">
-                <Grid3X3 size={16} />
-                <span>Minor Grid Visibility</span>
-                <span className="skybox-setting-value">
-                  {floorConfig.minorUnitVisibility.toFixed(2)}
-                </span>
+        <div className="floor-setting-group">
+          <label className="floor-setting-label">
+            <Palette size={16} />
+            <span>Major Line Color</span>
+            <span className="floor-setting-value">
+              rgb(
+              {gridSettings.lineColor
+                .map((value) => Math.round(value * 255))
+                .join(', ')}
+              )
+            </span>
+          </label>
+          <div
+            className="floor-color-preview"
+            style={{
+              backgroundColor: `rgb(${gridSettings.lineColor
+                .map((value) => Math.round(value * 255))
+                .join(', ')})`,
+            }}
+          />
+          {gridSettings.lineColor.map((value, index) => (
+            <div key={`line-${index}`} className="floor-channel">
+              <label className="floor-setting-label">
+                <span>{COLOR_CHANNELS[index]}</span>
+                <span className="floor-setting-value">{Math.round(value * 255)}</span>
               </label>
               <input
                 type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={floorConfig.minorUnitVisibility}
-                onChange={(e) =>
-                  updateFloorConfig({ minorUnitVisibility: parseFloat(e.target.value) })
-                }
-                className="skybox-slider"
-                disabled={gridControlsDisabled}
+                min={0}
+                max={1}
+                step={0.01}
+                value={value}
+                onChange={(e) => updateColorChannel('lineColor', index, parseFloat(e.target.value))}
+                className="floor-slider"
+                disabled={!sceneReady}
               />
             </div>
+          ))}
+        </div>
 
-            <div className="skybox-setting-group">
-              <label className="skybox-setting-label">
-                <Grid3X3 size={16} />
-                <span>Grid Ratio</span>
-                <span className="skybox-setting-value">
-                  {floorConfig.gridRatio.toFixed(2)}
-                </span>
-              </label>
-              <input
-                type="range"
-                min="0.1"
-                max="2"
-                step="0.1"
-                value={floorConfig.gridRatio}
-                onChange={(e) =>
-                  updateFloorConfig({ gridRatio: parseFloat(e.target.value) })
-                }
-                className="skybox-slider"
-                disabled={gridControlsDisabled}
-              />
-            </div>
-
-            <div className="skybox-setting-group">
-              <label className="skybox-setting-label">
-                <Eye size={16} />
-                <span>Grid Opacity</span>
-                <span className="skybox-setting-value">{floorConfig.opacity.toFixed(2)}</span>
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={floorConfig.opacity}
-                onChange={(e) =>
-                  updateFloorConfig({ opacity: parseFloat(e.target.value) })
-                }
-                className="skybox-slider"
-                disabled={gridControlsDisabled}
-              />
-            </div>
-
-            {/* Main Color */}
-            <div className="skybox-setting-group">
-              <label className="skybox-setting-label">
-                <Palette size={16} />
-                <span>Grid Main Color</span>
-              </label>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                {floorConfig.mainColor.map((value, index) => (
-                  <input
-                    key={`main-${index}`}
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={value}
-                    onChange={(e) => {
-                      const next = [...floorConfig.mainColor] as [number, number, number];
-                      next[index] = parseFloat(e.target.value);
-                      updateFloorConfig({ mainColor: next });
-                    }}
-                    className="skybox-slider"
-                    style={{ flex: 1 }}
-                    disabled={gridControlsDisabled}
-                    title={['Red', 'Green', 'Blue'][index]}
-                  />
-                ))}
-                <div
-                  style={{
-                    width: '30px',
-                    height: '20px',
-                    backgroundColor: `rgb(${Math.round(floorConfig.mainColor[0] * 255)}, ${Math.round(floorConfig.mainColor[1] * 255)}, ${Math.round(floorConfig.mainColor[2] * 255)})`,
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: '3px',
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Line Color */}
-            <div className="skybox-setting-group">
-              <label className="skybox-setting-label">
-                <Palette size={16} />
-                <span>Major Line Color</span>
-              </label>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                {floorConfig.lineColor.map((value, index) => (
-                  <input
-                    key={`line-${index}`}
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={value}
-                    onChange={(e) => {
-                      const next = [...floorConfig.lineColor] as [number, number, number];
-                      next[index] = parseFloat(e.target.value);
-                      updateFloorConfig({ lineColor: next });
-                    }}
-                    className="skybox-slider"
-                    style={{ flex: 1 }}
-                    disabled={gridControlsDisabled}
-                    title={['Red', 'Green', 'Blue'][index]}
-                  />
-                ))}
-                <div
-                  style={{
-                    width: '30px',
-                    height: '20px',
-                    backgroundColor: `rgb(${Math.round(floorConfig.lineColor[0] * 255)}, ${Math.round(floorConfig.lineColor[1] * 255)}, ${Math.round(floorConfig.lineColor[2] * 255)})`,
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: '3px',
-                  }}
-                />
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Triplanar Section */}
-        {floorConfig.materialType !== 'grid' && floorConfig.triplanar && (
-          <>
-            <div className="skybox-settings-divider"></div>
-            <div className="skybox-setting-group">
-              <label
-                className="skybox-setting-label"
-                style={{ fontWeight: 'bold', marginBottom: '8px' }}
-              >
-                <Palette size={18} />
-                <span>Triplanar PBR Settings</span>
-              </label>
-            </div>
-
-            <div className="skybox-setting-group">
-              <label className="skybox-setting-label">
-                <Grid3X3 size={16} />
-                <span>Macro Scale (m)</span>
-                <span className="skybox-setting-value">
-                  {floorConfig.triplanar.macroScale.toFixed(1)}
-                </span>
-              </label>
-              <input
-                type="range"
-                min="4"
-                max="20"
-                step="0.5"
-                value={floorConfig.triplanar.macroScale}
-                onChange={(e) =>
-                  updateTriplanar({ macroScale: parseFloat(e.target.value) })
-                }
-                className="skybox-slider"
-                disabled={!floorConfig.enabled}
-              />
-            </div>
-
-            <div className="skybox-setting-group">
-              <label className="skybox-setting-label">
-                <Grid3X3 size={16} />
-                <span>Micro Scale</span>
-                <span className="skybox-setting-value">
-                  {floorConfig.triplanar.microScale.toFixed(0)}
-                </span>
-              </label>
-              <input
-                type="range"
-                min="20"
-                max="100"
-                step="1"
-                value={floorConfig.triplanar.microScale}
-                onChange={(e) =>
-                  updateTriplanar({ microScale: parseFloat(e.target.value) })
-                }
-                className="skybox-slider"
-                disabled={!floorConfig.enabled}
-              />
-            </div>
-
-            <div className="skybox-setting-group">
-              <label className="skybox-setting-label">
-                <Grid3X3 size={16} />
-                <span>Noise Scale</span>
-                <span className="skybox-setting-value">
-                  {floorConfig.triplanar.noiseScale.toFixed(1)}
-                </span>
-              </label>
-              <input
-                type="range"
-                min="6"
-                max="24"
-                step="0.5"
-                value={floorConfig.triplanar.noiseScale}
-                onChange={(e) =>
-                  updateTriplanar({ noiseScale: parseFloat(e.target.value) })
-                }
-                className="skybox-slider"
-                disabled={!floorConfig.enabled}
-              />
-            </div>
-
-            <div className="skybox-setting-group">
-              <label className="skybox-setting-label">
-                <Eye size={16} />
-                <span>Noise Strength</span>
-                <span className="skybox-setting-value">
-                  {floorConfig.triplanar.noiseStrength.toFixed(2)}
-                </span>
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={floorConfig.triplanar.noiseStrength}
-                onChange={(e) =>
-                  updateTriplanar({ noiseStrength: parseFloat(e.target.value) })
-                }
-                className="skybox-slider"
-                disabled={!floorConfig.enabled}
-              />
-            </div>
-
-            <div className="skybox-setting-group">
-              <label className="skybox-setting-label">
-                <Palette size={16} />
-                <span>Roughness Bias</span>
-                <span className="skybox-setting-value">
-                  {floorConfig.triplanar.roughnessBias.toFixed(2)}
-                </span>
-              </label>
-              <input
-                type="range"
-                min="-0.2"
-                max="0.2"
-                step="0.01"
-                value={floorConfig.triplanar.roughnessBias}
-                onChange={(e) =>
-                  updateTriplanar({ roughnessBias: parseFloat(e.target.value) })
-                }
-                className="skybox-slider"
-                disabled={!floorConfig.enabled}
-              />
-            </div>
-
-            <div className="skybox-setting-group">
-              <label className="skybox-setting-label">
-                <Eye size={16} />
-                <span>AO Weight</span>
-                <span className="skybox-setting-value">
-                  {floorConfig.triplanar.aoWeight.toFixed(2)}
-                </span>
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={floorConfig.triplanar.aoWeight}
-                onChange={(e) =>
-                  updateTriplanar({ aoWeight: parseFloat(e.target.value) })
-                }
-                className="skybox-slider"
-                disabled={!floorConfig.enabled}
-              />
-            </div>
-
-            <div className="skybox-setting-group">
-              <label className="skybox-setting-label">
-                <Palette size={16} />
-                <span>Metallic</span>
-                <span className="skybox-setting-value">
-                  {floorConfig.triplanar.metallic.toFixed(2)}
-                </span>
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="0.4"
-                step="0.01"
-                value={floorConfig.triplanar.metallic}
-                onChange={(e) =>
-                  updateTriplanar({ metallic: parseFloat(e.target.value) })
-                }
-                className="skybox-slider"
-                disabled={!floorConfig.enabled}
-              />
-            </div>
-
-            <div className="skybox-setting-group">
-              <label className="skybox-setting-label">
-                <Palette size={16} />
-                <span>Normal Strength</span>
-                <span className="skybox-setting-value">
-                  {floorConfig.triplanar.normalStrength.toFixed(2)}
-                </span>
-              </label>
-              <input
-                type="range"
-                min="0.2"
-                max="2"
-                step="0.05"
-                value={floorConfig.triplanar.normalStrength}
-                onChange={(e) =>
-                  updateTriplanar({ normalStrength: parseFloat(e.target.value) })
-                }
-                className="skybox-slider"
-                disabled={!floorConfig.enabled}
-              />
-            </div>
-
-            <div className="skybox-setting-group">
-              <label className="skybox-setting-label">
-                <Palette size={16} />
-                <span>Micro Normal Strength</span>
-                <span className="skybox-setting-value">
-                  {floorConfig.triplanar.microNormalStrength.toFixed(2)}
-                </span>
-              </label>
-              <input
-                type="range"
-                min="0.2"
-                max="2"
-                step="0.05"
-                value={floorConfig.triplanar.microNormalStrength}
-                onChange={(e) =>
-                  updateTriplanar({ microNormalStrength: parseFloat(e.target.value) })
-                }
-                className="skybox-slider"
-                disabled={!floorConfig.enabled}
-              />
-            </div>
-          </>
-        )}
+        <div className="floor-settings-info">
+          <p>
+            Grid controls adjust a single overlay shared by snapping, measurement, and visualization
+            tools. Values are in meters and update the grid in real time whenever the grid is
+            visible.
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -3,18 +3,6 @@
 
 import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/core/Rendering/depthRendererSceneComponent';
-import { SkyboxManager } from '../../scene/services/SkyboxManager';
-
-/**
- * Skybox source options for different environment types
- * PROMPT #4: Skybox source selection
- */
-export type SkyboxSource =
-  | 'industrial'  // Default: Overcast industrial sky with buildings
-  | 'sunny'       // Bright sunny day with clear blue sky
-  | 'overcast'    // Cloudy overcast sky (similar to industrial but lighter)
-  | 'night'       // Dark night sky with stars
-  | 'sunset';     // Warm sunset with orange/red tones
 
 export type ColumnShape = 'I-beam' | 'H-beam' | 'box';
 export type FloorType = 'concrete' | 'epoxy' | 'tile';
@@ -26,14 +14,11 @@ export interface WarehouseConfig {
   height: number; // Z-axis dimension (mm) - warehouse ceiling height
   enableFog?: boolean; // Enable atmospheric fog
   enableBloom?: boolean; // Enable bloom/glow effects
-  enableSkybox?: boolean; // Enable skybox environment
-  skyboxSource?: SkyboxSource; // PROMPT #4: Skybox source selection (default: 'industrial')
   // PROMPT #2: Sun + shadows configuration
   enableSun?: boolean; // Enable directional sun light
   sunAzimuth?: number;   // degrees (-180..180)
   sunElevation?: number; // degrees (0..90)
   sunIntensity?: number; // 0..3
-  skipBuilding?: boolean; // Skip building floor/parking lot (skybox only)
   // Roof configuration
   enableRoof?: boolean; // Enable roof (default: true)
   // Doors configuration
@@ -53,10 +38,8 @@ const DEFAULT_CONFIG: WarehouseConfig = {
   width: 50000,  // 50m = 50,000mm
   depth: 50000,  // 50m = 50,000mm
   height: 20000,  // 20m = 20,000mm (warehouse height)
-  enableFog: false, // Disable fog by default to see skybox clearly
-  enableBloom: true, // Enable bloom effects by default
-  enableSkybox: true, // Enable skybox by default
-  skyboxSource: 'sunny', // PROMPT #4: Default skybox source (blue sky with clouds)
+  enableFog: false,
+  enableBloom: true,
   // PROMPT #2: Sun defaults
   enableSun: true,
   sunAzimuth: -45,
@@ -88,8 +71,6 @@ export class WarehouseModel {
 
   private meshes: BABYLON.Mesh[] = [];
   private materials: BABYLON.Material[] = [];
-  private skybox: BABYLON.Mesh | null = null;
-  private skyboxTexture: BABYLON.CubeTexture | null = null; // PROMPT #4: Store skybox texture for disposal
   private renderingPipeline: BABYLON.DefaultRenderingPipeline | null = null;
   // PROMPT #2: Sun and shadows
   private sun: BABYLON.DirectionalLight | null = null;
@@ -99,33 +80,19 @@ export class WarehouseModel {
     this.scene = scene;
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.rootNode = new BABYLON.TransformNode('warehouse_root', scene);
-    
-    // CRITICAL: Check if skybox is ready before building warehouse
-    // Skybox must be created and ready before warehouse is built
-    const skyboxManager = SkyboxManager.getInstance();
-    
-    if (!skyboxManager.isReady()) {
-      console.warn('[WarehouseModel] ⚠️ Skybox is not ready. Warehouse will not be created until skybox is ready.');
-      // Don't build warehouse if skybox isn't ready
-      return;
-    }
-    
-    console.log('[WarehouseModel] ✅ Skybox is ready, building warehouse...');
-    
-    // CRITICAL: Set clearColor to transparent IMMEDIATELY before building
-    // This ensures skybox will be visible even if other code tries to reset it
+
+    // Ensure transparent background so the shared grid remains visible
     this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
-    
+
     this.build();
 
     // Hide the default ground plane when warehouse is visible
     this.hideGroundPlane();
 
-    // Set up atmospheric effects (sun, fog, etc. - but NOT skybox, that's handled by SkyboxManager)
+    // Set up atmospheric effects (sun, fog, etc.)
     this.setupAtmosphere();
     
-    // CRITICAL: Enforce transparent background AFTER skybox is created
-    // Use setTimeout to ensure this runs after any other initialization
+    // Enforce transparent background after initialization
     setTimeout(() => {
       this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
       console.log('[WarehouseModel] ✅ Final enforcement: clearColor set to transparent after initialization');
@@ -134,7 +101,7 @@ export class WarehouseModel {
 
   /**
    * Hide the default ground plane and grid overlay created by SceneManager
-   * AGGRESSIVE MODE: Disposes ALL ground planes to ensure clean skybox-only ground
+   * (warehouse visuals rely on the shared scene grid/floor)
    */
   private hideGroundPlane(): void {
     console.log('[WarehouseModel] Ground cleanup skipped - using shared scene grid.');
@@ -384,9 +351,7 @@ export class WarehouseModel {
       this.createMezzanine(widthM, depthM, heightM, wallThickness, columnMaterial);
     }
 
-    // REMOVED: Grass floor - using SkyboxManager's grid floor instead
-    // The grid floor from SkyboxManager extends to horizon and provides the ground plane
-    console.log('[WarehouseModel] ✅ Using SkyboxManager grid floor (extends to horizon)');
+    console.log('[WarehouseModel] ✅ Using shared scene grid for ground plane');
 
     // Add interior lighting for better visibility
     this.addInteriorLighting();
@@ -774,11 +739,10 @@ export class WarehouseModel {
     return texture;
   }
 
-  // REMOVED: Parking lot material - no longer needed, using skybox bottom for ground
+  // Parking lot material removed – rely on shared ground plane coloring
 
   // REMOVED: Grass material - no longer needed
-  // Ground is now handled by SkyboxManager's gray grid floor
-  // Skybox bottom is dark gray to match the grid floor
+  // Ground is handled by the shared scene grid
 
   /**
    * Create roof material (metal/industrial) - DARK realistic ceiling
@@ -967,7 +931,7 @@ export class WarehouseModel {
   }
 
   /**
-   * Set up atmospheric effects: skybox, environment texture, fog, and rendering pipeline
+   * Set up atmospheric effects: environment texture, fog, and rendering pipeline
    * PROMPT #1: Wrapped in try-catch to prevent grey-out on atmosphere failures
    */
   private setupAtmosphere(): void {
@@ -985,11 +949,6 @@ export class WarehouseModel {
         console.warn('[WarehouseModel] ⚠️ Failed to create environment texture, continuing:', envError);
       }
 
-      // SKYBOX REMOVED: Skybox is now managed by SkyboxManager
-      // The skybox is created independently and must be ready before warehouse is built
-      // This prevents overwrite bugs and ensures proper initialization order
-      console.log('[WarehouseModel] ✅ Skybox is managed by SkyboxManager (created separately)');
-
       // Set up atmospheric fog if enabled
       if (this.config.enableFog) {
         try {
@@ -1005,74 +964,10 @@ export class WarehouseModel {
       }
 
       // Set up Default Rendering Pipeline if enabled
-      // NOTE: Pipeline must be created AFTER skybox to ensure proper exclusion
       if (this.config.enableBloom) {
         try {
           this.setupRenderingPipeline();
           
-          // CRITICAL FIX: Exclude skybox from bloom highlights extraction
-          // The highlights render pass tries to sample cube textures as 2D, causing WebGPU errors
-          // Solution: Temporarily hide skybox during highlights render target rendering
-          if (this.skybox && this.renderingPipeline) {
-            // Ensure skybox is in rendering group 0 (renders before post-processing)
-            this.skybox.renderingGroupId = 0;
-            this.skybox.doNotSerialize = true;
-            
-            // Additional safeguard: ensure material doesn't contribute to highlights
-            const material = this.skybox.material;
-            if (material) {
-              if (material instanceof BABYLON.StandardMaterial) {
-                material.disableDepthWrite = true;
-                material.disableLighting = true;
-                // Ensure no emissive texture that could cause issues
-                material.emissiveTexture = null;
-              } else if (material instanceof BABYLON.BackgroundMaterial) {
-                // BackgroundMaterial already configured for skybox
-                material.disableDepthWrite = true;
-              }
-            }
-            
-            // CRITICAL: Hook into render loop to hide skybox during highlights render target
-            // This prevents the cube texture from being sampled in the highlights pass
-            let skyboxWasVisible = true;
-            const onBeforeRender = () => {
-              if (!this.skybox) return;
-              
-              // Check if we're in the highlights render pass by looking at the pipeline's render targets
-              // The Default Rendering Pipeline uses render targets with "highlights" in the name
-              const engine = this.scene.getEngine();
-              const isInRenderTarget = (engine as any)._currentRenderTarget !== null;
-              
-              // Try to detect highlights render target by checking scene metadata or pipeline state
-              // We'll use a simpler approach: check if the scene is rendering to a texture
-              // The highlights pass uses a render target texture
-              const isHighlightsPass = isInRenderTarget && 
-                (this.renderingPipeline as any)._highlightsRenderTarget !== undefined;
-              
-              if (isHighlightsPass) {
-                // Hide skybox during highlights render
-                if (this.skybox.isVisible) {
-                  skyboxWasVisible = true;
-                  this.skybox.setEnabled(false);
-                  this.skybox.isVisible = false;
-                }
-              } else {
-                // Restore skybox visibility when not in highlights pass
-                if (skyboxWasVisible && !this.skybox.isVisible) {
-                  this.skybox.setEnabled(true);
-                  this.skybox.isVisible = true;
-                }
-              }
-            };
-            
-            // Register observer to hide/show skybox during highlights pass
-            this.scene.onBeforeRenderObservable.add(onBeforeRender);
-            
-            // Store observer reference for cleanup
-            (this.skybox as any)._highlightsExclusionObserver = onBeforeRender;
-            
-            console.log('[WarehouseModel] ✅ Skybox will be hidden during highlights render pass to prevent WebGPU errors');
-          }
         } catch (pipelineError) {
           console.warn('[WarehouseModel] ⚠️ Failed to setup rendering pipeline, continuing:', pipelineError);
         }
@@ -1191,9 +1086,6 @@ export class WarehouseModel {
     }
   }
 
-  // REMOVED: createSkybox() method (~215 lines)
-  // Skybox creation is now handled by SkyboxManager
-  // All createXXXSkybox() methods (industrial, sunny, overcast, night, sunset) are also obsolete
 
 
   /**
@@ -1209,16 +1101,13 @@ export class WarehouseModel {
       this.scene.fogEnabled = true; // CRITICAL: Explicitly enable fog
       this.scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
 
-      // Fog color - match overcast sky but lighter so it doesn't obscure skybox
+      // Fog color - soft overcast tone so distant geometry remains readable
       this.scene.fogColor = new BABYLON.Color3(0.58, 0.62, 0.66); // Cool gray fog
 
-      // CRITICAL FIX: Make fog much lighter and start later so it doesn't obscure the skybox
-      // Fog starts at 200% of max dimension (much further away), ends at 800% (very far)
-      // This ensures skybox is visible while still having atmospheric fog for distant objects
-      this.scene.fogStart = maxDim * 2.0; // Start fog much further away
-      this.scene.fogEnd = maxDim * 8.0;   // End fog very far away
+      this.scene.fogStart = maxDim * 2.0;
+      this.scene.fogEnd = maxDim * 8.0;
 
-      console.log(`[WarehouseModel] ✅ Set up atmospheric fog (start: ${this.scene.fogStart.toFixed(1)}m, end: ${this.scene.fogEnd.toFixed(1)}m) - reduced density to preserve skybox visibility`);
+      console.log(`[WarehouseModel] ✅ Set up atmospheric fog (start: ${this.scene.fogStart.toFixed(1)}m, end: ${this.scene.fogEnd.toFixed(1)}m)`);
     } catch (error) {
       console.warn('[WarehouseModel] ⚠️ Failed to set up fog:', error);
     }
@@ -1331,8 +1220,6 @@ export class WarehouseModel {
    */
   updateSize(config: Partial<WarehouseConfig>): void {
     // Detect what changed
-    const skyboxSourceChanged = config.skyboxSource !== undefined && config.skyboxSource !== this.config.skyboxSource;
-    const skyboxEnabledChanged = config.enableSkybox !== undefined && config.enableSkybox !== this.config.enableSkybox;
     const fogChanged = config.enableFog !== undefined && config.enableFog !== this.config.enableFog;
     const sunChanged = config.enableSun !== undefined && config.enableSun !== this.config.enableSun;
     const sunParamsChanged = config.sunAzimuth !== undefined || config.sunElevation !== undefined || config.sunIntensity !== undefined;
@@ -1357,7 +1244,7 @@ export class WarehouseModel {
     }
 
     // Rebuild atmospheric effects if needed
-    if (needsRebuild || skyboxEnabledChanged || skyboxSourceChanged || fogChanged || sunChanged || sunParamsChanged) {
+    if (needsRebuild || fogChanged || sunChanged || sunParamsChanged) {
       this.disposeAtmosphere();
       this.setupAtmosphere();
     }
@@ -1371,15 +1258,14 @@ export class WarehouseModel {
         const heightM = this.config.height / 1000;
 
         camera.minZ = 0.1; // Very close
-        // CRITICAL: maxZ must be larger than skybox (1000x warehouse) to see sky!
-        camera.maxZ = Math.max(widthM, depthM, heightM) * 2000; // 2x skybox size
+        camera.maxZ = Math.max(widthM, depthM, heightM) * 2_000;
 
         // Re-target to safe position
         camera.target = new BABYLON.Vector3(0, 1.7, 0);
         camera.radius = Math.min(widthM, depthM) * 0.25;
         camera.setTarget(camera.target);
 
-        console.log(`[WarehouseModel] ✅ Updated camera clipping planes: minZ=${camera.minZ}, maxZ=${camera.maxZ.toFixed(1)}m (can see skybox)`);
+        console.log(`[WarehouseModel] ✅ Updated camera clipping planes: minZ=${camera.minZ}, maxZ=${camera.maxZ.toFixed(1)}m`);
       }
     }
   }
@@ -1416,18 +1302,6 @@ export class WarehouseModel {
       (this as any)._groundObserver = null;
     }
     
-    // Dispose skybox
-    if (this.skybox) {
-      this.skybox.dispose();
-      this.skybox = null;
-    }
-
-    // PROMPT #4: Dispose skybox texture
-    if (this.skyboxTexture) {
-      this.skyboxTexture.dispose();
-      this.skyboxTexture = null;
-    }
-
     // PROMPT #2: Dispose sun and CSM
     if (this.csm) {
       this.csm.dispose();
@@ -1450,22 +1324,6 @@ export class WarehouseModel {
     this.scene.fogMode = BABYLON.Scene.FOGMODE_NONE;
 
     // Note: Environment texture is managed by scene, don't dispose manually
-  }
-
-  /**
-   * Update skybox source dynamically
-   * PROMPT #4: Skybox source update method
-   */
-  updateSkyboxSource(source: SkyboxSource): void {
-    this.config.skyboxSource = source;
-
-    // Rebuild skybox with new source
-    if (this.config.enableSkybox) {
-      this.disposeAtmosphere();
-      this.setupAtmosphere();
-    }
-
-    console.log(`[WarehouseModel] ✅ Updated skybox source to: ${source}`);
   }
 
   /**

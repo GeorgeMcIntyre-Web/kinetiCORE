@@ -22,9 +22,9 @@ import {
 } from 'lucide-react';
 import { FloatingPanel } from '../../ui/components/FloatingPanel/FloatingPanel';
 import { SceneManager } from '../../scene/SceneManager';
-import { WarehouseModel, WarehouseConfig, SkyboxSource, ColumnShape, FloorType, MezzanineType } from '../core/WarehouseModel';
+import { WarehouseModel, WarehouseConfig, ColumnShape, FloorType, MezzanineType } from '../core/WarehouseModel';
 import { CameraService } from '../../scene/services/CameraService';
-import { SkyboxManager } from '../../scene/services/SkyboxManager';
+import { CAMERA_MAX_Z } from '../../core/constants';
 import './WarehousePanel.css';
 
 interface WarehousePanelProps {
@@ -80,12 +80,10 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
     depth: 50000,
     height: 20000,
     enableFog: false,
-    enableSkybox: true,
     enableSun: true,
     sunAzimuth: -45,
     sunElevation: 35,
     sunIntensity: 1.0,
-    skyboxSource: 'sunny',
     enableRoof: true,
     mainDoorWall: 'south',
     sideDoors: true,
@@ -132,31 +130,8 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
   }, [panelVisible, warehouseVisible, warehouse]); // Only run when panel is visible and warehouse is enabled
 
   const initializeWarehouse = (scene: BABYLON.Scene) => {
-    // Skybox is already initialized at startup in SceneManager
-    // Just ensure background is transparent
     SceneManager.getInstance().setBackgroundTransparent(true);
 
-    // CRITICAL: Check if skybox is ready before creating warehouse
-    const skyboxManager = SkyboxManager.getInstance();
-    // Only initialize if not already initialized (skybox is created at startup)
-    if (!skyboxManager.isReady()) {
-      skyboxManager.initialize(scene);
-    }
-
-    // Only create warehouse if skybox is ready
-    if (!skyboxManager.isReady()) {
-      console.warn('[WarehousePanel] ⚠️ Skybox is not ready. Waiting for skybox...');
-      // Retry after a short delay
-      setTimeout(() => {
-        if (skyboxManager.isReady() && warehouseVisible) {
-          const warehouseModel = new WarehouseModel(scene, config);
-          setWarehouse(warehouseModel);
-        }
-      }, 500);
-      return;
-    }
-
-    // Create warehouse only if not already created
     if (!warehouse) {
       const warehouseModel = new WarehouseModel(scene, config);
       setWarehouse(warehouseModel);
@@ -169,29 +144,22 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
       const heightM = config.height / 1000;
 
       camera.minZ = 0.1;
-      const maxDimension = Math.max(widthM, depthM, heightM);
-      // CRITICAL FIX: Ensure maxZ is large enough to see skybox (50km = 50000 units)
-      // Skybox is 50km, so we need at least 75000 to see it clearly
-      camera.maxZ = Math.max(maxDimension * 2000, 75000);
+      camera.maxZ = CAMERA_MAX_Z;
 
       camera.target = new BABYLON.Vector3(0, heightM * 0.5, 0);
 
-      // CRITICAL FIX: Position camera OUTSIDE warehouse looking at it from isometric angle
       const maxHorizontalDimension = Math.max(widthM, depthM);
-      // Position camera further away to ensure it's outside the warehouse
-      const exteriorDistance = maxHorizontalDimension * 2.5; // Increased from 1.5 to 2.5
-      const cameraHeight = heightM * 0.8; // Slightly higher for better isometric view
+      const exteriorDistance = maxHorizontalDimension * 2.5;
+      const cameraHeight = heightM * 0.8;
 
-      // Calculate radius for isometric viewing angle
       camera.radius = Math.sqrt(
         Math.pow(exteriorDistance, 2) +
         Math.pow(exteriorDistance, 2) +
         Math.pow(cameraHeight, 2)
       );
 
-      // Isometric angle: 45° horizontal rotation, 30° elevation for good overview
-      camera.alpha = Math.PI / 4; // 45 degrees
-      camera.beta = Math.PI / 6; // 30 degrees (was PI/3 = 60°, too steep)
+      camera.alpha = Math.PI / 4;
+      camera.beta = Math.PI / 6;
       camera.setTarget(camera.target);
       
       console.log(`[WarehousePanel] ✅ Camera positioned outside warehouse: radius=${camera.radius.toFixed(2)}, alpha=${(camera.alpha * 180 / Math.PI).toFixed(1)}°, beta=${(camera.beta * 180 / Math.PI).toFixed(1)}°`);
@@ -217,10 +185,7 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
       const heightM = config.height / 1000;
 
       camera.minZ = 0.1;
-      const maxDimension = Math.max(widthM, depthM, heightM);
-      // CRITICAL FIX: Ensure maxZ is large enough to see skybox (50km = 50000 units)
-      // Skybox is 50km, so we need at least 75000 to see it clearly
-      camera.maxZ = Math.max(maxDimension * 2000, 75000);
+      camera.maxZ = CAMERA_MAX_Z;
 
       camera.target = new BABYLON.Vector3(0, heightM * 0.5, 0);
 
@@ -258,13 +223,6 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
       const rootNode = warehouse.getRootNode();
       rootNode.setEnabled(newVisible);
 
-      const scene = SceneManager.getInstance().getScene();
-      if (scene && warehouse) {
-        const skybox = scene.getMeshByName('warehouse_skybox');
-        if (skybox) {
-          skybox.setEnabled(newVisible);
-        }
-      }
     }
   }, [warehouseVisible, warehouse]);
 
@@ -315,10 +273,7 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
       const heightM = config.height / 1000;
 
       camera.minZ = 0.1;
-      const maxDimension = Math.max(widthM, depthM, heightM);
-      // CRITICAL FIX: Ensure maxZ is large enough to see skybox (50km = 50000 units)
-      // Skybox is 50km, so we need at least 75000 to see it clearly
-      camera.maxZ = Math.max(maxDimension * 2000, 75000);
+      camera.maxZ = CAMERA_MAX_Z;
 
       camera.target = new BABYLON.Vector3(0, heightM * 0.5, 0);
 
@@ -604,33 +559,6 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
           </label>
         </div>
 
-        <div className="warehouse-control-group">
-          <label className="warehouse-toggle">
-            <input
-              type="checkbox"
-              checked={!!config.enableSkybox}
-              onChange={(e) => updateConfig({ enableSkybox: e.target.checked })}
-            />
-            <span>Skybox</span>
-          </label>
-        </div>
-
-        {config.enableSkybox && (
-          <div className="warehouse-control-group">
-            <label className="warehouse-label">Skybox Source</label>
-            <select
-              value={config.skyboxSource || 'sunny'}
-              onChange={(e) => updateConfig({ skyboxSource: e.target.value as SkyboxSource })}
-              className="warehouse-select"
-            >
-              <option value="industrial">Industrial</option>
-              <option value="sunny">Sunny Day</option>
-              <option value="overcast">Overcast</option>
-              <option value="night">Night Sky</option>
-              <option value="sunset">Sunset</option>
-            </select>
-          </div>
-        )}
       </CollapsibleSection>
     </div>
   );

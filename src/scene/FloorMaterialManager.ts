@@ -13,7 +13,7 @@ export interface GridOverlayOptions {
   opacity?: number;
 }
 
-const DEFAULT_GRID_OPTIONS: Required<GridOverlayOptions> = {
+export const DEFAULT_GRID_OPTIONS: Required<GridOverlayOptions> = {
   majorUnitFrequency: 10,
   minorUnitVisibility: 0.45,
   gridRatio: 1,
@@ -182,6 +182,10 @@ export class FloorMaterialManager {
     gridMaterial.opacity = mergedOptions.opacity;
   }
 
+  public getDefaultGridOptions(): Required<GridOverlayOptions> {
+    return { ...DEFAULT_GRID_OPTIONS };
+  }
+
   /**
    * Polished concrete floor (current default)
    */
@@ -193,16 +197,6 @@ export class FloorMaterialManager {
     material.baseColor = new BABYLON.Color3(0.42, 0.42, 0.42);
     material.metallic = 0.0;
     material.roughness = 0.7;
-
-    const texture = new BABYLON.Texture(
-      'https://www.babylonjs-playground.com/textures/floor.png',
-      this.scene
-    );
-    texture.uScale = avgSize / 5;
-    texture.vScale = avgSize / 5;
-    // Enable mipmaps for proper distance rendering
-    texture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
-    material.baseTexture = texture;
 
     material._environmentIntensity = 0.4;
     return material;

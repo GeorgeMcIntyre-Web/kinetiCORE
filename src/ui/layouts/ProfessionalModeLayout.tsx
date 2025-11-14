@@ -994,7 +994,7 @@ export const ProfessionalModeLayout: React.FC = () => {
         zIndex={1003}
       />
 
-      {/* Floating Settings Panel - Contains Skybox tab */}
+      {/* Floating Settings Panel */}
       <FloatingSettingsPanel
         isVisible={showSettingsPanel}
         onClose={() => setShowSettingsPanel(false)}

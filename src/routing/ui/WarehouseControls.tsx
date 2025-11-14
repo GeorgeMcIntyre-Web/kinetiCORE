@@ -14,7 +14,7 @@ import {
   Camera
 } from 'lucide-react';
 import { SceneManager } from '../../scene/SceneManager';
-import { WarehouseModel, WarehouseConfig, SkyboxSource } from '../core/WarehouseModel';
+import { WarehouseModel, WarehouseConfig } from '../core/WarehouseModel';
 import { CameraService } from '../../scene/services/CameraService';
 import './WarehouseControls.css';
 
@@ -33,15 +33,12 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     depth: 50000,  // 50m
     height: 20000,  // 20m
     // Atmosphere settings
-    enableFog: false, // Disable fog by default to see skybox clearly
-    enableSkybox: true,
+    enableFog: false,
     // PROMPT #3: Sun defaults
     enableSun: true,
     sunAzimuth: -45,
     sunElevation: 35,
     sunIntensity: 1.0,
-    // PROMPT #4: Skybox source default
-    skyboxSource: 'sunny', // Blue sky with clouds
   });
   // Load persisted visibility state from localStorage
   const [isVisible, setIsVisible] = useState(() => {
@@ -85,15 +82,6 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     if (warehouse) {
       const rootNode = warehouse.getRootNode();
       rootNode.setEnabled(newVisible);
-      
-      // Also control skybox visibility when warehouse is off
-      const scene = SceneManager.getInstance().getScene();
-      if (scene && warehouse) {
-        const skybox = scene.getMeshByName('warehouse_skybox');
-        if (skybox) {
-          skybox.setEnabled(newVisible);
-        }
-      }
     }
   }, [isVisible, warehouse]);
 
@@ -117,8 +105,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
   }, [toggleVisibility]);
 
   const initializeWarehouse = (scene: BABYLON.Scene) => {
-    // CRITICAL: Set background to transparent BEFORE creating warehouse
-    // This ensures skybox is visible (per Babylon.js official docs)
+    // Ensure background is transparent so the shared grid/floor remain visible
     SceneManager.getInstance().setBackgroundTransparent(true);
 
     // Create warehouse model
@@ -132,11 +119,10 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
       const depthM = config.depth / 1000;
       const heightM = config.height / 1000;
       
-      // Set clipping planes for exterior view + skybox visibility
+      // Set generous clipping planes for exterior overview
       camera.minZ = 0.1; // Near: 10cm
-      // CRITICAL: maxZ must be HUGE to see the skybox (which is 1000x warehouse size)
       const maxDimension = Math.max(widthM, depthM, heightM);
-      camera.maxZ = maxDimension * 2000; // Far: must see skybox (2000x warehouse size)
+      camera.maxZ = maxDimension * 2000;
       
       // Position camera OUTSIDE the warehouse, looking at it from an angle
       // Target the center of the warehouse at mid-height
@@ -190,7 +176,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
       const heightM = config.height / 1000;
       
       camera.minZ = 0.1;
-      camera.maxZ = Math.max(widthM, depthM, heightM) * 2000; // Must see skybox
+      camera.maxZ = Math.max(widthM, depthM, heightM) * 2000;
       
       // Position camera OUTSIDE the warehouse
       camera.target = new BABYLON.Vector3(0, heightM * 0.5, 0); // Center of warehouse at half height
@@ -225,7 +211,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
 
   const resetSize = () => {
     setConfig(prev => ({
-      ...prev, // Preserve other settings (fog, skybox, sun, doors, mezzanine, etc.)
+      ...prev, // Preserve other settings (fog, sun, doors, mezzanine, etc.)
       width: 50000,
       depth: 50000,
       height: 20000,
@@ -240,9 +226,9 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
       const depthM = config.depth / 1000;
       const heightM = config.height / 1000;
       
-      // Set clipping planes for exterior view + skybox visibility
-      camera.minZ = 0.1;
-      camera.maxZ = Math.max(widthM, depthM, heightM) * 2000; // Must see skybox
+    // Generous clipping planes for overview
+    camera.minZ = 0.1;
+    camera.maxZ = Math.max(widthM, depthM, heightM) * 2000;
 
       // Position camera OUTSIDE the warehouse, looking at it
       camera.target = new BABYLON.Vector3(0, heightM * 0.5, 0); // Center of warehouse at half height
@@ -472,53 +458,6 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
           )}
         </div>
 
-        {/* PROMPT #4: Skybox Source Controls */}
-        <div className="size-control-group" style={{ marginTop: 6 }}>
-          <label className="size-label">
-            <input
-              type="checkbox"
-              checked={!!config.enableSkybox}
-              onChange={() => {
-                const next = !config.enableSkybox;
-                setConfig((p) => ({ ...p, enableSkybox: next }));
-                if (warehouse) {
-                  warehouse.updateSize({ enableSkybox: next });
-                }
-              }}
-            />
-            Enable Skybox
-          </label>
-          
-          {config.enableSkybox && (
-            <select
-              value={config.skyboxSource || 'industrial'}
-              onChange={(e) => {
-                const source = e.target.value as SkyboxSource;
-                setConfig((p) => ({ ...p, skyboxSource: source }));
-                if (warehouse) {
-                  warehouse.updateSize({ skyboxSource: source });
-                }
-              }}
-              style={{
-                width: '100%',
-                padding: '4px 8px',
-                fontSize: '12px',
-                borderRadius: '4px',
-                border: '1px solid #444',
-                backgroundColor: '#2a2a2a',
-                color: '#fff',
-                cursor: 'pointer',
-                marginTop: '6px',
-              }}
-            >
-              <option value="industrial">Industrial (Default)</option>
-              <option value="sunny">Sunny Day</option>
-              <option value="overcast">Overcast</option>
-              <option value="night">Night Sky</option>
-              <option value="sunset">Sunset</option>
-            </select>
-          )}
-        </div>
       </div>
     </div>
   );

@@ -332,20 +332,12 @@ export class CameraService {
 
     if (!mesh) {
       // Reset to default clipping planes when no object selected
-      // CRITICAL: Preserve skybox maxZ if skybox exists
       this.camera.minZ = CAMERA_MIN_Z;
-      
-      const skybox = scene.getMeshByName('skybox');
-      const skyboxSize = 1_000_000; // Skybox is 1,000km
-      const requiredMaxZ = skyboxSize * 1.5; // 1.5x skybox size (1,500,000)
-      
-      if (skybox && skybox.isVisible) {
-        this.camera.maxZ = Math.max(requiredMaxZ, CAMERA_MAX_Z);
-        console.log('[CameraService] Reset clipping planes - preserved skybox maxZ:', this.camera.maxZ);
-      } else {
-        this.camera.maxZ = CAMERA_MAX_Z;
-        console.log('[CameraService] Reset clipping planes to defaults:', { minZ: CAMERA_MIN_Z, maxZ: CAMERA_MAX_Z });
-      }
+      this.camera.maxZ = CAMERA_MAX_Z;
+      console.log('[CameraService] Reset clipping planes to defaults:', {
+        minZ: CAMERA_MIN_Z,
+        maxZ: CAMERA_MAX_Z,
+      });
       return;
     }
 
@@ -360,16 +352,7 @@ export class CameraService {
     const nearClip = Math.max(maxDimension * 0.01, 0.0001);
 
     // Far plane: 100x object size (ensures we can see the whole object from any angle)
-    // CRITICAL: But must be at least skybox size if skybox exists
-    const skybox = this.scene?.getMeshByName('skybox');
-    const skyboxSize = 1_000_000; // Skybox is 1,000km
-    const requiredMaxZ = skyboxSize * 1.5; // 1.5x skybox size (1,500,000)
-    
-    let farClip = Math.min(maxDimension * 100, CAMERA_MAX_Z);
-    // If skybox exists, ensure farClip is large enough to see it
-    if (skybox && skybox.isVisible) {
-      farClip = Math.max(farClip, requiredMaxZ);
-    }
+    const farClip = Math.min(maxDimension * 100, CAMERA_MAX_Z);
 
     // Apply new clipping planes
     this.camera.minZ = nearClip;
@@ -379,35 +362,19 @@ export class CameraService {
       objectSize: maxDimension.toFixed(3),
       minZ: nearClip.toFixed(6),
       maxZ: farClip.toFixed(1),
-      skyboxPreserved: skybox && skybox.isVisible ? 'YES' : 'NO'
     });
   }
 
   /**
    * Reset clipping planes to defaults
-   * CRITICAL: Preserve maxZ if skybox exists (skybox is 1,000,000 units)
    */
   resetClippingPlanes(): void {
     if (!this.camera) return;
-    const scene = this.camera.getScene();
-    if (!scene) return;
+    if (!this.camera.getScene()) return;
     
     this.camera.minZ = CAMERA_MIN_Z;
-    
-    // CRITICAL: Check if skybox exists - if so, maxZ must be at least 1,500,000 to see it
-    const skybox = scene.getMeshByName('skybox');
-    const skyboxSize = 1_000_000; // Skybox is 1,000km
-    const requiredMaxZ = skyboxSize * 1.5; // 1.5x skybox size (1,500,000)
-    
-    if (skybox && skybox.isVisible) {
-      // Skybox exists - ensure maxZ is large enough to see it
-      this.camera.maxZ = Math.max(requiredMaxZ, CAMERA_MAX_Z);
-      console.log('[CameraService] Reset clipping planes - preserved skybox maxZ:', this.camera.maxZ);
-    } else {
-      // No skybox - use default
-      this.camera.maxZ = CAMERA_MAX_Z;
-      console.log('[CameraService] Reset clipping planes to defaults');
-    }
+    this.camera.maxZ = CAMERA_MAX_Z;
+    console.log('[CameraService] Reset clipping planes to defaults');
   }
 
   getCamera(): BABYLON.ArcRotateCamera | null {

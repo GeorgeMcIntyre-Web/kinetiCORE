@@ -17,7 +17,6 @@ import {
   Camera,
   Sliders,
   Database,
-  Cloud,
   HelpCircle,
   Book,
   ExternalLink,
@@ -27,7 +26,6 @@ import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { useEditorStore } from '../store/editorStore';
 import { useUserLevel } from '../core/UserLevelContext';
 import { AdminPanel } from './Admin/AdminPanel';
-import { SkyboxSettingsPanel } from './SkyboxSettingsPanel';
 import { FloorSettingsPanel } from './FloorSettingsPanel';
 import './FloatingSettingsPanel.css';
 
@@ -586,7 +584,6 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
 
   const tabs: SettingsTab[] = [
     { id: 'general', label: 'General', icon: <User size={16} />, component: <GeneralSettings /> },
-    { id: 'skybox', label: 'Skybox', icon: <Cloud size={16} />, component: <SkyboxSettingsPanel /> },
     { id: 'floor', label: 'Floor', icon: <Grid3X3 size={16} />, component: <FloorSettingsPanel /> },
     { id: 'transform', label: 'Transform', icon: <Move size={16} />, component: <TransformSettings /> },
     { id: 'snap', label: 'Snap', icon: <Crosshair size={16} />, component: <SnapSettings /> },
