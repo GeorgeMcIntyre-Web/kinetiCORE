@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - feat(factory-piping): elevation-aware node placement
   - New placement modes (floor, elevation, snap) to keep node heights intentional
   - Default elevation settings per network, persisted through serialization and UI
-  - Validation + E2E coverage for placement workflows and warning banners
+  - Validation rules now flag steep slopes, missing insulation, and estimated elevations in both piping and RouteValidator views
+  - E2E smoke (Agent 1) will cover floor/elevation/snap workflows once the pending suite lands
   - UX and accessibility improvements (placement tab, HUD badge, keyboard shortcuts)
 
 ## [0.2.0] - 2025-01-29

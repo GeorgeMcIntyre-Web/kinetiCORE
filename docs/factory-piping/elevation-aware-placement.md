@@ -6,9 +6,18 @@ Factory utilities rarely live on a perfectly flat floor. Machines sit on risers,
 
 ## Placement Modes
 
-- **On Floor** – Projects clicks to the currently detected floor mesh or ground grid. Use this for drop legs, drains, and any piping that should sit directly on concrete. Elevation snaps to the floor height beneath the cursor even if the 3D selection happens above it.
-- **At Elevation** – Applies a fixed offset (Default Elevation) above the detected floor plane. Ideal for running services on an overhead rack or keeping compressed air at 3 m while you place endpoints from a top view.
-- **Snap to Existing** – When the cursor hovers a valid piping mesh, structural beam, or tagged assembly, the node inherits that surface’s elevation while keeping the XY from the pick hit. Use this mode to align to machine ports or previously modeled pipe.
+- **On Floor**  
+  - Projects clicks to the currently detected floor mesh or ground grid.  
+  - KinetiCORE is Z-up, so the stored elevation is the **Y** component of the hit point.  
+  - Use this mode for drop legs, drains, and any piping that should sit directly on concrete. Elevation snaps to the floor height beneath the cursor even if the 3D selection happens above it.
+- **At Elevation**  
+  - Applies a fixed offset (Default Elevation) above the detected floor plane.  
+  - Ideal for running services on an overhead rack or keeping compressed air at 3 m while you place endpoints from a top view.  
+  - The offset is stored per network (`pipingStore.meta.defaultElevation`) and re-applied whenever the project loads.
+- **Snap to Existing**  
+  - When the cursor hovers a valid piping mesh, structural beam, or tagged assembly, the node inherits that surface’s elevation while keeping the XY from the pick hit.  
+  - Use this mode to align to machine ports or previously modeled pipe.  
+  - Snaps respect the Z-up axis; when the picked surface is angled, the final `position.y` equals the point where the ray intersects the mesh.
 
 > Tip: Modes are mutually exclusive. Switching modes immediately updates the placement preview gizmo so you always know where the next node will land.
 
@@ -24,7 +33,7 @@ Factory utilities rarely live on a perfectly flat floor. Machines sit on risers,
 
 3. **Change Placement Mode**  
    - Use the radio-group or shortcuts: `F` (On Floor), `E` (At Elevation), `S` (Snap to Existing).  
-   - The active mode badge also appears in the floating HUD over the viewport cursor.
+   - A HUD badge shows the current mode + elevation in meters (Y-axis) next to the cursor for quick verification.
 
 4. **Set Default Elevation**  
    - When *At Elevation* is active, type a value (meters) or use the ± buttons next to **Default Elevation**.  
@@ -32,15 +41,21 @@ Factory utilities rarely live on a perfectly flat floor. Machines sit on risers,
 
 5. **Place Nodes**  
    - Left-click in the viewport. The workflow handler routes the click through the active placement strategy before calling `pipingStore.createNode`.  
-   - Shift+click still selects the source node for segments; the destination uses the placement mode only if you exit segment mode.
+   - Shift+click still selects the source node for segments; the destination uses the placement mode only if you exit segment mode.  
+   - Inspector cards display `X / Y / Z` with Y highlighted so you can double-check the final elevation.
 
 ## Edge Cases & Safeguards
 
-- **No Floor Detected** – When the raycast misses any geometry in *On Floor* mode, the handler falls back to the default elevation and highlights the HUD in amber. You can still place the node, but a warning banner reminds you the height is estimated.
-- **Sloped Surfaces** – The hit normal is projected back into world space.  
-  - *On Floor* samples the floor under the cursor; if the slope exceeds 8°, the mode suggests switching to *Snap to Existing* so the node inherits the exact pick normal and elevation.  
-  - *At Elevation* ignores slope and keeps the constant offset (useful for catwalk pipes above ramps).
-- **Snap Conflicts** – If multiple eligible targets overlap, the closest piping node wins, followed by meshes tagged `snap:factory_service`. Use the cycle shortcut (`Tab`) to iterate through candidates before clicking.
+- **No Floor Detected**  
+  - When the downward ray misses geometry in *On Floor* mode, the handler reuses the most recent default elevation and raises an “Estimated height” banner in the panel.  
+  - You can still place the node; the warning remains until the node is snapped or edited with an explicit Y value.
+- **Sloped Surfaces**  
+  - *On Floor* samples the floor under the cursor; if the slope exceeds 8°, the HUD shows a “Steep floor” hint and the panel suggests switching to *Snap to Existing*.  
+  - *At Elevation* ignores the slope entirely and keeps the constant offset—ideal for catwalk pipes above ramps.  
+  - *Snap to Existing* follows the mesh normal and stores the exact intersection point, so elevated tie-ins stay flush even on sloped equipment.
+- **Snap Conflicts**  
+  - If multiple eligible targets overlap, the closest piping node wins, followed by meshes tagged `snap:factory_service`.  
+  - Press `Tab` to cycle through candidates before clicking; screen readers announce “Snap target 1 of N” via the placement tab’s aria-live region.
 
 ## Keyboard & Accessibility
 
@@ -48,7 +63,8 @@ Factory utilities rarely live on a perfectly flat floor. Machines sit on risers,
 - `F` / `E` / `S` – Switch placement mode without leaving the viewport.
 - `Alt+Scroll` – Adjust default elevation in 100 mm increments while staying in *At Elevation*.
 - `Shift+Click` – Start a segment from the clicked node; `Esc` cancels pending segments or snaps.
-- Screen readers announce the active mode and elevation via the panel’s aria-live region, and the mode selector supports full keyboard navigation.
+- `Tab` – Cycle through overlapping snap targets before confirming placement.
+- The placement panel exposes full keyboard navigation, and screen readers announce the active mode, elevation, and warning banners through an aria-live region.
 
 ## Summary Workflow
 

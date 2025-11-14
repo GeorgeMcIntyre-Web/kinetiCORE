@@ -7,7 +7,7 @@ This note documents the internal changes required to support elevation-aware nod
 | Area | Files | Highlights |
 | --- | --- | --- |
 | Domain | `src/domain/factoryServices/piping/pipingTypes.ts`, `pipingStore.ts`, `pipingRules.ts`, `pipingSerialization.ts`, `pipingDescription.ts`, `pipingValidation.ts` | Nodes always store explicit `position.y`, store metadata keeps placement defaults per network, serialization/descriptions include elevation, validation exposes warnings when elevation data is missing or inconsistent. |
-| Workflow | `src/services/piping/PipingWorkflowHandler.ts` | Node placement path now routes through a placement strategy (on-floor, fixed elevation, snap-to-existing) before calling `pipingStore.createNode`. |
+| Workflow | `src/services/piping/PipingWorkflowHandler.ts` | Node placement path now routes through a placement strategy (on-floor, fixed elevation, snap-to-existing) before calling `pipingStore.createNode`. Handler pushes placements through validation hooks before deferring to `PipingSceneService`. |
 | Scene | `src/services/piping/PipingSceneService.ts` | Mesh sync uses the precise node elevation, ensuring Babylon geometry matches the domain. Snap mode reuses the service for hit-testing existing nodes/segments. |
 | Validation | `src/domain/factoryServices/piping/pipingValidation.ts`, `src/routing/validation/RouteValidator.ts` | Elevation deltas feed into slope checks, and `RouteValidator` can mirror warnings when piping networks are exported into routing contexts. |
 
@@ -27,6 +27,17 @@ This note documents the internal changes required to support elevation-aware nod
 3. **Expose UI controls** in `src/ui/piping/PipingPanel.tsx` so users can switch modes. Keep state in the editor store; the handler reads from `useEditorStore.getState()`.
 4. **Update tests** under `tests/piping` (unit + integration) so each mode has coverage for elevation math and failure states.
 
+## Workflow + Validation Integration
+
+- `PipingWorkflowHandler.initialize(scene, pipingSceneService)` wires Babylon pointer + keyboard listeners once per scene.  
+- Every placement funnels through `resolvePlacementMode()` (internal helper) which:  
+  1. Reads `useEditorStore.getState().pipingPlacementMode`.  
+  2. Consults `pipingStore` to fetch the active network + default elevation metadata.  
+  3. Calls the relevant placement strategy (`projectToFloor`, `applyFixedElevation`, `snapToExistingMesh`).  
+  4. Passes the resolved world coordinates to `pipingValidation.getSegmentWarnings` when segments are created so slope and insulation issues surface immediately.  
+- The handler then calls into `pipingStore` to persist the node/segment, triggering store listeners. `PipingSceneService` is already subscribed and rebuilds meshes with the same Y coordinate, keeping the viewport in sync.  
+- For undo/redo, only the command layer writes into the store. The workflow handler avoids side effects (no React state) so future history commands can wrap placement actions.
+
 ## Extending Validation Rules
 
 - **Domain warnings**  
@@ -37,7 +48,15 @@ This note documents the internal changes required to support elevation-aware nod
   If the rule depends on placement input (e.g., min rack height), enforce it in `PipingWorkflowHandler` before creating the node, showing a toast or HUD message when the rule fails.
 
 - **Routing parity**  
-  When the piping data is exported to Smart Routing, invoke `RouteValidator` with the same thresholds so mixed-mode projects see consistent results.
+  When the piping data is exported to Smart Routing, invoke `RouteValidator` with the same thresholds so mixed-mode projects see consistent results. `RouteValidator` already exposes `registerCustomRule('factory_piping', fn)`; reuse it to surface piping warnings inside routing dashboards.
+
+## Adding a Debug Overlay
+
+1. Create a lightweight helper (e.g., `PipingPlacementOverlay`) under `src/services/piping/debug/`. Keep it Babylon-only.  
+2. Subscribe to `pipingStore` and read `useEditorStore.getState().pipingPlacementMode` to determine what to render (floor projection disc, elevation ruler, snap indicator).  
+3. Update `SceneManager` to instantiate the overlay next to `PipingSceneService` so both share the same lifecycle hooks.  
+4. Gate overlays behind `editorStore.debugFlags.pipingPlacement`. The workflow handler already emits events (`onPlacementPreviewChanged`) you can tap into without mutating store data.  
+5. Document any new debug flag in `docs/DEBUG_FLOOR.md` and add snapshot tests if the overlay affects serialized scene state.
 
 ## Hooking into `pipingStore` for Future Features
 

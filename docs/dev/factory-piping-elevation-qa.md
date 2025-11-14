@@ -11,7 +11,7 @@
 | Scene Integration | `tests/piping/pipingSceneService.int.test.ts` | Mesh placement sync, node/segment lifecycle, metadata for picking. |
 | Workflow | `tests/piping/pipingWorkflowHandler.int.test.ts` | Placement modes (floor vs elevation), Shift+click segments, ESC cancel. |
 | UI | `tests/piping/pipingPanel.ui.test.tsx` | Placement tab controls, node/segment counters, elevation form behavior. |
-| E2E | `tests/piping/pipingPlacement.e2e.test.ts` | Full smoke of *On Floor*, *At Elevation*, *Snap to Existing* with viewport clicks and warning banners. |
+| E2E | `tests/piping/pipingPlacement.e2e.test.ts` | Full smoke of *On Floor*, *At Elevation*, *Snap to Existing* with viewport clicks and warning banners (Agent 1 finalizing assertions). |
 
 > CI runs lint, build, and the full `npm test` suite on branch `integration/factory-piping-elevation`. Re-run locally before publishing QA status.
 
