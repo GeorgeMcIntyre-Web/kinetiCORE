@@ -31,6 +31,8 @@
 - Monitor this document for phase updates
 - You will merge in sequence after Agents 4 and 2
 
+- **Agent 7 Update:** Rebased onto `integration/factory-piping-elevation` (c0330ef) and waiting for **Phase 3 – Step 1** activation before beginning docs/QA work.
+
 ---
 
 ## 📊 EXECUTIVE SUMMARY
