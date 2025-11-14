@@ -781,115 +781,114 @@ export const EssentialModeLayout: React.FC = () => {
             />
           </div>
 
-            {transform && (
-              <div
-                className="fixed"
-                style={{
-                  position: 'absolute',
-                  bottom: '16px',
-                  right: '12px',
-                  background: 'transparent',
-                  border: 'none',
-                  borderRadius: '10px',
-                  paddingTop: 0,
-                  paddingBottom: 0,
-                  paddingLeft: '12px',
-                  paddingRight: '12px',
-                  color: '#fff',
-                  boxShadow: 'none',
-                  fontWeight: '600',
-                  WebkitFontSmoothing: 'antialiased',
-                  MozOsxFontSmoothing: 'grayscale',
-                  minWidth: '280px',
-                  marginBottom: '16px',
-                  transformOrigin: 'bottom right',
-                }}
-              >
-                <div style={{ transform: 'scale(0.95)', transformOrigin: 'bottom right', padding: '8px 0' }}>
-                  <div className="flex justify-end mb-1">
-                    <button
-                      onClick={() => setCoordMode(coordMode === 'world' ? 'local' : 'world')}
-                      title={coordMode === 'world' ? 'Showing World coordinates. Click for Local.' : 'Showing Local coordinates. Click for World.'}
-                      style={{
-                        background: 'rgba(0,0,0,0.45)',
-                        border: '1px solid rgba(255,255,255,0.18)',
-                        color: '#fff',
-                        padding: '2px 6px',
-                        borderRadius: '8px',
-                        fontSize: '9px',
-                        lineHeight: 1,
-                      }}
-                    >
-                      {coordMode === 'world' ? 'World' : 'Local'}
-                    </button>
+          {transform && (
+            <div
+              className="fixed"
+              style={{
+                position: 'absolute',
+                bottom: '16px',
+                right: '12px',
+                background: 'transparent',
+                border: 'none',
+                borderRadius: '10px',
+                paddingTop: 0,
+                paddingBottom: 0,
+                paddingLeft: '12px',
+                paddingRight: '12px',
+                color: '#fff',
+                boxShadow: 'none',
+                fontWeight: '600',
+                WebkitFontSmoothing: 'antialiased',
+                MozOsxFontSmoothing: 'grayscale',
+                minWidth: '280px',
+                marginBottom: '16px',
+                transformOrigin: 'bottom right',
+              }}
+            >
+              <div style={{ transform: 'scale(0.95)', transformOrigin: 'bottom right', padding: '8px 0' }}>
+                <div className="flex justify-end mb-1">
+                  <button
+                    onClick={() => setCoordMode(coordMode === 'world' ? 'local' : 'world')}
+                    title={coordMode === 'world' ? 'Showing World coordinates. Click for Local.' : 'Showing Local coordinates. Click for World.'}
+                    style={{
+                      background: 'rgba(0,0,0,0.45)',
+                      border: '1px solid rgba(255,255,255,0.18)',
+                      color: '#fff',
+                      padding: '2px 6px',
+                      borderRadius: '8px',
+                      fontSize: '9px',
+                      lineHeight: 1,
+                    }}
+                  >
+                    {coordMode === 'world' ? 'World' : 'Local'}
+                  </button>
+                </div>
+                <div className="flex justify-between" style={{ fontSize: '11.5px' }}>
+                  <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                    <span style={{ color: '#D0021B', fontWeight: '500' }}>X:</span>
+                    <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.x.toFixed(1)}</span>
                   </div>
-                  <div className="flex justify-between" style={{ fontSize: '11.5px' }}>
-                    <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                      <span style={{ color: '#D0021B', fontWeight: '500' }}>X:</span>
-                      <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.x.toFixed(1)}</span>
-                    </div>
-                    <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                      <span style={{ color: '#7ED321', fontWeight: '500' }}>Y:</span>
-                      <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.y.toFixed(1)}</span>
-                    </div>
-                    <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                      <span style={{ color: '#4A90E2', fontWeight: '500' }}>Z:</span>
-                      <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.z.toFixed(1)}</span>
-                    </div>
+                  <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                    <span style={{ color: '#7ED321', fontWeight: '500' }}>Y:</span>
+                    <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.y.toFixed(1)}</span>
                   </div>
-                  <div className="flex justify-between mt-1" style={{ fontSize: '11.5px' }}>
-                    <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                      <span style={{ color: '#D0021B', fontWeight: '500' }}>RX:</span>
-                      <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rx.toFixed(1)}°</span>
-                    </div>
-                    <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                      <span style={{ color: '#7ED321', fontWeight: '500' }}>RY:</span>
-                      <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.ry.toFixed(1)}°</span>
-                    </div>
-                    <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                      <span style={{ color: '#4A90E2', fontWeight: '500' }}>RZ:</span>
-                      <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rz.toFixed(1)}°</span>
-                    </div>
+                  <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                    <span style={{ color: '#4A90E2', fontWeight: '500' }}>Z:</span>
+                    <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.z.toFixed(1)}</span>
                   </div>
+                </div>
+                <div className="flex justify-between mt-1" style={{ fontSize: '11.5px' }}>
+                  <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                    <span style={{ color: '#D0021B', fontWeight: '500' }}>RX:</span>
+                    <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rx.toFixed(1)}°</span>
+                  </div>
+                  <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                    <span style={{ color: '#7ED321', fontWeight: '500' }}>RY:</span>
+                    <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.ry.toFixed(1)}°</span>
+                  </div>
+                  <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                    <span style={{ color: '#4A90E2', fontWeight: '500' }}>RZ:</span>
+                    <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rz.toFixed(1)}°</span>
+                  </div>
+                </div>
 
-                  {lastPickedPoint && (() => {
-                    const userCoords = babylonToUser(lastPickedPoint);
-                    return (
+                {lastPickedPoint && (() => {
+                  const userCoords = babylonToUser(lastPickedPoint);
+                  return (
+                    <div style={{
+                      borderTop: '1px solid rgba(255,255,255,0.1)',
+                      margin: '6px 0',
+                      paddingTop: '6px'
+                    }}>
                       <div style={{
-                        borderTop: '1px solid rgba(255,255,255,0.1)',
-                        margin: '6px 0',
-                        paddingTop: '6px'
+                        fontSize: '9px',
+                        color: 'rgba(255,255,255,0.5)',
+                        marginBottom: '4px',
+                        fontWeight: '500'
                       }}>
-                        <div style={{
-                          fontSize: '9px',
-                          color: 'rgba(255,255,255,0.5)',
-                          marginBottom: '4px',
-                          fontWeight: '500'
-                        }}>
-                          Picked Point:
+                        Picked Point:
+                      </div>
+                      <div className="flex justify-between" style={{ fontSize: '11.5px' }}>
+                        <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                          <span style={{ color: '#D0021B', fontWeight: '500' }}>X:</span>
+                          <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.x.toFixed(3)}</span>
                         </div>
-                        <div className="flex justify-between" style={{ fontSize: '11.5px' }}>
-                          <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                            <span style={{ color: '#D0021B', fontWeight: '500' }}>X:</span>
-                            <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.x.toFixed(3)}</span>
-                          </div>
-                          <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                            <span style={{ color: '#7ED321', fontWeight: '500' }}>Y:</span>
-                            <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.y.toFixed(3)}</span>
-                          </div>
-                          <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                            <span style={{ color: '#4A90E2', fontWeight: '500' }}>Z:</span>
-                            <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.z.toFixed(3)}</span>
-                          </div>
+                        <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                          <span style={{ color: '#7ED321', fontWeight: '500' }}>Y:</span>
+                          <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.y.toFixed(3)}</span>
+                        </div>
+                        <div className="flex space-x-1" style={{ minWidth: '80px' }}>
+                          <span style={{ color: '#4A90E2', fontWeight: '500' }}>Z:</span>
+                          <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.z.toFixed(3)}</span>
                         </div>
                       </div>
-                    );
-                  })()}
-                </div>
+                    </div>
+                  );
+                })()}
               </div>
-            )}
-          </main>
-        </div>
+            </div>
+          )}
+        </main>
       </div>
 
       {/* Floating Panels */}
