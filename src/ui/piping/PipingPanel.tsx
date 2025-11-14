@@ -2,14 +2,15 @@
 // Owner: Agent 1 (George) - Architecture Lead
 // Phase 4: UI & Workflow
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
 import { describePipingNetwork } from '../../domain/factoryServices/piping/pipingDescription';
 import { PipingNetwork, PipingServiceType } from '../../domain/factoryServices/piping/pipingTypes';
 import { PipingNodeList } from './PipingNodeList';
 import { PipingSegmentList } from './PipingSegmentList';
 import { PipingInspector } from './PipingInspector';
-import { X } from 'lucide-react';
+import { X, HelpCircle } from 'lucide-react';
+import { useEditorStore, PipingPlacementMode } from '../store/editorStore';
 
 const SERVICE_TYPES: PipingServiceType[] = ['water', 'air', 'steam', 'vacuum'];
 
@@ -25,6 +26,11 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
   const [networks, setNetworks] = useState<PipingNetwork[]>([]);
   const [activeNetworkId, setActiveNetworkId] = useState<string | null>(null);
   const [description, setDescription] = useState<string[]>([]);
+  const placementMode = useEditorStore((state) => state.pipingPlacementMode);
+  const defaultElevationMm = useEditorStore((state) => state.pipingDefaultElevationMm);
+  const setPlacementMode = useEditorStore((state) => state.setPipingPlacementMode);
+  const setDefaultElevationMm = useEditorStore((state) => state.setPipingDefaultElevationMm);
+  const placementIds = useId();
 
   // Subscribe to piping store changes
   useEffect(() => {
@@ -65,11 +71,34 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
     }
   }, [isVisible, networks.length]);
 
+  const handlePlacementModeChange = (mode: PipingPlacementMode) => {
+    if (mode === placementMode) {
+      return;
+    }
+    setPlacementMode(mode);
+  };
+
+  const handleDefaultElevationChange = (value: string) => {
+    if (value === '') {
+      setDefaultElevationMm(0);
+      return;
+    }
+    const parsed = parseFloat(value);
+    if (Number.isFinite(parsed) === false) {
+      return;
+    }
+    setDefaultElevationMm(parsed);
+  };
+
   if (!isVisible) {
     return null;
   }
 
   const activeNetwork = activeNetworkId !== null ? pipingStore.getNetwork(activeNetworkId) : null;
+  const placementLegendId = `${placementIds}-placement`;
+  const floorHintId = `${placementIds}-floor`;
+  const fixedHintId = `${placementIds}-fixed`;
+  const elevationHelpId = `${placementIds}-help`;
 
   return (
     <div
@@ -256,17 +285,206 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
 
       {/* Tab Content */}
       <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
-        {activeTab === 'network' && activeNetwork !== null && activeNetwork !== undefined && (
-          <div>
-            <PipingNodeList networkId={activeNetwork.id} nodes={activeNetwork.nodes} />
-            <div style={{ height: '16px' }} />
-            <PipingSegmentList
-              networkId={activeNetwork.id}
-              segments={activeNetwork.segments}
-              nodes={activeNetwork.nodes}
-            />
-          </div>
-        )}
+          {activeTab === 'network' && activeNetwork !== null && activeNetwork !== undefined && (
+            <div>
+              <section
+                aria-labelledby={placementLegendId}
+                style={{
+                  border: '1px solid #334155',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  backgroundColor: '#0f172a',
+                  marginBottom: '16px',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '8px',
+                    gap: '8px',
+                  }}
+                >
+                  <div
+                    id={placementLegendId}
+                    style={{ fontSize: '14px', fontWeight: 600, color: '#f1f5f9' }}
+                  >
+                    Node Placement
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Why use fixed height placement?"
+                    title="Use fixed height to drop nodes at a standard overhead run. Common offsets: 500, 1000, or 2000 mm."
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      padding: 0,
+                      color: '#94a3b8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      cursor: 'help',
+                    }}
+                  >
+                    <HelpCircle size={16} />
+                  </button>
+                </div>
+                <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 12px' }}>
+                  Choose how new nodes capture elevation when you click in the scene. The default
+                  applies to every placement until you change it.
+                </p>
+
+                <fieldset
+                  style={{ border: 'none', margin: 0, padding: 0 }}
+                  aria-describedby={placementLegendId}
+                >
+                  <legend
+                    style={{
+                      fontSize: '12px',
+                      color: '#94a3b8',
+                      marginBottom: '8px',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Node placement mode
+                  </legend>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        gap: '10px',
+                        border:
+                          placementMode === 'floor' ? '1px solid #06b6d4' : '1px solid #1f2937',
+                        borderRadius: '6px',
+                        padding: '8px 10px',
+                        backgroundColor: '#0b1629',
+                        cursor: 'pointer',
+                        alignItems: 'flex-start',
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="piping-placement-mode"
+                        value="floor"
+                        checked={placementMode === 'floor'}
+                        onChange={() => handlePlacementModeChange('floor')}
+                        aria-describedby={floorHintId}
+                        style={{ marginTop: '4px' }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>
+                          On floor
+                        </div>
+                        <p
+                          id={floorHintId}
+                          style={{
+                            margin: '2px 0 0',
+                            fontSize: '12px',
+                            color: '#94a3b8',
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          Nodes land exactly on the surface you click.
+                        </p>
+                      </div>
+                    </label>
+                    <label
+                      style={{
+                        display: 'flex',
+                        gap: '10px',
+                        border:
+                          placementMode === 'fixed_height'
+                            ? '1px solid #06b6d4'
+                            : '1px solid #1f2937',
+                        borderRadius: '6px',
+                        padding: '8px 10px',
+                        backgroundColor: '#0b1629',
+                        cursor: 'pointer',
+                        alignItems: 'flex-start',
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="piping-placement-mode"
+                        value="fixed_height"
+                        checked={placementMode === 'fixed_height'}
+                        onChange={() => handlePlacementModeChange('fixed_height')}
+                        aria-describedby={fixedHintId}
+                        style={{ marginTop: '4px' }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>
+                          Fixed height above floor
+                        </div>
+                        <p
+                          id={fixedHintId}
+                          style={{
+                            margin: '2px 0 0',
+                            fontSize: '12px',
+                            color: '#94a3b8',
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          Nodes land at floor height plus the offset below along the up-axis.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </fieldset>
+
+                <label
+                  htmlFor="piping-default-elevation"
+                  style={{
+                    fontSize: '12px',
+                    color: '#94a3b8',
+                    display: 'block',
+                    margin: '12px 0 4px',
+                  }}
+                >
+                  Default elevation (mm)
+                </label>
+                <input
+                  id="piping-default-elevation"
+                  type="number"
+                  min="0"
+                  max="6000"
+                  step="50"
+                  value={defaultElevationMm}
+                  onChange={(e) => handleDefaultElevationChange(e.target.value)}
+                  aria-describedby={elevationHelpId}
+                  style={{
+                    width: '100%',
+                    padding: '6px 8px',
+                    backgroundColor: '#0f172a',
+                    border: '1px solid #334155',
+                    borderRadius: '4px',
+                    color: '#f1f5f9',
+                    fontSize: '13px',
+                  }}
+                />
+                <p
+                  id={elevationHelpId}
+                  style={{
+                    fontSize: '12px',
+                    color: '#94a3b8',
+                    margin: '6px 0 0',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  Use 0 mm for floor-level placement. Typical pipe racks use 500, 1000, or 2000 mm
+                  offsets.
+                </p>
+              </section>
+
+              <PipingNodeList networkId={activeNetwork.id} nodes={activeNetwork.nodes} />
+              <div style={{ height: '16px' }} />
+              <PipingSegmentList
+                networkId={activeNetwork.id}
+                segments={activeNetwork.segments}
+                nodes={activeNetwork.nodes}
+              />
+            </div>
+          )}
 
         {activeTab === 'network' && activeNetwork === null && (
           <div

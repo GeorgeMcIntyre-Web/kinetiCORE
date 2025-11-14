@@ -114,13 +114,14 @@ export class PipingWorkflowHandler {
     }
 
     const pickedPoint = pointerInfo.pickInfo.pickedPoint;
+    const placementPoint = this.computePlacementPoint(pickedPoint);
 
     // Create node at picked point
     const node = pipingStore.createNode(activeNetwork.id, {
       position: {
-        x: pickedPoint.x,
-        y: pickedPoint.y,
-        z: pickedPoint.z,
+        x: placementPoint.x,
+        y: placementPoint.y,
+        z: placementPoint.z,
       },
       kind: 'endpoint',
       serviceType: activeNetwork.serviceType,
@@ -244,5 +245,24 @@ export class PipingWorkflowHandler {
    */
   getPendingSourceNodeId(): string | null {
     return this.pendingSourceNodeId;
+  }
+
+  /**
+   * Apply placement mode offsets to the clicked point
+   */
+  private computePlacementPoint(basePoint: BABYLON.Vector3): BABYLON.Vector3 {
+    const { pipingPlacementMode, pipingDefaultElevationMm } = useEditorStore.getState();
+    if (pipingPlacementMode !== 'fixed_height') {
+      return basePoint.clone();
+    }
+
+    const offsetMeters = pipingDefaultElevationMm / 1000;
+    if (offsetMeters === 0) {
+      return basePoint.clone();
+    }
+
+    const adjustedPoint = basePoint.clone();
+    adjustedPoint.y += offsetMeters;
+    return adjustedPoint;
   }
 }

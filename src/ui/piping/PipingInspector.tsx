@@ -128,6 +128,9 @@ export const PipingInspector: React.FC = () => {
     pipingStore.updateSegment(selectedSegment.id, { slopePerMille: numValue });
   };
 
+  const selectedNodeElevationMm =
+    selectedNode !== null ? Math.round(selectedNode.position.y * 1000) : null;
+
   // No selection
   if (selectedNode === null && selectedSegment === null) {
     return (
@@ -281,9 +284,14 @@ export const PipingInspector: React.FC = () => {
               <div style={{ flex: 1 }}>
                 <label
                   htmlFor="node-pos-y"
-                  style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px' }}
+                  style={{
+                    fontSize: '11px',
+                    color: '#64748b',
+                    display: 'block',
+                    marginBottom: '4px',
+                  }}
                 >
-                  Y (Elevation)
+                  Y (Elevation, m)
                 </label>
                 <input
                   id="node-pos-y"
@@ -328,6 +336,31 @@ export const PipingInspector: React.FC = () => {
               </div>
             </div>
           </div>
+
+            {selectedNodeElevationMm !== null && (
+              <div
+                style={{
+                  marginTop: '12px',
+                  padding: '12px',
+                  border: '1px solid #334155',
+                  borderRadius: '6px',
+                  backgroundColor: '#0b1629',
+                  lineHeight: 1.4,
+                }}
+                aria-live="polite"
+              >
+                <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>
+                  Elevation summary
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: '#f1f5f9' }}>
+                  Elevation: {selectedNodeElevationMm} mm (Y axis)
+                </div>
+                <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0' }}>
+                  Matches the Y value above. Align this with the node placement defaults when you
+                  want consistent pipe heights.
+                </p>
+              </div>
+            )}
         </div>
       )}
 

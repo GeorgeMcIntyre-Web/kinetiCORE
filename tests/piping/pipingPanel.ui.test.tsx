@@ -3,6 +3,7 @@
 // Basic React component tests for piping UI
 
 import { render, screen, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { PipingPanel } from '../../src/ui/piping/PipingPanel';
 import { pipingStore } from '../../src/domain/factoryServices/piping/pipingStore';
 
@@ -122,6 +123,52 @@ describe('PipingPanel UI', () => {
       expect(screen.getByText((content, element) => {
         return element?.textContent === 'Segments (1)';
       })).toBeInTheDocument();
+    });
+  });
+
+  describe('Placement Controls', () => {
+    it('should render placement mode options with accessible labels', () => {
+      render(<PipingPanel isVisible={true} onClose={() => {}} />);
+
+      expect(screen.getByLabelText('On floor')).toBeInTheDocument();
+      expect(screen.getByLabelText('Fixed height above floor')).toBeInTheDocument();
+    });
+
+    it('should label the default elevation input with units', () => {
+      render(<PipingPanel isVisible={true} onClose={() => {}} />);
+
+      const defaultElevationInput = screen.getByLabelText('Default elevation (mm)');
+      expect(defaultElevationInput).toBeInTheDocument();
+      expect(defaultElevationInput).toHaveAttribute('type', 'number');
+    });
+
+    it('should tab through placement controls in visual order', async () => {
+      const user = userEvent.setup();
+      render(<PipingPanel isVisible={true} onClose={() => {}} />);
+
+      const floorOption = screen.getByLabelText('On floor');
+      const fixedOption = screen.getByLabelText('Fixed height above floor');
+      const elevationInput = screen.getByLabelText('Default elevation (mm)');
+
+      floorOption.focus();
+      expect(floorOption).toHaveFocus();
+
+      await user.tab();
+      expect(fixedOption).toHaveFocus();
+
+      await user.tab();
+      expect(elevationInput).toHaveFocus();
+    });
+
+    it('should render helper copy for placement hints without crashing', () => {
+      render(<PipingPanel isVisible={true} onClose={() => {}} />);
+
+      expect(
+        screen.getByText(/Nodes land exactly on the surface you click/i)
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/Use 0 mm for floor-level placement/i)
+      ).toBeInTheDocument();
     });
   });
 

@@ -36,8 +36,20 @@ import { ProjectManager } from '../../project/ProjectManager';
 import { ProjectWorldLoader } from '../../project/ProjectWorldLoader';
 import type { Project, ProjectSave, AssetInstance } from '../../project/types';
 
-type ObjectType = 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'plane' | 'ground' | 'capsule' | 'disc' | 'torusknot' | 'polyhedron';
+type ObjectType =
+  | 'box'
+  | 'sphere'
+  | 'cylinder'
+  | 'cone'
+  | 'torus'
+  | 'plane'
+  | 'ground'
+  | 'capsule'
+  | 'disc'
+  | 'torusknot'
+  | 'polyhedron';
 type SnapMode = 'point-to-point' | 'frame-to-frame';
+export type PipingPlacementMode = 'floor' | 'fixed_height';
 
 interface SnapPoint {
   x: number;
@@ -89,7 +101,9 @@ interface EditorState {
 
   // Piping mode state
   pipingModeEnabled: boolean;
-  
+  pipingPlacementMode: PipingPlacementMode;
+  pipingDefaultElevationMm: number;
+
   // Project Manager Integration
   projectManager: ProjectManager;
   worldLoader: ProjectWorldLoader;
@@ -297,6 +311,8 @@ interface EditorState {
 
   // Piping mode actions
   setPipingModeEnabled: (enabled: boolean) => void;
+  setPipingPlacementMode: (mode: PipingPlacementMode) => void;
+  setPipingDefaultElevationMm: (mm: number) => void;
 
   // Transform settings actions
   setPositionIncrement: (value: number) => void;
@@ -675,6 +691,8 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
   // Piping mode state
   pipingModeEnabled: false,
+  pipingPlacementMode: 'floor' as PipingPlacementMode,
+  pipingDefaultElevationMm: 1000,
 
   // Project Manager Integration
   projectManager: ProjectManager.getInstance(),
@@ -3375,6 +3393,14 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
   // Piping mode actions
   setPipingModeEnabled: (enabled) => set({ pipingModeEnabled: enabled }),
+  setPipingPlacementMode: (mode) => set({ pipingPlacementMode: mode }),
+  setPipingDefaultElevationMm: (value) => {
+    if (Number.isFinite(value) === false) {
+      return;
+    }
+    const clamped = Math.max(0, Math.min(6000, Math.round(value)));
+    set({ pipingDefaultElevationMm: clamped });
+  },
 
   // Transform settings setters
   setPositionIncrement: (value: number) => set({ positionIncrement: value }),
