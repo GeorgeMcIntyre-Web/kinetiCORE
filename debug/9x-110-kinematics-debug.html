@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>9X_110_GEO Kinematics Debug</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: monospace;
+    }
+    #renderCanvas {
+      width: 100%;
+      height: 100vh;
+      display: block;
+    }
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 4px;
+      max-width: 400px;
+      font-size: 12px;
+    }
+    #controls {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      color: white;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="renderCanvas"></canvas>
+  <div id="info">Loading...</div>
+  <div id="controls">
+    <strong>Console API:</strong><br/>
+    kinDebug.listUnits()<br/>
+    kinDebug.setJoint(unitName, jointName, value)<br/>
+    kinDebug.resetAllJoints()<br/>
+    kinDebug.toggleAxes()
+  </div>
+  <script type="module" src="./9x-110-kinematics-debug.ts"></script>
+</body>
+</html>
+
