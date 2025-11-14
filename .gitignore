@@ -184,6 +184,7 @@ README_REAL_*.md
 *_AUDIT*.md
 *_PROTOCOL*.md
 *_CHECKLIST*.md
+!PIPING_QA_CHECKLIST.md
 *_REVIEW*.md
 
 # Test HTML files
