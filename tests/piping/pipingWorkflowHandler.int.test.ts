@@ -2,7 +2,6 @@
 // Owner: Agent 1 (George)
 // Tests the workflow state machine and segment creation logic
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { PipingWorkflowHandler } from '../../src/services/piping/PipingWorkflowHandler';
 import { pipingStore } from '../../src/domain/factoryServices/piping/pipingStore';
 

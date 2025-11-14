@@ -1,7 +1,6 @@
 // Unit tests for piping validation
 // Owner: Agent 1 (George)
 
-import { describe, it, expect } from 'vitest';
 import {
   getSegmentWarnings,
   getAllSegmentWarnings,

@@ -2,7 +2,6 @@
 // Owner: Agent 1 (George)
 // Tests the scene service mesh lifecycle and store reaction
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as BABYLON from '@babylonjs/core';
 import { PipingSceneService } from '../../src/services/piping/PipingSceneService';
 import { pipingStore } from '../../src/domain/factoryServices/piping/pipingStore';

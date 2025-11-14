@@ -1,7 +1,6 @@
 // Unit tests for piping rules
 // Owner: Agent 1 (George)
 
-import { describe, it, expect } from 'vitest';
 import {
   getDefaultDiameter,
   getMinBendRadius,

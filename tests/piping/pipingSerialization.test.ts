@@ -1,7 +1,6 @@
 // Unit tests for piping serialization
 // Owner: Agent 1 (George)
 
-import { describe, it, expect } from 'vitest';
 import {
   serializePipingNetwork,
   deserializePipingNetwork,

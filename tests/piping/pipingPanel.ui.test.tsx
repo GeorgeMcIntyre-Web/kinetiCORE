@@ -2,7 +2,6 @@
 // Owner: Agent 1 (George)
 // Basic React component tests for piping UI
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { PipingPanel } from '../../src/ui/piping/PipingPanel';
 import { pipingStore } from '../../src/domain/factoryServices/piping/pipingStore';
