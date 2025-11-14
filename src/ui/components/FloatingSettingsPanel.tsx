@@ -27,6 +27,7 @@ import { useEditorStore } from '../store/editorStore';
 import { useUserLevel } from '../core/UserLevelContext';
 import { AdminPanel } from './Admin/AdminPanel';
 import { FloorSettingsPanel } from './FloorSettingsPanel';
+import { SceneManager } from '../../scene/SceneManager';
 import './FloatingSettingsPanel.css';
 
 interface FloatingSettingsPanelProps {
@@ -49,6 +50,24 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState('general');
   const { userLevel, setUserLevel } = useUserLevel();
+  const sceneManager = SceneManager.getInstance();
+  const colorToHex = (color: { r: number; g: number; b: number }) =>
+    `#${[color.r, color.g, color.b]
+      .map((component) => {
+        const v = Math.round(component * 255);
+        return v.toString(16).padStart(2, '0');
+      })
+      .join('')}`;
+  const hexToColor = (hex: string) => ({
+    r: parseInt(hex.slice(1, 3), 16) / 255,
+    g: parseInt(hex.slice(3, 5), 16) / 255,
+    b: parseInt(hex.slice(5, 7), 16) / 255,
+    a: 1,
+  });
+  const DEFAULT_BACKGROUND_HEX = '#B5C7D1';
+  const [backgroundColorHex, setBackgroundColorHex] = useState<string>(() =>
+    colorToHex(sceneManager.getBackgroundColor())
+  );
   
   // Get settings from store (only the ones we actually use)
   const {
@@ -79,6 +98,12 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
     setSnapToIntersection,
     setSnapBBoxCorner,
   } = useEditorStore();
+
+  const handleBackgroundColorChange = (hex: string) => {
+    setBackgroundColorHex(hex);
+    const color = hexToColor(hex);
+    sceneManager.setBackgroundColor(color);
+  };
 
   // General Settings Component
   const GeneralSettings = () => (
@@ -127,6 +152,26 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
               <option value="light">Light Theme</option>
               <option value="auto">Auto (System)</option>
             </select>
+          </div>
+          <div className="settings-compact-option">
+            <label className="settings-compact-label">Viewport Background</label>
+            <div className="settings-color-row">
+              <input
+                type="color"
+                value={backgroundColorHex}
+                onChange={(e) => handleBackgroundColorChange(e.target.value)}
+                className="settings-color-input"
+                aria-label="Viewport background color"
+              />
+              <button
+                type="button"
+                className="settings-btn settings-btn-secondary settings-color-reset"
+                onClick={() => handleBackgroundColorChange(DEFAULT_BACKGROUND_HEX)}
+              >
+                Reset
+              </button>
+            </div>
+            <p className="settings-hint">Applies instantly to the 3D viewport.</p>
           </div>
           <div className="settings-compact-option">
             <label className="settings-compact-label">Language</label>

@@ -506,6 +506,32 @@
   min-width: 80px;
 }
 
+.settings-color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-color-input {
+  width: 42px;
+  height: 24px;
+  border: 1px solid var(--settings-border);
+  border-radius: 4px;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.settings-color-reset {
+  padding: 4px 10px;
+}
+
+.settings-hint {
+  font-size: 12px;
+  color: var(--settings-text-secondary);
+  margin: 4px 0 0;
+}
+
 /* Help card */
 .help-card {
   display: flex;

@@ -20,6 +20,7 @@ export class SceneManager {
   private gridOverlay: BABYLON.Mesh | null = null;
   private gridOverlayOptions: GridOverlayOptions = { ...DEFAULT_GRID_OPTIONS };
   private gridOverlayVisible: boolean = true;
+  private backgroundColor: BABYLON.Color4 = new BABYLON.Color4(0.71, 0.78, 0.82, 1.0);
   private currentFloorType: FloorType = 'grid-only';
   private isInitialized: boolean = false;
   private inspectorModulesPromise: Promise<void> | null = null;
@@ -80,7 +81,7 @@ export class SceneManager {
     this.scene.useRightHandedSystem = false;
 
     // Cloudy sky background - soft blue-grey overcast color
-    this.scene.clearColor = new BABYLON.Color4(0.71, 0.78, 0.82, 1.0); // Cloudy sky (#B5C7D1)
+    this.scene.clearColor = this.backgroundColor.clone();
     console.log('🎨 Scene initialized with cloudy sky background:', this.scene.clearColor);
 
     // Set scene for debug tools
@@ -408,6 +409,37 @@ export class SceneManager {
   }
 
   /**
+   * Get the current solid background color (normalized 0-1 components)
+   */
+  getBackgroundColor(): { r: number; g: number; b: number; a: number } {
+    return {
+      r: this.backgroundColor?.r ?? 0,
+      g: this.backgroundColor?.g ?? 0,
+      b: this.backgroundColor?.b ?? 0,
+      a: this.backgroundColor?.a ?? 1,
+    };
+  }
+
+  /**
+   * Update the scene background color
+   */
+  setBackgroundColor(color: { r: number; g: number; b: number; a?: number }): void {
+    const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
+    const nextColor = new BABYLON.Color4(
+      clamp01(color.r),
+      clamp01(color.g),
+      clamp01(color.b),
+      clamp01(color.a ?? 1)
+    );
+
+    this.backgroundColor = nextColor;
+    if (this.scene) {
+      this.scene.clearColor = nextColor.clone();
+    }
+    console.log('[SceneManager] Background color updated:', nextColor);
+  }
+
+  /**
    * Set background transparency
    * @param transparent If true, makes background transparent. If false, uses default background.
    */
@@ -432,8 +464,8 @@ export class SceneManager {
       this.gridOverlayVisible = true;
       console.log('✅ Background set to transparent (grid overlay visible)');
     } else {
-      // Use a default dark background
-      this.scene.clearColor = new BABYLON.Color4(0.2, 0.2, 0.25, 1);
+      // Reapply the stored solid background color
+      this.scene.clearColor = this.backgroundColor.clone();
       // Show grid overlay when background is solid
       if (this.gridOverlay) {
         this.gridOverlay.setEnabled(true);
