@@ -7,6 +7,7 @@ import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
 import { getDefaultDiameter } from '../../domain/factoryServices/piping/pipingRules';
 import { useEditorStore } from '../../ui/store/editorStore';
 import { PipingSceneService } from './PipingSceneService';
+import { isPipingDebugElevationEnabled, logPipingDebug } from './pipingDebug';
 
 /**
  * Handles piping workflow interactions in the viewport
@@ -31,6 +32,7 @@ export class PipingWorkflowHandler {
    */
   dispose(): void {
     this.pendingSourceNodeId = null;
+    this.clearElevationDebugOverlay();
     // Note: Scene listeners are automatically cleaned up when scene is disposed
   }
 
@@ -92,9 +94,25 @@ export class PipingWorkflowHandler {
    * Handle normal click to place a new node
    */
   private handleNodePlacement(pointerInfo: BABYLON.PointerInfo): void {
-    if (!pointerInfo.pickInfo?.pickedPoint) {
+    const pickInfo = pointerInfo.pickInfo;
+    if (!pickInfo) {
+      logPipingDebug('Pointer pick info missing; skipping node placement');
+      this.clearElevationDebugOverlay();
       return;
     }
+
+    if (!pickInfo.pickedPoint) {
+      logPipingDebug('Pointer pick missing hit point', {
+        mesh: pickInfo.pickedMesh?.name ?? 'unknown',
+      });
+      this.clearElevationDebugOverlay();
+      return;
+    }
+
+    logPipingDebug('Pointer hit recorded for piping placement', {
+      mesh: pickInfo.pickedMesh?.name ?? 'unknown',
+      point: this.vectorToLog(pickInfo.pickedPoint),
+    });
 
     // Get or create default network
     const networks = pipingStore.getAllNetworks();
@@ -106,29 +124,50 @@ export class PipingWorkflowHandler {
         name: 'Water Network 1',
         serviceType: 'water',
       });
+
+      logPipingDebug('Created fallback piping network for placement', {
+        networkId: activeNetwork.id,
+        serviceType: activeNetwork.serviceType,
+      });
     }
 
     if (!activeNetwork) {
       console.error('[PipingWorkflowHandler] Failed to create default network');
+      logPipingDebug('Failed to create default piping network');
+      this.clearElevationDebugOverlay();
       return;
     }
 
-    const pickedPoint = pointerInfo.pickInfo.pickedPoint;
+    const floorPoint = pickInfo.pickedPoint.clone();
+    const nodePosition = this.resolveNodePositionFromHit(floorPoint);
 
     // Create node at picked point
     const node = pipingStore.createNode(activeNetwork.id, {
       position: {
-        x: pickedPoint.x,
-        y: pickedPoint.y,
-        z: pickedPoint.z,
+        x: nodePosition.x,
+        y: nodePosition.y,
+        z: nodePosition.z,
       },
       kind: 'endpoint',
       serviceType: activeNetwork.serviceType,
     });
 
-    if (node) {
-      console.log('[PipingWorkflowHandler] Created node:', node.id, 'at', pickedPoint);
+    if (!node) {
+      logPipingDebug('Piping node creation failed', {
+        networkId: activeNetwork.id,
+      });
+      this.clearElevationDebugOverlay();
+      return;
     }
+
+    logPipingDebug('Created piping node', {
+      nodeId: node.id,
+      networkId: activeNetwork.id,
+      floorPoint: this.vectorToLog(floorPoint),
+      nodePosition: this.vectorToLog(nodePosition),
+    });
+
+    this.publishElevationDebug(floorPoint, nodePosition);
   }
 
   /**
@@ -153,7 +192,9 @@ export class PipingWorkflowHandler {
 
     // Set this node as the pending source
     this.pendingSourceNodeId = pickResult.id;
-    console.log('[PipingWorkflowHandler] Selected source node for segment:', pickResult.id);
+    logPipingDebug('Selected source node for segment creation', {
+      nodeId: pickResult.id,
+    });
 
     // TODO: Show visual feedback that we're in "creating segment" mode
     // Could highlight the source node or show a line preview
@@ -167,15 +208,20 @@ export class PipingWorkflowHandler {
       return;
     }
 
-    const pickResult = this.pipingSceneService.handlePick(pointerInfo.pickInfo.pickedMesh);
+    const pickResult = this.pipingSceneService.handlePick(
+      pointerInfo.pickInfo.pickedMesh
+    );
 
     if (pickResult.type !== 'node') {
-      // Clicked on non-node while in segment creation mode - cancel
+      logPipingDebug('Destination click ignored (not a piping node)', {
+        mesh: pointerInfo.pickInfo?.pickedMesh?.name ?? 'unknown',
+      });
       this.cancelPendingOperation();
       return;
     }
 
     if (pickResult.id === null) {
+      logPipingDebug('Destination pick missing node id');
       return;
     }
 
@@ -186,30 +232,31 @@ export class PipingWorkflowHandler {
       return;
     }
 
-    // Don't allow segment to same node
     if (sourceNodeId === destNodeId) {
       console.warn('[PipingWorkflowHandler] Cannot create segment to same node');
       this.cancelPendingOperation();
+      logPipingDebug('Blocked segment self-loop', { nodeId: sourceNodeId });
       return;
     }
 
-    // Find the network containing the source node
     const network = pipingStore.getNetworkForNode(sourceNodeId);
     if (!network) {
       console.error('[PipingWorkflowHandler] Source node network not found');
+      logPipingDebug('Source node network missing', { nodeId: sourceNodeId });
       this.cancelPendingOperation();
       return;
     }
 
-    // Get source node to determine service type
     const sourceNode = pipingStore.getNode(sourceNodeId);
     if (!sourceNode) {
       console.error('[PipingWorkflowHandler] Source node not found');
+      logPipingDebug('Source node missing during segment creation', {
+        nodeId: sourceNodeId,
+      });
       this.cancelPendingOperation();
       return;
     }
 
-    // Create segment
     const segment = pipingStore.createSegment(network.id, {
       fromNodeId: sourceNodeId,
       toNodeId: destNodeId,
@@ -218,10 +265,13 @@ export class PipingWorkflowHandler {
     });
 
     if (segment) {
-      console.log('[PipingWorkflowHandler] Created segment:', segment.id);
+      logPipingDebug('Created piping segment', {
+        segmentId: segment.id,
+        fromNodeId: sourceNodeId,
+        toNodeId: destNodeId,
+      });
     }
 
-    // Clear pending operation
     this.cancelPendingOperation();
   }
 
@@ -233,7 +283,9 @@ export class PipingWorkflowHandler {
       return;
     }
 
-    console.log('[PipingWorkflowHandler] Cancelled pending segment creation');
+    logPipingDebug('Cancelled pending segment creation', {
+      nodeId: this.pendingSourceNodeId,
+    });
     this.pendingSourceNodeId = null;
 
     // TODO: Clear visual feedback
@@ -244,5 +296,46 @@ export class PipingWorkflowHandler {
    */
   getPendingSourceNodeId(): string | null {
     return this.pendingSourceNodeId;
+  }
+
+  private resolveNodePositionFromHit(hitPoint: BABYLON.Vector3): BABYLON.Vector3 {
+    const resolvedPoint = hitPoint.clone();
+    logPipingDebug('Applying placement elevation offset', {
+      mode: 'direct-hit',
+      floorPoint: this.vectorToLog(hitPoint),
+      resolvedPoint: this.vectorToLog(resolvedPoint),
+    });
+    return resolvedPoint;
+  }
+
+  private vectorToLog(vec: BABYLON.Vector3): Record<string, number> {
+    return {
+      x: Number(vec.x.toFixed(3)),
+      y: Number(vec.y.toFixed(3)),
+      z: Number(vec.z.toFixed(3)),
+    };
+  }
+
+  private publishElevationDebug(
+    floorPoint: BABYLON.Vector3,
+    nodePoint: BABYLON.Vector3
+  ): void {
+    if (!this.pipingSceneService) {
+      return;
+    }
+
+    if (isPipingDebugElevationEnabled() === false) {
+      return;
+    }
+
+    this.pipingSceneService.showElevationDebug(floorPoint, nodePoint);
+  }
+
+  private clearElevationDebugOverlay(): void {
+    if (!this.pipingSceneService) {
+      return;
+    }
+
+    this.pipingSceneService.clearElevationDebug();
   }
 }

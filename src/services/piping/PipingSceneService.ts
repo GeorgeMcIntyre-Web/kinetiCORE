@@ -6,6 +6,7 @@ import * as BABYLON from '@babylonjs/core';
 import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
 import { PipingNode, PipingSegment } from '../../domain/factoryServices/piping/pipingTypes';
 import { ServiceColors } from '../../scene/materials/serviceMaterials';
+import { isPipingDebugElevationEnabled } from './pipingDebug';
 
 /**
  * Service class that manages 3D visualization of piping networks in Babylon.js
@@ -16,6 +17,9 @@ export class PipingSceneService {
   private nodeMeshes: Map<string, BABYLON.Mesh> = new Map();
   private segmentMeshes: Map<string, BABYLON.Mesh> = new Map();
   private unsubscribe: (() => void) | null = null;
+  private debugFloorMarker: BABYLON.Mesh | null = null;
+  private debugNodeMarker: BABYLON.Mesh | null = null;
+  private debugElevationLine: BABYLON.LinesMesh | null = null;
 
   constructor(scene: BABYLON.Scene) {
     this.scene = scene;
@@ -318,6 +322,8 @@ export class PipingSceneService {
       mesh.dispose();
     }
     this.segmentMeshes.clear();
+
+    this.disposeElevationDebugVisuals();
   }
 
   /**
@@ -366,5 +372,112 @@ export class PipingSceneService {
     }
 
     return { type: null, id: null };
+  }
+
+  showElevationDebug(
+    floorPoint: BABYLON.Vector3,
+    nodePoint: BABYLON.Vector3
+  ): void {
+    if (isPipingDebugElevationEnabled() === false) {
+      this.disposeElevationDebugVisuals();
+      return;
+    }
+
+    this.ensureElevationDebugMeshes();
+    this.updateDebugMarker(this.debugFloorMarker, floorPoint);
+    this.updateDebugMarker(this.debugNodeMarker, nodePoint);
+    this.updateElevationLine(floorPoint, nodePoint);
+  }
+
+  clearElevationDebug(): void {
+    this.disposeElevationDebugVisuals();
+  }
+
+  private ensureElevationDebugMeshes(): void {
+    if (this.debugFloorMarker === null) {
+      this.debugFloorMarker = this.createDebugMarker(
+        'piping_debug_floor',
+        new BABYLON.Color3(0.2, 0.8, 0.2)
+      );
+    }
+
+    if (this.debugNodeMarker === null) {
+      this.debugNodeMarker = this.createDebugMarker(
+        'piping_debug_node',
+        new BABYLON.Color3(0.8, 0.4, 0.1)
+      );
+    }
+  }
+
+  private createDebugMarker(name: string, color: BABYLON.Color3): BABYLON.Mesh {
+    const marker = BABYLON.MeshBuilder.CreateSphere(
+      name,
+      { diameter: 0.06 },
+      this.scene
+    );
+    marker.isPickable = false;
+    const material = new BABYLON.StandardMaterial(`${name}_mat`, this.scene);
+    material.diffuseColor = color;
+    material.emissiveColor = color.scale(0.8);
+    marker.material = material;
+    return marker;
+  }
+
+  private updateDebugMarker(
+    marker: BABYLON.Mesh | null,
+    point: BABYLON.Vector3
+  ): void {
+    if (marker === null) {
+      return;
+    }
+
+    marker.position.copyFrom(point);
+  }
+
+  private updateElevationLine(
+    floorPoint: BABYLON.Vector3,
+    nodePoint: BABYLON.Vector3
+  ): void {
+    if (this.debugElevationLine === null) {
+      const line = BABYLON.MeshBuilder.CreateLines(
+        'piping_debug_elevation_line',
+        {
+          points: [floorPoint.clone(), nodePoint.clone()],
+          updatable: true,
+        },
+        this.scene
+      );
+      line.color = new BABYLON.Color3(1, 1, 0);
+      line.isPickable = false;
+      line.alwaysSelectAsActiveMesh = true;
+      this.debugElevationLine = line;
+      return;
+    }
+
+    BABYLON.MeshBuilder.CreateLines(
+      'piping_debug_elevation_line',
+      {
+        points: [floorPoint.clone(), nodePoint.clone()],
+        instance: this.debugElevationLine,
+      },
+      this.scene
+    );
+  }
+
+  private disposeElevationDebugVisuals(): void {
+    if (this.debugFloorMarker !== null) {
+      this.debugFloorMarker.dispose();
+      this.debugFloorMarker = null;
+    }
+
+    if (this.debugNodeMarker !== null) {
+      this.debugNodeMarker.dispose();
+      this.debugNodeMarker = null;
+    }
+
+    if (this.debugElevationLine !== null) {
+      this.debugElevationLine.dispose();
+      this.debugElevationLine = null;
+    }
   }
 }
