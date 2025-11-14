@@ -30,6 +30,31 @@
   overflow-y: auto;
 }
 
+.floor-visibility-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--panel-text, #ffffff);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.floor-visibility-toggle:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.floor-visibility-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .floor-setting-group {
   display: flex;
   flex-direction: column;

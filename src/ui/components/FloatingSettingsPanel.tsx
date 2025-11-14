@@ -64,7 +64,7 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
     b: parseInt(hex.slice(5, 7), 16) / 255,
     a: 1,
   });
-  const DEFAULT_BACKGROUND_HEX = '#B5C7D1';
+  const DEFAULT_BACKGROUND_HEX = '#FFFFFF';
   const [backgroundColorHex, setBackgroundColorHex] = useState<string>(() =>
     colorToHex(sceneManager.getBackgroundColor())
   );

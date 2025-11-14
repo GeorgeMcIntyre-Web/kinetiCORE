@@ -2,7 +2,7 @@
 // Owner: Scene/Rendering Team
 
 import React, { useEffect, useState } from 'react';
-import { Eye, Grid3X3, Palette } from 'lucide-react';
+import { Eye, EyeOff, Grid3X3, Palette } from 'lucide-react';
 import { FloorType } from '../../core/types';
 import { SceneManager } from '../../scene/SceneManager';
 import { GridOverlayOptions } from '../../scene/FloorMaterialManager';
@@ -31,10 +31,12 @@ export const FloorSettingsPanel: React.FC = () => {
   const sceneManager = SceneManager.getInstance();
   const [sceneReady, setSceneReady] = useState<boolean>(() => !!sceneManager.getScene());
   const [floorType, setFloorType] = useState<FloorType>(() => sceneManager.getFloorType());
+  const [floorVisible, setFloorVisible] = useState<boolean>(() => sceneManager.isFloorVisible());
   const [gridSettings, setGridSettings] = useState<GridSettings>(() => ({
     ...sceneManager.getGridOverlayOptions(),
     visible: sceneManager.isGridOverlayVisible(),
   }));
+  const gridControlsDisabled = !sceneReady || !floorVisible;
 
   useEffect(() => {
     if (sceneReady) {
@@ -51,6 +53,7 @@ export const FloorSettingsPanel: React.FC = () => {
           ...sceneManager.getGridOverlayOptions(),
           visible: sceneManager.isGridOverlayVisible(),
         });
+        setFloorVisible(sceneManager.isFloorVisible());
         return;
       }
       timeoutId = window.setTimeout(pollForScene, 250);
@@ -82,6 +85,9 @@ export const FloorSettingsPanel: React.FC = () => {
 
   const handleGridVisibilityChange = (visible: boolean) => {
     if (!sceneReady) return;
+    if (!floorVisible && visible) {
+      return;
+    }
     setGridSettings((prev) => ({ ...prev, visible }));
     sceneManager.setGridOverlayVisible(visible);
   };
@@ -98,6 +104,18 @@ export const FloorSettingsPanel: React.FC = () => {
     }
   };
 
+  const handleFloorVisibilityToggle = () => {
+    if (!sceneReady) return;
+    const next = !floorVisible;
+    setFloorVisible(next);
+    sceneManager.setFloorVisible(next);
+    if (!next) {
+      setGridSettings((prev) => ({ ...prev, visible: false }));
+    } else {
+      setGridSettings((prev) => ({ ...prev, visible: sceneManager.isGridOverlayVisible() }));
+    }
+  };
+
   return (
     <div className="floor-settings-panel">
       <div className="floor-settings-header">
@@ -106,6 +124,16 @@ export const FloorSettingsPanel: React.FC = () => {
       </div>
 
       <div className="floor-settings-content">
+        <button
+          type="button"
+          className="floor-visibility-toggle"
+          onClick={handleFloorVisibilityToggle}
+          disabled={!sceneReady}
+        >
+          {floorVisible ? <Eye size={14} /> : <EyeOff size={14} />}
+          <span>{floorVisible ? 'Hide Floor' : 'Show Floor'}</span>
+        </button>
+
         <div className="floor-setting-group">
           <label className="floor-setting-label">
             <Palette size={16} />
@@ -135,7 +163,7 @@ export const FloorSettingsPanel: React.FC = () => {
               type="checkbox"
               checked={gridSettings.visible}
               onChange={(e) => handleGridVisibilityChange(e.target.checked)}
-              disabled={!sceneReady}
+              disabled={gridControlsDisabled}
             />
             <span className="floor-toggle-slider"></span>
           </label>
@@ -155,7 +183,7 @@ export const FloorSettingsPanel: React.FC = () => {
             value={gridSettings.majorUnitFrequency}
             onChange={(e) => updateNumericOption('majorUnitFrequency', parseInt(e.target.value, 10))}
             className="floor-slider"
-            disabled={!sceneReady}
+            disabled={gridControlsDisabled}
           />
         </div>
 
@@ -173,7 +201,7 @@ export const FloorSettingsPanel: React.FC = () => {
             value={gridSettings.minorUnitVisibility}
             onChange={(e) => updateNumericOption('minorUnitVisibility', parseFloat(e.target.value))}
             className="floor-slider"
-            disabled={!sceneReady}
+            disabled={gridControlsDisabled}
           />
         </div>
 
@@ -191,7 +219,7 @@ export const FloorSettingsPanel: React.FC = () => {
             value={gridSettings.gridRatio}
             onChange={(e) => updateNumericOption('gridRatio', parseFloat(e.target.value))}
             className="floor-slider"
-            disabled={!sceneReady}
+            disabled={gridControlsDisabled}
           />
         </div>
 
@@ -209,7 +237,7 @@ export const FloorSettingsPanel: React.FC = () => {
             value={gridSettings.opacity}
             onChange={(e) => updateNumericOption('opacity', parseFloat(e.target.value))}
             className="floor-slider"
-            disabled={!sceneReady}
+            disabled={gridControlsDisabled}
           />
         </div>
 
@@ -247,7 +275,7 @@ export const FloorSettingsPanel: React.FC = () => {
                 value={value}
                 onChange={(e) => updateColorChannel('mainColor', index, parseFloat(e.target.value))}
                 className="floor-slider"
-                disabled={!sceneReady}
+                disabled={gridControlsDisabled}
               />
             </div>
           ))}
@@ -287,7 +315,7 @@ export const FloorSettingsPanel: React.FC = () => {
                 value={value}
                 onChange={(e) => updateColorChannel('lineColor', index, parseFloat(e.target.value))}
                 className="floor-slider"
-                disabled={!sceneReady}
+                disabled={gridControlsDisabled}
               />
             </div>
           ))}
