@@ -60,10 +60,10 @@ import { Rocket, Calculator, GitBranch, Network, TestTube, Zap } from 'lucide-re
 import { CreateDropdown } from '../components/CreateDropdown';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
 import { SnapSetupPopup } from '../components/SnapSetupPopup';
-import { ProjectManagerPanelV2 } from '../components/ProjectManager/ProjectManagerPanelV2';
 import { ToolbarContainer } from '../components/ToolbarContainer';
 import { ViewDropdown } from '../components/ViewDropdown';
 import { SelectionLevelDropdown } from '../components/SelectionLevelDropdown';
+import { toast } from '../components/ToastNotifications';
 import './ProfessionalModeLayout.css';
 
 export const ProfessionalModeLayout: React.FC = () => {
@@ -993,7 +993,7 @@ export const ProfessionalModeLayout: React.FC = () => {
         zIndex={1003}
       />
 
-      {/* Floating Settings Panel */}
+      {/* Floating Settings Panel - Contains Skybox tab */}
       <FloatingSettingsPanel
         isVisible={showSettingsPanel}
         onClose={() => setShowSettingsPanel(false)}
@@ -1039,7 +1039,6 @@ export const ProfessionalModeLayout: React.FC = () => {
         zIndex={1007}
       />
       <SnapSetupPopup isOpen={showSnapSetupPopup} onClose={() => setShowSnapSetupPopup(false)} />
-      <ProjectManagerPanelV2 />
     </div>
   );
 };
