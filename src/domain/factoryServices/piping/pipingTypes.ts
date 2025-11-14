@@ -119,6 +119,19 @@ export interface PipingSelection {
 }
 
 /**
+ * Placement modes for viewport-driven node creation
+ */
+export type PipingPlacementMode = 'floor' | 'elevation' | 'snap';
+
+/**
+ * Placement settings shared across the workflow
+ */
+export interface PipingPlacementSettings {
+  mode: PipingPlacementMode;
+  defaultElevationZ: number;
+}
+
+/**
  * Configuration for creating a new node
  */
 export interface CreateNodeConfig {

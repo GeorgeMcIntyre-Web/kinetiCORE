@@ -5,6 +5,7 @@
 import * as BABYLON from '@babylonjs/core';
 import { PipingSceneService } from '../../src/services/piping/PipingSceneService';
 import { pipingStore } from '../../src/domain/factoryServices/piping/pipingStore';
+import { domainToBabylonVector } from '../../src/services/piping/pipingCoordinates';
 
 describe('PipingSceneService Integration', () => {
   let engine: BABYLON.NullEngine;
@@ -96,11 +97,12 @@ describe('PipingSceneService Integration', () => {
       });
 
       const mesh = service.getNodeMesh(node!.id);
+      const expectedPosition = domainToBabylonVector(node!.position);
 
       expect(mesh).toBeDefined();
-      expect(mesh!.position.x).toBe(1);
-      expect(mesh!.position.y).toBe(2);
-      expect(mesh!.position.z).toBe(3);
+      expect(mesh!.position.x).toBe(expectedPosition.x);
+      expect(mesh!.position.y).toBe(expectedPosition.y);
+      expect(mesh!.position.z).toBe(expectedPosition.z);
     });
 
     it('should update mesh position when node position changes', () => {
@@ -116,7 +118,7 @@ describe('PipingSceneService Integration', () => {
       });
 
       const mesh = service.getNodeMesh(node!.id);
-      expect(mesh!.position.x).toBe(0);
+      expect(mesh!.position.x).toBe(domainToBabylonVector(node!.position).x);
 
       // Update node position
       pipingStore.updateNode(node!.id, {
@@ -125,9 +127,14 @@ describe('PipingSceneService Integration', () => {
 
       // Mesh position should be updated
       const updatedMesh = service.getNodeMesh(node!.id);
-      expect(updatedMesh!.position.x).toBe(10);
-      expect(updatedMesh!.position.y).toBe(5);
-      expect(updatedMesh!.position.z).toBe(7);
+      const expectedPosition = domainToBabylonVector({
+        x: 10,
+        y: 5,
+        z: 7,
+      });
+      expect(updatedMesh!.position.x).toBe(expectedPosition.x);
+      expect(updatedMesh!.position.y).toBe(expectedPosition.y);
+      expect(updatedMesh!.position.z).toBe(expectedPosition.z);
     });
 
     it('should dispose mesh when node is deleted', () => {

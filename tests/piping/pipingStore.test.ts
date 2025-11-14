@@ -341,4 +341,24 @@ describe('PipingStore', () => {
       expect(connectedSegments).toHaveLength(2);
     });
   });
+
+  describe('Placement Settings', () => {
+    it('should expose default placement settings', () => {
+      const settings = pipingStore.getPlacementSettings();
+      expect(settings.mode).toBe('floor');
+      expect(settings.defaultElevationZ).toBe(1);
+    });
+
+    it('should update placement mode', () => {
+      pipingStore.setPlacementMode('elevation');
+      const settings = pipingStore.getPlacementSettings();
+      expect(settings.mode).toBe('elevation');
+    });
+
+    it('should update default elevation', () => {
+      pipingStore.setDefaultElevationZ(2.5);
+      const settings = pipingStore.getPlacementSettings();
+      expect(settings.defaultElevationZ).toBe(2.5);
+    });
+  });
 });

@@ -7,6 +7,7 @@ import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
 import { PipingNode, PipingSegment } from '../../domain/factoryServices/piping/pipingTypes';
 import { ServiceColors } from '../../scene/materials/serviceMaterials';
 import { isPipingDebugElevationEnabled } from './pipingDebug';
+import { domainToBabylonVector } from './pipingCoordinates';
 
 /**
  * Service class that manages 3D visualization of piping networks in Babylon.js
@@ -130,14 +131,12 @@ export class PipingSceneService {
     let mesh = this.nodeMeshes.get(node.id);
 
     if (mesh === undefined) {
-      // Create new node mesh (small sphere)
       mesh = BABYLON.MeshBuilder.CreateSphere(
         `piping_node_${node.id}`,
         { diameter: 0.1 },
         this.scene
       );
 
-      // Create simple material
       const material = new BABYLON.StandardMaterial(
         `piping_node_mat_${node.id}`,
         this.scene
@@ -146,7 +145,6 @@ export class PipingSceneService {
       material.emissiveColor = material.diffuseColor.scale(0.2);
       mesh.material = material;
 
-      // Store metadata
       mesh.metadata = {
         pipingNodeId: node.id,
         pipingObjectType: 'node',
@@ -155,8 +153,8 @@ export class PipingSceneService {
       this.nodeMeshes.set(node.id, mesh);
     }
 
-    // Update position
-    mesh.position.set(node.position.x, node.position.y, node.position.z);
+    const babylonPosition = domainToBabylonVector(node.position);
+    mesh.position.copyFrom(babylonPosition);
   }
 
   /**
@@ -214,16 +212,8 @@ export class PipingSceneService {
     fromNode: PipingNode,
     toNode: PipingNode
   ): BABYLON.Mesh {
-    const fromPos = new BABYLON.Vector3(
-      fromNode.position.x,
-      fromNode.position.y,
-      fromNode.position.z
-    );
-    const toPos = new BABYLON.Vector3(
-      toNode.position.x,
-      toNode.position.y,
-      toNode.position.z
-    );
+    const fromPos = domainToBabylonVector(fromNode.position);
+    const toPos = domainToBabylonVector(toNode.position);
 
     // Calculate distance and direction
     const direction = toPos.subtract(fromPos);

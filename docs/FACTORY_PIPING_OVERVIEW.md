@@ -243,6 +243,13 @@ The Factory Piping system is now **100% complete** and ready for production use.
 3. A new node will appear at the clicked location
 4. The node will be added to the active network
 
+### Placement Modes & Elevation Behavior
+
+- **Floor Mode:** Uses the actual floor raycast height (Z-up). If no floor hit is available, the workflow falls back to the default elevation stored in `pipingStore`.
+- **Elevation Mode:** Always uses the domain-level `defaultElevationZ` while keeping the pointer's X/Y.
+- **Snap Mode:** Looks for the nearest existing node (within 0.25m) and reuses its exact coordinates. If no candidate is found, the handler gracefully falls back to the floor/default logic above.
+- Placement settings live entirely in the domain store, ensuring React + scene services stay in sync (`pipingStore.setPlacementMode`, `pipingStore.setDefaultElevationZ`).
+
 **To create a segment (pipe) between two nodes:**
 1. Shift+left-click on the first node (source)
 2. Left-click on the second node (destination)

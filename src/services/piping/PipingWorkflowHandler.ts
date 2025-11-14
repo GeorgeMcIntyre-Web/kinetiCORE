@@ -8,6 +8,9 @@ import { getDefaultDiameter } from '../../domain/factoryServices/piping/pipingRu
 import { useEditorStore } from '../../ui/store/editorStore';
 import { PipingSceneService } from './PipingSceneService';
 import { isPipingDebugElevationEnabled, logPipingDebug } from './pipingDebug';
+import { computePlacementPosition } from '../../domain/factoryServices/piping/pipingPlacement';
+import { PipingNode, Position3D } from '../../domain/factoryServices/piping/pipingTypes';
+import { babylonToDomainPosition, domainToBabylonVector } from './pipingCoordinates';
 
 /**
  * Handles piping workflow interactions in the viewport
@@ -16,6 +19,7 @@ export class PipingWorkflowHandler {
   private scene: BABYLON.Scene | null = null;
   private pipingSceneService: PipingSceneService | null = null;
   private pendingSourceNodeId: string | null = null;
+  private static readonly SNAP_DISTANCE_METERS = 0.25;
 
   /**
    * Initialize the handler with scene and piping scene service
@@ -138,16 +142,32 @@ export class PipingWorkflowHandler {
       return;
     }
 
-    const floorPoint = pickInfo.pickedPoint.clone();
-    const nodePosition = this.resolveNodePositionFromHit(floorPoint);
+    const surfacePoint = pickInfo.pickedPoint.clone();
+    const surfacePointDomain = babylonToDomainPosition(surfacePoint);
+    const placementSettings = pipingStore.getPlacementSettings();
 
-    // Create node at picked point
+    const snapCandidate =
+      placementSettings.mode === 'snap'
+        ? this.findSnapCandidate(surfacePointDomain, activeNetwork.nodes)
+        : null;
+
+    let placementResult;
+    try {
+      placementResult = computePlacementPosition(placementSettings, {
+        floorPoint: surfacePointDomain,
+        pointerPoint: surfacePointDomain,
+        snapCandidate,
+      });
+    } catch (error) {
+      logPipingDebug('Failed to resolve placement position', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      this.clearElevationDebugOverlay();
+      return;
+    }
+
     const node = pipingStore.createNode(activeNetwork.id, {
-      position: {
-        x: nodePosition.x,
-        y: nodePosition.y,
-        z: nodePosition.z,
-      },
+      position: placementResult.position,
       kind: 'endpoint',
       serviceType: activeNetwork.serviceType,
     });
@@ -160,14 +180,26 @@ export class PipingWorkflowHandler {
       return;
     }
 
+    const floorForOverlay =
+      placementResult.floorPoint !== null
+        ? domainToBabylonVector(placementResult.floorPoint)
+        : surfacePoint;
+    const nodeOverlayPoint = domainToBabylonVector(placementResult.position);
+
     logPipingDebug('Created piping node', {
       nodeId: node.id,
       networkId: activeNetwork.id,
-      floorPoint: this.vectorToLog(floorPoint),
-      nodePosition: this.vectorToLog(nodePosition),
+      requestedMode: placementSettings.mode,
+      appliedMode: placementResult.appliedMode,
+      fallback: placementResult.fallback,
+      floorPoint: placementResult.floorPoint
+        ? this.positionToLog(placementResult.floorPoint)
+        : null,
+      nodePosition: this.positionToLog(placementResult.position),
+      snappedNodeId: placementResult.snappedNodeId,
     });
 
-    this.publishElevationDebug(floorPoint, nodePosition);
+    this.publishElevationDebug(floorForOverlay, nodeOverlayPoint);
   }
 
   /**
@@ -298,22 +330,51 @@ export class PipingWorkflowHandler {
     return this.pendingSourceNodeId;
   }
 
-  private resolveNodePositionFromHit(hitPoint: BABYLON.Vector3): BABYLON.Vector3 {
-    const resolvedPoint = hitPoint.clone();
-    logPipingDebug('Applying placement elevation offset', {
-      mode: 'direct-hit',
-      floorPoint: this.vectorToLog(hitPoint),
-      resolvedPoint: this.vectorToLog(resolvedPoint),
-    });
-    return resolvedPoint;
-  }
-
   private vectorToLog(vec: BABYLON.Vector3): Record<string, number> {
     return {
       x: Number(vec.x.toFixed(3)),
       y: Number(vec.y.toFixed(3)),
       z: Number(vec.z.toFixed(3)),
     };
+  }
+
+  private positionToLog(position: Position3D): Record<string, number> {
+    return {
+      x: Number(position.x.toFixed(3)),
+      y: Number(position.y.toFixed(3)),
+      z: Number(position.z.toFixed(3)),
+    };
+  }
+
+  private findSnapCandidate(
+    pointerPoint: Position3D,
+    nodes: PipingNode[]
+  ): PipingNode | null {
+    let closestNode: PipingNode | null = null;
+    let closestDistance = Number.POSITIVE_INFINITY;
+
+    for (const node of nodes) {
+      const distance = this.getDistance(pointerPoint, node.position);
+      if (distance > PipingWorkflowHandler.SNAP_DISTANCE_METERS) {
+        continue;
+      }
+
+      if (distance >= closestDistance) {
+        continue;
+      }
+
+      closestNode = node;
+      closestDistance = distance;
+    }
+
+    return closestNode;
+  }
+
+  private getDistance(a: Position3D, b: Position3D): number {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const dz = b.z - a.z;
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 
   private publishElevationDebug(

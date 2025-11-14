@@ -7,6 +7,8 @@ import {
   PipingNode,
   PipingSegment,
   PipingSelection,
+  PipingPlacementSettings,
+  PipingPlacementMode,
   CreateNetworkConfig,
   CreateNodeConfig,
   CreateSegmentConfig,
@@ -31,6 +33,10 @@ class PipingStore {
   };
   private listeners: Set<ChangeListener> = new Set();
   private nextId = 1;
+  private placementSettings: PipingPlacementSettings = {
+    mode: 'floor',
+    defaultElevationZ: 1,
+  };
 
   // ============================================================================
   // SUBSCRIPTION API
@@ -422,6 +428,42 @@ class PipingStore {
   clear(): void {
     this.networks.clear();
     this.clearSelection();
+    this.placementSettings = {
+      mode: 'floor',
+      defaultElevationZ: 1,
+    };
+    this.notify();
+  }
+
+  // ============================================================================
+  // PLACEMENT SETTINGS
+  // ============================================================================
+
+  getPlacementSettings(): PipingPlacementSettings {
+    return { ...this.placementSettings };
+  }
+
+  setPlacementMode(mode: PipingPlacementMode): void {
+    if (this.placementSettings.mode === mode) {
+      return;
+    }
+
+    this.placementSettings = {
+      ...this.placementSettings,
+      mode,
+    };
+    this.notify();
+  }
+
+  setDefaultElevationZ(value: number): void {
+    if (this.placementSettings.defaultElevationZ === value) {
+      return;
+    }
+
+    this.placementSettings = {
+      ...this.placementSettings,
+      defaultElevationZ: value,
+    };
     this.notify();
   }
 
