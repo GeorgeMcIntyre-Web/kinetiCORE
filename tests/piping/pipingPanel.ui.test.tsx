@@ -5,6 +5,7 @@
 import { render, screen, act } from '@testing-library/react';
 import { PipingPanel } from '../../src/ui/piping/PipingPanel';
 import { pipingStore } from '../../src/domain/factoryServices/piping/pipingStore';
+import { PIPING_DEFAULT_PLACEMENT_SETTINGS } from '../../src/domain/factoryServices/piping/pipingDefaults';
 
 describe('PipingPanel UI', () => {
   beforeEach(() => {
@@ -256,6 +257,35 @@ describe('PipingPanel UI', () => {
       expect(screen.getByText((content, element) => {
         return element?.textContent === 'Segments (1)';
       })).toBeInTheDocument();
+    });
+  });
+
+  describe('Placement Settings Controls', () => {
+    it('should show placement mode select and elevation input', () => {
+      render(<PipingPanel isVisible={true} onClose={() => {}} />);
+
+      expect(screen.getByLabelText('Placement Mode')).toBeInTheDocument();
+      expect(screen.getByLabelText('Default Elevation (m)')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /reset to defaults/i })).toBeInTheDocument();
+    });
+
+    it('should reset placement settings when reset button is clicked', () => {
+      act(() => {
+        pipingStore.updatePlacementSettings({
+          mode: 'fixed_elevation',
+          defaultElevation: 3,
+        });
+      });
+
+      render(<PipingPanel isVisible={true} onClose={() => {}} />);
+
+      const resetButton = screen.getByRole('button', { name: /reset to defaults/i });
+      act(() => {
+        resetButton.click();
+      });
+
+      const placement = pipingStore.getPlacementSettings();
+      expect(placement).toEqual(PIPING_DEFAULT_PLACEMENT_SETTINGS);
     });
   });
 });

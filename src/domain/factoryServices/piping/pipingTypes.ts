@@ -119,6 +119,22 @@ export interface PipingSelection {
 }
 
 /**
+ * Supported placement modes for node elevation
+ */
+export type PipingPlacementMode = 'on_floor' | 'fixed_elevation';
+
+/**
+ * Placement settings that govern how new nodes inherit elevation
+ */
+export interface PipingPlacementSettings {
+  /** How elevation is determined during placement */
+  mode: PipingPlacementMode;
+
+  /** Elevation in meters when using fixed_elevation mode */
+  defaultElevation: number;
+}
+
+/**
  * Configuration for creating a new node
  */
 export interface CreateNodeConfig {

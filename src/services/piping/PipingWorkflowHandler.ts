@@ -5,6 +5,7 @@
 import * as BABYLON from '@babylonjs/core';
 import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
 import { getDefaultDiameter } from '../../domain/factoryServices/piping/pipingRules';
+import { PipingPlacementSettings } from '../../domain/factoryServices/piping/pipingTypes';
 import { useEditorStore } from '../../ui/store/editorStore';
 import { PipingSceneService } from './PipingSceneService';
 
@@ -114,12 +115,17 @@ export class PipingWorkflowHandler {
     }
 
     const pickedPoint = pointerInfo.pickInfo.pickedPoint;
+    const placementSettings = pipingStore.getPlacementSettings();
+    const elevation = this.resolvePlacementElevation(
+      pickedPoint.y,
+      placementSettings
+    );
 
     // Create node at picked point
     const node = pipingStore.createNode(activeNetwork.id, {
       position: {
         x: pickedPoint.x,
-        y: pickedPoint.y,
+        y: elevation,
         z: pickedPoint.z,
       },
       kind: 'endpoint',
@@ -244,5 +250,20 @@ export class PipingWorkflowHandler {
    */
   getPendingSourceNodeId(): string | null {
     return this.pendingSourceNodeId;
+  }
+
+  private resolvePlacementElevation(
+    pickedY: number,
+    placement: PipingPlacementSettings
+  ): number {
+    if (placement.mode === 'on_floor') {
+      return 0;
+    }
+
+    if (placement.mode === 'fixed_elevation') {
+      return placement.defaultElevation;
+    }
+
+    return pickedY;
   }
 }

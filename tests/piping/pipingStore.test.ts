@@ -2,6 +2,7 @@
 // Owner: Agent 1 (George)
 
 import { pipingStore } from '../../src/domain/factoryServices/piping/pipingStore';
+import { PIPING_DEFAULT_PLACEMENT_SETTINGS } from '../../src/domain/factoryServices/piping/pipingDefaults';
 import { PipingNetwork } from '../../src/domain/factoryServices/piping/pipingTypes';
 
 describe('PipingStore', () => {
@@ -339,6 +340,38 @@ describe('PipingStore', () => {
 
       const connectedSegments = pipingStore.getConnectedSegments(node2!.id);
       expect(connectedSegments).toHaveLength(2);
+    });
+  });
+
+  describe('Placement Settings', () => {
+    it('should expose defaults by default', () => {
+      const placement = pipingStore.getPlacementSettings();
+      expect(placement).toEqual(PIPING_DEFAULT_PLACEMENT_SETTINGS);
+    });
+
+    it('should update placement settings with valid values', () => {
+      pipingStore.updatePlacementSettings({
+        mode: 'fixed_elevation',
+        defaultElevation: 2.5,
+      });
+
+      const placement = pipingStore.getPlacementSettings();
+      expect(placement.mode).toBe('fixed_elevation');
+      expect(placement.defaultElevation).toBe(2.5);
+    });
+
+    it('should clamp invalid elevation values and reset back to defaults', () => {
+      pipingStore.updatePlacementSettings({
+        mode: 'fixed_elevation',
+        defaultElevation: -5,
+      });
+
+      const placementAfterClamp = pipingStore.getPlacementSettings();
+      expect(placementAfterClamp.defaultElevation).toBe(0);
+
+      pipingStore.resetPlacementSettings();
+      const placementAfterReset = pipingStore.getPlacementSettings();
+      expect(placementAfterReset).toEqual(PIPING_DEFAULT_PLACEMENT_SETTINGS);
     });
   });
 });

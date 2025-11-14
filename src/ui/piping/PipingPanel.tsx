@@ -5,13 +5,23 @@
 import React, { useState, useEffect } from 'react';
 import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
 import { describePipingNetwork } from '../../domain/factoryServices/piping/pipingDescription';
-import { PipingNetwork, PipingServiceType } from '../../domain/factoryServices/piping/pipingTypes';
+import {
+  PipingNetwork,
+  PipingPlacementMode,
+  PipingPlacementSettings,
+  PipingServiceType,
+} from '../../domain/factoryServices/piping/pipingTypes';
+import { PIPING_DEFAULT_PLACEMENT_SETTINGS } from '../../domain/factoryServices/piping/pipingDefaults';
 import { PipingNodeList } from './PipingNodeList';
 import { PipingSegmentList } from './PipingSegmentList';
 import { PipingInspector } from './PipingInspector';
 import { X } from 'lucide-react';
 
 const SERVICE_TYPES: PipingServiceType[] = ['water', 'air', 'steam', 'vacuum'];
+const PLACEMENT_MODES: { value: PipingPlacementMode; label: string }[] = [
+  { value: 'on_floor', label: 'Snap to floor (Y = 0)' },
+  { value: 'fixed_elevation', label: 'Fixed elevation' },
+];
 
 interface PipingPanelProps {
   isVisible: boolean;
@@ -25,6 +35,9 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
   const [networks, setNetworks] = useState<PipingNetwork[]>([]);
   const [activeNetworkId, setActiveNetworkId] = useState<string | null>(null);
   const [description, setDescription] = useState<string[]>([]);
+  const [placementSettings, setPlacementSettings] = useState<PipingPlacementSettings>(
+    pipingStore.getPlacementSettings()
+  );
 
   // Subscribe to piping store changes
   useEffect(() => {
@@ -34,6 +47,7 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
 
       const selection = pipingStore.getSelection();
       setActiveNetworkId(selection.networkId);
+      setPlacementSettings(pipingStore.getPlacementSettings());
 
       // Update description for active network
       if (selection.networkId !== null) {
@@ -64,6 +78,28 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
       pipingStore.setActiveNetwork(network.id);
     }
   }, [isVisible, networks.length]);
+
+  const handlePlacementModeChange = (mode: PipingPlacementMode) => {
+    pipingStore.updatePlacementSettings({ mode });
+  };
+
+  const handleDefaultElevationChange = (value: string) => {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) === false) {
+      return;
+    }
+
+    pipingStore.updatePlacementSettings({ defaultElevation: parsed });
+  };
+
+  const handleResetPlacementSettings = () => {
+    pipingStore.resetPlacementSettings();
+  };
+
+  const isPlacementAtDefaults =
+    placementSettings.mode === PIPING_DEFAULT_PLACEMENT_SETTINGS.mode &&
+    placementSettings.defaultElevation ===
+      PIPING_DEFAULT_PLACEMENT_SETTINGS.defaultElevation;
 
   if (!isVisible) {
     return null;
@@ -191,6 +227,110 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
           )}
         </div>
       )}
+
+        {/* Placement Settings */}
+        <div
+          style={{
+            padding: '12px 16px',
+            borderBottom: '1px solid #334155',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                letterSpacing: '0.5px',
+                color: '#94a3b8',
+                textTransform: 'uppercase',
+              }}
+            >
+              Placement
+            </span>
+            <button
+              type="button"
+              onClick={handleResetPlacementSettings}
+              disabled={isPlacementAtDefaults}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#06b6d4',
+                fontSize: '12px',
+                cursor: isPlacementAtDefaults ? 'default' : 'pointer',
+                padding: 0,
+                opacity: isPlacementAtDefaults ? 0.5 : 1,
+              }}
+            >
+              Reset to defaults
+            </button>
+          </div>
+
+          <label
+            htmlFor="placement-mode-select"
+            style={{ fontSize: '12px', color: '#94a3b8' }}
+          >
+            Placement Mode
+          </label>
+          <select
+            id="placement-mode-select"
+            value={placementSettings.mode}
+            onChange={(event) =>
+              handlePlacementModeChange(event.target.value as PipingPlacementMode)
+            }
+            style={{
+              width: '100%',
+              padding: '6px 8px',
+              backgroundColor: '#0f172a',
+              border: '1px solid #334155',
+              borderRadius: '4px',
+              color: '#f1f5f9',
+              fontSize: '13px',
+            }}
+          >
+            {PLACEMENT_MODES.map((mode) => (
+              <option key={mode.value} value={mode.value}>
+                {mode.label}
+              </option>
+            ))}
+          </select>
+
+          <label
+            htmlFor="placement-elevation-input"
+            style={{ fontSize: '12px', color: '#94a3b8' }}
+          >
+            Default Elevation (m)
+          </label>
+          <input
+            id="placement-elevation-input"
+            type="number"
+            min={0}
+            step={0.1}
+            value={placementSettings.defaultElevation}
+            onChange={(event) => handleDefaultElevationChange(event.target.value)}
+            style={{
+              width: '100%',
+              padding: '6px 8px',
+              backgroundColor: '#0f172a',
+              border: '1px solid #334155',
+              borderRadius: '4px',
+              color: '#f1f5f9',
+              fontSize: '13px',
+            }}
+          />
+          <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+            Defaults: {PIPING_DEFAULT_PLACEMENT_SETTINGS.mode.replace('_', ' ')} •{' '}
+            {PIPING_DEFAULT_PLACEMENT_SETTINGS.defaultElevation.toFixed(1)} m
+          </div>
+        </div>
 
       {/* Tabs */}
       <div

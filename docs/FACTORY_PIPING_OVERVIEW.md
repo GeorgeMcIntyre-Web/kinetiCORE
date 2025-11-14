@@ -252,6 +252,14 @@ The Factory Piping system is now **100% complete** and ready for production use.
 **To cancel segment creation:**
 - Press ESC to cancel the pending segment creation
 
+### Placement Defaults & Persistence
+
+- The panel now includes a **Placement** card with controls for placement mode and default elevation (in meters).
+- **Default mode** is `on_floor`, which clamps new nodes to Y = 0 for quick floor layouts.
+- Switching to **Fixed elevation** places every node at the configured height; the default is **1.0 m**, matching common pipe rack heights above finished floors.
+- Click **Reset to defaults** inside the card to instantly restore the centralized defaults (`on_floor`, 1.0 m).
+- The chosen placement mode and elevation are persisted (localStorage key `kineticore:piping:placement`), so the last-used configuration is restored on the next session.
+
 ### Service Types
 
 The Factory Piping system supports four main service types:
