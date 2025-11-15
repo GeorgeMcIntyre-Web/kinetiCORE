@@ -2,7 +2,8 @@
 // Owner: Agent 1 (George)
 // Basic React component tests for piping UI
 
-import { render, screen, act, fireEvent } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { PipingPanel } from '../../src/ui/piping/PipingPanel';
 import { pipingStore } from '../../src/domain/factoryServices/piping/pipingStore';
 
@@ -48,128 +49,154 @@ describe('PipingPanel UI', () => {
     });
   });
 
-    describe('Network Tab Content', () => {
-      it('should show nodes section', () => {
-        render(<PipingPanel isVisible={true} onClose={() => {}} />);
+  describe('Network Tab Content', () => {
+    it('should show nodes section', () => {
+      render(<PipingPanel isVisible={true} onClose={() => {}} />);
 
-        // Look for "Nodes (0)" text - exact match to avoid ambiguity
-        const nodesText = screen.getByText(/^Nodes \(\d+\)$/);
-        expect(nodesText).toBeInTheDocument();
-      });
-
-      it('should show segments section', () => {
-        render(<PipingPanel isVisible={true} onClose={() => {}} />);
-
-        // Look for "Segments (0)" text - exact match to avoid ambiguity
-        const segmentsText = screen.getByText(/^Segments \(\d+\)$/);
-        expect(segmentsText).toBeInTheDocument();
-      });
-
-      it('should display node count', () => {
-        // Render panel first - it will create a default network
-        render(<PipingPanel isVisible={true} onClose={() => {}} />);
-
-        // Get the auto-created network
-        const networks = pipingStore.getAllNetworks();
-        expect(networks.length).toBeGreaterThan(0);
-        const network = networks[0];
-
-        // Add a node to the active network wrapped in act()
-        act(() => {
-          pipingStore.createNode(network.id, {
-            position: { x: 0, y: 0, z: 0 },
-            kind: 'endpoint',
-            serviceType: 'water',
-          });
-        });
-
-        // Should show "Nodes (1)" - use function matcher because React splits text nodes
-        expect(screen.getByText((content, element) => {
-          return element?.textContent === 'Nodes (1)';
-        })).toBeInTheDocument();
-      });
-
-      it('should display segment count', () => {
-        // Render panel first - it will create a default network
-        render(<PipingPanel isVisible={true} onClose={() => {}} />);
-
-        // Get the auto-created network
-        const networks = pipingStore.getAllNetworks();
-        expect(networks.length).toBeGreaterThan(0);
-        const network = networks[0];
-
-        act(() => {
-          const node1 = pipingStore.createNode(network.id, {
-            position: { x: 0, y: 0, z: 0 },
-            kind: 'endpoint',
-            serviceType: 'water',
-          });
-
-          const node2 = pipingStore.createNode(network.id, {
-            position: { x: 10, y: 0, z: 0 },
-            kind: 'endpoint',
-            serviceType: 'water',
-          });
-
-          pipingStore.createSegment(network.id, {
-            fromNodeId: node1!.id,
-            toNodeId: node2!.id,
-            nominalDiameterMm: 40,
-          });
-        });
-
-        // Should show "Segments (1)" - use function matcher because React splits text nodes
-        expect(screen.getByText((content, element) => {
-          return element?.textContent === 'Segments (1)';
-        })).toBeInTheDocument();
-      });
+      // Look for "Nodes (0)" text - exact match to avoid ambiguity
+      const nodesText = screen.getByText(/^Nodes \(\d+\)$/);
+      expect(nodesText).toBeInTheDocument();
     });
 
-    describe('Placement controls', () => {
-      it('should render placement controls with defaults', () => {
-        render(<PipingPanel isVisible={true} onClose={() => {}} />);
+    it('should show segments section', () => {
+      render(<PipingPanel isVisible={true} onClose={() => {}} />);
 
-        const onFloorRadio = screen.getByLabelText('On floor') as HTMLInputElement;
-        const elevationInput = screen.getByLabelText('Default elevation (m)') as HTMLInputElement;
-
-        expect(screen.getByText('Node Placement')).toBeInTheDocument();
-        expect(onFloorRadio.checked).toBe(true);
-        expect(elevationInput.value).toBe('1');
-      });
-
-      it('should change placement mode via controls', () => {
-        render(<PipingPanel isVisible={true} onClose={() => {}} />);
-
-        const fixedHeightRadio = screen.getByLabelText('Fixed height above floor');
-        act(() => {
-          fireEvent.click(fixedHeightRadio);
-        });
-
-        expect(pipingStore.getPlacementSettings().mode).toBe('fixed_height');
-      });
-
-      it('should update default elevation from numeric input', () => {
-        render(<PipingPanel isVisible={true} onClose={() => {}} />);
-
-        const elevationInput = screen.getByLabelText('Default elevation (m)');
-        act(() => {
-          fireEvent.change(elevationInput, { target: { value: '1.5' } });
-        });
-
-        expect(pipingStore.getPlacementSettings().defaultElevation).toBe(1.5);
-      });
-
-      it('should apply preset buttons', () => {
-        render(<PipingPanel isVisible={true} onClose={() => {}} />);
-
-        const presetButton = screen.getByRole('button', { name: '2.0 m preset' });
-        act(() => {
-          fireEvent.click(presetButton);
-        });
-
-        expect(pipingStore.getPlacementSettings().defaultElevation).toBe(2);
-      });
+      // Look for "Segments (0)" text - exact match to avoid ambiguity
+      const segmentsText = screen.getByText(/^Segments \(\d+\)$/);
+      expect(segmentsText).toBeInTheDocument();
     });
+
+    it('should display node count', () => {
+      // Render panel first - it will create a default network
+      render(<PipingPanel isVisible={true} onClose={() => {}} />);
+
+      // Get the auto-created network
+      const networks = pipingStore.getAllNetworks();
+      expect(networks.length).toBeGreaterThan(0);
+      const network = networks[0];
+
+      // Add a node to the active network wrapped in act()
+      act(() => {
+        pipingStore.createNode(network.id, {
+          position: { x: 0, y: 0, z: 0 },
+          kind: 'endpoint',
+          serviceType: 'water',
+        });
+      });
+
+      // Should show "Nodes (1)" - use function matcher because React splits text nodes
+      expect(screen.getByText((content, element) => {
+        return element?.textContent === 'Nodes (1)';
+      })).toBeInTheDocument();
+    });
+
+    it('should display segment count', () => {
+      // Render panel first - it will create a default network
+      render(<PipingPanel isVisible={true} onClose={() => {}} />);
+
+      // Get the auto-created network
+      const networks = pipingStore.getAllNetworks();
+      expect(networks.length).toBeGreaterThan(0);
+      const network = networks[0];
+
+      act(() => {
+        const node1 = pipingStore.createNode(network.id, {
+          position: { x: 0, y: 0, z: 0 },
+          kind: 'endpoint',
+          serviceType: 'water',
+        });
+
+        const node2 = pipingStore.createNode(network.id, {
+          position: { x: 10, y: 0, z: 0 },
+          kind: 'endpoint',
+          serviceType: 'water',
+        });
+
+        pipingStore.createSegment(network.id, {
+          fromNodeId: node1!.id,
+          toNodeId: node2!.id,
+          nominalDiameterMm: 40,
+        });
+      });
+
+      // Should show "Segments (1)" - use function matcher because React splits text nodes
+      expect(screen.getByText((content, element) => {
+        return element?.textContent === 'Segments (1)';
+      })).toBeInTheDocument();
+    });
+  });
+
+  describe('Placement Controls', () => {
+    it('should render placement mode options with accessible labels', () => {
+      render(<PipingPanel isVisible={true} onClose={() => {}} />);
+
+      expect(screen.getByLabelText('On floor')).toBeInTheDocument();
+      expect(screen.getByLabelText('At elevation')).toBeInTheDocument();
+      expect(screen.getByLabelText('Snap to existing')).toBeInTheDocument();
+    });
+
+    it('should label the default elevation input with units', () => {
+      render(<PipingPanel isVisible={true} onClose={() => {}} />);
+
+      const defaultElevationInput = screen.getByLabelText('Default elevation (mm)');
+      expect(defaultElevationInput).toBeInTheDocument();
+      expect(defaultElevationInput).toHaveAttribute('type', 'number');
+    });
+
+    it('should tab through placement controls in visual order', async () => {
+      const user = userEvent.setup();
+      render(<PipingPanel isVisible={true} onClose={() => {}} />);
+
+      const floorOption = screen.getByLabelText('On floor');
+      const elevationOption = screen.getByLabelText('At elevation');
+      const snapOption = screen.getByLabelText('Snap to existing');
+      const elevationInput = screen.getByLabelText('Default elevation (mm)');
+
+      floorOption.focus();
+      expect(floorOption).toHaveFocus();
+
+      await user.tab();
+      expect(elevationOption).toHaveFocus();
+
+      await user.tab();
+      expect(snapOption).toHaveFocus();
+
+      await user.tab();
+      expect(elevationInput).toHaveFocus();
+    });
+
+    it('should render helper copy for placement hints without crashing', () => {
+      render(<PipingPanel isVisible={true} onClose={() => {}} />);
+
+      expect(
+        screen.getByText(/Nodes land exactly on the surface you click/i)
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/Use 0 mm for floor-level placement/i)
+      ).toBeInTheDocument();
+    });
+
+    it('should update store when switching to elevation mode', async () => {
+      const user = userEvent.setup();
+      render(<PipingPanel isVisible={true} onClose={() => {}} />);
+
+      const elevationOption = screen.getByLabelText('At elevation');
+      await user.click(elevationOption);
+
+      expect(pipingStore.getPlacementSettings().mode).toBe('elevation');
+    });
+
+    it('should update store when typing a default elevation', async () => {
+      const user = userEvent.setup();
+      render(<PipingPanel isVisible={true} onClose={() => {}} />);
+
+      const elevationInput = screen.getByLabelText('Default elevation (mm)');
+      await user.clear(elevationInput);
+      await user.type(elevationInput, '1250');
+
+      expect(pipingStore.getPlacementSettings().defaultElevationMm).toBe(1250);
+    });
+  });
 
   describe('Properties Tab Content', () => {
     it('should show empty state when nothing is selected', () => {

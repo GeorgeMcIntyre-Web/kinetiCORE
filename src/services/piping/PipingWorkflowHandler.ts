@@ -5,46 +5,8 @@
 import * as BABYLON from '@babylonjs/core';
 import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
 import { getDefaultDiameter } from '../../domain/factoryServices/piping/pipingRules';
-import {
-  PipingPlacementSettings,
-  Position3D,
-} from '../../domain/factoryServices/piping/pipingTypes';
 import { useEditorStore } from '../../ui/store/editorStore';
 import { PipingSceneService } from './PipingSceneService';
-
-type Vector3Like = {
-  x: number;
-  y: number;
-  z: number;
-};
-
-const UP_AXIS: 'y' | 'z' = 'y';
-
-export function computeNodePositionFromHit(
-  hitPoint: Vector3Like,
-  settings: PipingPlacementSettings
-): Position3D {
-  const position: Position3D = {
-    x: hitPoint.x,
-    y: hitPoint.y,
-    z: hitPoint.z,
-  };
-
-  if (settings.mode !== 'fixed_height') {
-    return position;
-  }
-
-  const floorHeight = UP_AXIS === 'y' ? hitPoint.y : hitPoint.z;
-  const targetHeight = floorHeight + settings.defaultElevation;
-
-  if (UP_AXIS === 'y') {
-    position.y = targetHeight;
-    return position;
-  }
-
-  position.z = targetHeight;
-  return position;
-}
 
 /**
  * Handles piping workflow interactions in the viewport
@@ -152,12 +114,15 @@ export class PipingWorkflowHandler {
     }
 
     const pickedPoint = pointerInfo.pickInfo.pickedPoint;
-    const placementSettings = pipingStore.getPlacementSettings();
-    const nodePosition = computeNodePositionFromHit(pickedPoint, placementSettings);
+    const placementPoint = this.computePlacementPoint(pickedPoint);
 
     // Create node at picked point
     const node = pipingStore.createNode(activeNetwork.id, {
-      position: nodePosition,
+      position: {
+        x: placementPoint.x,
+        y: placementPoint.y,
+        z: placementPoint.z,
+      },
       kind: 'endpoint',
       serviceType: activeNetwork.serviceType,
     });
@@ -280,5 +245,29 @@ export class PipingWorkflowHandler {
    */
   getPendingSourceNodeId(): string | null {
     return this.pendingSourceNodeId;
+  }
+
+  /**
+   * Apply placement mode offsets to the clicked point
+   */
+  private computePlacementPoint(basePoint: BABYLON.Vector3): BABYLON.Vector3 {
+    const { mode, defaultElevationMm } = pipingStore.getPlacementSettings();
+
+    if (mode === 'floor') {
+      return basePoint.clone();
+    }
+
+    if (mode === 'snap') {
+      return basePoint.clone();
+    }
+
+    const offsetMeters = defaultElevationMm / 1000;
+    if (offsetMeters === 0) {
+      return basePoint.clone();
+    }
+
+    const adjustedPoint = basePoint.clone();
+    adjustedPoint.y += offsetMeters;
+    return adjustedPoint;
   }
 }
