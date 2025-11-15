@@ -3,7 +3,11 @@
 // Phase 4: UI & Workflow
 
 import React, { useState, useEffect } from 'react';
-import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
+import {
+  pipingStore,
+  PipingPlacementMode,
+  PipingPlacementSettings,
+} from '../../domain/factoryServices/piping/pipingStore';
 import {
   PipingNode,
   PipingSegment,
@@ -12,6 +16,7 @@ import {
 } from '../../domain/factoryServices/piping/pipingTypes';
 import { getSegmentWarnings } from '../../domain/factoryServices/piping/pipingValidation';
 import { AlertTriangle } from 'lucide-react';
+import { PLACEMENT_MODE_OPTIONS } from './placementModes';
 
 const NODE_KINDS: PipingNodeKind[] = ['endpoint', 'support', 'branch', 'equipment'];
 const SERVICE_TYPES: PipingServiceType[] = ['water', 'air', 'steam', 'vacuum'];
@@ -19,9 +24,13 @@ const SERVICE_TYPES: PipingServiceType[] = ['water', 'air', 'steam', 'vacuum'];
 export const PipingInspector: React.FC = () => {
   const [selectedNode, setSelectedNode] = useState<PipingNode | null>(null);
   const [selectedSegment, setSelectedSegment] = useState<PipingSegment | null>(null);
+  const [placementSettings, setPlacementSettings] = useState<PipingPlacementSettings>(
+    pipingStore.getPlacementSettings()
+  );
 
   useEffect(() => {
     const updateSelection = () => {
+      setPlacementSettings(pipingStore.getPlacementSettings());
       const selection = pipingStore.getSelection();
 
       if (selection.nodeId !== null) {
@@ -128,6 +137,27 @@ export const PipingInspector: React.FC = () => {
     pipingStore.updateSegment(selectedSegment.id, { slopePerMille: numValue });
   };
 
+  const handlePlacementSettingsModeChange = (mode: PipingPlacementMode) => {
+    pipingStore.setPlacementMode(mode);
+  };
+
+  const handlePlacementSettingsElevationChange = (value: string) => {
+    if (value === '') {
+      pipingStore.setPlacementElevation(0);
+      return;
+    }
+
+    const parsed = parseFloat(value);
+    if (Number.isFinite(parsed) === false) {
+      return;
+    }
+
+    pipingStore.setPlacementElevation(parsed);
+  };
+
+  const selectedNodeElevationMm =
+    selectedNode !== null ? Math.round(selectedNode.position.y * 1000) : null;
+
   // No selection
   if (selectedNode === null && selectedSegment === null) {
     return (
@@ -160,7 +190,86 @@ export const PipingInspector: React.FC = () => {
             Node Properties
           </div>
 
-          {/* Name */}
+            <div
+              style={{
+                marginBottom: '16px',
+                padding: '12px',
+                border: '1px solid #334155',
+                borderRadius: '8px',
+                backgroundColor: '#0b1629',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '12px',
+                  color: '#94a3b8',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.03em',
+                }}
+              >
+                Placement defaults
+              </div>
+              <label
+                htmlFor="inspector-placement-mode"
+                style={{ fontSize: '12px', color: '#94a3b8', display: 'block' }}
+              >
+                Placement mode
+              </label>
+              <select
+                id="inspector-placement-mode"
+                value={placementSettings.mode}
+                onChange={(event) =>
+                  handlePlacementSettingsModeChange(event.target.value as PipingPlacementMode)
+                }
+                style={{
+                  width: '100%',
+                  padding: '6px 8px',
+                  backgroundColor: '#0f172a',
+                  border: '1px solid #334155',
+                  borderRadius: '4px',
+                  color: '#f1f5f9',
+                  fontSize: '13px',
+                }}
+              >
+                {PLACEMENT_MODE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <label
+                htmlFor="inspector-placement-elevation"
+                style={{ fontSize: '12px', color: '#94a3b8', display: 'block' }}
+              >
+                Default elevation (mm)
+              </label>
+              <input
+                id="inspector-placement-elevation"
+                type="number"
+                min="0"
+                max="6000"
+                step="50"
+                value={placementSettings.defaultElevationMm}
+                onChange={(e) => handlePlacementSettingsElevationChange(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '6px 8px',
+                  backgroundColor: '#0f172a',
+                  border: '1px solid #334155',
+                  borderRadius: '4px',
+                  color: '#f1f5f9',
+                  fontSize: '13px',
+                }}
+              />
+              <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8', lineHeight: 1.4 }}>
+                Matches the Node Placement controls surfaced in the main panel.
+              </p>
+            </div>
+
+            {/* Name */}
           <div style={{ marginBottom: '12px' }}>
             <label
               htmlFor="node-name"
@@ -281,9 +390,14 @@ export const PipingInspector: React.FC = () => {
               <div style={{ flex: 1 }}>
                 <label
                   htmlFor="node-pos-y"
-                  style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px' }}
+                  style={{
+                    fontSize: '11px',
+                    color: '#64748b',
+                    display: 'block',
+                    marginBottom: '4px',
+                  }}
                 >
-                  Y (Elevation)
+                  Y (Elevation, m)
                 </label>
                 <input
                   id="node-pos-y"
@@ -328,6 +442,31 @@ export const PipingInspector: React.FC = () => {
               </div>
             </div>
           </div>
+
+            {selectedNodeElevationMm !== null && (
+              <div
+                style={{
+                  marginTop: '12px',
+                  padding: '12px',
+                  border: '1px solid #334155',
+                  borderRadius: '6px',
+                  backgroundColor: '#0b1629',
+                  lineHeight: 1.4,
+                }}
+                aria-live="polite"
+              >
+                <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>
+                  Elevation summary
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: '#f1f5f9' }}>
+                  Elevation: {selectedNodeElevationMm} mm (Y axis)
+                </div>
+                <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0' }}>
+                  Matches the Y value above. Align this with the node placement defaults when you
+                  want consistent pipe heights.
+                </p>
+              </div>
+            )}
         </div>
       )}
 

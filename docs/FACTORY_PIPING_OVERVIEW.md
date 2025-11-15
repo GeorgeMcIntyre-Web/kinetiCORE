@@ -263,6 +263,17 @@ The Factory Piping system supports four main service types:
 
 Change the service type for a network in the Network tab using the "Service Type" dropdown.
 
+### Elevation UI
+
+[Screenshot placeholder: Piping panel, Node Placement section]
+
+- **Where:** Network tab → Node Placement box at the top of the Piping panel.
+- **Controls:** Radio buttons for `On floor`, `At elevation`, and `Snap to existing`, plus a `Default elevation (mm)` field.
+- **All new nodes at floor:** Keep `On floor` selected and set the default elevation to `0`.
+- **Standard overhead runs:** Switch to `At elevation` and enter a value such as `500`, `1000`, or `2000` mm to match typical rack heights.
+- **Follow existing geometry:** Choose `Snap to existing` to reuse the latest piping node or support height. This keeps new drops aligned with established runs.
+- **Context:** Helper text in the panel explains exactly how each option behaves, and the Properties tab shows each node’s current elevation in millimeters to double-check placements.
+
 ### Editing Properties
 
 **Node Properties:**
