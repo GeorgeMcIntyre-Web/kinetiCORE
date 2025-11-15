@@ -252,6 +252,16 @@ The Factory Piping system is now **100% complete** and ready for production use.
 **To cancel segment creation:**
 - Press ESC to cancel the pending segment creation
 
+### Placement Defaults & Persistence
+
+- The panel now includes a **Placement** card with controls for placement mode and the default Z elevation (scene units).
+- Available modes mirror the domain `PipingPlacementMode` union: `on_floor`, `at_elevation`, and `snap_to_existing`.
+- **Default mode** is `on_floor`, which clamps new nodes to the detected floor Z (0 when the floor is unknown).
+- Switching to **at_elevation** places every node at the configured `defaultElevationZ` (currently `1.0` scene units, aligning with the project’s meter-scale scenes).
+- **snap_to_existing** respects the last captured snap reference Z; when none is cached, it falls back to the floor Z or the default elevation.
+- Click **Reset to defaults** inside the card to instantly restore the centralized defaults (`on_floor`, `defaultElevationZ = 1.0`, `snapReferenceZ = null`).
+- The chosen placement mode and elevation are persisted (localStorage key `kineticore:piping:placement`), so the last-used configuration is restored on the next session.
+
 ### Service Types
 
 The Factory Piping system supports four main service types:

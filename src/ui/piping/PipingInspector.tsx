@@ -3,16 +3,14 @@
 // Phase 4: UI & Workflow
 
 import React, { useState, useEffect } from 'react';
-import {
-  pipingStore,
-  PipingPlacementMode,
-  PipingPlacementSettings,
-} from '../../domain/factoryServices/piping/pipingStore';
+import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
 import {
   PipingNode,
   PipingSegment,
   PipingNodeKind,
   PipingServiceType,
+  PipingPlacementMode,
+  PipingPlacementSettings,
 } from '../../domain/factoryServices/piping/pipingTypes';
 import { getSegmentWarnings } from '../../domain/factoryServices/piping/pipingValidation';
 import { AlertTriangle } from 'lucide-react';
@@ -143,7 +141,7 @@ export const PipingInspector: React.FC = () => {
 
   const handlePlacementSettingsElevationChange = (value: string) => {
     if (value === '') {
-      pipingStore.setPlacementElevation(0);
+      pipingStore.setDefaultElevationZ(0);
       return;
     }
 
@@ -152,7 +150,8 @@ export const PipingInspector: React.FC = () => {
       return;
     }
 
-    pipingStore.setPlacementElevation(parsed);
+    // Convert from mm to meters
+    pipingStore.setDefaultElevationZ(parsed / 1000);
   };
 
   const selectedNodeElevationMm =
@@ -252,7 +251,7 @@ export const PipingInspector: React.FC = () => {
                 min="0"
                 max="6000"
                 step="50"
-                value={placementSettings.defaultElevationMm}
+                value={placementSettings.defaultElevationZ * 1000}
                 onChange={(e) => handlePlacementSettingsElevationChange(e.target.value)}
                 style={{
                   width: '100%',

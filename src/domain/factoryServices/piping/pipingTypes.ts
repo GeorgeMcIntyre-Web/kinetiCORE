@@ -28,21 +28,7 @@ export interface Position3D {
   z: number;
 }
 
-/**
- * Placement modes for automatic node elevation
- */
-export type PipingPlacementMode = 'on_floor' | 'fixed_height';
-
-/**
- * Settings that control how new nodes are placed in 3D
- */
-export interface PipingPlacementSettings {
-  mode: PipingPlacementMode;
-  /**
-   * Default elevation offset in scene units (meters)
-   */
-  defaultElevation: number;
-}
+// Placement types moved to lines 140-157 to avoid duplication
 
 /**
  * A control point (node) in a piping network
@@ -132,6 +118,32 @@ export interface PipingSelection {
 
   /** Currently selected segment ID (null if none) */
   segmentId: string | null;
+}
+
+/**
+ * Supported placement modes for node elevation
+ */
+export type PipingPlacementMode =
+  | 'on_floor'
+  | 'fixed_height'
+  | 'at_elevation'
+  | 'snap_to_existing';
+
+/**
+ * Placement settings that govern how new nodes inherit elevation
+ */
+export interface PipingPlacementSettings {
+  /** How elevation is determined during placement */
+  mode: PipingPlacementMode;
+
+  /** Default elevation offset in scene units (meters) - alias for defaultElevationZ */
+  defaultElevation: number;
+
+  /** Target elevation along Z when using elevation-driven modes */
+  defaultElevationZ: number;
+
+  /** Cached Z from the last snapped node when using snap mode */
+  snapReferenceZ: number | null;
 }
 
 /**

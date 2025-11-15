@@ -1,4 +1,4 @@
-import { PipingPlacementMode } from '../../domain/factoryServices/piping/pipingStore';
+import { PipingPlacementMode } from '../../domain/factoryServices/piping/pipingTypes';
 
 export interface PlacementModeOption {
   value: PipingPlacementMode;
@@ -9,17 +9,17 @@ export interface PlacementModeOption {
 
 export const PLACEMENT_MODE_OPTIONS: PlacementModeOption[] = [
   {
-    value: 'floor',
+    value: 'on_floor',
     label: 'On floor',
     description: 'Nodes land exactly on the surface you click.',
   },
   {
-    value: 'elevation',
+    value: 'at_elevation',
     label: 'At elevation',
     description: 'Nodes land at floor height plus the default elevation along the up-axis.',
   },
   {
-    value: 'snap',
+    value: 'snap_to_existing',
     label: 'Snap to existing',
     description: 'Nodes adopt the height of the closest piping node or support.',
     helper: 'Snap behavior depends on available references in the scene.',

@@ -2,18 +2,27 @@
 // Owner: Agent 1 (George) - Architecture Lead
 // Phase 4: UI & Workflow
 
-import React, { useState, useEffect, useId } from 'react';
+import React, { useState, useEffect } from 'react';
 import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
 import { describePipingNetwork } from '../../domain/factoryServices/piping/pipingDescription';
-import { PipingNetwork, PipingServiceType } from '../../domain/factoryServices/piping/pipingTypes';
+import {
+  PipingNetwork,
+  PipingPlacementMode,
+  PipingPlacementSettings,
+  PipingServiceType,
+} from '../../domain/factoryServices/piping/pipingTypes';
+import { PIPING_DEFAULT_PLACEMENT_SETTINGS } from '../../domain/factoryServices/piping/pipingDefaults';
 import { PipingNodeList } from './PipingNodeList';
 import { PipingSegmentList } from './PipingSegmentList';
 import { PipingInspector } from './PipingInspector';
-import { X, HelpCircle } from 'lucide-react';
-import { PipingPlacementMode, PipingPlacementSettings } from '../../domain/factoryServices/piping/pipingStore';
-import { PLACEMENT_MODE_OPTIONS } from './placementModes';
+import { X } from 'lucide-react';
 
 const SERVICE_TYPES: PipingServiceType[] = ['water', 'air', 'steam', 'vacuum'];
+const PLACEMENT_MODES: { value: PipingPlacementMode; label: string }[] = [
+  { value: 'on_floor', label: 'Snap to floor (Z reference)' },
+  { value: 'at_elevation', label: 'Fixed elevation' },
+  { value: 'snap_to_existing', label: 'Snap to existing node' },
+];
 
 interface PipingPanelProps {
   isVisible: boolean;
@@ -30,7 +39,6 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
   const [placementSettings, setPlacementSettings] = useState<PipingPlacementSettings>(
     pipingStore.getPlacementSettings()
   );
-  const placementIds = useId();
 
   // Subscribe to piping store changes
   useEffect(() => {
@@ -40,7 +48,9 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
 
       const selection = pipingStore.getSelection();
       setActiveNetworkId(selection.networkId);
+      setPlacementSettings(pipingStore.getPlacementSettings());
 
+      // Update description for active network
       if (selection.networkId !== null) {
         const network = pipingStore.getNetwork(selection.networkId);
         if (network !== undefined) {
@@ -49,8 +59,6 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
       } else {
         setDescription([]);
       }
-
-      setPlacementSettings(pipingStore.getPlacementSettings());
     };
 
     updateState();
@@ -73,34 +81,32 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
   }, [isVisible, networks.length]);
 
   const handlePlacementModeChange = (mode: PipingPlacementMode) => {
-    if (mode === placementSettings.mode) {
-      return;
-    }
-
     pipingStore.setPlacementMode(mode);
   };
 
   const handleDefaultElevationChange = (value: string) => {
-    if (value === '') {
-      pipingStore.setPlacementElevation(0);
-      return;
-    }
-
-    const parsed = parseFloat(value);
+    const parsed = Number(value);
     if (Number.isFinite(parsed) === false) {
       return;
     }
 
-    pipingStore.setPlacementElevation(parsed);
+    pipingStore.setDefaultElevationZ(parsed);
   };
+
+  const handleResetPlacementSettings = () => {
+    pipingStore.resetPlacementSettings();
+  };
+
+  const isPlacementAtDefaults =
+    placementSettings.mode === PIPING_DEFAULT_PLACEMENT_SETTINGS.mode &&
+    placementSettings.defaultElevationZ ===
+      PIPING_DEFAULT_PLACEMENT_SETTINGS.defaultElevationZ;
 
   if (!isVisible) {
     return null;
   }
 
   const activeNetwork = activeNetworkId !== null ? pipingStore.getNetwork(activeNetworkId) : null;
-  const placementLegendId = `${placementIds}-placement`;
-  const elevationHelpId = `${placementIds}-help`;
 
   return (
     <div
@@ -223,6 +229,110 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
         </div>
       )}
 
+        {/* Placement Settings */}
+        <div
+          style={{
+            padding: '12px 16px',
+            borderBottom: '1px solid #334155',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                letterSpacing: '0.5px',
+                color: '#94a3b8',
+                textTransform: 'uppercase',
+              }}
+            >
+              Placement
+            </span>
+            <button
+              type="button"
+              onClick={handleResetPlacementSettings}
+              disabled={isPlacementAtDefaults}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#06b6d4',
+                fontSize: '12px',
+                cursor: isPlacementAtDefaults ? 'default' : 'pointer',
+                padding: 0,
+                opacity: isPlacementAtDefaults ? 0.5 : 1,
+              }}
+            >
+              Reset to defaults
+            </button>
+          </div>
+
+          <label
+            htmlFor="placement-mode-select"
+            style={{ fontSize: '12px', color: '#94a3b8' }}
+          >
+            Placement Mode
+          </label>
+          <select
+            id="placement-mode-select"
+            value={placementSettings.mode}
+            onChange={(event) =>
+              handlePlacementModeChange(event.target.value as PipingPlacementMode)
+            }
+            style={{
+              width: '100%',
+              padding: '6px 8px',
+              backgroundColor: '#0f172a',
+              border: '1px solid #334155',
+              borderRadius: '4px',
+              color: '#f1f5f9',
+              fontSize: '13px',
+            }}
+          >
+            {PLACEMENT_MODES.map((mode) => (
+              <option key={mode.value} value={mode.value}>
+                {mode.label}
+              </option>
+            ))}
+          </select>
+
+          <label
+            htmlFor="placement-elevation-input"
+            style={{ fontSize: '12px', color: '#94a3b8' }}
+          >
+            Default Elevation Z (scene units)
+          </label>
+          <input
+            id="placement-elevation-input"
+            type="number"
+            min={0}
+            step={0.1}
+            value={placementSettings.defaultElevationZ}
+            onChange={(event) => handleDefaultElevationChange(event.target.value)}
+            style={{
+              width: '100%',
+              padding: '6px 8px',
+              backgroundColor: '#0f172a',
+              border: '1px solid #334155',
+              borderRadius: '4px',
+              color: '#f1f5f9',
+              fontSize: '13px',
+            }}
+          />
+          <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+            Defaults: {PIPING_DEFAULT_PLACEMENT_SETTINGS.mode.replace('_', ' ')} •{' '}
+            {PIPING_DEFAULT_PLACEMENT_SETTINGS.defaultElevationZ.toFixed(1)} units
+          </div>
+        </div>
+
       {/* Tabs */}
       <div
         style={{
@@ -287,183 +397,17 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
 
       {/* Tab Content */}
       <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
-          {activeTab === 'network' && activeNetwork !== null && activeNetwork !== undefined && (
-            <div>
-              <section
-                aria-labelledby={placementLegendId}
-                style={{
-                  border: '1px solid #334155',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  backgroundColor: '#0f172a',
-                  marginBottom: '16px',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: '8px',
-                    gap: '8px',
-                  }}
-                >
-                  <div
-                    id={placementLegendId}
-                    style={{ fontSize: '14px', fontWeight: 600, color: '#f1f5f9' }}
-                  >
-                    Node Placement
-                  </div>
-                  <button
-                    type="button"
-                    aria-label="Why use elevation placement?"
-                    title="Use elevation mode to drop nodes at a standard overhead run. Common offsets: 500, 1000, or 2000 mm."
-                    style={{
-                      border: 'none',
-                      background: 'transparent',
-                      padding: 0,
-                      color: '#94a3b8',
-                      display: 'flex',
-                      alignItems: 'center',
-                      cursor: 'help',
-                    }}
-                  >
-                    <HelpCircle size={16} />
-                  </button>
-                </div>
-                <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 12px' }}>
-                  Choose how new nodes capture elevation when you click in the scene. The default
-                  applies to every placement until you change it.
-                </p>
-
-                <fieldset
-                  style={{ border: 'none', margin: 0, padding: 0 }}
-                  aria-describedby={placementLegendId}
-                >
-                  <legend
-                    style={{
-                      fontSize: '12px',
-                      color: '#94a3b8',
-                      marginBottom: '8px',
-                      fontWeight: 500,
-                    }}
-                  >
-                    Node placement mode
-                  </legend>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {PLACEMENT_MODE_OPTIONS.map((option) => {
-                      const hintId = `${placementIds}-${option.value}-hint`;
-                      const isActive = placementSettings.mode === option.value;
-
-                      return (
-                        <label
-                          key={option.value}
-                          style={{
-                            display: 'flex',
-                            gap: '10px',
-                            border: isActive ? '1px solid #06b6d4' : '1px solid #1f2937',
-                            borderRadius: '6px',
-                            padding: '8px 10px',
-                            backgroundColor: '#0b1629',
-                            cursor: 'pointer',
-                            alignItems: 'flex-start',
-                          }}
-                        >
-                          <input
-                            type="radio"
-                            name="piping-placement-mode"
-                            value={option.value}
-                            checked={isActive}
-                            onChange={() => handlePlacementModeChange(option.value)}
-                            aria-describedby={hintId}
-                            style={{ marginTop: '4px' }}
-                          />
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>
-                              {option.label}
-                            </div>
-                            <p
-                              id={hintId}
-                              style={{
-                                margin: '2px 0 0',
-                                fontSize: '12px',
-                                color: '#94a3b8',
-                                lineHeight: 1.4,
-                              }}
-                            >
-                              {option.description}
-                            </p>
-                            {option.helper && (
-                              <p
-                                style={{
-                                  margin: '4px 0 0',
-                                  fontSize: '11px',
-                                  color: '#64748b',
-                                }}
-                              >
-                                {option.helper}
-                              </p>
-                            )}
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-
-                <label
-                  htmlFor="piping-default-elevation"
-                  style={{
-                    fontSize: '12px',
-                    color: '#94a3b8',
-                    display: 'block',
-                    margin: '12px 0 4px',
-                  }}
-                >
-                  Default elevation (mm)
-                </label>
-                <input
-                  id="piping-default-elevation"
-                  type="number"
-                  min="0"
-                  max="6000"
-                  step="50"
-                  value={placementSettings.defaultElevationMm}
-                  onChange={(e) => handleDefaultElevationChange(e.target.value)}
-                  aria-describedby={elevationHelpId}
-                  style={{
-                    width: '100%',
-                    padding: '6px 8px',
-                    backgroundColor: '#0f172a',
-                    border: '1px solid #334155',
-                    borderRadius: '4px',
-                    color: '#f1f5f9',
-                    fontSize: '13px',
-                  }}
-                />
-                <p
-                  id={elevationHelpId}
-                  style={{
-                    fontSize: '12px',
-                    color: '#94a3b8',
-                    margin: '6px 0 0',
-                    lineHeight: 1.4,
-                  }}
-                >
-                  Use 0 mm for floor-level placement. Typical pipe racks use 500, 1000, or 2000 mm
-                  offsets.
-                </p>
-              </section>
-
-              <PipingNodeList networkId={activeNetwork.id} nodes={activeNetwork.nodes} />
-              <div style={{ height: '16px' }} />
-              <PipingSegmentList
-                networkId={activeNetwork.id}
-                segments={activeNetwork.segments}
-                nodes={activeNetwork.nodes}
-              />
-            </div>
-          )}
+        {activeTab === 'network' && activeNetwork !== null && activeNetwork !== undefined && (
+          <div>
+            <PipingNodeList networkId={activeNetwork.id} nodes={activeNetwork.nodes} />
+            <div style={{ height: '16px' }} />
+            <PipingSegmentList
+              networkId={activeNetwork.id}
+              segments={activeNetwork.segments}
+              nodes={activeNetwork.nodes}
+            />
+          </div>
+        )}
 
         {activeTab === 'network' && activeNetwork === null && (
           <div

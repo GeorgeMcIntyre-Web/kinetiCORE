@@ -7,22 +7,25 @@ import {
   PipingNode,
   PipingSegment,
   PipingSelection,
+  PipingPlacementSettings,
+  PipingPlacementMode,
   CreateNetworkConfig,
   CreateNodeConfig,
   CreateSegmentConfig,
 } from './pipingTypes';
-
-export type PipingPlacementMode = 'floor' | 'elevation' | 'snap';
-
-export interface PipingPlacementSettings {
-  mode: PipingPlacementMode;
-  defaultElevationMm: number;
-}
+import {
+  PIPING_DEFAULT_PLACEMENT_SETTINGS,
+  PIPING_PLACEMENT_STORAGE_KEY,
+} from './pipingDefaults';
 
 /**
  * Change listener callback type
  */
 type ChangeListener = () => void;
+
+type PlacementSettingsUpdate = Partial<PipingPlacementSettings> & {
+  defaultElevation?: number;
+};
 
 /**
  * Framework-agnostic piping store
@@ -36,12 +39,10 @@ class PipingStore {
     nodeId: null,
     segmentId: null,
   };
-  private placementSettings: PipingPlacementSettings = {
-    mode: 'floor',
-    defaultElevationMm: 0,
-  };
   private listeners: Set<ChangeListener> = new Set();
   private nextId = 1;
+  private placementSettings: PipingPlacementSettings =
+    this.loadPlacementSettings();
 
   // ============================================================================
   // SUBSCRIPTION API
@@ -387,45 +388,84 @@ class PipingStore {
   // ============================================================================
 
   /**
-   * Get placement settings for node placement UX
+   * Get the current placement settings
    */
   getPlacementSettings(): PipingPlacementSettings {
     return { ...this.placementSettings };
   }
 
   /**
-   * Update placement mode
+   * Convenience selector for placement mode
    */
-  setPlacementMode(mode: PipingPlacementMode): void {
-    if (this.placementSettings.mode === mode) {
-      return;
-    }
-
-    this.placementSettings = {
-      ...this.placementSettings,
-      mode,
-    };
-    this.notify();
+  getPlacementMode(): PipingPlacementMode {
+    return selectCurrentPlacementMode(this.placementSettings);
   }
 
   /**
-   * Update default elevation used for placement when in elevation mode
+   * Convenience selector for default elevation along Z
    */
-  setPlacementElevation(defaultElevationMm: number): void {
-    if (!Number.isFinite(defaultElevationMm)) {
+  getDefaultElevationZ(): number {
+    return selectDefaultElevationZ(this.placementSettings);
+  }
+
+  /**
+   * Resolve the elevation that should be used for the next placement
+   */
+  getEffectivePlacementElevation(floorZ: number | null): number {
+    return selectEffectiveElevationZ(this.placementSettings, floorZ);
+  }
+
+  /**
+   * Expose current snap reference Z (mostly for debugging/tests)
+   */
+  getSnapReferenceZ(): number | null {
+    return this.placementSettings.snapReferenceZ;
+  }
+
+  /**
+   * Set placement mode with validation
+   */
+  setPlacementMode(mode: PipingPlacementMode): void {
+    if (this.isValidPlacementMode(mode) === false) {
       return;
     }
 
-    const clamped = Math.max(0, Math.min(10000, Math.round(defaultElevationMm)));
-    if (clamped === this.placementSettings.defaultElevationMm) {
+    this.applyPlacementSettings({ mode });
+  }
+
+  /**
+   * Set the default elevation used by elevation modes
+   */
+  setDefaultElevationZ(elevationZ: number): void {
+    if (Number.isFinite(elevationZ) === false) {
       return;
     }
 
-    this.placementSettings = {
-      ...this.placementSettings,
-      defaultElevationMm: clamped,
-    };
-    this.notify();
+    const clamped = Math.max(0, elevationZ);
+    this.applyPlacementSettings({ defaultElevationZ: clamped });
+  }
+
+  /**
+   * Set or clear the snap reference elevation
+   */
+  setSnapReferenceZ(z: number | null): void {
+    if (z === null) {
+      this.applyPlacementSettings({ snapReferenceZ: null });
+      return;
+    }
+
+    if (Number.isFinite(z) === false) {
+      return;
+    }
+
+    this.applyPlacementSettings({ snapReferenceZ: z });
+  }
+
+  /**
+   * Reset placement settings back to defaults
+   */
+  resetPlacementSettings(): void {
+    this.applyPlacementSettings(this.cloneDefaultPlacementSettings());
   }
 
   // ============================================================================
@@ -478,18 +518,213 @@ class PipingStore {
    */
   clear(): void {
     this.networks.clear();
-    this.clearSelection();
-    this.placementSettings = {
-      mode: 'floor',
-      defaultElevationMm: 0,
+    this.selection = {
+      networkId: null,
+      nodeId: null,
+      segmentId: null,
     };
+    this.placementSettings = this.cloneDefaultPlacementSettings();
+    this.persistPlacementSettings(this.placementSettings);
     this.notify();
   }
 
   private generateId(prefix: string): string {
     return `${prefix}_${this.nextId++}_${Date.now()}`;
   }
+
+  private applyPlacementSettings(update: PlacementSettingsUpdate): void {
+    const next = this.normalizePlacementSettings({
+      ...this.placementSettings,
+      ...update,
+    });
+
+    if (this.havePlacementSettingsChanged(next) === false) {
+      return;
+    }
+
+    this.placementSettings = next;
+    this.persistPlacementSettings(next);
+    this.notify();
+  }
+
+  private cloneDefaultPlacementSettings(): PipingPlacementSettings {
+    return { ...PIPING_DEFAULT_PLACEMENT_SETTINGS };
+  }
+
+  private loadPlacementSettings(): PipingPlacementSettings {
+    const stored = this.readPlacementSettingsFromStorage();
+    if (stored !== null) {
+      return stored;
+    }
+
+    return this.cloneDefaultPlacementSettings();
+  }
+
+  private readPlacementSettingsFromStorage(): PipingPlacementSettings | null {
+    const storage = this.getStorage();
+    if (storage === null) {
+      return null;
+    }
+
+    const raw = storage.getItem(PIPING_PLACEMENT_STORAGE_KEY);
+    if (raw === null) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as PlacementSettingsUpdate;
+      if (typeof parsed !== 'object' || parsed === null) {
+        return null;
+      }
+
+      return this.normalizePlacementSettings({
+        ...PIPING_DEFAULT_PLACEMENT_SETTINGS,
+        ...parsed,
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  private normalizePlacementSettings(
+    settings: PlacementSettingsUpdate
+  ): PipingPlacementSettings {
+    const mode = settings.mode && this.isValidPlacementMode(settings.mode)
+      ? settings.mode
+      : PIPING_DEFAULT_PLACEMENT_SETTINGS.mode;
+
+    const elevationSource =
+      settings.defaultElevationZ ?? settings.defaultElevation;
+
+    const defaultElevationZ = Number.isFinite(elevationSource)
+      ? Math.max(0, elevationSource as number)
+      : PIPING_DEFAULT_PLACEMENT_SETTINGS.defaultElevationZ;
+
+    const snapCandidate =
+      settings.snapReferenceZ === undefined
+        ? PIPING_DEFAULT_PLACEMENT_SETTINGS.snapReferenceZ
+        : settings.snapReferenceZ;
+
+    const snapReferenceZ =
+      typeof snapCandidate === 'number' && Number.isFinite(snapCandidate)
+        ? snapCandidate
+        : null;
+
+    return {
+      mode,
+      defaultElevation: defaultElevationZ,
+      defaultElevationZ,
+      snapReferenceZ,
+    };
+  }
+
+  private havePlacementSettingsChanged(
+    next: PipingPlacementSettings
+  ): boolean {
+    return (
+      next.mode !== this.placementSettings.mode ||
+      next.defaultElevationZ !== this.placementSettings.defaultElevationZ ||
+      next.snapReferenceZ !== this.placementSettings.snapReferenceZ
+    );
+  }
+
+  private isValidPlacementMode(mode: string): mode is PipingPlacementMode {
+    if (mode === 'on_floor') {
+      return true;
+    }
+
+    if (mode === 'at_elevation') {
+      return true;
+    }
+
+    if (mode === 'snap_to_existing') {
+      return true;
+    }
+
+    return false;
+  }
+
+  private persistPlacementSettings(
+    settings: PipingPlacementSettings
+  ): void {
+    const storage = this.getStorage();
+    if (storage === null) {
+      return;
+    }
+
+    try {
+      storage.setItem(
+        PIPING_PLACEMENT_STORAGE_KEY,
+        JSON.stringify(settings)
+      );
+    } catch {
+      // Ignore storage errors (Safari private mode, etc.)
+    }
+  }
+
+  private getStorage(): Storage | null {
+    if (typeof globalThis === 'undefined') {
+      return null;
+    }
+
+    try {
+      const scopedGlobal = globalThis as { localStorage?: Storage };
+      return scopedGlobal.localStorage ?? null;
+    } catch {
+      return null;
+    }
+  }
 }
 
 // Singleton instance
 export const pipingStore = new PipingStore();
+
+function selectCurrentPlacementMode(
+  settings: PipingPlacementSettings
+): PipingPlacementMode {
+  return settings.mode;
+}
+
+function selectDefaultElevationZ(
+  settings: PipingPlacementSettings
+): number {
+  return settings.defaultElevationZ;
+}
+
+function selectEffectiveElevationZ(
+  settings: PipingPlacementSettings,
+  floorZ: number | null
+): number {
+  if (settings.mode === 'on_floor') {
+    if (isFiniteNumber(floorZ)) {
+      return floorZ;
+    }
+    return 0;
+  }
+
+  if (settings.mode === 'at_elevation') {
+    return settings.defaultElevationZ;
+  }
+
+  if (settings.mode === 'snap_to_existing') {
+    if (isFiniteNumber(settings.snapReferenceZ)) {
+      return settings.snapReferenceZ;
+    }
+    if (isFiniteNumber(floorZ)) {
+      return floorZ;
+    }
+    return settings.defaultElevationZ;
+  }
+
+  return settings.defaultElevationZ;
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+export {
+  selectCurrentPlacementMode as getCurrentPlacementMode,
+  selectDefaultElevationZ as getDefaultElevationZ,
+  selectEffectiveElevationZ as getEffectiveElevationZ,
+};
