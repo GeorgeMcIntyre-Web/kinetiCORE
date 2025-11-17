@@ -12,13 +12,36 @@ The **ToolingFixtureAnimator** provides a thin integration layer that connects t
 
 **Complete Flow:**
 ```
-GLB fixture
-  → Auto kinematics pipeline (ICP, pairing, joint extraction)
-  → Tooling JSON (same shape as 9X_110_GEO.json)
-  → toolingJsonToJoints()
-  → ValveBank + channels
-  → ToolingFixtureAnimator timeline
-  → visible clamp/pin motion in the scene
+┌─────────────────────────────────────────────────────────────────┐
+│                    TOOLING FIXTURE ANIMATOR                      │
+│                      Complete Pipeline Flow                     │
+└─────────────────────────────────────────────────────────────────┘
+
+INPUT: GLB Fixture File (e.g., 9X_110_GEO.glb)
+  │
+  ├─ Option 1: Precomputed JSON (Workflow A)
+  │   └─→ Tooling JSON File (9X_110_GEO.json)
+  │       └─→ ToolingFixtureAnimator (with toolingJson)
+  │
+  └─ Option 2: Extract from States (Workflow B/C)
+      └─→ Kinematic Extraction Panel
+          ├─→ Analyze Scene (detect tool units)
+          ├─→ Capture Retracted States
+          ├─→ Capture Extended States (manual positioning)
+          ├─→ Fit Joints (ICP alignment, joint extraction)
+          └─→ Export to Tooling JSON (optional, for reuse)
+              └─→ ToolingFixtureAnimator (with or without toolingJson)
+
+PROCESSING:
+  └─→ toolingJsonToJoints() [converts JSON to joint definitions]
+      └─→ ValveBank [creates channels for each joint]
+          └─→ JointMath [computes kinematics, limits, transforms]
+
+OUTPUT: Animated Fixture
+  └─→ Timeline Events (extend/retract/hold commands)
+      └─→ ValveBank.runTimeline()
+          └─→ Joint transformations applied to scene nodes
+              └─→ Visible clamp/pin motion in 3D scene
 ```
 
 ---
@@ -47,6 +70,136 @@ GLB fixture
 5. Capture extended states
 6. Fit joints
 7. Then use **Tooling Fixture Animator** to animate
+
+---
+
+## Complete User Workflow
+
+The ToolingFixtureAnimator pipeline supports three main workflows depending on your situation:
+
+**Quick Decision Tree:**
+```
+Do you have a tooling JSON file?
+├─ YES → Workflow A (Fastest - 30 sec)
+└─ NO → Do you want to extract once and reuse?
+    ├─ YES → Workflow B (Recommended - 5-10 min once, then 30 sec)
+    └─ NO → Workflow C (Full extraction - 5-10 min each time)
+```
+
+### Workflow A: You Have Precomputed Tooling JSON (Fastest) ⚡
+
+**Use Case:** You already have a tooling JSON file (e.g., from a previous extraction or external source).
+
+**Steps:**
+1. **Load GLB fixture** in kinetiCORE
+2. **Select fixture root node** in scene tree (e.g., `9X_110_GEO`)
+3. **Open Tooling Fixture Animator Panel**
+   - Click "Tooling Animator" button in Kinematics section
+4. **Load your tooling JSON file**
+   - The panel should allow loading JSON files
+   - Or use programmatic API (see below)
+5. **Click "Prepare & Play Demo"**
+   - System creates joints and channels from JSON
+   - Plays extend/retract cycle automatically
+
+**Time:** ~30 seconds (no extraction needed)
+
+**Programmatic:**
+```typescript
+import { ToolingFixtureAnimator } from './babylon/pipeline/ToolingFixtureAnimator';
+import { loadToolingJson } from './babylon/io/ToolingJsonAdapter';
+
+// Load JSON file
+const toolingJson = await loadToolingJson('path/to/9X_110_GEO.json');
+
+// Create animator
+const animator = new ToolingFixtureAnimator({
+  scene,
+  rootNode: fixtureRoot,
+  toolingJson, // Provide JSON directly
+});
+
+// Prepare and animate
+await animator.prepare();
+await animator.playDemoCycle();
+```
+
+---
+
+### Workflow B: Extract Once, Animate Many Times (Recommended) 🔄
+
+**Use Case:** You want to extract joints once, then iterate on animation quickly.
+
+**Phase 1: Extract Joints (One Time)**
+1. **Load GLB fixture** in kinetiCORE
+2. **Open Kinematic Extraction Panel** (Scan icon in toolbar)
+3. **Analyze scene**
+   - Click "Analyze Scene" to detect tool units
+4. **Capture retracted states**
+   - Parts should be in closed/retracted position
+   - Click "Capture Retracted States"
+5. **Manually position parts to extended state**
+   - Use transform tools to move clamps/pins to open position
+   - Ensure significant movement (>1cm) for good ICP alignment
+6. **Capture extended states**
+   - Click "Capture Extended States"
+7. **Fit joints**
+   - Click "Fit Joints" to run ICP alignment and joint extraction
+   - Review RMS errors (should be <1cm for good quality)
+8. **Export to tooling JSON**
+   - Save the extracted JSON file for reuse
+   - File format matches `9X_110_GEO.json` structure
+
+**Phase 2: Animate (Many Times)**
+1. **Load the same GLB fixture** (or reload if needed)
+2. **Select fixture root node**
+3. **Open Tooling Fixture Animator Panel**
+4. **Load the saved tooling JSON** from Phase 1
+5. **Click "Prepare & Play Demo"**
+   - Fast setup (no extraction needed)
+   - Iterate on animation timing, sequences, etc.
+
+**Time:** 
+- Phase 1: ~5-10 minutes (one-time setup)
+- Phase 2: ~30 seconds per iteration
+
+---
+
+### Workflow C: Full Automated Extraction (Most Flexible) 🎯
+
+**Use Case:** You want fully automated extraction without pre-saved JSON.
+
+**Steps:**
+1. **Load GLB fixture** in kinetiCORE
+2. **Open Kinematic Extraction Panel** (Scan icon)
+3. **Analyze scene** → Click "Analyze Scene"
+4. **Capture retracted states** → Click "Capture Retracted States"
+5. **Manually position parts to extended state**
+   - Move clamps/pins to open position using transform tools
+6. **Capture extended states** → Click "Capture Extended States"
+7. **Fit joints** → Click "Fit Joints"
+   - Review RMS errors in console/logs
+8. **Open Tooling Fixture Animator Panel**
+9. **Click "Auto-fit joints & play demo"**
+   - System uses captured states to extract joints
+   - Creates ValveBank channels
+   - Plays demo cycle
+
+**Time:** ~5-10 minutes (extraction happens each time)
+
+**Note:** This workflow requires states to be captured before using ToolingFixtureAnimator. The animator will automatically use the captured states if no `toolingJson` is provided.
+
+---
+
+## Workflow Comparison
+
+| Workflow | Setup Time | Best For | Requires |
+|----------|------------|----------|----------|
+| **A: Precomputed JSON** | 30 sec | Quick demos, known fixtures | Tooling JSON file |
+| **B: Extract Once** | 5-10 min (once) | Development, iteration | State capture (once) |
+| **C: Full Extraction** | 5-10 min (each) | New fixtures, exploration | State capture (each time) |
+
+**Recommendation:** Use **Workflow B** for development - extract once, animate many times.
 
 ---
 

@@ -181,11 +181,11 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
         console.log(`  - ${childName} (${childMeshCount} meshes)`);
       });
 
-      // Use geometry-based analyzer (ICP matching - ROBUST to naming changes)
-      console.log('[KinematicExtractionPanel] Using geometry-based analyzer (ICP matching)');
+      // Use structure-based analyzer (hierarchy structure - ROBUST, name-agnostic)
+      console.log('[KinematicExtractionPanel] Using structure-based analyzer (hierarchy structure, name-agnostic)');
 
       const graph = await activePipeline.analyzeScene(
-        { analysisMethod: 'geometry-based', geometryBased: { verbose: true } },
+        { analysisMethod: 'structure-based', structureBased: { verbose: true, minUnitCount: 2 } },
         rootBabylonNode
       );
 

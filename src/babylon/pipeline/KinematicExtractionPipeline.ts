@@ -2,6 +2,7 @@ import * as BABYLON from '@babylonjs/core';
 import { GeometricToolAnalyzer, type GeometricAnalyzeOptions } from '../sceneAnalysis/GeometricToolAnalyzer';
 import { NameBasedToolAnalyzer, type NameBasedAnalyzeOptions } from '../sceneAnalysis/NameBasedToolAnalyzer';
 import { GeometryBasedToolAnalyzer, type GeometryBasedAnalyzeOptions } from '../sceneAnalysis/GeometryBasedToolAnalyzer';
+import { StructureBasedToolAnalyzer, type StructureBasedAnalyzeOptions } from '../sceneAnalysis/StructureBasedToolAnalyzer';
 import type { ToolGraph, ToolUnit } from '../sceneAnalysis/ToolGraphAnalyzer';
 import { StateCapture, type CapturedStateSnapshot } from '../stateCapture/StateCapture';
 import { ICP, type ICPOptions, type ICPResult } from '../pointCloud/ICP';
@@ -24,8 +25,8 @@ import { SceneTreeManager } from '../../scene/SceneTreeManager';
  * Configuration for the complete kinematic extraction pipeline.
  */
 export interface PipelineOptions {
-  /** Analysis method: 'geometry-based' (ICP matching - ROBUST), 'name-based' (string matching - BRITTLE), or 'geometric' (heuristic - FALLBACK) */
-  analysisMethod?: 'geometry-based' | 'name-based' | 'geometric';
+  /** Analysis method: 'structure-based' (hierarchy structure - ROBUST), 'geometry-based' (ICP matching - ROBUST), 'name-based' (string matching - BRITTLE), or 'geometric' (heuristic - FALLBACK) */
+  analysisMethod?: 'structure-based' | 'geometry-based' | 'name-based' | 'geometric';
 
   /** Geometric analysis options (used when analysisMethod = 'geometric') */
   geometric?: GeometricAnalyzeOptions;
@@ -35,6 +36,9 @@ export interface PipelineOptions {
 
   /** Geometry-based analysis options (used when analysisMethod = 'geometry-based') */
   geometryBased?: GeometryBasedAnalyzeOptions;
+
+  /** Structure-based analysis options (used when analysisMethod = 'structure-based') */
+  structureBased?: StructureBasedAnalyzeOptions;
 
   /** ICP alignment options */
   icp?: ICPOptions;
@@ -79,6 +83,7 @@ const DEFAULT_PIPELINE_OPTIONS: Required<PipelineOptions> = {
   geometric: {},
   nameBased: {},
   geometryBased: {},
+  structureBased: {},
   icp: {
     enableDebug: true, // Enable detailed ICP debugging by default
   },
@@ -176,6 +181,7 @@ export class KinematicExtractionPipeline {
   private geometricAnalyzer: GeometricToolAnalyzer;
   private nameBasedAnalyzer: NameBasedToolAnalyzer;
   private geometryBasedAnalyzer: GeometryBasedToolAnalyzer;
+  private structureBasedAnalyzer: StructureBasedToolAnalyzer;
   private stateCapture: StateCapture;
 
   private toolGraph: ToolGraph | null = null;
@@ -187,6 +193,7 @@ export class KinematicExtractionPipeline {
     this.geometricAnalyzer = new GeometricToolAnalyzer();
     this.nameBasedAnalyzer = new NameBasedToolAnalyzer();
     this.geometryBasedAnalyzer = new GeometryBasedToolAnalyzer();
+    this.structureBasedAnalyzer = new StructureBasedToolAnalyzer();
     this.stateCapture = new StateCapture();
   }
 
@@ -216,7 +223,18 @@ export class KinematicExtractionPipeline {
 
     const method = pipelineOpts.analysisMethod || 'geometric';
 
-    if (method === 'geometry-based') {
+    if (method === 'structure-based') {
+      if (!rootNode) {
+        throw new Error('[Pipeline] Structure-based analysis requires a rootNode parameter');
+      }
+
+      console.log(`[Pipeline] Using structure-based analyzer (hierarchy structure - ROBUST, name-agnostic)`);
+      this.toolGraph = await this.structureBasedAnalyzer.analyze(
+        this.scene,
+        pipelineOpts.structureBased,
+        rootNode
+      );
+    } else if (method === 'geometry-based') {
       if (!rootNode) {
         throw new Error('[Pipeline] Geometry-based analysis requires a rootNode parameter');
       }
