@@ -398,22 +398,68 @@ export const PipingInspector: React.FC = () => {
                 >
                   Y (Elevation, m)
                 </label>
-                <input
-                  id="node-pos-y"
-                  type="number"
-                  step="0.1"
-                  value={selectedNode.position.y}
-                  onChange={(e) => handleNodePositionChange('y', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '6px 8px',
-                    backgroundColor: '#0f172a',
-                    border: '1px solid #334155',
-                    borderRadius: '4px',
-                    color: '#f1f5f9',
-                    fontSize: '13px',
-                  }}
-                />
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newVal = Math.max(0, selectedNode.position.y - 0.5);
+                      handleNodePositionChange('y', newVal.toString());
+                    }}
+                    style={{
+                      padding: '4px 6px',
+                      backgroundColor: '#334155',
+                      border: '1px solid #475569',
+                      borderRadius: '3px',
+                      color: '#f1f5f9',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      minWidth: '32px',
+                    }}
+                    title="Move down 0.5m"
+                  >
+                    ↓
+                  </button>
+                  <input
+                    id="node-pos-y"
+                    data-testid="node-elevation-display"
+                    type="number"
+                    step="0.1"
+                    value={selectedNode.position.y}
+                    onChange={(e) => handleNodePositionChange('y', e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: '6px 8px',
+                      backgroundColor: '#0f172a',
+                      border: '1px solid #334155',
+                      borderRadius: '4px',
+                      color: '#f1f5f9',
+                      fontSize: '13px',
+                      textAlign: 'center',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newVal = selectedNode.position.y + 0.5;
+                      handleNodePositionChange('y', newVal.toString());
+                    }}
+                    style={{
+                      padding: '4px 6px',
+                      backgroundColor: '#334155',
+                      border: '1px solid #475569',
+                      borderRadius: '3px',
+                      color: '#f1f5f9',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      minWidth: '32px',
+                    }}
+                    title="Move up 0.5m"
+                  >
+                    ↑
+                  </button>
+                </div>
               </div>
               <div style={{ flex: 1 }}>
                 <label
