@@ -15,6 +15,8 @@ export class PipingWorkflowHandler {
   private scene: BABYLON.Scene | null = null;
   private pipingSceneService: PipingSceneService | null = null;
   private pendingSourceNodeId: string | null = null;
+  private ghostPreviewMesh: BABYLON.Mesh | null = null;
+  private elevationIndicator: BABYLON.Mesh | null = null;
 
   /**
    * Initialize the handler with scene and piping scene service
@@ -31,6 +33,17 @@ export class PipingWorkflowHandler {
    */
   dispose(): void {
     this.pendingSourceNodeId = null;
+
+    // Dispose preview meshes
+    if (this.ghostPreviewMesh) {
+      this.ghostPreviewMesh.dispose();
+      this.ghostPreviewMesh = null;
+    }
+    if (this.elevationIndicator) {
+      this.elevationIndicator.dispose();
+      this.elevationIndicator = null;
+    }
+
     // Note: Scene listeners are automatically cleaned up when scene is disposed
   }
 
@@ -43,11 +56,22 @@ export class PipingWorkflowHandler {
     }
 
     this.scene.onPointerObservable.add((pointerInfo) => {
+      const pipingModeEnabled = useEditorStore.getState().pipingModeEnabled;
+
+      // Handle pointer move for ghost preview
+      if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERMOVE) {
+        if (pipingModeEnabled && !this.pendingSourceNodeId) {
+          this.updateGhostPreview(pointerInfo);
+        } else {
+          this.hideGhostPreview();
+        }
+        return;
+      }
+
       if (pointerInfo.type !== BABYLON.PointerEventTypes.POINTERPICK) {
         return;
       }
 
-      const pipingModeEnabled = useEditorStore.getState().pipingModeEnabled;
       if (!pipingModeEnabled) {
         return;
       }
@@ -68,6 +92,73 @@ export class PipingWorkflowHandler {
 
       this.handleNodePlacement(pointerInfo);
     });
+  }
+
+  /**
+   * Update ghost preview mesh at cursor position
+   */
+  private updateGhostPreview(pointerInfo: BABYLON.PointerInfo): void {
+    if (!this.scene || !pointerInfo.pickInfo?.pickedPoint) {
+      this.hideGhostPreview();
+      return;
+    }
+
+    const pickedPoint = pointerInfo.pickInfo.pickedPoint;
+    const floorCandidate = pickedPoint.y;
+    const elevation = pipingStore.getEffectivePlacementElevation(floorCandidate);
+
+    // Create ghost preview if it doesn't exist
+    if (!this.ghostPreviewMesh) {
+      this.ghostPreviewMesh = BABYLON.MeshBuilder.CreateSphere(
+        'pipingGhostPreview',
+        { diameter: 0.15, segments: 8 },
+        this.scene
+      );
+
+      const material = new BABYLON.StandardMaterial('ghostMaterial', this.scene);
+      material.diffuseColor = new BABYLON.Color3(0.024, 0.714, 0.831); // Cyan
+      material.alpha = 0.5;
+      material.emissiveColor = new BABYLON.Color3(0.024, 0.714, 0.831);
+      this.ghostPreviewMesh.material = material;
+      this.ghostPreviewMesh.isPickable = false;
+    }
+
+    // Create elevation indicator plane if it doesn't exist
+    if (!this.elevationIndicator) {
+      this.elevationIndicator = BABYLON.MeshBuilder.CreateDisc(
+        'elevationIndicator',
+        { radius: 0.2, tessellation: 24 },
+        this.scene
+      );
+      this.elevationIndicator.rotation.x = Math.PI / 2;
+
+      const ringMaterial = new BABYLON.StandardMaterial('elevationRingMaterial', this.scene);
+      ringMaterial.diffuseColor = new BABYLON.Color3(0.024, 0.714, 0.831);
+      ringMaterial.alpha = 0.3;
+      ringMaterial.emissiveColor = new BABYLON.Color3(0.024, 0.714, 0.831);
+      this.elevationIndicator.material = ringMaterial;
+      this.elevationIndicator.isPickable = false;
+    }
+
+    // Update positions
+    this.ghostPreviewMesh.position.set(pickedPoint.x, elevation, pickedPoint.z);
+    this.elevationIndicator.position.set(pickedPoint.x, elevation, pickedPoint.z);
+
+    // Show the previews
+    this.ghostPreviewMesh.setEnabled(true);
+    this.elevationIndicator.setEnabled(true);
+  }
+
+  /**
+   * Hide ghost preview meshes
+   */
+  private hideGhostPreview(): void {
+    if (this.ghostPreviewMesh) {
+      this.ghostPreviewMesh.setEnabled(false);
+    }
+    if (this.elevationIndicator) {
+      this.elevationIndicator.setEnabled(false);
+    }
   }
 
   /**

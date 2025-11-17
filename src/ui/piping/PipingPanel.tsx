@@ -308,25 +308,69 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
             htmlFor="placement-elevation-input"
             style={{ fontSize: '12px', color: '#94a3b8' }}
           >
-            Default Elevation Z (scene units)
+            Elevation (meters, Z-axis)
           </label>
-          <input
-            id="placement-elevation-input"
-            type="number"
-            min={0}
-            step={0.1}
-            value={placementSettings.defaultElevationZ}
-            onChange={(event) => handleDefaultElevationChange(event.target.value)}
-            style={{
-              width: '100%',
-              padding: '6px 8px',
-              backgroundColor: '#0f172a',
-              border: '1px solid #334155',
-              borderRadius: '4px',
-              color: '#f1f5f9',
-              fontSize: '13px',
-            }}
-          />
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => {
+                const newVal = Math.max(0, placementSettings.defaultElevationZ - 0.5);
+                pipingStore.setDefaultElevationZ(newVal);
+              }}
+              style={{
+                padding: '6px 10px',
+                backgroundColor: '#334155',
+                border: '1px solid #475569',
+                borderRadius: '4px',
+                color: '#f1f5f9',
+                fontSize: '13px',
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
+              title="Decrease elevation by 0.5m"
+            >
+              −0.5
+            </button>
+            <input
+              id="placement-elevation-input"
+              data-testid="placement-elevation-input"
+              type="number"
+              min={0}
+              step={0.1}
+              value={placementSettings.defaultElevationZ}
+              onChange={(event) => handleDefaultElevationChange(event.target.value)}
+              style={{
+                flex: 1,
+                padding: '6px 8px',
+                backgroundColor: '#0f172a',
+                border: '1px solid #334155',
+                borderRadius: '4px',
+                color: '#f1f5f9',
+                fontSize: '13px',
+                textAlign: 'center',
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const newVal = placementSettings.defaultElevationZ + 0.5;
+                pipingStore.setDefaultElevationZ(newVal);
+              }}
+              style={{
+                padding: '6px 10px',
+                backgroundColor: '#334155',
+                border: '1px solid #475569',
+                borderRadius: '4px',
+                color: '#f1f5f9',
+                fontSize: '13px',
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
+              title="Increase elevation by 0.5m"
+            >
+              +0.5
+            </button>
+          </div>
           <div style={{ fontSize: '11px', color: '#94a3b8' }}>
             Defaults: {PIPING_DEFAULT_PLACEMENT_SETTINGS.mode.replace('_', ' ')} •{' '}
             {PIPING_DEFAULT_PLACEMENT_SETTINGS.defaultElevationZ.toFixed(1)} units
