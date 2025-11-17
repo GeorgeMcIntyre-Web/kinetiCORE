@@ -127,10 +127,10 @@ export class PipingSceneService {
     let mesh = this.nodeMeshes.get(node.id);
 
     if (mesh === undefined) {
-      // Create new node mesh (small sphere)
+      // Create new node mesh (visible sphere - increased size for usability)
       mesh = BABYLON.MeshBuilder.CreateSphere(
         `piping_node_${node.id}`,
-        { diameter: 0.1 },
+        { diameter: 0.5 }, // Increased from 0.1 to 0.5 meters for better visibility and clicking
         this.scene
       );
 
