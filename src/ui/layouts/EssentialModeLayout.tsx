@@ -55,6 +55,7 @@ import { ICPTestPanel } from '../components/ICPTestPanel';
 import { FloatingPhysicsPanel } from '../components/FloatingPhysicsPanel';
 import { FloatingCollisionPanel } from '../components/FloatingCollisionPanel';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
+import { PipingPanel } from '../piping/PipingPanel';
 import { MoveObjectDialog } from '../components/MoveObjectDialog';
 import { SnapSettingsDialog } from '../components/SnapSettingsDialog';
 import { SnapSetupPopup } from '../components/SnapSetupPopup';
@@ -1347,6 +1348,11 @@ export const EssentialModeLayout: React.FC = () => {
         isVisible={showSettingsPanel}
         onClose={() => setShowSettingsPanel(false)}
         zIndex={1009}
+      />
+
+      <PipingPanel
+        isVisible={useEditorStore((state) => state.pipingModeEnabled)}
+        onClose={() => useEditorStore.getState().setPipingModeEnabled(false)}
       />
 
       <WarehousePanel

@@ -118,6 +118,18 @@ export interface RouteConstraints {
   supportSpacing: number;
   /** Clearance requirements */
   clearance: ClearanceRequirements;
+  /** Maximum allowed elevation change between consecutive nodes (meters) */
+  maxElevationDelta?: number;
+  /** Maximum total elevation span for the route (meters) */
+  maxElevationSpan?: number;
+  /** Whether mixing floor-level and elevated segments is allowed */
+  allowMixedElevation?: boolean;
+  /** Minimum waypoint count required when mixing elevations */
+  minNodesForMixedElevation?: number;
+  /** Minimum waypoint count for a valid route */
+  minNodeCount?: number;
+  /** Tolerance for determining whether a waypoint is on the floor plane */
+  floorSnapTolerance?: number;
 }
 
 /**
@@ -147,7 +159,13 @@ export interface Route {
 /**
  * Constraint violation types
  */
-export type ViolationType = 'bend_radius' | 'clearance' | 'support_spacing' | 'length';
+export type ViolationType =
+  | 'bend_radius'
+  | 'clearance'
+  | 'support_spacing'
+  | 'length'
+  | 'elevation'
+  | 'topology';
 
 /**
  * Severity levels for constraint violations

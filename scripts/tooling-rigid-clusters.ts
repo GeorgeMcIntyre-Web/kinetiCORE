@@ -25,7 +25,7 @@ type MeshNodeInfo = {
   bbox: BBox;
 };
 
-type Cluster = {
+type _Cluster = {
   id: number;
   meshIds: number[];
   name: string;
@@ -630,7 +630,7 @@ function classifyClusters(clusters: InternalCluster[]): TypedCluster[] {
  *  - overlap in XY
  *  - have a small vertical gap
  */
-function growBaseStacks(
+function _growBaseStacks(
   clusters: TypedCluster[],
   seeds: TypedCluster[]
 ): BaseStack[] {
@@ -691,7 +691,7 @@ function growBaseStacks(
  * Merge base stacks that are close together in XY to create larger base areas.
  * This helps the large plate cluster overlap with the combined base.
  */
-function mergeNearbyBaseStacks(stacks: BaseStack[]): BaseStack[] {
+function _mergeNearbyBaseStacks(stacks: BaseStack[]): BaseStack[] {
   if (stacks.length <= 1) return stacks;
   
   const mergeDistance = 1.0; // 1m - merge stacks within this XY distance
@@ -736,7 +736,7 @@ function mergeNearbyBaseStacks(stacks: BaseStack[]): BaseStack[] {
   return result;
 }
 
-/** Attach all non-base clusters to the base stack they sit on. */
+/* Attach all non-base clusters to the base stack they sit on.
 function attachUnitsToBases(
   clusters: TypedCluster[],
   baseStacks: BaseStack[]
@@ -821,7 +821,7 @@ function xyOverlapFractionFromBbox(
 }
 */
 
-function fallbackClassification(clusters: InternalCluster[]): TypedCluster[] {
+function _fallbackClassification(clusters: InternalCluster[]): TypedCluster[] {
   const maxArea = Math.max(...clusters.map(c => c.areaXY));
   const heights = clusters.map(c => c.height);
   const medianH = median(heights);
@@ -917,7 +917,7 @@ function bboxGap(a: BBox, b: BBox): number {
   return Math.sqrt(gapX * gapX + gapY * gapY + gapZ * gapZ);
 }
 
-function xyOverlapFraction(a: BBox, b: BBox): number {
+function _xyOverlapFraction(a: BBox, b: BBox): number {
   const minX = Math.max(a.min[0], b.min[0]);
   const maxX = Math.min(a.max[0], b.max[0]);
   const minZ = Math.max(a.min[2], b.min[2]);
@@ -933,7 +933,7 @@ function xyOverlapFraction(a: BBox, b: BBox): number {
   return overlapArea / denom;
 }
 
-function xyOverlapFractionCluster(a: InternalCluster, b: InternalCluster): number {
+function _xyOverlapFractionCluster(a: InternalCluster, b: InternalCluster): number {
   const axMin = a.bbox.min[0];
   const axMax = a.bbox.max[0];
   const azMin = a.bbox.min[2];

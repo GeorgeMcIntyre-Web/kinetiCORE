@@ -1,7 +1,6 @@
 #!/usr/bin/env ts-node
 
 import { NodeIO, Document, Mesh, Node, Primitive, Accessor } from '@gltf-transform/core';
-import * as path from 'node:path';
 
 type Vec3 = [number, number, number];
 

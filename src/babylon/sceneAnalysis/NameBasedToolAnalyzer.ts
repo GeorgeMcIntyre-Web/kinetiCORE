@@ -160,7 +160,7 @@ export class NameBasedToolAnalyzer {
         console.log(`[NameBasedToolAnalyzer] Analyzing unit: ${unitName}`);
       }
 
-      let sides = this.findSideNodes(unitNode, opts);
+      const sides = this.findSideNodes(unitNode, opts);
 
       // If no explicit side nodes, try to infer by scanning descendants
       if (sides.length === 0) {

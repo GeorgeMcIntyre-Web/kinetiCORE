@@ -6,7 +6,6 @@
 // Requires: npm i @gltf-transform/core
 
 import { NodeIO } from '@gltf-transform/core';
-import path from 'node:path';
 import fs from 'node:fs';
 
 type BBox = { min: [number, number, number]; max: [number, number, number] };
@@ -55,11 +54,11 @@ if (!glbPathFromCli) {
         throw new Error('Invalid GLB file');
       }
       
-      const version = view.getUint32(4, true);
-      const totalLength = view.getUint32(8, true);
+      const _version = view.getUint32(4, true);
+      const _totalLength = view.getUint32(8, true);
       
       // First chunk is JSON (usually)
-      let offset = 12;
+      const offset = 12;
       const jsonChunkLength = view.getUint32(offset, true);
       const jsonChunkType = view.getUint32(offset + 4, true);
       

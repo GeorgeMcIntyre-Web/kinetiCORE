@@ -1,3 +1,4 @@
+/* eslint-disable */
 // @ts-nocheck - Work in progress: Missing methods in InverseKinematicsSolver
 /**
  * Trajectory Optimizer

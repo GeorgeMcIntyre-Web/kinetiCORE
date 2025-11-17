@@ -828,7 +828,7 @@ export async function showEmbeddedInspector(
 }
 
 function adopt(host: HTMLElement) {
-  let root = host.querySelector(Q) || document.querySelector(Q);
+  const root = host.querySelector(Q) || document.querySelector(Q);
   if (!root) {
     // Only log if we're actively looking for it (not on every mutation)
     return;

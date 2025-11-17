@@ -6,7 +6,7 @@
  */
 
 import * as BABYLON from '@babylonjs/core';
-import { ToolingConfig, DEFAULT_TOOLING_CONFIG } from './ToolingConfig';
+import { ToolingConfig } from './ToolingConfig';
 import { ToolingFileJson } from '../../babylon/io/ToolingJsonAdapter';
 
 export interface ToolingJointDefinition {

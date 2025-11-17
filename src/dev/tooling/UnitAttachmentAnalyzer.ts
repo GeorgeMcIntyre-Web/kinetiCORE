@@ -6,7 +6,7 @@
  */
 
 import * as BABYLON from '@babylonjs/core';
-import { ToolingSceneExplorer, UnitCandidate, RigidCluster } from './ToolingSceneExplorer';
+import { ToolingSceneExplorer, UnitCandidate } from './ToolingSceneExplorer';
 
 export interface UnitAttachment {
   unitId: string;
@@ -17,7 +17,6 @@ export interface UnitAttachment {
 
 export class UnitAttachmentAnalyzer {
   constructor(
-    private scene: BABYLON.Scene,
     private explorer: ToolingSceneExplorer
   ) {}
 

@@ -917,7 +917,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
             const lastValue = currentRad[actuated.length - 1] + (targetRad[actuated.length - 1] - currentRad[actuated.length - 1]) * t;
             fkSolver.updateJointPosition(lastJoint.id, lastValue, true);
 
-            // eslint-disable-next-line no-await-in-loop
+             
             await sleep(stepDelay);
           }
         } else if (target.motionType === 'LINEAR' && target.cartesian) {
@@ -943,7 +943,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
               const lastValue = currentRad[actuated.length - 1] + (targetRad[actuated.length - 1] - currentRad[actuated.length - 1]) * t;
               fkSolver.updateJointPosition(lastJoint.id, lastValue, true);
 
-              // eslint-disable-next-line no-await-in-loop
+               
               await sleep(stepDelay);
             }
           } else {
@@ -974,7 +974,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
                 currentPose.position.copyFrom(newPose.position);
               }
 
-              // eslint-disable-next-line no-await-in-loop
+               
               await sleep(stepDelay);
             }
           }
@@ -997,13 +997,13 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
             const lastValue = currentRad[actuated.length - 1] + (targetRad[actuated.length - 1] - currentRad[actuated.length - 1]) * t;
             fkSolver.updateJointPosition(lastJoint.id, lastValue, true);
 
-            // eslint-disable-next-line no-await-in-loop
+             
             await sleep(stepDelay);
           }
         }
 
         // Short dwell between targets
-        // eslint-disable-next-line no-await-in-loop
+         
         await sleep(150);
       }
     } catch (err) {

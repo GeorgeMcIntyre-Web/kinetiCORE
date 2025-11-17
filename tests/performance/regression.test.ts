@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { benchmark, benchmarkSuite } from '@utils/benchmark';
+import { benchmark } from '@utils/benchmark';
 import { performanceMetrics } from '@core/PerformanceMetrics';
 
 // Performance targets from project requirements

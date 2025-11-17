@@ -66,7 +66,7 @@ interface SnapCache {
  * Transform local vertex to world space
  * @deprecated Unused - kept for potential future use
  */
-// @ts-ignore - Unused but kept for potential future use
+// @ts-expect-error - Unused but kept for potential future use
 function toWorld(_v: BABYLON.Vector3, _worldMatrix: BABYLON.Matrix): BABYLON.Vector3 {
   if (!_v || !_worldMatrix) return _v;
   return BABYLON.Vector3.TransformCoordinates(_v, _worldMatrix);
@@ -387,7 +387,7 @@ export function fitCircleToPoints(
     // We use an iterative approach: calculate center as weighted average, where weights favor points closer to current radius estimate
     if (inliers.length >= 3) {
       // Calculate weighted center based on how close each point is to the median radius
-      let weightedSum = BABYLON.Vector3.Zero();
+      const weightedSum = BABYLON.Vector3.Zero();
       let totalWeight = 0;
       
       for (const p of inliers) {

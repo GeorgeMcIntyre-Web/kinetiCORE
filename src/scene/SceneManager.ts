@@ -11,6 +11,8 @@ import { LightingService } from './services/LightingService';
 import { CameraService } from './services/CameraService';
 import { TargetingWidget } from './TargetingWidget';
 import { inspectorService } from '../services/InspectorService';
+import { PipingSceneService } from '../services/piping/PipingSceneService';
+import { PipingWorkflowHandler } from '../services/piping/PipingWorkflowHandler';
 
 export class SceneManager {
   private static instance: SceneManager | null = null;
@@ -32,6 +34,8 @@ export class SceneManager {
   private engineService: EngineService;
   private lightingService: LightingService;
   private cameraService: CameraService;
+  private pipingSceneService: PipingSceneService | null = null;
+  private pipingWorkflowHandler: PipingWorkflowHandler | null = null;
 
   private constructor() {
     this.engineService = EngineService.getInstance();
@@ -146,6 +150,12 @@ export class SceneManager {
 
     // Initialize targeting widget
     this.targetingWidget = new TargetingWidget(this.scene);
+
+    // Initialize piping scene service and workflow handler
+    this.pipingSceneService = new PipingSceneService(this.scene);
+    this.pipingSceneService.start();
+    this.pipingWorkflowHandler = new PipingWorkflowHandler();
+    this.pipingWorkflowHandler.initialize(this.scene, this.pipingSceneService);
 
     // Start render loop
     this.cameraService.startRenderLoop(this.scene);
@@ -834,6 +844,18 @@ export class SceneManager {
   }
 
   dispose(): void {
+    // Dispose piping workflow handler first
+    if (this.pipingWorkflowHandler !== null) {
+      this.pipingWorkflowHandler.dispose();
+      this.pipingWorkflowHandler = null;
+    }
+
+    // Dispose piping scene service
+    if (this.pipingSceneService !== null) {
+      this.pipingSceneService.stop();
+      this.pipingSceneService = null;
+    }
+
     this.scene?.dispose();
     this.scene = null;
     this.ground = null;

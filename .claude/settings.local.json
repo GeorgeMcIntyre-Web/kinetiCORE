@@ -37,7 +37,9 @@
       "Bash(npm run dev:ui:*)",
       "Bash(git stash:*)",
       "Bash(git revert:*)",
-      "Bash(\"c:\\Users\\georgem\\source\\repos\\kinetiCORE\\docs\\UNIT_PAIR_FINDER_GUIDE.md\")"
+      "Bash(\"c:\\Users\\georgem\\source\\repos\\kinetiCORE\\docs\\UNIT_PAIR_FINDER_GUIDE.md\")",
+      "Bash(git for-each-ref:*)",
+      "Bash(git branch:*)"
     ],
     "deny": [],
     "ask": []

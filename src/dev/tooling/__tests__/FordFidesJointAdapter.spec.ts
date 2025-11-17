@@ -9,7 +9,7 @@ import { FordFidesJointAdapter } from '../JointAdapters';
 import type { ToolingMetadata, MechanicalModel } from '../JointAdapters';
 
 describe('FordFidesJointAdapter', () => {
-  const adapter = new FordFidesJointAdapter();
+  const _adapter = new FordFidesJointAdapter();
 
   describe('canHandle', () => {
     it('returns true for Ford Fides JSON format', () => {
@@ -33,15 +33,15 @@ describe('FordFidesJointAdapter', () => {
         },
       ]);
 
-      const meta: ToolingMetadata = {
+      const _meta: ToolingMetadata = {
         fixtureId: 'test_fixture',
         glbPath: '/path/to/test.glb',
         auxJsonPaths: ['/path/to/test.json'],
       };
 
       // Mock fs.existsSync and readFileSync
-      const originalRequire = require;
-      const mockFs = {
+      const _originalRequire = require;
+      const _mockFs = {
         existsSync: (path: string) => path === '/path/to/test.json',
         readFileSync: (path: string) => {
           if (path === '/path/to/test.json') return fordFidesJson;
@@ -114,7 +114,7 @@ describe('FordFidesJointAdapter', () => {
         },
       ];
 
-      const model: MechanicalModel = {
+      const _model: MechanicalModel = {
         nodes: [],
         meshes: [],
         clusters: [
@@ -133,7 +133,7 @@ describe('FordFidesJointAdapter', () => {
       };
 
       // Create a test adapter instance
-      const testAdapter = new FordFidesJointAdapter();
+      const _testAdapter = new FordFidesJointAdapter();
       
       // Note: loadJoints requires file I/O, so we test the parsing logic manually
       // In a real test, we'd mock the file system

@@ -12,6 +12,14 @@ import {
 } from '../core/types';
 import { ConstraintValidator } from '../pathfinding/ConstraintValidator';
 
+const DEFAULT_MIN_NODE_COUNT = 2;
+const DEFAULT_MAX_ELEVATION_DELTA = 1.5; // meters
+const DEFAULT_MAX_ELEVATION_SPAN = 6; // meters
+const DEFAULT_MIN_NODES_FOR_MIXED = 3;
+const DEFAULT_FLOOR_SNAP_TOLERANCE = 0.05; // 50mm
+const MIN_SEGMENT_LENGTH_TOLERANCE = 0.01; // 10mm
+const ORIGIN_VECTOR: Vector3 = { x: 0, y: 0, z: 0 };
+
 /**
  * Enhanced validation result with segment-specific violations
  */
@@ -60,12 +68,18 @@ export class RouteValidator extends ConstraintValidator {
     const violations: ConstraintViolation[] = [];
     const segmentViolations = new Map<string, ConstraintViolation[]>();
 
-    // Run base validation
+      // Run base validation
     const baseResult = this.validateRoute(route, obstacles);
     violations.push(...baseResult.violations);
 
+      // Detect degenerate geometry before other checks
+      violations.push(...this.checkDegenerateSegments(route, segmentViolations));
+
     // Check route length
     violations.push(...this.checkRouteLength(route));
+
+      // Check elevation transitions and node counts
+      violations.push(...this.checkElevationRules(route));
 
     // Check connection point compatibility
     violations.push(...this.checkConnectionPoints(route));
@@ -99,7 +113,62 @@ export class RouteValidator extends ConstraintValidator {
     };
   }
 
-  /**
+  private checkDegenerateSegments(
+    route: Route,
+    segmentViolations: Map<string, ConstraintViolation[]>
+  ): ConstraintViolation[] {
+    const violations: ConstraintViolation[] = [];
+
+    for (const segment of route.segments) {
+      if (segment.length > MIN_SEGMENT_LENGTH_TOLERANCE) {
+        continue;
+      }
+
+      const violation: ConstraintViolation = {
+        type: 'topology',
+        severity: 'error',
+        location: { ...segment.startPoint },
+        message: `Segment "${segment.id}" has zero or near-zero length (${segment.length.toFixed(3)}m).`,
+      };
+
+      violations.push(violation);
+      this.appendSegmentViolation(segmentViolations, segment.id, violation);
+    }
+
+    return violations;
+  }
+
+  private appendSegmentViolation(
+    segmentViolations: Map<string, ConstraintViolation[]>,
+    segmentId: string,
+    violation: ConstraintViolation
+  ): void {
+    if (!segmentViolations.has(segmentId)) {
+      segmentViolations.set(segmentId, []);
+    }
+    segmentViolations.get(segmentId)!.push(violation);
+  }
+
+  private checkElevationRules(route: Route): ConstraintViolation[] {
+    const waypoints = route.getWaypoints();
+    const options = this.getElevationRuleOptions(route);
+    const result = evaluateElevationProfile(waypoints, options);
+    return result.violations;
+  }
+
+  private getElevationRuleOptions(route: Route): ElevationRuleOptions {
+    const constraints = route.constraints ?? ({} as RouteConstraints);
+    return {
+      maxElevationDelta: constraints.maxElevationDelta,
+      maxElevationSpan: constraints.maxElevationSpan,
+      allowMixedElevation: constraints.allowMixedElevation ?? true,
+      minNodesForMixedElevation: constraints.minNodesForMixedElevation,
+      minNodeCount: constraints.minNodeCount,
+      floorSnapTolerance: constraints.floorSnapTolerance,
+    };
+  }
+
+    /**
    * Check if route length is within valid range
    */
   private checkRouteLength(route: Route): ConstraintViolation[] {
@@ -344,6 +413,12 @@ export class RouteValidator extends ConstraintValidator {
             `Add support points between segments exceeding ${validationResult.violations.find((v) => v.type === 'support_spacing')?.message.split(' ')[3] || 'maximum'} spacing`
           );
           break;
+        case 'elevation':
+          suggestions.push('Review elevation transitions to keep risers within allowable range.');
+          break;
+        case 'topology':
+          suggestions.push('Remove overlapping or zero-length segments from the route definition.');
+          break;
       }
     }
 
@@ -374,6 +449,154 @@ export class RouteValidator extends ConstraintValidator {
   }
 }
 
+export type ElevationValidationStatus = 'VALID' | 'WARNING' | 'ERROR';
+
+export interface ElevationRuleOptions {
+  maxElevationDelta?: number;
+  maxElevationSpan?: number;
+  allowMixedElevation?: boolean;
+  minNodesForMixedElevation?: number;
+  minNodeCount?: number;
+  floorSnapTolerance?: number;
+}
+
+export interface ElevationValidationResult {
+  status: ElevationValidationStatus;
+  violations: ConstraintViolation[];
+}
+
+export function evaluateElevationProfile(
+  points: Vector3[],
+  options?: ElevationRuleOptions
+): ElevationValidationResult {
+  const violations: ConstraintViolation[] = [];
+  const sanitizedPoints = filterFinitePoints(points);
+
+  if (sanitizedPoints.length === 0) {
+    violations.push({
+      type: 'elevation',
+      severity: 'error',
+      location: ORIGIN_VECTOR,
+      message: 'Route contains no valid waypoint positions.',
+    });
+    return finalizeElevationResult(violations);
+  }
+
+  if (sanitizedPoints.length !== points.length) {
+    violations.push({
+      type: 'elevation',
+      severity: 'warning',
+      location: { ...sanitizedPoints[0] },
+      message: 'One or more waypoints had invalid coordinates and were ignored during validation.',
+    });
+  }
+
+  const minNodeCount = options?.minNodeCount ?? DEFAULT_MIN_NODE_COUNT;
+  if (sanitizedPoints.length < minNodeCount) {
+    violations.push({
+      type: 'elevation',
+      severity: 'error',
+      location: { ...sanitizedPoints[0] },
+      message: `Route requires at least ${minNodeCount} nodes but only ${sanitizedPoints.length} provided.`,
+    });
+    return finalizeElevationResult(violations);
+  }
+
+  const maxElevationDelta = options?.maxElevationDelta ?? DEFAULT_MAX_ELEVATION_DELTA;
+  for (let i = 1; i < sanitizedPoints.length; i++) {
+    const prev = sanitizedPoints[i - 1];
+    const current = sanitizedPoints[i];
+    const delta = Math.abs(current.z - prev.z);
+
+    if (delta <= maxElevationDelta) {
+      continue;
+    }
+
+    violations.push({
+      type: 'elevation',
+      severity: 'error',
+      location: { ...current },
+      message: `Elevation change of ${delta.toFixed(2)}m exceeds maximum of ${maxElevationDelta.toFixed(
+        2
+      )}m between nodes ${i} and ${i + 1}.`,
+    });
+  }
+
+  const elevations = sanitizedPoints.map((point) => point.z);
+  const minZ = Math.min(...elevations);
+  const maxZ = Math.max(...elevations);
+  const span = maxZ - minZ;
+  const maxElevationSpan = options?.maxElevationSpan ?? DEFAULT_MAX_ELEVATION_SPAN;
+
+  if (span > maxElevationSpan) {
+    violations.push({
+      type: 'elevation',
+      severity: 'warning',
+      location: { ...sanitizedPoints[0] },
+      message: `Total elevation span ${span.toFixed(2)}m exceeds recommended maximum ${maxElevationSpan.toFixed(
+        2
+      )}m.`,
+    });
+  }
+
+  const floorSnapTolerance = options?.floorSnapTolerance ?? DEFAULT_FLOOR_SNAP_TOLERANCE;
+  const floorContact = sanitizedPoints.filter(
+    (point) => Math.abs(point.z - minZ) <= floorSnapTolerance
+  ).length;
+  const elevatedCount = sanitizedPoints.length - floorContact;
+  const allowMixedElevation = options?.allowMixedElevation ?? true;
+  const minNodesForMixedElevation =
+    options?.minNodesForMixedElevation ?? DEFAULT_MIN_NODES_FOR_MIXED;
+  const hasMixedElevation = floorContact > 0 && elevatedCount > 0;
+
+  if (hasMixedElevation && !allowMixedElevation) {
+    violations.push({
+      type: 'elevation',
+      severity: 'error',
+      location: { ...sanitizedPoints[0] },
+      message: 'Route mixes floor and elevated sections but mixed profiles are not allowed.',
+    });
+    return finalizeElevationResult(violations);
+  }
+
+  if (hasMixedElevation && allowMixedElevation && sanitizedPoints.length < minNodesForMixedElevation) {
+    violations.push({
+      type: 'elevation',
+      severity: 'warning',
+      location: { ...sanitizedPoints[0] },
+      message: `Mixed elevation routes require at least ${minNodesForMixedElevation} nodes for stable risers.`,
+    });
+  }
+
+  return finalizeElevationResult(violations);
+}
+
+function filterFinitePoints(points: Vector3[]): Vector3[] {
+  return points
+    .filter(
+      (point) =>
+        Number.isFinite(point.x) &&
+        Number.isFinite(point.y) &&
+        Number.isFinite(point.z)
+    )
+    .map((point) => ({ ...point }));
+}
+
+function finalizeElevationResult(
+  violations: ConstraintViolation[]
+): ElevationValidationResult {
+  const hasError = violations.some((violation) => violation.severity === 'error');
+  if (hasError) {
+    return { status: 'ERROR', violations };
+  }
+
+  const hasWarning = violations.some((violation) => violation.severity === 'warning');
+  if (hasWarning) {
+    return { status: 'WARNING', violations };
+  }
+
+  return { status: 'VALID', violations };
+}
 
 
 

@@ -29,6 +29,7 @@ import {
 import {
   buildLinkGraphV2,
   buildKinematicUnitsV2,
+  logV2Diagnostics,
 } from '../src/dev/tooling/UnitBuilderV2';
 
 // Parse arguments
@@ -107,10 +108,63 @@ async function run() {
   
   if (mode === 'v2') {
     console.log('Using V2 unit builder (experimental)');
-    links = buildLinkGraphV2(model);
+    
+    // Get floorY from rigid clusters JSON if available (needed for buildLinkGraphV2)
+    let floorY: number | null = null;
+    try {
+      const clustersJson = JSON.parse(fs.readFileSync(clustersPath, 'utf8')) as RigidClusterJson[];
+      if (clustersJson.length > 0) {
+        const mins = clustersJson.map(c => c.bbox.min[1]).sort((a, b) => a - b);
+        const bandTolerance = 0.005; // 5mm
+        let bestStart = mins[0];
+        let bestCount = 1;
+        let currentStart = mins[0];
+        let currentCount = 1;
+        
+        for (let i = 1; i < mins.length; i++) {
+          const y = mins[i];
+          if (y - currentStart <= bandTolerance) {
+            currentCount++;
+          } else {
+            if (currentCount > bestCount) {
+              bestStart = currentStart;
+              bestCount = currentCount;
+            }
+            currentStart = y;
+            currentCount = 1;
+          }
+        }
+        if (currentCount > bestCount) {
+          bestStart = currentStart;
+        }
+        floorY = bestStart;
+        console.log(`Detected floor Y: ${floorY.toFixed(4)}`);
+      }
+    } catch (err) {
+      console.warn('Could not detect floorY from clusters:', err);
+    }
+    
+    links = buildLinkGraphV2(model, floorY);
     console.log(`Built ${links.length} links (v2)`);
-    units = buildKinematicUnitsV2(model, links);
+    
+    units = buildKinematicUnitsV2(model, links, floorY);
     console.log(`Built ${units.length} kinematic units (v2)`);
+    
+    // Log diagnostics if no units produced
+    if (units.length === 0 && model.joints.length > 0) {
+      const diagnostics = logV2Diagnostics(model, links, floorY);
+      console.warn('[UnitBuilderV2] WARNING: joints present but v2 produced 0 units');
+      console.warn('[UnitBuilderV2] Diagnostics:');
+      console.warn(`  Joints: ${diagnostics.jointCount} (${diagnostics.revoluteCount} revolute, ${diagnostics.prismaticCount} prismatic)`);
+      console.warn(`  Links: ${diagnostics.linkCount} (${diagnostics.baseLinkCount} base, ${diagnostics.unitCandidateLinkCount} candidate units)`);
+      console.warn(`  Floor Y: ${diagnostics.floorY?.toFixed(4) ?? 'null'}`);
+      console.warn(`  Base links: ${diagnostics.baseLinks.join(', ')}`);
+      diagnostics.joints.forEach(j => {
+        console.warn(`  Joint ${j.jointId} (${j.type}): ${j.parentClusterId} -> ${j.childClusterId} (links: ${j.parentLinkId ?? 'null'} -> ${j.childLinkId ?? 'null'})`);
+      });
+    } else if (units.length > 0) {
+      console.log(`[UnitBuilderV2] Successfully built ${units.length} units`);
+    }
   } else {
     links = buildLinkGraph(model);
     console.log(`Built ${links.length} links`);

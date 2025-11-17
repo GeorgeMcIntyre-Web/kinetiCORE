@@ -44,7 +44,7 @@ export async function loadCATIAFromFile(
         }
 
         // TODO: Fix HealthStatus type - missing pyopenjt_built property
-        // @ts-ignore - Experimental CATIA loader
+        // @ts-expect-error - Experimental CATIA loader
         if (!health.pyopenjt_built) {
             throw new JTImportError(
                 JTErrorType.WASMNotLoaded,

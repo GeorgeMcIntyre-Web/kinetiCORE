@@ -158,7 +158,7 @@ describe('Unit graph builder', () => {
       },
     ];
 
-    const model: MechanicalModel = {
+    const _model: MechanicalModel = {
       nodes: [],
       meshes: [],
       clusters: clusters.map(c => ({
@@ -235,7 +235,7 @@ describe('Unit graph builder', () => {
       },
     ];
 
-    const model: MechanicalModel = {
+    const _model: MechanicalModel = {
       nodes: [],
       meshes: [],
       clusters: clusters.map(c => ({

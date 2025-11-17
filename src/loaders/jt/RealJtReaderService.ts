@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { JTConversionError } from './errors';
 
 // @ts-nocheck - Experimental JT reader service
