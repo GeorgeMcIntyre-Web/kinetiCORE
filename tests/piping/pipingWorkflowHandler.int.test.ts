@@ -2,11 +2,14 @@
 // Owner: Agent 1 (George)
 // Tests the workflow state machine and segment creation logic
 
-import {
-  PipingWorkflowHandler,
-  computeNodePositionFromHit,
-} from '../../src/services/piping/PipingWorkflowHandler';
+import * as BABYLON from '@babylonjs/core';
+import { PipingWorkflowHandler } from '../../src/services/piping/PipingWorkflowHandler';
 import { pipingStore } from '../../src/domain/factoryServices/piping/pipingStore';
+import {
+  DEFAULT_PIPING_PLACEMENT_SETTINGS,
+  PipingPlacementSettings,
+} from '../../src/domain/factoryServices/piping/pipingPlacement';
+import { resolvePipingHitForPlacement } from '../../src/services/piping/pipingPlacementResolver';
 
 describe('PipingWorkflowHandler Integration', () => {
   let handler: PipingWorkflowHandler;
@@ -336,4 +339,104 @@ describe('PipingWorkflowHandler Integration', () => {
       expect(network).toBeUndefined();
     });
   });
+
+    describe('Placement resolution helper', () => {
+      const baseSettings: PipingPlacementSettings = {
+        ...DEFAULT_PIPING_PLACEMENT_SETTINGS,
+      };
+
+      const createPickInfo = (
+        point: BABYLON.Vector3,
+        mesh: BABYLON.AbstractMesh | null = null
+      ): BABYLON.PickingInfo => {
+        const info = new BABYLON.PickingInfo();
+        info.hit = true;
+        info.pickedPoint = point;
+        info.pickedMesh = mesh;
+        return info;
+      };
+
+      const createMockMesh = (name: string): BABYLON.AbstractMesh =>
+        ({
+          name,
+          isDisposed: () => false,
+        } as BABYLON.AbstractMesh);
+
+      it('should return no-placement when ray misses everything', () => {
+        const pickInfo = new BABYLON.PickingInfo();
+        pickInfo.hit = false;
+
+        const result = resolvePipingHitForPlacement({
+          pickInfo,
+          pickResolver: null,
+          placementSettings: baseSettings,
+        });
+
+        expect(result.kind).toBe('no-placement');
+        expect(result.reason).toContain('ray missed');
+      });
+
+      it('should snap to existing node regardless of placement offsets', () => {
+        const pickInfo = createPickInfo(new BABYLON.Vector3(1, 2, 3));
+        const snapResolver = {
+          handlePick: () => ({ type: 'node', id: 'node-123' }),
+        };
+
+        const result = resolvePipingHitForPlacement({
+          pickInfo,
+          pickResolver: snapResolver,
+          placementSettings: {
+            ...baseSettings,
+            elevationOffset: 5,
+          },
+        });
+
+        expect(result).toEqual({ kind: 'snap-to-node', nodeId: 'node-123' });
+      });
+
+      it('should project non-floor hits to default floor when configured', () => {
+        const pickInfo = createPickInfo(
+          new BABYLON.Vector3(2, 5, -1),
+          createMockMesh('robot_base')
+        );
+
+        const result = resolvePipingHitForPlacement({
+          pickInfo,
+          pickResolver: null,
+          placementSettings: {
+            ...baseSettings,
+            mode: 'project-to-floor',
+            defaultFloorHeight: 0.4,
+            elevationOffset: 0.1,
+          },
+        });
+
+        expect(result.kind).toBe('place-new');
+        if (result.kind !== 'place-new') {
+          return;
+        }
+        expect(result.position.y).toBeCloseTo(0.5);
+        expect(result.position.x).toBeCloseTo(2);
+        expect(result.position.z).toBeCloseTo(-1);
+      });
+
+      it('should keep sloped floor hits at actual contact point', () => {
+        const pickInfo = createPickInfo(
+          new BABYLON.Vector3(3, 0.25, -2),
+          createMockMesh('factory_floor_section')
+        );
+
+        const result = resolvePipingHitForPlacement({
+          pickInfo,
+          pickResolver: null,
+          placementSettings: baseSettings,
+        });
+
+        expect(result.kind).toBe('place-new');
+        if (result.kind !== 'place-new') {
+          return;
+        }
+        expect(result.position).toEqual({ x: 3, y: 0.25, z: -2 });
+      });
+    });
 });
