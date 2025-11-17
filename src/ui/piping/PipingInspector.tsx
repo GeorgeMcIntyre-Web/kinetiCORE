@@ -137,6 +137,19 @@ export const PipingInspector: React.FC = () => {
 
   const handlePlacementSettingsModeChange = (mode: PipingPlacementMode) => {
     pipingStore.setPlacementMode(mode);
+
+    // If a node is selected, update its elevation based on the new placement mode
+    if (selectedNode !== null) {
+      const newElevation = pipingStore.getEffectivePlacementElevation(selectedNode.position.y);
+
+      // Update the node's Y position to match the new placement mode's elevation
+      pipingStore.updateNode(selectedNode.id, {
+        position: {
+          ...selectedNode.position,
+          y: newElevation,
+        },
+      });
+    }
   };
 
   const handlePlacementSettingsElevationChange = (value: string) => {
@@ -151,7 +164,22 @@ export const PipingInspector: React.FC = () => {
     }
 
     // Convert from mm to meters
-    pipingStore.setDefaultElevationZ(parsed / 1000);
+    const elevationMeters = parsed / 1000;
+    pipingStore.setDefaultElevationZ(elevationMeters);
+
+    // If a node is selected and placement mode is 'at_elevation' or 'on_floor',
+    // update the node's Y position to match the new elevation
+    if (selectedNode !== null) {
+      const currentMode = pipingStore.getPlacementSettings().mode;
+      if (currentMode === 'at_elevation' || currentMode === 'on_floor') {
+        pipingStore.updateNode(selectedNode.id, {
+          position: {
+            ...selectedNode.position,
+            y: elevationMeters,
+          },
+        });
+      }
+    }
   };
 
   const selectedNodeElevationMm =

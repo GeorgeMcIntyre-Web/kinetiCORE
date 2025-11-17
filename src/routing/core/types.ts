@@ -109,19 +109,6 @@ export interface ClearanceRequirements {
 /**
  * Constraints that routes must satisfy
  */
-export interface RoutePlacementOptions {
-  /** Placement mode applied when creating the route */
-  mode: 'on_floor' | 'fixed_height';
-  /** Preferred elevation for fixed-height placement (scene units, Z-up) */
-  defaultElevation: number;
-  /** Allow gradual transitions between floor and elevated sections */
-  allowMixedElevation?: boolean;
-  /** Maximum allowed elevation delta per segment (meters) */
-  maxElevationDelta?: number;
-  /** Tolerance for treating a waypoint as "on floor" (meters) */
-  floorSnapTolerance?: number;
-}
-
 export interface RouteConstraints {
   /** Minimum bend radius allowed */
   minBendRadius: number;
@@ -131,8 +118,18 @@ export interface RouteConstraints {
   supportSpacing: number;
   /** Clearance requirements */
   clearance: ClearanceRequirements;
-  /** Optional placement rules for elevation-aware routes */
-  placement?: RoutePlacementOptions;
+  /** Maximum allowed elevation change between consecutive nodes (meters) */
+  maxElevationDelta?: number;
+  /** Maximum total elevation span for the route (meters) */
+  maxElevationSpan?: number;
+  /** Whether mixing floor-level and elevated segments is allowed */
+  allowMixedElevation?: boolean;
+  /** Minimum waypoint count required when mixing elevations */
+  minNodesForMixedElevation?: number;
+  /** Minimum waypoint count for a valid route */
+  minNodeCount?: number;
+  /** Tolerance for determining whether a waypoint is on the floor plane */
+  floorSnapTolerance?: number;
 }
 
 /**

@@ -6,6 +6,7 @@ import * as BABYLON from '@babylonjs/core';
 import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
 import { PipingNode, PipingSegment } from '../../domain/factoryServices/piping/pipingTypes';
 import { ServiceColors } from '../../scene/materials/serviceMaterials';
+import { getSceneUpVector } from '../../core/UpAxis';
 
 /**
  * Service class that manages 3D visualization of piping networks in Babylon.js
@@ -126,10 +127,10 @@ export class PipingSceneService {
     let mesh = this.nodeMeshes.get(node.id);
 
     if (mesh === undefined) {
-      // Create new node mesh (small sphere)
+      // Create new node mesh (visible sphere - increased size for usability)
       mesh = BABYLON.MeshBuilder.CreateSphere(
         `piping_node_${node.id}`,
-        { diameter: 0.1 },
+        { diameter: 0.5 }, // Increased from 0.1 to 0.5 meters for better visibility and clicking
         this.scene
       );
 
@@ -243,11 +244,11 @@ export class PipingSceneService {
     // Position at center
     mesh.position = center;
 
-    // Rotate to align with direction
-    // Default cylinder is Y-up, need to rotate to align with our direction vector
-    const upVector = BABYLON.Vector3.Up();
-    const axis = BABYLON.Vector3.Cross(upVector, direction.normalize());
-    const angle = Math.acos(BABYLON.Vector3.Dot(upVector, direction.normalize()));
+    // Rotate to align with direction using the centralized up-axis
+    const upVector = getSceneUpVector();
+    const normalizedDirection = direction.normalize();
+    const axis = BABYLON.Vector3.Cross(upVector, normalizedDirection);
+    const angle = Math.acos(BABYLON.Vector3.Dot(upVector, normalizedDirection));
 
     if (axis.length() > 0.001) {
       mesh.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis.normalize(), angle);

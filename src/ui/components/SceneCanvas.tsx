@@ -421,6 +421,13 @@ App    : minPx=${appMinPx} near=${appNear} rw=${appRw} rh=${appRh} dpr=${appDpr.
           if (evt.button === 0) {
             clearHoverHighlight();
 
+            // Check if piping mode is enabled - if so, let PipingWorkflowHandler handle all clicks
+            const pipingModeEnabled = useEditorStore.getState().pipingModeEnabled;
+            if (pipingModeEnabled) {
+              console.log('[SceneCanvas] Piping mode enabled - skipping selection logic, letting PipingWorkflowHandler handle click');
+              return; // Let PipingWorkflowHandler (via onPointerObservable) handle the click
+            }
+
             // Handle snap point picking (if enabled) - takes priority over normal selection
             const isPickingSnapPoint = useEditorStore.getState().isPickingSnapPoint;
             if (isPickingSnapPoint) {

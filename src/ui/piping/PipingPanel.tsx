@@ -82,6 +82,21 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
 
   const handlePlacementModeChange = (mode: PipingPlacementMode) => {
     pipingStore.setPlacementMode(mode);
+
+    // If a node is selected, update its elevation based on the new placement mode
+    const selection = pipingStore.getSelection();
+    if (selection.nodeId !== null) {
+      const selectedNode = pipingStore.getNode(selection.nodeId);
+      if (selectedNode !== undefined) {
+        const newElevation = pipingStore.getEffectivePlacementElevation(selectedNode.position.y);
+        pipingStore.updateNode(selectedNode.id, {
+          position: {
+            ...selectedNode.position,
+            y: newElevation,
+          },
+        });
+      }
+    }
   };
 
   const handleDefaultElevationChange = (value: string) => {
@@ -91,6 +106,22 @@ export const PipingPanel: React.FC<PipingPanelProps> = ({ isVisible, onClose }) 
     }
 
     pipingStore.setDefaultElevationZ(parsed);
+
+    // If a node is selected and placement mode is 'at_elevation' or 'on_floor',
+    // update the node's Y position to match the new elevation
+    const selection = pipingStore.getSelection();
+    if (selection.nodeId !== null) {
+      const selectedNode = pipingStore.getNode(selection.nodeId);
+      const currentMode = pipingStore.getPlacementSettings().mode;
+      if (selectedNode !== undefined && (currentMode === 'at_elevation' || currentMode === 'on_floor')) {
+        pipingStore.updateNode(selectedNode.id, {
+          position: {
+            ...selectedNode.position,
+            y: parsed,
+          },
+        });
+      }
+    }
   };
 
   const handleResetPlacementSettings = () => {

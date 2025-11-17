@@ -2,11 +2,10 @@
 // Owner: Agent 1 (George)
 // Tests the workflow state machine and segment creation logic
 
-import {
-  PipingWorkflowHandler,
-  computeNodePositionFromHit,
-} from '../../src/services/piping/PipingWorkflowHandler';
+import * as BABYLON from '@babylonjs/core';
+import { PipingWorkflowHandler } from '../../src/services/piping/PipingWorkflowHandler';
 import { pipingStore } from '../../src/domain/factoryServices/piping/pipingStore';
+import { PipingPlacementSettings } from '../../src/domain/factoryServices/piping/pipingTypes';
 
 describe('PipingWorkflowHandler Integration', () => {
   let handler: PipingWorkflowHandler;
