@@ -62,8 +62,9 @@ export const ToolingFixtureAnimatorPanel: React.FC<ToolingFixtureAnimatorPanelPr
       }
     }
 
-    // Fallback: use scene root
-    return scene.getRootMesh() || null;
+    // Fallback: use scene root (first root node)
+    const rootNodes = scene.getNodes().filter(n => !n.parent && n instanceof BABYLON.TransformNode);
+    return (rootNodes[0] as BABYLON.TransformNode) || null;
   }, [selectedNodeId]);
 
   /**

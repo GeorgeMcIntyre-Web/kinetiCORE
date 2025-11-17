@@ -2,8 +2,8 @@ import * as BABYLON from '@babylonjs/core';
 import { KinematicExtractionPipeline, type PipelineOptions } from './KinematicExtractionPipeline';
 import { toolingJsonToJoints, type ToolingFileJson } from '../io/ToolingJsonAdapter';
 import { ValveBank, type Channel, type TimelineEvent } from '../actuation/ValveBank';
-import { JointDefinition, type JointDefinitionOutput } from '../io/Schemas';
-import { JointMath } from '../kinematics/JointMath';
+import { type JointDefinitionOutput } from '../io/Schemas';
+import { JointDefinition } from '../kinematics/JointMath';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 
 /**

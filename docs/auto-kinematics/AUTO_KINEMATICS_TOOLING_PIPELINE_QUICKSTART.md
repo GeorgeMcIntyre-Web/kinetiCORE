@@ -312,6 +312,68 @@ await animator.playDemoCycle();
 
 ---
 
+## Testing
+
+### Unit Tests
+
+Located in `tests/babylon/pipeline/ToolingFixtureAnimator.test.ts`
+
+Tests basic functionality with precomputed JSON:
+- Constructor with tooling JSON
+- Prepare animator
+- Joint/channel creation
+- Summary statistics
+
+```bash
+npm test -- ToolingFixtureAnimator.test
+```
+
+### E2E Tests
+
+Located in `tests/babylon/pipeline/ToolingFixtureAnimator.e2e.test.ts`
+
+Comprehensive end-to-end test coverage:
+
+1. **Precomputed JSON Workflow**
+   - Load fixture, prepare animator, verify joints
+   - Play demo cycle and verify animation state changes
+   - Handle multi-joint fixtures correctly
+
+2. **Custom Timeline Control**
+   - Execute custom timeline events in sequence
+   - Handle out-of-order timeline events
+
+3. **Error Handling**
+   - Throw error when prepare() called without JSON or states
+   - Throw error when playDemoCycle() called before prepare()
+   - Throw error when getValveBank() called before prepare()
+   - Handle empty joints array gracefully
+
+4. **Joint Type Handling**
+   - Handle prismatic joints (Type 0)
+   - Handle hinge joints (Type 1) with degree conversion
+
+5. **Summary and Diagnostics**
+   - Provide accurate summary statistics
+   - Get joints array with correct properties
+6. **Real Fixture Asset**
+   - Load `test_assets/tooling/9X_110_GEO.glb` directly via `SceneLoader.ImportMeshAsync`
+   - Run animator against the production `9X_110_GEO.json` tooling file
+   - Exercise ValveBank timeline using actual channel IDs
+
+```bash
+npm test -- ToolingFixtureAnimator.e2e
+```
+
+**Test Coverage:**
+- ✅ 15+ E2E test scenarios
+- ✅ All joint types (prismatic, hinge)
+- ✅ Error handling paths
+- ✅ Timeline control
+- ✅ Multi-joint fixtures
+
+---
+
 ## Related Documentation
 
 - **Auto Kinematics Complete Guide:** `docs/auto-kinematics/AUTO_KINEMATICS_COMPLETE_GUIDE.md`
@@ -331,6 +393,7 @@ The **ToolingFixtureAnimator** provides a clean, testable integration layer that
 3. ✅ Provides simple API for demo cycles and custom timelines
 4. ✅ Handles joint/channel registration automatically
 5. ✅ Includes error handling and summary statistics
+6. ✅ Comprehensive test coverage (unit + E2E)
 
 **Public APIs:**
 - `ToolingFixtureAnimator` class (main integration helper)
@@ -340,6 +403,7 @@ The **ToolingFixtureAnimator** provides a clean, testable integration layer that
 - `src/babylon/pipeline/ToolingFixtureAnimator.ts` - Integration helper
 - `src/ui/components/ToolingFixtureAnimatorPanel.tsx` - UI component
 - `tests/babylon/pipeline/ToolingFixtureAnimator.test.ts` - Unit tests
+- `tests/babylon/pipeline/ToolingFixtureAnimator.e2e.test.ts` - E2E tests
 
 **Usage Pattern:**
 ```typescript
