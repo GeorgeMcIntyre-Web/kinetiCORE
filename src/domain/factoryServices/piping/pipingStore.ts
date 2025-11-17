@@ -528,32 +528,6 @@ class PipingStore {
     this.notify();
   }
 
-    /**
-     * Get the current placement settings
-     */
-    getPlacementSettings(): PipingPlacementSettings {
-      return { ...this.placementSettings };
-    }
-
-    /**
-     * Update placement settings (guard-clause style, notifying subscribers)
-     */
-    updatePlacementSettings(
-      updates: Partial<PipingPlacementSettings>
-    ): PipingPlacementSettings {
-      if (!updates || Object.keys(updates).length === 0) {
-        return { ...this.placementSettings };
-      }
-
-      this.placementSettings = {
-        ...this.placementSettings,
-        ...updates,
-      };
-
-      this.notify();
-      return { ...this.placementSettings };
-    }
-
   private generateId(prefix: string): string {
     return `${prefix}_${this.nextId++}_${Date.now()}`;
   }

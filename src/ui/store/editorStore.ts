@@ -35,8 +35,6 @@ import { DuplicateObjectCommand } from '../../history/commands/DuplicateObjectCo
 import { ProjectManager } from '../../project/ProjectManager';
 import { ProjectWorldLoader } from '../../project/ProjectWorldLoader';
 import type { Project, ProjectSave, AssetInstance } from '../../project/types';
-import type { PipingPlacementSettings } from '../../domain/factoryServices/piping/pipingTypes';
-import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
 
 type ObjectType =
   | 'box'
@@ -103,7 +101,8 @@ interface EditorState {
 
   // Piping mode state
   pipingModeEnabled: boolean;
-  pipingPlacementSettings: PipingPlacementSettings;
+  pipingPlacementMode: PipingPlacementMode;
+  pipingDefaultElevationMm: number;
 
   // Project Manager Integration
   projectManager: ProjectManager;
@@ -312,7 +311,8 @@ interface EditorState {
 
   // Piping mode actions
   setPipingModeEnabled: (enabled: boolean) => void;
-  updatePipingPlacementSettings: (updates: Partial<PipingPlacementSettings>) => void;
+  setPipingPlacementMode: (mode: PipingPlacementMode) => void;
+  setPipingDefaultElevationMm: (mm: number) => void;
 
   // Transform settings actions
   setPositionIncrement: (value: number) => void;
@@ -689,9 +689,10 @@ export const useEditorStore = create<EditorState>((set, get) => {
   editModeEnabled: false,
   attachedJointId: null,
 
-    // Piping mode state
-    pipingModeEnabled: false,
-    pipingPlacementSettings: pipingStore.getPlacementSettings(),
+  // Piping mode state
+  pipingModeEnabled: false,
+  pipingPlacementMode: 'floor' as PipingPlacementMode,
+  pipingDefaultElevationMm: 1000,
 
   // Project Manager Integration
   projectManager: ProjectManager.getInstance(),
@@ -3392,10 +3393,14 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
   // Piping mode actions
   setPipingModeEnabled: (enabled) => set({ pipingModeEnabled: enabled }),
-    updatePipingPlacementSettings: (updates) => {
-      const updated = pipingStore.updatePlacementSettings(updates);
-      set({ pipingPlacementSettings: updated });
-    },
+  setPipingPlacementMode: (mode) => set({ pipingPlacementMode: mode }),
+  setPipingDefaultElevationMm: (value) => {
+    if (Number.isFinite(value) === false) {
+      return;
+    }
+    const clamped = Math.max(0, Math.min(6000, Math.round(value)));
+    set({ pipingDefaultElevationMm: clamped });
+  },
 
   // Transform settings setters
   setPositionIncrement: (value: number) => set({ positionIncrement: value }),

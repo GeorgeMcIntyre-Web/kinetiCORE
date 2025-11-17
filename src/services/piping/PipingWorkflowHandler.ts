@@ -3,23 +3,10 @@
 // Manages click-to-place nodes and Shift+click segment creation
 
 import * as BABYLON from '@babylonjs/core';
-import { Vector3 } from '../../core/types';
 import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
 import { getDefaultDiameter } from '../../domain/factoryServices/piping/pipingRules';
-import {
-  PipingNetwork,
-  PipingNode,
-  PipingServiceType,
-  Position3D,
-} from '../../domain/factoryServices/piping/pipingTypes';
 import { useEditorStore } from '../../ui/store/editorStore';
-import {
-  ElevationRuleOptions,
-  ElevationValidationResult,
-  evaluateElevationProfile,
-} from '../../routing/validation/RouteValidator';
 import { PipingSceneService } from './PipingSceneService';
-import { resolvePipingHitForPlacement } from './pipingPlacementResolver';
 
 /**
  * Handles piping workflow interactions in the viewport
@@ -103,120 +90,47 @@ export class PipingWorkflowHandler {
 
   /**
    * Handle normal click to place a new node
-   *
-   * Multi-floor guidance:
-   * - Use the exact mesh hit so sloped or raised surfaces remain accurate.
-   * - FUTURE WORK: tag mezzanine meshes with metadata to adjust placementSettings.defaultFloorHeight dynamically.
-   * - FUTURE WORK: persist per-network default floor heights for facilities with multiple deck levels.
    */
   private handleNodePlacement(pointerInfo: BABYLON.PointerInfo): void {
-    const placementDecision = resolvePipingHitForPlacement({
-      pickInfo: pointerInfo.pickInfo ?? null,
-      pickResolver: this.pipingSceneService,
-      placementSettings: useEditorStore.getState().pipingPlacementSettings,
-    });
-
-    if (placementDecision.kind === 'no-placement') {
-      console.debug('[PipingWorkflowHandler] Skipped node placement:', placementDecision.reason);
+    if (!pointerInfo.pickInfo?.pickedPoint) {
       return;
     }
 
-    if (placementDecision.kind === 'snap-to-node') {
-      pipingStore.setSelectedNode(placementDecision.nodeId);
-      pipingStore.setSelectedSegment(null);
-      console.debug('[PipingWorkflowHandler] Snapped to existing node:', placementDecision.nodeId);
-      return;
-    }
-
-    const activeNetwork = this.getOrCreateActiveNetwork();
-    if (!activeNetwork) {
-      console.error('[PipingWorkflowHandler] Unable to resolve active network for placement');
-      return;
-    }
-
-    this.createNodeAtPosition(activeNetwork, placementDecision.position);
-  }
-
-  private getOrCreateActiveNetwork(): PipingNetwork | null {
-    const selection = pipingStore.getSelection();
-    if (selection.networkId) {
-      const selectedNetwork = pipingStore.getNetwork(selection.networkId);
-      if (selectedNetwork) {
-        return selectedNetwork;
-      }
-    }
-
+    // Get or create default network
     const networks = pipingStore.getAllNetworks();
-    if (networks.length > 0) {
-      const firstNetwork = networks[0];
-      pipingStore.setActiveNetwork(firstNetwork.id);
-      return firstNetwork;
+    let activeNetwork = networks.length > 0 ? networks[0] : null;
+
+    if (!activeNetwork) {
+      // Create default water network
+      activeNetwork = pipingStore.createNetwork({
+        name: 'Water Network 1',
+        serviceType: 'water',
+      });
     }
 
-    const createdNetwork = pipingStore.createNetwork({
-      name: 'Water Network 1',
-      serviceType: 'water',
-    });
-
-    if (!createdNetwork) {
-      return null;
-    }
-
-    pipingStore.setActiveNetwork(createdNetwork.id);
-    return createdNetwork;
-  }
-
-  private createNodeAtPosition(network: PipingNetwork, position: Position3D): void {
-    const node = pipingStore.createNode(network.id, {
-      position,
-      kind: 'endpoint',
-      serviceType: network.serviceType,
-    });
-
-    if (!node) {
-      console.error('[PipingWorkflowHandler] Failed to create node for network:', network.id);
+    if (!activeNetwork) {
+      console.error('[PipingWorkflowHandler] Failed to create default network');
       return;
     }
 
-    console.log('[PipingWorkflowHandler] Created node:', node.id, 'at', position);
-  }
+    const pickedPoint = pointerInfo.pickInfo.pickedPoint;
+    const floorCandidate = pickedPoint.y;
+    const elevation = pipingStore.getEffectivePlacementElevation(floorCandidate);
 
-  private validateSegmentElevation(
-    sourceNode: PipingNode,
-    destinationNode: PipingNode
-  ): ElevationValidationResult {
-    const options = this.getElevationOptionsForService(sourceNode.serviceType);
-    const points: Vector3[] = [{ ...sourceNode.position }, { ...destinationNode.position }];
-    return evaluateElevationProfile(points, options);
-  }
+    // Create node at picked point
+    const node = pipingStore.createNode(activeNetwork.id, {
+      position: {
+        x: pickedPoint.x,
+        y: elevation,
+        z: pickedPoint.z,
+      },
+      kind: 'endpoint',
+      serviceType: activeNetwork.serviceType,
+    });
 
-  private getElevationOptionsForService(serviceType: PipingServiceType): ElevationRuleOptions {
-    const baseOptions: ElevationRuleOptions = {
-      maxElevationDelta: 2.5,
-      maxElevationSpan: 8,
-      allowMixedElevation: true,
-      minNodeCount: 2,
-      minNodesForMixedElevation: 2,
-      floorSnapTolerance: 0.05,
-    };
-
-    if (serviceType === 'steam') {
-      return {
-        ...baseOptions,
-        maxElevationDelta: 1.25,
-        maxElevationSpan: 4,
-      };
+    if (node) {
+      console.log('[PipingWorkflowHandler] Created node:', node.id, 'at', pickedPoint);
     }
-
-    if (serviceType === 'cable_tray') {
-      return {
-        ...baseOptions,
-        maxElevationDelta: 1.0,
-        maxElevationSpan: 3,
-      };
-    }
-
-    return baseOptions;
   }
 
   /**
@@ -289,45 +203,21 @@ export class PipingWorkflowHandler {
       return;
     }
 
-      // Get source node to determine service type
-      const sourceNode = pipingStore.getNode(sourceNodeId);
-      if (!sourceNode) {
-        console.error('[PipingWorkflowHandler] Source node not found');
-        this.cancelPendingOperation();
-        return;
-      }
+    // Get source node to determine service type
+    const sourceNode = pipingStore.getNode(sourceNodeId);
+    if (!sourceNode) {
+      console.error('[PipingWorkflowHandler] Source node not found');
+      this.cancelPendingOperation();
+      return;
+    }
 
-      const destinationNode = pipingStore.getNode(destNodeId);
-      if (!destinationNode) {
-        console.error('[PipingWorkflowHandler] Destination node not found');
-        this.cancelPendingOperation();
-        return;
-      }
-
-      const elevationValidation = this.validateSegmentElevation(sourceNode, destinationNode);
-      if (elevationValidation.status === 'ERROR') {
-        console.warn(
-          '[PipingWorkflowHandler] Segment rejected due to elevation rules:',
-          elevationValidation.violations[0]?.message ?? 'Unknown violation'
-        );
-        this.cancelPendingOperation();
-        return;
-      }
-
-      if (elevationValidation.status === 'WARNING') {
-        console.warn(
-          '[PipingWorkflowHandler] Elevation warning:',
-          elevationValidation.violations[0]?.message ?? 'Check vertical run'
-        );
-      }
-
-      // Create segment
-      const segment = pipingStore.createSegment(network.id, {
-        fromNodeId: sourceNodeId,
-        toNodeId: destNodeId,
-        nominalDiameterMm: getDefaultDiameter(sourceNode.serviceType),
-        hasInsulation: false,
-      });
+    // Create segment
+    const segment = pipingStore.createSegment(network.id, {
+      fromNodeId: sourceNodeId,
+      toNodeId: destNodeId,
+      nominalDiameterMm: getDefaultDiameter(sourceNode.serviceType),
+      hasInsulation: false,
+    });
 
     if (segment) {
       console.log('[PipingWorkflowHandler] Created segment:', segment.id);
