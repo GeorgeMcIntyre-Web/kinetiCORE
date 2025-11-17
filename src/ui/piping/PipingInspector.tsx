@@ -140,7 +140,6 @@ export const PipingInspector: React.FC = () => {
 
     // If a node is selected, update its elevation based on the new placement mode
     if (selectedNode !== null) {
-      const currentSettings = pipingStore.getPlacementSettings();
       const newElevation = pipingStore.getEffectivePlacementElevation(selectedNode.position.y);
 
       // Update the node's Y position to match the new placement mode's elevation
