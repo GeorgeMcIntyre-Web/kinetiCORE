@@ -178,9 +178,11 @@ describe('StructureBasedToolAnalyzer', () => {
         console.log(`[Test] Units with joints (MOVING): ${unitsWithJoints.length}`);
         console.log(`[Test] Units without joints (FIXED): ${unitsWithoutJoints.length}`);
 
-        // Expected: 4 units, each with 1 joint
-        // This means 4 units should be marked as MOVING (have joints)
-        // But if we found more units, we need to filter to the top-level ones
+        // Expected: 4 units with joints (6 joints total)
+        // - UNIT_104: 2 joints
+        // - UNIT_102: 2 joints
+        // - UNIT_106: 2 joints
+        // These 4 units should be marked as MOVING (have joints)
         console.log(`[Test] Units with joints: ${unitsWithJoints.length}`);
         console.log(`[Test] Units without joints: ${unitsWithoutJoints.length}`);
         

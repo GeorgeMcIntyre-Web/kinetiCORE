@@ -759,6 +759,9 @@ export class StructureBasedToolAnalyzer {
 
     // Collect child nodes from each unit and compute their bounding boxes
     // Each UNIT is treated as a root, and we look for state nodes within it
+    // LIMIT: Max 10 candidates per unit to prevent explosion
+    const MAX_CANDIDATES_PER_UNIT = 10;
+
     for (const unit of units) {
       // Find node by uniqueId - search through transformNodes and meshes
       const uniqueId = parseInt(unit.root);
@@ -802,9 +805,13 @@ export class StructureBasedToolAnalyzer {
       
       const immediateChildren = this.getImmediateChildren(unitNode);
       const candidates: NodeCandidate[] = [];
-      
+
+      // LIMIT: Only process first 5 immediate children to prevent explosion
+      const MAX_IMMEDIATE_CHILDREN = 5;
+      const limitedImmediateChildren = immediateChildren.slice(0, MAX_IMMEDIATE_CHILDREN);
+
       // For each immediate child (RH, LH, OPEN, etc.)
-      for (const child of immediateChildren) {
+      for (const child of limitedImmediateChildren) {
         const grandChildren = this.getImmediateChildren(child);
         
         // Check if grandchildren have their own children (like OPEN -> OPEN_RH -> MOVING)
@@ -823,8 +830,12 @@ export class StructureBasedToolAnalyzer {
             // Only process if this is a sibling group (2+ children)
             // This ensures we only look at groups that could contain matching pairs
             if (greatGrandChildren.length >= 2) {
-              // Collect all children from this sibling group
-              for (const ggc of greatGrandChildren) {
+              // LIMIT: Only collect first 5 siblings per group to prevent explosion
+              const MAX_SIBLINGS_PER_GROUP = 5;
+              const limitedSiblings = greatGrandChildren.slice(0, MAX_SIBLINGS_PER_GROUP);
+
+              // Collect children from this sibling group (limited)
+              for (const ggc of limitedSiblings) {
                 if (!this.hasSignificantGeometry(ggc, opts.minVolume)) continue;
                 
                 const bbox = this.computeNodeBoundingBox(ggc);
@@ -851,16 +862,25 @@ export class StructureBasedToolAnalyzer {
                   pointCloud: pointCloud.slice(0, 100),
                   unit,
                 });
+
+                // LIMIT: Stop collecting if we hit max candidates per unit
+                if (candidates.length >= MAX_CANDIDATES_PER_UNIT) break;
               }
+              if (candidates.length >= MAX_CANDIDATES_PER_UNIT) break;
             }
           }
+          if (candidates.length >= MAX_CANDIDATES_PER_UNIT) break;
         } else {
           // Depth 2: RH -> MOVING_1, MOVING_2, FIXED
           // Only collect if this is a sibling group (2+ children)
           // This ensures we only look at groups that could contain matching pairs
           if (grandChildren.length >= 2) {
-            // Collect all children from this sibling group
-            for (const grandChild of grandChildren) {
+            // LIMIT: Only collect first 5 siblings per group to prevent explosion
+            const MAX_SIBLINGS_PER_GROUP = 5;
+            const limitedSiblings = grandChildren.slice(0, MAX_SIBLINGS_PER_GROUP);
+
+            // Collect children from this sibling group (limited)
+            for (const grandChild of limitedSiblings) {
               if (!this.hasSignificantGeometry(grandChild, opts.minVolume)) continue;
               
               const bbox = this.computeNodeBoundingBox(grandChild);
@@ -887,11 +907,15 @@ export class StructureBasedToolAnalyzer {
                 pointCloud: pointCloud.slice(0, 100),
                 unit,
               });
+
+              // LIMIT: Stop collecting if we hit max candidates per unit
+              if (candidates.length >= MAX_CANDIDATES_PER_UNIT) break;
             }
           }
         }
+        if (candidates.length >= MAX_CANDIDATES_PER_UNIT) break;
       }
-      
+
       console.log(
         `[StructureBasedToolAnalyzer] Unit ${unit.name}: found ${candidates.length} state node candidates ` +
         `(from sibling groups only, ${immediateChildren.length} immediate children checked)`
@@ -935,11 +959,13 @@ export class StructureBasedToolAnalyzer {
     console.log(`[StructureBasedToolAnalyzer] Total units to check: ${unitStateCandidates.length}`);
 
     // Strategy 1: Look within each unit for child nodes in different states
-    for (const unitData of unitStateCandidates) {
+    for (let unitIdx = 0; unitIdx < unitStateCandidates.length; unitIdx++) {
+      const unitData = unitStateCandidates[unitIdx];
       const candidates = unitData.candidates;
-      
+
       console.log(
-        `[StructureBasedToolAnalyzer] Unit ${unitData.unit.name}: ${candidates.length} state nodes found`
+        `[StructureBasedToolAnalyzer] Processing unit ${unitIdx + 1}/${unitStateCandidates.length}: ` +
+        `${unitData.unit.name} (${candidates.length} state nodes)`
       );
       
       if (candidates.length < 2) {
@@ -978,26 +1004,35 @@ export class StructureBasedToolAnalyzer {
 
       // First, try to find sibling pairs (same parent) - these are most likely to be matching geometry
       // Structure-based only: no name checking, purely geometric matching
-      // LIMIT: Only check first 5 parent groups and first 3 pairs per group to avoid hanging
-      let foundSiblingPair = false;
-      const parentGroups = Array.from(candidatesByParent.entries()).slice(0, 5);
-      
-      for (const [, siblingCandidates] of parentGroups) {
+      // LIMIT: Only check first 5 parent groups to avoid hanging
+      // NOTE: We search ALL parent groups to find ALL joints per unit (units can have 2+ joints)
+      let jointsFoundInUnit = 0;
+      const allParentGroups = Array.from(candidatesByParent.entries());
+      const parentGroups = allParentGroups.slice(0, 5);
+
+      console.log(
+        `[StructureBasedToolAnalyzer] Unit ${unitData.unit.name}: ` +
+        `Checking ${parentGroups.length} parent groups (limited from ${candidatesByParent.size})`
+      );
+
+      for (let pgIdx = 0; pgIdx < parentGroups.length; pgIdx++) {
+        const [, siblingCandidates] = parentGroups[pgIdx];
         if (siblingCandidates.length < 2) continue;
         
         console.log(
           `[StructureBasedToolAnalyzer] Unit ${unitData.unit.name}: ` +
-          `Checking parent group with ${siblingCandidates.length} sibling candidates`
+          `Parent group ${pgIdx + 1}/${parentGroups.length} has ${siblingCandidates.length} siblings`
         );
         
-        // LIMIT: Only compare first 2 pairs per parent group to avoid too many ICP calls
-        // Most units have 1-2 joints, so 2 pairs should be enough
-        const maxPairs = Math.min(2, Math.floor(siblingCandidates.length * (siblingCandidates.length - 1) / 2));
+        // LIMIT: Only compare first 3 pairs per parent group to avoid too many ICP calls
+        // Units can have 2 joints, so check up to 3 pairs per group to find both
+        const maxPairs = Math.min(3, Math.floor(siblingCandidates.length * (siblingCandidates.length - 1) / 2));
         let pairCount = 0;
-        
+
         // Compare pairs of siblings (limited)
-        for (let i = 0; i < siblingCandidates.length && pairCount < maxPairs && !foundSiblingPair; i++) {
-          for (let j = i + 1; j < siblingCandidates.length && pairCount < maxPairs && !foundSiblingPair; j++) {
+        // Don't break early - continue to find ALL joints in this parent group
+        for (let i = 0; i < siblingCandidates.length && pairCount < maxPairs; i++) {
+          for (let j = i + 1; j < siblingCandidates.length && pairCount < maxPairs; j++) {
             pairCount++;
             const candA = siblingCandidates[i];
             const candB = siblingCandidates[j];
@@ -1015,19 +1050,29 @@ export class StructureBasedToolAnalyzer {
 
             console.log(
               `[StructureBasedToolAnalyzer] Unit ${unitData.unit.name}: ` +
-              `BB match found between sibling pair (volumes: ${(candA.volume * 1e9).toFixed(0)} vs ${(candB.volume * 1e9).toFixed(0)}mm³), running ICP...`
+              `BB match found for pair ${pairCount}/${maxPairs} (volumes: ${(candA.volume * 1e9).toFixed(0)} vs ${(candB.volume * 1e9).toFixed(0)}mm³), running ICP...`
             );
 
             // LIMIT point clouds to 50 points each for fast ICP
             const cloudA = candA.pointCloud.slice(0, 50);
             const cloudB = candB.pointCloud.slice(0, 50);
-            
+
+            console.log(
+              `[StructureBasedToolAnalyzer] Unit ${unitData.unit.name}: ` +
+              `Running ICP with ${cloudA.length} vs ${cloudB.length} points...`
+            );
+
             // Use faster ICP settings for sibling pairs
             const icpResult = await PCLICPSolver.align(cloudA, cloudB, {
               maxIterations: 15, // Reduced for speed
               errorTolerance: 1e-3, // Relaxed for speed
               enableDebug: false,
             });
+
+            console.log(
+              `[StructureBasedToolAnalyzer] Unit ${unitData.unit.name}: ` +
+              `ICP complete - error: ${icpResult.error.toFixed(6)}`
+            );
 
             // Validate ICP result
             const maxError = icpOpts.maxICPError ?? 0.15;
@@ -1065,8 +1110,10 @@ export class StructureBasedToolAnalyzer {
             const jointRotationAngle = this.extractRotationAngle(icpResult.transform);
             const jointTranslationMag = this.extractTranslationMagnitude(icpResult.transform);
             
+            jointsFoundInUnit++;
+
             console.log(
-              `[StructureBasedToolAnalyzer] ✓ JOINT FOUND in Unit ${unitData.unit.name}: ` +
+              `[StructureBasedToolAnalyzer] ✓ JOINT ${jointsFoundInUnit} FOUND in Unit ${unitData.unit.name}: ` +
               `sibling pair (${isRevolute ? 'revolute' : 'prismatic'}, ` +
               `error: ${icpResult.error.toFixed(6)}, ` +
               `translation: ${jointTranslationMag.toFixed(3)}m, ` +
@@ -1080,26 +1127,26 @@ export class StructureBasedToolAnalyzer {
               transform: icpResult.transform,
               error: icpResult.error,
             });
-            
-            foundSiblingPair = true;
-            break; // Found a valid pair, move to next unit
+
+            // Continue checking for more joints in this unit (don't break early)
           }
-          if (foundSiblingPair) break;
         }
-        if (foundSiblingPair) break; // Exit parent group loop if joint found
       }
-      
-      // Early exit: If we found a joint, move to next unit (don't check remaining parent groups)
-      if (foundSiblingPair) {
-        continue; // Move to next unit
+
+      // Log summary for this unit
+      if (jointsFoundInUnit > 0) {
+        console.log(
+          `[StructureBasedToolAnalyzer] Unit ${unitData.unit.name}: ` +
+          `Found ${jointsFoundInUnit} joint(s) total`
+        );
       }
 
       // Skip expensive fallback - sibling pairs are sufficient and most reliable
-      // If no sibling pairs found, this unit likely has no joints
-      if (!foundSiblingPair && opts.verbose) {
+      // If no joints found, this unit likely has no joints
+      if (jointsFoundInUnit === 0 && opts.verbose) {
         console.log(
           `[StructureBasedToolAnalyzer] Unit ${unitData.unit.name}: ` +
-          `No valid sibling pairs found (unit likely has no joints or different structure)`
+          `No valid joints found (unit likely has no joints or different structure)`
         );
       }
       
