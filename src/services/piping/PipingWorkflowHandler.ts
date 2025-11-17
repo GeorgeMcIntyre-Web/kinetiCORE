@@ -48,12 +48,15 @@ export class PipingWorkflowHandler {
       }
 
       const pipingModeEnabled = useEditorStore.getState().pipingModeEnabled;
+      console.log('[PipingWorkflowHandler] Click detected. pipingModeEnabled:', pipingModeEnabled);
+
       if (!pipingModeEnabled) {
         return;
       }
 
       // Check if shift is pressed
       const shiftPressed = pointerInfo.event.shiftKey;
+      console.log('[PipingWorkflowHandler] Shift pressed:', shiftPressed, 'Picked mesh:', pointerInfo.pickInfo?.pickedMesh?.name);
 
       if (shiftPressed) {
         this.handleShiftClick(pointerInfo);
@@ -137,15 +140,20 @@ export class PipingWorkflowHandler {
    * Handle Shift+click on a node to start segment creation
    */
   private handleShiftClick(pointerInfo: BABYLON.PointerInfo): void {
+    console.log('[PipingWorkflowHandler] handleShiftClick called');
+
     if (!pointerInfo.pickInfo?.pickedMesh || !this.pipingSceneService) {
+      console.log('[PipingWorkflowHandler] No picked mesh or piping scene service');
       return;
     }
 
     // Check if we clicked on a piping node
     const pickResult = this.pipingSceneService.handlePick(pointerInfo.pickInfo.pickedMesh);
+    console.log('[PipingWorkflowHandler] Pick result:', pickResult);
 
     if (pickResult.type !== 'node') {
       // Shift+click on non-node - ignore
+      console.log('[PipingWorkflowHandler] Shift+click on non-node, ignoring');
       return;
     }
 
@@ -155,7 +163,8 @@ export class PipingWorkflowHandler {
 
     // Set this node as the pending source
     this.pendingSourceNodeId = pickResult.id;
-    console.log('[PipingWorkflowHandler] Selected source node for segment:', pickResult.id);
+    console.log('[PipingWorkflowHandler] ✅ Selected source node for segment:', pickResult.id);
+    console.log('[PipingWorkflowHandler] 👉 Now click another node (without Shift) to create segment');
 
     // TODO: Show visual feedback that we're in "creating segment" mode
     // Could highlight the source node or show a line preview
