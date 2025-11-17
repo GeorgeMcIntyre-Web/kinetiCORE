@@ -35,10 +35,7 @@ import { DuplicateObjectCommand } from '../../history/commands/DuplicateObjectCo
 import { ProjectManager } from '../../project/ProjectManager';
 import { ProjectWorldLoader } from '../../project/ProjectWorldLoader';
 import type { Project, ProjectSave, AssetInstance } from '../../project/types';
-import {
-  DEFAULT_PIPING_PLACEMENT_SETTINGS,
-  PipingPlacementSettings,
-} from '../../domain/factoryServices/piping/pipingPlacement';
+import type { PipingPlacementSettings } from '../../domain/factoryServices/piping/pipingTypes';
 import { pipingStore } from '../../domain/factoryServices/piping/pipingStore';
 
 type ObjectType =
