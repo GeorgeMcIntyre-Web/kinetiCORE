@@ -33,12 +33,20 @@ export const KeyboardShortcuts: React.FC = () => {
   const toggleInspector = useEditorStore((state) => state.toggleInspector);
   const undo = useEditorStore((state) => state.undo);
   const redo = useEditorStore((state) => state.redo);
+  const toggleTransformGizmo = useEditorStore((state) => state.toggleTransformGizmo);
 
   const shortcuts: Shortcut[] = [
     // Transform modes
     { key: 'g', description: 'Move/Translate', action: () => setTransformMode('translate'), category: 'Transform' },
     { key: 'r', description: 'Rotate', action: () => setTransformMode('rotate'), category: 'Transform' },
     { key: 's', description: 'Scale', action: () => setTransformMode('scale'), category: 'Transform' },
+    { key: 't', description: 'Toggle Transform Gizmo', action: () => {
+      const { selectedNodeId, selectedMeshes } = useEditorStore.getState();
+      if (!selectedNodeId && selectedMeshes.length === 0) {
+        return;
+      }
+      toggleTransformGizmo();
+    }, category: 'Transform' },
 
     // Selection
     { key: 'a', ctrl: true, description: 'Select All', action: () => {}, category: 'Selection' },

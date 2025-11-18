@@ -51,6 +51,24 @@ type ObjectType =
 type SnapMode = 'point-to-point' | 'frame-to-frame';
 export type PipingPlacementMode = 'floor' | 'elevation' | 'snap';
 
+export type MeasurementRecordType = 'distance' | 'angle' | 'volume';
+
+export interface MeasurementRecordPoint {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface MeasurementRecord {
+  id: string;
+  type: MeasurementRecordType;
+  value: number;
+  unit: 'mm' | 'deg' | 'cm3' | 'mm3';
+  points?: MeasurementRecordPoint[];
+  nodeNames?: string[];
+  createdAt: number;
+}
+
 interface SnapPoint {
   x: number;
   y: number;
@@ -73,6 +91,7 @@ interface EditorState {
   transformMode: TransformMode;
   transformGizmoEnabled: boolean;
   setTransformGizmoEnabled: (enabled: boolean) => void;
+  toggleTransformGizmo: () => void;
   camera: BABYLON.Camera | null;
   isPlaying: boolean;
   customFrameSelectionMode: 'none' | CustomFrameFeatureType;
@@ -109,6 +128,11 @@ interface EditorState {
   worldLoader: ProjectWorldLoader;
   currentProject: Project | null;
   assetInstances: AssetInstance[];
+
+  // Measurement history
+  measurementHistory: MeasurementRecord[];
+  addMeasurementRecord: (record: MeasurementRecord) => void;
+  clearMeasurementHistory: () => void;
 
   // UI state - which toolbar popup is currently open (only one at a time)
   openToolbarPopup: 'transform-settings' | 'snap-geometric' | 'snap-object' | 'snap-auxiliary' | null;
@@ -520,6 +544,31 @@ const createSnapFrame = (
 };
 
 export const useEditorStore = create<EditorState>((set, get) => {
+  const getInitialTransformGizmoEnabled = (): boolean => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    try {
+      const stored = window.localStorage.getItem('kineticore.transformGizmoEnabled');
+      if (stored === null) {
+        return false;
+      }
+
+      if (stored === 'true') {
+        return true;
+      }
+
+      if (stored === 'false') {
+        return false;
+      }
+    } catch (error) {
+      console.error('[EditorStore] Failed to read transform gizmo state from localStorage:', error);
+    }
+
+    return false;
+  };
+
   const normalizeNodeId = (nodeId: string): string => {
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(nodeId);
@@ -661,8 +710,26 @@ export const useEditorStore = create<EditorState>((set, get) => {
   selectedCollectionNodeId: null,
   selectedCollectionTransformNode: null,
   transformMode: DEFAULT_TRANSFORM_MODE,
-  transformGizmoEnabled: true, // Enable by default so gizmo appears on selection
-  setTransformGizmoEnabled: (enabled) => set({ transformGizmoEnabled: enabled }),
+  transformGizmoEnabled: getInitialTransformGizmoEnabled(),
+  setTransformGizmoEnabled: (enabled) => {
+    set({ transformGizmoEnabled: enabled });
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem('kineticore.transformGizmoEnabled', String(enabled));
+    } catch (error) {
+      console.error('[EditorStore] Failed to persist transform gizmo state to localStorage:', error);
+    }
+  },
+  toggleTransformGizmo: () => {
+    const state = get();
+    const next = !state.transformGizmoEnabled;
+    state.setTransformGizmoEnabled(next);
+    toast.info(next ? 'Transform gizmo: ON' : 'Transform gizmo: OFF');
+  },
   camera: null,
   isPlaying: false,
   customFrameSelectionMode: 'none',
@@ -699,6 +766,16 @@ export const useEditorStore = create<EditorState>((set, get) => {
   worldLoader: ProjectWorldLoader.getInstance(),
   currentProject: null,
   assetInstances: [],
+
+  // Measurement history
+  measurementHistory: [],
+  addMeasurementRecord: (record) => {
+    const { measurementHistory } = get();
+    set({ measurementHistory: [...measurementHistory, record] });
+  },
+  clearMeasurementHistory: () => {
+    set({ measurementHistory: [] });
+  },
 
   // UI state defaults
   openToolbarPopup: null,

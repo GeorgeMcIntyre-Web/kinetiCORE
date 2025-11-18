@@ -7,6 +7,7 @@ import { useEditorStore } from '../store/editorStore';
 import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { SnappingHelper } from '../../manipulation/SnappingHelper';
+import { createBillboardLabel } from '../../scene/MeasurementLabels';
 import * as BABYLON from '@babylonjs/core';
 import './MeasurementTools.css';
 
@@ -66,6 +67,7 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
   const scene = sceneManager.getScene();
   const tree = SceneTreeManager.getInstance();
   const snappingHelper = SnappingHelper.getInstance();
+  const addMeasurementRecord = useEditorStore((state) => state.addMeasurementRecord);
 
   const [state, setState] = useState<MeasurementState>({
     type: measurementType,
@@ -76,13 +78,34 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
   });
 
   const pickObserverRef = useRef<BABYLON.Observer<BABYLON.PointerInfo> | null>(null);
+  const helperMeshesRef = useRef<BABYLON.Mesh[]>([]);
+  const previousMeasurementTypeRef = useRef<MeasurementType>(measurementType);
+  const distanceCompletedRef = useRef(false);
+  const angleCompletedRef = useRef(false);
+  const volumeCompletedRef = useRef(false);
 
   // Cleanup helper meshes
   useEffect(() => {
     return () => {
-      state.helperMeshes.forEach((mesh) => {
+      const meshes = helperMeshesRef.current;
+      if (!meshes.length) {
+        return;
+      }
+
+      const glowLayer = scene?.getGlowLayerByName('measurement-glow') as BABYLON.GlowLayer;
+      meshes.forEach((mesh) => {
+        if (!mesh || mesh.isDisposed()) {
+          return;
+        }
+
+        if (glowLayer) {
+          glowLayer.removeIncludedOnlyMesh(mesh);
+        }
+
         mesh.dispose();
       });
+
+      helperMeshesRef.current = [];
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -402,23 +425,28 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
   };
 
   const handleReset = () => {
-    // Clean up glow layer references before disposing meshes
-    const glowLayer = scene?.getGlowLayerByName('measurement-glow') as BABYLON.GlowLayer;
-    if (glowLayer) {
-      state.helperMeshes.forEach((mesh) => {
-        if (mesh && !mesh.isDisposed()) {
+    const meshes = helperMeshesRef.current;
+    if (meshes.length) {
+      const glowLayer = scene?.getGlowLayerByName('measurement-glow') as BABYLON.GlowLayer;
+      meshes.forEach((mesh) => {
+        if (!mesh || mesh.isDisposed()) {
+          return;
+        }
+
+        if (glowLayer) {
           glowLayer.removeIncludedOnlyMesh(mesh);
         }
-      });
-    }
-    
-    // Dispose all helper meshes
-    state.helperMeshes.forEach((mesh) => {
-      if (mesh && !mesh.isDisposed()) {
+
         mesh.dispose();
-      }
-    });
-    
+      });
+
+      helperMeshesRef.current = [];
+    }
+
+    distanceCompletedRef.current = false;
+    angleCompletedRef.current = false;
+    volumeCompletedRef.current = false;
+
     setState({
       type: measurementType,
       points: [],
@@ -446,6 +474,211 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
         return '';
     }
   };
+
+  // Add labels and history for completed distance measurements
+  useEffect(() => {
+    if (measurementType !== 'distance') {
+      distanceCompletedRef.current = false;
+      return;
+    }
+
+    if (!scene) {
+      return;
+    }
+
+    if (state.points.length !== 2 || distanceCompletedRef.current) {
+      return;
+    }
+
+    const [p1, p2] = state.points;
+    const distance = BABYLON.Vector3.Distance(p1, p2);
+    const distanceMm = distance * 1000;
+
+    const midpoint = p1.add(p2).scale(0.5);
+    const lineRadius = calculateMeasurementIndicatorSize(midpoint, scene) * 0.15;
+
+    const midpointOffset = new BABYLON.Vector3(0, 0, lineRadius * 6);
+    const midpointLabel = createBillboardLabel(
+      scene,
+      `${distanceMm.toFixed(1)} mm`,
+      midpoint.add(midpointOffset)
+    );
+
+    const endpointOffset = new BABYLON.Vector3(0, 0, lineRadius * 4);
+    const firstLabel = createBillboardLabel(
+      scene,
+      'P1',
+      p1.add(endpointOffset)
+    );
+    const secondLabel = createBillboardLabel(
+      scene,
+      'P2',
+      p2.add(endpointOffset)
+    );
+
+    const labels = [midpointLabel, firstLabel, secondLabel];
+    helperMeshesRef.current = [...helperMeshesRef.current, ...labels];
+    setState((prev) => ({
+      ...prev,
+      helperMeshes: [...prev.helperMeshes, ...labels],
+    }));
+
+    addMeasurementRecord({
+      id: `distance-${Date.now()}-${Math.random()}`,
+      type: 'distance',
+      value: distanceMm,
+      unit: 'mm',
+      points: state.points.map((pt) => ({ x: pt.x, y: pt.y, z: pt.z })),
+      nodeNames: state.nodes,
+      createdAt: Date.now(),
+    });
+
+    distanceCompletedRef.current = true;
+  }, [measurementType, scene, state.points, state.nodes, addMeasurementRecord]);
+
+  // Add labels and history for completed angle measurements
+  useEffect(() => {
+    if (measurementType !== 'angle') {
+      angleCompletedRef.current = false;
+      return;
+    }
+
+    if (!scene) {
+      return;
+    }
+
+    if (state.points.length !== 3 || angleCompletedRef.current) {
+      return;
+    }
+
+    const [a, b, c] = state.points;
+    const v1 = a.subtract(b).normalize();
+    const v2 = c.subtract(b).normalize();
+    const dot = BABYLON.Vector3.Dot(v1, v2);
+    const clampedDot = Math.max(-1, Math.min(1, dot));
+    const angleRad = Math.acos(clampedDot);
+    const angleDeg = angleRad * (180 / Math.PI);
+
+    const lineRadius = calculateMeasurementIndicatorSize(b, scene) * 0.25;
+    const labelOffset = new BABYLON.Vector3(0, 0, lineRadius * 6);
+    const vertexLabel = createBillboardLabel(
+      scene,
+      `${angleDeg.toFixed(1)}°`,
+      b.add(labelOffset)
+    );
+
+    helperMeshesRef.current = [...helperMeshesRef.current, vertexLabel];
+    setState((prev) => ({
+      ...prev,
+      helperMeshes: [...prev.helperMeshes, vertexLabel],
+    }));
+
+    addMeasurementRecord({
+      id: `angle-${Date.now()}-${Math.random()}`,
+      type: 'angle',
+      value: angleDeg,
+      unit: 'deg',
+      points: state.points.map((pt) => ({ x: pt.x, y: pt.y, z: pt.z })),
+      nodeNames: state.nodes,
+      createdAt: Date.now(),
+    });
+
+    angleCompletedRef.current = true;
+  }, [measurementType, scene, state.points, state.nodes, addMeasurementRecord]);
+
+  // Add labels and history for completed volume measurements
+  useEffect(() => {
+    if (measurementType !== 'volume') {
+      volumeCompletedRef.current = false;
+      return;
+    }
+
+    if (!scene) {
+      return;
+    }
+
+    if (!state.result || volumeCompletedRef.current) {
+      return;
+    }
+
+    if (!selectedNodeIds.length) {
+      return;
+    }
+
+    let totalVolume = 0;
+    let weightedCenter = BABYLON.Vector3.Zero();
+
+    selectedNodeIds.forEach((nodeId) => {
+      const node = tree.getNode(nodeId);
+      if (!node || !node.babylonMeshId) {
+        return;
+      }
+
+      const babylonNode = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
+      if (!babylonNode) {
+        return;
+      }
+
+      babylonNode.computeWorldMatrix(true);
+      const bbox = babylonNode.getBoundingInfo().boundingBox;
+      const size = bbox.maximum.subtract(bbox.minimum);
+      const volume = Math.abs(size.x * size.y * size.z);
+      if (volume <= 0) {
+        return;
+      }
+
+      const center = bbox.minimum.add(bbox.maximum).scale(0.5);
+      weightedCenter = weightedCenter.add(center.scale(volume));
+      totalVolume += volume;
+    });
+
+    if (!(totalVolume > 0)) {
+      return;
+    }
+
+    const volumeMm3 = totalVolume * 1e9;
+    const volumeCm3 = volumeMm3 / 1000;
+
+    const center = weightedCenter.scale(1 / totalVolume);
+    const labelOffset = new BABYLON.Vector3(0, 0, 0.05);
+    const volumeLabel = createBillboardLabel(
+      scene,
+      `${volumeCm3.toFixed(1)} cm³`,
+      center.add(labelOffset)
+    );
+
+    helperMeshesRef.current = [...helperMeshesRef.current, volumeLabel];
+    setState((prev) => ({
+      ...prev,
+      helperMeshes: [...prev.helperMeshes, volumeLabel],
+    }));
+
+    addMeasurementRecord({
+      id: `volume-${Date.now()}-${Math.random()}`,
+      type: 'volume',
+      value: volumeMm3,
+      unit: 'mm3',
+      points: state.points.map((pt) => ({ x: pt.x, y: pt.y, z: pt.z })),
+      nodeNames: selectedNodeIds,
+      createdAt: Date.now(),
+    });
+
+    volumeCompletedRef.current = true;
+  }, [measurementType, scene, state.result, state.points, selectedNodeIds, tree, addMeasurementRecord]);
+
+  useEffect(() => {
+    const previous = previousMeasurementTypeRef.current;
+    if (!measurementType && previous) {
+      handleReset();
+    }
+
+    previousMeasurementTypeRef.current = measurementType;
+    if (!measurementType) {
+      distanceCompletedRef.current = false;
+      angleCompletedRef.current = false;
+      volumeCompletedRef.current = false;
+    }
+  }, [measurementType]);
 
   if (!measurementType) return null;
 
@@ -497,12 +730,15 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
           <button className="measurement-btn reset" onClick={handleReset}>
             Reset
           </button>
-          <button className="measurement-btn close" onClick={() => {
-            // Clean up snap indicators when closing
-            snappingHelper.clearPreviewDot();
-            snappingHelper.clearSnapIndicators();
-            onClose();
-          }}>
+          <button
+            className="measurement-btn close"
+            onClick={() => {
+              handleReset();
+              snappingHelper.clearPreviewDot();
+              snappingHelper.clearSnapIndicators();
+              onClose();
+            }}
+          >
             Close
           </button>
         </div>
