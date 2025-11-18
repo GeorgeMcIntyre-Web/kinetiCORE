@@ -127,6 +127,7 @@ export const WarehousePanel: React.FC<WarehousePanelProps> = ({
     }
 
     return initializeWarehouse(scene);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panelVisible, warehouseVisible, warehouse]); // Only run when panel is visible and warehouse is enabled
 
   const initializeWarehouse = (scene: BABYLON.Scene) => {

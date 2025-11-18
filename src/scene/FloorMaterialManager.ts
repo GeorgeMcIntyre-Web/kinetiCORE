@@ -193,7 +193,7 @@ export class FloorMaterialManager {
   /**
    * Polished concrete floor (current default)
    */
-  private createPolishedConcrete(avgSize: number = GROUND_SIZE): BABYLON.PBRMetallicRoughnessMaterial {
+  private createPolishedConcrete(_avgSize: number = GROUND_SIZE): BABYLON.PBRMetallicRoughnessMaterial {
     const material = new BABYLON.PBRMetallicRoughnessMaterial(
       'floor-concrete-polished',
       this.scene

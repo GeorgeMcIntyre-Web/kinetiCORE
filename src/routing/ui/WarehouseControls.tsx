@@ -66,6 +66,7 @@ export const WarehouseControls: React.FC<WarehouseControlsProps> = ({ onClose })
     }
 
     return initializeWarehouse(scene);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const toggleVisibility = useCallback(() => {

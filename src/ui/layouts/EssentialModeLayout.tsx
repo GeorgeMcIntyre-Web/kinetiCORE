@@ -20,16 +20,12 @@ import {
   Play,
   Pause,
   RefreshCw,
-  Activity,
   Layers,
   Minus,
   Maximize2,
   Box,
   Settings,
-  Eye,
-  EyeOff,
   LayoutTemplate,
-  Search,
   Square,
   Target,
   Rocket,
@@ -107,7 +103,6 @@ export const EssentialModeLayout: React.FC = () => {
   const selectionLevel = useEditorStore((state) => state.selectionLevel);
   const setSelectionLevel = useEditorStore((state) => state.setSelectionLevel);
   const currentView = useEditorStore((state) => state.currentView);
-  const setCurrentView = useEditorStore((state) => state.setCurrentView);
   const toggleLibrary = useAssetLibraryStore((state) => state.toggleVisibility);
   const showProjectManager = useProjectManagerStore((state) => state.show);
 
@@ -283,15 +278,6 @@ export const EssentialModeLayout: React.FC = () => {
   };
 
   const handleCloseMeasurement = () => setActiveMeasurement(null);
-
-  const handleToggleBabylonInspector = async () => {
-    try {
-      const sceneManager = SceneManager.getInstance();
-      await sceneManager.toggleInspector();
-    } catch (error) {
-      console.error('[EssentialModeLayout] Failed to toggle inspector:', error);
-    }
-  };
 
   const handleAddFrame = () => {
     const addPermanentFrame = (useEditorStore as any).getState().addPermanentFrame;
