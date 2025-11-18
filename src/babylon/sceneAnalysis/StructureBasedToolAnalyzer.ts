@@ -2,6 +2,7 @@ import * as BABYLON from '@babylonjs/core';
 import { getWorldTransform, WorldSpace } from '../utils/WorldSpace';
 import { PCLICPSolver } from '../pointCloud/PCLICPSolver';
 import { IcpFitter, type Point3 } from '../../math/icp/IcpFitter';
+import { computeRevoluteMotionFromPointClouds } from '../../math/geometry/revoluteMotion';
 // import { SceneManager } from '../../scene/SceneManager'; // Not used - scene passed as parameter
 import type { ToolUnit, ToolGraph, ToolUnitType } from './ToolGraphAnalyzer';
 import type { DetectedToolJoint, AnalyzerDebugSnapshot, AnalyzerUnitDebug, JointCandidateDebug, UnitMotionFamilyDebug, Vector3Like } from './ToolingTypes';
@@ -126,12 +127,6 @@ export interface StructureBasedAnalyzeOptions {
       clampStrokeRange?: { prismatic?: [number, number]; revolute?: [number, number] };
       /** Penalty factor for extreme translation ratios. Default: 0.5 (halves score if ratio > 10) */
       extremeTranslationRatioPenalty?: number;
-      /** Target angle for 90° clamp bonus (degrees). Default: 90 */
-      angle90TargetDeg?: number;
-      /** Full bonus score for 90° clamps. Default: 2.0 */
-      angle90FullBonus?: number;
-      /** Falloff range for 90° bonus (degrees). Default: 20 */
-      angle90FalloffDeg?: number;
     };
     /** ICP configuration for point-cloud-based motion detection */
     icpConfig?: {
@@ -147,6 +142,10 @@ export interface StructureBasedAnalyzeOptions {
       minIcpPointCount?: number;
       /** Maximum point count ratio delta (0-1). Default: 0.05 (5%) */
       maxIcpPointCountRatioDelta?: number;
+      /** Minimum vertex count for 2-state families to be considered for ICP. Default: 200 */
+      minVertexCount?: number;
+      /** Minimum body size (meters) for 2-state families to be considered for ICP. Default: 0.04 (40mm) */
+      minBodySizeMm?: number;
     };
   };
 
@@ -1390,7 +1389,15 @@ export class StructureBasedToolAnalyzer {
         });
 
         // Build and cache point clouds for 2-state families (for ICP-based motion detection)
+        // Apply filters: stateCount must be 2, vertex count and body size must meet thresholds
         if (stateCount === 2 && this.icpFitter) {
+          const minVertexCount = jointCfg.icpConfig?.minVertexCount ?? 200;
+          const minBodySize = (jointCfg.icpConfig?.minBodySizeMm ?? 40) / 1000; // Convert mm to meters
+          
+          // Filter: reject families that don't meet size/vertex thresholds
+          if (vertexCount < minVertexCount) continue;
+          if (bodySize < minBodySize) continue;
+          
           const cacheKey = `${unitId}::${familyId}`;
           if (!this.icpFamilyCache.has(cacheKey)) {
             const minPointCount = jointCfg.icpConfig?.minIcpPointCount ?? 50;
@@ -1695,7 +1702,17 @@ export class StructureBasedToolAnalyzer {
     // This ensures we get the best joint from each unit, not multiple joints from the same unit
     const maxJoints = jointCfg.maxJointsPerFixture ?? Infinity;
     const scoringCfg = jointCfg.selectionScoring;
-    this.detectedJoints = this.selectFinalJointsForFixture(dedupedJoints, maxJoints, scoringCfg);
+    // Filter out joints with deltaType 'unknown' before selection (they have invalid motion data)
+    // Also filter out revolute joints without valid angleDeg (must be > 0.01° to be meaningful)
+    const validJoints = dedupedJoints.filter(j => {
+      if (j.deltaType === 'unknown') return false;
+      if (j.deltaType === 'revolute') {
+        if (j.angleDeg === undefined || j.angleDeg === null || !Number.isFinite(j.angleDeg)) return false;
+        if (j.angleDeg < 0.01) return false; // Filter out joints with essentially zero rotation
+      }
+      return true;
+    });
+    this.detectedJoints = this.selectFinalJointsForFixture(validJoints, maxJoints, scoringCfg);
   }
 
   /**
@@ -1798,6 +1815,16 @@ export class StructureBasedToolAnalyzer {
       // Otherwise fall back to node transform difference
       const motionTransform = pair.transform;
       
+      // For revolute joints with cached point clouds, use computeRevoluteMotionFromPointClouds
+      // to extract axis, angle, and center from the actual geometry
+      let revoluteMotion: ReturnType<typeof computeRevoluteMotionFromPointClouds> | undefined;
+      if (pair.jointType === 'revolute' && cachedClouds && cachedClouds.pointsA.length > 0 && cachedClouds.pointsB.length > 0) {
+        // Convert Point3[] to Vector3[]
+        const pointsClosed = cachedClouds.pointsA.map(p => new BABYLON.Vector3(p.x, p.y, p.z));
+        const pointsOpen = cachedClouds.pointsB.map(p => new BABYLON.Vector3(p.x, p.y, p.z));
+        revoluteMotion = computeRevoluteMotionFromPointClouds(pointsClosed, pointsOpen, motionTransform);
+      }
+      
       const deltaTranslation = new BABYLON.Vector3();
       const deltaRotation = new BABYLON.Quaternion();
       motionTransform.decompose(new BABYLON.Vector3(), deltaRotation, deltaTranslation);
@@ -1815,71 +1842,105 @@ export class StructureBasedToolAnalyzer {
         qz = -qz;
       }
 
-      // Compute angle using shortest-arc
-      qw = Math.max(-1, Math.min(1, qw));
-      let angleRad = 2 * Math.acos(qw);
-      let angleDeg = angleRad * (180 / Math.PI);
-      
-      // Enforce shortest-arc: if angle > 180°, use 360° - angle and negate axis
-      if (angleDeg > 180 && pair.jointType === 'revolute') {
-        angleDeg = 360 - angleDeg;
-        angleRad = angleDeg * (Math.PI / 180);
-        // Negate quaternion components to flip axis
-        qx = -qx;
-        qy = -qy;
-        qz = -qz;
-      }
-
-      // Compute axis (normalized)
+      // Use revolute motion from point clouds if available, otherwise fall back to transform decomposition
       let motionAxis: Vector3Like | undefined;
-      const sinHalfAngle = Math.sin(angleRad / 2);
-      if (Math.abs(sinHalfAngle) > 1e-6) {
-        const axisVec = new BABYLON.Vector3(
-          qx / sinHalfAngle,
-          qy / sinHalfAngle,
-          qz / sinHalfAngle
-        ).normalize();
-        
-        // Guard: check axis is valid
-        if (Number.isFinite(axisVec.x) && Number.isFinite(axisVec.y) && Number.isFinite(axisVec.z)) {
-          motionAxis = { x: axisVec.x, y: axisVec.y, z: axisVec.z };
-        }
-      }
+      let angleDeg: number | undefined;
+      let fromCenter: Vector3Like;
+      let toCenter: Vector3Like;
+      let translationMagnitude: number;
       
-      // Fallback: if axis is still undefined but we have a valid angle, try to extract from quaternion directly
-      if (!motionAxis && angleRad > 1e-6 && angleRad < Math.PI + 1e-6) {
-        const quatVec = new BABYLON.Vector3(qx, qy, qz);
-        const quatLen = quatVec.length();
-        if (quatLen > 1e-6) {
-          quatVec.normalize();
-          if (Number.isFinite(quatVec.x) && Number.isFinite(quatVec.y) && Number.isFinite(quatVec.z)) {
-            motionAxis = { x: quatVec.x, y: quatVec.y, z: quatVec.z };
+      if (revoluteMotion) {
+        // Use point-cloud-based extraction for revolute joints
+        motionAxis = {
+          x: revoluteMotion.axis.x,
+          y: revoluteMotion.axis.y,
+          z: revoluteMotion.axis.z,
+        };
+        angleDeg = revoluteMotion.angleDeg;
+        fromCenter = {
+          x: revoluteMotion.center.x,
+          y: revoluteMotion.center.y,
+          z: revoluteMotion.center.z,
+        };
+        toCenter = fromCenter; // For revolute, center is the same
+        translationMagnitude = revoluteMotion.translationMagnitude;
+      } else {
+        // Fall back to transform decomposition
+        // Compute angle using shortest-arc
+        qw = Math.max(-1, Math.min(1, qw));
+        let angleRad = 2 * Math.acos(qw);
+        let computedAngleDeg = angleRad * (180 / Math.PI);
+        
+        // Enforce shortest-arc: if angle > 180°, use 360° - angle and negate axis
+        // For revolute joints, always prefer the shorter arc representation
+        if (pair.jointType === 'revolute' && computedAngleDeg > 180) {
+          computedAngleDeg = 360 - computedAngleDeg;
+          angleRad = computedAngleDeg * (Math.PI / 180);
+          // Negate quaternion components to flip axis
+          qx = -qx;
+          qy = -qy;
+          qz = -qz;
+        }
+        
+        // Also handle cases where angle is exactly 180° - prefer the representation that gives better axis alignment
+        // For 180°, we can't make it shorter, but we ensure the axis is correctly oriented
+        if (pair.jointType === 'revolute' && Math.abs(computedAngleDeg - 180) < 1e-6) {
+          // For 180° rotations, the quaternion represents a half-turn
+          // Ensure we're using the correct axis direction (the one that makes physical sense)
+          // This is already handled by the quaternion normalization above
+        }
+
+        // Compute axis (normalized)
+        const sinHalfAngle = Math.sin(angleRad / 2);
+        if (Math.abs(sinHalfAngle) > 1e-6) {
+          const axisVec = new BABYLON.Vector3(
+            qx / sinHalfAngle,
+            qy / sinHalfAngle,
+            qz / sinHalfAngle
+          ).normalize();
+          
+          // Guard: check axis is valid
+          if (Number.isFinite(axisVec.x) && Number.isFinite(axisVec.y) && Number.isFinite(axisVec.z)) {
+            motionAxis = { x: axisVec.x, y: axisVec.y, z: axisVec.z };
           }
         }
-      }
-      
-      // Final fallback: use axisWorld if available (for revolute joints)
-      if (!motionAxis && pair.jointType === 'revolute' && axisWorld) {
-        motionAxis = { x: axisWorld.x, y: axisWorld.y, z: axisWorld.z };
-      }
+        
+        // Fallback: if axis is still undefined but we have a valid angle, try to extract from quaternion directly
+        if (!motionAxis && angleRad > 1e-6 && angleRad < Math.PI + 1e-6) {
+          const quatVec = new BABYLON.Vector3(qx, qy, qz);
+          const quatLen = quatVec.length();
+          if (quatLen > 1e-6) {
+            quatVec.normalize();
+            if (Number.isFinite(quatVec.x) && Number.isFinite(quatVec.y) && Number.isFinite(quatVec.z)) {
+              motionAxis = { x: quatVec.x, y: quatVec.y, z: quatVec.z };
+            }
+          }
+        }
+        
+        // Final fallback: use axisWorld if available (for revolute joints)
+        if (!motionAxis && pair.jointType === 'revolute' && axisWorld) {
+          motionAxis = { x: axisWorld.x, y: axisWorld.y, z: axisWorld.z };
+        }
 
-      // Get centers (world-space)
-      const fromCenter: Vector3Like = {
-        x: pair.sigA.center.x,
-        y: pair.sigA.center.y,
-        z: pair.sigA.center.z,
-      };
-      const toCenter: Vector3Like = {
-        x: pair.sigB.center.x,
-        y: pair.sigB.center.y,
-        z: pair.sigB.center.z,
-      };
+        // Get centers (world-space)
+        fromCenter = {
+          x: pair.sigA.center.x,
+          y: pair.sigA.center.y,
+          z: pair.sigA.center.z,
+        };
+        toCenter = {
+          x: pair.sigB.center.x,
+          y: pair.sigB.center.y,
+          z: pair.sigB.center.z,
+        };
 
-      // Compute translation magnitude between centers
-      const centerDiff = BABYLON.Vector3.Distance(
-        new BABYLON.Vector3(fromCenter.x, fromCenter.y, fromCenter.z),
-        new BABYLON.Vector3(toCenter.x, toCenter.y, toCenter.z)
-      );
+        // Compute translation magnitude between centers
+        translationMagnitude = BABYLON.Vector3.Distance(
+          new BABYLON.Vector3(fromCenter.x, fromCenter.y, fromCenter.z),
+          new BABYLON.Vector3(toCenter.x, toCenter.y, toCenter.z)
+        );
+        angleDeg = computedAngleDeg;
+      }
 
       // Determine deltaType
       let deltaType: 'revolute' | 'prismatic' | 'unknown' = 'unknown';
@@ -1890,9 +1951,10 @@ export class StructureBasedToolAnalyzer {
       }
 
       // Guard: if motion data is invalid, set deltaType to unknown
-      // For revolute joints, we need valid axis and angle
+      // For revolute joints, we need valid axis and angle (must be > 0.01° to be meaningful, accounting for numerical precision)
+      // Very small angles (< 0.01°) are likely numerical noise, but 0.1°+ are valid
       if (deltaType === 'revolute') {
-        if (!motionAxis || !Number.isFinite(angleDeg) || angleDeg < 0 || angleDeg > 360) {
+        if (!motionAxis || !Number.isFinite(angleDeg) || angleDeg < 0.01 || angleDeg > 360) {
           deltaType = 'unknown';
         }
       }
@@ -1932,7 +1994,7 @@ export class StructureBasedToolAnalyzer {
         angleDeg: deltaType === 'revolute' ? angleDeg : (deltaType === 'prismatic' ? 0 : undefined),
         fromCenter,
         toCenter,
-        translationMagnitude: centerDiff,
+        translationMagnitude,
       });
     }
 
@@ -2116,23 +2178,9 @@ export class StructureBasedToolAnalyzer {
     // Two-state family bonus (clamp joints typically have exactly 2 states: open/closed)
     const twoStateBonus = isTwoStateFamily ? twoStateFamilyBonus : 0;
 
-    // 90° angle bonus: prefer joints with angles close to 90° (typical clamp opening angle)
-    // This helps select the correct joint when multiple joints exist with different angles
-    let angleBonus = 0;
-    if (!j.isPrismatic && j.angleDeg !== undefined) {
-      const angle90Target = cfg.angle90TargetDeg ?? 90;
-      const angle90FullBonus = cfg.angle90FullBonus ?? 2.0;
-      const angle90Falloff = cfg.angle90FalloffDeg ?? 20;
-      const angleDelta = Math.abs(j.angleDeg - angle90Target);
-      if (angleDelta <= angle90Falloff) {
-        const t = 1 - angleDelta / angle90Falloff;
-        angleBonus = angle90FullBonus * t;
-      }
-    }
-
     // Combined score
     const baseScore = sizeWeight * sizeScore + travelWeight * travelScore + icpWeight * icpScore + vertexSimScore;
-    return baseScore * ratioPenalty + twoStateBonus + angleBonus;
+    return baseScore * ratioPenalty + twoStateBonus;
   }
 
   /**
@@ -2160,32 +2208,10 @@ export class StructureBasedToolAnalyzer {
 
       const currentScore = this.scoreJointForSelection(current, scoringCfg);
       const nextScore = this.scoreJointForSelection(joint, scoringCfg);
-
-      // Get angles for both joints
-      const currentAngle = current.angleDeg ?? (current.isPrismatic ? 0 : Math.abs(current.travelWorld ?? 0) * 180 / Math.PI);
-      const nextAngle = joint.angleDeg ?? (joint.isPrismatic ? 0 : Math.abs(joint.travelWorld ?? 0) * 180 / Math.PI);
-      const targetAngle = 90;
-      const currentDist = Math.abs(currentAngle - targetAngle);
-      const nextDist = Math.abs(nextAngle - targetAngle);
       
       const scoreDiff = nextScore - currentScore;
       
-      // Prefer angles closer to 90° when scores are close (within 0.5)
-      // This helps select the correct joint when multiple joints exist with different angles
-      // But don't override large score differences to ensure we always select a joint
-      if (scoreDiff > 0.5) {
-        // Next joint has significantly higher score, use it
-        perUnit.set(key, joint);
-        continue;
-      }
-      
-      if (scoreDiff < -0.5) {
-        // Current joint has significantly higher score, keep it
-        continue;
-      }
-      
-      // Scores are close: prefer angle closer to 90°
-      if (nextDist < currentDist) {
+      if (scoreDiff > 0) {
         perUnit.set(key, joint);
       }
     }
@@ -2198,15 +2224,13 @@ export class StructureBasedToolAnalyzer {
       const scoreDiff = scoreB - scoreA;
       if (Math.abs(scoreDiff) > 1e-6) return scoreDiff;
       
-      // Tie-breaker: prefer angles closer to 90° (typical clamp opening angle)
-      // This helps select the correct joint when multiple joints exist with different angles
-      const angleA = a.angleDeg ?? (a.isPrismatic ? 0 : Math.abs(a.travelWorld ?? 0) * 180 / Math.PI);
-      const angleB = b.angleDeg ?? (b.isPrismatic ? 0 : Math.abs(b.travelWorld ?? 0) * 180 / Math.PI);
-      const targetAngle = 90; // Typical clamp opening angle
-      const distA = Math.abs(angleA - targetAngle);
-      const distB = Math.abs(angleB - targetAngle);
-      const angleDistDiff = distA - distB;
-      if (Math.abs(angleDistDiff) > 1e-6) return angleDistDiff;
+      // Tie-breaker: prefer lower ICP error (better alignment quality)
+      const icpDiff = (a.icpError ?? Infinity) - (b.icpError ?? Infinity);
+      if (Math.abs(icpDiff) > 1e-6) return icpDiff;
+      
+      // Next tie-breaker: prefer higher vertex similarity
+      const vertexSimDiff = (b.vertexSimilarity ?? 0) - (a.vertexSimilarity ?? 0);
+      if (Math.abs(vertexSimDiff) > 1e-6) return vertexSimDiff;
       
       // Next tie-breaker: prefer lower translation ratio (more pure rotation), but treat very low ratios (< 0.1) as equivalent
       const ratioA = a.translationRatio < 0.1 ? 0 : a.translationRatio;
@@ -2238,13 +2262,6 @@ export class StructureBasedToolAnalyzer {
       // Next: prefer higher vertex count (more substantial geometry)
       const vertexDiff = (b.vertexCountA + b.vertexCountB) - (a.vertexCountA + a.vertexCountB);
       if (Math.abs(vertexDiff) > 1e-6) return vertexDiff;
-      
-      // Last resort: alphabetical
-      return a.unitId.localeCompare(b.unitId);
-      
-      // Final tie-breaker: prefer lower ICP error
-      const icpDiff = (a.icpError ?? Infinity) - (b.icpError ?? Infinity);
-      if (Math.abs(icpDiff) > 1e-6) return icpDiff;
       
       // Last resort: unit ID (alphabetical) for deterministic ordering
       return a.unitId.localeCompare(b.unitId);
@@ -2834,6 +2851,11 @@ export class StructureBasedToolAnalyzer {
     if (familyInfo && this.icpFitter) {
       const stateAId = this.nodeId(sigA.node);
       const stateBId = this.nodeId(sigB.node);
+      if (debug) {
+        const cacheKey = `${familyInfo.unitId}::${familyInfo.familyId}`;
+        const hasCache = this.icpFamilyCache.has(cacheKey);
+        console.log(`[ICP_FAMILY] Checking cache: key=${cacheKey}, hasCache=${hasCache}, stateAId=${stateAId}, stateBId=${stateBId}`);
+      }
       icpDelta = this.getIcpDeltaForCandidate(
         familyInfo.unitId,
         familyInfo.familyId,
@@ -2844,6 +2866,9 @@ export class StructureBasedToolAnalyzer {
       );
       if (icpDelta && debug) {
         console.log(`[ICP_FAMILY] Using cached family point clouds, RMSE: ${icpDelta.rmse.toFixed(6)}`);
+      }
+      if (!icpDelta && debug) {
+        console.log(`[ICP_FAMILY] No ICP delta available (cache miss or ICP failed)`);
       }
     }
 
