@@ -407,13 +407,17 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
         }
       }
 
-      return {
+      const nextState = {
         ...prev,
         points: newPoints,
         nodes: newNodes,
         result,
         helperMeshes: newHelperMeshes,
       };
+
+      helperMeshesRef.current = newHelperMeshes;
+
+      return nextState;
     });
 
     // Auto-close for volume (uses selection, not picks)
@@ -495,28 +499,17 @@ export const MeasurementTools: React.FC<MeasurementToolsProps> = ({
     const distanceMm = distance * 1000;
 
     const midpoint = p1.add(p2).scale(0.5);
-    const lineRadius = calculateMeasurementIndicatorSize(midpoint, scene) * 0.15;
+    const lineRadius = calculateMeasurementIndicatorSize(midpoint, scene) * 0.25;
 
-    const midpointOffset = new BABYLON.Vector3(0, 0, lineRadius * 6);
+    const midpointOffset = new BABYLON.Vector3(0, 0, lineRadius * 10);
     const midpointLabel = createBillboardLabel(
       scene,
       `${distanceMm.toFixed(1)} mm`,
-      midpoint.add(midpointOffset)
+      midpoint.add(midpointOffset),
+      { size: 0.2 }
     );
 
-    const endpointOffset = new BABYLON.Vector3(0, 0, lineRadius * 4);
-    const firstLabel = createBillboardLabel(
-      scene,
-      'P1',
-      p1.add(endpointOffset)
-    );
-    const secondLabel = createBillboardLabel(
-      scene,
-      'P2',
-      p2.add(endpointOffset)
-    );
-
-    const labels = [midpointLabel, firstLabel, secondLabel];
+    const labels = [midpointLabel];
     helperMeshesRef.current = [...helperMeshesRef.current, ...labels];
     setState((prev) => ({
       ...prev,

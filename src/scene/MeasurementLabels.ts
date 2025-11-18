@@ -9,13 +9,25 @@ export interface BillboardLabelOptions {
   backgroundColor?: string;
 }
 
+interface MeasurementLabelMetadata {
+  baseSize: number;
+  referenceDistance: number;
+}
+
+interface SceneLabelState {
+  labels: Set<BABYLON.Mesh>;
+  observer: BABYLON.Observer<BABYLON.Scene> | null;
+}
+
+const sceneLabelStates = new Map<BABYLON.Scene, SceneLabelState>();
+
 const createTextMaterial = (
   scene: BABYLON.Scene,
   name: string,
   text: string,
   options?: BillboardLabelOptions
 ): BABYLON.StandardMaterial => {
-  const textureSize = 256;
+  const textureSize = 512;
   const dynamicTexture = new BABYLON.DynamicTexture(
     `${name}_texture`,
     { width: textureSize, height: textureSize },
@@ -33,7 +45,21 @@ const createTextMaterial = (
   ctx.fill();
 
   const textColor = options?.textColor ?? '#e5e7eb'; // Gray-200
-  ctx.font = 'bold 120px Arial';
+  const baseFontPx = 140;
+  const minFontPx = 80;
+  const padding = 80;
+
+  ctx.font = `bold ${baseFontPx}px Arial`;
+  const metrics = ctx.measureText(text);
+  const availableWidth = textureSize - padding * 2;
+
+  let fontPx = baseFontPx;
+  if (metrics.width > availableWidth && metrics.width > 0) {
+    const scale = availableWidth / metrics.width;
+    fontPx = Math.max(minFontPx, baseFontPx * scale);
+    ctx.font = `bold ${fontPx}px Arial`;
+  }
+
   ctx.fillStyle = textColor;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -51,6 +77,96 @@ const createTextMaterial = (
   return material;
 };
 
+const registerLabelForScaling = (
+  scene: BABYLON.Scene,
+  plane: BABYLON.Mesh,
+  baseSize: number
+): void => {
+  const camera = scene.activeCamera;
+  if (!camera) {
+    return;
+  }
+
+  const distance = BABYLON.Vector3.Distance(camera.position, plane.position);
+  const referenceDistance = distance > 0.0001 ? distance : 1;
+
+  if (!plane.metadata) {
+    plane.metadata = {};
+  }
+
+  const metadata: MeasurementLabelMetadata = {
+    baseSize,
+    referenceDistance,
+  };
+
+  plane.metadata.measurementLabel = metadata;
+
+  let state = sceneLabelStates.get(scene);
+  if (!state) {
+    state = {
+      labels: new Set<BABYLON.Mesh>(),
+      observer: null,
+    };
+    sceneLabelStates.set(scene, state);
+  }
+
+  state.labels.add(plane);
+
+  if (state.observer) {
+    return;
+  }
+
+  state.observer = scene.onBeforeRenderObservable.add(() => {
+    const currentCamera = scene.activeCamera;
+    if (!currentCamera) {
+      return;
+    }
+
+    const toRemove: BABYLON.Mesh[] = [];
+
+    state?.labels.forEach((mesh) => {
+      if (!mesh || mesh.isDisposed()) {
+        toRemove.push(mesh);
+        return;
+      }
+
+      const meta = mesh.metadata?.measurementLabel as MeasurementLabelMetadata | undefined;
+      if (!meta) {
+        return;
+      }
+
+      const distanceToCamera = BABYLON.Vector3.Distance(currentCamera.position, mesh.position);
+      if (!(distanceToCamera > 0.0001)) {
+        mesh.scaling.set(1, 1, 1);
+        return;
+      }
+
+      const rawScale = distanceToCamera / meta.referenceDistance;
+      const minScale = 0.75;
+      const maxScale = 8.0;
+      const clampedScale = Math.max(minScale, Math.min(maxScale, rawScale));
+
+      mesh.scaling.set(clampedScale, clampedScale, clampedScale);
+    });
+
+    toRemove.forEach((mesh) => {
+      state?.labels.delete(mesh);
+    });
+
+    if (!state || state.labels.size > 0) {
+      return;
+    }
+
+    if (!state.observer) {
+      return;
+    }
+
+    scene.onBeforeRenderObservable.remove(state.observer);
+    state.observer = null;
+    sceneLabelStates.delete(scene);
+  });
+};
+
 export const createBillboardLabel = (
   scene: BABYLON.Scene,
   text: string,
@@ -58,7 +174,7 @@ export const createBillboardLabel = (
   options?: BillboardLabelOptions
 ): BABYLON.Mesh => {
   const name = `measurement-label-${Date.now()}-${Math.random()}`;
-  const size = options?.size ?? 0.06;
+  const size = options?.size ?? 0.12;
 
   const plane = BABYLON.MeshBuilder.CreatePlane(
     name,
@@ -72,6 +188,7 @@ export const createBillboardLabel = (
   const material = createTextMaterial(scene, name, text, options);
   plane.material = material;
 
+  registerLabelForScaling(scene, plane, size);
+
   return plane;
 };
-
