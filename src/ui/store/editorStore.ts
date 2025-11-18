@@ -26,7 +26,7 @@ import {
 } from '../../scene/WorldSerializer';
 import { CustomFrameHelper } from '../../scene/CustomFrameHelper';
 import { CoordinateFrameWidget } from '../../scene/CoordinateFrameWidget';
-import type { NodeType } from '../../scene/SceneTreeNode';
+import type { NodeType, SceneNode } from '../../scene/SceneTreeNode';
 import { toast } from '../components/ToastNotifications';
 import { loading } from '../components/LoadingIndicator';
 import { CommandManager } from '../../history/CommandManager';
@@ -116,7 +116,7 @@ interface EditorState {
   selectedNodeId: string | null;
   selectedNodeIds: string[]; // Multi-selection support
   selectedCollectionNodeId: string | null; // For collection node selection
-  selectedCollectionTransformNode: BABYLON.TransformNode | null; // Babylon TransformNode for collection
+  selectedCollectionTransformNode: BABYLON.TransformNode | null; // Transform/Gizmo attachment target for selection
   transformMode: TransformMode;
   transformGizmoEnabled: boolean;
   setTransformGizmoEnabled: (enabled: boolean) => void;
@@ -402,6 +402,7 @@ interface EditorState {
   setSnapObjectToVertex: (enabled: boolean) => void;
   setSnapPointOnEdge: (enabled: boolean) => void;
   setSnapBBoxCorner: (enabled: boolean) => void;
+  setPickAtSnapPointEnabled: (enabled: boolean) => void;
   setGridSize: (size: number) => void;
   setSnapDistance: (distance: number) => void;
   setTemporaryOrigin: (origin: { x: number; y: number; z: number } | null) => void;
@@ -624,6 +625,157 @@ export const useEditorStore = create<EditorState>((set, get) => {
     return nodeId;
   };
 
+  const getSnapAwarePickPoint = (pickInfo: BABYLON.PickingInfo): BABYLON.Vector3 | null => {
+    if (!pickInfo.pickedPoint) {
+      return null;
+    }
+
+    const state = get();
+    if (!state.pickAtSnapPointEnabled || !state.snapEnabled) {
+      return pickInfo.pickedPoint.clone();
+    }
+
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+    if (!scene) {
+      return pickInfo.pickedPoint.clone();
+    }
+
+    const camera = scene.activeCamera;
+    if (!camera) {
+      return pickInfo.pickedPoint.clone();
+    }
+
+    const snappingHelper = SnappingHelper.getInstance();
+
+    const snapSettings = {
+      enabled: state.snapEnabled,
+      snapToGrid: state.snapToGrid,
+      snapToVertex: state.snapToVertex,
+      snapToEdge: state.snapToEdge,
+      snapToFace: state.snapToFace,
+      snapToCenter: state.snapToCenter,
+      snapToObject: state.snapToObject,
+      snapToMidpoint: state.snapToMidpoint,
+      snapToIntersection: state.snapToIntersection,
+      snapToPerpendicular: state.snapToPerpendicular,
+      snapToTangent: state.snapToTangent,
+      snapAlong: state.snapAlong,
+      snapToNormal: state.snapToNormal,
+      snapToPlane: state.snapToPlane,
+      snapToAxis: state.snapToAxis,
+      snapToCurve: state.snapToCurve,
+      snapToSurface: state.snapToSurface,
+      snapObjectToVertex: state.snapObjectToVertex,
+      snapPointOnEdge: state.snapPointOnEdge,
+      snapBBoxCorner: state.snapBBoxCorner,
+      gridSize: state.gridSize,
+      snapDistance: state.snapDistance,
+    };
+
+    const snapResult = snappingHelper.snapPosition(
+      pickInfo.pickedPoint,
+      snapSettings,
+      [],
+      camera,
+      20,
+      true,
+      pickInfo.pickedMesh || null,
+      pickInfo.pickedPoint
+    );
+
+    if (!snapResult.snapped) {
+      return pickInfo.pickedPoint.clone();
+    }
+
+    const world = {
+      x: snapResult.position.x,
+      y: snapResult.position.y,
+      z: snapResult.position.z,
+    };
+
+    let local: SnapCoordinate | undefined;
+    const mesh = pickInfo.pickedMesh as BABYLON.Mesh | null;
+    if (mesh) {
+      const worldMatrix = mesh.computeWorldMatrix(true);
+      const inverse = new BABYLON.Matrix();
+      if (worldMatrix.invertToRef(inverse)) {
+        const localVec = BABYLON.Vector3.TransformCoordinates(snapResult.position, inverse);
+        local = {
+          x: localVec.x,
+          y: localVec.y,
+          z: localVec.z,
+        };
+      }
+    }
+
+    const type = (snapResult.snapType as SnapResultType) || 'unknown';
+
+    get().setLastSnapResult({
+      world,
+      local,
+      type,
+      targetName: snapResult.targetMeshName || mesh?.name,
+    });
+
+    return snapResult.position.clone();
+  };
+
+  const resolveTransformNodeForSelection = (
+    node: SceneNode | null,
+    scene: BABYLON.Scene | null
+  ): BABYLON.TransformNode | null => {
+    if (!node || !scene) {
+      return null;
+    }
+
+    const registry = EntityRegistry.getInstance();
+
+    if (node.entityId) {
+      const entity = registry.get(node.entityId);
+      if (entity) {
+        const rootTransform = entity.getRootTransformNode
+          ? entity.getRootTransformNode()
+          : null;
+        if (rootTransform) {
+          return rootTransform;
+        }
+
+        if (typeof entity.getMesh === 'function') {
+          const entityMesh = entity.getMesh();
+          if (entityMesh) {
+            return entityMesh;
+          }
+        }
+      }
+    }
+
+    if (node.babylonTransformNodeId) {
+      const transformNode = scene.getTransformNodeByUniqueId(
+        parseInt(node.babylonTransformNodeId, 10)
+      );
+      if (transformNode) {
+        return transformNode;
+      }
+    } else if ((node as any).babylonNodeId) {
+      const legacyNode = scene.getTransformNodeByUniqueId(
+        parseInt((node as any).babylonNodeId, 10)
+      );
+      if (legacyNode) {
+        return legacyNode;
+      }
+    }
+
+    if (node.babylonMeshId) {
+      const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10));
+      if (mesh) {
+        return mesh;
+      }
+    }
+
+    return null;
+  };
+
   const updateSelectionVisuals = (nodeIds: string[]): void => {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
@@ -706,10 +858,12 @@ export const useEditorStore = create<EditorState>((set, get) => {
       sceneManager.adjustClippingPlanesForObject(newSelectedMeshes[0] || null);
     }
 
+    const transformTarget = resolveTransformNodeForSelection(node, scene);
+
     set({
       selectedMeshes: newSelectedMeshes,
       selectedCollectionNodeId: node.type === 'collection' ? node.id : null,
-      selectedCollectionTransformNode: node.type === 'collection' ? scene.getTransformNodeByUniqueId(node.babylonTransformNodeId ? parseInt(node.babylonTransformNodeId, 10) : -1) || null : null,
+      selectedCollectionTransformNode: transformTarget,
     });
 
     // Update coordinate frame widget unless a custom frame is active
@@ -811,7 +965,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
   // Snap coordinate display
   lastSnapResult: null,
   setLastSnapResult: (result) => set({ lastSnapResult: result }),
-  snapCoordinateDisplayEnabled: true,
+  snapCoordinateDisplayEnabled: false,
   toggleSnapCoordinateDisplay: () => {
     const { snapCoordinateDisplayEnabled } = get();
     set({ snapCoordinateDisplayEnabled: !snapCoordinateDisplayEnabled });
@@ -1179,6 +1333,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
   snapPointOnEdge: false,
   snapBBoxCorner: true,
   gridSize: 100, // 100mm grid
+  pickAtSnapPointEnabled: false,
   snapDistance: 0.1, // 0.1mm snap threshold (CAD standard)
   temporaryOrigin: null,
 
@@ -1393,6 +1548,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     const sceneManager = SceneManager.getInstance();
     const scene = sceneManager.getScene();
     const { coordinateFrameWidget } = get();
+    const transformTarget = resolveTransformNodeForSelection(node || null, scene);
 
     // Check if this is a device root mesh node (ending in _device_root)
     if (node && node.name.endsWith('_device_root') && node.type === 'mesh') {
@@ -1411,58 +1567,35 @@ export const useEditorStore = create<EditorState>((set, get) => {
     tree.expandToNode(normalizedId);
     window.dispatchEvent(new Event('scenetree-update'));
 
-    // If it's a collection/TransformNode, show coordinate frame at its origin
+    // If it's a collection/TransformNode, gather descendants and attach gizmo to transform target
     if (node && node.type === 'collection' && scene) {
-      let transformNode: BABYLON.TransformNode | undefined;
-      
-      // Use uniqueId lookup first for reliability (canonical field)
-      if (node.babylonTransformNodeId) {
-        const uniqueId = parseInt(node.babylonTransformNodeId, 10);
-        const foundNode = scene.getTransformNodeByUniqueId(uniqueId);
-        transformNode = foundNode ? foundNode : undefined;
-      } else if ((node as any).babylonNodeId) {
-        // Backward compatibility with older saves that used `babylonNodeId`
-        const legacyId = parseInt((node as any).babylonNodeId, 10);
-        const foundNode = scene.getTransformNodeByUniqueId(legacyId);
-        transformNode = foundNode ? foundNode : undefined;
-      } else {
-        // Final fallback: name lookup (may be ambiguous if names repeat)
-        transformNode = scene.transformNodes.find(tn => tn.name === node.name);
-      }
-      
-      if (transformNode) {
-        // For collection nodes, we need to trigger gizmo activation
-        // by setting a special flag that SceneCanvas can detect
-        // Clear any existing mesh selection to avoid conflicts
-        // Collect all descendant meshes for highlight
-        const meshes: BABYLON.Mesh[] = [];
-        const registry = EntityRegistry.getInstance();
-        const collectMeshes = (nid: string) => {
-          const n = tree.getNode(nid);
-          if (!n) return;
-          // Prefer entity mesh if available
-          if (n.entityId) {
-            const ent = registry.get(n.entityId);
-            if (ent && typeof ent.getMesh === 'function') {
-              const m = ent.getMesh();
-              if (m && m instanceof BABYLON.Mesh && m.isVisible) meshes.push(m);
-            }
-          } else if (n.babylonMeshId) {
-            const m = scene.getMeshByUniqueId(parseInt(n.babylonMeshId, 10));
+      const meshes: BABYLON.Mesh[] = [];
+      const registry = EntityRegistry.getInstance();
+      const collectMeshes = (nid: string) => {
+        const n = tree.getNode(nid);
+        if (!n) return;
+        // Prefer entity mesh if available
+        if (n.entityId) {
+          const ent = registry.get(n.entityId);
+          if (ent && typeof ent.getMesh === 'function') {
+            const m = ent.getMesh();
             if (m && m instanceof BABYLON.Mesh && m.isVisible) meshes.push(m);
           }
-          // Recurse children
-          tree.getChildren(nid).forEach(child => collectMeshes(child.id));
-        };
-        collectMeshes(normalizedId);
+        } else if (n.babylonMeshId) {
+          const m = scene.getMeshByUniqueId(parseInt(n.babylonMeshId, 10));
+          if (m && m instanceof BABYLON.Mesh && m.isVisible) meshes.push(m);
+        }
+        // Recurse children
+        tree.getChildren(nid).forEach(child => collectMeshes(child.id));
+      };
+      collectMeshes(normalizedId);
 
-        set({
-          selectedMeshes: meshes,
-          selectedCollectionNodeId: normalizedId,
-          selectedCollectionTransformNode: transformNode 
-        });
-
-      }
+      set({
+        selectedMeshes: meshes,
+        selectedCollectionNodeId: normalizedId,
+        selectedCollectionTransformNode: transformTarget,
+      });
+      return;
     } else {
       // For mesh or entity-backed nodes, collect the node's mesh AND all descendant meshes
       if (node && scene) {
@@ -1497,7 +1630,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
           set({
             selectedMeshes: meshes,
             selectedCollectionNodeId: null,
-            selectedCollectionTransformNode: null,
+            selectedCollectionTransformNode: transformTarget,
           });
           return;
         }
@@ -3508,9 +3641,11 @@ export const useEditorStore = create<EditorState>((set, get) => {
     }
 
     const mesh = pickInfo.pickedMesh as BABYLON.Mesh;
-    const pickPoint = pickInfo.pickedPoint;
+    const pickPoint = getSnapAwarePickPoint(pickInfo);
 
-    if (!pickPoint) return;
+    if (!pickPoint) {
+      return;
+    }
 
     let frame: CustomFrameFeature | null = null;
 
@@ -3645,6 +3780,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
   setSnapObjectToVertex: (enabled: boolean) => set({ snapObjectToVertex: enabled }),
   setSnapPointOnEdge: (enabled: boolean) => set({ snapPointOnEdge: enabled }),
   setSnapBBoxCorner: (enabled: boolean) => set({ snapBBoxCorner: enabled }),
+  setPickAtSnapPointEnabled: (enabled: boolean) => set({ pickAtSnapPointEnabled: enabled }),
   setGridSize: (size: number) => set({ gridSize: size }),
   setSnapDistance: (distance: number) => set({ snapDistance: distance }),
   setTemporaryOrigin: (origin: { x: number; y: number; z: number } | null) =>
@@ -3768,12 +3904,16 @@ export const useEditorStore = create<EditorState>((set, get) => {
   handleAlignClick: (pickInfo) => {
     const { alignMode, alignFirstPoint, alignMarkers, alignFrameWidgets } = get();
 
-    if (!alignMode || !pickInfo.hit || !pickInfo.pickedMesh || !pickInfo.pickedPoint) {
+    if (!alignMode || !pickInfo.hit || !pickInfo.pickedMesh) {
+      return;
+    }
+
+    const pickPoint = getSnapAwarePickPoint(pickInfo);
+    if (!pickPoint) {
       return;
     }
 
     const pickedMesh = pickInfo.pickedMesh as BABYLON.Mesh;
-    const pickPoint = pickInfo.pickedPoint;
 
     // Ignore ground and grid overlay
     if (pickedMesh.name === 'ground' || pickedMesh.name === 'gridOverlay') {
@@ -4668,7 +4808,12 @@ export const useEditorStore = create<EditorState>((set, get) => {
     console.log('[PointPick Debug] Mesh:', pickInfo.pickedMesh?.name);
     console.log('[PointPick Debug] isPickable:', (pickInfo.pickedMesh as any)?.isPickable);
 
-    if (!pointPickMode || !pickInfo.hit || !pickInfo.pickedPoint) {
+    if (!pointPickMode || !pickInfo.hit) {
+      return;
+    }
+
+    const pickPoint = getSnapAwarePickPoint(pickInfo);
+    if (!pickPoint) {
       return;
     }
 
@@ -4677,7 +4822,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     set({ pointPickFrameWidgets: [], pointPickFrameData: null });
 
     // Store pick for coordinate readouts (displayed elsewhere)
-    get().setLastPickedPoint(pickInfo.pickedPoint.clone());
+    get().setLastPickedPoint(pickPoint);
   },
 
   // Object origin frame actions
@@ -4738,8 +4883,54 @@ export const useEditorStore = create<EditorState>((set, get) => {
       const selectedMesh = selectedMeshes[0];
       console.log('[AddFrame] Creating frame at picked point on mesh:', selectedMesh.name);
 
-      // Use the last picked point as the frame origin
-      const pickPoint = lastPickedPoint.clone();
+      let pickPoint = lastPickedPoint.clone();
+
+      const state = get();
+      if (state.pickAtSnapPointEnabled && state.snapEnabled) {
+        const camera = scene.activeCamera;
+        if (camera) {
+          const snappingHelper = SnappingHelper.getInstance();
+          const snapSettings = {
+            enabled: state.snapEnabled,
+            snapToGrid: state.snapToGrid,
+            snapToVertex: state.snapToVertex,
+            snapToEdge: state.snapToEdge,
+            snapToFace: state.snapToFace,
+            snapToCenter: state.snapToCenter,
+            snapToObject: state.snapToObject,
+            snapToMidpoint: state.snapToMidpoint,
+            snapToIntersection: state.snapToIntersection,
+            snapToPerpendicular: state.snapToPerpendicular,
+            snapToTangent: state.snapToTangent,
+            snapAlong: state.snapAlong,
+            snapToNormal: state.snapToNormal,
+            snapToPlane: state.snapToPlane,
+            snapToAxis: state.snapToAxis,
+            snapToCurve: state.snapToCurve,
+            snapToSurface: state.snapToSurface,
+            snapObjectToVertex: state.snapObjectToVertex,
+            snapPointOnEdge: state.snapPointOnEdge,
+            snapBBoxCorner: state.snapBBoxCorner,
+            gridSize: state.gridSize,
+            snapDistance: state.snapDistance,
+          };
+
+          const snapResult = snappingHelper.snapPosition(
+            pickPoint,
+            snapSettings,
+            [],
+            camera,
+            20,
+            true,
+            selectedMesh,
+            pickPoint
+          );
+
+          if (snapResult.snapped) {
+            pickPoint = snapResult.position.clone();
+          }
+        }
+      }
 
       // Perform a raycast from camera to picked point to get surface normal
       const camera = scene.activeCamera;
