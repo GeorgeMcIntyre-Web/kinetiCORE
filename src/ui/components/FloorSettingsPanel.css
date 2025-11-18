@@ -1,4 +1,4 @@
-.skybox-settings-panel {
+.floor-settings-panel {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -7,7 +7,7 @@
   color: var(--panel-text, #ffffff);
 }
 
-.skybox-settings-header {
+.floor-settings-header {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -16,13 +16,13 @@
   border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
 }
 
-.skybox-settings-header h3 {
+.floor-settings-header h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
 }
 
-.skybox-settings-content {
+.floor-settings-content {
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -30,13 +30,38 @@
   overflow-y: auto;
 }
 
-.skybox-setting-group {
+.floor-visibility-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--panel-text, #ffffff);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.floor-visibility-toggle:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.floor-visibility-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.floor-setting-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.skybox-setting-label {
+.floor-setting-label {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -45,21 +70,32 @@
   color: var(--label-color, rgba(255, 255, 255, 0.9));
 }
 
-.skybox-setting-value {
+.floor-setting-value {
   margin-left: auto;
   font-size: 12px;
   color: var(--value-color, rgba(255, 255, 255, 0.6));
   font-weight: 400;
 }
 
-.skybox-preset-buttons {
+.floor-select {
+  width: 100%;
+  padding: 6px 8px;
+  background: rgba(30, 30, 35, 0.95);
+  border: 1px solid rgba(80, 80, 85, 0.8);
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.floor-preset-buttons {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   margin-top: 4px;
 }
 
-.skybox-preset-btn {
+.floor-preset-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -75,33 +111,33 @@
   transition: all 0.2s ease;
 }
 
-.skybox-preset-btn:hover:not(:disabled) {
+.floor-preset-btn:hover:not(:disabled) {
   background: var(--button-hover-bg, rgba(255, 255, 255, 0.1));
   border-color: var(--border-hover-color, rgba(255, 255, 255, 0.2));
   transform: translateY(-1px);
 }
 
-.skybox-preset-btn:active:not(:disabled) {
+.floor-preset-btn:active:not(:disabled) {
   transform: translateY(0);
 }
 
-.skybox-preset-btn.active {
+.floor-preset-btn.active {
   background: var(--accent-color, #4a90e2);
   border-color: var(--accent-color, #4a90e2);
   color: #ffffff;
   box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
 }
 
-.skybox-preset-btn:disabled {
+.floor-preset-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.skybox-preset-btn svg {
+.floor-preset-btn svg {
   flex-shrink: 0;
 }
 
-.skybox-toggle {
+.floor-toggle {
   position: relative;
   display: inline-block;
   width: 44px;
@@ -109,13 +145,13 @@
   cursor: pointer;
 }
 
-.skybox-toggle input {
+.floor-toggle input {
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-.skybox-toggle-slider {
+.floor-toggle-slider {
   position: absolute;
   top: 0;
   left: 0;
@@ -126,7 +162,7 @@
   transition: background-color 0.3s;
 }
 
-.skybox-toggle-slider:before {
+.floor-toggle-slider:before {
   position: absolute;
   content: "";
   height: 18px;
@@ -138,20 +174,20 @@
   transition: transform 0.3s;
 }
 
-.skybox-toggle input:checked + .skybox-toggle-slider {
+.floor-toggle input:checked + .floor-toggle-slider {
   background-color: #4CAF50;
 }
 
-.skybox-toggle input:checked + .skybox-toggle-slider:before {
+.floor-toggle input:checked + .floor-toggle-slider:before {
   transform: translateX(20px);
 }
 
-.skybox-toggle input:disabled + .skybox-toggle-slider {
+.floor-toggle input:disabled + .floor-toggle-slider {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.skybox-slider {
+.floor-slider {
   width: 100%;
   height: 6px;
   border-radius: 3px;
@@ -161,7 +197,7 @@
   appearance: none;
 }
 
-.skybox-slider::-webkit-slider-thumb {
+.floor-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 16px;
@@ -172,11 +208,11 @@
   transition: background 0.2s;
 }
 
-.skybox-slider::-webkit-slider-thumb:hover {
+.floor-slider::-webkit-slider-thumb:hover {
   background: #45a049;
 }
 
-.skybox-slider::-moz-range-thumb {
+.floor-slider::-moz-range-thumb {
   width: 16px;
   height: 16px;
   border-radius: 50%;
@@ -186,16 +222,31 @@
   transition: background 0.2s;
 }
 
-.skybox-slider::-moz-range-thumb:hover {
+.floor-slider::-moz-range-thumb:hover {
   background: #45a049;
 }
 
-.skybox-slider:disabled {
+.floor-slider:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.skybox-info {
+.floor-color-preview {
+  width: 100%;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.floor-channel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.floor-settings-info {
   margin-top: 12px;
   padding: 12px;
   background: rgba(255, 255, 255, 0.05);
@@ -205,7 +256,7 @@
   line-height: 1.5;
 }
 
-.skybox-info p {
+.floor-settings-info p {
   margin: 0;
 }
 

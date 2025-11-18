@@ -4,6 +4,24 @@ import { GridMaterial } from '@babylonjs/materials/grid';
 import { FloorType } from '../core/types';
 import { GROUND_SIZE } from '../core/constants';
 
+export interface GridOverlayOptions {
+  majorUnitFrequency?: number;
+  minorUnitVisibility?: number;
+  gridRatio?: number;
+  mainColor?: [number, number, number];
+  lineColor?: [number, number, number];
+  opacity?: number;
+}
+
+export const DEFAULT_GRID_OPTIONS: Required<GridOverlayOptions> = {
+  majorUnitFrequency: 10,
+  minorUnitVisibility: 0.45,
+  gridRatio: 1,
+  mainColor: [0.25, 0.25, 0.28],
+  lineColor: [0.4, 0.4, 0.45],
+  opacity: 0.8,
+};
+
 /**
  * Manages floor materials for different industrial environments
  * Provides various realistic floor options that users can switch between
@@ -12,6 +30,7 @@ export class FloorMaterialManager {
   private scene: BABYLON.Scene;
   private currentMaterial: BABYLON.Material | null = null;
   private gridOverlay: BABYLON.Mesh | null = null;
+  private gridOptions: GridOverlayOptions = { ...DEFAULT_GRID_OPTIONS };
 
   constructor(scene: BABYLON.Scene) {
     this.scene = scene;
@@ -77,11 +96,19 @@ export class FloorMaterialManager {
   /**
    * Create or update grid overlay
    */
-  public createGridOverlay(ground: BABYLON.Mesh, visible: boolean = true): BABYLON.Mesh {
+  public createGridOverlay(
+    ground: BABYLON.Mesh,
+    visible: boolean = true,
+    options?: GridOverlayOptions
+  ): BABYLON.Mesh {
     // Remove old overlay if exists
     if (this.gridOverlay) {
       this.gridOverlay.dispose();
       this.gridOverlay = null;
+    }
+
+    if (options) {
+      this.gridOptions = { ...this.gridOptions, ...options };
     }
 
     // Get ground dimensions from the actual ground mesh
@@ -91,13 +118,22 @@ export class FloorMaterialManager {
     const groundDepth = groundSize.z * 2;
 
     const gridMaterial = new GridMaterial('gridOverlay', this.scene);
-    gridMaterial.majorUnitFrequency = 10;
-    gridMaterial.minorUnitVisibility = 0.45;
-    gridMaterial.gridRatio = 1; // 1m grid
+    const mergedOptions = { ...DEFAULT_GRID_OPTIONS, ...this.gridOptions };
+    gridMaterial.majorUnitFrequency = mergedOptions.majorUnitFrequency;
+    gridMaterial.minorUnitVisibility = mergedOptions.minorUnitVisibility;
+    gridMaterial.gridRatio = mergedOptions.gridRatio; // 1m grid
     gridMaterial.backFaceCulling = false;
-    gridMaterial.mainColor = new BABYLON.Color3(0.25, 0.25, 0.28); // Lighter main color for dark background
-    gridMaterial.lineColor = new BABYLON.Color3(0.4, 0.4, 0.45); // Much lighter grid lines
-    gridMaterial.opacity = 0.8; // Higher opacity for better visibility
+    gridMaterial.mainColor = new BABYLON.Color3(
+      mergedOptions.mainColor[0],
+      mergedOptions.mainColor[1],
+      mergedOptions.mainColor[2]
+    ); // Lighter main color for dark background
+    gridMaterial.lineColor = new BABYLON.Color3(
+      mergedOptions.lineColor[0],
+      mergedOptions.lineColor[1],
+      mergedOptions.lineColor[2]
+    ); // Much lighter grid lines
+    gridMaterial.opacity = mergedOptions.opacity; // Higher opacity for better visibility
 
     // Critical: Enable proper depth testing to prevent grid showing through objects
     gridMaterial.disableDepthWrite = false; // Allow writing to depth buffer
@@ -125,10 +161,39 @@ export class FloorMaterialManager {
     return gridOverlay;
   }
 
+  public updateGridOverlay(grid: BABYLON.Mesh, options: GridOverlayOptions): void {
+    this.gridOptions = { ...this.gridOptions, ...options };
+    let gridMaterial = grid.material as GridMaterial | null;
+    if (!gridMaterial || !(gridMaterial instanceof GridMaterial)) {
+      gridMaterial = new GridMaterial('gridOverlay', this.scene);
+      grid.material = gridMaterial;
+    }
+
+    const mergedOptions = { ...DEFAULT_GRID_OPTIONS, ...this.gridOptions };
+    gridMaterial.majorUnitFrequency = mergedOptions.majorUnitFrequency;
+    gridMaterial.minorUnitVisibility = mergedOptions.minorUnitVisibility;
+    gridMaterial.gridRatio = mergedOptions.gridRatio;
+    gridMaterial.mainColor = new BABYLON.Color3(
+      mergedOptions.mainColor[0],
+      mergedOptions.mainColor[1],
+      mergedOptions.mainColor[2]
+    );
+    gridMaterial.lineColor = new BABYLON.Color3(
+      mergedOptions.lineColor[0],
+      mergedOptions.lineColor[1],
+      mergedOptions.lineColor[2]
+    );
+    gridMaterial.opacity = mergedOptions.opacity;
+  }
+
+  public getDefaultGridOptions(): Required<GridOverlayOptions> {
+    return { ...DEFAULT_GRID_OPTIONS };
+  }
+
   /**
    * Polished concrete floor (current default)
    */
-  private createPolishedConcrete(avgSize: number = GROUND_SIZE): BABYLON.PBRMetallicRoughnessMaterial {
+  private createPolishedConcrete(_avgSize: number = GROUND_SIZE): BABYLON.PBRMetallicRoughnessMaterial {
     const material = new BABYLON.PBRMetallicRoughnessMaterial(
       'floor-concrete-polished',
       this.scene
@@ -136,16 +201,6 @@ export class FloorMaterialManager {
     material.baseColor = new BABYLON.Color3(0.42, 0.42, 0.42);
     material.metallic = 0.0;
     material.roughness = 0.7;
-
-    const texture = new BABYLON.Texture(
-      'https://www.babylonjs-playground.com/textures/floor.png',
-      this.scene
-    );
-    texture.uScale = avgSize / 5;
-    texture.vScale = avgSize / 5;
-    // Enable mipmaps for proper distance rendering
-    texture.updateSamplingMode(BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
-    material.baseTexture = texture;
 
     material._environmentIntensity = 0.4;
     return material;

@@ -5,7 +5,7 @@ import * as BABYLON from '@babylonjs/core';
 // Note: @babylonjs/inspector is dynamically imported in toggleInspector() to avoid build issues
 import { GROUND_SIZE } from '../core/constants';
 import { FloorType } from '../core/types';
-import { FloorMaterialManager } from './FloorMaterialManager';
+import { FloorMaterialManager, GridOverlayOptions, DEFAULT_GRID_OPTIONS } from './FloorMaterialManager';
 import { EngineService } from './services/EngineService';
 import { LightingService } from './services/LightingService';
 import { CameraService } from './services/CameraService';
@@ -20,7 +20,12 @@ export class SceneManager {
   private ground: BABYLON.Mesh | null = null;
   private floorMaterialManager: FloorMaterialManager | null = null;
   private gridOverlay: BABYLON.Mesh | null = null;
-  private currentFloorType: FloorType = 'concrete-polished';
+  private gridOverlayOptions: GridOverlayOptions = { ...DEFAULT_GRID_OPTIONS };
+  private gridOverlayVisible: boolean = true;
+  private gridOverlayPreference: boolean = true;
+  private backgroundColor: BABYLON.Color4 = new BABYLON.Color4(1, 1, 1, 1);
+  private currentFloorType: FloorType = 'grid-only';
+  private floorVisible: boolean = true;
   private isInitialized: boolean = false;
   private inspectorModulesPromise: Promise<void> | null = null;
   private targetingWidget: TargetingWidget | null = null;
@@ -81,9 +86,9 @@ export class SceneManager {
     // CAD content will be converted to Y-up during import, not at scene level
     this.scene.useRightHandedSystem = false;
 
-    // Cloudy sky background - soft blue-grey overcast color
-    this.scene.clearColor = new BABYLON.Color4(0.71, 0.78, 0.82, 1.0); // Cloudy sky (#B5C7D1)
-    console.log('🎨 Scene initialized with cloudy sky background:', this.scene.clearColor);
+    // Default viewport background (can be customized via settings)
+    this.scene.clearColor = this.backgroundColor.clone();
+    console.log('🎨 Scene initialized with background color:', this.scene.clearColor);
 
     // Set scene for debug tools
     if (typeof window !== 'undefined' && (window as any).debugTools) {
@@ -107,23 +112,27 @@ export class SceneManager {
     // Initialize floor material manager
     this.floorMaterialManager = new FloorMaterialManager(this.scene);
 
-    // Apply default floor material (polished concrete)
+    // Apply default floor material (grid-only drafting view)
     const floorMaterial = this.floorMaterialManager.createFloorMaterial(this.currentFloorType);
     this.ground.material = floorMaterial;
     this.ground.receiveShadows = true;
+    this.ground.setEnabled(this.floorVisible);
+    this.ground.visibility = this.floorVisible ? 1 : 0;
 
     // Create grid overlay for spatial reference - always visible by default
     this.gridOverlay = this.floorMaterialManager.createGridOverlay(
       this.ground,
-      true // Always show grid by default
+      true,
+      this.gridOverlayOptions
     );
-    console.log('🔲 Grid overlay created and enabled:', this.gridOverlay?.isEnabled());
+    this.gridOverlayVisible = true;
+    console.log('🔲 Grid overlay created; default visibility set to:', this.gridOverlay?.isEnabled());
 
     // Defensive check: Ensure floor and grid are visible (floor should always be visible, grid depends on type)
     // This addresses potential issues where floor might not render due to visibility state
     if (this.ground) {
-      this.ground.setEnabled(true);
-      this.ground.visibility = 1.0; // Ensure full visibility
+      this.ground.setEnabled(this.floorVisible);
+      this.ground.visibility = this.floorVisible ? 1 : 0;
       if (this.gridOverlay) {
         // Grid overlay visibility is controlled by its enabled state
         console.log(
@@ -370,16 +379,27 @@ export class SceneManager {
     this.currentFloorType = floorType;
     const material = this.floorMaterialManager.createFloorMaterial(floorType);
     this.ground.material = material;
+    this.ground.setEnabled(this.floorVisible);
+    this.ground.visibility = this.floorVisible ? 1 : 0;
 
     // Manage grid overlay visibility based on floor type
-    if (this.gridOverlay) {
-      // Enable grid for all floor types (including grid-only)
-      this.gridOverlay.setEnabled(true);
-      console.log(`Floor changed to: ${floorType} (grid overlay enabled)`);
-    } else {
-      // Create grid overlay if it doesn't exist
-      this.gridOverlay = this.floorMaterialManager.createGridOverlay(this.ground, true);
-      console.log(`Floor changed to: ${floorType} (grid overlay created and enabled)`);
+    if (floorType === 'grid-only') {
+      if (this.gridOverlay) {
+        this.gridOverlay.setEnabled(true);
+        console.log(`Floor changed to: ${floorType} (grid overlay enabled)`);
+      } else {
+        this.gridOverlay = this.floorMaterialManager.createGridOverlay(
+          this.ground,
+          true,
+          this.gridOverlayOptions
+        );
+        console.log(`Floor changed to: ${floorType} (grid overlay created and enabled)`);
+      }
+      this.gridOverlayVisible = true;
+    } else if (this.gridOverlay) {
+      this.gridOverlay.setEnabled(false);
+      this.gridOverlayVisible = false;
+      console.log(`Floor changed to: ${floorType} (grid overlay hidden)`);
     }
   }
 
@@ -388,6 +408,78 @@ export class SceneManager {
    */
   getFloorType(): FloorType {
     return this.currentFloorType;
+  }
+
+  /**
+   * Determine if the floor mesh is visible
+   */
+  isFloorVisible(): boolean {
+    return this.floorVisible;
+  }
+
+  /**
+   * Toggle floor visibility
+   */
+  setFloorVisible(visible: boolean): void {
+    this.floorVisible = visible;
+    if (this.ground) {
+      this.ground.setEnabled(visible);
+      this.ground.visibility = visible ? 1 : 0;
+    }
+    if (!visible) {
+      if (this.gridOverlay) {
+        this.gridOverlay.setEnabled(false);
+      }
+      this.gridOverlayVisible = false;
+      return;
+    }
+    this.setGridOverlayVisible(this.gridOverlayPreference);
+    console.log('[SceneManager] Floor visibility set to:', visible);
+  }
+
+  /**
+   * Get current grid overlay options merged with defaults
+   */
+  getGridOverlayOptions(): Required<GridOverlayOptions> {
+    return { ...DEFAULT_GRID_OPTIONS, ...this.gridOverlayOptions };
+  }
+
+  /**
+   * Determine if the grid overlay is visible
+   */
+  isGridOverlayVisible(): boolean {
+    return this.gridOverlayVisible;
+  }
+
+  /**
+   * Get the current solid background color (normalized 0-1 components)
+   */
+  getBackgroundColor(): { r: number; g: number; b: number; a: number } {
+    return {
+      r: this.backgroundColor?.r ?? 0,
+      g: this.backgroundColor?.g ?? 0,
+      b: this.backgroundColor?.b ?? 0,
+      a: this.backgroundColor?.a ?? 1,
+    };
+  }
+
+  /**
+   * Update the scene background color
+   */
+  setBackgroundColor(color: { r: number; g: number; b: number; a?: number }): void {
+    const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
+    const nextColor = new BABYLON.Color4(
+      clamp01(color.r),
+      clamp01(color.g),
+      clamp01(color.b),
+      clamp01(color.a ?? 1)
+    );
+
+    this.backgroundColor = nextColor;
+    if (this.scene) {
+      this.scene.clearColor = nextColor.clone();
+    }
+    console.log('[SceneManager] Background color updated:', nextColor);
   }
 
   /**
@@ -412,14 +504,16 @@ export class SceneManager {
         this.gridOverlay.isVisible = true;
         this.gridOverlay.visibility = 1.0;
       }
+      this.gridOverlayVisible = true;
       console.log('✅ Background set to transparent (grid overlay visible)');
     } else {
-      // Use a default dark background
-      this.scene.clearColor = new BABYLON.Color4(0.2, 0.2, 0.25, 1);
+      // Reapply the stored solid background color
+      this.scene.clearColor = this.backgroundColor.clone();
       // Show grid overlay when background is solid
       if (this.gridOverlay) {
         this.gridOverlay.setEnabled(true);
       }
+      this.gridOverlayVisible = true;
       console.log('✅ Background set to solid (grid overlay visible)');
     }
 
@@ -444,6 +538,7 @@ export class SceneManager {
     if (this.gridOverlay) {
       this.gridOverlay.setEnabled(false);
     }
+    this.gridOverlayVisible = false;
 
     // Also disable any existing grid overlay by name
     const existingGridOverlay = this.scene.getMeshByName('gridOverlay');
@@ -497,14 +592,22 @@ export class SceneManager {
     );
     newGround.material = material;
     newGround.receiveShadows = true;
+    newGround.setEnabled(this.floorVisible);
+    newGround.visibility = this.floorVisible ? 1 : 0;
 
-    // Recreate grid overlay with new size (maintain current visibility state)
+    const wasGridVisible = !!this.gridOverlay?.isEnabled();
     if (this.gridOverlay) {
       this.gridOverlay.dispose();
+      this.gridOverlay = null;
     }
-    // Check if grid should be visible based on current background state
-    const isGridVisible = this.scene.clearColor.a > 0; // If alpha > 0, background is solid
-    this.gridOverlay = this.floorMaterialManager!.createGridOverlay(newGround, isGridVisible);
+    if (wasGridVisible) {
+      this.gridOverlay = this.floorMaterialManager!.createGridOverlay(
+        newGround,
+        true,
+        this.gridOverlayOptions
+      );
+    }
+    this.gridOverlayVisible = wasGridVisible;
 
     // Freeze for performance
     newGround.freezeWorldMatrix();
@@ -516,18 +619,55 @@ export class SceneManager {
    * Toggle grid overlay visibility
    */
   setGridOverlayVisible(visible: boolean): void {
+    this.gridOverlayPreference = visible;
+
+    if (!this.floorMaterialManager || !this.ground) {
+      console.warn('Floor material manager or ground not initialized');
+      this.gridOverlayVisible = visible && this.floorVisible;
+      return;
+    }
+
+    if (!this.floorVisible) {
+      if (this.gridOverlay) {
+        this.gridOverlay.setEnabled(false);
+      }
+      this.gridOverlayVisible = false;
+      return;
+    }
+
+    if (visible) {
+      if (this.gridOverlay) {
+        this.gridOverlay.setEnabled(true);
+      } else {
+        this.gridOverlay = this.floorMaterialManager.createGridOverlay(
+          this.ground,
+          true,
+          this.gridOverlayOptions
+        );
+      }
+    } else if (this.gridOverlay) {
+      this.gridOverlay.setEnabled(false);
+    }
+
+    this.gridOverlayVisible = visible;
+  }
+
+  setGridOverlayOptions(options: GridOverlayOptions): void {
     if (!this.floorMaterialManager || !this.ground) {
       console.warn('Floor material manager or ground not initialized');
       return;
     }
 
-    if (this.gridOverlay) {
-      this.gridOverlay.dispose();
-      this.gridOverlay = null;
-    }
+    this.gridOverlayOptions = { ...this.gridOverlayOptions, ...options };
 
-    if (visible) {
-      this.gridOverlay = this.floorMaterialManager.createGridOverlay(this.ground, true);
+    if (this.gridOverlay) {
+      this.floorMaterialManager.updateGridOverlay(this.gridOverlay, this.gridOverlayOptions);
+    } else {
+      this.gridOverlay = this.floorMaterialManager.createGridOverlay(
+        this.ground,
+        this.gridOverlayVisible,
+        this.gridOverlayOptions
+      );
     }
   }
 
