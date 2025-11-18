@@ -179,6 +179,10 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   // Piping mode state
   const pipingModeEnabled = useEditorStore((state) => state.pipingModeEnabled);
   const setPipingModeEnabled = useEditorStore((state) => state.setPipingModeEnabled);
+  const booleanOperationInProgress = useEditorStore((state) => state.booleanOperationInProgress);
+  const performBooleanUnion = useEditorStore((state) => state.performBooleanUnion);
+  const performBooleanSubtract = useEditorStore((state) => state.performBooleanSubtract);
+  const performBooleanIntersect = useEditorStore((state) => state.performBooleanIntersect);
   
   // Store connections
   const transformMode = useEditorStore((state) => state.transformMode);
@@ -354,6 +358,45 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
       setTransformMode('scale');
       setTransformGizmoEnabled(true);
     }
+  };
+
+  const getBooleanNodePair = () => {
+    if (!selectedNodeId && selectedMeshes.length < 2) {
+      toast.error('Select two objects for Boolean operations');
+      return null;
+    }
+
+    if (selectedNodeId) {
+      const state = useEditorStore.getState();
+      const secondaryId = state.selectedNodeIds.find((id) => id !== selectedNodeId) || null;
+      if (!secondaryId) {
+        toast.error('Select two nodes in the scene tree for Boolean operations');
+        return null;
+      }
+
+      return { nodeIdA: selectedNodeId, nodeIdB: secondaryId };
+    }
+
+    if (selectedMeshes.length < 2) {
+      toast.error('Select at least two meshes for Boolean operations');
+      return null;
+    }
+
+    const state = useEditorStore.getState();
+    const tree = SceneTreeManager.getInstance();
+
+    const meshA = selectedMeshes[0];
+    const meshB = selectedMeshes[1];
+
+    const nodeA = tree.findNodeByMesh(meshA);
+    const nodeB = tree.findNodeByMesh(meshB);
+
+    if (!nodeA || !nodeB) {
+      toast.error('Could not resolve selected meshes to scene nodes');
+      return null;
+    }
+
+    return { nodeIdA: nodeA.id, nodeIdB: nodeB.id };
   };
 
   return (
@@ -537,6 +580,48 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
             title="Factory Piping - Design water, air, and steam networks"
           >
             <Droplets size={32} />
+          </button>
+          <button
+            className="ribbon-btn"
+            disabled={booleanOperationInProgress}
+            onClick={async () => {
+              const pair = getBooleanNodePair();
+              if (!pair) {
+                return;
+              }
+              await performBooleanUnion(pair.nodeIdA, pair.nodeIdB);
+            }}
+            title={booleanOperationInProgress ? 'Boolean operation in progress…' : 'Boolean Union (Ctrl+U)'}
+          >
+            <GitBranch size={24} />
+          </button>
+          <button
+            className="ribbon-btn"
+            disabled={booleanOperationInProgress}
+            onClick={async () => {
+              const pair = getBooleanNodePair();
+              if (!pair) {
+                return;
+              }
+              await performBooleanSubtract(pair.nodeIdA, pair.nodeIdB);
+            }}
+            title={booleanOperationInProgress ? 'Boolean operation in progress…' : 'Boolean Subtract (Ctrl+Shift+U)'}
+          >
+            <Minus size={24} />
+          </button>
+          <button
+            className="ribbon-btn"
+            disabled={booleanOperationInProgress}
+            onClick={async () => {
+              const pair = getBooleanNodePair();
+              if (!pair) {
+                return;
+              }
+              await performBooleanIntersect(pair.nodeIdA, pair.nodeIdB);
+            }}
+            title={booleanOperationInProgress ? 'Boolean operation in progress…' : 'Boolean Intersect (Ctrl+I)'}
+          >
+            <Square size={24} />
           </button>
         </div>
       </div>

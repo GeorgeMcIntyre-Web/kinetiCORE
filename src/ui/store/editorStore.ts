@@ -35,6 +35,7 @@ import { DuplicateObjectCommand } from '../../history/commands/DuplicateObjectCo
 import { ProjectManager } from '../../project/ProjectManager';
 import { ProjectWorldLoader } from '../../project/ProjectWorldLoader';
 import type { Project, ProjectSave, AssetInstance } from '../../project/types';
+import { BooleanOperations } from '../../scene/BooleanOperations';
 
 type ObjectType =
   | 'box'
@@ -50,6 +51,34 @@ type ObjectType =
   | 'polyhedron';
 type SnapMode = 'point-to-point' | 'frame-to-frame';
 export type PipingPlacementMode = 'floor' | 'elevation' | 'snap';
+
+export type SnapResultType =
+  | 'vertex'
+  | 'edgeMid'
+  | 'faceCenter'
+  | 'circleCenter'
+  | 'edge'
+  | 'face'
+  | 'center'
+  | 'intersection'
+  | 'bboxCorner'
+  | 'surface'
+  | 'grid'
+  | 'object'
+  | 'unknown';
+
+export interface SnapCoordinate {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface StoreSnapResult {
+  world: SnapCoordinate;
+  local?: SnapCoordinate;
+  type: SnapResultType;
+  targetName?: string;
+}
 
 export type MeasurementRecordType = 'distance' | 'angle' | 'volume';
 
@@ -128,6 +157,18 @@ interface EditorState {
   worldLoader: ProjectWorldLoader;
   currentProject: Project | null;
   assetInstances: AssetInstance[];
+
+  // Snap coordinate display
+  lastSnapResult: StoreSnapResult | null;
+  setLastSnapResult: (result: StoreSnapResult | null) => void;
+  snapCoordinateDisplayEnabled: boolean;
+  toggleSnapCoordinateDisplay: () => void;
+
+  // Boolean operations
+  booleanOperationInProgress: boolean;
+  performBooleanUnion: (nodeIdA: string, nodeIdB: string) => Promise<void>;
+  performBooleanSubtract: (nodeIdA: string, nodeIdB: string) => Promise<void>;
+  performBooleanIntersect: (nodeIdA: string, nodeIdB: string) => Promise<void>;
 
   // Measurement history
   measurementHistory: MeasurementRecord[];
@@ -766,6 +807,108 @@ export const useEditorStore = create<EditorState>((set, get) => {
   worldLoader: ProjectWorldLoader.getInstance(),
   currentProject: null,
   assetInstances: [],
+
+  // Snap coordinate display
+  lastSnapResult: null,
+  setLastSnapResult: (result) => set({ lastSnapResult: result }),
+  snapCoordinateDisplayEnabled: true,
+  toggleSnapCoordinateDisplay: () => {
+    const { snapCoordinateDisplayEnabled } = get();
+    set({ snapCoordinateDisplayEnabled: !snapCoordinateDisplayEnabled });
+  },
+
+  // Boolean operations
+  booleanOperationInProgress: false,
+  performBooleanUnion: async (nodeIdA, nodeIdB) => {
+    const { booleanOperationInProgress } = get();
+    if (booleanOperationInProgress) {
+      return;
+    }
+
+    set({ booleanOperationInProgress: true });
+
+    try {
+      const sceneManager = SceneManager.getInstance();
+      const scene = sceneManager.getScene();
+      if (!scene) {
+        toast.error('Scene not initialized');
+        return;
+      }
+
+      const result = await BooleanOperations.performOperationOnNodes(nodeIdA, nodeIdB, 'union', scene);
+      if (!result.success) {
+        toast.error(result.error || 'Boolean union failed');
+        return;
+      }
+
+      toast.success('Boolean union completed');
+    } catch (error) {
+      console.error('Boolean union error:', error);
+      toast.error('Boolean union failed. Check console for details.');
+    } finally {
+      set({ booleanOperationInProgress: false });
+    }
+  },
+  performBooleanSubtract: async (nodeIdA, nodeIdB) => {
+    const { booleanOperationInProgress } = get();
+    if (booleanOperationInProgress) {
+      return;
+    }
+
+    set({ booleanOperationInProgress: true });
+
+    try {
+      const sceneManager = SceneManager.getInstance();
+      const scene = sceneManager.getScene();
+      if (!scene) {
+        toast.error('Scene not initialized');
+        return;
+      }
+
+      const result = await BooleanOperations.performOperationOnNodes(nodeIdA, nodeIdB, 'subtract', scene);
+      if (!result.success) {
+        toast.error(result.error || 'Boolean subtract failed');
+        return;
+      }
+
+      toast.success('Boolean subtract completed');
+    } catch (error) {
+      console.error('Boolean subtract error:', error);
+      toast.error('Boolean subtract failed. Check console for details.');
+    } finally {
+      set({ booleanOperationInProgress: false });
+    }
+  },
+  performBooleanIntersect: async (nodeIdA, nodeIdB) => {
+    const { booleanOperationInProgress } = get();
+    if (booleanOperationInProgress) {
+      return;
+    }
+
+    set({ booleanOperationInProgress: true });
+
+    try {
+      const sceneManager = SceneManager.getInstance();
+      const scene = sceneManager.getScene();
+      if (!scene) {
+        toast.error('Scene not initialized');
+        return;
+      }
+
+      const result = await BooleanOperations.performOperationOnNodes(nodeIdA, nodeIdB, 'intersect', scene);
+      if (!result.success) {
+        toast.error(result.error || 'Boolean intersect failed');
+        return;
+      }
+
+      toast.success('Boolean intersect completed');
+    } catch (error) {
+      console.error('Boolean intersect error:', error);
+      toast.error('Boolean intersect failed. Check console for details.');
+    } finally {
+      set({ booleanOperationInProgress: false });
+    }
+  },
 
   // Measurement history
   measurementHistory: [],

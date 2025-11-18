@@ -33,6 +33,9 @@ export const KeyboardShortcuts: React.FC = () => {
   const toggleInspector = useEditorStore((state) => state.toggleInspector);
   const undo = useEditorStore((state) => state.undo);
   const redo = useEditorStore((state) => state.redo);
+  const performBooleanUnion = useEditorStore((state) => state.performBooleanUnion);
+  const performBooleanSubtract = useEditorStore((state) => state.performBooleanSubtract);
+  const performBooleanIntersect = useEditorStore((state) => state.performBooleanIntersect);
   const toggleTransformGizmo = useEditorStore((state) => state.toggleTransformGizmo);
 
   const shortcuts: Shortcut[] = [
@@ -78,6 +81,54 @@ export const KeyboardShortcuts: React.FC = () => {
     { key: 'c', ctrl: true, shift: true, description: 'Toggle Orthographic/Perspective', action: () => toggleCameraMode(), category: 'View' },
     { key: 'i', ctrl: true, shift: true, description: 'Toggle Inspector', action: () => toggleInspector(), category: 'View' },
     { key: ' ', ctrl: true, description: 'Focus Camera on Selected', action: () => selectedNodeId && zoomToNode(selectedNodeId), category: 'View' },
+
+    // Boolean Operations
+    {
+      key: 'u',
+      ctrl: true,
+      description: 'Boolean Union (two selected nodes)',
+      action: () => {
+        const state = useEditorStore.getState();
+        const ids = state.selectedNodeIds;
+        if (!ids || ids.length < 2) {
+          return;
+        }
+        const [nodeIdA, nodeIdB] = ids;
+        performBooleanUnion(nodeIdA, nodeIdB);
+      },
+      category: 'Boolean',
+    },
+    {
+      key: 'u',
+      ctrl: true,
+      shift: true,
+      description: 'Boolean Subtract (two selected nodes)',
+      action: () => {
+        const state = useEditorStore.getState();
+        const ids = state.selectedNodeIds;
+        if (!ids || ids.length < 2) {
+          return;
+        }
+        const [nodeIdA, nodeIdB] = ids;
+        performBooleanSubtract(nodeIdA, nodeIdB);
+      },
+      category: 'Boolean',
+    },
+    {
+      key: 'i',
+      ctrl: true,
+      description: 'Boolean Intersect (two selected nodes)',
+      action: () => {
+        const state = useEditorStore.getState();
+        const ids = state.selectedNodeIds;
+        if (!ids || ids.length < 2) {
+          return;
+        }
+        const [nodeIdA, nodeIdB] = ids;
+        performBooleanIntersect(nodeIdA, nodeIdB);
+      },
+      category: 'Boolean',
+    },
 
     // Help
     { key: '?', description: 'Show Shortcuts', action: () => setShowHelp(!showHelp), category: 'Help' },

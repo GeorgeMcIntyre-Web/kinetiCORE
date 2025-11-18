@@ -14,6 +14,7 @@ import { EssentialModeLayout } from './ui/layouts/EssentialModeLayout';
 import { ProfessionalModeLayout } from './ui/layouts/ProfessionalModeLayout';
 import { ExpertModeLayout } from './ui/layouts/ExpertModeLayout';
 import { AssetLibraryPanelV2 } from './ui/components/AssetLibrary/AssetLibraryPanelV2';
+import { SnapCoordinateDisplay } from './ui/components/SnapCoordinateDisplay';
 import { ProjectManager } from './project/ProjectManager';
 import { initializeServices } from './core/ServiceRegistry';
 
@@ -123,6 +124,7 @@ const AppContent: React.FC = () => {
       <ToastNotifications />
       <MJCFLoadingStatusPopup />
       <LoadingIndicator />
+      <SnapCoordinateDisplay />
 
       {/* Kinematics Panel - Overlay */}
       {showKinematicsPanel && (
