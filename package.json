@@ -21,6 +21,7 @@
     "test": "vitest",
     "test:coverage": "vitest --coverage",
     "snap:harness": "tsx scripts/snap-harness.ts",
+    "smoke:units-motion": "tsx scripts/smokeTestUnitsAndMotion.ts",
     "debug:vertices": "http-server ./ -p 8080 -c-1",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\"",
     "prepare": "husky install",
