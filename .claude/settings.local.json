@@ -45,7 +45,8 @@
       "Bash(nul)",
       "Bash(mkdir:*)",
       "Bash(npx vitest:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(npm run smoke:units-motion:*)"
     ],
     "deny": [],
     "ask": []
