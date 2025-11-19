@@ -104,3 +104,62 @@
     gap: 0.75rem;
   }
 }
+
+/* Expert Mode: Match Professional Mode tab theming for right panels */
+/* Target right panel tabs (Properties, Factory, Route, Routing Analyses) */
+.expert-layout .dockview-theme-kineticore .dv-default-tab {
+  background: #2a3145;
+  border: 1px solid #3a4154;
+  color: #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.expert-layout .dockview-theme-kineticore .dv-default-tab:hover {
+  background: #323a50;
+  border-color: rgba(129, 140, 248, 0.25);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.expert-layout .dockview-theme-kineticore .dv-default-tab.dv-active-tab {
+  background: rgba(129, 140, 248, 0.18);
+  border-color: rgba(129, 140, 248, 0.45);
+  color: rgb(129, 140, 248);
+  box-shadow:
+    0 0 0 1px rgba(129, 140, 248, 0.35),
+    0 0 10px rgba(129, 140, 248, 0.3);
+}
+
+/* Exclude Scene Tree (left panel) from the themed styling - keep default */
+.expert-layout .dockview-theme-kineticore .dv-group:first-of-type .dv-default-tab {
+  background: var(--dv-activegroup-visiblepanel-tab-background-color);
+  border: none;
+  color: var(--dv-activegroup-visiblepanel-tab-color);
+  box-shadow: none;
+}
+
+.expert-layout .dockview-theme-kineticore .dv-group:first-of-type .dv-default-tab:hover {
+  background: var(--dv-activegroup-hiddenpanel-tab-background-color);
+  border: none;
+  box-shadow: none;
+}
+
+.expert-layout .dockview-theme-kineticore .dv-group:first-of-type .dv-default-tab.dv-active-tab {
+  background: var(--dv-activegroup-visiblepanel-tab-background-color);
+  border: none;
+  border-bottom: var(--dv-activegroup-visiblepanel-tab-border-bottom);
+  color: var(--dv-activegroup-visiblepanel-tab-color);
+  box-shadow: none;
+}
+
+/* Match panel content background to app theme */
+.expert-layout .dockview-theme-kineticore .panel-content {
+  background: rgb(18, 24, 39) !important;
+}
+
+.expert-layout .dockview-theme-kineticore .content-container {
+  background: rgb(18, 24, 39) !important;
+}
+
+.expert-layout .dockview-theme-kineticore .dv-group-view {
+  background: rgb(18, 24, 39) !important;
+}
