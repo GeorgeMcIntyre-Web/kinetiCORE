@@ -68,7 +68,15 @@ Open browser: http://localhost:5173
 
 ### 5. Test FEA Demo
 
-In the UI, find and click the **"Run Beam FEA (Mock Backend)"** button in the FEA Backend Demo Panel.
+**Access the FEA Backend Demo Panel:**
+
+1. In the UI, ensure you're in **Professional Mode** (mode switcher in header)
+2. Open the browser console (F12)
+3. Run: `window.__DEBUG_showFeaBackendDemo()`
+4. The FEA Backend Demo Panel will appear
+5. Click **"Run Beam FEA (Mock Backend)"** button
+
+Alternatively, the panel is automatically opened by E2E tests.
 
 **Expected Results (~2 seconds):**
 - ✅ Max Displacement: ~1.60 mm
@@ -108,16 +116,55 @@ Expected values (stable across runs):
 
 ### Running Tests
 
-**Backend:**
+**Backend Unit Tests:**
 ```bash
 cd server
 pytest tests/ -v
 ```
 
-**Frontend:**
+**Frontend Unit Tests:**
 ```bash
 npm run test src/services/fea
 ```
+
+**E2E Browser Tests (Playwright):**
+
+Prerequisites: All services running (Redis, Celery, FastAPI, Frontend)
+
+```bash
+# Run all E2E tests
+npm run test:e2e
+
+# Run only FEA backend tests
+npm run test:e2e:fea
+
+# Run in headed mode (see browser)
+npm run test:e2e:headed
+
+# Debug mode (step through tests)
+npm run test:e2e:debug
+
+# Interactive UI mode
+npm run test:e2e:ui
+```
+
+**What the E2E tests do:**
+1. ✅ Launch frontend dev server automatically
+2. ✅ Open Professional mode
+3. ✅ Trigger FEA Backend Demo Panel
+4. ✅ Submit mock beam FEA job
+5. ✅ Wait for completion (polls backend)
+6. ✅ Verify results: displacement, stress, FoS
+7. ✅ Test error handling and multiple submissions
+
+**E2E Test Coverage:**
+- `[E2E-FEA-001]` Happy path - Full job submission workflow
+- `[E2E-FEA-002]` Panel open/close behavior
+- `[E2E-FEA-003]` Requirements instructions display
+- `[E2E-FEA-004]` Backend unavailable error handling
+- `[E2E-FEA-005]` Multiple job submissions
+
+**Note:** If backend is not running, tests will gracefully skip with a warning.
 
 ### Making Changes
 

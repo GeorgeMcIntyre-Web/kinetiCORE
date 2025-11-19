@@ -58,6 +58,7 @@ import { FloatingComplexIKPanel } from '../components/FloatingComplexIKPanel';
 import { WholeBodyIKPanel } from '../components/WholeBodyIKPanel';
 import { ICPTestPanel } from '../components/ICPTestPanel';
 import { PipingPanel } from '../piping/PipingPanel';
+import { FeaBackendDemoPanel } from '../components/FeaBackendDemoPanel';
 import { Scan, Settings } from 'lucide-react';
 import { RotateCcw, Target, CornerDownRight, Square } from 'lucide-react';
 import { Rocket, Calculator, GitBranch, Network, TestTube, Zap } from 'lucide-react';
@@ -119,6 +120,7 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [showComplexIKPanel, setShowComplexIKPanel] = useState(false);
   const [showWholeBodyIKPanel, setShowWholeBodyIKPanel] = useState(false);
   const [showICPTestPanel, setShowICPTestPanel] = useState(false);
+  const [showFeaBackendDemo, setShowFeaBackendDemo] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showSnapSetupPopup, setShowSnapSetupPopup] = useState(false);
   const debugLabelsRef = useRef<RouteDebugLabels | null>(null);
@@ -198,6 +200,14 @@ export const ProfessionalModeLayout: React.FC = () => {
       setSavedLayout(layout);
     }
   }, [loadPanelLayout]);
+
+  // Expose FEA demo panel toggle for E2E testing
+  useEffect(() => {
+    (window as any).__DEBUG_showFeaBackendDemo = () => setShowFeaBackendDemo(true);
+    return () => {
+      delete (window as any).__DEBUG_showFeaBackendDemo;
+    };
+  }, []);
 
   // Initialize RouteDebugLabels when scene is available
   useEffect(() => {
@@ -1095,6 +1105,12 @@ export const ProfessionalModeLayout: React.FC = () => {
         onClose={() => setShowICPTestPanel(false)}
         zIndex={1007}
       />
+      {/* FEA Backend Demo Panel - Debug/Testing */}
+      {showFeaBackendDemo && (
+        <FeaBackendDemoPanel
+          onClose={() => setShowFeaBackendDemo(false)}
+        />
+      )}
       <PipingPanel
         isVisible={pipingModeEnabled}
         onClose={() => setPipingModeEnabled(false)}
