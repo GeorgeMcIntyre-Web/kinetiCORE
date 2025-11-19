@@ -23,8 +23,8 @@ export class SceneManager {
   private gridOverlayOptions: GridOverlayOptions = { ...DEFAULT_GRID_OPTIONS };
   private gridOverlayVisible: boolean = true;
   private gridOverlayPreference: boolean = true;
-  private backgroundColor: BABYLON.Color4 = new BABYLON.Color4(1, 1, 1, 1);
-  private currentFloorType: FloorType = 'grid-only';
+  private backgroundColor: BABYLON.Color4 = new BABYLON.Color4(182/255, 199/255, 209/255, 1);
+  private currentFloorType: FloorType = 'tiles-ceramic';
   private floorVisible: boolean = true;
   private isInitialized: boolean = false;
   private inspectorModulesPromise: Promise<void> | null = null;
