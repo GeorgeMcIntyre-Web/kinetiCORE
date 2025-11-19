@@ -15,4 +15,5 @@ export * from './unitsV2Pipeline';
 export * from './debugTree';
 export * from './levelStats';
 export * from './unitComparison';
+export * from './toolingMotion';
 

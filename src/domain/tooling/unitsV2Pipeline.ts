@@ -35,6 +35,12 @@ import {
   type UnitComparisonResult
 } from './unitComparison';
 
+import {
+  buildToolMotionJointsFromState,
+  type ToolMotionJoint,
+  type ToolMotionBuildOptions,
+} from './toolingMotion';
+
 /**
  * V2 Units output format (JSON serializable).
  */
@@ -57,6 +63,7 @@ export interface UnitsV2Output {
     }>;
   }>;
   stateBasedUnits?: StateBasedUnitDetectionResult;
+  motionJoints?: ToolMotionJoint[];
   metadata?: {
     detectionAlgorithm: string;
     version: string;
@@ -84,6 +91,8 @@ export function runUnitsV2Pipeline(
     includeJointPairs?: boolean;
     snapshots?: KinematicSnapshot[];
     includeDebug?: boolean;
+    includeMotionJoints?: boolean;
+    motionBuildOptions?: ToolMotionBuildOptions;
   } = {}
 ): UnitsV2Output {
   const {
@@ -91,7 +100,8 @@ export function runUnitsV2Pipeline(
     jointPairDetection = {},
     includeJointPairs = true,
     snapshots = [],
-    includeDebug = false
+    includeDebug = false,
+    includeMotionJoints = false,
   } = options;
 
   // Phase 1: Detect units
@@ -115,6 +125,20 @@ export function runUnitsV2Pipeline(
         joints: jointPairs
       },
       options.stateBasedDetection
+    );
+  }
+
+  // Phase 4: Motion joints (Optional)
+  let motionJoints: ToolMotionJoint[] | undefined;
+
+  if (includeMotionJoints && stateBasedUnits && snapshots.length >= 2) {
+    motionJoints = buildToolMotionJointsFromState(
+      structure,
+      geometryIndex,
+      stateBasedUnits,
+      snapshots,
+      jointPairs,
+      options.motionBuildOptions
     );
   }
 
@@ -162,9 +186,10 @@ export function runUnitsV2Pipeline(
       };
     }),
     stateBasedUnits,
+    motionJoints,
     metadata: {
       detectionAlgorithm: 'hierarchical-point-cloud-v2',
-      version: '2.2.0',
+      version: '2.3.0',
       timestamp: new Date().toISOString(),
       structureCandidates,
       comparison,
