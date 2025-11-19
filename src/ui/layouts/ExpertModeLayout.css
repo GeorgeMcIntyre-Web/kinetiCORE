@@ -87,15 +87,20 @@
   box-shadow: 0 10px 25px rgba(14, 165, 233, 0.45);
 }
 
-.professional-toolbar {
+/* Expert Mode: Override toolbar to center it with all buttons visible */
+.expert-layout .professional-toolbar {
   display: flex;
   justify-content: center;
-  padding: 0.75rem 0 0.5rem;
+  padding: 0.75rem 1rem 0.5rem;
   background: transparent;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
-.professional-toolbar > .toolbar-container {
-  width: min(1200px, 100%);
+.expert-layout .professional-toolbar > .toolbar-container {
+  display: flex;
+  width: auto;
+  max-width: 100%;
   margin: 0 auto;
 }
 

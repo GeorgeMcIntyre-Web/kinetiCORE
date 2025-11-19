@@ -1,7 +1,7 @@
 // Expert Mode Layout - Power User/Enterprise interface
 // Owner: George (Architecture)
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import {
   Move,
@@ -30,10 +30,11 @@ import {
   Plus,
   Link,
   Info,
+  Crosshair,
 } from 'lucide-react';
 import { Scan, Settings } from 'lucide-react';
 import { RotateCcw, Target, CornerDownRight, Square } from 'lucide-react';
-import { Rocket, GitBranch } from 'lucide-react';
+import { Rocket } from 'lucide-react';
 import { Ruler, Triangle, Box as BoxIcon } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
@@ -77,16 +78,6 @@ import './ExpertModeLayout.css';
 import './ProfessionalModeLayout.css';
 
 type ActiveMeasurement = Exclude<MeasurementType, null>;
-
-const measurementButtons: Array<{
-  type: ActiveMeasurement;
-  label: string;
-  icon: React.ComponentType<{ size?: number }>;
-}> = [
-  { type: 'distance', label: 'Distance', icon: Ruler },
-  { type: 'angle', label: 'Angle', icon: Triangle },
-  { type: 'volume', label: 'Volume', icon: BoxIcon },
-];
 
 export const ExpertModeLayout: React.FC = () => {
   const { userLevel, setUserLevel } = useUserLevel();
@@ -454,47 +445,6 @@ export const ExpertModeLayout: React.FC = () => {
     setPipingQuickMode(pipingQuickMode === 'segment' ? 'none' : 'segment');
   };
 
-  const ribbonProps = useMemo<RibbonToolbarProps>(() => ({
-    onProjectManagerClick: showProjectManager,
-    onAssetLibraryClick: toggleLibrary,
-    onQuickMoveClick: () => setShowMoveDialog(true),
-    onResetViewClick: handleResetView,
-    onZoomFitClick: handleZoomFit,
-    onZoomToSelectedClick: handleZoomToSelected,
-    onTopViewClick: handleTopView,
-    onRightViewClick: handleRightView,
-    onFrontViewClick: handleFrontView,
-    onIsoViewClick: handleIsoView,
-    onSnapSetupClick: () => setShowSnapSetup(true),
-    onKinematicsClick: () => setShowKinematicsPanel(true),
-    onKinematicsAnalysisClick: () => setShowKinematicsAnalysisPanel(true),
-    onActuatorsClick: () => setShowActuatorPanel(true),
-    onComplexIKClick: () => setShowComplexIKPanel(true),
-    onWholeBodyIKClick: () => setShowWholeBodyIKPanel(true),
-    onKinematicExtractionClick: () => setShowKinematicExtractionPanel(true),
-    onICPTestClick: () => setShowICPTestPanel(true),
-    onAutoKinematicsTestClick: () => setShowAutoKinematicsTest(true),
-    onPhysicsClick: () => setShowPhysicsSettings(true),
-    onCollisionsClick: () => setShowCollisionVisualizer(true),
-    onWarehouseConfigClick: () => setShowWarehousePanel(true),
-    onWarehouseToggleClick: handleWarehouseToggle,
-    onWarehouseResetCameraClick: handleWarehouseResetCamera,
-    onPipingClick: () => setPipingModeEnabled(!pipingModeEnabled),
-  }), [
-    showProjectManager,
-    toggleLibrary,
-    handleResetView,
-    handleZoomFit,
-    handleZoomToSelected,
-    handleTopView,
-    handleRightView,
-    handleFrontView,
-    handleIsoView,
-    handleWarehouseToggle,
-    handleWarehouseResetCamera,
-    pipingModeEnabled,
-  ]);
-
   return (
     <div className="expert-layout">
       <SelectionIndicator selectedNodeIds={selectedNodeIds} />
@@ -618,9 +568,10 @@ export const ExpertModeLayout: React.FC = () => {
 
       <div className="professional-toolbar">
         {activeWorkspace === 'modeling' && (
-          <ToolbarContainer>
+          <ToolbarContainer className="compact">
+            {/* Creation Tools */}
             <div className="tool-group">
-              <div className="group-label">Create</div>
+              <div className="group-label">Creation</div>
               <div className="tool-buttons">
                 <CreateDropdown
                   onCreateBox={() => createObject('box')}
@@ -635,26 +586,19 @@ export const ExpertModeLayout: React.FC = () => {
                   onCreateTorusKnot={() => createObject('torusknot')}
                   onCreatePolyhedron={() => createObject('polyhedron')}
                 />
-                <button
-                  className={`tool-btn ${snapToolActive ? 'active' : ''}`}
-                  onClick={() => setSnapToolActive(!snapToolActive)}
-                >
-                  <Magnet size={18} />
-                  <span>Snap</span>
-                </button>
-                <button className="tool-btn" onClick={() => setShowSnapSetup(true)}>
-                  <Settings size={18} />
-                  <span>Setup</span>
-                </button>
               </div>
             </div>
+
             <div className="toolbar-separator"></div>
+
+            {/* Transform Tools */}
             <div className="tool-group">
               <div className="group-label center">Transform</div>
               <div className="tool-buttons">
                 <button
                   className={`tool-btn ${transformMode === 'translate' && transformGizmoEnabled ? 'active' : ''}`}
                   disabled={!selectedNodeId}
+                  title={selectedNodeId ? 'Translate' : 'Select an object first'}
                   onClick={() => handleTransformTool('translate')}
                 >
                   <Move size={18} />
@@ -663,6 +607,7 @@ export const ExpertModeLayout: React.FC = () => {
                 <button
                   className={`tool-btn ${transformMode === 'rotate' && transformGizmoEnabled ? 'active' : ''}`}
                   disabled={!selectedNodeId}
+                  title={selectedNodeId ? 'Rotate' : 'Select an object first'}
                   onClick={() => handleTransformTool('rotate')}
                 >
                   <RotateCw size={18} />
@@ -671,22 +616,36 @@ export const ExpertModeLayout: React.FC = () => {
                 <button
                   className={`tool-btn ${transformMode === 'scale' && transformGizmoEnabled ? 'active' : ''}`}
                   disabled={!selectedNodeId}
+                  title={selectedNodeId ? 'Scale' : 'Select an object first'}
                   onClick={() => handleTransformTool('scale')}
                 >
                   <Scale size={18} />
                   <span>Scale</span>
                 </button>
-                <button className="tool-btn" disabled={!selectedNodeId} onClick={handleCopy}>
+                <button
+                  className="tool-btn"
+                  disabled={!selectedNodeId}
+                  title={selectedNodeId ? 'Duplicate (Ctrl+D)' : 'Select an object first'}
+                  onClick={handleCopy}
+                >
                   <Copy size={18} />
                   <span>Duplicate</span>
                 </button>
-                <button className="tool-btn" disabled={!selectedNodeId} onClick={() => setShowMoveDialog(true)}>
+                <button
+                  className="tool-btn"
+                  disabled={!selectedNodeId}
+                  title={selectedNodeId ? 'Quick Move Dialog (Relative/Absolute positioning)' : 'Select an object first'}
+                  onClick={() => setShowMoveDialog(true)}
+                >
                   <Navigation size={18} />
                   <span>Position</span>
                 </button>
               </div>
             </div>
+
             <div className="toolbar-separator"></div>
+
+            {/* View */}
             <div className="tool-group">
               <div className="group-label">View</div>
               <div className="tool-buttons">
@@ -711,58 +670,128 @@ export const ExpertModeLayout: React.FC = () => {
                 />
               </div>
             </div>
+
             <div className="toolbar-separator"></div>
+
+            {/* Utilities */}
             <div className="tool-group">
-              <div className="group-label">Measurement</div>
+              <div className="group-label">Utilities</div>
               <div className="tool-buttons">
-                {measurementButtons.map(({ type, label, icon: Icon }) => (
-                  <button
-                    key={type}
-                    className={`tool-btn ${activeMeasurement === type ? 'active' : ''}`}
-                    onClick={() => handleMeasurement(type)}
-                  >
-                    <Icon size={18} />
-                    <span>{label}</span>
-                  </button>
-                ))}
+                <SelectionLevelDropdown currentLevel={selectionLevel} onLevelChange={setSelectionLevel} />
               </div>
             </div>
+
             <div className="toolbar-separator"></div>
+
+            {/* Align */}
             <div className="tool-group">
-              <div className="group-label">Boolean Ops</div>
+              <div className="group-label">Align</div>
               <div className="tool-buttons">
-                <button className="tool-btn" onClick={() => handleBooleanOperation('union')}>
-                  <GitBranch size={18} />
+                <button className={`tool-btn ${alignMode === 'vertex' ? 'active' : ''}`} onClick={() => setAlignMode('vertex')} title="Align Vertex">
+                  <CornerDownRight size={18} />
+                  <span>Vertex</span>
+                </button>
+                <button className={`tool-btn ${alignMode === 'edge' ? 'active' : ''}`} onClick={() => setAlignMode('edge')} title="Align Edge">
+                  <Minus size={18} />
+                  <span>Edge</span>
+                </button>
+                <button className={`tool-btn ${alignMode === 'face' ? 'active' : ''}`} onClick={() => setAlignMode('face')} title="Align Face">
+                  <Square size={18} />
+                  <span>Face</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="toolbar-separator"></div>
+
+            {/* Snap Tools */}
+            <div className="tool-group">
+              <div className="group-label">Snap</div>
+              <div className="tool-buttons">
+                <button
+                  className={`tool-btn ${snapToolActive ? 'active' : ''}`}
+                  title="Snap - Click first point on source object, then click target point"
+                  onClick={() => setSnapToolActive(!snapToolActive)}
+                >
+                  <Magnet size={18} />
+                  <span>Snap</span>
+                </button>
+                <button
+                  className="tool-btn"
+                  title="Snap Setup"
+                  onClick={() => setShowSnapSetup(true)}
+                >
+                  <Crosshair size={18} />
+                  <span>Snap Setup</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="toolbar-separator"></div>
+
+            {/* Modify Tools */}
+            <div className="tool-group">
+              <div className="group-label">Modify</div>
+              <div className="tool-buttons">
+                <button
+                  className="tool-btn"
+                  title={selectedNodeIds.length === 2 ? 'Union - Combine two objects into one' : 'Union - Select exactly 2 objects (Ctrl+Click)'}
+                  disabled={selectedNodeIds.length !== 2}
+                  onClick={() => handleBooleanOperation('union')}
+                >
+                  <Layers size={18} />
                   <span>Union</span>
                 </button>
-                <button className="tool-btn" onClick={() => handleBooleanOperation('subtract')}>
+                <button
+                  className="tool-btn"
+                  title={selectedNodeIds.length === 2 ? 'Subtract - Remove 2nd object from 1st' : 'Subtract - Select exactly 2 objects (Ctrl+Click)'}
+                  disabled={selectedNodeIds.length !== 2}
+                  onClick={() => handleBooleanOperation('subtract')}
+                >
                   <Minus size={18} />
                   <span>Subtract</span>
                 </button>
-                <button className="tool-btn" onClick={() => handleBooleanOperation('intersect')}>
-                  <Square size={18} />
+                <button
+                  className="tool-btn"
+                  title={selectedNodeIds.length === 2 ? 'Intersect - Keep only overlapping volume' : 'Intersect - Select exactly 2 objects (Ctrl+Click)'}
+                  disabled={selectedNodeIds.length !== 2}
+                  onClick={() => handleBooleanOperation('intersect')}
+                >
+                  <LayoutTemplate size={18} />
                   <span>Intersect</span>
                 </button>
               </div>
             </div>
+
             <div className="toolbar-separator"></div>
+
+            {/* Measure Tools */}
             <div className="tool-group">
-              <div className="group-label">Selection</div>
+              <div className="group-label">Measure</div>
               <div className="tool-buttons">
-                <SelectionLevelDropdown currentLevel={selectionLevel} onLevelChange={setSelectionLevel} />
                 <button
-                  className={`tool-btn ${alignMode === 'face' ? 'active' : ''}`}
-                  onClick={() => setAlignMode('face')}
+                  className={`tool-btn ${activeMeasurement === 'distance' ? 'active' : ''}`}
+                  title="Measure distance between two points"
+                  onClick={() => handleMeasurement('distance')}
                 >
-                  <CornerDownRight size={18} />
-                  <span>Face</span>
+                  <Ruler size={18} />
+                  <span>Distance</span>
                 </button>
                 <button
-                  className={`tool-btn ${alignMode === 'edge' ? 'active' : ''}`}
-                  onClick={() => setAlignMode('edge')}
+                  className={`tool-btn ${activeMeasurement === 'angle' ? 'active' : ''}`}
+                  title="Measure angle between three points"
+                  onClick={() => handleMeasurement('angle')}
                 >
-                  <Square size={18} />
-                  <span>Edge</span>
+                  <Triangle size={18} />
+                  <span>Angle</span>
+                </button>
+                <button
+                  className={`tool-btn ${activeMeasurement === 'volume' ? 'active' : ''}`}
+                  title="Measure volume of selected objects"
+                  onClick={() => handleMeasurement('volume')}
+                >
+                  <BoxIcon size={18} />
+                  <span>Volume</span>
                 </button>
               </div>
             </div>
@@ -770,7 +799,7 @@ export const ExpertModeLayout: React.FC = () => {
         )}
 
         {activeWorkspace === 'simulation' && (
-          <ToolbarContainer title="Simulation Workspace">
+          <ToolbarContainer title="Simulation Workspace" className="compact">
             <div className="tool-group">
               <div className="group-label">Playback</div>
               <div className="tool-buttons">
@@ -806,7 +835,7 @@ export const ExpertModeLayout: React.FC = () => {
         )}
 
         {activeWorkspace === 'routing' && (
-          <ToolbarContainer title="Routing Workspace">
+          <ToolbarContainer title="Routing Workspace" className="compact">
             <div className="tool-group">
               <div className="group-label">Routes</div>
               <div className="tool-buttons">
@@ -855,7 +884,7 @@ export const ExpertModeLayout: React.FC = () => {
         )}
 
         {activeWorkspace === 'analysis' && (
-          <ToolbarContainer title="Analysis Workspace">
+          <ToolbarContainer title="Analysis Workspace" className="compact">
             <div className="tool-group">
               <div className="group-label">Dashboards</div>
               <div className="tool-buttons">
