@@ -235,3 +235,18 @@ TEST_*.md
 # Debug folders
 src/babylon/kinematics/debug/
 src/*/debug/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Playwright test artifacts
+playwright-report/
+playwright-results.json
+test-results/
+playwright/.cache/
+
+# Invalid Windows files
+nul
