@@ -1,0 +1,132 @@
+"""
+Mock FEA solver for development and testing.
+Simulates computation delay and returns analytical beam solution.
+"""
+
+import time
+from typing import Any, Dict, List
+
+
+def solve_mock_beam(request_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Mock solver that simulates FEA computation and returns analytical results.
+
+    Uses Euler-Bernoulli beam theory for a cantilever with tip load:
+    - Deflection: v(x) = (P/6EI)(3Lx² - x³)
+    - Moment: M(x) = P(L - x)
+    - Stress: σ = Mc/I
+
+    Args:
+        request_data: FEA job request dictionary
+
+    Returns:
+        Result dictionary matching FeaJobResult schema
+    """
+    # Simulate computation delay
+    time.sleep(2.0)
+
+    # Extract request parameters
+    meta = request_data.get("meta", {})
+    job_id = meta.get("jobId", "unknown")
+    model_type = meta.get("modelType", "beam-demo")
+
+    materials = request_data.get("materials", [])
+    loads = request_data.get("loads", [])
+
+    # Validate we have required data
+    if not materials:
+        return {
+            "jobId": job_id,
+            "status": "error",
+            "error": "No materials provided",
+        }
+
+    if not loads:
+        return {
+            "jobId": job_id,
+            "status": "error",
+            "error": "No loads provided",
+        }
+
+    # Extract material properties (use first material)
+    material = materials[0]
+    E = material.get("youngsModulus", 200e9)  # Pa
+    yield_strength = material.get("yieldStrength", 250e6)  # Pa
+
+    # Extract load (use first concentrated load)
+    load = next((ld for ld in loads if ld.get("type") == "concentrated"), None)
+
+    if not load:
+        return {
+            "jobId": job_id,
+            "status": "error",
+            "error": "No concentrated load found",
+        }
+
+    force = load.get("force", {})
+    P = abs(force.get("y", -1000))  # Assume vertical load
+
+    # Beam geometry assumptions (1m cantilever, 50mm x 100mm section)
+    L = 1.0  # meters
+    width = 0.05  # meters
+    height = 0.1  # meters
+    I = (width * height**3) / 12  # Second moment of area
+    c = height / 2  # Distance to outer fiber
+
+    # Calculate analytical results
+    # Max displacement at tip: v(L) = PL³/3EI
+    max_displacement = (P * L**3) / (3 * E * I)
+
+    # Max moment at fixed end: M(0) = PL
+    max_moment = P * L
+
+    # Max stress at fixed end: σ = Mc/I
+    max_stress = (max_moment * c) / I
+
+    # Factor of safety
+    factor_of_safety = yield_strength / max_stress if max_stress > 0 else None
+
+    # Generate nodal field data (20 nodes along beam)
+    num_nodes = 20
+    node_ids: List[int] = []
+    displacements: List[Dict[str, float]] = []
+    von_mises: List[float] = []
+
+    for i in range(num_nodes + 1):
+        x = (i / num_nodes) * L
+
+        # Displacement: v(x) = (P/6EI)(3Lx² - x³)
+        v = (P / (6 * E * I)) * (3 * L * x * x - x * x * x)
+
+        # Moment: M(x) = P(L - x)
+        M = P * (L - x)
+
+        # Stress: σ = Mc/I
+        sigma = (M * c) / I if I > 0 else 0
+
+        node_ids.append(i)
+        displacements.append({"x": 0.0, "y": v, "z": 0.0})
+        von_mises.append(abs(sigma))
+
+    # Estimated DOFs (3 DOFs per node for beam)
+    dofs = (num_nodes + 1) * 3
+
+    # Build result
+    result = {
+        "jobId": job_id,
+        "status": "completed",
+        "maxDisplacement": max_displacement,
+        "maxVonMises": max_stress,
+        "factorOfSafety": factor_of_safety,
+        "fields": {
+            "nodeIds": node_ids,
+            "displacements": displacements,
+            "vonMises": von_mises,
+        },
+        "meta": {
+            "solveTime": 2.0,
+            "dofs": dofs,
+        },
+    }
+
+    return result
