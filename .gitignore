@@ -172,6 +172,10 @@ distinct_*.json
 temp/
 temp_*
 
+# Test output files
+test-output-raw.txt
+tooling-tree-*.txt
+
 # Generated documentation and test files
 SUCCESS_*.md
 README_REAL_*.md

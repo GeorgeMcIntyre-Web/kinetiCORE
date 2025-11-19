@@ -62,6 +62,7 @@ import { SnapSetupPopup } from '../components/SnapSetupPopup';
 import { ToolbarContainer } from '../components/ToolbarContainer';
 import { ViewDropdown } from '../components/ViewDropdown';
 import { SelectionLevelDropdown } from '../components/SelectionLevelDropdown';
+import { ToolingTreeDebugPanel } from '../components/ToolingTreeDebugPanel';
 import './ProfessionalModeLayout.css';
 
 export const ProfessionalModeLayout: React.FC = () => {
@@ -756,6 +757,16 @@ export const ProfessionalModeLayout: React.FC = () => {
               <Box size={18} />
               <span>Volume</span>
             </button>
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
+        {/* Debug Tools */}
+        <div className="tool-group">
+          <div className="group-label">Debug</div>
+          <div className="tool-buttons">
+            <ToolingTreeDebugPanel />
           </div>
         </div>
 
