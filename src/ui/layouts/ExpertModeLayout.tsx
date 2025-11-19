@@ -799,7 +799,7 @@ export const ExpertModeLayout: React.FC = () => {
         )}
 
         {activeWorkspace === 'simulation' && (
-          <ToolbarContainer title="Simulation Workspace" className="compact">
+          <ToolbarContainer className="compact">
             <div className="tool-group">
               <div className="group-label">Playback</div>
               <div className="tool-buttons">
@@ -835,7 +835,7 @@ export const ExpertModeLayout: React.FC = () => {
         )}
 
         {activeWorkspace === 'routing' && (
-          <ToolbarContainer title="Routing Workspace" className="compact">
+          <ToolbarContainer className="compact">
             <div className="tool-group">
               <div className="group-label">Routes</div>
               <div className="tool-buttons">
@@ -884,7 +884,7 @@ export const ExpertModeLayout: React.FC = () => {
         )}
 
         {activeWorkspace === 'analysis' && (
-          <ToolbarContainer title="Analysis Workspace" className="compact">
+          <ToolbarContainer className="compact">
             <div className="tool-group">
               <div className="group-label">Dashboards</div>
               <div className="tool-buttons">
