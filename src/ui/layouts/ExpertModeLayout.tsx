@@ -902,30 +902,30 @@ export const ExpertModeLayout: React.FC = () => {
         )}
       </div>
 
-      <div className="expert-content">
-        <div className="expert-dock-region">
-          <DockableLayoutWrapper
-            config={{
-              centerPanel: { id: 'expert-viewport', type: 'viewport', title: '3D Viewport' },
-              leftPanels: [
-                { id: 'sceneTree-expert', type: 'sceneTree', title: 'Scene' },
-                { id: 'toolPalette-expert', type: 'toolPalette', title: 'Tools' },
-              ],
-              rightPanels: [
-                { id: 'inspector-expert', type: 'inspector', title: 'Properties' },
-                { id: 'warehouse-panel', type: 'warehouse', title: 'Factory' },
-                { id: 'routingControl-panel', type: 'routingControl', title: 'Route Control' },
-                { id: 'routeStats-panel', type: 'routeStats', title: 'Routing Analyses' },
-              ],
-              bottomPanels: [
-                { id: 'kinematics-expert', type: 'kinematics', title: 'Timeline / Kinematics' },
-              ],
-            }}
-            leftGroupWidth={leftTreeWidth}
-            onLayoutChange={savePanelLayout}
-            savedLayout={savedLayout}
-          />
-        </div>
+      {/* Main Content with Dockable Panels */}
+      <div className="professional-content">
+        <DockableLayoutWrapper
+          config={{
+            centerPanel: {
+              id: 'viewport-panel',
+              type: 'viewport',
+              title: '3D Viewport',
+            },
+            leftPanels: [
+              { id: 'sceneTree-panel', type: 'sceneTree' },
+              { id: 'toolPalette-panel', type: 'toolPalette' },
+            ],
+            rightPanels: [
+              { id: 'warehouse-panel', type: 'warehouse', title: 'Factory' },
+              { id: 'routingControl-panel', type: 'routingControl', title: 'Route' },
+              { id: 'routeStats-panel', type: 'routeStats', title: 'Routing Analyses' },
+            ],
+            bottomPanels: [],
+          }}
+          leftGroupWidth={leftTreeWidth}
+          onLayoutChange={savePanelLayout}
+          savedLayout={savedLayout}
+        />
       </div>
 
       <input
