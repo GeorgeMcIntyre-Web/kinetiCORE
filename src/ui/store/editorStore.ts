@@ -900,7 +900,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
   // Transform settings defaults
   positionIncrement: 10, // 10mm default
   rotationIncrement: 15, // 15 degrees default
-  snapEnabled: true, // Enable snapping by default
+  snapEnabled: false, // Snapping disabled by default
   snapToGrid: false, // Grid snapping off by default (can be toggled)
   // Smart Snap Selector: Most useful snap types enabled by default
   snapToVertex: true,

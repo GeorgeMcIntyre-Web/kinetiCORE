@@ -36,7 +36,16 @@
       "Bash(dir:*)",
       "Bash(npm run dev:ui:*)",
       "Bash(git stash:*)",
-      "Bash(git revert:*)"
+      "Bash(git revert:*)",
+      "Bash(npx tsx:*)",
+      "Bash(tooling-tree-016ZF_130-full.txt)",
+      "Bash(tooling-tree-016ZF_110-full.txt)",
+      "Bash(tooling-tree-9X_110_GEO-FULL.txt)",
+      "Bash(done)",
+      "Bash(nul)",
+      "Bash(mkdir:*)",
+      "Bash(npx vitest:*)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []

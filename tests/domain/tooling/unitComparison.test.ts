@@ -1,7 +1,3 @@
-/**
- * Tests for unit comparison logic.
- */
-
 import { describe, it, expect } from 'vitest';
 import { compareUnits, type StateBasedUnitSummary, type StructureUnitSummary } from '../../../src/domain/tooling/unitComparison';
 
@@ -63,18 +59,13 @@ describe('Unit Comparison Logic', () => {
       movingGroupNodeIds: ['node_Common']
     };
 
-    // Two structure units claiming the same node (unlikely with selectNonOverlapping but possible in raw input logic)
-    // Or distinct structure nodes both present in the same state unit (state unit is bigger)
     const struct1: StructureUnitSummary = { nodeId: 'node_Common', score: 20, coverageRatio: 0.1, depth: 2 };
     const struct2: StructureUnitSummary = { nodeId: 'node_Common', score: 10, coverageRatio: 0.1, depth: 2 };
-
-    // Actually compareUnits logic consumes the state unit once matched.
-    // If struct1 matches, stateUnit is removed from available set. struct2 then fails to match.
 
     const result = compareUnits([stateUnit], [struct1, struct2]);
 
     expect(result.matches.length).toBe(1);
-    expect(result.matches[0].structureUnit).toBe(struct1); // Higher score won
+    expect(result.matches[0].structureUnit).toBe(struct1);
     expect(result.structureOnly.length).toBe(1);
     expect(result.structureOnly[0]).toBe(struct2);
   });
