@@ -69,7 +69,6 @@ import { CreateDropdown } from '../components/CreateDropdown';
 import { ToolbarContainer } from '../components/ToolbarContainer';
 import { ViewDropdown } from '../components/ViewDropdown';
 import { SelectionLevelDropdown } from '../components/SelectionLevelDropdown';
-import { SelectionIndicator } from '../components/SelectionIndicator';
 import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { CameraService } from '../../scene/services/CameraService';
@@ -447,7 +446,6 @@ export const ExpertModeLayout: React.FC = () => {
 
   return (
     <div className="expert-layout">
-      <SelectionIndicator selectedNodeIds={selectedNodeIds} />
       <RouteWarningsPanel />
 
       <header className="professional-header">
