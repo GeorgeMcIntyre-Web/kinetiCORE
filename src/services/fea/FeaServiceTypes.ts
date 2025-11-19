@@ -77,6 +77,12 @@ export interface FeaJobMeta {
   estimatedDofs?: number;
   /** Model type */
   modelType: FeaModelType;
+
+  // Dev-only failure injection flags (optional)
+  /** [DEV ONLY] Simulate slow solver (5-10s delay) */
+  debugSlowSolver?: boolean;
+  /** [DEV ONLY] Force solver to fail with error */
+  debugForceError?: boolean;
 }
 
 /**

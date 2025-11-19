@@ -15,6 +15,9 @@ import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import {
   getDefaultFeaBaseUrl,
   submitAndWaitForResult,
+  FeaPollTimeoutError,
+  FeaHttpError,
+  FeaJobError,
 } from '../../services/fea/FeaServiceClient';
 import type {
   FeaJobRequest,
@@ -32,12 +35,14 @@ export const FeaBackendDemoPanel: React.FC<FeaBackendDemoPanelProps> = ({
   const [status, setStatus] = useState<string>('Ready');
   const [result, setResult] = useState<FeaJobResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<'timeout' | 'backend' | 'http' | 'job' | null>(null);
 
   const runMockBeamDemo = async () => {
     setIsRunning(true);
     setStatus('Submitting job...');
     setResult(null);
     setError(null);
+    setErrorType(null);
 
     const baseUrl = getDefaultFeaBaseUrl();
 
@@ -84,6 +89,7 @@ export const FeaBackendDemoPanel: React.FC<FeaBackendDemoPanelProps> = ({
 
       if (jobResult.status === 'error') {
         setError(jobResult.error ?? 'Unknown error');
+        setErrorType('backend');
         setStatus('Job failed');
         return;
       }
@@ -91,10 +97,34 @@ export const FeaBackendDemoPanel: React.FC<FeaBackendDemoPanelProps> = ({
       setResult(jobResult);
       setStatus('Job completed successfully');
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : String(err);
-      setError(errorMessage);
-      setStatus('Error occurred');
+      // Handle different error types with specific messages
+      if (err instanceof FeaPollTimeoutError) {
+        setError(
+          `Job ${err.jobId} is taking longer than expected (>${err.timeoutMs / 1000}s). ` +
+          'The job may still be running. Please check backend logs or try again with a longer timeout.'
+        );
+        setErrorType('timeout');
+        setStatus('Timeout');
+      } else if (err instanceof FeaJobError) {
+        setError(
+          `Job failed during execution: ${err.errorMessage}. ` +
+          'Check server logs for detailed error information.'
+        );
+        setErrorType('job');
+        setStatus('Job failed');
+      } else if (err instanceof FeaHttpError) {
+        setError(
+          `Backend error (HTTP ${err.statusCode}): ${err.body}. ` +
+          'Please ensure the backend service is running and accessible.'
+        );
+        setErrorType('http');
+        setStatus('Backend error');
+      } else {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        setError(errorMessage);
+        setErrorType('backend');
+        setStatus('Error occurred');
+      }
     } finally {
       setIsRunning(false);
     }
@@ -157,18 +187,61 @@ export const FeaBackendDemoPanel: React.FC<FeaBackendDemoPanelProps> = ({
           <div
             style={{
               padding: '12px',
-              backgroundColor: '#2d1a1a',
+              backgroundColor: errorType === 'timeout' ? '#2d2a1a' : '#2d1a1a',
               borderRadius: '4px',
               marginBottom: '16px',
-              border: '1px solid #c62828',
+              border: `1px solid ${errorType === 'timeout' ? '#ff9800' : '#c62828'}`,
             }}
           >
-            <div style={{ fontSize: '12px', color: '#ef5350', marginBottom: '4px' }}>
-              Error:
+            <div
+              style={{
+                fontSize: '12px',
+                color: errorType === 'timeout' ? '#ffb74d' : '#ef5350',
+                marginBottom: '4px',
+                fontWeight: 600,
+              }}
+            >
+              {errorType === 'timeout' && '⏱️ Timeout'}
+              {errorType === 'job' && '❌ Job Failed'}
+              {errorType === 'http' && '🌐 Backend Error'}
+              {errorType === 'backend' && '⚠️ Error'}
             </div>
-            <div style={{ fontSize: '13px', color: '#ffcdd2', wordBreak: 'break-word' }}>
+            <div
+              style={{
+                fontSize: '13px',
+                color: errorType === 'timeout' ? '#ffe0b2' : '#ffcdd2',
+                wordBreak: 'break-word',
+                lineHeight: '1.5',
+              }}
+            >
               {error}
             </div>
+            {errorType === 'timeout' && (
+              <div
+                style={{
+                  marginTop: '8px',
+                  paddingTop: '8px',
+                  borderTop: '1px solid #3d3a2a',
+                  fontSize: '12px',
+                  color: '#bcaaa4',
+                }}
+              >
+                💡 Tip: You can increase the timeout in the code or check if the backend is processing normally.
+              </div>
+            )}
+            {(errorType === 'http' || errorType === 'backend') && (
+              <div
+                style={{
+                  marginTop: '8px',
+                  paddingTop: '8px',
+                  borderTop: '1px solid #3d2a2a',
+                  fontSize: '12px',
+                  color: '#bcaaa4',
+                }}
+              >
+                💡 Tip: Ensure Redis, Celery worker, and FastAPI server are running (see server/README.md).
+              </div>
+            )}
           </div>
         )}
 

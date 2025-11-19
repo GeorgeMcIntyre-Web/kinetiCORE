@@ -146,6 +146,14 @@ class FeaJobMeta(BaseModel):
     )
     model_type: FeaModelType = Field(..., alias="modelType", description="Model type")
 
+    # Dev-only failure injection flags (optional)
+    debug_slow_solver: Optional[bool] = Field(
+        None, alias="debugSlowSolver", description="[DEV ONLY] Simulate slow solver (5-10s delay)"
+    )
+    debug_force_error: Optional[bool] = Field(
+        None, alias="debugForceError", description="[DEV ONLY] Force solver to fail with error"
+    )
+
     class Config:
         populate_by_name = True
 

@@ -22,6 +22,47 @@ export interface PollOptions {
 }
 
 /**
+ * Custom error for FEA polling timeout
+ */
+export class FeaPollTimeoutError extends Error {
+  constructor(
+    public readonly jobId: string,
+    public readonly timeoutMs: number
+  ) {
+    super(`FEA job ${jobId} timed out after ${timeoutMs}ms`);
+    this.name = 'FeaPollTimeoutError';
+  }
+}
+
+/**
+ * Custom error for FEA HTTP errors
+ */
+export class FeaHttpError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    public readonly jobId: string | null,
+    public readonly body: string,
+    public readonly url: string
+  ) {
+    super(`FEA service returned ${statusCode} at ${url}: ${body}`);
+    this.name = 'FeaHttpError';
+  }
+}
+
+/**
+ * Custom error for FEA job failures
+ */
+export class FeaJobError extends Error {
+  constructor(
+    public readonly jobId: string,
+    public readonly errorMessage: string
+  ) {
+    super(`FEA job ${jobId} failed: ${errorMessage}`);
+    this.name = 'FeaJobError';
+  }
+}
+
+/**
  * Get default FEA service base URL
  * In production, this should be environment-specific
  *
@@ -54,7 +95,8 @@ export function getDefaultFeaBaseUrl(): string {
  * @param baseUrl - Base URL of FEA service
  * @param request - FEA job request specification
  * @returns Job status with job ID
- * @throws Error if validation fails or request fails
+ * @throws Error if validation fails
+ * @throws FeaHttpError if request fails
  */
 export async function submitFeaJob(
   baseUrl: string,
@@ -86,9 +128,7 @@ export async function submitFeaJob(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(
-      `FEA service returned error ${response.status}: ${errorText}`
-    );
+    throw new FeaHttpError(response.status, null, errorText, url);
   }
 
   const status = (await response.json()) as FeaJobStatus;
@@ -102,7 +142,9 @@ export async function submitFeaJob(
  * @param jobId - Job identifier
  * @param options - Polling configuration
  * @returns Final job result
- * @throws Error if job fails, times out, or request fails
+ * @throws FeaPollTimeoutError if timeout is reached
+ * @throws FeaJobError if job fails
+ * @throws FeaHttpError if HTTP request fails
  */
 export async function pollFeaJobUntilDone(
   baseUrl: string,
@@ -117,7 +159,7 @@ export async function pollFeaJobUntilDone(
   while (true) {
     // Check timeout
     if (Date.now() - startTime > timeoutMs) {
-      throw new Error(`FEA job ${jobId} timed out after ${timeoutMs}ms`);
+      throw new FeaPollTimeoutError(jobId, timeoutMs);
     }
 
     // Poll status
@@ -130,9 +172,7 @@ export async function pollFeaJobUntilDone(
 
     // Check if error
     if (status.status === 'error') {
-      throw new Error(
-        `FEA job ${jobId} failed: ${status.message ?? 'Unknown error'}`
-      );
+      throw new FeaJobError(jobId, status.message ?? 'Unknown error');
     }
 
     // Wait before next poll
@@ -146,7 +186,7 @@ export async function pollFeaJobUntilDone(
  * @param baseUrl - Base URL of FEA service
  * @param jobId - Job identifier
  * @returns Current job status
- * @throws Error if request fails
+ * @throws FeaHttpError if request fails
  */
 export async function getFeaJobStatus(
   baseUrl: string,
@@ -170,9 +210,7 @@ export async function getFeaJobStatus(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(
-      `FEA service returned error ${response.status}: ${errorText}`
-    );
+    throw new FeaHttpError(response.status, jobId, errorText, url);
   }
 
   const status = (await response.json()) as FeaJobStatus;
@@ -185,7 +223,7 @@ export async function getFeaJobStatus(
  * @param baseUrl - Base URL of FEA service
  * @param jobId - Job identifier
  * @returns Job result with displacements and stresses
- * @throws Error if job not completed or request fails
+ * @throws FeaHttpError if request fails
  */
 export async function getFeaJobResult(
   baseUrl: string,
@@ -209,15 +247,7 @@ export async function getFeaJobResult(
 
   if (!response.ok) {
     const errorText = await response.text();
-
-    // 404 likely means result not ready yet
-    if (response.status === 404) {
-      throw new Error(`FEA job ${jobId} result not ready yet`);
-    }
-
-    throw new Error(
-      `FEA service returned error ${response.status}: ${errorText}`
-    );
+    throw new FeaHttpError(response.status, jobId, errorText, url);
   }
 
   const result = (await response.json()) as FeaJobResult;

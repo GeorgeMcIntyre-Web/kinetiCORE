@@ -17,6 +17,9 @@ import {
   pollFeaJobUntilDone,
   submitAndWaitForResult,
   getDefaultFeaBaseUrl,
+  FeaPollTimeoutError,
+  FeaHttpError,
+  FeaJobError,
 } from '../FeaServiceClient';
 import type { FeaJobRequest, FeaJobStatus, FeaJobResult } from '../FeaServiceTypes';
 
@@ -486,5 +489,200 @@ describe('submitAndWaitForResult', () => {
     ).rejects.toThrow(/Invalid FEA job request/);
 
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('Custom Error Types', () => {
+  beforeEach(() => {
+    global.fetch = vi.fn();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  describe('FeaPollTimeoutError', () => {
+    it('should throw FeaPollTimeoutError on timeout', async () => {
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          jobId: 'test-job-timeout',
+          status: 'queued',
+          updatedAt: new Date().toISOString(),
+        }),
+      });
+
+      const resultPromise = pollFeaJobUntilDone('http://localhost:8050', 'test-job-timeout', {
+        pollIntervalMs: 100,
+        timeoutMs: 500,
+      });
+
+      await vi.advanceTimersByTimeAsync(600);
+
+      await expect(resultPromise).rejects.toThrow(FeaPollTimeoutError);
+
+      try {
+        await resultPromise;
+      } catch (error) {
+        if (error instanceof FeaPollTimeoutError) {
+          expect(error.jobId).toBe('test-job-timeout');
+          expect(error.timeoutMs).toBe(500);
+          expect(error.message).toContain('timed out after 500ms');
+        } else {
+          throw new Error('Expected FeaPollTimeoutError');
+        }
+      }
+    });
+  });
+
+  describe('FeaHttpError', () => {
+    it('should throw FeaHttpError for 404 on status endpoint', async () => {
+      (global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 404,
+        text: async () => 'Job not found',
+      });
+
+      await expect(
+        getFeaJobStatus('http://localhost:8050', 'nonexistent-job')
+      ).rejects.toThrow(FeaHttpError);
+
+      try {
+        await getFeaJobStatus('http://localhost:8050', 'nonexistent-job');
+      } catch (error) {
+        if (error instanceof FeaHttpError) {
+          expect(error.statusCode).toBe(404);
+          expect(error.jobId).toBe('nonexistent-job');
+          expect(error.body).toBe('Job not found');
+          expect(error.url).toContain('/fea/jobs/nonexistent-job');
+        } else {
+          throw new Error('Expected FeaHttpError');
+        }
+      }
+    });
+
+    it('should throw FeaHttpError for 500 on result endpoint', async () => {
+      (global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: async () => 'Internal server error',
+      });
+
+      await expect(
+        getFeaJobResult('http://localhost:8050', 'test-job-123')
+      ).rejects.toThrow(FeaHttpError);
+
+      try {
+        await getFeaJobResult('http://localhost:8050', 'test-job-123');
+      } catch (error) {
+        if (error instanceof FeaHttpError) {
+          expect(error.statusCode).toBe(500);
+          expect(error.jobId).toBe('test-job-123');
+          expect(error.body).toBe('Internal server error');
+        } else {
+          throw new Error('Expected FeaHttpError');
+        }
+      }
+    });
+
+    it('should throw FeaHttpError with null jobId on submit failure', async () => {
+      (global.fetch as any).mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: async () => 'Bad request',
+      });
+
+      await expect(
+        submitFeaJob('http://localhost:8050', sampleJobRequest)
+      ).rejects.toThrow(FeaHttpError);
+
+      try {
+        await submitFeaJob('http://localhost:8050', sampleJobRequest);
+      } catch (error) {
+        if (error instanceof FeaHttpError) {
+          expect(error.statusCode).toBe(400);
+          expect(error.jobId).toBeNull();
+          expect(error.body).toBe('Bad request');
+        } else {
+          throw new Error('Expected FeaHttpError');
+        }
+      }
+    });
+  });
+
+  describe('FeaJobError', () => {
+    it('should throw FeaJobError when job status is error', async () => {
+      let callCount = 0;
+
+      (global.fetch as any).mockImplementation(() => {
+        callCount++;
+        const status: FeaJobStatus = {
+          jobId: 'test-job-error',
+          status: callCount <= 1 ? 'running' : 'error',
+          message: callCount <= 1 ? 'Running' : 'Solver failed: Matrix singular',
+          updatedAt: new Date().toISOString(),
+        };
+
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => status,
+        });
+      });
+
+      const resultPromise = pollFeaJobUntilDone('http://localhost:8050', 'test-job-error', {
+        pollIntervalMs: 100,
+      });
+
+      await vi.advanceTimersByTimeAsync(100); // running
+      await vi.advanceTimersByTimeAsync(100); // error
+
+      await expect(resultPromise).rejects.toThrow(FeaJobError);
+
+      try {
+        await resultPromise;
+      } catch (error) {
+        if (error instanceof FeaJobError) {
+          expect(error.jobId).toBe('test-job-error');
+          expect(error.errorMessage).toBe('Solver failed: Matrix singular');
+          expect(error.message).toContain('test-job-error failed');
+        } else {
+          throw new Error('Expected FeaJobError');
+        }
+      }
+    });
+  });
+
+  describe('Malformed JSON response', () => {
+    it('should handle malformed JSON from status endpoint', async () => {
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => {
+          throw new SyntaxError('Unexpected token < in JSON at position 0');
+        },
+      });
+
+      await expect(
+        getFeaJobStatus('http://localhost:8050', 'test-job-123')
+      ).rejects.toThrow(SyntaxError);
+    });
+
+    it('should handle malformed JSON from result endpoint', async () => {
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => {
+          throw new SyntaxError('Unexpected token < in JSON at position 0');
+        },
+      });
+
+      await expect(
+        getFeaJobResult('http://localhost:8050', 'test-job-123')
+      ).rejects.toThrow(SyntaxError);
+    });
   });
 });
