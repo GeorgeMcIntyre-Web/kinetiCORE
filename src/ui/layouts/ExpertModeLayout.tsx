@@ -912,15 +912,18 @@ export const ExpertModeLayout: React.FC = () => {
               title: '3D Viewport',
             },
             leftPanels: [
-              { id: 'sceneTree-panel', type: 'sceneTree' },
-              { id: 'toolPalette-panel', type: 'toolPalette' },
+              { id: 'sceneTree-panel', type: 'sceneTree', title: 'Scene Tree' },
+              { id: 'toolPalette-panel', type: 'toolPalette', title: 'Tool Palette' },
             ],
             rightPanels: [
+              { id: 'inspector-panel', type: 'inspector', title: 'Properties' },
               { id: 'warehouse-panel', type: 'warehouse', title: 'Factory' },
               { id: 'routingControl-panel', type: 'routingControl', title: 'Route' },
               { id: 'routeStats-panel', type: 'routeStats', title: 'Routing Analyses' },
             ],
-            bottomPanels: [],
+            bottomPanels: [
+              { id: 'kinematics-panel', type: 'kinematics', title: 'Timeline / Kinematics' },
+            ],
           }}
           leftGroupWidth={leftTreeWidth}
           onLayoutChange={savePanelLayout}
