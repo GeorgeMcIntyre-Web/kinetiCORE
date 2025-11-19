@@ -4,6 +4,7 @@
  */
 
 import type { DebugTreeRow } from './debugTree';
+import type { ToolingStructure, ToolingNodeGeometry, ToolingNode } from './types';
 
 export type LevelStats = {
   depth: number;
@@ -156,4 +157,132 @@ export function computeParentCoverageStats(rows: DebugTreeRow[]): ParentCoverage
   });
 
   return stats;
+}
+
+export type ScoredUnitCandidate = {
+  nodeId: string;
+  nodeName: string;
+  depth: number;
+  pointCount: number;
+  coverageRatio: number; // Ratio of root points
+  isContainer: boolean;  // True if holds > 90% of root points
+  score: number;
+};
+
+/**
+ * Score potential unit candidates based on structure and point count.
+ */
+export function scoreUnitCandidates(
+  structure: ToolingStructure,
+  geometryIndex: Map<string, ToolingNodeGeometry>,
+  minPoints: number = 100
+): ScoredUnitCandidate[] {
+  if (!structure.root) return [];
+
+  const rootGeo = geometryIndex.get(structure.root.id);
+  const rootPoints = rootGeo?.points.length ?? 0;
+
+  if (rootPoints === 0) return [];
+
+  const candidates: ScoredUnitCandidate[] = [];
+
+  // Recursive traversal
+  const traverse = (node: ToolingNode, depth: number) => {
+    const geo = geometryIndex.get(node.id);
+    const count = geo?.points.length ?? 0;
+
+    if (count >= minPoints) {
+      const coverage = count / rootPoints;
+      const isContainer = coverage > 0.90; // Assume >90% is a container/root
+
+      // Heuristic: Big chunks, shallow depth, not the whole tool
+      // Log points favours magnitude. Depth penalty discourages leaf nodes.
+      const score = isContainer
+        ? 0
+        : Math.log10(count) * (1 / (depth + 1));
+
+      candidates.push({
+        nodeId: node.id,
+        nodeName: node.name || node.id,
+        depth,
+        pointCount: count,
+        coverageRatio: coverage,
+        isContainer,
+        score
+      });
+    }
+
+    if (node.children) {
+      for (const child of node.children) {
+        traverse(child, depth + 1);
+      }
+    }
+  };
+
+  traverse(structure.root, 0);
+
+  // Sort descending by score
+  return candidates.sort((a, b) => b.score - a.score);
+}
+
+/**
+ * Select non-overlapping units from scored candidates.
+ * Greedily picks highest score that doesn't conflict with existing picks.
+ */
+export function selectNonOverlappingUnits(
+  candidates: ScoredUnitCandidate[],
+  structure: ToolingStructure
+): ScoredUnitCandidate[] {
+  const selected: ScoredUnitCandidate[] = [];
+  const excludedNodeIds = new Set<string>();
+
+  // Map for ancestor checking
+  const parentMap = new Map<string, string>();
+  const buildParentMap = (node: ToolingNode) => {
+    for (const child of node.children) {
+      parentMap.set(child.id, node.id);
+      buildParentMap(child);
+    }
+  };
+  if (structure.root) buildParentMap(structure.root);
+
+  const isDescendantOrAncestor = (candidateId: string, existingId: string): boolean => {
+    // Check ancestor
+    let curr: string | undefined = candidateId;
+    while (curr) {
+      if (curr === existingId) return true;
+      curr = parentMap.get(curr);
+    }
+
+    // Check descendant (reverse ancestor check)
+    curr = existingId;
+    while (curr) {
+      if (curr === candidateId) return true;
+      curr = parentMap.get(curr);
+    }
+    return false;
+  };
+
+  for (const cand of candidates) {
+    if (cand.isContainer) continue;
+    if (excludedNodeIds.has(cand.nodeId)) continue;
+
+    // Check against currently selected
+    let conflict = false;
+    for (const existing of selected) {
+      if (isDescendantOrAncestor(cand.nodeId, existing.nodeId)) {
+        conflict = true;
+        break;
+      }
+    }
+
+    if (!conflict) {
+      selected.push(cand);
+      // Optimization: we don't strictly need to mark all subtree nodes if we check ancestry
+      // on every iteration, but marking known conflicts helps perf if needed.
+      // For strictly correct greedy logic, the isDescendantOrAncestor check above is sufficient.
+    }
+  }
+
+  return selected;
 }

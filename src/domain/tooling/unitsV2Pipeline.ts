@@ -1,13 +1,12 @@
 /**
  * V2 Units Pipeline - Integration layer.
- * 
+ *
  * This module wires the domain-level unit detection and joint pair detection
  * into a complete pipeline that can generate units-v2.json files.
  */
 
 import type {
   ToolingStructure,
-  ToolingUnit,
   JointPair,
   ToolingNodeGeometry,
 } from './types';
@@ -15,6 +14,26 @@ import { detectUnits } from './unitDetection';
 import { findJointPairsForUnits } from './jointPairDetection';
 import type { UnitDetectionOptions } from './unitDetection';
 import type { JointPairDetectionOptions } from './jointPairDetection';
+
+import {
+  detectUnitsFromState,
+  type KinematicSnapshot,
+  type StateBasedUnitDetectionResult,
+  type StateBasedUnitDetectionConfig
+} from './stateBasedUnitDetection';
+
+import {
+  scoreUnitCandidates,
+  selectNonOverlappingUnits,
+  type ScoredUnitCandidate
+} from './levelStats';
+
+import {
+  compareUnits,
+  toStateBasedSummaries,
+  toStructureSummaries,
+  type UnitComparisonResult
+} from './unitComparison';
 
 /**
  * V2 Units output format (JSON serializable).
@@ -37,16 +56,19 @@ export interface UnitsV2Output {
       overlapRatio: number;
     }>;
   }>;
+  stateBasedUnits?: StateBasedUnitDetectionResult;
   metadata?: {
     detectionAlgorithm: string;
     version: string;
     timestamp: string;
+    structureCandidates?: ScoredUnitCandidate[];
+    comparison?: UnitComparisonResult;
   };
 }
 
 /**
  * Run the complete v2 units pipeline.
- * 
+ *
  * @param structure - Tooling structure tree
  * @param geometryIndex - Map of nodeId -> point cloud geometry
  * @param options - Detection options
@@ -58,10 +80,19 @@ export function runUnitsV2Pipeline(
   options: {
     unitDetection?: UnitDetectionOptions;
     jointPairDetection?: JointPairDetectionOptions;
+    stateBasedDetection?: Partial<StateBasedUnitDetectionConfig>;
     includeJointPairs?: boolean;
+    snapshots?: KinematicSnapshot[];
+    includeDebug?: boolean;
   } = {}
 ): UnitsV2Output {
-  const { unitDetection = {}, jointPairDetection = {}, includeJointPairs = true } = options;
+  const {
+    unitDetection = {},
+    jointPairDetection = {},
+    includeJointPairs = true,
+    snapshots = [],
+    includeDebug = false
+  } = options;
 
   // Phase 1: Detect units
   const units = detectUnits(structure, geometryIndex, unitDetection);
@@ -70,6 +101,36 @@ export function runUnitsV2Pipeline(
   let jointPairs: JointPair[] = [];
   if (includeJointPairs && units.length > 0) {
     jointPairs = findJointPairsForUnits(units, geometryIndex, structure, jointPairDetection);
+  }
+
+  // Phase 3: State-based detection (New)
+  let stateBasedUnits: StateBasedUnitDetectionResult | undefined;
+
+  if (snapshots.length >= 2) {
+    stateBasedUnits = detectUnitsFromState(
+      {
+        structure,
+        geometryIndex,
+        snapshots,
+        joints: jointPairs
+      },
+      options.stateBasedDetection
+    );
+  }
+
+  // Debug / Diagnostic Logic
+  let structureCandidates: ScoredUnitCandidate[] | undefined;
+  let comparison: UnitComparisonResult | undefined;
+
+  if (includeDebug) {
+    const rawCandidates = scoreUnitCandidates(structure, geometryIndex);
+    structureCandidates = selectNonOverlappingUnits(rawCandidates, structure);
+
+    if (stateBasedUnits) {
+      const stateSummaries = toStateBasedSummaries(stateBasedUnits);
+      const structureSummaries = toStructureSummaries(rawCandidates, structure);
+      comparison = compareUnits(stateSummaries, structureSummaries);
+    }
   }
 
   // Group joint pairs by unit
@@ -84,7 +145,7 @@ export function runUnitsV2Pipeline(
   const output: UnitsV2Output = {
     units: units.map(unit => {
       const unitPairs = pairsByUnit.get(unit.unitId) || [];
-      
+
       return {
         unitId: unit.unitId,
         nodeIds: unit.nodeIds,
@@ -100,10 +161,13 @@ export function runUnitsV2Pipeline(
         })) : undefined,
       };
     }),
+    stateBasedUnits,
     metadata: {
       detectionAlgorithm: 'hierarchical-point-cloud-v2',
-      version: '2.0.0',
+      version: '2.2.0',
       timestamp: new Date().toISOString(),
+      structureCandidates,
+      comparison,
     },
   };
 

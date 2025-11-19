@@ -28,12 +28,14 @@ export interface StateBasedUnitDetectionConfig {
   transformEpsilon: number;
   minGroupPoints: number;
   maxDepth: number;
+  minMovingGroupPoints: number;
 }
 
 export const DEFAULT_STATE_BASED_UNIT_DETECTION_CONFIG: StateBasedUnitDetectionConfig = {
   transformEpsilon: 1e-3,
   minGroupPoints: 10,
   maxDepth: 50,
+  minMovingGroupPoints: 10,
 };
 
 export type RigidGroupId = string;
@@ -152,14 +154,15 @@ export function detectUnitsFromState(
   input: StateBasedUnitDetectionInput,
   config?: Partial<StateBasedUnitDetectionConfig>
 ): StateBasedUnitDetectionResult {
-  const { rigidGroups, baseGroupId } = detectRigidGroups(input, config);
+  const opts = { ...DEFAULT_STATE_BASED_UNIT_DETECTION_CONFIG, ...config };
+  const { rigidGroups, baseGroupId } = detectRigidGroups(input, opts);
 
   if (rigidGroups.length === 0) {
     return { rigidGroups: [], baseGroupId: '', units: [] };
   }
 
   const edges = buildRigidGroupEdges(rigidGroups, input.joints);
-  const units = buildUnitsFromGraph(rigidGroups, baseGroupId, edges);
+  const units = buildUnitsFromGraph(rigidGroups, baseGroupId, edges, opts.minMovingGroupPoints);
 
   return { rigidGroups, baseGroupId, units };
 }
@@ -448,7 +451,8 @@ function buildRigidGroupEdges(
 function buildUnitsFromGraph(
   rigidGroups: RigidGroup[],
   globalBaseGroupId: RigidGroupId,
-  edges: RigidGroupEdge[]
+  edges: RigidGroupEdge[],
+  minMovingPoints: number
 ): DetectedUnit[] {
   const adjacency = buildAdjacency(edges);
   const groupMap = new Map<RigidGroupId, RigidGroup>();
@@ -472,6 +476,11 @@ function buildUnitsFromGraph(
   const movingGroups = componentGroups.filter(g => !g.isStatic);
 
   for (const movingGroup of movingGroups) {
+    // Filter noise/tiny groups
+    if (movingGroup.totalPoints < minMovingPoints) {
+      continue;
+    }
+
     const path = findShortestPath(globalBaseGroupId, movingGroup.id, adjacency);
 
     if (path.groupIds.length === 0) {
