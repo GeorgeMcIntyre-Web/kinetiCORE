@@ -241,7 +241,7 @@ function clusterRigidGroups(
   const groups: RigidGroup[] = [];
   const assigned = new Set<string>();
 
-  for (const [nodeId, history] of nodeTransformHistories) {
+  for (const [nodeId, history] of Array.from(nodeTransformHistories)) {
     if (assigned.has(nodeId)) {
       continue;
     }
@@ -249,7 +249,7 @@ function clusterRigidGroups(
     const groupNodeIds: string[] = [nodeId];
     assigned.add(nodeId);
 
-    for (const [otherId, otherHistory] of nodeTransformHistories) {
+    for (const [otherId, otherHistory] of Array.from(nodeTransformHistories)) {
       if (assigned.has(otherId)) {
         continue;
       }
