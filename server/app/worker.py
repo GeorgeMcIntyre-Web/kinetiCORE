@@ -3,12 +3,16 @@ Celery worker tasks for FEA computation.
 This module defines the async tasks that run in the background.
 """
 
+import logging
 from typing import Any, Dict
 
 from celery import Task
 
 from .core.celery_app import celery_app
+from .models.fea import FeaJobRequest
 from .solvers.mock_solver import solve_mock_beam
+
+logger = logging.getLogger(__name__)
 
 
 class FeaTask(Task):
@@ -52,12 +56,21 @@ def run_fea_analysis(self: FeaTask, job_id: str, request_data: Dict[str, Any]) -
     """
     # Update status to running
     self.update_progress(0.0, "Starting FEA analysis")
+    logger.info(f"Starting FEA job {job_id}")
+
+    # Validate request using Pydantic
+    try:
+        validated_request = FeaJobRequest.model_validate(request_data)
+        logger.info(f"Job {job_id} validated: model_type={validated_request.meta.model_type}")
+    except Exception as e:
+        logger.error(f"Job {job_id} validation failed: {str(e)}")
+        raise ValueError(f"Invalid FEA job request: {str(e)}")
 
     # Add job_id to request data for solver
     request_data_with_id = {**request_data, "meta": {**request_data.get("meta", {}), "jobId": job_id}}
 
     # Determine model type
-    model_type = request_data.get("meta", {}).get("modelType", "beam-demo")
+    model_type = validated_request.meta.model_type
 
     try:
         # Update progress
@@ -67,9 +80,11 @@ def run_fea_analysis(self: FeaTask, job_id: str, request_data: Dict[str, Any]) -
         if model_type in ["beam-demo", "shell-demo", "biw-proto"]:
             # For now, all model types use mock beam solver
             # TODO: Add real Gmsh + CalculiX integration for shell-demo and biw-proto
+            logger.info(f"Job {job_id} routing to mock solver (model_type={model_type})")
             self.update_progress(20.0, "Running mock solver")
             result = solve_mock_beam(request_data_with_id)
         else:
+            logger.error(f"Job {job_id} unsupported model type: {model_type}")
             raise ValueError(f"Unsupported model type: {model_type}")
 
         # Update progress
@@ -85,11 +100,12 @@ def run_fea_analysis(self: FeaTask, job_id: str, request_data: Dict[str, Any]) -
 
         # Complete
         self.update_progress(100.0, "Analysis complete")
+        logger.info(f"Job {job_id} completed successfully")
 
         return result
 
     except Exception as e:
         # Log error and re-raise
         error_msg = f"FEA analysis failed for job {job_id}: {str(e)}"
-        print(f"ERROR: {error_msg}")
+        logger.error(error_msg)
         raise RuntimeError(error_msg) from e

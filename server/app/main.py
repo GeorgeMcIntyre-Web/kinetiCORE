@@ -112,12 +112,13 @@ async def get_fea_job_status(job_id: str) -> FeaJobStatus:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
     # Map Celery state to our status enum
+    # See: https://docs.celeryq.dev/en/stable/reference/celery.states.html
     state = task_result.state
 
-    if state == "PENDING":
+    if state in ("PENDING", "RECEIVED"):
         status = FeaJobStatusType.QUEUED
         message = "Job is queued"
-    elif state == "STARTED":
+    elif state in ("STARTED", "RETRY"):
         status = FeaJobStatusType.RUNNING
         message = "Job is running"
     elif state == "SUCCESS":
@@ -127,7 +128,8 @@ async def get_fea_job_status(job_id: str) -> FeaJobStatus:
         status = FeaJobStatusType.ERROR
         message = f"Job failed: {str(task_result.info)}"
     else:
-        status = FeaJobStatusType.QUEUED
+        # Any other state (REVOKED, REJECTED, etc.) treated as error
+        status = FeaJobStatusType.ERROR
         message = f"Job state: {state}"
 
     # Extract progress if available

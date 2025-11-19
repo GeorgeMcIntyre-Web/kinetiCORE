@@ -26,7 +26,9 @@ export interface PollOptions {
  * In production, this should be environment-specific
  *
  * Environment variable: VITE_FEA_SERVICE_URL
- * Default: http://localhost:8050
+ * Default: http://localhost:8050 (matches backend server/app/core/config.py)
+ *
+ * API Contract: See server/app/models/fea.py for Python Pydantic models
  *
  * @returns Base URL for FEA service
  */
@@ -42,7 +44,7 @@ export function getDefaultFeaBaseUrl(): string {
     return envUrl;
   }
 
-  // Default to localhost for development
+  // Default to localhost:8050 for development (matches backend default port)
   return 'http://localhost:8050';
 }
 

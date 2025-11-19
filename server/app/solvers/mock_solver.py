@@ -3,8 +3,11 @@ Mock FEA solver for development and testing.
 Simulates computation delay and returns analytical beam solution.
 """
 
+import logging
 import time
 from typing import Any, Dict, List
+
+logger = logging.getLogger(__name__)
 
 
 def solve_mock_beam(request_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -22,19 +25,22 @@ def solve_mock_beam(request_data: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Result dictionary matching FeaJobResult schema
     """
-    # Simulate computation delay
-    time.sleep(2.0)
-
     # Extract request parameters
     meta = request_data.get("meta", {})
     job_id = meta.get("jobId", "unknown")
     model_type = meta.get("modelType", "beam-demo")
+
+    logger.info(f"Mock solver started for job {job_id} (model_type={model_type})")
+
+    # Simulate computation delay
+    time.sleep(2.0)
 
     materials = request_data.get("materials", [])
     loads = request_data.get("loads", [])
 
     # Validate we have required data
     if not materials:
+        logger.warning(f"Job {job_id} has no materials")
         return {
             "jobId": job_id,
             "status": "error",
@@ -42,6 +48,7 @@ def solve_mock_beam(request_data: Dict[str, Any]) -> Dict[str, Any]:
         }
 
     if not loads:
+        logger.warning(f"Job {job_id} has no loads")
         return {
             "jobId": job_id,
             "status": "error",
@@ -57,6 +64,7 @@ def solve_mock_beam(request_data: Dict[str, Any]) -> Dict[str, Any]:
     load = next((ld for ld in loads if ld.get("type") == "concentrated"), None)
 
     if not load:
+        logger.warning(f"Job {job_id} has no concentrated load")
         return {
             "jobId": job_id,
             "status": "error",
@@ -128,5 +136,10 @@ def solve_mock_beam(request_data: Dict[str, Any]) -> Dict[str, Any]:
             "dofs": dofs,
         },
     }
+
+    logger.info(
+        f"Mock solver completed for job {job_id}: "
+        f"max_disp={max_displacement*1000:.2f}mm, max_stress={max_stress/1e6:.1f}MPa, FoS={factor_of_safety:.2f}"
+    )
 
     return result

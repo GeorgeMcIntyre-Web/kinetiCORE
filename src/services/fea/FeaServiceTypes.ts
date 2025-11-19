@@ -1,7 +1,12 @@
 /**
  * FeaServiceTypes.ts
  * Type definitions for FEA HTTP service client
- * Aligned with backend FastAPI + Celery architecture
+ *
+ * API Contract:
+ * - These interfaces match the Pydantic models in server/app/models/fea.py
+ * - JSON field names use camelCase (Python uses snake_case with aliases)
+ * - Backend uses FastAPI + Celery architecture
+ * - Client implementation: src/services/fea/FeaServiceClient.ts
  */
 
 /**

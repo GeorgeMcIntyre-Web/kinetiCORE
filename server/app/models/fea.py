@@ -1,6 +1,11 @@
 """
 FEA service Pydantic models.
-These models match the TypeScript interfaces in src/services/fea/FeaServiceTypes.ts
+
+API Contract:
+- These models match the TypeScript interfaces in src/services/fea/FeaServiceTypes.ts
+- JSON field names use camelCase (via aliases) to match TypeScript conventions
+- Frontend client: src/services/fea/FeaServiceClient.ts
+- Backend endpoints: app/main.py (FastAPI routes)
 """
 
 from enum import Enum
