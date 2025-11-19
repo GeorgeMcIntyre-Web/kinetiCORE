@@ -30,10 +30,32 @@ def solve_mock_beam(request_data: Dict[str, Any]) -> Dict[str, Any]:
     job_id = meta.get("jobId", "unknown")
     model_type = meta.get("modelType", "beam-demo")
 
-    logger.info(f"Mock solver started for job {job_id} (model_type={model_type})")
+    # Dev-only failure injection flags
+    debug_slow_solver = meta.get("debugSlowSolver", False)
+    debug_force_error = meta.get("debugForceError", False)
 
-    # Simulate computation delay
-    time.sleep(2.0)
+    logger.info(
+        f"Mock solver started for job {job_id} "
+        f"(model_type={model_type}, slow={debug_slow_solver}, force_error={debug_force_error})"
+    )
+
+    # [DEV ONLY] Force error if requested
+    if debug_force_error:
+        logger.error(f"Job {job_id}: Forced error via debugForceError flag")
+        return {
+            "jobId": job_id,
+            "status": "error",
+            "error": "Forced error for testing (debugForceError=true)",
+        }
+
+    # Simulate computation delay (normal: 2s, slow: 5-10s)
+    if debug_slow_solver:
+        delay = 7.0  # 7 seconds for slow mode
+        logger.info(f"Job {job_id}: Using slow solver mode (delay={delay}s)")
+    else:
+        delay = 2.0
+
+    time.sleep(delay)
 
     materials = request_data.get("materials", [])
     loads = request_data.get("loads", [])
@@ -58,7 +80,8 @@ def solve_mock_beam(request_data: Dict[str, Any]) -> Dict[str, Any]:
     # Extract material properties (use first material)
     material = materials[0]
     E = material.get("youngsModulus", 200e9)  # Pa
-    yield_strength = material.get("yieldStrength", 250e6)  # Pa
+    yield_strength = material.get("yieldStrength") or material.get("yield_strength") or 250e6  # Pa
+    logger.debug(f"Job {job_id}: Material E={E}, yield_strength={yield_strength}")
 
     # Extract load (use first concentrated load)
     load = next((ld for ld in loads if ld.get("type") == "concentrated"), None)
@@ -132,7 +155,7 @@ def solve_mock_beam(request_data: Dict[str, Any]) -> Dict[str, Any]:
             "vonMises": von_mises,
         },
         "meta": {
-            "solveTime": 2.0,
+            "solveTime": delay,
             "dofs": dofs,
         },
     }

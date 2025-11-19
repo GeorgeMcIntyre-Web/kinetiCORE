@@ -3,6 +3,7 @@ FastAPI application for FEA service.
 Provides REST API endpoints for submitting and querying FEA jobs.
 """
 
+import logging
 import uuid
 from datetime import datetime
 
@@ -12,12 +13,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .core.celery_app import celery_app
 from .core.config import settings
+from .core.metrics import metrics_store
 from .models.fea import (
     FeaJobRequest,
     FeaJobResult,
     FeaJobStatus,
     FeaJobStatusType,
 )
+
+# Configure structured logging
+logger = logging.getLogger(__name__)
 
 # Create FastAPI app
 app = FastAPI(
@@ -47,6 +52,23 @@ async def health_check() -> dict[str, str]:
     return {"status": "healthy", "service": settings.app_name}
 
 
+@app.get("/fea/metrics")
+async def get_fea_metrics() -> dict[str, int]:
+    """
+    Get FEA job metrics (for debugging and E2E observability).
+
+    WARNING: This is an internal/non-stable endpoint for development.
+    Not intended for production monitoring (use Prometheus/Grafana for that).
+
+    Returns:
+        Dictionary with job counters:
+        - submitted: Total jobs submitted
+        - completed: Total jobs completed successfully
+        - failed: Total jobs that failed
+    """
+    return metrics_store.get_snapshot()
+
+
 @app.post("/fea/jobs", response_model=FeaJobStatus)
 async def submit_fea_job(request: FeaJobRequest) -> FeaJobStatus:
     """
@@ -64,6 +86,15 @@ async def submit_fea_job(request: FeaJobRequest) -> FeaJobStatus:
     # Generate unique job ID
     job_id = str(uuid.uuid4())
 
+    # Log submission with correlation ID
+    logger.info(
+        f"Job submission: job_id={job_id} model_type={request.meta.model_type} "
+        f"name={request.meta.name}"
+    )
+
+    # Increment metrics
+    metrics_store.increment_submitted()
+
     # Convert request to dict for Celery (JSON serializable)
     request_dict = request.model_dump(by_alias=True)
 
@@ -76,7 +107,9 @@ async def submit_fea_job(request: FeaJobRequest) -> FeaJobStatus:
             args=[job_id, request_dict],
             task_id=job_id,
         )
+        logger.info(f"Job queued: job_id={job_id} task_id={task.id}")
     except Exception as e:
+        logger.error(f"Job submission failed: job_id={job_id} error={str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to submit job to worker: {str(e)}",

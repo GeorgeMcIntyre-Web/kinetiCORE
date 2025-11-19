@@ -10,19 +10,17 @@ Provides:
 
 import pytest
 from fastapi.testclient import TestClient
-from app.main import app
-from app.core.celery_app import celery_app
 from typing import Dict, Any
 
+# Set Celery eager mode BEFORE importing app/celery_app
+import os
+os.environ["CELERY_ALWAYS_EAGER"] = "True"
 
-@pytest.fixture
-def client():
-    """FastAPI test client for HTTP endpoint testing."""
-    with TestClient(app) as test_client:
-        yield test_client
+from app.main import app
+from app.core.celery_app import celery_app
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def celery_eager_mode():
     """
     Configure Celery to run tasks synchronously in-process.
@@ -33,16 +31,34 @@ def celery_eager_mode():
     # Store original settings
     original_always_eager = celery_app.conf.task_always_eager
     original_eager_propagates = celery_app.conf.task_eager_propagates
+    original_broker_connection_retry = celery_app.conf.broker_connection_retry
+    original_broker_connection_retry_on_startup = celery_app.conf.broker_connection_retry_on_startup
 
     # Enable eager mode
     celery_app.conf.task_always_eager = True
-    celery_app.conf.task_eager_propagates = True
+    celery_app.conf.task_eager_propagates = False  # Don't propagate exceptions to caller
+    # Disable broker connection attempts in test mode
+    celery_app.conf.broker_connection_retry = False
+    celery_app.conf.broker_connection_retry_on_startup = False
 
     yield
 
     # Restore original settings
     celery_app.conf.task_always_eager = original_always_eager
     celery_app.conf.task_eager_propagates = original_eager_propagates
+    celery_app.conf.broker_connection_retry = original_broker_connection_retry
+    celery_app.conf.broker_connection_retry_on_startup = original_broker_connection_retry_on_startup
+
+
+@pytest.fixture
+def client():
+    """FastAPI test client for HTTP endpoint testing."""
+    # Reset metrics before each test that uses the client
+    from app.core.metrics import metrics_store
+    metrics_store.reset()
+
+    with TestClient(app) as test_client:
+        yield test_client
 
 
 @pytest.fixture
