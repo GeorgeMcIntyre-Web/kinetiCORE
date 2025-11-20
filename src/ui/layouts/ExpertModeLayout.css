@@ -111,7 +111,7 @@
 /* Target right panel tabs (Properties, Factory, Route, Routing Analyses) */
 .expert-layout .dockview-theme-kineticore .dv-default-tab {
   background: rgb(27, 32, 44);
-  border: 1px solid #3a4154;
+  border: none;
   border-radius: 0;
   color: #e2e8f0;
   transition: all 0.2s ease;
