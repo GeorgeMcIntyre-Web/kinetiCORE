@@ -26,6 +26,11 @@
   color: #ffffff;
 }
 
+.expert-layout .action-btn:not(:disabled):hover {
+  background: rgb(62, 126, 152) !important;
+  color: #ffffff;
+}
+
 .expert-utility-bar {
   display: flex;
   flex-wrap: wrap;

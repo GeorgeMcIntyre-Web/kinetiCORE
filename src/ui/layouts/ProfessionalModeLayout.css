@@ -126,7 +126,7 @@
 }
 
 .action-btn:not(:disabled):hover {
-  background: var(--kc-accent);
+  background: rgb(62, 126, 152) !important;
   color: #fff;
 }
 
