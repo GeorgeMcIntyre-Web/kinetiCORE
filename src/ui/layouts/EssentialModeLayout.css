@@ -26,6 +26,17 @@
   z-index: 100;
 }
 
+/* Workspace Tabs Override */
+.workspace-tab.active {
+  background: rgb(62, 126, 152) !important;
+  color: #ffffff;
+}
+
+.action-btn:not(:disabled):hover {
+  background: rgb(62, 126, 152) !important;
+  color: #ffffff;
+}
+
 .header-left {
   display: flex;
   align-items: center;

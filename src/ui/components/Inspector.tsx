@@ -617,10 +617,7 @@ export const Inspector: React.FC = () => {
               <label>Enable Physics</label>
               <button
                 onClick={handleTogglePhysics}
-                className="physics-toggle-button"
-                style={{
-                  backgroundColor: isPhysicsEnabled ? '#4CAF50' : '#666',
-                }}
+                className={`physics-toggle-button ${isPhysicsEnabled ? 'enabled' : ''}`}
               >
                 {isPhysicsEnabled ? 'Enabled' : 'Disabled'}
               </button>
