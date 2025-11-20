@@ -451,19 +451,19 @@ export const ExpertModeLayout: React.FC = () => {
       <header className="professional-header">
         <div className="header-left">
           <div className="flex items-center space-x-2 flex-shrink-0">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/40">
+            <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/50">
               <span className="text-white font-bold text-sm">K</span>
             </div>
             <div className="hidden sm:block">
               <h1 className="text-xl font-bold">
-                <span className="bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">
                   kinetic CORE
                 </span>
                 <span
                   className="ml-1 align-middle inline-flex items-center text-[9px] font-semibold uppercase tracking-wide"
                   style={{
                     backgroundColor: 'transparent',
-                    color: '#60a5fa',
+                    color: '#f472b6',
                     position: 'relative',
                     top: '-7px',
                   }}

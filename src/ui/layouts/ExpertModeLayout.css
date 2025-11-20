@@ -15,6 +15,17 @@
   backdrop-filter: blur(8px);
 }
 
+/* Workspace Tabs Override */
+.expert-layout .workspace-tab.active {
+  background: rgb(62, 126, 152) !important;
+  color: #ffffff;
+}
+
+.expert-layout .workspace-tab:not(:disabled):hover {
+  background: rgba(62, 126, 152, 0.25) !important;
+  color: #ffffff;
+}
+
 .expert-utility-bar {
   display: flex;
   flex-wrap: wrap;
@@ -124,12 +135,12 @@
 }
 
 .expert-layout .dockview-theme-kineticore .dv-default-tab.dv-active-tab {
-  background: rgba(66, 153, 225, 0.18);
-  border-color: rgba(66, 153, 225, 0.45);
-  color: rgb(66, 153, 225);
+  background: rgba(62, 126, 152, 0.18);
+  border-color: rgba(62, 126, 152, 0.45);
+  color: rgb(62, 126, 152);
   box-shadow:
-    0 0 0 1px rgba(66, 153, 225, 0.35),
-    0 0 10px rgba(66, 153, 225, 0.3);
+    0 0 0 1px rgba(62, 126, 152, 0.35),
+    0 0 10px rgba(62, 126, 152, 0.3);
 }
 
 /* Exclude Scene Tree (left panel) from the themed styling - keep default */
