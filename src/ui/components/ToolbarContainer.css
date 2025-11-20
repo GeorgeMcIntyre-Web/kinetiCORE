@@ -1,6 +1,8 @@
 .toolbar-container {
   display: inline-flex; /* shrink-to-fit width */
+  flex-wrap: wrap; /* allow button groups to wrap when space is tight */
   align-items: stretch; /* allow children (separators) to stretch full height */
+  justify-content: flex-start;
   gap: 8px;
   padding: 8px 12px; /* more breathing room for contents */
   /* Solid background for clear contrast against parent row */

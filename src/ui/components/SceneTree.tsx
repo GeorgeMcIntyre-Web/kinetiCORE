@@ -349,21 +349,21 @@ const TreeNode: React.FC<TreeNodeProps> = ({
     window.dispatchEvent(new Event('scenetree-update'));
   };
 
-  const handleToggleVisibility = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleToggleVisibility = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     tree.toggleVisibility(node.id);
     window.dispatchEvent(new Event('scenetree-update'));
   };
 
-  const handleToggleLock = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleToggleLock = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     tree.toggleLocked(node.id);
     window.dispatchEvent(new Event('scenetree-update'));
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (canDelete && window.confirm(`Delete "${node.name}" and all its children?`)) {
+  const handleDelete = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (canDelete) {
       deleteNode(node.id);
     }
   };
@@ -541,9 +541,9 @@ const TreeNode: React.FC<TreeNodeProps> = ({
     ? getNodeMenuItems(node.id, node.name, node.type, node.visible, node.locked, canDelete, {
         onRename: () => setIsRenaming(true),
         onDuplicate: () => {}, // TODO: Implement duplicate
-        onDelete: () => handleDelete({} as React.MouseEvent),
-        onToggleVisibility: () => handleToggleVisibility({} as React.MouseEvent),
-        onToggleLock: () => handleToggleLock({} as React.MouseEvent),
+        onDelete: () => handleDelete(),
+        onToggleVisibility: () => handleToggleVisibility(),
+        onToggleLock: () => handleToggleLock(),
         onZoom: () => zoomToNode(node.id),
         onSaveToLibrary: handleSaveToLibrary,
         onExportGLB: () => {
@@ -755,11 +755,8 @@ export const SceneTree: React.FC = () => {
 
   const handleDeleteSelected = () => {
     if (selectedNodes.length > 0) {
-      const confirmed = window.confirm(`Delete ${selectedNodes.length} selected items?`);
-      if (confirmed) {
-        selectedNodes.forEach((nodeId) => deleteNode(nodeId));
-        setSelectedNodes([]);
-      }
+      selectedNodes.forEach((nodeId) => deleteNode(nodeId));
+      setSelectedNodes([]);
     }
   };
 

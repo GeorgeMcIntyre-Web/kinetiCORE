@@ -30,6 +30,7 @@ export const SnapSetupPopup: React.FC<SnapSetupPopupProps> = ({ isOpen, onClose 
     snapToMidpoint,
     snapToIntersection,
     snapBBoxCorner,
+    pickAtSnapPointEnabled,
     setSnapEnabled,
     setSnapToGrid,
     setGridSize,
@@ -40,6 +41,7 @@ export const SnapSetupPopup: React.FC<SnapSetupPopupProps> = ({ isOpen, onClose 
     setSnapToObject,
     setSnapToMidpoint,
     setSnapBBoxCorner,
+    setPickAtSnapPointEnabled,
   } = useEditorStore();
 
   // Center dialog when opened the first time
@@ -397,6 +399,33 @@ export const SnapSetupPopup: React.FC<SnapSetupPopupProps> = ({ isOpen, onClose 
             </div>
           )}
         </div>
+
+        {/* Pick at snapped point */}
+        <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              color: '#e2e8f0',
+              marginBottom: '4px',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={pickAtSnapPointEnabled}
+              onChange={(e) => setPickAtSnapPointEnabled(e.target.checked)}
+              style={{ width: '14px', height: '14px', cursor: 'pointer' }}
+            />
+            <span>Pick at snapped point</span>
+          </label>
+          <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+            When enabled, point picking, alignment, and custom frame clicks use the active snap preview position instead of the raw click position.
+          </p>
+        </div>
+
       </div>
     </div>
   );

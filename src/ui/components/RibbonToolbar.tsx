@@ -32,6 +32,7 @@ import {
   Magnet,
   PlayCircle,
   Droplets,
+  ToggleLeft,
 } from 'lucide-react';
 import { loadOBJFile } from '../../loaders/obj/OBJLoader';
 import { SceneManager } from '../../scene/SceneManager';
@@ -82,43 +83,38 @@ import { CreateDropdown } from './CreateDropdown';
 import { SelectionLevelDropdown } from './SelectionLevelDropdown';
 import './RibbonToolbar.css';
 
-// Transform Gizmo Toggle Component - DISABLED
-// Removed from UI as per user request
-// const TransformGizmoToggle = () => {
-//   const transformGizmoEnabled = useEditorStore((state) => state.transformGizmoEnabled);
-//   const setTransformGizmoEnabled = useEditorStore((state) => state.setTransformGizmoEnabled);
-//   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
-//
-//   const handleClick = (e: React.MouseEvent) => {
-//     e.preventDefault();
-//     e.stopPropagation();
-//     if (selectedNodeId) {
-//       setTransformGizmoEnabled(!transformGizmoEnabled);
-//     }
-//   };
-//
-//   return (
-//     <button
-//       onClick={handleClick}
-//       onMouseDown={(e) => e.stopPropagation()}
-//       title={transformGizmoEnabled ? "Disable Transform Gizmo" : "Enable Transform Gizmo"}
-//       disabled={!selectedNodeId}
-//       style={{
-//         background: 'transparent',
-//         border: 'none',
-//         padding: '0',
-//         marginLeft: '4px',
-//         cursor: selectedNodeId ? 'pointer' : 'not-allowed',
-//         display: 'flex',
-//         alignItems: 'center',
-//         color: transformGizmoEnabled ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.4)',
-//         pointerEvents: 'auto',
-//       }}
-//     >
-//       <ToggleLeft size={14} style={{ transform: transformGizmoEnabled ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform 0.2s' }} />
-//     </button>
-//   );
-// };
+const TransformGizmoToggle: React.FC = () => {
+  const transformGizmoEnabled = useEditorStore((state) => state.transformGizmoEnabled);
+  const toggleTransformGizmo = useEditorStore((state) => state.toggleTransformGizmo);
+  const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+  const selectedMeshes = useEditorStore((state) => state.selectedMeshes);
+
+  const hasSelection = Boolean(selectedNodeId || (selectedMeshes && selectedMeshes.length > 0));
+
+  const handleClick = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!hasSelection) {
+      toast.error('Please select an object first');
+      return;
+    }
+
+    toggleTransformGizmo();
+  };
+
+  return (
+    <button
+      className={`ribbon-btn ${transformGizmoEnabled ? 'active' : ''}`}
+      onClick={handleClick}
+      onMouseDown={(event) => event.stopPropagation()}
+      title={transformGizmoEnabled ? 'Transform gizmo: ON (T)' : 'Transform gizmo: OFF (T)'}
+      disabled={!hasSelection}
+    >
+      <ToggleLeft size={24} />
+    </button>
+  );
+};
 
 export interface RibbonToolbarProps {
   onKinematicsClick?: () => void;
@@ -183,6 +179,10 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
   // Piping mode state
   const pipingModeEnabled = useEditorStore((state) => state.pipingModeEnabled);
   const setPipingModeEnabled = useEditorStore((state) => state.setPipingModeEnabled);
+  const booleanOperationInProgress = useEditorStore((state) => state.booleanOperationInProgress);
+  const performBooleanUnion = useEditorStore((state) => state.performBooleanUnion);
+  const performBooleanSubtract = useEditorStore((state) => state.performBooleanSubtract);
+  const performBooleanIntersect = useEditorStore((state) => state.performBooleanIntersect);
   
   // Store connections
   const transformMode = useEditorStore((state) => state.transformMode);
@@ -360,6 +360,45 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
     }
   };
 
+  const getBooleanNodePair = () => {
+    if (!selectedNodeId && selectedMeshes.length < 2) {
+      toast.error('Select two objects for Boolean operations');
+      return null;
+    }
+
+    if (selectedNodeId) {
+      const state = useEditorStore.getState();
+      const secondaryId = state.selectedNodeIds.find((id) => id !== selectedNodeId) || null;
+      if (!secondaryId) {
+        toast.error('Select two nodes in the scene tree for Boolean operations');
+        return null;
+      }
+
+      return { nodeIdA: selectedNodeId, nodeIdB: secondaryId };
+    }
+
+    if (selectedMeshes.length < 2) {
+      toast.error('Select at least two meshes for Boolean operations');
+      return null;
+    }
+
+    const state = useEditorStore.getState();
+    const tree = SceneTreeManager.getInstance();
+
+    const meshA = selectedMeshes[0];
+    const meshB = selectedMeshes[1];
+
+    const nodeA = tree.findNodeByMesh(meshA);
+    const nodeB = tree.findNodeByMesh(meshB);
+
+    if (!nodeA || !nodeB) {
+      toast.error('Could not resolve selected meshes to scene nodes');
+      return null;
+    }
+
+    return { nodeIdA: nodeA.id, nodeIdB: nodeB.id };
+  };
+
   return (
     <div className="ribbon-toolbar-excel">
       {/* Project Category */}
@@ -431,6 +470,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           Transform
         </div>
         <div className="ribbon-buttons-row">
+          <TransformGizmoToggle />
           <button
             className={`ribbon-btn ${transformMode === 'translate' && transformGizmoEnabled ? 'active' : ''}`}
             onClick={handleTranslateClick}
@@ -540,6 +580,48 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
             title="Factory Piping - Design water, air, and steam networks"
           >
             <Droplets size={32} />
+          </button>
+          <button
+            className="ribbon-btn"
+            disabled={booleanOperationInProgress}
+            onClick={async () => {
+              const pair = getBooleanNodePair();
+              if (!pair) {
+                return;
+              }
+              await performBooleanUnion(pair.nodeIdA, pair.nodeIdB);
+            }}
+            title={booleanOperationInProgress ? 'Boolean operation in progress…' : 'Boolean Union (Ctrl+U)'}
+          >
+            <GitBranch size={24} />
+          </button>
+          <button
+            className="ribbon-btn"
+            disabled={booleanOperationInProgress}
+            onClick={async () => {
+              const pair = getBooleanNodePair();
+              if (!pair) {
+                return;
+              }
+              await performBooleanSubtract(pair.nodeIdA, pair.nodeIdB);
+            }}
+            title={booleanOperationInProgress ? 'Boolean operation in progress…' : 'Boolean Subtract (Ctrl+Shift+U)'}
+          >
+            <Minus size={24} />
+          </button>
+          <button
+            className="ribbon-btn"
+            disabled={booleanOperationInProgress}
+            onClick={async () => {
+              const pair = getBooleanNodePair();
+              if (!pair) {
+                return;
+              }
+              await performBooleanIntersect(pair.nodeIdA, pair.nodeIdB);
+            }}
+            title={booleanOperationInProgress ? 'Boolean operation in progress…' : 'Boolean Intersect (Ctrl+I)'}
+          >
+            <Square size={24} />
           </button>
         </div>
       </div>
