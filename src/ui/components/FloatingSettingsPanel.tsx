@@ -488,7 +488,7 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
         </div>
 
         {/* Tab Content */}
-        <div className="settings-content">
+        <div className={`settings-content ${activeTab === 'general' ? 'general-active' : ''}`}>
           {tabs.find(tab => tab.id === activeTab)?.component}
         </div>
 
