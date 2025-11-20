@@ -27,6 +27,11 @@ import {
   Minus,
   Maximize2,
   Building2,
+  Calculator,
+  GitBranch,
+  Network,
+  TestTube,
+  Zap,
   Plus,
   Link,
   Info,
@@ -113,7 +118,9 @@ export const ExpertModeLayout: React.FC = () => {
   const routeSelection = useRoutingStore((state) => state.selectedRoute);
 
   const [leftTreeWidth, setLeftTreeWidth] = useState(260);
-  const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'routing' | 'analysis'>('modeling');
+  const [activeWorkspace, setActiveWorkspace] = useState<
+    'modeling' | 'simulation' | 'routing' | 'analysis' | 'kinematics'
+  >('modeling');
   const [pipingQuickMode, setPipingQuickMode] = useState<'none' | 'node' | 'segment'>('none');
   const [savedLayout, setSavedLayout] = useState<any>(null);
   const [activeMeasurement, setActiveMeasurement] = useState<MeasurementType>(null);
@@ -499,6 +506,12 @@ export const ExpertModeLayout: React.FC = () => {
               onClick={() => setActiveWorkspace('analysis')}
             >
               Analysis
+            </button>
+            <button
+              className={`workspace-tab ${activeWorkspace === 'kinematics' ? 'active' : ''}`}
+              onClick={() => setActiveWorkspace('kinematics')}
+            >
+              Kinematics
             </button>
           </div>
         </div>
@@ -893,6 +906,51 @@ export const ExpertModeLayout: React.FC = () => {
                 <button className="tool-btn">
                   <Rocket size={18} />
                   <span>Optimization</span>
+                </button>
+              </div>
+            </div>
+          </ToolbarContainer>
+        )}
+
+        {activeWorkspace === 'kinematics' && (
+          <ToolbarContainer className="compact">
+            <div className="tool-group">
+              <div className="group-label">Kinematics</div>
+              <div className="tool-buttons">
+                <button className="tool-btn" onClick={() => setShowKinematicsPanel(true)} title="Motion Panel">
+                  <Rocket size={18} />
+                  <span className="tool-btn-label">Motion</span>
+                </button>
+                <button className="tool-btn" onClick={() => setShowKinematicsAnalysisPanel(true)} title="Kinematics Analysis">
+                  <Calculator size={18} />
+                  <span className="tool-btn-label">Analysis</span>
+                </button>
+                <button className="tool-btn" onClick={() => setShowActuatorPanel(true)} title="Actuator Control">
+                  <div style={{ position: 'relative', width: 18, height: 18 }}>
+                    <Zap size={12} style={{ position: 'absolute', left: 1, top: 1 }} />
+                    <Settings size={12} style={{ position: 'absolute', right: 1, bottom: 1 }} />
+                  </div>
+                  <span className="tool-btn-label">Actuators</span>
+                </button>
+                <button className="tool-btn" onClick={() => setShowComplexIKPanel(true)} title="Complex IK Systems">
+                  <GitBranch size={18} />
+                  <span className="tool-btn-label">Complex IK</span>
+                </button>
+                <button className="tool-btn" onClick={() => setShowWholeBodyIKPanel(true)} title="FullBody IK">
+                  <Network size={18} />
+                  <span className="tool-btn-label">FullBody IK</span>
+                </button>
+                <button
+                  className={`tool-btn ${showKinematicExtractionPanel ? 'active' : ''}`}
+                  onClick={() => setShowKinematicExtractionPanel(!showKinematicExtractionPanel)}
+                  title="Auto Kinematic Extraction - Hierarchical BBox Pairing"
+                >
+                  <Scan size={18} />
+                  <span className="tool-btn-label">Auto Extract</span>
+                </button>
+                <button className="tool-btn" onClick={() => setShowICPTestPanel(true)} title="ICP Test Tool">
+                  <TestTube size={18} />
+                  <span className="tool-btn-label">ICP Test</span>
                 </button>
               </div>
             </div>
