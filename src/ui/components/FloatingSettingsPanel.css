@@ -287,6 +287,63 @@
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
+.settings-content.transform-active .settings-section,
+.settings-content.physics-active .settings-section {
+  gap: 14px;
+}
+
+.settings-content.transform-active .settings-group,
+.settings-content.physics-active .settings-group {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #2b344a;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
+}
+
+.settings-content.transform-active .settings-group-title,
+.settings-content.physics-active .settings-group-title {
+  margin: 0 0 8px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.settings-content.transform-active .settings-option,
+.settings-content.physics-active .settings-option {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settings-content.transform-active .settings-option:last-child,
+.settings-content.physics-active .settings-option:last-child {
+  border-bottom: none;
+}
+
+.settings-content.transform-active .settings-checkbox,
+.settings-content.physics-active .settings-checkbox {
+  padding: 6px 0;
+}
+
+.settings-content.transform-active .settings-select,
+.settings-content.physics-active .settings-select {
+  background: rgb(25, 31, 49);
+  border: 1px solid #2f3a55;
+  border-radius: 10px;
+}
+
+.settings-content.transform-active .settings-select:hover,
+.settings-content.physics-active .settings-select:hover {
+  border-color: var(--settings-accent);
+}
+
+.settings-content.transform-active .settings-select:focus,
+.settings-content.physics-active .settings-select:focus {
+  border-color: var(--settings-accent);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
 .settings-section {
   display: flex;
   flex-direction: column;
