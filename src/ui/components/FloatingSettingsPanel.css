@@ -230,6 +230,63 @@
   text-shadow: 0 2px 12px rgba(59, 130, 246, 0.35);
 }
 
+.settings-content.view-active .settings-section,
+.settings-content.project-active .settings-section {
+  gap: 14px;
+}
+
+.settings-content.view-active .settings-group,
+.settings-content.project-active .settings-group {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #2b344a;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
+}
+
+.settings-content.view-active .settings-group-title,
+.settings-content.project-active .settings-group-title {
+  margin: 0 0 8px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.settings-content.view-active .settings-option,
+.settings-content.project-active .settings-option {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settings-content.view-active .settings-option:last-child,
+.settings-content.project-active .settings-option:last-child {
+  border-bottom: none;
+}
+
+.settings-content.view-active .settings-checkbox,
+.settings-content.project-active .settings-checkbox {
+  padding: 6px 0;
+}
+
+.settings-content.view-active .settings-select,
+.settings-content.project-active .settings-select {
+  background: rgb(25, 31, 49);
+  border: 1px solid #2f3a55;
+  border-radius: 10px;
+}
+
+.settings-content.view-active .settings-select:hover,
+.settings-content.project-active .settings-select:hover {
+  border-color: var(--settings-accent);
+}
+
+.settings-content.view-active .settings-select:focus,
+.settings-content.project-active .settings-select:focus {
+  border-color: var(--settings-accent);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
 .settings-section {
   display: flex;
   flex-direction: column;
@@ -612,15 +669,373 @@
 .settings-content .admin-panel {
   height: 100%;
   overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid #2b344a;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
 }
 
 .settings-content .admin-panel .admin-header {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 10px;
 }
 
 .settings-content .admin-panel .admin-content {
   height: calc(100% - 60px);
   overflow: hidden;
+}
+
+.settings-content.admin-active .admin-header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--settings-text);
+}
+
+.settings-content.admin-active .admin-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #2b344a;
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.settings-content.admin-active .admin-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  color: var(--settings-text-secondary);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 600;
+}
+
+.settings-content.admin-active .admin-tabs button:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--settings-text);
+}
+
+.settings-content.admin-active .admin-tabs button.active {
+  background: var(--settings-accent);
+  color: #fff;
+  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+}
+
+.settings-content.admin-active .close-button {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid #2b344a;
+  color: var(--settings-text);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-content.admin-active .close-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--settings-accent);
+}
+
+.settings-content.admin-active .admin-content {
+  padding: 4px;
+  border-radius: 10px;
+  overflow-y: auto;
+}
+
+.settings-content.admin-active .assets-tab,
+.settings-content.admin-active .upload-tab,
+.settings-content.admin-active .bulk-tab,
+.settings-content.admin-active .analytics-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-content.admin-active .search-filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #2f3a55;
+  border-radius: 10px;
+}
+
+.settings-content.admin-active .search-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgb(25, 31, 49);
+  border: 1px solid #2f3a55;
+  border-radius: 10px;
+  flex: 1;
+  min-width: 240px;
+  color: var(--settings-text);
+}
+
+.settings-content.admin-active .search-box input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--settings-text);
+  outline: none;
+}
+
+.settings-content.admin-active .filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.settings-content.admin-active .filters select {
+  background: rgb(25, 31, 49);
+  border: 1px solid #2f3a55;
+  color: var(--settings-text);
+  border-radius: 10px;
+  padding: 8px 10px;
+  min-width: 160px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-content.admin-active .filters select:hover,
+.settings-content.admin-active .filters select:focus {
+  border-color: var(--settings-accent);
+  outline: none;
+}
+
+.settings-content.admin-active .assets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.settings-content.admin-active .asset-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #2f3a55;
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22);
+  transition: transform 0.15s ease, border-color 0.2s ease;
+}
+
+.settings-content.admin-active .asset-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--settings-accent);
+}
+
+.settings-content.admin-active .asset-thumbnail {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.settings-content.admin-active .asset-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.settings-content.admin-active .placeholder-thumbnail {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--settings-text-secondary);
+}
+
+.settings-content.admin-active .asset-info h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--settings-text);
+}
+
+.settings-content.admin-active .asset-description {
+  margin: 4px 0;
+  font-size: 12px;
+  color: var(--settings-text-secondary);
+  line-height: 1.4;
+}
+
+.settings-content.admin-active .asset-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.settings-content.admin-active .tag {
+  background: rgba(59, 130, 246, 0.12);
+  color: #9ec5ff;
+  padding: 3px 6px;
+  border-radius: 8px;
+  font-size: 11px;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.settings-content.admin-active .asset-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--settings-text-secondary);
+}
+
+.settings-content.admin-active .asset-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.settings-content.admin-active .asset-actions button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid #2f3a55;
+  border-radius: 8px;
+  color: var(--settings-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-content.admin-active .asset-actions button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--settings-accent);
+}
+
+.settings-content.admin-active .upload-section,
+.settings-content.admin-active .upload-form {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #2f3a55;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22);
+}
+
+.settings-content.admin-active .upload-section h3,
+.settings-content.admin-active .upload-form h3 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--settings-text);
+}
+
+.settings-content.admin-active .metadata-extraction {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-content.admin-active .extraction-input {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.settings-content.admin-active .extraction-input input {
+  flex: 1;
+  min-width: 240px;
+  padding: 10px 12px;
+  background: rgb(25, 31, 49);
+  border: 1px solid #2f3a55;
+  border-radius: 10px;
+  color: var(--settings-text);
+}
+
+.settings-content.admin-active .extraction-input button {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #2f3a55;
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--settings-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-content.admin-active .extraction-input button:hover:not(:disabled) {
+  background: var(--settings-accent);
+  color: #fff;
+  border-color: var(--settings-accent);
+}
+
+.settings-content.admin-active .form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.settings-content.admin-active .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-content.admin-active .form-group label {
+  font-size: 12px;
+  color: var(--settings-text-secondary);
+}
+
+.settings-content.admin-active .form-group input,
+.settings-content.admin-active .form-group select {
+  padding: 10px 12px;
+  background: rgb(25, 31, 49);
+  border: 1px solid #2f3a55;
+  border-radius: 10px;
+  color: var(--settings-text);
+}
+
+.settings-content.admin-active .form-group textarea {
+  padding: 10px 12px;
+  background: rgb(25, 31, 49);
+  border: 1px solid #2f3a55;
+  border-radius: 10px;
+  color: var(--settings-text);
+  min-height: 80px;
+}
+
+.settings-content.admin-active .form-grid .checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-content.admin-active .checkbox-group input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.settings-content.admin-active .upload-form .file-drop {
+  border: 1px dashed #2f3a55;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  padding: 12px;
+  color: var(--settings-text-secondary);
+  text-align: center;
 }
 
 /* Compact Settings Layout */
