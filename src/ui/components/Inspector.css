@@ -1,82 +1,92 @@
+/* Inspector Panel Styles - Aligned with Professional/Expert Mode */
 .inspector {
-  background-color: #1a1a1a;
+  background-color: rgb(18, 24, 39); /* Panel background */
   height: 100%;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid #333;
+  border-left: 1px solid rgb(48, 53, 66);
   animation: slideInRight 0.3s ease-out;
+  color: #e2e8f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .inspector-header {
-  padding: 0.35rem 0.5rem;
-  border-bottom: 1px solid #333;
+  padding: 0.75rem 1rem; /* Match panel header padding */
+  border-bottom: 1px solid rgb(48, 53, 66);
+  background-color: #1a202c; /* Header background */
 }
 
 .inspector-header h2 {
   margin: 0;
-  font-size: 0.85rem;
-  color: #fff;
+  font-size: 13px; /* Match panel header font size */
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #e2e8f0;
 }
 
 .inspector-content {
   flex: 1;
   overflow-y: auto;
-  padding: 0.5rem;
+  padding: 1rem; /* Match panel content padding */
 }
 
 .no-selection {
-  color: #666;
+  color: #a0aec0;
   text-align: center;
-  margin-top: 1rem;
-  font-size: 0.75rem;
+  margin-top: 2rem;
+  font-size: 13px;
 }
 
 .property-group {
-  margin-bottom: 0.4rem;
+  margin-bottom: 1.25rem; /* Match property section margin */
   animation: slideUp 0.2s ease-out;
 }
 
 .property-group h3 {
-  margin: 0 0 0.25rem 0;
-  font-size: 0.7rem;
-  color: #888;
+  margin: 0 0 0.75rem 0;
+  font-size: 12px;
+  color: #4299e1; /* Blue accent for section titles */
   text-transform: uppercase;
-  letter-spacing: 0.3px;
-  font-weight: 500;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  border-bottom: 1px solid rgb(48, 53, 66);
+  padding-bottom: 0.5rem;
 }
 
 .property {
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.75rem; /* Match property row margin */
 }
 
 .property label {
   display: block;
-  margin-bottom: 0.15rem;
-  font-size: 0.7rem;
-  color: #aaa;
+  margin-bottom: 0.375rem;
+  font-size: 12px;
+  color: #a0aec0;
 }
 
 .property input[type='text'],
 .property input[type='number'] {
   width: 100%;
-  padding: 0.3rem 0.4rem;
-  background-color: #2a2a2a;
-  border: 1px solid #444;
-  color: #fff;
-  border-radius: 3px;
-  font-size: 0.75rem;
+  padding: 6px 8px;
+  background-color: #1a202c; /* Input background */
+  border: 1px solid rgb(48, 53, 66);
+  color: #e2e8f0;
+  border-radius: 4px;
+  font-size: 12px;
+  transition: border-color 0.2s;
 }
 
 .property input[type='text']:focus,
 .property input[type='number']:focus {
   outline: none;
-  border-color: #646cff;
+  border-color: #4299e1; /* Blue focus border */
 }
 
 .vector-input {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.3rem;
+  gap: 6px;
 }
 
 .vector-input input {
@@ -85,17 +95,30 @@
 
 /* Physics toggle button */
 .physics-toggle-button {
-  padding: 0.3rem 0.6rem;
-  color: white;
-  border: none;
-  border-radius: 3px;
+  padding: 6px 12px;
+  color: #e2e8f0;
+  background-color: #2d3748;
+  border: 1px solid rgb(48, 53, 66);
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 0.75rem;
-  transition: opacity 0.2s;
+  font-size: 12px;
+  transition: all 0.2s;
 }
 
 .physics-toggle-button:hover {
-  opacity: 0.8;
+  background-color: rgb(48, 53, 66);
+  color: #fff;
+}
+
+.physics-toggle-button.enabled {
+  background-color: #48bb78;
+  border-color: #48bb78;
+  color: #fff;
+}
+
+.physics-toggle-button.enabled:hover {
+  background-color: #38a169;
+  border-color: #38a169;
 }
 
 /* Transform header with button group */
@@ -103,121 +126,124 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.5rem;
 }
 
 .transform-header h3 {
   margin: 0;
-  font-size: 0.7rem;
+  font-size: 12px;
+  color: #a0aec0;
+  font-weight: 600;
 }
 
 .button-group {
   display: flex;
   gap: 2px;
-  background-color: #2a2a2a;
-  border-radius: 2px;
+  background-color: #1a202c;
+  border-radius: 4px;
   padding: 2px;
+  border: 1px solid rgb(48, 53, 66);
 }
 
 .button-group button {
-  padding: 2px 5px;
-  font-size: 9px;
+  padding: 4px 8px;
+  font-size: 11px;
   background-color: transparent;
-  color: #aaa;
+  color: #a0aec0;
   border: none;
-  border-radius: 2px;
+  border-radius: 3px;
   cursor: pointer;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s;
   position: relative;
   overflow: hidden;
 }
 
 .button-group button:hover {
-  background-color: #333;
-  color: #fff;
+  background-color: #2d3748;
+  color: #e2e8f0;
 }
 
 .button-group button.active {
-  background-color: #646cff;
+  background-color: #4299e1;
   color: #fff;
 }
 
 /* Custom frame selector */
 .custom-frame-selector {
-  background-color: #2a2a2a;
-  border: 1px solid #646cff;
-  border-radius: 3px;
-  padding: 0.4rem;
-  margin-top: 0.3rem;
-  margin-bottom: 0.5rem;
+  background-color: #1a202c;
+  border: 1px solid #4299e1;
+  border-radius: 4px;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .custom-frame-selector .selector-title {
-  margin: 0 0 0.3rem 0;
-  font-size: 0.7rem;
-  color: #aaa;
-  font-weight: 500;
+  margin: 0 0 0.5rem 0;
+  font-size: 12px;
+  color: #a0aec0;
+  font-weight: 600;
 }
 
 .custom-frame-selector .selector-instruction {
-  margin: 0.3rem 0;
-  font-size: 0.65rem;
-  color: #888;
+  margin: 0.5rem 0;
+  font-size: 11px;
+  color: #718096;
   font-style: italic;
 }
 
 .feature-type-buttons {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.3rem;
-  margin-bottom: 0.4rem;
+  gap: 6px;
+  margin-bottom: 0.75rem;
 }
 
 .feature-type-buttons button {
-  padding: 0.3rem 0.5rem;
-  background-color: #333;
-  color: #aaa;
-  border: 1px solid #444;
-  border-radius: 2px;
+  padding: 6px 10px;
+  background-color: #2d3748;
+  color: #a0aec0;
+  border: 1px solid rgb(48, 53, 66);
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 0.7rem;
+  font-size: 11px;
   transition: all 0.2s;
 }
 
 .feature-type-buttons button:hover {
-  background-color: #444;
+  background-color: rgb(48, 53, 66);
   color: #fff;
-  border-color: #555;
 }
 
 .feature-type-buttons button.active {
-  background-color: #646cff;
+  background-color: #4299e1;
   color: #fff;
-  border-color: #646cff;
+  border-color: #4299e1;
 }
 
 .cancel-button {
-  padding: 0.2rem 0.5rem;
-  background-color: #444;
+  padding: 6px 10px;
+  background-color: rgb(48, 53, 66);
   color: #fff;
   border: none;
-  border-radius: 2px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 0.7rem;
+  font-size: 11px;
   width: 100%;
+  transition: background-color 0.2s;
 }
 
 .cancel-button:hover {
-  background-color: #555;
+  background-color: #718096;
 }
 
 /* Custom frame info display */
 .custom-frame-info {
-  background-color: #2a2a2a;
-  border: 1px solid #4CAF50;
-  border-radius: 3px;
-  padding: 0.3rem 0.4rem;
-  margin-top: 0.3rem;
+  background-color: #1a202c;
+  border: 1px solid #48bb78; /* Green for success/info */
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -225,98 +251,100 @@
 
 .custom-frame-info p {
   margin: 0;
-  font-size: 0.65rem;
-  color: #4CAF50;
-  font-weight: 500;
+  font-size: 11px;
+  color: #48bb78;
+  font-weight: 600;
 }
 
 .clear-frame-button {
-  padding: 0.15rem 0.4rem;
-  background-color: #d32f2f;
+  padding: 4px 8px;
+  background-color: #e53e3e; /* Red */
   color: #fff;
   border: none;
-  border-radius: 2px;
+  border-radius: 3px;
   cursor: pointer;
-  font-size: 0.65rem;
+  font-size: 10px;
+  transition: background-color 0.2s;
 }
 
 .clear-frame-button:hover {
-  background-color: #f44336;
+  background-color: #c53030;
 }
 
 /* Transform sections */
 .transform-section {
-  margin-bottom: 0.3rem;
-  padding: 0.25rem;
-  background-color: #222;
-  border-radius: 2px;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  background-color: #1a202c;
+  border-radius: 4px;
+  border: 1px solid rgb(48, 53, 66);
 }
 
 .transform-section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
 }
 
 .transform-section-header label {
-  font-size: 0.65rem;
-  color: #888;
-  font-weight: 500;
+  font-size: 11px;
+  color: #a0aec0;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.5px;
 }
 
 .reset-button {
-  padding: 1px 4px;
-  font-size: 0.65rem;
-  background-color: #444;
-  color: #aaa;
-  border: none;
-  border-radius: 2px;
+  padding: 2px 6px;
+  font-size: 10px;
+  background-color: #2d3748;
+  color: #a0aec0;
+  border: 1px solid rgb(48, 53, 66);
+  border-radius: 3px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .reset-button:hover {
-  background-color: #555;
+  background-color: rgb(48, 53, 66);
   color: #fff;
 }
 
 /* Horizontal transform control row */
 .transform-control-row {
   display: flex;
-  gap: 0.15rem;
+  gap: 4px;
   align-items: center;
 }
 
 .axis-control {
   display: flex;
   align-items: center;
-  gap: 1px;
+  gap: 2px;
   flex: 1;
   min-width: 0;
 }
 
 .axis-label {
-  font-size: 0.6rem;
-  color: #aaa;
-  font-weight: 500;
-  width: 9px;
+  font-size: 10px;
+  color: #a0aec0;
+  font-weight: 600;
+  width: 12px;
   text-align: center;
   flex-shrink: 0;
 }
 
 .increment-button {
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
   padding: 0;
-  background-color: #2a2a2a;
-  color: #aaa;
-  border: 1px solid #444;
-  border-radius: 2px;
+  background-color: #2d3748;
+  color: #a0aec0;
+  border: 1px solid rgb(48, 53, 66);
+  border-radius: 3px;
   cursor: pointer;
-  font-size: 0.7rem;
+  font-size: 10px;
   font-weight: bold;
   display: flex;
   align-items: center;
@@ -327,31 +355,30 @@
 }
 
 .increment-button:hover {
-  background-color: #333;
+  background-color: rgb(48, 53, 66);
   color: #fff;
-  border-color: #555;
 }
 
 .increment-button:active {
-  background-color: #444;
+  background-color: #2d3748;
 }
 
 .axis-control input[type='number'] {
-  width: 42px;
-  padding: 0.1rem 0.15rem;
-  background-color: #2a2a2a;
-  border: 1px solid #444;
-  color: #fff;
-  border-radius: 2px;
-  font-size: 0.6rem;
+  width: 100%; /* Fill available space */
+  min-width: 0;
+  padding: 2px 4px;
+  background-color: #1a202c;
+  border: 1px solid rgb(48, 53, 66);
+  color: #e2e8f0;
+  border-radius: 3px;
+  font-size: 11px;
   text-align: center;
 }
 
 .axis-control input[type='number']:focus {
   outline: none;
-  border-color: #646cff;
-  background-color: #333;
-  box-shadow: 0 0 0 1px rgba(100, 108, 255, 0.3);
+  border-color: #4299e1;
+  background-color: #2d3748;
 }
 
 /* Remove spinner buttons from number inputs */
@@ -363,13 +390,14 @@
 
 .axis-control input[type='number'] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* Transform Preset Buttons */
 .transform-presets {
   display: flex;
-  gap: 0.2rem;
-  margin-bottom: 0.3rem;
+  gap: 4px;
+  margin-bottom: 0.5rem;
 }
 
 .preset-btn {
@@ -377,72 +405,71 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.2rem;
-  padding: 0.25rem 0.3rem;
-  background-color: #2a2a2a;
-  color: #aaa;
-  border: 1px solid #444;
-  border-radius: 2px;
+  gap: 4px;
+  padding: 4px 6px;
+  background-color: #2d3748;
+  color: #a0aec0;
+  border: 1px solid rgb(48, 53, 66);
+  border-radius: 3px;
   cursor: pointer;
-  font-size: 0.65rem;
+  font-size: 10px;
   transition: all 0.2s;
 }
 
 .preset-btn:hover {
-  background-color: #333;
+  background-color: rgb(48, 53, 66);
   color: #fff;
-  border-color: #555;
   transform: translateY(-1px);
 }
 
 .preset-btn:active {
   transform: translateY(0);
-  background-color: #444;
+  background-color: #2d3748;
 }
 
 /* Quick Rotation Section */
 .quick-rotation-section {
-  margin-top: 0.3rem;
-  padding-top: 0.3rem;
-  border-top: 1px solid #333;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgb(48, 53, 66);
 }
 
 .quick-rotation-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.5rem;
 }
 
 .quick-rotation-label {
-  font-size: 0.6rem;
-  color: #888;
+  font-size: 10px;
+  color: #a0aec0;
   text-transform: uppercase;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.5px;
 }
 
 .quick-rotation-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.15rem;
+  gap: 4px;
 }
 
 .quick-angle-btn {
-  padding: 0.2rem 0.3rem;
-  background-color: #2a2a2a;
-  color: #aaa;
-  border: 1px solid #444;
-  border-radius: 2px;
+  padding: 4px 6px;
+  background-color: #2d3748;
+  color: #a0aec0;
+  border: 1px solid #4a5568;
+  border-radius: 3px;
   cursor: pointer;
-  font-size: 0.65rem;
+  font-size: 10px;
   font-weight: 500;
   transition: all 0.2s;
 }
 
 .quick-angle-btn:hover {
-  background-color: #646cff;
+  background-color: #4299e1;
   color: #fff;
-  border-color: #646cff;
+  border-color: #4299e1;
   transform: scale(1.05);
 }
 
