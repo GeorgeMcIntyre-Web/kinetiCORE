@@ -25,43 +25,49 @@
 /* Tab Navigation */
 .settings-tabs {
   display: flex;
-  border-bottom: 1px solid var(--settings-border);
-  background: var(--settings-surface);
-  padding: 0;
+  border-bottom: 1px solid #2d3240;
+  background: linear-gradient(145deg, rgba(19, 24, 39, 0.94), rgba(12, 16, 27, 0.92));
+  padding: 6px;
   margin: 0;
   overflow: visible;
   flex-wrap: wrap;
-  min-height: 48px;
+  min-height: 52px;
+  border-radius: 0;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
 }
 
 .settings-tab {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
-  background: transparent;
-  border: none;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid #3a414f;
   color: var(--settings-text-secondary);
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   border-bottom: 2px solid transparent;
   flex: 1;
   min-width: 0;
   justify-content: center;
+  border-radius: 0;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
 }
 
 .settings-tab:hover {
   color: var(--settings-text);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #4a5568;
 }
 
 .settings-tab.active {
-  color: var(--settings-accent);
-  border-bottom-color: var(--settings-accent);
-  background: rgba(59, 130, 246, 0.1);
+  color: #fff;
+  border-color: #4a5568;
+  background: radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.28), rgba(59, 130, 246, 0.08));
+  box-shadow: 0 10px 20px rgba(59, 130, 246, 0.28);
 }
 
 /* Tab Content */
