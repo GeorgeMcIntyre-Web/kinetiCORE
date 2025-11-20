@@ -924,6 +924,7 @@ export const ExpertModeLayout: React.FC = () => {
             ],
           }}
           leftGroupWidth={leftTreeWidth}
+          bottomPanelHeight={250}
           onLayoutChange={savePanelLayout}
           savedLayout={savedLayout}
         />
