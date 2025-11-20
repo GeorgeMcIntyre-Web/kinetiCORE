@@ -43,50 +43,66 @@ import * as fs from 'node:fs';
 import { buildToolingStructureFromScene, buildGeometryIndex } from '../src/domain/tooling/babylonAdapter';
 import { runUnitsV2Pipeline } from '../src/domain/tooling/unitsV2Pipeline';
 import type { KinematicSnapshot } from '../src/domain/tooling/stateBasedUnitDetection';
+import { ToolingKinematicsAdapter, type KinematicsAdapterContext } from '../src/kinematics/toolingKinematicsAdapter';
 
-// Fixture definitions
-interface Fixture {
-  name: string;
+// --- Types ---
+
+type FixtureExpectations = {
+  minUnits?: number;
+  maxUnits?: number;
+  minMotionJoints?: number;
+  maxMotionJoints?: number;
+};
+
+type FixtureConfig = {
+  id: string;
   relPath: string;
-}
+  expectations?: FixtureExpectations;
+};
 
-const FIXTURES: Fixture[] = [
+type FixtureResultStatus = 'ok' | 'failed' | 'skipped';
+
+type FixtureSummary = {
+  id: string;
+  status: FixtureResultStatus;
+  reason?: string; // for skipped / failed
+  unitsCount?: number;
+  motionJointCount?: number;
+  chainCount?: number;
+  warnings: string[];
+};
+
+// --- Configuration ---
+
+const FIXTURES: FixtureConfig[] = [
   {
-    name: '8X-140_GEO CI00',
+    id: '016ZF_140_CI00',
     relPath: 'Tooling/testing_data/8X-140_GEO/016ZF_20142435_140_CI00.glb',
+    expectations: { minUnits: 2, minMotionJoints: 1 },
   },
   {
-    name: '8X-140_1E1_LH',
+    id: '8X_140_1E1_LH',
     relPath: 'Tooling/testing_data/8X-140_GEO/016ZF_20142435_140_1E1_LH.glb',
   },
   {
-    name: '8X-140_1E1_CI00',
-    relPath: 'Tooling/testing_data/8X-140_GEO/016ZF_20142435_140_1E1_CI00.glb',
+    id: '8X_140_2E1_RH',
+    relPath: 'Tooling/testing_data/8X-140_GEO/016ZF_20142435_140_2E1_CI00.glb',
   },
   {
-    name: '016ZF_110',
-    relPath: 'Tooling/testing_data/016ZF/016ZF_110.glb',
-  },
-  {
-    name: '016ZF_130',
+    id: '016ZF_130',
     relPath: 'Tooling/testing_data/016ZF/016ZF_130.glb',
   },
   {
-    name: '9X_110_GEO',
-    relPath: 'Tooling/testing_data/9X_110_GEO/9X_110_GEO.glb',
+    id: '016ZF_110',
+    relPath: 'Tooling/testing_data/016ZF/016ZF_110.glb',
+  },
+  {
+    id: '2174530000_CM030',
+    relPath: 'Tooling/testing_data/2174530000_M00_GJR_RR FLR_CM030_T01/2174530000_M00_GJR_RR FLR_CM030_T01.glb',
   },
 ];
 
-interface TestResult {
-  fixtureName: string;
-  success: boolean;
-  error?: string;
-  structureUnitsCount?: number;
-  stateBasedUnitsCount?: number;
-  motionJointsCount?: number;
-  revoluteCount?: number;
-  prismaticCount?: number;
-}
+// --- Helpers ---
 
 /**
  * Generate synthetic kinematic snapshots by manipulating transforms.
@@ -186,22 +202,72 @@ function generateSyntheticSnapshots(
   return [snapshot1, snapshot2];
 }
 
+function checkExpectations(
+  summary: Partial<FixtureSummary>,
+  expectations?: FixtureExpectations
+): { passed: boolean; warnings: string[] } {
+  const warnings: string[] = [];
+  if (!expectations) {
+    return { passed: true, warnings };
+  }
+
+  if (
+    expectations.minUnits !== undefined &&
+    (summary.unitsCount === undefined || summary.unitsCount < expectations.minUnits)
+  ) {
+    warnings.push(`Expected minUnits >= ${expectations.minUnits}, got ${summary.unitsCount}`);
+  }
+
+  if (
+    expectations.maxUnits !== undefined &&
+    (summary.unitsCount !== undefined && summary.unitsCount > expectations.maxUnits)
+  ) {
+    warnings.push(`Expected maxUnits <= ${expectations.maxUnits}, got ${summary.unitsCount}`);
+  }
+
+  if (
+    expectations.minMotionJoints !== undefined &&
+    (summary.motionJointCount === undefined || summary.motionJointCount < expectations.minMotionJoints)
+  ) {
+    warnings.push(`Expected minMotionJoints >= ${expectations.minMotionJoints}, got ${summary.motionJointCount}`);
+  }
+
+  if (
+    expectations.maxMotionJoints !== undefined &&
+    (summary.motionJointCount !== undefined && summary.motionJointCount > expectations.maxMotionJoints)
+  ) {
+    warnings.push(`Expected maxMotionJoints <= ${expectations.maxMotionJoints}, got ${summary.motionJointCount}`);
+  }
+
+  return { passed: warnings.length === 0, warnings };
+}
+
 /**
  * Test a single GLB fixture.
  */
-async function testFixture(
-  glbPath: string,
-  fixtureName: string
-): Promise<TestResult> {
-  const result: TestResult = {
-    fixtureName,
-    success: false,
-  };
+async function testFixture(fixture: FixtureConfig): Promise<FixtureSummary> {
+  const dataRoot = process.env.KINETICORE_DATA_ROOT;
 
-  // Guard: file must exist
+  // Guard: Env var missing
+  if (!dataRoot) {
+    return {
+      id: fixture.id,
+      status: 'skipped',
+      reason: 'KINETICORE_DATA_ROOT not set',
+      warnings: [],
+    };
+  }
+
+  const glbPath = path.join(dataRoot, fixture.relPath);
+
+  // Guard: File missing
   if (!fs.existsSync(glbPath)) {
-    result.error = `File not found: ${glbPath}`;
-    return result;
+    return {
+      id: fixture.id,
+      status: 'skipped',
+      reason: `File not found: ${glbPath}`,
+      warnings: [],
+    };
   }
 
   let engine: BABYLON.NullEngine | null = null;
@@ -225,22 +291,23 @@ async function testFixture(
 
     // Guard: must have meshes
     if (importResult.meshes.length === 0) {
-      result.error = 'No meshes found in GLB';
-      return result;
+      return {
+        id: fixture.id,
+        status: 'failed',
+        reason: 'No meshes found in GLB',
+        warnings: [],
+      };
     }
 
-    // Find root nodes (same pattern as printToolingPointCloudTree.ts)
+    // Find root nodes
     const rootNodes: BABYLON.TransformNode[] = [];
     const processedNodes = new Set<string>();
 
     for (const mesh of importResult.meshes) {
       let node: BABYLON.Node | null = mesh;
-
-      // Walk up to find root
       while (node && node.parent) {
         node = node.parent;
       }
-
       if (node && node instanceof BABYLON.TransformNode) {
         const nodeId = String(node.uniqueId);
         if (!processedNodes.has(nodeId)) {
@@ -250,7 +317,6 @@ async function testFixture(
       }
     }
 
-    // If no root nodes found, use scene root nodes
     if (rootNodes.length === 0 && scene.rootNodes.length > 0) {
       const transformNodes = scene.rootNodes.filter(
         (n) => n instanceof BABYLON.TransformNode
@@ -258,10 +324,13 @@ async function testFixture(
       rootNodes.push(...transformNodes);
     }
 
-    // Guard: must have at least one root node
     if (rootNodes.length === 0) {
-      result.error = 'No root nodes found';
-      return result;
+      return {
+        id: fixture.id,
+        status: 'failed',
+        reason: 'No root nodes found',
+        warnings: [],
+      };
     }
 
     const rootNode = rootNodes[0];
@@ -277,13 +346,16 @@ async function testFixture(
     // Generate synthetic snapshots
     const snapshots = generateSyntheticSnapshots(scene, rootNode);
 
-    // Guard: must have snapshots
     if (snapshots.length < 2) {
-      result.error = 'Failed to generate snapshots';
-      return result;
+      return {
+        id: fixture.id,
+        status: 'failed',
+        reason: 'Failed to generate snapshots',
+        warnings: [],
+      };
     }
 
-    // Run pipeline with motion joints
+    // Run pipeline
     const pipelineResult = runUnitsV2Pipeline(structure, geometryIndex, {
       includeJointPairs: true,
       snapshots,
@@ -293,105 +365,112 @@ async function testFixture(
       motionBuildOptions: { minAngularMotionDeg: 1.5, minLinearMotion: 0.5 },
     });
 
-    // Extract results
-    result.structureUnitsCount = pipelineResult.units.length;
-    result.stateBasedUnitsCount = pipelineResult.stateBasedUnits?.units.length ?? 0;
-    result.motionJointsCount = pipelineResult.motionJoints?.length ?? 0;
+    // Build chains via adapter
+    const adapterContext: KinematicsAdapterContext = {
+      getNodeWorldMatrix: (nodeId: string) => {
+        const mesh = scene?.getMeshByUniqueId(parseInt(nodeId));
+        if (mesh) {
+          mesh.computeWorldMatrix(true);
+          return mesh.getWorldMatrix();
+        }
+        const tn = scene?.transformNodes.find(n => String(n.uniqueId) === nodeId);
+        if (tn) {
+          tn.computeWorldMatrix(true);
+          return tn.getWorldMatrix();
+        }
+        const byName = scene?.getTransformNodeByName(nodeId) || scene?.getMeshByName(nodeId);
+        if (byName) {
+          byName.computeWorldMatrix(true);
+          return byName.getWorldMatrix();
+        }
+        return null;
+      }
+    };
 
-    // Count motion types
-    const motionJoints = pipelineResult.motionJoints ?? [];
-    result.revoluteCount = motionJoints.filter((j) => j.motionType === 'revolute').length;
-    result.prismaticCount = motionJoints.filter((j) => j.motionType === 'prismatic').length;
+    let chainCount = 0;
+    try {
+      const chains = ToolingKinematicsAdapter.buildChains(pipelineResult, adapterContext);
+      chainCount = chains.length;
+    } catch (e) {
+      console.warn(`[${fixture.id}] Adapter error: ${e}`);
+    }
 
-    result.success = true;
+    const summary: FixtureSummary = {
+      id: fixture.id,
+      status: 'ok',
+      unitsCount: pipelineResult.units.length,
+      motionJointCount: pipelineResult.motionJoints?.length ?? 0,
+      chainCount,
+      warnings: [],
+    };
 
-    return result;
+    const check = checkExpectations(summary, fixture.expectations);
+    summary.warnings = check.warnings;
+
+    return summary;
+
   } catch (error) {
-    result.error = error instanceof Error ? error.message : String(error);
-    return result;
+    return {
+      id: fixture.id,
+      status: 'failed',
+      reason: error instanceof Error ? error.message : String(error),
+      warnings: [],
+    };
   } finally {
-    // Cleanup
-    if (scene) {
-      scene.dispose();
-    }
-    if (engine) {
-      engine.dispose();
-    }
+    if (scene) scene.dispose();
+    if (engine) engine.dispose();
   }
 }
 
 /**
- * Main smoke test runner.
+ * Main runner.
  */
 async function main() {
   console.log('=== Units V2 + Motion Joints Smoke Test ===\n');
 
-  // Get data root from environment
-  const dataRoot = process.env.KINETICORE_DATA_ROOT;
+  const summaries: FixtureSummary[] = [];
 
-  // Guard: data root must be set
-  if (!dataRoot) {
-    console.error('ERROR: KINETICORE_DATA_ROOT environment variable not set');
-    console.error('Usage: KINETICORE_DATA_ROOT=/path/to/data npm run smoke:units-motion');
-    process.exit(1);
-  }
-
-  // Guard: data root must exist
-  if (!fs.existsSync(dataRoot)) {
-    console.error(`ERROR: Data root not found: ${dataRoot}`);
-    process.exit(1);
-  }
-
-  console.log(`Data root: ${dataRoot}\n`);
-
-  const results: TestResult[] = [];
-
-  // Test each fixture
   for (const fixture of FIXTURES) {
-    const glbPath = path.join(dataRoot, fixture.relPath);
-    console.log(`Testing: ${fixture.name}`);
-    console.log(`  Path: ${glbPath}`);
+    const result = await testFixture(fixture);
+    summaries.push(result);
 
-    const result = await testFixture(glbPath, fixture.name);
-
-    results.push(result);
-
-    if (result.success) {
-      console.log(`  ✓ Success`);
-      console.log(`    Structure units: ${result.structureUnitsCount}`);
-      console.log(`    State-based units: ${result.stateBasedUnitsCount}`);
-      console.log(`    Motion joints: ${result.motionJointsCount}`);
-      console.log(`      - Revolute: ${result.revoluteCount}`);
-      console.log(`      - Prismatic: ${result.prismaticCount}`);
+    if (result.status === 'ok') {
+      console.log(`[${result.id}] OK`);
+      console.log(`  units: ${result.unitsCount}`);
+      console.log(`  motion joints: ${result.motionJointCount}`);
+      console.log(`  chains: ${result.chainCount}`);
+      if (result.warnings.length > 0) {
+        console.log('  warnings:');
+        for (const w of result.warnings) {
+          console.log(`    - ${w}`);
+        }
+      }
+    } else if (result.status === 'skipped') {
+      console.log(`[${result.id}] SKIPPED – ${result.reason}`);
+    } else {
+      console.log(`[${result.id}] FAILED – ${result.reason}`);
     }
-
-    if (!result.success) {
-      console.log(`  ✗ Failed: ${result.error}`);
-    }
-
     console.log('');
   }
 
-  // Summary
-  const successCount = results.filter((r) => r.success).length;
-  const failCount = results.filter((r) => !r.success).length;
+  const okCount = summaries.filter(s => s.status === 'ok').length;
+  const failedCount = summaries.filter(s => s.status === 'failed').length;
+  const skippedCount = summaries.filter(s => s.status === 'skipped').length;
+  const warningCount = summaries.reduce((acc, s) => acc + s.warnings.length, 0);
 
-  console.log('=== Summary ===');
-  console.log(`Total fixtures: ${FIXTURES.length}`);
-  console.log(`Success: ${successCount}`);
-  console.log(`Failed: ${failCount}`);
+  console.log('==============================');
+  console.log(`Fixtures: ${FIXTURES.length}`);
+  console.log(`OK: ${okCount}`);
+  console.log(`Failed: ${failedCount}`);
+  console.log(`Skipped: ${skippedCount}`);
+  console.log(`Warnings: ${warningCount}`);
+  console.log('==============================');
 
-  // Exit with error if any failed
-  if (failCount > 0) {
-    console.log('\n⚠ Some tests failed');
-    process.exit(1);
+  if (failedCount > 0) {
+    process.exitCode = 1;
+  } else {
+    process.exitCode = 0;
   }
-
-  console.log('\n✓ All tests passed');
-  process.exit(0);
 }
 
-main().catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
+void main();

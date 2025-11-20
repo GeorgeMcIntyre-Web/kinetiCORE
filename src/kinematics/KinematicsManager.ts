@@ -139,7 +139,10 @@ export class KinematicsManager implements IKinematicsManager {
   // Cache of last FK world matrices per joint (chainId -> jointId -> worldMatrix)
   private _lastJointWorld = new Map<string, Map<string, BABYLON.Matrix>>();
 
-  private constructor() {}
+  // Tooling chains (separate from main robot chains)
+  private toolingChains = new Map<string, KinematicChain>();
+
+  private constructor() { }
 
   static getInstance(): KinematicsManager {
     if (!KinematicsManager.instance) {
@@ -418,6 +421,29 @@ export class KinematicsManager implements IKinematicsManager {
   }
 
   /**
+   * Register a tooling kinematic chain.
+   * These are stored separately from main robot chains to avoid polluting the main list.
+   */
+  registerToolingChain(chain: KinematicChain): void {
+    this.toolingChains.set(chain.id, chain);
+    console.log(`[KinematicsManager] Registered tooling chain: ${chain.name} (${chain.id})`);
+  }
+
+  /**
+   * Get all tooling chains.
+   */
+  getToolingChains(): KinematicChain[] {
+    return Array.from(this.toolingChains.values());
+  }
+
+  /**
+   * Get a tooling chain by ID.
+   */
+  getToolingChainById(id: string): KinematicChain | undefined {
+    return this.toolingChains.get(id);
+  }
+
+  /**
    * Joint frame info
    */
   getOrderedJointFrames(chainId: string): Array<{ id: string; parentId: string; world: BABYLON.Matrix; origin: BABYLON.Vector3; zAxis: BABYLON.Vector3 }> {
@@ -500,12 +526,12 @@ export class KinematicsManager implements IKinematicsManager {
     if (childNode.babylonMeshId) {
       babylonNode = scene.getMeshByUniqueId(parseInt(childNode.babylonMeshId)) as BABYLON.TransformNode;
     }
-          if (!babylonNode && childNode.babylonTransformNodeId) {
-            babylonNode = scene.transformNodes.find((tn: any) => tn.uniqueId === parseInt(childNode.babylonTransformNodeId!)) || null;
-          }
-          if (!babylonNode && childNode.type === 'collection') {
-            babylonNode = scene.transformNodes.find((tn: any) => tn.name === childNode.name) || null;
-          }
+    if (!babylonNode && childNode.babylonTransformNodeId) {
+      babylonNode = scene.transformNodes.find((tn: any) => tn.uniqueId === parseInt(childNode.babylonTransformNodeId!)) || null;
+    }
+    if (!babylonNode && childNode.type === 'collection') {
+      babylonNode = scene.transformNodes.find((tn: any) => tn.name === childNode.name) || null;
+    }
     if (!babylonNode) return undefined;
 
     // Get world transformation
@@ -592,11 +618,11 @@ export class KinematicsManager implements IKinematicsManager {
     }
 
     const firstJoint = chain.joints[0];
-    
+
     // Get base_link transform node
     const baseNodeId = firstJoint.parentNodeId;
     const baseTransformNode = this.getTransformNodeForTreeId(baseNodeId);
-    
+
     if (!baseTransformNode) {
       console.warn(`[KinematicsManager] getBaseWorldMatrix: could not resolve base transform for nodeId: ${baseNodeId}`);
       return null;
@@ -716,7 +742,7 @@ export class KinematicsManager implements IKinematicsManager {
     // Use the last joint's child link world transform
     const lastJoint = chain.joints[chain.joints.length - 1];
     const childLinkWorld = this.getJointChildLinkWorld(chainId, lastJoint.id);
-    
+
     if (childLinkWorld) {
       const origin = childLinkWorld.getTranslation();
       return { origin, world: childLinkWorld };
@@ -738,7 +764,7 @@ export class KinematicsManager implements IKinematicsManager {
     const sceneManager = (window as any).sceneManager;
     const scene = sceneManager?.getScene?.();
     const tree = (window as any).sceneTreeManager;
-    
+
     if (!scene || !tree) return null;
 
     const childNode = tree.getNode(joint.childNodeId);
@@ -755,7 +781,7 @@ export class KinematicsManager implements IKinematicsManager {
     if (!babylonNode && childNode.type === 'collection') {
       babylonNode = scene.transformNodes.find((tn: any) => tn.name === childNode.name) || null;
     }
-    
+
     if (!babylonNode) return null;
 
     babylonNode.computeWorldMatrix(true);
@@ -783,10 +809,10 @@ export class KinematicsManager implements IKinematicsManager {
   getActuatedJoints(chainId: string): JointConfig[] {
     const chain = this.chains.get(chainId);
     if (!chain) return [];
-    
-    return chain.joints.filter(joint => 
-      joint.type === 'revolute' || 
-      joint.type === 'prismatic' || 
+
+    return chain.joints.filter(joint =>
+      joint.type === 'revolute' ||
+      joint.type === 'prismatic' ||
       joint.type === 'spherical'
     );
   }

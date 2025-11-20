@@ -20,6 +20,7 @@ import type {
 import { FastNodeFilter, type FilterOptions, type NodePair } from './FastNodeFilter';
 import { PCLICPSolver } from '../pointCloud/PCLICPSolver';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
+import { findSceneTreeNodeForToolUnit } from '../../scene/SceneTreeMapping';
 
 /**
  * Configuration for the complete kinematic extraction pipeline.
@@ -278,10 +279,18 @@ export class KinematicExtractionPipeline {
     const tree = SceneTreeManager.getInstance();
 
     for (const unit of this.toolGraph.units) {
-      const sceneNode = tree.getNode(unit.root);
+      const mapping = findSceneTreeNodeForToolUnit(tree, unit);
+      const sceneNode = mapping.node;
+
       if (!sceneNode) {
-        console.error(`[Pipeline] ❌ Unit ${unit.name} not found in SceneTree!`);
+        console.error(`[Pipeline] SceneTreeMap: ❌ unitId=${unit.id} strategy=${mapping.strategy} ${mapping.details}`);
         continue;
+      }
+
+      if (mapping.strategy === 'name-match') {
+        console.warn(`[Pipeline] SceneTreeMap: ⚠️ unitId=${unit.id} strategy=${mapping.strategy} ${mapping.details}`);
+      } else {
+        console.log(`[Pipeline] SceneTreeMap: ✅ unitId=${unit.id} strategy=${mapping.strategy} ${mapping.details} sceneNodeId=${sceneNode.id}`);
       }
 
       console.log(`[Pipeline] Unit: ${unit.name}`);

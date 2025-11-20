@@ -540,6 +540,7 @@ export class GeometricToolAnalyzer {
         id,
         name: root.name || id,
         root: nodeId(root),
+        babylonUniqueId: root.uniqueId,
         type: cluster.type || 'unknown',
         isFixed: cluster.isFixed ?? false,
         nodes: nodeIds,

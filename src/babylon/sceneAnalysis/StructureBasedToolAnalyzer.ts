@@ -3,6 +3,8 @@ import { getWorldTransform, WorldSpace } from '../utils/WorldSpace';
 import { PCLICPSolver } from '../pointCloud/PCLICPSolver';
 import { IcpFitter, type Point3 } from '../../math/icp/IcpFitter';
 import { computeRevoluteMotionFromPointClouds } from '../../math/geometry/revoluteMotion';
+import { ICP } from '../pointCloud/ICP';
+import { extractJointFromTransform } from '../pointCloud/JointExtractor';
 // import { SceneManager } from '../../scene/SceneManager'; // Not used - scene passed as parameter
 import type { ToolUnit, ToolGraph, ToolUnitType } from './ToolGraphAnalyzer';
 import type { DetectedToolJoint, AnalyzerDebugSnapshot, AnalyzerUnitDebug, JointCandidateDebug, UnitMotionFamilyDebug, Vector3Like } from './ToolingTypes';
@@ -450,11 +452,16 @@ export class StructureBasedToolAnalyzer {
       const extent = bbox.maximum.subtract(bbox.minimum);
       const center = bbox.minimum.add(bbox.maximum).scale(0.5);
 
+      if (child.uniqueId === undefined) {
+        console.warn(`[StructureBasedToolAnalyzer] ⚠️ Unit candidate '${child.name}' has no uniqueId!`);
+      }
+
       unitCandidates.push({
         unit: {
           id: unitId,
           name: child.name || unitId,
           root: this.nodeId(child),
+          babylonUniqueId: child.uniqueId,
           type: this.inferUnitType(child, isFixed),
           isFixed,
           nodes: nodeIds,
@@ -483,16 +490,16 @@ export class StructureBasedToolAnalyzer {
       maxCenterDistanceFactor: opts.jointDetectionConfig?.unitClustering?.maxCenterDistanceFactor ?? defaultUnitClustering.maxCenterDistanceFactor ?? 0.005,
       minOverlapRatio: opts.jointDetectionConfig?.unitClustering?.minOverlapRatio ?? defaultUnitClustering.minOverlapRatio ?? 0.99,
     };
-    
+
     if (opts.verbose || FX_DEBUG_ENABLED) {
       console.log(
         `[StructureBasedToolAnalyzer] Clustering ${unitCandidates.length} candidates ` +
         `(maxCenterDistFactor: ${unitClustering.maxCenterDistanceFactor}, minOverlap: ${unitClustering.minOverlapRatio})`
       );
     }
-    
+
     const clusteredCandidates = this.clusterUnits(unitCandidates, unitClustering, opts.verbose || FX_DEBUG_ENABLED);
-    
+
     if (opts.verbose || FX_DEBUG_ENABLED) {
       console.log(
         `[StructureBasedToolAnalyzer] Clustered to ${clusteredCandidates.length} mechanical units`
@@ -739,7 +746,7 @@ export class StructureBasedToolAnalyzer {
         const sampleSize = Math.min(20, children.length);
         let unitLikeCount = 0;
         let totalSubChildren = 0;
-        
+
         for (let i = 0; i < sampleSize; i++) {
           const child = children[i];
           const subChildren = this.getImmediateChildren(child);
@@ -748,9 +755,9 @@ export class StructureBasedToolAnalyzer {
             unitLikeCount++;
           }
         }
-        
+
         const avgSubChildren = totalSubChildren / sampleSize;
-        
+
         // If many children look like UNIT nodes, those children ARE the units
         if (unitLikeCount >= 3 && avgSubChildren > 50) {
           // This node's children are the UNIT nodes - use them as the units level
@@ -764,17 +771,17 @@ export class StructureBasedToolAnalyzer {
             // Must have many direct children (30-800 range for UNIT nodes)
             // Some UNIT nodes can have many children (like UNIT_101 with 730)
             if (subChildren.length < 30 || subChildren.length > 800) return false;
-            
+
             // Check if sub-children also have many sub-children (assemblies)
             // UNIT nodes contain assemblies (RH, LH) which contain many components
             // This distinguishes UNIT nodes from other large nodes
             const avgSubSubChildren = subChildren.length > 0
               ? subChildren.slice(0, 10).reduce((sum, subChild) => {
-                  const subSubChildren = this.getImmediateChildren(subChild);
-                  return sum + subSubChildren.length;
-                }, 0) / Math.min(10, subChildren.length)
+                const subSubChildren = this.getImmediateChildren(subChild);
+                return sum + subSubChildren.length;
+              }, 0) / Math.min(10, subChildren.length)
               : 0;
-            
+
             // UNIT nodes have sub-children (like RH) that contain many components
             // If avgSubSubChildren is very low, it's likely not a UNIT node
             // Also check that at least some sub-children have significant geometry (state nodes)
@@ -782,7 +789,7 @@ export class StructureBasedToolAnalyzer {
               // Check if this sub-child has geometry (could be MOVING, FIXED, etc.)
               return this.hasSignificantGeometry(subChild, opts.minVolume);
             });
-            
+
             // UNIT nodes have a specific structure:
             // - They have assemblies (RH, LH) with many components (avgSubSubChildren > 5)
             // - They have state-node-like children with geometry
@@ -792,7 +799,7 @@ export class StructureBasedToolAnalyzer {
               const subSubChildren = this.getImmediateChildren(subChild);
               return subSubChildren.length > 10; // Assemblies have many components
             }).length;
-            
+
             // Most selective check: UNIT nodes should have children that contain state nodes (MOVING/FIXED)
             // These state nodes are typically grandchildren (children of RH/LH)
             // Check if any sub-child has children with geometry (state nodes like MOVING/FIXED)
@@ -803,7 +810,7 @@ export class StructureBasedToolAnalyzer {
                 return this.hasSignificantGeometry(subSubChild, opts.minVolume);
               });
             });
-            
+
             // Must have:
             // 1. Assemblies with many components (avgSubSubChildren > 5)
             // 2. State-node-like children with geometry (direct children)
@@ -811,7 +818,7 @@ export class StructureBasedToolAnalyzer {
             // 4. Nested state nodes (MOVING/FIXED within RH/LH) - this is the most selective
             return avgSubSubChildren > 5 && hasStateNodeLikeChildren && assemblyLikeChildren >= 2 && hasNestedStateNodes;
           });
-          
+
           if (unitNodes.length >= opts.minUnitCount) {
             // If we found many candidates but we know there should be exactly 9 UNIT nodes,
             // prioritize nodes with the most "UNIT-like" structure
@@ -820,11 +827,11 @@ export class StructureBasedToolAnalyzer {
               const subChildren = this.getImmediateChildren(node);
               const avgSubSubChildren = subChildren.length > 0
                 ? subChildren.slice(0, 10).reduce((sum, subChild) => {
-                    const subSubChildren = this.getImmediateChildren(subChild);
-                    return sum + subSubChildren.length;
-                  }, 0) / Math.min(10, subChildren.length)
+                  const subSubChildren = this.getImmediateChildren(subChild);
+                  return sum + subSubChildren.length;
+                }, 0) / Math.min(10, subChildren.length)
                 : 0;
-              
+
               // Score based on:
               // 1. Number of children (UNIT nodes have 30-800)
               // 2. Average sub-sub-children (assemblies have many components)
@@ -833,28 +840,28 @@ export class StructureBasedToolAnalyzer {
                 const subSubChildren = this.getImmediateChildren(subChild);
                 return subSubChildren.length > 10;
               }).length;
-              
+
               // Normalize each term to prevent huge assemblies from dominating the score.
               const normalizedChildCount = Math.min(subChildren.length, 200);
               const normalizedAvgSubSubChildren = Math.min(avgSubSubChildren, 40);
               const normalizedAssemblyCount = Math.min(assemblyLikeCount, 12);
-              
+
               // Higher raw score = more UNIT-like
               const rawScore =
                 (normalizedChildCount / 100) +
                 (normalizedAvgSubSubChildren / 10) +
                 (normalizedAssemblyCount * 2);
-              
+
               // Apply sqrt to compress the dynamic range so top-heavy nodes don't dominate.
               const score = Math.sqrt(rawScore);
               return { node, score };
             });
-            
+
             // Sort by score (highest first) and take all candidates that meet criteria
             // BUT: Only include nodes that are direct children of the current level
             // Filter out nodes that are too deep (children of UNIT nodes like RH, FIXED)
             scoredNodes.sort((a, b) => b.score - a.score);
-            
+
             if ((opts.verbose || FX_DEBUG_ENABLED) && scoredNodes.length > 0) {
               const sample = scoredNodes
                 .slice(0, Math.min(20, scoredNodes.length))
@@ -863,15 +870,15 @@ export class StructureBasedToolAnalyzer {
                 `[StructureBasedToolAnalyzer] UNIT score sample (top ${sample.length}/${scoredNodes.length}): ${sample.join(', ')}`
               );
             }
-            
+
             const level1Node = node;
             const defaultJointCfg = DEFAULT_STRUCTURE_OPTIONS.jointDetectionConfig!;
             const jointCfg = opts.jointDetectionConfig ?? defaultJointCfg;
             const minScoreRatio = jointCfg.minScoreRatio ?? defaultJointCfg.minScoreRatio ?? 0.75;
-            
+
             const directCandidates = scoredNodes.filter(item => item.node.parent === level1Node);
             let topUnitNodes: BABYLON.Node[] = [];
-            
+
             if (directCandidates.length > 0) {
               const bestDirectScore = directCandidates[0].score;
               const directThreshold = bestDirectScore * minScoreRatio;
@@ -879,34 +886,34 @@ export class StructureBasedToolAnalyzer {
                 .filter(item => item.score >= directThreshold)
                 .map(item => item.node);
             }
-            
+
             if (topUnitNodes.length < opts.minUnitCount && scoredNodes.length > 0) {
               const bestScore = scoredNodes[0].score;
               const threshold = bestScore * minScoreRatio;
               const fallbackNodes = scoredNodes
                 .filter(item => item.score >= threshold)
                 .map(item => item.node);
-              
+
               if (fallbackNodes.length > topUnitNodes.length && opts.verbose) {
                 console.warn(
                   `[StructureBasedToolAnalyzer] Only found ${topUnitNodes.length} direct children within ` +
                   `score ratio ${minScoreRatio}, using ${fallbackNodes.length} top-scored nodes instead`
                 );
               }
-              
+
               topUnitNodes = fallbackNodes;
             }
-            
+
             // STRONGLY prefer Level 1's UNIT nodes (shallower = much better)
             // Depth 0-1 is where UNIT nodes typically are
             // Score much higher for shallower levels
             const depthPenalty = depth === 0 ? 0 : (depth === 1 ? 50 : 200);
             const score = 5000 - (topUnitNodes.length * 5) - depthPenalty;
-            
+
             if (score > bestScore) {
               bestMatch = { children: topUnitNodes, depth: depth + 1 }; // Treat as next level
               bestScore = score;
-              
+
               if (opts.verbose) {
                 console.log(
                   `[StructureBasedToolAnalyzer] ✓ Found UNIT nodes at Level ${depth + 1}: ` +
@@ -916,7 +923,7 @@ export class StructureBasedToolAnalyzer {
               }
             }
           }
-          
+
           if (opts.verbose) {
             console.log(
               `[StructureBasedToolAnalyzer] Level ${depth} has ${children.length} children, ` +
@@ -925,7 +932,7 @@ export class StructureBasedToolAnalyzer {
           }
         }
       }
-      
+
       // Check if this level qualifies as "units level"
       if (children.length >= opts.minUnitCount) {
         // Score calculation:
@@ -934,15 +941,15 @@ export class StructureBasedToolAnalyzer {
         // - Heavily penalize levels with >100 children (likely raw meshes or too high level)
         // - Prefer levels where children themselves have many children (UNIT nodes contain sub-assemblies)
         let score = 0;
-        
+
         // Check if children look like UNIT nodes (they should have many sub-children)
-        const avgChildCount = children.length > 0 
+        const avgChildCount = children.length > 0
           ? children.reduce((sum, child) => {
-              const childChildren = this.getImmediateChildren(child);
-              return sum + childChildren.length;
-            }, 0) / children.length
+            const childChildren = this.getImmediateChildren(child);
+            return sum + childChildren.length;
+          }, 0) / children.length
           : 0;
-        
+
         if (children.length <= 20) {
           // Good candidate: 2-20 children
           // STRONG bonus if children have many sub-children (likely UNIT nodes with assemblies)
@@ -960,11 +967,11 @@ export class StructureBasedToolAnalyzer {
           // We'll handle this by not scoring this level, but continuing to traverse
           score = 0;
         }
-        
+
         if (score > bestScore) {
           bestMatch = { children, depth };
           bestScore = score;
-          
+
           if (opts.verbose) {
             console.log(
               `[StructureBasedToolAnalyzer] ✓ Candidate units level at depth ${depth} ` +
@@ -988,7 +995,7 @@ export class StructureBasedToolAnalyzer {
     };
 
     traverse(root, 0);
-    
+
     if (bestMatch !== null) {
       const match: { children: BABYLON.Node[]; depth: number } = bestMatch;
       if (opts.verbose) {
@@ -998,7 +1005,7 @@ export class StructureBasedToolAnalyzer {
         );
       }
     }
-    
+
     return bestMatch;
   }
 
@@ -1244,7 +1251,7 @@ export class StructureBasedToolAnalyzer {
     scene: BABYLON.Scene
   ): Promise<void> {
     const DEBUG_STRUCTURE_ANALYZER = opts.verbose || false;
-    
+
     const defaultIcpOpts = DEFAULT_STRUCTURE_OPTIONS.icpOptions!;
     const icpOpts = {
       maxICPError: opts.icpOptions?.maxICPError ?? defaultIcpOpts.maxICPError,
@@ -1278,7 +1285,7 @@ export class StructureBasedToolAnalyzer {
         minOverlapRatio: opts.jointDetectionConfig?.unitClustering?.minOverlapRatio ?? defaultJointCfg.unitClustering!.minOverlapRatio,
       },
     } as any; // Type assertion needed because selectionScoring is optional but Required<> expects all fields
-    
+
     if (!scene) {
       console.warn('[StructureBasedToolAnalyzer] No scene available for ICP detection');
       return;
@@ -1311,20 +1318,20 @@ export class StructureBasedToolAnalyzer {
     for (const unit of units) {
       const uniqueId = parseInt(unit.root);
       let unitNode: BABYLON.Node | null = null;
-      
+
       if (!isNaN(uniqueId)) {
         unitNode = scene.transformNodes.find(n => n.uniqueId === uniqueId) as BABYLON.Node || null;
         if (!unitNode) {
           unitNode = scene.meshes.find(m => m.uniqueId === uniqueId) as BABYLON.Node || null;
         }
       }
-      
+
       if (!unitNode) {
         unitNode = scene.getNodeById(unit.root) ||
-                   scene.getTransformNodeByID(unit.root) ||
-                   scene.getMeshByID(unit.root) ||
-                   scene.getNodeByName(unit.name) ||
-                   null;
+          scene.getTransformNodeByID(unit.root) ||
+          scene.getMeshByID(unit.root) ||
+          scene.getNodeByName(unit.name) ||
+          null;
       }
 
       if (!unitNode) {
@@ -1341,7 +1348,7 @@ export class StructureBasedToolAnalyzer {
 
     // Step 2: Group "same rigid body" by geometry (families)
     const unitFamilies = new Map<string, BodyFamily[]>();
-    
+
     for (const [unitId, signatures] of unitSignatures.entries()) {
       const families = this.groupIntoFamilies(signatures, jointCfg, DEBUG_STRUCTURE_ANALYZER);
       if (families.length > 0) {
@@ -1355,29 +1362,29 @@ export class StructureBasedToolAnalyzer {
 
     // Track debug info for families (only when debug is enabled)
     const enableDebug = DEBUG_STRUCTURE_ANALYZER || FX_DEBUG_ENABLED;
-    
+
     // Build unit motion families (always, not just when debug is enabled)
     // This exposes motion families for all units, regardless of debug flag
     this.unitMotionFamilies = [];
-    
+
     for (const [unitId, families] of unitFamilies.entries()) {
       for (const family of families) {
         // Cluster to get state count (number of distinct transform states)
         const instances = this.clusterByTransform(family, jointCfg, false);
         const stateCount = instances.length;
-        
+
         // Skip families with no states (shouldn't happen, but guard clause)
         if (stateCount === 0) continue;
-        
+
         // Compute family ID
         const familyId = `${unitId}_${family.representative.vertexCount}_${family.representative.normExtents.x.toFixed(3)}`;
-        
+
         // Get vertex count from representative
         const vertexCount = family.representative.vertexCount ?? 0;
-        
+
         // Compute body size from extents (world-space bounding box diagonal)
         const bodySize = family.representative.extents.length();
-        
+
         // Only include families that appear in this unit with at least one state
         // (all families in unitFamilies already meet this criteria)
         this.unitMotionFamilies.push({
@@ -1393,11 +1400,11 @@ export class StructureBasedToolAnalyzer {
         if (stateCount === 2 && this.icpFitter) {
           const minVertexCount = jointCfg.icpConfig?.minVertexCount ?? 200;
           const minBodySize = (jointCfg.icpConfig?.minBodySizeMm ?? 40) / 1000; // Convert mm to meters
-          
+
           // Filter: reject families that don't meet size/vertex thresholds
           if (vertexCount < minVertexCount) continue;
           if (bodySize < minBodySize) continue;
-          
+
           const cacheKey = `${unitId}::${familyId}`;
           if (!this.icpFamilyCache.has(cacheKey)) {
             const minPointCount = jointCfg.icpConfig?.minIcpPointCount ?? 50;
@@ -1410,7 +1417,7 @@ export class StructureBasedToolAnalyzer {
         }
       }
     }
-    
+
     if (enableDebug) {
       for (const [unitId, families] of unitFamilies.entries()) {
         const unitDebug: AnalyzerUnitDebug = {
@@ -1424,7 +1431,7 @@ export class StructureBasedToolAnalyzer {
           const instances = this.clusterByTransform(family, jointCfg, false);
           const pairs = this.pairBySpatialProximity(family, jointCfg, false);
           const familyId = `${unitId}_${family.representative.vertexCount}_${family.representative.normExtents.x.toFixed(3)}`;
-          
+
           unitDebug.families.push({
             familyId,
             memberCount: family.members.length,
@@ -1469,7 +1476,7 @@ export class StructureBasedToolAnalyzer {
         // Cluster to get instance count (number of transform states)
         const instances = this.clusterByTransform(family, jointCfg, false);
         const instanceCount = instances.length;
-        
+
         const pairs = this.pairBySpatialProximity(family, jointCfg, DEBUG_STRUCTURE_ANALYZER);
         const familyId = `${unitId}_${family.representative.vertexCount}_${family.representative.normExtents.x.toFixed(3)}`;
         for (const pair of pairs) {
@@ -1578,10 +1585,9 @@ export class StructureBasedToolAnalyzer {
         translationMag: result.translationMag,
         strokeCategory,
         translationRatio,
-        icpRmse: result.icpRmse,
       });
 
-      log('JOINT_ACCEPTED', 
+      log('JOINT_ACCEPTED',
         `Unit ${statePair.unit.name}: ${result.jointType} joint ` +
         `(error: ${result.error.toFixed(6)}, ` +
         `translation: ${result.translationMag.toFixed(3)}m, ` +
@@ -1608,7 +1614,7 @@ export class StructureBasedToolAnalyzer {
           // Only filter if pairs share the exact same geometry signatures (same nodes)
           // Different nodes with similar transforms are different joints
           const sameNodes = (joint.sigA.node === existing.sigA.node && joint.sigB.node === existing.sigB.node) ||
-                           (joint.sigA.node === existing.sigB.node && joint.sigB.node === existing.sigA.node);
+            (joint.sigA.node === existing.sigB.node && joint.sigB.node === existing.sigA.node);
           if (sameNodes) {
             // Keep the one with better (lower) ICP error
             if (joint.error < existing.error) {
@@ -1650,7 +1656,7 @@ export class StructureBasedToolAnalyzer {
     if (DEBUG_STRUCTURE_ANALYZER) {
       const fixedCount = units.filter(u => u.isFixed).length;
       const movingCount = units.filter(u => !u.isFixed).length;
-      log('JOINT_ACCEPTED', 
+      log('JOINT_ACCEPTED',
         `Joint detection complete: ${filteredJointPairs.length} joints found, ` +
         `${fixedCount} fixed units, ${movingCount} moving units`
       );
@@ -1676,10 +1682,10 @@ export class StructureBasedToolAnalyzer {
 
     // Convert filteredJointPairs to DetectedToolJoint[] and store
     const detectedJoints = this.convertJointPairsToDetectedJoints(filteredJointPairs);
-    
+
     // Deduplicate joints by axis and body size: one joint per axis per unit, keep largest body
     const dedupedJoints = this.dedupeJointsByAxisAndSize(detectedJoints);
-    
+
     // Debug: log joints per unit after deduplication
     if (FX_DEBUG_ENABLED) {
       const jointsByUnit = new Map<string, DetectedToolJoint[]>();
@@ -1697,7 +1703,7 @@ export class StructureBasedToolAnalyzer {
         }
       }
     }
-    
+
     // Final selection: one best joint per unit, then take top N by score
     // This ensures we get the best joint from each unit, not multiple joints from the same unit
     const maxJoints = jointCfg.maxJointsPerFixture ?? Infinity;
@@ -1814,7 +1820,25 @@ export class StructureBasedToolAnalyzer {
       // Use ICP transform as authoritative source for motion fields if available
       // Otherwise fall back to node transform difference
       const motionTransform = pair.transform;
-      
+
+      // Use extractJointFromTransform (tested Phase 3 API) to get joint geometry
+      // This provides consistent classification and geometry extraction
+      const centroid = pair.sigA.center; // Use state A center as reference point
+      const icpResultForExtraction = {
+        success: true,
+        transform: motionTransform,
+        rmsError: pair.icpRmse ?? pair.error,
+        iterations: 0, // Not tracked in current flow
+        correspondences: Math.min(vertexCountA, vertexCountB),
+      };
+
+      const jointFromICP = extractJointFromTransform(icpResultForExtraction, centroid, {
+        translationThreshold: 0.001, // 1mm
+        rotationThreshold: 0.05, // ~2.86 degrees
+        maxResidualError: 0.01, // 1cm
+        anchorStrategy: 'axis_projection',
+      });
+
       // For revolute joints with cached point clouds, use computeRevoluteMotionFromPointClouds
       // to extract axis, angle, and center from the actual geometry
       let revoluteMotion: ReturnType<typeof computeRevoluteMotionFromPointClouds> | undefined;
@@ -1824,7 +1848,7 @@ export class StructureBasedToolAnalyzer {
         const pointsOpen = cachedClouds.pointsB.map(p => new BABYLON.Vector3(p.x, p.y, p.z));
         revoluteMotion = computeRevoluteMotionFromPointClouds(pointsClosed, pointsOpen, motionTransform);
       }
-      
+
       const deltaTranslation = new BABYLON.Vector3();
       const deltaRotation = new BABYLON.Quaternion();
       motionTransform.decompose(new BABYLON.Vector3(), deltaRotation, deltaTranslation);
@@ -1834,7 +1858,7 @@ export class StructureBasedToolAnalyzer {
       let qx = deltaRotation.x;
       let qy = deltaRotation.y;
       let qz = deltaRotation.z;
-      
+
       if (qw < 0) {
         qw = -qw;
         qx = -qx;
@@ -1842,13 +1866,15 @@ export class StructureBasedToolAnalyzer {
         qz = -qz;
       }
 
-      // Use revolute motion from point clouds if available, otherwise fall back to transform decomposition
+      // Use revolute motion from point clouds if available, 
+      // otherwise use extractJointFromTransform result,
+      // finally fall back to transform decomposition
       let motionAxis: Vector3Like | undefined;
       let angleDeg: number | undefined;
-      let fromCenter: Vector3Like;
-      let toCenter: Vector3Like;
-      let translationMagnitude: number;
-      
+      let fromCenter: Vector3Like = { x: pair.sigA.center.x, y: pair.sigA.center.y, z: pair.sigA.center.z };
+      let toCenter: Vector3Like = { x: pair.sigB.center.x, y: pair.sigB.center.y, z: pair.sigB.center.z };
+      let translationMagnitude: number = deltaTranslation.length();
+
       if (revoluteMotion) {
         // Use point-cloud-based extraction for revolute joints
         motionAxis = {
@@ -1864,13 +1890,49 @@ export class StructureBasedToolAnalyzer {
         };
         toCenter = fromCenter; // For revolute, center is the same
         translationMagnitude = revoluteMotion.translationMagnitude;
+      } else if (jointFromICP.confidence > 0.3) {
+        // Use extractJointFromTransform result (Phase 3 tested API) as secondary source
+        if (jointFromICP.type === 'hinge') {
+          motionAxis = {
+            x: jointFromICP.axis.x,
+            y: jointFromICP.axis.y,
+            z: jointFromICP.axis.z,
+          };
+          angleDeg = jointFromICP.magnitude * (180 / Math.PI); // Convert radians to degrees
+          fromCenter = {
+            x: jointFromICP.anchor.x,
+            y: jointFromICP.anchor.y,
+            z: jointFromICP.anchor.z,
+          };
+          toCenter = fromCenter; // For revolute, anchor point is on axis
+          translationMagnitude = deltaTranslation.length();
+        } else if (jointFromICP.type === 'prismatic') {
+          // Prismatic from extractJointFromTransform
+          motionAxis = {
+            x: jointFromICP.axis.x,
+            y: jointFromICP.axis.y,
+            z: jointFromICP.axis.z,
+          };
+          angleDeg = 0; // Prismatic has no rotation
+          fromCenter = {
+            x: pair.sigA.center.x,
+            y: pair.sigA.center.y,
+            z: pair.sigA.center.z,
+          };
+          toCenter = {
+            x: pair.sigB.center.x,
+            y: pair.sigB.center.y,
+            z: pair.sigB.center.z,
+          };
+          translationMagnitude = jointFromICP.magnitude;
+        }
       } else {
         // Fall back to transform decomposition
         // Compute angle using shortest-arc
         qw = Math.max(-1, Math.min(1, qw));
         let angleRad = 2 * Math.acos(qw);
         let computedAngleDeg = angleRad * (180 / Math.PI);
-        
+
         // Enforce shortest-arc: if angle > 180°, use 360° - angle and negate axis
         // For revolute joints, always prefer the shorter arc representation
         if (pair.jointType === 'revolute' && computedAngleDeg > 180) {
@@ -1881,7 +1943,7 @@ export class StructureBasedToolAnalyzer {
           qy = -qy;
           qz = -qz;
         }
-        
+
         // Also handle cases where angle is exactly 180° - prefer the representation that gives better axis alignment
         // For 180°, we can't make it shorter, but we ensure the axis is correctly oriented
         if (pair.jointType === 'revolute' && Math.abs(computedAngleDeg - 180) < 1e-6) {
@@ -1898,13 +1960,13 @@ export class StructureBasedToolAnalyzer {
             qy / sinHalfAngle,
             qz / sinHalfAngle
           ).normalize();
-          
+
           // Guard: check axis is valid
           if (Number.isFinite(axisVec.x) && Number.isFinite(axisVec.y) && Number.isFinite(axisVec.z)) {
             motionAxis = { x: axisVec.x, y: axisVec.y, z: axisVec.z };
           }
         }
-        
+
         // Fallback: if axis is still undefined but we have a valid angle, try to extract from quaternion directly
         if (!motionAxis && angleRad > 1e-6 && angleRad < Math.PI + 1e-6) {
           const quatVec = new BABYLON.Vector3(qx, qy, qz);
@@ -1916,7 +1978,7 @@ export class StructureBasedToolAnalyzer {
             }
           }
         }
-        
+
         // Final fallback: use axisWorld if available (for revolute joints)
         if (!motionAxis && pair.jointType === 'revolute' && axisWorld) {
           motionAxis = { x: axisWorld.x, y: axisWorld.y, z: axisWorld.z };
@@ -1958,7 +2020,7 @@ export class StructureBasedToolAnalyzer {
           deltaType = 'unknown';
         }
       }
-      
+
       // For prismatic joints, set angleDeg to 0 and use translation direction as axis
       if (deltaType === 'prismatic') {
         if (deltaTranslation.length() > 1e-6) {
@@ -2083,7 +2145,7 @@ export class StructureBasedToolAnalyzer {
     const twoStateFamilyBonus = cfg.twoStateFamilyBonus ?? 1.0;
     const maxReasonableSize = cfg.maxReasonableBodySize ?? 1.0; // 1 meter default
     const extremeRatioPenalty = cfg.extremeTranslationRatioPenalty ?? 0.5;
-    
+
     const bodySize = j.bodySize ?? 0;
     const travel = Math.abs(j.travelWorld ?? 0);
     const rotationDeg = j.isPrismatic ? 0 : (travel * 180 / Math.PI);
@@ -2208,9 +2270,9 @@ export class StructureBasedToolAnalyzer {
 
       const currentScore = this.scoreJointForSelection(current, scoringCfg);
       const nextScore = this.scoreJointForSelection(joint, scoringCfg);
-      
+
       const scoreDiff = nextScore - currentScore;
-      
+
       if (scoreDiff > 0) {
         perUnit.set(key, joint);
       }
@@ -2223,21 +2285,21 @@ export class StructureBasedToolAnalyzer {
       const scoreB = this.scoreJointForSelection(b, scoringCfg);
       const scoreDiff = scoreB - scoreA;
       if (Math.abs(scoreDiff) > 1e-6) return scoreDiff;
-      
+
       // Tie-breaker: prefer lower ICP error (better alignment quality)
       const icpDiff = (a.icpError ?? Infinity) - (b.icpError ?? Infinity);
       if (Math.abs(icpDiff) > 1e-6) return icpDiff;
-      
+
       // Next tie-breaker: prefer higher vertex similarity
       const vertexSimDiff = (b.vertexSimilarity ?? 0) - (a.vertexSimilarity ?? 0);
       if (Math.abs(vertexSimDiff) > 1e-6) return vertexSimDiff;
-      
+
       // Next tie-breaker: prefer lower translation ratio (more pure rotation), but treat very low ratios (< 0.1) as equivalent
       const ratioA = a.translationRatio < 0.1 ? 0 : a.translationRatio;
       const ratioB = b.translationRatio < 0.1 ? 0 : b.translationRatio;
       const ratioDiff = ratioA - ratioB;
       if (Math.abs(ratioDiff) > 1e-6) return ratioDiff;
-      
+
       // Next tie-breaker: extract numeric part from unit ID and sort descending
       // This provides a deterministic ordering that favors units with higher numeric IDs
       // For the LH fixture, expected units have IDs: 554, 289, 171, 1472 (all > 4)
@@ -2248,7 +2310,7 @@ export class StructureBasedToolAnalyzer {
       const numA = extractNumeric(a.unitId);
       const numB = extractNumeric(b.unitId);
       if (numA !== numB) return numB - numA; // Descending order (higher numbers first)
-      
+
       // Next: prefer larger body size in the reasonable range (100-140mm)
       const reasonableMin = 0.1; // 100mm
       const reasonableMax = 0.14; // 140mm
@@ -2258,11 +2320,11 @@ export class StructureBasedToolAnalyzer {
         const sizeDiff = (b.bodySize ?? 0) - (a.bodySize ?? 0);
         if (Math.abs(sizeDiff) > 1e-6) return sizeDiff;
       }
-      
+
       // Next: prefer higher vertex count (more substantial geometry)
       const vertexDiff = (b.vertexCountA + b.vertexCountB) - (a.vertexCountA + a.vertexCountB);
       if (Math.abs(vertexDiff) > 1e-6) return vertexDiff;
-      
+
       // Last resort: unit ID (alphabetical) for deterministic ordering
       return a.unitId.localeCompare(b.unitId);
     });
@@ -2512,7 +2574,7 @@ export class StructureBasedToolAnalyzer {
         instance.worldMatrix.decompose(new BABYLON.Vector3(), instanceRotation, instanceTranslation);
 
         const translationDiff = BABYLON.Vector3.Distance(memberTranslation, instanceTranslation);
-        const rotationDiff = Math.abs(2 * Math.acos(Math.max(-1, Math.min(1, 
+        const rotationDiff = Math.abs(2 * Math.acos(Math.max(-1, Math.min(1,
           BABYLON.Quaternion.Dot(memberRotation, instanceRotation)
         )))) * (180 / Math.PI);
 
@@ -2649,7 +2711,7 @@ export class StructureBasedToolAnalyzer {
     if (Math.abs(refDet) < 1e-9) {
       return undefined;
     }
-    
+
     // Compute delta = moving * inverse(ref)
     // This represents: "how to transform from retracted pose to advanced pose"
     const invRef = refTransform.clone();
@@ -2668,7 +2730,7 @@ export class StructureBasedToolAnalyzer {
     }
 
     const translationMagnitude = translation.length();
-    
+
     // Note: Zero or very small translation is valid for pure rotation (revolute joints)
     // We'll check motion significance later in classification
 
@@ -2678,7 +2740,7 @@ export class StructureBasedToolAnalyzer {
     let qx = rotation.x;
     let qy = rotation.y;
     let qz = rotation.z;
-    
+
     // Enforce shortest-arc: if w < 0, negate the quaternion
     if (w < 0) {
       w = -w;
@@ -2686,7 +2748,7 @@ export class StructureBasedToolAnalyzer {
       qy = -qy;
       qz = -qz;
     }
-    
+
     w = Math.max(-1, Math.min(1, w)); // Clamp to valid range
     const rotationAngleRad = 2 * Math.acos(w);
     const rotationAngleDeg = rotationAngleRad * (180 / Math.PI);
@@ -2723,16 +2785,16 @@ export class StructureBasedToolAnalyzer {
     // Revolute: primarily rotation, translation can be present but should be small relative to rotation
     const minRotationDeg = icpOpts.minRotation ?? 1.0;
     const minTranslation = icpOpts.minTranslation ?? 0.01;
-    
+
     // Prismatic: significant translation, minimal rotation
     const isPrismatic = translationMagnitude >= minTranslation && rotationAngleDeg < minRotationDeg;
-    
+
     // Revolute: significant rotation within valid range
     // Translation can be present (clamp center moves) but rotation should dominate
-    const hasSignificantRotation = rotationAngleDeg >= minRotationDeg && 
-                                   rotationAngleDeg >= cfg.minRotationAngleDeg &&
-                                   rotationAngleDeg <= cfg.maxRotationAngleDeg;
-    
+    const hasSignificantRotation = rotationAngleDeg >= minRotationDeg &&
+      rotationAngleDeg >= cfg.minRotationAngleDeg &&
+      rotationAngleDeg <= cfg.maxRotationAngleDeg;
+
     // For revolute, rotation should be significant
     // Translation can be present but should be reasonable (allow up to 2x body size for clamp motion)
     const maxRevoluteTranslationRatio = cfg.maxRevoluteTranslationRatio ?? 2.0;
@@ -2792,17 +2854,17 @@ export class StructureBasedToolAnalyzer {
     const MA = WorldSpace.getWorldMatrix(sigA.node);
     const MB = WorldSpace.getWorldMatrix(sigB.node);
     const bodySize = Math.max(sigA.extents.length(), sigB.extents.length());
-    
+
     // Compute initial delta for early filtering (don't require perfect classification yet)
     // We'll use ICP results for final classification
     const invMA = MA.clone();
     invMA.invert();
     const T_AB = MB.multiply(invMA);
-    
+
     const translation = new BABYLON.Vector3();
     const rotation = new BABYLON.Quaternion();
     T_AB.decompose(new BABYLON.Vector3(), rotation, translation);
-    
+
     const translationMag = translation.length();
     const rotationAngle = Math.abs(2 * Math.acos(Math.max(-1, Math.min(1, rotation.w)))) * (180 / Math.PI);
 
@@ -2810,7 +2872,7 @@ export class StructureBasedToolAnalyzer {
       debugInfo.initialTranslationMagnitude = translationMag;
       debugInfo.initialRotationDeg = rotationAngle;
     }
-    
+
     // Early rejection: both translation and rotation negligible
     const hasSignificantMotion = translationMag >= 1e-6 || rotationAngle >= 0.1;
     if (!hasSignificantMotion) {
@@ -2822,7 +2884,7 @@ export class StructureBasedToolAnalyzer {
       }
       return null;
     }
-    
+
     // Early rejection: translation too large relative to body size
     if (translationMag > bodySize * jointCfg.maxTranslationFactor) {
       if (debug) {
@@ -2833,7 +2895,7 @@ export class StructureBasedToolAnalyzer {
       }
       return null;
     }
-    
+
     // Use classifyDelta for initial classification (for logging/debugging)
     const delta = this.classifyDelta(MA, MB, bodySize, jointCfg, icpOpts);
 
@@ -2841,7 +2903,7 @@ export class StructureBasedToolAnalyzer {
       const deltaType = delta ? (delta.isPrismatic ? 'prismatic' : 'revolute') : 'unknown';
       console.log(`[MATRIX_FILTER] Translation: ${(translationMag * 1000).toFixed(1)}mm, Rotation: ${rotationAngle.toFixed(1)}°, Initial type: ${deltaType}`);
     }
-    
+
     if (!delta && debugInfo) {
       debugInfo.rejectionReason = debugInfo.rejectionReason ?? 'delta_initial_classify_failed';
     }
@@ -2882,11 +2944,11 @@ export class StructureBasedToolAnalyzer {
       finalTransform = icpDelta.transform;
       finalError = icpDelta.rmse;
       finalIcpRmse = icpDelta.rmse;
-      
+
       // Use classifyDelta on ICP result for consistent classification
       const MB_refined = finalTransform.multiply(MA);
       let classifiedDelta = this.classifyDelta(MA, MB_refined, bodySize, jointCfg, icpOpts);
-      
+
       // Fallback: If ICP error is very small (identical geometry) but initial classification passed,
       // use the initial classification. This handles cases where ICP finds identical geometry
       // but the initial transform shows valid motion (e.g., revolute joints where geometry is the same).
@@ -2896,7 +2958,7 @@ export class StructureBasedToolAnalyzer {
         }
         classifiedDelta = delta;
       }
-      
+
       if (!classifiedDelta) {
         if (debug) {
           console.log('[ICP_REJECT] ICP result failed classifyDelta validation');
@@ -3017,7 +3079,7 @@ export class StructureBasedToolAnalyzer {
     // Since ICP result is approximately MB * inv(MA), we can compute MB ≈ icpResult.transform * MA
     const MB_refined = icpResult.transform.multiply(MA);
     let classifiedDelta = this.classifyDelta(MA, MB_refined, bodySize, jointCfg, icpOpts);
-    
+
     // Fallback: If ICP error is very small (identical geometry) but initial classification passed,
     // use the initial classification. This handles cases where ICP finds identical geometry
     // but the initial transform shows valid motion (e.g., revolute joints where geometry is the same).
@@ -3027,7 +3089,7 @@ export class StructureBasedToolAnalyzer {
       }
       classifiedDelta = delta;
     }
-    
+
     if (!classifiedDelta) {
       if (debug) {
         console.log('[ICP_REJECT] ICP result failed classifyDelta validation');
@@ -3149,11 +3211,11 @@ export class StructureBasedToolAnalyzer {
 
       // Get immediate children
       const immediateChildren = this.getImmediateChildren(node);
-      
+
       for (const child of immediateChildren) {
         // Check if child has geometry (meshes)
         const hasGeometry = this.hasSignificantGeometry(child, 0.0001); // Use small threshold
-        
+
         if (hasGeometry) {
           // Found a node with geometry - add it
           // Allow up to depth 2 to find state nodes (MOVING, FIXED, etc.)
@@ -3188,7 +3250,7 @@ export class StructureBasedToolAnalyzer {
       if (node instanceof BABYLON.TransformNode) {
         // Get all descendant meshes
         const meshes = node.getChildMeshes(false);
-        
+
         if (meshes.length === 0) {
           return null;
         }
@@ -3200,7 +3262,7 @@ export class StructureBasedToolAnalyzer {
         for (const mesh of meshes) {
           mesh.computeWorldMatrix(true);
           const bbox = mesh.getBoundingInfo().boundingBox;
-          
+
           minX = Math.min(minX, bbox.minimum.x);
           minY = Math.min(minY, bbox.minimum.y);
           minZ = Math.min(minZ, bbox.minimum.z);
@@ -3320,7 +3382,7 @@ export class StructureBasedToolAnalyzer {
     for (const localPoint of localPoints) {
       const worldPointA = BABYLON.Vector3.TransformCoordinates(localPoint, instanceA.worldMatrix);
       const worldPointB = BABYLON.Vector3.TransformCoordinates(localPoint, instanceB.worldMatrix);
-      
+
       pointsA.push({ x: worldPointA.x, y: worldPointA.y, z: worldPointA.z });
       pointsB.push({ x: worldPointB.x, y: worldPointB.y, z: worldPointB.z });
     }
@@ -3442,7 +3504,7 @@ export class StructureBasedToolAnalyzer {
     // Check 2: Dimension similarity (each axis within 20% tolerance)
     const dimA = candA.dimensions;
     const dimB = candB.dimensions;
-    
+
     const xRatio = Math.min(Math.abs(dimA.x), Math.abs(dimB.x)) / Math.max(Math.abs(dimA.x), Math.abs(dimB.x));
     const yRatio = Math.min(Math.abs(dimA.y), Math.abs(dimB.y)) / Math.max(Math.abs(dimA.y), Math.abs(dimB.y));
     const zRatio = Math.min(Math.abs(dimA.z), Math.abs(dimB.z)) / Math.max(Math.abs(dimA.z), Math.abs(dimB.z));
@@ -3533,7 +3595,7 @@ export class StructureBasedToolAnalyzer {
 
       for (const cluster of clusters) {
         const primary = cluster.primary;
-        
+
         // Compute metrics once
         const centerDist = BABYLON.Vector3.Distance(candidate.center, primary.center);
         const combinedBodySize = Math.max(
@@ -3543,41 +3605,41 @@ export class StructureBasedToolAnalyzer {
         );
         const distFactor = centerDist / combinedBodySize;
         const overlapRatio = this.computeAabbOverlapRatio(candidate.aabb, primary.aabb);
-        
+
         // Check hierarchy relationship
         const candidateParent = candidate.node.parent;
         const primaryParent = primary.node.parent;
-        const shareParent = candidateParent !== null && 
-                           primaryParent !== null && 
-                           candidateParent === primaryParent;
-        
+        const shareParent = candidateParent !== null &&
+          primaryParent !== null &&
+          candidateParent === primaryParent;
+
         // Default stance: NO CLUSTERING unless all conditions are met
         // We require VERY high overlap AND very close distance
         // Use config values but interpret them conservatively
-        
+
         // Conservative clustering: require BOTH high overlap AND small distance
         // Use config values but interpret strictly to avoid over-clustering
         // For GEO: sub-assemblies have very high overlap (>95%) and are very close
         // For 1E1_LH: units are separate, so overlap is lower or distance is larger
-        
+
         // Use config values with strict interpretation: require BOTH high overlap AND small distance
         // Config defaults are balanced (95% overlap, 0.03x distance)
         // This prevents over-clustering separate units (1E1_LH case)
         // But allows true sub-assemblies to cluster (GEO case)
-        
+
         // For shared parent case, be very slightly more lenient (sub-assemblies often share parent)
         // But still extremely conservative to prevent over-clustering
-        const minOverlapRequired = shareParent 
+        const minOverlapRequired = shareParent
           ? Math.max(clustering.minOverlapRatio * 0.998, 0.985) // Very slightly lower for shared parent (98.5% vs 99%)
           : clustering.minOverlapRatio; // Use full config value (99%)
-        
+
         const maxDistFactor = shareParent
           ? clustering.maxCenterDistanceFactor * 1.05 // Very slightly more lenient for shared parent (0.00525x vs 0.005x)
           : clustering.maxCenterDistanceFactor; // Use config value (0.005x)
-        
+
         // Only merge if BOTH conditions are met: high overlap AND small distance
         const shouldMerge = overlapRatio >= minOverlapRequired && distFactor <= maxDistFactor;
-        
+
         if (debug) {
           console.log(
             `[CLUSTER] ${candidate.unit.id} vs ${primary.unit.id}: ` +
@@ -3586,7 +3648,7 @@ export class StructureBasedToolAnalyzer {
             `maxDistFactor=${maxDistFactor.toFixed(3)}x, shouldMerge=${shouldMerge}`
           );
         }
-        
+
         if (shouldMerge) {
           if (debug) {
             console.log(`[CLUSTER] ✓ Clustered ${candidate.unit.id} with ${primary.unit.id} (overlap ${(overlapRatio * 100).toFixed(1)}% + dist ${distFactor.toFixed(3)}x)`);
@@ -3660,7 +3722,7 @@ export class StructureBasedToolAnalyzer {
 
     console.groupCollapsed(`[FX_DEBUG] Units Summary: ${snapshot.fixtureId}`);
     console.log(`Total units: ${snapshot.totalUnits}, Total joints: ${snapshot.totalJoints}`);
-    
+
     for (const unit of snapshot.units) {
       const aabbSize = unit.worldAabb.max.subtract(unit.worldAabb.min);
       const sizeStr = `(${(aabbSize.x * 1000).toFixed(1)}, ${(aabbSize.y * 1000).toFixed(1)}, ${(aabbSize.z * 1000).toFixed(1)})mm`;
@@ -3669,7 +3731,7 @@ export class StructureBasedToolAnalyzer {
         `${unit.childNodeCount} children, ${unit.jointCount} joints`
       );
     }
-    
+
     console.groupEnd();
   }
 
@@ -3681,7 +3743,7 @@ export class StructureBasedToolAnalyzer {
 
     console.groupCollapsed(`[FX_DEBUG] Joints Summary: ${fixtureId}`);
     console.log(`Total joints: ${joints.length}`);
-    
+
     for (const joint of joints) {
       const travelStr = joint.isPrismatic
         ? `${(joint.travelWorld * 1000).toFixed(1)}mm`
@@ -3695,7 +3757,7 @@ export class StructureBasedToolAnalyzer {
         `category=${joint.strokeCategory}`
       );
     }
-    
+
     console.groupEnd();
   }
 }
