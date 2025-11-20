@@ -197,7 +197,6 @@ export function computeRevoluteMotionFromPointClouds(
     // Degenerate case: use centroid as center
     const cx = sumX / n;
     const cy = sumY / n;
-    const center2D = new BABYLON.Vector3(cx, cy, 0);
     const center3D = centroidClosed.add(planeX.scale(cx)).add(yAxis.scale(cy));
     
     // Compute angle from point pairs
@@ -250,7 +249,6 @@ export function computeRevoluteMotionFromPointClouds(
   // Solve for center coordinates
   const detX = b1 * (A22 * A33 - A23 * A32) - A12 * (b2 * A33 - A23 * b3) + A13 * (b2 * A32 - A22 * b3);
   const detY = A11 * (b2 * A33 - A23 * b3) - b1 * (A21 * A33 - A23 * A31) + A13 * (A21 * b3 - b2 * A31);
-  const detC = A11 * (A22 * b3 - b2 * A32) - A12 * (A21 * b3 - b2 * A31) + b1 * (A21 * A32 - A22 * A31);
 
   const cx = detX / det;
   const cy = detY / det;

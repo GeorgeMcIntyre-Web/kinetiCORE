@@ -165,7 +165,7 @@ export function buildPointCloudForNode(
  */
 export async function buildGeometryIndex(
   structure: ToolingStructure,
-  scene: BABYLON.Scene,
+  _scene: BABYLON.Scene,
   options: {
     stride?: number;
     maxPointsPerNode?: number;

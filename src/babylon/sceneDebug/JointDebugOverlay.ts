@@ -203,7 +203,7 @@ export class JointDebugOverlay {
         );
 
         cone.position = origin.clone().add(direction.scale(arrowLength * 0.85));
-        cone.rotationQuaternion = shaft.rotationQuaternion?.clone();
+        cone.rotationQuaternion = shaft.rotationQuaternion?.clone() ?? null;
         cone.material = material;
         cone.isVisible = this.isVisible;
         this.debugMeshes.push(cone);

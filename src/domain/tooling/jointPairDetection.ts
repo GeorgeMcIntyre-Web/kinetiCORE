@@ -22,9 +22,9 @@ import {
   findLongestAxis,
   normalize,
   dot,
-  distance,
+  distance as _distance,
   compute2DOverlapRatio,
-  computeBboxOverlapRatio,
+  computeBboxOverlapRatio as _computeBboxOverlapRatio,
 } from './pointClouds';
 
 /**
@@ -193,7 +193,7 @@ function findJointPairsForUnit(
 function computeNodeFeatures(
   unit: ToolingUnit,
   geometryIndex: Map<string, ToolingNodeGeometry>,
-  structure: ToolingStructure,
+  _structure: ToolingStructure,
   opts: Required<JointPairDetectionOptions>,
   precomputedFeatures?: Map<string, PrecomputedNodeFeatures>
 ): NodeCloudFeatures[] {

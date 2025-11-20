@@ -11,8 +11,8 @@ import { FileDown, X } from 'lucide-react';
 
 export const ToolingTreeDebugPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [fullTree, setFullTree] = useState('');
-  const [filteredTree, setFilteredTree] = useState('');
+  const [fullTree, _setFullTree] = useState('');
+  const [filteredTree, _setFilteredTree] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 

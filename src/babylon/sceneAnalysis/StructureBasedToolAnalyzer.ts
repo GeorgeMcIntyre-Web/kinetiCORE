@@ -3,7 +3,6 @@ import { getWorldTransform, WorldSpace } from '../utils/WorldSpace';
 import { PCLICPSolver } from '../pointCloud/PCLICPSolver';
 import { IcpFitter, type Point3 } from '../../math/icp/IcpFitter';
 import { computeRevoluteMotionFromPointClouds } from '../../math/geometry/revoluteMotion';
-import { ICP } from '../pointCloud/ICP';
 import { extractJointFromTransform } from '../pointCloud/JointExtractor';
 // import { SceneManager } from '../../scene/SceneManager'; // Not used - scene passed as parameter
 import type { ToolUnit, ToolGraph, ToolUnitType } from './ToolGraphAnalyzer';
@@ -2016,7 +2015,7 @@ export class StructureBasedToolAnalyzer {
       // For revolute joints, we need valid axis and angle (must be > 0.01° to be meaningful, accounting for numerical precision)
       // Very small angles (< 0.01°) are likely numerical noise, but 0.1°+ are valid
       if (deltaType === 'revolute') {
-        if (!motionAxis || !Number.isFinite(angleDeg) || angleDeg < 0.01 || angleDeg > 360) {
+        if (!motionAxis || angleDeg === undefined || !Number.isFinite(angleDeg) || angleDeg < 0.01 || angleDeg > 360) {
           deltaType = 'unknown';
         }
       }

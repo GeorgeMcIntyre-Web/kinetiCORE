@@ -14,7 +14,7 @@ import type {
   ToolingStructure,
   ToolingUnit,
   ToolingNodeGeometry,
-  BoundingBox,
+  BoundingBox as _BoundingBox,
   Vector3,
 } from './types';
 import {
@@ -22,7 +22,7 @@ import {
   computeCentroid,
   computeBboxOverlapRatio,
   computeBboxVolume,
-  computeBboxExtents,
+  computeBboxExtents as _computeBboxExtents,
   distance,
 } from './pointClouds';
 
@@ -223,7 +223,7 @@ function clusterNodesAtLevel(
  */
 function evaluateCandidateUnit(
   cluster: NodeCloud[],
-  rootGeometry: ToolingNodeGeometry,
+  _rootGeometry: ToolingNodeGeometry,
   rootVolume: number,
   opts: Required<UnitDetectionOptions>
 ): ToolingUnit | null {
@@ -274,8 +274,6 @@ function isSupersetOfAccepted(nodeIds: string[], acceptedUnits: ToolingUnit[]): 
   const nodeSet = new Set(nodeIds);
 
   for (const unit of acceptedUnits) {
-    const unitSet = new Set(unit.nodeIds);
-    
     // Check if unit is a subset of nodeIds
     let isSubset = true;
     for (const id of unit.nodeIds) {
