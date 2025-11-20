@@ -75,15 +75,31 @@
   flex-direction: column;
 }
 
-.settings-content.general-active {
+.settings-content.general-active,
+.settings-content.floor-active,
+.settings-content.transform-active,
+.settings-content.physics-active,
+.settings-content.view-active,
+.settings-content.project-active,
+.settings-content.admin-active {
   background: rgb(19, 24, 39);
 }
 
-.settings-content.general-active .settings-grid {
+.settings-content.general-active .settings-grid,
+.settings-content.transform-active .settings-grid,
+.settings-content.physics-active .settings-grid,
+.settings-content.view-active .settings-grid,
+.settings-content.project-active .settings-grid,
+.settings-content.admin-active .settings-grid {
   gap: 18px;
 }
 
-.settings-content.general-active .settings-compact-group {
+.settings-content.general-active .settings-compact-group,
+.settings-content.transform-active .settings-compact-group,
+.settings-content.physics-active .settings-compact-group,
+.settings-content.view-active .settings-compact-group,
+.settings-content.project-active .settings-compact-group,
+.settings-content.admin-active .settings-compact-group {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid #2b344a;
   border-radius: 12px;
@@ -91,55 +107,125 @@
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
 }
 
-.settings-content.general-active .settings-compact-group .settings-group-title {
+.settings-content.general-active .settings-compact-group .settings-group-title,
+.settings-content.transform-active .settings-compact-group .settings-group-title,
+.settings-content.physics-active .settings-compact-group .settings-group-title,
+.settings-content.view-active .settings-compact-group .settings-group-title,
+.settings-content.project-active .settings-compact-group .settings-group-title,
+.settings-content.admin-active .settings-compact-group .settings-group-title {
   padding: 0 0 6px 0;
   border-bottom: 1px solid #2b344a;
 }
 
-.settings-content.general-active .settings-compact-option {
+.settings-content.general-active .settings-compact-option,
+.settings-content.transform-active .settings-compact-option,
+.settings-content.physics-active .settings-compact-option,
+.settings-content.view-active .settings-compact-option,
+.settings-content.project-active .settings-compact-option,
+.settings-content.admin-active .settings-compact-option {
   padding: 10px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
-.settings-content.general-active .settings-compact-option:last-child {
+.settings-content.general-active .settings-compact-option:last-child,
+.settings-content.transform-active .settings-compact-option:last-child,
+.settings-content.physics-active .settings-compact-option:last-child,
+.settings-content.view-active .settings-compact-option:last-child,
+.settings-content.project-active .settings-compact-option:last-child,
+.settings-content.admin-active .settings-compact-option:last-child {
   border-bottom: none;
 }
 
 .settings-content.general-active .settings-select,
+.settings-content.transform-active .settings-select,
+.settings-content.physics-active .settings-select,
+.settings-content.view-active .settings-select,
+.settings-content.project-active .settings-select,
+.settings-content.admin-active .settings-select,
 .settings-content.general-active .settings-input,
-.settings-content.general-active .settings-color-input {
+.settings-content.transform-active .settings-input,
+.settings-content.physics-active .settings-input,
+.settings-content.view-active .settings-input,
+.settings-content.project-active .settings-input,
+.settings-content.admin-active .settings-input,
+.settings-content.general-active .settings-color-input,
+.settings-content.transform-active .settings-color-input,
+.settings-content.physics-active .settings-color-input,
+.settings-content.view-active .settings-color-input,
+.settings-content.project-active .settings-color-input,
+.settings-content.admin-active .settings-color-input {
   background: rgb(25, 31, 49);
   border: 1px solid #2f3a55;
   color: var(--settings-text);
 }
 
 .settings-content.general-active .settings-select:hover,
-.settings-content.general-active .settings-input:hover {
+.settings-content.transform-active .settings-select:hover,
+.settings-content.physics-active .settings-select:hover,
+.settings-content.view-active .settings-select:hover,
+.settings-content.project-active .settings-select:hover,
+.settings-content.admin-active .settings-select:hover,
+.settings-content.general-active .settings-input:hover,
+.settings-content.transform-active .settings-input:hover,
+.settings-content.physics-active .settings-input:hover,
+.settings-content.view-active .settings-input:hover,
+.settings-content.project-active .settings-input:hover,
+.settings-content.admin-active .settings-input:hover {
   border-color: var(--settings-accent);
 }
 
 .settings-content.general-active .settings-select:focus,
-.settings-content.general-active .settings-input:focus {
+.settings-content.transform-active .settings-select:focus,
+.settings-content.physics-active .settings-select:focus,
+.settings-content.view-active .settings-select:focus,
+.settings-content.project-active .settings-select:focus,
+.settings-content.admin-active .settings-select:focus,
+.settings-content.general-active .settings-input:focus,
+.settings-content.transform-active .settings-input:focus,
+.settings-content.physics-active .settings-input:focus,
+.settings-content.view-active .settings-input:focus,
+.settings-content.project-active .settings-input:focus,
+.settings-content.admin-active .settings-input:focus {
   border-color: var(--settings-accent);
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
-.settings-content.general-active .settings-color-input {
+.settings-content.general-active .settings-color-input,
+.settings-content.transform-active .settings-color-input,
+.settings-content.physics-active .settings-color-input,
+.settings-content.view-active .settings-color-input,
+.settings-content.project-active .settings-color-input,
+.settings-content.admin-active .settings-color-input {
   box-shadow: 0 0 0 1px #2f3a55;
 }
 
-.settings-content.general-active .settings-radio-option {
+.settings-content.general-active .settings-radio-option,
+.settings-content.transform-active .settings-radio-option,
+.settings-content.physics-active .settings-radio-option,
+.settings-content.view-active .settings-radio-option,
+.settings-content.project-active .settings-radio-option,
+.settings-content.admin-active .settings-radio-option {
   background: rgba(255, 255, 255, 0.035);
   border-color: #2f3a55;
   border-radius: 10px;
 }
 
-.settings-content.general-active .settings-radio-option:hover {
+.settings-content.general-active .settings-radio-option:hover,
+.settings-content.transform-active .settings-radio-option:hover,
+.settings-content.physics-active .settings-radio-option:hover,
+.settings-content.view-active .settings-radio-option:hover,
+.settings-content.project-active .settings-radio-option:hover,
+.settings-content.admin-active .settings-radio-option:hover {
   background: rgba(255, 255, 255, 0.06);
   border-color: var(--settings-accent);
 }
 
-.settings-content.general-active .settings-radio-option input[type="radio"]:checked + .radio-content {
+.settings-content.general-active .settings-radio-option input[type="radio"]:checked + .radio-content,
+.settings-content.transform-active .settings-radio-option input[type="radio"]:checked + .radio-content,
+.settings-content.physics-active .settings-radio-option input[type="radio"]:checked + .radio-content,
+.settings-content.view-active .settings-radio-option input[type="radio"]:checked + .radio-content,
+.settings-content.project-active .settings-radio-option input[type="radio"]:checked + .radio-content,
+.settings-content.admin-active .settings-radio-option input[type="radio"]:checked + .radio-content {
   color: var(--settings-accent);
   text-shadow: 0 2px 12px rgba(59, 130, 246, 0.35);
 }
@@ -605,11 +691,12 @@
 .help-card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px;
-  background: rgb(59, 71, 115);
-  border: 1px solid var(--settings-border);
-  border-radius: 8px;
+  gap: 14px;
+  padding: 14px 16px;
+  background: linear-gradient(145deg, rgb(59, 71, 115), rgb(45, 55, 88));
+  border: 1px solid #2f3a55;
+  border-radius: 12px;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.32);
 }
 
 .help-card-header {
@@ -617,6 +704,8 @@
   align-items: center;
   gap: 10px;
   color: var(--settings-text);
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .help-card-text {
@@ -629,6 +718,7 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--settings-text);
+  letter-spacing: 0.02em;
 }
 
 .help-card-subtitle {
@@ -640,23 +730,26 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .help-card-btn {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
 }
 
 /* Black theme for primary action inside help card */
 .help-card .settings-btn-primary {
   background: rgb(59, 71, 115);
   color: var(--settings-text);
-  border: 1px solid var(--settings-border);
+  border: 1px solid #3d4c78;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.25);
 }
 
 .help-card .settings-btn-primary:hover {
   background: rgb(74, 88, 137);
-  border-color: #4a4a4a;
+  border-color: #5974b0;
 }
 
 .help-card .settings-btn-secondary {
@@ -668,7 +761,7 @@
 .help-card .settings-btn-secondary:hover {
   background: rgb(74, 88, 137);
   color: var(--settings-text);
-  border-color: #4a4a4a;
+  border-color: #5974b0;
 }
 
 /* Animation for tab switching */
