@@ -24,7 +24,7 @@ export class SceneManager {
   private gridOverlayVisible: boolean = true;
   private gridOverlayPreference: boolean = true;
   private backgroundColor: BABYLON.Color4 = new BABYLON.Color4(182/255, 199/255, 209/255, 1);
-  private currentFloorType: FloorType = 'tiles-ceramic';
+  private currentFloorType: FloorType = 'grid-only';
   private floorVisible: boolean = true;
   private isInitialized: boolean = false;
   private inspectorModulesPromise: Promise<void> | null = null;
