@@ -2,15 +2,15 @@
 /* Aligned with kinetiCORE design system */
 
 .robot-jogging-panel {
-  --settings-bg: #1a1a1a;
-  --settings-surface: #2a2a2a;
-  --settings-border: #3a3a3a;
-  --settings-text: #ffffff;
-  --settings-text-secondary: #a0a0a0;
-  --settings-accent: #3b82f6;
-  --settings-accent-hover: #2563eb;
-  --settings-success: #10b981;
-  --settings-warning: #f59e0b;
+  --settings-bg: #0f1523;
+  --settings-surface: #1b2233;
+  --settings-border: #2c3550;
+  --settings-text: #eef2ff;
+  --settings-text-secondary: #9fb2c9;
+  --settings-accent: #4fa3ff;
+  --settings-accent-hover: #3b8fe5;
+  --settings-success: #6ee7c2;
+  --settings-warning: #f6b44a;
   --settings-error: #ef4444;
 
   display: flex;
@@ -28,7 +28,7 @@
 .jog-mode-selector {
   display: flex;
   gap: 6px;
-  background: linear-gradient(145deg, rgba(19, 24, 39, 0.94), rgba(12, 16, 27, 0.92));
+  background: linear-gradient(145deg, rgba(20, 27, 43, 0.94), rgba(14, 19, 31, 0.92));
   padding: 6px;
   border-radius: 8px;
   flex-wrap: nowrap;
@@ -45,7 +45,7 @@
   justify-content: center;
   gap: 6px;
   padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.045);
   border: none;
   border-radius: 8px;
   color: var(--settings-text-secondary);
@@ -68,15 +68,15 @@
 }
 
 .mode-button:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
   color: var(--settings-text);
   border-color: #4a5568;
 }
 
 .mode-button.active {
-  background: radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.28), rgba(59, 130, 246, 0.08));
+  background: radial-gradient(circle at 30% 30%, rgba(79, 163, 255, 0.32), rgba(79, 163, 255, 0.12));
   color: #fff;
-  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.28);
+  box-shadow: 0 8px 16px rgba(79, 163, 255, 0.24);
 }
 
 /* Jog Step Control - Enhanced */
@@ -85,12 +85,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.025);
   padding: 6px;
   border-radius: 8px;
   width: 100%;
   border: 1px solid var(--settings-border);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
 }
 
 .jog-step-control label {
@@ -241,8 +241,9 @@
   justify-content: center;
   border: 1px solid var(--settings-border);
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
+  color: #f8fbff;
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
@@ -255,6 +256,8 @@
   flex-shrink: 0;
   stroke: currentColor;
   fill: none;
+  width: 14px;
+  height: 14px;
 }
 
 .jog-btn:active {
@@ -350,20 +353,20 @@
 .tcp-axis-group {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 6px;
   width: 100%;
 }
 
 .tcp-axis {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   width: 100%;
 }
 
 .axis-label {
-  width: 28px;
-  font-size: 13px;
+  width: 32px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--settings-accent);
   text-align: center;
@@ -381,6 +384,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #f8fbff;
 }
 
 /* Push first button to the far right */
@@ -400,7 +404,7 @@
 
 /* TCP Info - Enhanced */
 .tcp-info {
-  background: linear-gradient(145deg, rgb(59, 71, 115), rgb(45, 55, 88));
+  background: rgb(41, 51, 77);
   border-radius: 8px;
   padding: 6px;
   border: 1px solid #2f3a55;
