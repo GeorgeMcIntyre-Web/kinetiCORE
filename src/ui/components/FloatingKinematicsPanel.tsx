@@ -813,52 +813,6 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
         )}
       </div>
 
-      {activeRobotId && (
-        <div className="motion-card motion-quickbar">
-          <div className="motion-section-title">Quick actions</div>
-          <div className="motion-quick-actions">
-            <button className="motion-quick-btn" onClick={handleResetAll} title="Reset all to home">
-              <Home size={14} />
-              <span>Home</span>
-            </button>
-            <button
-              className={`motion-quick-btn ${visualizerEnabled ? 'active' : ''}`}
-              onClick={handleToggleVisualizer}
-              title={visualizerEnabled ? 'Hide debug visualizer' : 'Show debug visualizer'}
-            >
-              {visualizerEnabled ? <Eye size={14} /> : <EyeOff size={14} />}
-              <span>Visualizer</span>
-            </button>
-            <button className="motion-quick-btn" onClick={handleShowJointDebug} title="Show joint debug frames">
-              <Bug size={14} />
-              <span>Joint debug</span>
-            </button>
-            {editableKinematicsFlag && (
-              <button
-                className={`motion-quick-btn ${editModeEnabled ? 'active' : ''}`}
-                onClick={() => setEditModeEnabled(!editModeEnabled)}
-                title="Toggle edit mode"
-              >
-                <Edit size={14} />
-                <span>Edit</span>
-              </button>
-            )}
-            <button
-              className={`motion-quick-btn ${showVizSettings ? 'active' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                setShowVizSettings(!showVizSettings);
-              }}
-              title="Visualization settings"
-            >
-              <SettingsIcon size={14} />
-              <span>Viz</span>
-            </button>
-          </div>
-        </div>
-      )}
-
       {showVizSettings && (
         <div
           ref={vizSettingsRef}

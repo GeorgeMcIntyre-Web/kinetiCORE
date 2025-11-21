@@ -461,11 +461,9 @@ export const ProfessionalModeLayout: React.FC = () => {
       return;
     }
     const joints = kinematicsManager.getChainJoints(chain.id);
-    let resetCount = 0;
     joints.forEach((j: any) => {
       if (j.type === 'revolute' || j.type === 'continuous') {
         fkSolver.updateJointPosition(j.id, 0);
-        resetCount++;
       }
     });
     const tcpPose = fkSolver.getNullTCPPose(chain.name);
@@ -477,7 +475,6 @@ export const ProfessionalModeLayout: React.FC = () => {
         unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
       });
     }
-    alert(`✅ Reset ${resetCount} joints to home position (0°)`);
   };
 
   const handleKinematicsVisualizerToggle = () => {
@@ -982,6 +979,15 @@ export const ProfessionalModeLayout: React.FC = () => {
                 <button className="tool-btn" onClick={handleKinematicsReset} title="Home all joints">
                   <Home size={18} />
                   <span>Home</span>
+                </button>
+
+                <button
+                  className="tool-btn"
+                  onClick={() => setShowKinematicsPanel(true)}
+                  title="Open Joint Jogging (Joint tab)"
+                >
+                  <Move size={18} />
+                  <span>Joint Jog</span>
                 </button>
 
                 <button
