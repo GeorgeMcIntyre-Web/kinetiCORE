@@ -143,6 +143,7 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [showSnapSetupPopup, setShowSnapSetupPopup] = useState(false);
   const [showJointJogPanel, setShowJointJogPanel] = useState(false);
   const [showRobotJogPanel, setShowRobotJogPanel] = useState(false);
+  const [showPosesPanel, setShowPosesPanel] = useState(false);
   const debugLabelsRef = useRef<RouteDebugLabels | null>(null);
   const routeSelection = useRoutingStore((state) => state.selectedRoute);
 
@@ -1027,6 +1028,15 @@ export const ProfessionalModeLayout: React.FC = () => {
                 </button>
 
                 <button
+                  className="tool-btn"
+                  onClick={() => setShowPosesPanel(true)}
+                  title="Open Poses Panel"
+                >
+                  <Play size={18} />
+                  <span>Poses</span>
+                </button>
+
+                <button
                   className={`tool-btn ${kinVisualizerEnabled ? 'active' : ''}`}
                   onClick={handleKinematicsVisualizerToggle}
                   title={kinVisualizerEnabled ? 'Hide debug visualizer' : 'Show debug visualizer'}
@@ -1453,6 +1463,56 @@ export const ProfessionalModeLayout: React.FC = () => {
         ) : (
           <div style={{ padding: '12px', color: '#cbd5e0', fontSize: 13 }}>
             Select a robot in the scene to jog.
+          </div>
+        )}
+      </FloatingPanel>
+
+      <FloatingPanel
+        className="joint-jog-panel"
+        title="Poses"
+        subtitle={kinActiveRobotId ? 'Pose jogging' : 'Select a robot to jog'}
+        isVisible={showPosesPanel}
+        onClose={() => setShowPosesPanel(false)}
+        defaultSize={{ width: 360, height: 520 }}
+        minWidth={320}
+        minHeight={420}
+        maxWidth={500}
+        maxHeight={720}
+      >
+        {kinActiveRobotId && kinJoints.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '6px' }}>
+            <div
+              style={{
+                padding: '12px 14px',
+                borderRadius: 12,
+                border: '1px solid rgba(80,166,255,0.25)',
+                background:
+                  'linear-gradient(135deg, rgba(27,32,44,0.96), rgba(27,32,44,0.92))',
+                color: '#eaf4ff',
+              }}
+            >
+              <div style={{ fontSize: 14, textTransform: 'uppercase', letterSpacing: 0.12, opacity: 0.86 }}>
+                Poses
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 800, marginTop: 6 }}>
+                {kinActiveRobotMeta?.name || 'Active Robot'}
+              </div>
+              <div style={{ fontSize: 14, color: '#d6e3f7', marginTop: 6 }}>
+                {kinActiveRobotMeta?.jointCount ?? kinJoints.length} joints detected
+              </div>
+            </div>
+
+            <RobotJoggingPanelWithGizmo
+              joints={kinJoints}
+              fkSolver={fkSolver}
+              robotId={kinActiveRobotId}
+              allowedModes={['poses']}
+              hideModeSelector
+            />
+          </div>
+        ) : (
+          <div style={{ padding: '12px', color: '#cbd5e0', fontSize: 13 }}>
+            Select a robot in the scene to jog poses.
           </div>
         )}
       </FloatingPanel>
