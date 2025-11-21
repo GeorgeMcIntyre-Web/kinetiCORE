@@ -543,13 +543,8 @@ export class KinematicExtractionPipeline {
         continue;
       }
 
-      // Compute centroid of retracted point cloud
-      const centroid = retracted.pointCloud
-        .reduce((sum, p) => sum.add(p), BABYLON.Vector3.Zero())
-        .scale(1 / retracted.pointCloud.length);
-
-      // Extract joint from transform
-      const jointFit = extractJointFromTransform(icpResult, centroid, retracted.pointCloud, opts.jointExtraction);
+      // Extract joint from transform (orbit-based circle fitting, no centroid)
+      const jointFit = extractJointFromTransform(icpResult, retracted.pointCloud, opts.jointExtraction);
 
       if (!jointFit) {
         console.warn(
@@ -863,11 +858,8 @@ export class KinematicExtractionPipeline {
       );
     }
 
-    const centroid = retracted.pointCloud
-      .reduce((sum, p) => sum.add(p), BABYLON.Vector3.Zero())
-      .scale(1 / retracted.pointCloud.length);
-
-    const jointFit = extractJointFromTransform(icpResult, centroid, retracted.pointCloud, opts.jointExtraction);
+    // Extract joint from transform (orbit-based circle fitting, no centroid)
+    const jointFit = extractJointFromTransform(icpResult, retracted.pointCloud, opts.jointExtraction);
 
     if (!jointFit) {
       throw new Error(

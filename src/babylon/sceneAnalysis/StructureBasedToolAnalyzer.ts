@@ -1823,7 +1823,6 @@ export class StructureBasedToolAnalyzer {
 
       // Use extractJointFromTransform (tested Phase 3 API) to get joint geometry
       // This provides consistent classification and geometry extraction
-      const centroid = pair.sigA.center; // Use state A center as reference point
       const icpResultForExtraction = {
         success: true,
         transform: motionTransform,
@@ -1837,11 +1836,11 @@ export class StructureBasedToolAnalyzer {
         retractedPoints = cachedClouds.pointsA.map(p => new BABYLON.Vector3(p.x, p.y, p.z));
       }
 
-      const jointFromICP = extractJointFromTransform(icpResultForExtraction, centroid, retractedPoints, {
-        translationThreshold: 0.001, // 1mm
-        rotationThreshold: 0.05, // ~2.86 degrees
-        maxResidualError: 0.01, // 1cm
-        anchorStrategy: 'axis_projection',
+      // Extract joint using orbit-based solver (no centroid anchoring)
+      const jointFromICP = extractJointFromTransform(icpResultForExtraction, retractedPoints, {
+        translationThreshold: 0.005, // 5mm per spec
+        rotationThreshold: 0.0175,   // ~1 degree per spec
+        maxResidualError: 0.01,      // 1cm
       });
 
       // For revolute joints with cached point clouds, use computeRevoluteMotionFromPointClouds
@@ -1879,6 +1878,8 @@ export class StructureBasedToolAnalyzer {
       let fromCenter: Vector3Like = { x: pair.sigA.center.x, y: pair.sigA.center.y, z: pair.sigA.center.z };
       let toCenter: Vector3Like = { x: pair.sigB.center.x, y: pair.sigB.center.y, z: pair.sigB.center.z };
       let translationMagnitude: number = deltaTranslation.length();
+      let fromVector: Vector3Like | undefined;
+      let toVector: Vector3Like | undefined;
 
       if (revoluteMotion) {
         // Use point-cloud-based extraction for revolute joints
@@ -1916,6 +1917,22 @@ export class StructureBasedToolAnalyzer {
           };
           toCenter = fromCenter; // For revolute, anchor point is on axis
           translationMagnitude = deltaTranslation.length();
+
+          // Propagate fromVector/toVector from orbit-based solver for visualization
+          if (jointFromICP.fromVector) {
+            fromVector = {
+              x: jointFromICP.fromVector.x,
+              y: jointFromICP.fromVector.y,
+              z: jointFromICP.fromVector.z,
+            };
+          }
+          if (jointFromICP.toVector) {
+            toVector = {
+              x: jointFromICP.toVector.x,
+              y: jointFromICP.toVector.y,
+              z: jointFromICP.toVector.z,
+            };
+          }
         } else if (jointFromICP.type === 'prismatic') {
           // Prismatic from extractJointFromTransform
           motionAxis = {
@@ -1995,6 +2012,8 @@ export class StructureBasedToolAnalyzer {
         fromCenter,
         toCenter,
         translationMagnitude,
+        fromVector,
+        toVector,
       });
     }
 
@@ -2002,8 +2021,8 @@ export class StructureBasedToolAnalyzer {
   }
 
   /**
-   * Create a bucket key for joint deduplication based on axis direction only.
-   * Joints that move about the same axis in the same unit are grouped together.
+   * Create a bucket key for joint deduplication based on axis direction and joint type.
+   * Joints that move about the same axis in the same unit with the same type are grouped together.
    * Quantizes to octants (8 directions) by taking the sign of each component.
    */
   private makeAxisBucketKey(j: DetectedToolJoint): string {
@@ -2016,18 +2035,41 @@ export class StructureBasedToolAnalyzer {
     const ay = Math.sign(axis.y) || 0;
     const az = Math.sign(axis.z) || 0;
 
-    // Include unitId to deduplicate per unit (one joint per axis per unit)
-    return `${j.unitId}:${ax}:${ay}:${az}`;
+    // Include unitId and joint type to deduplicate per unit (one joint per axis per type per unit)
+    const jointType = j.deltaType;
+    return `${j.unitId}:${jointType}:${ax}:${ay}:${az}`;
   }
 
   /**
-   * Deduplicate joints by axis and body size.
-   * Joints that move about the same axis (across all units) are treated as one logical joint.
-   * Inside each axis-cluster, we keep the joint whose moving body is largest (plus ICP as tie-breaker).
+   * Check if two pivot points are close enough to be considered the same joint.
+   * Uses a tolerance based on the smaller body size.
+   */
+  private pivotPointsAreClose(
+    j1: DetectedToolJoint,
+    j2: DetectedToolJoint,
+    toleranceMultiplier: number = 0.5
+  ): boolean {
+    const minBodySize = Math.min(j1.bodySize, j2.bodySize);
+    const tolerance = minBodySize * toleranceMultiplier;
+    const distance = BABYLON.Vector3.Distance(j1.originWorld, j2.originWorld);
+    return distance < tolerance;
+  }
+
+  /**
+   * Deduplicate joints by axis, pivot proximity, and body size.
+   *
+   * Two-pass deduplication:
+   * 1. Group by axis octant + joint type + unit ID (coarse bucketing)
+   * 2. Within each bucket, sub-group by pivot proximity (fine deduplication)
+   * 3. Pick best joint from each sub-group (largest body, lowest ICP error)
+   *
+   * This handles cases like UNIT_101 with multiple state pairs producing
+   * joints that share the same physical pivot but come from different geometry families.
    */
   private dedupeJointsByAxisAndSize(joints: DetectedToolJoint[]): DetectedToolJoint[] {
     if (joints.length === 0) return joints;
 
+    // Pass 1: Group by axis octant + joint type + unit ID
     const buckets = new Map<string, DetectedToolJoint[]>();
 
     for (const joint of joints) {
@@ -2041,26 +2083,48 @@ export class StructureBasedToolAnalyzer {
 
     const result: DetectedToolJoint[] = [];
 
+    // Pass 2: Within each bucket, sub-group by pivot proximity
     for (const list of buckets.values()) {
-      let best = list[0];
+      // Group joints with close pivot points together
+      const pivotGroups: DetectedToolJoint[][] = [];
 
-      for (let i = 1; i < list.length; i += 1) {
-        const candidate = list[i];
-
-        const bestSize = best.bodySize ?? 0;
-        const candSize = candidate.bodySize ?? 0;
-
-        if (candSize > bestSize) {
-          best = candidate;
-          continue;
+      for (const joint of list) {
+        let foundGroup = false;
+        for (const group of pivotGroups) {
+          // Check if this joint's pivot is close to any joint in this group
+          if (this.pivotPointsAreClose(joint, group[0])) {
+            group.push(joint);
+            foundGroup = true;
+            break;
+          }
         }
-
-        if (candSize === bestSize && candidate.icpError < best.icpError) {
-          best = candidate;
+        if (!foundGroup) {
+          pivotGroups.push([joint]);
         }
       }
 
-      result.push(best);
+      // From each pivot group, pick the best joint
+      for (const group of pivotGroups) {
+        let best = group[0];
+
+        for (let i = 1; i < group.length; i += 1) {
+          const candidate = group[i];
+
+          const bestSize = best.bodySize ?? 0;
+          const candSize = candidate.bodySize ?? 0;
+
+          if (candSize > bestSize) {
+            best = candidate;
+            continue;
+          }
+
+          if (candSize === bestSize && candidate.icpError < best.icpError) {
+            best = candidate;
+          }
+        }
+
+        result.push(best);
+      }
     }
 
     return result;
@@ -2980,10 +3044,12 @@ export class StructureBasedToolAnalyzer {
         }
       }
 
-      // Check translation is within physical limits
-      if (classifiedDelta.translationMagnitude > (icpOpts.maxTranslation ?? 2.0)) {
+      // Check translation is within physical limits - ONLY for prismatic joints
+      // For revolute joints, large translation is valid when pivot is off-center
+      // (the orbit-based solver handles any pivot location)
+      if (classifiedDelta.isPrismatic && classifiedDelta.translationMagnitude > (icpOpts.maxTranslation ?? 2.0)) {
         if (debug) {
-          console.log(`[ICP_REJECT] Translation too large: ${(classifiedDelta.translationMagnitude * 1000).toFixed(1)}mm`);
+          console.log(`[ICP_REJECT] Prismatic translation too large: ${(classifiedDelta.translationMagnitude * 1000).toFixed(1)}mm`);
         }
         if (debugInfo) {
           debugInfo.translationMagnitude = classifiedDelta.translationMagnitude;
@@ -3111,10 +3177,12 @@ export class StructureBasedToolAnalyzer {
       }
     }
 
-    // Check translation is within physical limits
-    if (classifiedDelta.translationMagnitude > (icpOpts.maxTranslation ?? 2.0)) {
+    // Check translation is within physical limits - ONLY for prismatic joints
+    // For revolute joints, large translation is valid when pivot is off-center
+    // (the orbit-based solver handles any pivot location)
+    if (classifiedDelta.isPrismatic && classifiedDelta.translationMagnitude > (icpOpts.maxTranslation ?? 2.0)) {
       if (debug) {
-        console.log(`[ICP_REJECT] Translation too large: ${(classifiedDelta.translationMagnitude * 1000).toFixed(1)}mm`);
+        console.log(`[ICP_REJECT] Prismatic translation too large: ${(classifiedDelta.translationMagnitude * 1000).toFixed(1)}mm`);
       }
       if (debugInfo) {
         debugInfo.translationMagnitude = classifiedDelta.translationMagnitude;

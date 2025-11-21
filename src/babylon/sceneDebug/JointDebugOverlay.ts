@@ -154,7 +154,59 @@ export class JointDebugOverlay {
         this.debugMeshes.push(pivotSphere);
 
         // Swing Sector (Orange Arc) & Lever Arms (Yellow Lines)
-        if (joint.fromCenter && joint.toCenter) {
+        // Use Circle Fit projected vectors if available, otherwise fallback to fromCenter/toCenter
+        if (joint.fromVector && joint.toVector) {
+            // Circle Fit approach: use projected vectors for flat circular sector
+            const fromVec = new BABYLON.Vector3(joint.fromVector.x, joint.fromVector.y, joint.fromVector.z);
+
+            const radius = fromVec.length();
+
+            if (radius > 0.001) {
+                const points: BABYLON.Vector3[] = [];
+                const segments = 20;
+                const totalAngle = joint.travelWorld; // Radians
+
+                // Generate arc points by rotating fromVector around axis
+                for (let i = 0; i <= segments; i++) {
+                    const angle = (i / segments) * totalAngle;
+                    const rotation = BABYLON.Quaternion.RotationAxis(axis, angle);
+                    const rotatedVector = fromVec.applyRotationQuaternion(rotation);
+                    points.push(origin.add(rotatedVector));
+                }
+
+                // Orange Arc
+                const arcLines = BABYLON.MeshBuilder.CreateLines(
+                    `joint_${joint.unitId}_${joint.jointId}_arc`,
+                    { points: points },
+                    this.scene
+                );
+                arcLines.color = new BABYLON.Color3(1, 0.5, 0); // Orange
+                arcLines.isVisible = this.isVisible;
+                this.debugMeshes.push(arcLines);
+
+                // Yellow Lever Arms (Radius Vectors)
+                // 1. Pivot -> Start Point
+                const startArm = BABYLON.MeshBuilder.CreateLines(
+                    `joint_${joint.unitId}_${joint.jointId}_arm_start`,
+                    { points: [origin, points[0]] },
+                    this.scene
+                );
+                startArm.color = new BABYLON.Color3(1, 1, 0); // Yellow
+                startArm.isVisible = this.isVisible;
+                this.debugMeshes.push(startArm);
+
+                // 2. Pivot -> End Point
+                const endArm = BABYLON.MeshBuilder.CreateLines(
+                    `joint_${joint.unitId}_${joint.jointId}_arm_end`,
+                    { points: [origin, points[points.length - 1]] },
+                    this.scene
+                );
+                endArm.color = new BABYLON.Color3(1, 1, 0); // Yellow
+                endArm.isVisible = this.isVisible;
+                this.debugMeshes.push(endArm);
+            }
+        } else if (joint.fromCenter && joint.toCenter) {
+            // Fallback: use fromCenter/toCenter (legacy approach)
             const from = new BABYLON.Vector3(joint.fromCenter.x, joint.fromCenter.y, joint.fromCenter.z);
             // Calculate radius from pivot to the moving center
             let radiusVector = from.subtract(origin);

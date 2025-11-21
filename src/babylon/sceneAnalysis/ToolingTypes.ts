@@ -64,6 +64,10 @@ export type DetectedToolJoint = {
   toCenter?: Vector3Like;
   /** Magnitude of translation between centers, in meters */
   translationMagnitude?: number;
+  /** Projected radius start vector (for visualization) */
+  fromVector?: Vector3Like;
+  /** Projected radius end vector (for visualization) */
+  toVector?: Vector3Like;
 };
 
 /**
