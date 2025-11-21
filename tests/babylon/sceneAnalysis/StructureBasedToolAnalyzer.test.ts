@@ -992,7 +992,11 @@ describe('StructureBasedToolAnalyzer', () => {
     }, 60000);
 
     it('fixture 016ZF_130 should have exactly 4 revolute joints', async () => {
-      const result = await analyzeFixture('016ZF_20142435_130/016ZF_20142435_130.glb', '016ZF_130');
+      const result = await analyzeFixture('016ZF_20142435_130/016ZF_20142435_130.glb', '016ZF_130', {
+        jointDetectionConfig: {
+          maxJointsPerFixture: 4,
+        },
+      });
       if (!result) {
         console.warn('[Test] GLB file not available for 016ZF_130, skipping golden test');
         return;
@@ -1049,7 +1053,11 @@ describe('StructureBasedToolAnalyzer', () => {
     }, 60000);
 
     it('fixture 016ZF_20142435_140_1E1_CI00 should have exactly 4 revolute joints', async () => {
-      const result = await analyzeFixture('8X-140-1E1_LH/016ZF_20142435_140_1E1_CI00.glb', '016ZF_140_1E1');
+      const result = await analyzeFixture('8X-140-1E1_LH/016ZF_20142435_140_1E1_CI00.glb', '016ZF_140_1E1', {
+        jointDetectionConfig: {
+          maxJointsPerFixture: 4,
+        },
+      });
       if (!result) {
         console.warn('[Test] GLB file not available for 016ZF_140_1E1, skipping golden test');
         return;

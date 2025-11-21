@@ -46,7 +46,9 @@
       "Bash(mkdir:*)",
       "Bash(npx vitest:*)",
       "Bash(test:*)",
-      "Bash(npm run smoke:units-motion:*)"
+      "Bash(npm run smoke:units-motion:*)",
+      "Bash(node -e \"require(''fs'').readFileSync(''tests/babylon/sceneAnalysis/StructureBasedToolAnalyzer.test.ts'', ''utf-8'')\" 2 >& 1:*)",
+      "Bash(node -p:*)"
     ],
     "deny": [],
     "ask": []
