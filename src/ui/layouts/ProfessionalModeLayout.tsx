@@ -31,7 +31,22 @@ import {
   Building2,
   Plus,
   Link,
-  } from 'lucide-react';
+  Scan,
+  Settings,
+  RotateCcw,
+  Target,
+  CornerDownRight,
+  Square,
+  Rocket,
+  Calculator,
+  GitBranch,
+  Network,
+  TestTube,
+  Zap,
+  Bug,
+  Home,
+  Edit,
+} from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { useAssetLibraryStore } from '../store/assetLibraryStore';
@@ -58,15 +73,15 @@ import { FloatingComplexIKPanel } from '../components/FloatingComplexIKPanel';
 import { WholeBodyIKPanel } from '../components/WholeBodyIKPanel';
 import { ICPTestPanel } from '../components/ICPTestPanel';
 import { PipingPanel } from '../piping/PipingPanel';
-import { Scan, Settings } from 'lucide-react';
-import { RotateCcw, Target, CornerDownRight, Square } from 'lucide-react';
-import { Rocket, Calculator, GitBranch, Network, TestTube, Zap } from 'lucide-react';
 import { CreateDropdown } from '../components/CreateDropdown';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
 import { SnapSetupPopup } from '../components/SnapSetupPopup';
 import { ToolbarContainer } from '../components/ToolbarContainer';
 import { ViewDropdown } from '../components/ViewDropdown';
 import { SelectionLevelDropdown } from '../components/SelectionLevelDropdown';
+import { KinematicsManager } from '../../kinematics/KinematicsManager';
+import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
+import { TransformDebugVisualizer } from '../../kinematics/TransformDebugVisualizer';
 import './ProfessionalModeLayout.css';
 
 export const ProfessionalModeLayout: React.FC = () => {
@@ -96,14 +111,17 @@ export const ProfessionalModeLayout: React.FC = () => {
   const setSelectionLevel = useEditorStore((state) => state.setSelectionLevel);
   const currentView = useEditorStore((state) => state.currentView);
   const setCurrentView = useEditorStore((state) => state.setCurrentView);
+  const editableKinematicsFlag = useEditorStore((state) => state.editableKinematicsFlag);
+  const editModeEnabled = useEditorStore((state) => state.editModeEnabled);
+  const setEditModeEnabled = useEditorStore((state) => state.setEditModeEnabled);
   const toggleLibrary = useAssetLibraryStore((state) => state.toggleVisibility);
   const showProjectManager = useProjectManagerStore((state) => state.show);
   const pipingModeEnabled = useEditorStore((state) => state.pipingModeEnabled);
   const setPipingModeEnabled = useEditorStore((state) => state.setPipingModeEnabled);
 
-  const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'analysis' | 'routing'>(
-    'modeling'
-  );
+  const [activeWorkspace, setActiveWorkspace] = useState<
+    'modeling' | 'simulation' | 'kinematics' | 'analysis' | 'routing'
+  >('modeling');
   const [pipingQuickMode, setPipingQuickMode] = useState<'none' | 'node' | 'segment'>('none');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [savedLayout, setSavedLayout] = useState<any>(null);
@@ -123,6 +141,12 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [showSnapSetupPopup, setShowSnapSetupPopup] = useState(false);
   const debugLabelsRef = useRef<RouteDebugLabels | null>(null);
   const routeSelection = useRoutingStore((state) => state.selectedRoute);
+
+  // Kinematics inline actions (for toolbar)
+  const [kinActiveRobotId, setKinActiveRobotId] = useState<string | null>(null);
+  const [kinVisualizerEnabled, setKinVisualizerEnabled] = useState(false);
+  const kinematicsManager = useRef(KinematicsManager.getInstance()).current;
+  const fkSolver = useRef(ForwardKinematicsSolver.getInstance()).current;
   // Auto size the left scene tree based on content (inline to avoid nested hook issues)
   const [leftTreeWidth, setLeftTreeWidth] = useState<number>(240);
   useEffect(() => {
@@ -388,6 +412,123 @@ export const ProfessionalModeLayout: React.FC = () => {
   const handleFrontView = () => { setCurrentView && setCurrentView('front'); const cam = SceneManager.getInstance().getCamera(); if (cam) { cam.alpha = Math.PI; cam.beta = Math.PI / 2.2; } };
   const handleIsoView = () => { setCurrentView && setCurrentView('iso'); const cam = SceneManager.getInstance().getCamera(); if (cam) { cam.alpha = -Math.PI / 4; cam.beta = Math.PI / 4; } };
 
+  // --- Kinematics toolbar helpers ---
+  // Auto-select robot based on scene tree selection
+  useEffect(() => {
+    const resolveRobotFromSelection = () => {
+      if (!selectedNodeId) return null;
+      const tree = SceneTreeManager.getInstance();
+      const chains = kinematicsManager.getAllChains();
+      let node = tree.getNode(selectedNodeId);
+      while (node) {
+        const isRobotRoot = chains.some((chain: any) =>
+          chain.joints?.some((j: any) => typeof j.id === 'string' && j.id.startsWith(node.id))
+        );
+        if (isRobotRoot) return node.id;
+        if (!node.parentId) break;
+        const parent = tree.getNode(node.parentId);
+        if (!parent || parent.name === 'Assets') break;
+        node = parent;
+      }
+      return null;
+    };
+
+    const updateActiveRobot = () => {
+      const next = resolveRobotFromSelection();
+      setKinActiveRobotId(prev => (prev !== next ? next : prev));
+    };
+
+    updateActiveRobot();
+    const onTree = () => updateActiveRobot();
+    window.addEventListener('scenetree-update', onTree);
+    window.addEventListener('model-import-complete', onTree);
+    return () => {
+      window.removeEventListener('scenetree-update', onTree);
+      window.removeEventListener('model-import-complete', onTree);
+    };
+  }, [selectedNodeId, kinematicsManager]);
+
+  const handleKinematicsReset = () => {
+    if (!kinActiveRobotId) {
+      alert('⚠️ Select a robot first (Kinematics tab)');
+      return;
+    }
+    const chain = kinematicsManager.getAllChains().find(c =>
+      c.joints.some((j: any) => j.id.startsWith(kinActiveRobotId!))
+    );
+    if (!chain) {
+      alert('❌ Robot chain not found for reset');
+      return;
+    }
+    const joints = kinematicsManager.getChainJoints(chain.id);
+    let resetCount = 0;
+    joints.forEach((j: any) => {
+      if (j.type === 'revolute' || j.type === 'continuous') {
+        fkSolver.updateJointPosition(j.id, 0);
+        resetCount++;
+      }
+    });
+    const tcpPose = fkSolver.getNullTCPPose(chain.name);
+    if (tcpPose) {
+      import('../../kinematics/UnifiedGizmoManager').then(({ UnifiedGizmoManager }) => {
+        const unifiedGizmo = UnifiedGizmoManager.getInstance();
+        const targetId = `tcp_${kinActiveRobotId}`;
+        unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
+        unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
+      });
+    }
+    alert(`✅ Reset ${resetCount} joints to home position (0°)`);
+  };
+
+  const handleKinematicsVisualizerToggle = () => {
+    const next = !kinVisualizerEnabled;
+    setKinVisualizerEnabled(next);
+    const vis = TransformDebugVisualizer.getInstance();
+    if (!kinActiveRobotId) {
+      vis.setEnabled(false, {});
+      return;
+    }
+    if (next) {
+      vis.setEnabled(true, {
+        showJointFrames: false,
+        showMeshFrames: true,
+        showFKFrames: true,
+        showDivergence: true,
+        frameSize: 0.1,
+        showBaseFrame: true,
+        showTCPFrame: true,
+        divergenceThreshold: 0.001,
+      });
+    } else {
+      vis.setEnabled(false, {});
+    }
+  };
+
+  const handleKinematicsVizSettings = () => {
+    setShowKinematicsPanel(true);
+  };
+
+  const handleKinematicsJointDebug = () => {
+    if (!kinActiveRobotId) {
+      alert('⚠️ Select a robot first (Kinematics tab)');
+      return;
+    }
+    const scene = SceneManager.getInstance().getScene();
+    if (!scene) {
+      alert('❌ Scene not available');
+      return;
+    }
+    const chain = kinematicsManager.getAllChains().find(c =>
+      c.joints.some((j: any) => j.id.startsWith(kinActiveRobotId!))
+    );
+    if (!chain) {
+      alert('❌ Robot chain not found for debug');
+      return;
+    }
+    kinematicsManager.showAllJointDebugFrames(chain.id, scene);
+    alert(`✅ Debug frames added for ${chain.name}`);
+  };
+
   const handlePipingQuickNode = () => {
     // Enable piping mode if not already enabled
     if (!pipingModeEnabled) {
@@ -453,6 +594,12 @@ export const ProfessionalModeLayout: React.FC = () => {
               onClick={() => setActiveWorkspace('simulation')}
             >
               Simulation
+            </button>
+            <button
+              className={`workspace-tab ${activeWorkspace === 'kinematics' ? 'active' : ''}`}
+              onClick={() => setActiveWorkspace('kinematics')}
+            >
+              Kinematics
             </button>
             <button
               className={`workspace-tab ${activeWorkspace === 'routing' ? 'active' : ''}`}
@@ -815,13 +962,14 @@ export const ProfessionalModeLayout: React.FC = () => {
                 </button>
               </div>
             </div>
+          </>
+        )}
 
-            <div className="toolbar-separator"></div>
-
-            {/* Kinematics Tools moved here */}
+        {activeWorkspace === 'kinematics' && (
+          <>
             <div className="tool-group">
-              <div className="group-label">Kinematics</div>
-              <div className="tool-buttons">
+              <div className="group-label">Robot Kinematics</div>
+              <div className="tool-buttons kinematics-inline-controls">
                 <button
                   className="tool-btn"
                   onClick={() => setShowKinematicsPanel(true)}
@@ -830,6 +978,53 @@ export const ProfessionalModeLayout: React.FC = () => {
                   <Rocket size={18} />
                   <span className="tool-btn-label">Motion</span>
                 </button>
+
+                <button className="tool-btn" onClick={handleKinematicsReset} title="Home all joints">
+                  <Home size={18} />
+                  <span>Home</span>
+                </button>
+
+                <button
+                  className={`tool-btn ${kinVisualizerEnabled ? 'active' : ''}`}
+                  onClick={handleKinematicsVisualizerToggle}
+                  title={kinVisualizerEnabled ? 'Hide debug visualizer' : 'Show debug visualizer'}
+                >
+                  {kinVisualizerEnabled ? <Eye size={18} /> : <EyeOff size={18} />}
+                  <span>Visualizer</span>
+                </button>
+
+                <button className="tool-btn" onClick={handleKinematicsJointDebug} title="Show joint debug frames">
+                  <Bug size={18} />
+                  <span>Joint Debug</span>
+                </button>
+
+                {editableKinematicsFlag && (
+                  <button
+                    className={`tool-btn ${editModeEnabled ? 'active' : ''}`}
+                    onClick={() => setEditModeEnabled(!editModeEnabled)}
+                    title="Toggle edit mode"
+                  >
+                    <Edit size={18} />
+                    <span>Edit Mode</span>
+                  </button>
+                )}
+
+                <button
+                  className="tool-btn"
+                  onClick={handleKinematicsVizSettings}
+                  title="Open visualization settings"
+                >
+                  <Settings size={18} />
+                  <span>Viz Settings</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="toolbar-separator"></div>
+
+            <div className="tool-group">
+              <div className="group-label">Kinematics</div>
+              <div className="tool-buttons">
                 <button
                   className="tool-btn"
                   onClick={() => setShowKinematicsAnalysisPanel(true)}

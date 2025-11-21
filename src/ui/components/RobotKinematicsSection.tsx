@@ -1,31 +1,21 @@
 /**
- * FloatingKinematicsPanel - Kinematics Control in Floating Panel
- * Owner: Edwin
- * 
- * Wraps the existing KinematicsPanel content in the new floating panel system
+ * RobotKinematicsSection - Inline Kinematics Controls for Pro Mode
+ * Mirrors the Motion panel functionality inside the Kinematics workspace tab.
  */
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Settings, Pin, PinOff } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as BABYLON from '@babylonjs/core';
-import { FloatingPanel } from './FloatingPanel/FloatingPanel';
+import { Bug, Edit, Eye, EyeOff, Home, Pin, PinOff, Settings as SettingsIcon, ArrowLeft } from 'lucide-react';
 import { AssetLibraryDarkPanel, AssetLibraryDarkSection, AssetLibraryDarkDisabled } from './FloatingPanel/AssetLibraryDarkPanel';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
-import { useEditorStore } from '../store/editorStore';
-import { RobotJoggingPanelWithGizmo } from './RobotJoggingPanelWithGizmo';
 import { InverseKinematicsSolver } from '../../kinematics/InverseKinematicsSolver';
-import { Eye, EyeOff, Bug, Settings as SettingsIcon, ArrowLeft, Home, Edit } from 'lucide-react';
 import { TransformDebugVisualizer } from '../../kinematics/TransformDebugVisualizer';
 import { IKTestHarness } from '../../kinematics/IKTestHarness';
+import { RobotJoggingPanelWithGizmo } from './RobotJoggingPanelWithGizmo';
+import { useEditorStore } from '../store/editorStore';
 import './FloatingKinematicsPanel.css';
-
-interface FloatingKinematicsPanelProps {
-  onClose?: () => void;
-  isVisible?: boolean;
-  zIndex?: number;
-}
 
 interface RobotInfo {
   nodeId: string;
@@ -33,11 +23,11 @@ interface RobotInfo {
   jointCount: number;
 }
 
-export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = ({
-  onClose,
-  isVisible = true,
-  zIndex = 1001,
-}) => {
+interface RobotKinematicsSectionProps {
+  isVisible?: boolean;
+}
+
+export const RobotKinematicsSection: React.FC<RobotKinematicsSectionProps> = ({ isVisible = true }) => {
   const kinematicsManager = KinematicsManager.getInstance();
   const fkSolver = ForwardKinematicsSolver.getInstance();
   const ikSolver = InverseKinematicsSolver.getInstance();
@@ -95,13 +85,11 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       visualizer.initialize(scene, fkSolver, kinematicsManager);
       testHarness.initialize(fkSolver, ikSolver, kinematicsManager);
       setDebugToolsReady(true);
-      console.log('[FloatingKinematicsPanel] Debug tools initialized for robot:', activeRobotId);
+      console.log('[RobotKinematicsSection] Debug tools initialized for robot:', activeRobotId);
     } else {
       setDebugToolsReady(false);
-      // Changed from console.warn to console.debug - this is expected when no robot is selected
-      // and doesn't need to clutter the console with warnings
       if (!activeRobotId) {
-        console.debug('[FloatingKinematicsPanel] Cannot initialize debug tools: No active robot selected');
+        console.debug('[RobotKinematicsSection] Cannot initialize debug tools: No active robot selected');
       }
     }
   }, [fkSolver, ikSolver, kinematicsManager, activeRobotId, visualizer, testHarness]);
@@ -124,112 +112,10 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     }
   }, [visualizerEnabled, activeRobotId, visualizer]);
 
-  // Handle panel close - cleanup gizmos and debug visualizations
-  const handlePanelClose = async () => {
-    // Clean up TCP gizmos
-    const { UnifiedGizmoManager } = await import('../../kinematics/UnifiedGizmoManager');
-    const unifiedGizmo = UnifiedGizmoManager.getInstance();
-    unifiedGizmo.setActivePanel('none');
-
-    if (activeRobotId) {
-      const targetId = `tcp_${activeRobotId}`;
-      unifiedGizmo.removeTarget(targetId);
-      console.log('[FloatingKinematicsPanel] Cleaned up TCP gizmo:', targetId);
-    }
-
-    // Clean up joint debug frames
-    kinematicsManager.hideAllJointVisuals();
-    console.log('[FloatingKinematicsPanel] Cleaned up joint debug visuals');
-
-    // Call parent onClose
-    onClose?.();
-  };
-
-  const handleToggleVisualizer = () => {
-    setVisualizerEnabled(!visualizerEnabled);
-  };
-
-  // Removed toolbar button handlers - keeping code for potential future debug mode
-  // @ts-ignore - Keeping for potential future debug mode
-  const handleRunTestSuite = () => {
-    if (!activeRobotId) {
-      alert('⚠️ No robot selected!\n\nPlease select a robot from the dropdown above.');
-      console.error('[FloatingKinematicsPanel] Cannot run test suite: activeRobotId is null');
-      return;
-    }
-    if (!debugToolsReady) {
-      alert('⚠️ Debug tools not initialized!\n\nPlease wait a few seconds and try again.');
-      console.error('[FloatingKinematicsPanel] Debug tools not ready');
-      return;
-    }
-    const chains = kinematicsManager.getAllChains();
-    const robotChain = chains.find(chain =>
-      chain.joints.some((joint: any) => joint.id.startsWith(activeRobotId))
-    );
-    if (robotChain) {
-      console.log('[FloatingKinematicsPanel] Running IK test suite...');
-      testHarness.runTestSuite(robotChain.name);
-      alert(`✅ Test suite running for ${robotChain.name}\n\nCheck console (F12) for detailed results.`);
-    } else {
-      alert('❌ Robot chain not found!');
-      console.error('[FloatingKinematicsPanel] Cannot find robot chain for:', activeRobotId);
-    }
-  };
-
-  // @ts-ignore - Keeping for potential future debug mode
-  const handleTestConsistency = () => {
-    if (!activeRobotId) {
-      alert('⚠️ No robot selected!\n\nPlease select a robot from the dropdown above.');
-      console.error('[FloatingKinematicsPanel] Cannot test consistency: activeRobotId is null');
-      return;
-    }
-    if (!debugToolsReady) {
-      alert('⚠️ Debug tools not initialized!\n\nPlease wait a few seconds and try again.');
-      console.error('[FloatingKinematicsPanel] Debug tools not ready');
-      return;
-    }
-    const chains = kinematicsManager.getAllChains();
-    const robotChain = chains.find(chain =>
-      chain.joints.some((joint: any) => joint.id.startsWith(activeRobotId))
-    );
-    if (robotChain) {
-      console.log('[FloatingKinematicsPanel] Testing FK/IK consistency...');
-      testHarness.testForwardBackwardConsistency(robotChain.name);
-      alert(`✅ Consistency test running for ${robotChain.name}\n\nCheck console (F12) for results.`);
-    } else {
-      alert('❌ Robot chain not found!');
-      console.error('[FloatingKinematicsPanel] Cannot find robot chain for:', activeRobotId);
-    }
-  };
-
-  // @ts-ignore - Keeping for potential future debug mode
-  const handleGetDivergenceReport = () => {
-    if (!debugToolsReady) {
-      alert('⚠️ Debug tools not initialized!\n\nPlease:\n1. Select a robot\n2. Enable visualizer (Eye button)\n3. Try again');
-      console.warn('[FloatingKinematicsPanel] Cannot get divergence report: Debug tools not ready');
-      return;
-    }
-    const report = visualizer.getDivergenceReport();
-
-    // Check if report indicates failure
-    if (report.includes('not initialized') || report.includes('No debug data')) {
-      alert(`⚠️ ${report}\n\nSteps to fix:\n1. Enable visualizer (Eye button)\n2. Move some joints\n3. Try again`);
-      console.warn('[FloatingKinematicsPanel]', report);
-      return;
-    }
-
-    console.log('═══════════════════════════════════════════════');
-    console.log('           DIVERGENCE REPORT');
-    console.log('═══════════════════════════════════════════════');
-    console.log(report);
-    console.log('═══════════════════════════════════════════════');
-    alert('✅ Divergence report printed to console\n\nOpen DevTools (F12) → Console tab to view.');
-  };
-
   const handleResetAll = () => {
     if (!activeRobotId) {
       alert('⚠️ No robot selected!\n\nPlease select a robot from the dropdown above.');
-      console.error('[FloatingKinematicsPanel] Cannot reset: activeRobotId is null');
+      console.error('[RobotKinematicsSection] Cannot reset: activeRobotId is null');
       return;
     }
     const robotChain = kinematicsManager.getAllChains().find(chain =>
@@ -238,61 +124,48 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     if (robotChain) {
       const robotJoints = kinematicsManager.getChainJoints(robotChain.id);
       let resetCount = 0;
+
       robotJoints.forEach((joint: any) => {
-        if (joint.type === 'revolute' || joint.type === 'prismatic' || joint.type === 'continuous') {
+        if (joint.type === 'revolute' || joint.type === 'continuous') {
           fkSolver.updateJointPosition(joint.id, 0);
           resetCount++;
         }
       });
-      console.log(`[FloatingKinematicsPanel] Reset ${resetCount} joints to home position (0°)`);
 
-      // Force world matrix update on all joints to ensure immediate visual update
-      robotJoints.forEach((joint: any) => {
-        const mesh = joint.mesh;
-        if (mesh) {
-          mesh.computeWorldMatrix(true);
-        }
-      });
-
-      // Update TCP gizmo position IMMEDIATELY after resetting all joints
-      const tcpPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
+      const tcpPose = fkSolver.getNullTCPPose(robotChain.name);
       if (tcpPose) {
         (async () => {
           const { UnifiedGizmoManager } = await import('../../kinematics/UnifiedGizmoManager');
           const unifiedGizmo = UnifiedGizmoManager.getInstance();
-        const targetId = `tcp_${activeRobotId}`;
-
-      // Force immediate gizmo update (don't wait for 500ms interval)
-      // This eliminates perceived delay when using Home button by updating gizmo synchronously
-      // rather than waiting for the next interval tick in the TCP position update loop
-      unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
-      unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
-
-      console.log(`[FloatingKinematicsPanel] TCP gizmo updated immediately to home position`);
+          const targetId = `tcp_${activeRobotId}`;
+          unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
+          unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
         })();
       }
 
-      // Update debug visualizer if enabled
       visualizer.update();
-
       alert(`✅ Reset ${resetCount} joints to home position (0°)`);
     } else {
       alert('❌ Robot chain not found!');
-      console.error('[FloatingKinematicsPanel] Cannot find robot chain for:', activeRobotId);
+      console.error('[RobotKinematicsSection] Cannot find robot chain for:', activeRobotId);
     }
+  };
+
+  const handleToggleVisualizer = () => {
+    setVisualizerEnabled(!visualizerEnabled);
   };
 
   const handleShowJointDebug = () => {
     if (!activeRobotId) {
       alert('⚠️ No robot selected!\n\nPlease select a robot from the dropdown above.');
-      console.error('[FloatingKinematicsPanel] Cannot show debug frames: activeRobotId is null');
+      console.error('[RobotKinematicsSection] Cannot show debug frames: activeRobotId is null');
       return;
     }
     const sceneManager = (window as any).sceneManager;
     const scene = sceneManager?.getScene?.();
     if (!scene) {
       alert('❌ Scene not available!\n\nPlease wait for the scene to load.');
-      console.error('[FloatingKinematicsPanel] Scene not available');
+      console.error('[RobotKinematicsSection] Scene not available');
       return;
     }
     const chains = kinematicsManager.getAllChains();
@@ -300,14 +173,12 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       chain.joints.some((joint: any) => joint.id.startsWith(activeRobotId))
     );
     if (robotChain) {
-      console.log(`[DEBUG] Showing debug frames for chain: ${robotChain.id}, ${robotChain.name}`);
+      console.log(`[RobotKinematicsSection] Showing debug frames for chain: ${robotChain.id}, ${robotChain.name}`);
       kinematicsManager.showAllJointDebugFrames(robotChain.id, scene);
-      console.log('[DEBUG] Debug frames added! Check console for XYZ/RPY values at each joint.');
-      console.log('[DEBUG] You should now see red/green/blue axis lines at each joint.');
       alert(`✅ Debug frames added for ${robotChain.name}\n\nLook for RGB axes at each joint.`);
     } else {
       alert('❌ Robot chain not found!');
-      console.error('[FloatingKinematicsPanel] Cannot find robot chain for:', activeRobotId);
+      console.error('[RobotKinematicsSection] Cannot find robot chain for:', activeRobotId);
     }
   };
 
@@ -326,18 +197,14 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       const robotMap: { [key: string]: { name: string; joints: any[] } } = {};
 
       allJoints.forEach((joint: any) => {
-        // Find the root parent for this joint by walking all the way to the top
         const parentNode = tree.getNode(joint.parentNodeId);
         if (parentNode) {
-          // Walk up to find the highest level collection (the robot itself)
           let rootNode = parentNode;
           let attempts = 0;
           while (rootNode.parentId && attempts < 50) {
             const parent = tree.getNode(rootNode.parentId);
             if (!parent) break;
-            // Stop if parent is Assets root
             if (parent.name === 'Assets') break;
-            // Keep going up, the last collection we find is the robot
             rootNode = parent;
             attempts++;
           }
@@ -350,12 +217,10 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
         }
       });
 
-      // Convert to array of RobotInfo
       const discoveredRobots: RobotInfo[] = Object.entries(robotMap).map(
         ([nodeId, data]) => ({
           nodeId,
           name: data.name,
-          // Count only movable joints (revolute, prismatic, continuous)
           jointCount: data.joints.filter((j: any) =>
             j.type === 'revolute' || j.type === 'prismatic' || j.type === 'continuous'
           ).length
@@ -364,12 +229,11 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
 
       setRobots(discoveredRobots);
 
-      // Auto-ground robots ONCE
       if (discoveredRobots.length > robots.length) {
         discoveredRobots.forEach(robot => {
           const suggested = kinematicsManager.suggestGroundNode(robot.nodeId);
           if (suggested) {
-            console.log('[FloatingKinematicsPanel] Auto-grounding robot:', robot.name, 'node:', suggested);
+            console.log('[RobotKinematicsSection] Auto-grounding robot:', robot.name, 'node:', suggested);
             kinematicsManager.groundNode(suggested);
           }
         });
@@ -379,18 +243,15 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     discoverRobots();
     const interval = setInterval(discoverRobots, 1000);
     return () => clearInterval(interval);
-  }, [robots.length]);
+  }, [robots.length, kinematicsManager]);
 
   // Auto-select robot based on scene tree selection (unless pinned)
   useEffect(() => {
-    if (isPinned) return; // Don't change if pinned
-
+    if (isPinned) return;
     if (!selectedNodeId) {
       setActiveRobotId(null);
       return;
     }
-
-    // Check if selected node is under any robot in our list
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(selectedNodeId);
     if (!node) {
@@ -398,25 +259,21 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       return;
     }
 
-    // Walk up from selected node to find if it's under any robot collection
     let checkNode = node;
     let foundRobotId: string | null = null;
 
     while (checkNode && !foundRobotId) {
-      // Check if this node IS one of the robot collections
       if (robots.some(r => r.nodeId === checkNode.id)) {
         foundRobotId = checkNode.id;
         break;
       }
 
-      // Move to parent
       if (!checkNode.parentId) break;
       const parent = tree.getNode(checkNode.parentId);
       if (!parent || parent.name === 'Assets') break;
       checkNode = parent;
     }
 
-    // Update active robot if changed
     if (foundRobotId !== activeRobotId) {
       setActiveRobotId(foundRobotId);
     }
@@ -431,25 +288,19 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       }
 
       const allJoints = kinematicsManager.getAllJoints();
-
-      // Filter joints that belong to the active device
-      // Joint IDs now include robot collection ID prefix: "collection_xxx_joint_yyy"
       const deviceJoints = allJoints.filter(joint => joint.id.startsWith(activeRobotId));
-
       setJoints(deviceJoints);
     };
 
     updateJoints();
     const interval = setInterval(updateJoints, 500);
     return () => clearInterval(interval);
-  }, [activeRobotId]);
+  }, [activeRobotId, kinematicsManager]);
 
-  // Cleanup: Hide all joint gizmos when panel closes
+  // Cleanup: Hide all joint gizmos when section is hidden
   useEffect(() => {
     if (!isVisible) {
-      console.log('[FloatingKinematicsPanel] Panel closed - hiding all joint gizmos');
       kinematicsManager.hideAllJointVisuals();
-      // Clear Motion panel gizmos context
       (async () => {
         try {
           const { UnifiedGizmoManager } = await import('../../kinematics/UnifiedGizmoManager');
@@ -457,9 +308,9 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
         } catch {}
       })();
     }
-  }, [isVisible]);
+  }, [isVisible, kinematicsManager]);
 
-  // Ensure Motion context active when panel is visible
+  // Ensure Motion context active when section is visible
   useEffect(() => {
     if (isVisible) {
       (async () => {
@@ -471,7 +322,6 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     }
   }, [isVisible]);
 
-  // Resolve active chain id/name for current robot
   const activeChain = useMemo(() => {
     if (!activeRobotId) return null as null | { id: string; name: string };
     const chains = kinematicsManager.getAllChains();
@@ -479,36 +329,25 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       chain.joints?.some((j: any) => typeof j.id === 'string' && j.id.startsWith(activeRobotId))
     );
     return robotChain ? { id: (robotChain as any).id, name: (robotChain as any).name } : null;
-  }, [activeRobotId]);
+  }, [activeRobotId, kinematicsManager]);
 
-  // Note: skeleton config is now handled via the skeleton link renderer
-
-  // Ready-gated skeleton link rendering
   const ready = isVisible && !!activeRobotId && !!activeChain;
-  const wasVisibleRef = useRef(false);
 
   useEffect(() => {
-    console.log('[FloatingKinematicsPanel] Skeleton link effect:', { ready, isVisible, hasRobotId: !!activeRobotId, hasChain: !!activeChain, skeletonEnabled });
-    
     if (!ready || !skeletonEnabled) {
-      // Cleanup when not ready or disabled
       if (ready && activeRobotId) {
         const renderer: any = (window as any).skeletonLinkRenderer;
         if (renderer && typeof renderer.removeSkeleton === 'function') {
           renderer.removeSkeleton(activeRobotId);
         }
       }
-      wasVisibleRef.current = isVisible;
       return;
     }
 
-    wasVisibleRef.current = isVisible;
-    
-    // Function to render skeleton links
     const renderLinks = () => {
       const renderer: any = (window as any).skeletonLinkRenderer;
       if (!renderer) {
-        console.warn('[FloatingKinematicsPanel] SkeletonLinkRenderer not found');
+        console.warn('[RobotKinematicsSection] SkeletonLinkRenderer not found');
         return;
       }
 
@@ -522,23 +361,19 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
         showJointSpheres: true,
       });
     };
-    
-    // Use microtask to ensure KM has built the chain before rendering
+
     let cancelled = false;
     queueMicrotask(() => {
       if (cancelled) return;
       renderLinks();
     });
 
-    // Subscribe to FK updates
     const unsubscribe = kinematicsManager.onFkUpdated((changedChainId) => {
       if (changedChainId === activeChain.id && !cancelled) {
-        console.log('[FloatingKinematicsPanel] FK updated, re-rendering skeleton links');
         renderLinks();
       }
     });
 
-    // Cleanup on unmount or when robot/chain changes
     return () => {
       cancelled = true;
       unsubscribe();
@@ -548,38 +383,32 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
           try {
             renderer.removeSkeleton(activeRobotId);
           } catch (err) {
-            console.warn('[FloatingKinematicsPanel] Cleanup error:', err);
+            console.warn('[RobotKinematicsSection] Cleanup error:', err);
           }
         }
       }
     };
   }, [ready, activeRobotId, activeChain, skeletonEnabled, skeletonStyle, skeletonThicknessMm, isVisible, kinematicsManager]);
 
-  // Toggle joint axes overlay using KinematicsManager (this IS the skeleton visualization)
   useEffect(() => {
     if (!isVisible) {
-      console.log('[FloatingKinematicsPanel] Panel not visible, hiding joint visuals');
       kinematicsManager.hideAllJointVisuals();
       return;
     }
-    
+
     const sceneManager = (window as any).sceneManager as any;
     const scene = sceneManager?.getScene?.();
     if (!activeChain || !scene) {
-      console.log('[FloatingKinematicsPanel] No active chain or scene');
       return;
     }
-    
+
     if (showJointAxesOverlay) {
-      console.log('[FloatingKinematicsPanel] Showing joint debug frames for chain:', activeChain.id);
       kinematicsManager.showAllJointDebugFrames(activeChain.id, scene);
     } else {
-      console.log('[FloatingKinematicsPanel] Hiding joint debug frames');
       kinematicsManager.hideAllJointVisuals();
     }
   }, [isVisible, showJointAxesOverlay, activeChain, kinematicsManager]);
 
-  // Edit mode: attach rotation gizmo to selected joint and render limit arc
   useEffect(() => {
     if (!editModeEnabled || !attachedJointId) return;
     const sceneManager = (window as any).sceneManager as any;
@@ -589,7 +418,6 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     const joint = kinematicsManager.getJoint(attachedJointId);
     if (!joint) return;
 
-    // Resolve parent Babylon node (copied from KinematicsManager.showJointDebugFrame)
     const tree = SceneTreeManager.getInstance();
     const parentNode = tree.getNode(joint.parentNodeId);
     let parentBabylonNode: BABYLON.TransformNode | null = null;
@@ -607,34 +435,27 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     parentBabylonNode.computeWorldMatrix(true);
     const parentWorldMatrix = parentBabylonNode.getWorldMatrix();
 
-    // Joint origin (user data assumed mm in KinematicsManager; convert to meters for Babylon)
     const originLocal = new BABYLON.Vector3(joint.origin.x, joint.origin.y, joint.origin.z);
     const originWorld = BABYLON.Vector3.TransformCoordinates(originLocal, parentWorldMatrix);
 
     const localAxis = new BABYLON.Vector3(joint.axis.x, joint.axis.y, joint.axis.z).normalize();
     const worldAxis = BABYLON.Vector3.TransformNormal(localAxis, parentWorldMatrix).normalize();
 
-    // Show limit arc for feedback (single joint)
     try {
       kinematicsManager.hideAllJointVisuals();
       kinematicsManager.showJointDebugFrame(attachedJointId, scene);
     } catch {}
 
-    // Create an isolated transform node at joint origin for rotation handle
     const tn = new BABYLON.TransformNode(`edit_joint_${attachedJointId}`, scene);
     tn.position.copyFrom(originWorld);
     tn.rotationQuaternion = BABYLON.Quaternion.Identity();
 
-    // Create rotation gizmo
     const utility = new BABYLON.UtilityLayerRenderer(scene);
     const rotGizmo = new BABYLON.RotationGizmo(utility);
     rotGizmo.attachedNode = tn;
     rotGizmo.updateGizmoRotationToMatchAttachedMesh = false;
     rotGizmo.scaleRatio = 1.0;
 
-    // Visual emphasis: active joint bold color already standard; keep defaults
-
-    // Live preview + commit
     const startAngleRef = { value: joint.position };
 
     const angleFromQuaternionAboutAxis = (q: BABYLON.Quaternion, axis: BABYLON.Vector3) => {
@@ -650,45 +471,38 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       return Math.max(lower, Math.min(upper, val));
     };
 
-    const fk = ForwardKinematicsSolver.getInstance();
-
-    // Drag start
     rotGizmo.onDragStartObservable.add(() => {
       const j = kinematicsManager.getJoint(attachedJointId);
       startAngleRef.value = j?.position ?? 0;
     });
 
-    // Dragging (live preview)
     rotGizmo.onDragObservable.add(() => {
       if (!tn.rotationQuaternion) return;
       const delta = angleFromQuaternionAboutAxis(tn.rotationQuaternion, worldAxis);
       const preview = clampToLimits(startAngleRef.value + delta);
-      fk.updateJointPosition(attachedJointId, preview);
+      fkSolver.updateJointPosition(attachedJointId, preview);
 
-      // Update TCP gizmo position during drag for live feedback
       if (activeRobotId) {
         const robotChain = kinematicsManager.getAllChains().find(chain =>
           chain.joints.some((j: any) => j.id.startsWith(activeRobotId))
         );
         if (robotChain) {
-          const tcpPose = fk.getTCPPose?.(robotChain.name) || fk.getNullTCPPose(robotChain.name);
+          const tcpPose = fkSolver.getTCPPose?.(robotChain.name) || fkSolver.getNullTCPPose(robotChain.name);
           if (tcpPose) {
             (async () => {
               const { UnifiedGizmoManager } = await import('../../kinematics/UnifiedGizmoManager');
               const unifiedGizmo = UnifiedGizmoManager.getInstance();
-            const targetId = `tcp_${activeRobotId}`;
-            unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
-            unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
+              const targetId = `tcp_${activeRobotId}`;
+              unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
+              unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
             })();
           }
         }
       }
 
-      // Update debug visualizer during drag for live feedback
       visualizer.update();
     });
 
-    // Drag end (commit)
     rotGizmo.onDragEndObservable.add(() => {
       const current = kinematicsManager.getJoint(attachedJointId)?.position ?? startAngleRef.value;
       const oldVal = startAngleRef.value;
@@ -699,28 +513,23 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
             const cmd = new EditJointAngleCommand(attachedJointId, oldVal, current);
             commandManager.execute(cmd);
           } catch (e) {
-            // Fallback: already updated via preview
+            // Fallback already updated via preview
           }
         })();
       }
 
-      // Reset gizmo local rotation for next drag measurement
       tn.rotationQuaternion = BABYLON.Quaternion.Identity();
     });
 
-    // Cleanup on detach/disable
     return () => {
       try { rotGizmo.dispose(); } catch {}
       try { utility.dispose(); } catch {}
       try { tn.dispose(); } catch {}
-      // Hide joint visuals when leaving edit state
       try { kinematicsManager.hideAllJointVisuals(); } catch {}
     };
-  }, [editModeEnabled, attachedJointId, kinematicsManager, commandManager]);
+  }, [editModeEnabled, attachedJointId, kinematicsManager, commandManager, activeRobotId, fkSolver, visualizer]);
 
-  const activeDevice = robots.find(r => r.nodeId === activeRobotId);
-
-  // Close popover when clicking outside
+  // Close settings popover when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (vizSettingsRef.current && !vizSettingsRef.current.contains(event.target as Node)) {
@@ -729,8 +538,6 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     };
 
     if (showVizSettings) {
-      // Delay listener attachment to avoid catching the same click that opened the popover
-      // This prevents the popover from closing immediately after opening
       const timer = setTimeout(() => {
         document.addEventListener('mousedown', handleClickOutside);
       }, 100);
@@ -746,13 +553,15 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
     <div className="floating-kinematics-content motion-shell" style={{ position: 'relative' }}>
       <div className="motion-card">
         <div className="motion-header">
-          <div className="motion-eyebrow">Motion panel</div>
+          <div className="motion-eyebrow">Robot kimenatics</div>
           <div className="motion-title">
-            {activeDevice ? activeDevice.name : 'Select a device'}
+            {activeRobotId ? (robots.find(r => r.nodeId === activeRobotId)?.name || 'Device') : 'Select a device'}
           </div>
           <div className="motion-meta">
-            {activeDevice ? `${activeDevice.jointCount} joints detected` : 'Waiting for kinematic device'}
-            {isPinned && activeDevice && (
+            {activeRobotId
+              ? `${robots.find(r => r.nodeId === activeRobotId)?.jointCount ?? 0} joints detected`
+              : 'Waiting for kinematic device'}
+            {isPinned && activeRobotId && (
               <span className="motion-pill">
                 <Pin size={12} />
                 Pinned
@@ -1002,7 +811,7 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
             <div className="motion-empty">No joints found for this device. Check console for debugging info.</div>
           )
         ) : (
-          <AssetLibraryDarkDisabled icon={<Settings size={24} />} message="No device selected" />
+          <AssetLibraryDarkDisabled icon={<SettingsIcon size={24} />} message="No device selected" />
         )}
       </AssetLibraryDarkSection>
 
@@ -1034,26 +843,11 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
   );
 
   return (
-    <FloatingPanel
-      className="kinematics-floating-panel"
-      title="Motion"
-      subtitle={activeDevice ? `${activeDevice.name} (${activeDevice.jointCount} joints)` : "Select device from scene tree"}
-      onClose={handlePanelClose}
-      isVisible={isVisible}
-      zIndex={zIndex}
-      defaultSize={{ width: 320, height: 620 }}
-      minWidth={260}
-      minHeight={480}
-      maxWidth={460}
-      maxHeight={800}
-      draggable={true}
-      resizable={true}
-    >
-      <AssetLibraryDarkPanel
-        title=""
-      >
+    <div className="robot-kinematics-section">
+      <AssetLibraryDarkPanel title="">
         {panelContent}
       </AssetLibraryDarkPanel>
-    </FloatingPanel>
+    </div>
   );
 };
+

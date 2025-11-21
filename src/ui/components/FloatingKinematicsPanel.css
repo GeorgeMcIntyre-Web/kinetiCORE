@@ -10,8 +10,8 @@
   flex-direction: column;
   min-height: 100%;
   overflow: visible;
-  padding: 0; /* Remove padding, AssetLibraryDarkPanel handles it */
-  gap: 4px; /* Reduce spacing between sections */
+  padding: 4px;
+  gap: 10px;
 }
 
 /* Override AssetLibraryDarkPanel content padding */
@@ -128,6 +128,273 @@
 .pose-count-disabled {
   font-size: 10px;
   color: rgba(255, 255, 255, 0.3);
+}
+
+.motion-shell {
+  gap: 10px;
+}
+
+.motion-card {
+  background: radial-gradient(circle at 20% 20%, rgba(100, 181, 246, 0.08), transparent 35%),
+    radial-gradient(circle at 80% 0%, rgba(45, 212, 191, 0.08), transparent 28%),
+    rgba(17, 24, 39, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
+}
+
+.motion-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.motion-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.motion-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.97);
+  line-height: 1.2;
+}
+
+.motion-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.motion-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(58, 157, 255, 0.12);
+  color: #7dd3fc;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid rgba(125, 211, 252, 0.3);
+}
+
+.motion-device-row {
+  display: grid;
+  grid-template-columns: 70px 1fr 36px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.motion-device-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.motion-device-select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.92);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.motion-device-select:focus {
+  outline: none;
+  border-color: rgba(61, 146, 255, 0.7);
+  box-shadow: 0 0 0 2px rgba(61, 146, 255, 0.15);
+}
+
+.motion-pin {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.motion-pin:hover:not(:disabled) {
+  border-color: rgba(125, 211, 252, 0.6);
+  color: rgba(125, 211, 252, 0.9);
+}
+
+.motion-pin.active {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.24), rgba(14, 165, 233, 0.18));
+  border-color: rgba(34, 197, 94, 0.45);
+  color: #bbf7d0;
+}
+
+.motion-pin:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.motion-device-hint {
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.motion-device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.motion-device-chip {
+  text-align: left;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.15s;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.motion-device-chip:hover {
+  border-color: rgba(61, 146, 255, 0.45);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.motion-chip-name {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.motion-chip-meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.motion-quickbar {
+  padding: 8px 10px;
+}
+
+.motion-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.65);
+  margin-bottom: 6px;
+}
+
+.motion-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 6px;
+}
+
+.motion-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s;
+}
+
+.motion-quick-btn:hover {
+  border-color: rgba(61, 146, 255, 0.6);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
+  transform: translateY(-1px);
+}
+
+.motion-quick-btn.active {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(15, 118, 110, 0.25));
+  border-color: rgba(34, 197, 94, 0.5);
+  color: #a7f3d0;
+}
+
+.motion-viz-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 18, 23, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 14px;
+  z-index: 10001;
+  overflow-y: auto;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+
+.motion-viz-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.motion-viz-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.motion-empty {
+  padding: 12px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+  text-align: center;
+}
+
+/* Panel chrome */
+.kinematics-floating-panel {
+  background: linear-gradient(145deg, rgba(15, 21, 34, 0.96), rgba(12, 18, 28, 0.94));
+  border: 1px solid rgba(80, 166, 255, 0.18);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+}
+
+.kinematics-floating-panel .floating-panel-header {
+  background: linear-gradient(120deg, rgba(33, 41, 61, 0.85), rgba(19, 26, 39, 0.9));
+  border-bottom: 1px solid rgba(80, 166, 255, 0.2);
+}
+
+.kinematics-floating-panel .floating-panel-title {
+  color: #e5f0ff;
+}
+
+.kinematics-floating-panel .floating-panel-subtitle {
+  color: rgba(185, 200, 222, 0.82);
+}
+
+.robot-kinematics-section {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  margin: 14px auto;
 }
 
 /* Device Selection */

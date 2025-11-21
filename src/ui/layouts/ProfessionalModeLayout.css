@@ -325,6 +325,10 @@
   overflow: hidden;
 }
 
+.kinematics-tab-body {
+  display: none;
+}
+
 /* Left Sidebar */
 .professional-left-sidebar {
   width: 280px;
