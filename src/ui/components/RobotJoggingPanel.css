@@ -3,21 +3,22 @@
 .robot-jogging-panel {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 4px;
-  background: #1a202c;
-  color: #e2e8f0;
+  gap: 10px;
+  padding: 10px;
+  background: #1f2433;
+  color: #e9eef7;
   height: 100%;
   overflow-y: auto;
+  border-radius: 10px;
 }
 
 /* Mode Selector */
 .jog-mode-selector {
   display: flex;
-  gap: 2px;
-  background: #2d3748;
-  padding: 2px;
-  border-radius: 6px;
+  gap: 6px;
+  background: #2c3244;
+  padding: 6px;
+  border-radius: 10px;
   flex-wrap: nowrap; /* keep tabs on a single line */
   overflow: hidden;  /* no scrollbar; contents must fit */
   container-type: inline-size; /* enable container query-based scaling */
@@ -29,14 +30,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  padding: 2px 4px; /* tighter to fit more */
-  background: transparent;
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
   border: none;
-  border-radius: 4px;
-  color: #a0aec0;
-  font-size: 11px; /* base, scaled down with container queries below */
-  font-weight: 500;
+  border-radius: 8px;
+  color: #d5deed;
+  font-size: 13px; /* base, scaled down with container queries below */
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -55,12 +56,12 @@
 
 
 .mode-button:hover {
-  background: #4a5568;
-  color: #e2e8f0;
+  background: #3a4359;
+  color: #ffffff;
 }
 
 .mode-button.active {
-  background: #3182ce;
+  background: #3b82f6;
   color: white;
 }
 
@@ -69,46 +70,46 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
-  background: #2d3748;
-  padding: 3px;
-  border-radius: 4px;
+  gap: 8px;
+  background: #242c3d;
+  padding: 8px;
+  border-radius: 8px;
   width: 100%;
 }
 
 .jog-step-control label {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  color: #a0aec0;
+  color: #c6d4eb;
   white-space: nowrap;
 }
 
 .step-selector {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
 }
 
 .step-selector button {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #4a5568;
+  background: #4b556a;
   border: none;
-  border-radius: 3px;
-  color: #e2e8f0;
-  font-size: 14px;
-  font-weight: 700;
+  border-radius: 6px;
+  color: #eaf0ff;
+  font-size: 15px;
+  font-weight: 800;
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .step-selector button:hover {
-  background: #718096;
+  background: #64748b;
 }
 
 .step-selector button:active {
@@ -116,18 +117,18 @@
 }
 
 .step-selector input {
-  background: #1a202c;
-  border: 1px solid #4a5568;
-  border-radius: 3px;
-  color: rgba(255, 255, 255, 0.95); /* ensure visible text */
-  -webkit-text-fill-color: rgba(255, 255, 255, 0.95); /* chrome/safari */
-  font-size: 10px;
+  background: #1f2937;
+  border: 1px solid #4b556a;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.98); /* ensure visible text */
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.98); /* chrome/safari */
+  font-size: 12px;
   font-weight: 700;
   text-align: center;
-  padding: 0 3px;
-  width: 28px;
-  height: 18px;
-  line-height: 16px;
+  padding: 4px 6px;
+  width: 44px;
+  height: 26px;
+  line-height: 18px;
   appearance: textfield;
 }
 
@@ -143,48 +144,48 @@
 }
 
 .step-selector .unit {
-  color: #e2e8f0;
-  font-size: 10px;
-  font-weight: 600;
+  color: #eaeffb;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 /* Joint Mode - Grid Layout */
 .joint-jog-mode {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 
 .joints-grid {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
 }
 
 .joint-jog-item {
-  background: #2d3748;
-  border-radius: 3px;
-  padding: 3px 6px;
+  background: #262f45;
+  border-radius: 8px;
+  padding: 8px 10px;
   display: grid;
-  grid-template-columns: 25px 1fr 1fr;
-  gap: 4px;
+  grid-template-columns: 30px 1fr 1fr;
+  gap: 8px;
   align-items: center;
-  border: 1px solid #4a5568;
+  border: 1px solid #3b465f;
   width: 100%;
 }
 
 .joint-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: #63b3ed;
-  letter-spacing: 0.3px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #8dd3ff;
+  letter-spacing: 0.4px;
   text-transform: uppercase;
 }
 
 .joint-value {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
-  color: #48bb78;
+  color: #8ef0b4;
   font-family: 'Courier New', monospace;
   text-align: left;
 }
@@ -192,21 +193,21 @@
 /* Jog Buttons */
 .jog-buttons {
   display: flex;
-  gap: 2px;
-  min-width: 50px;
+  gap: 6px;
+  min-width: 70px;
   width: 100%;
   justify-content: flex-end;
 }
 
 .jog-btn {
-  width: 24px;
-  height: 18px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: 3px;
-  font-size: 12px;
+  border-radius: 6px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
@@ -240,23 +241,23 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 10px;
-  color: #718096;
+  font-size: 11px;
+  color: #cbd5e0;
 }
 
 .limit-bar {
   flex: 1;
-  height: 4px;
-  background: #4a5568;
-  border-radius: 2px;
+  height: 5px;
+  background: #4b556a;
+  border-radius: 3px;
   position: relative;
 }
 
 .limit-indicator {
   position: absolute;
   top: -2px;
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   background: #63b3ed;
   border-radius: 50%;
   transform: translateX(-50%);
@@ -266,22 +267,22 @@
 .tcp-controls {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .tcp-section {
-  background: #2d3748;
-  border-radius: 4px;
-  padding: 4px;
+  background: #262f45;
+  border-radius: 8px;
+  padding: 8px;
 }
 
 .tcp-section h4 {
-  margin: 0 0 3px 0;
-  font-size: 9px;
-  font-weight: 600;
+  margin: 0 0 6px 0;
+  font-size: 12px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #a0aec0;
+  letter-spacing: 0.6px;
+  color: #d5deed;
 }
 
 .tcp-axis-group {
@@ -300,41 +301,42 @@
 }
 
 .axis-label {
-  width: 12px;
-  font-size: 8px;
-  font-weight: 700;
-  color: #63b3ed;
+  width: 14px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #8dd3ff;
   text-align: center;
 }
 
 .tcp-axis .jog-btn {
-  width: 18px;
-  height: 14px;
-  font-size: 8px;
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
   flex: 1;
-  max-width: 30px;
+  max-width: 34px;
 }
 
 /* TCP Info */
 .tcp-info {
-  background: #2d3748;
-  border-radius: 4px;
-  padding: 4px;
-  border-left: 2px solid #ed8936;
+  background: #262f45;
+  border-radius: 10px;
+  padding: 12px;
+  border: 1px solid #3b465f;
+  border-left: 3px solid #ed8936;
 }
 
 .info-text {
-  margin: 0 0 2px 0;
-  font-size: 9px;
-  font-weight: 600;
-  color: #e2e8f0;
+  margin: 0 0 6px 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #f1f5ff;
 }
 
 .info-subtext {
   margin: 0;
-  font-size: 8px;
-  color: #a0aec0;
-  line-height: 1.2;
+  font-size: 14px;
+  color: #d6deef;
+  line-height: 1.4;
 }
 
 /* Panel Actions */
