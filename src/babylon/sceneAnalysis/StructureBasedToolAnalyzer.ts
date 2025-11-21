@@ -1832,7 +1832,12 @@ export class StructureBasedToolAnalyzer {
         correspondences: Math.min(vertexCountA, vertexCountB),
       };
 
-      const jointFromICP = extractJointFromTransform(icpResultForExtraction, centroid, {
+      let retractedPoints: BABYLON.Vector3[] = [];
+      if (cachedClouds && cachedClouds.pointsA.length > 0) {
+        retractedPoints = cachedClouds.pointsA.map(p => new BABYLON.Vector3(p.x, p.y, p.z));
+      }
+
+      const jointFromICP = extractJointFromTransform(icpResultForExtraction, centroid, retractedPoints, {
         translationThreshold: 0.001, // 1mm
         rotationThreshold: 0.05, // ~2.86 degrees
         maxResidualError: 0.01, // 1cm

@@ -48,7 +48,10 @@ describe('ICP Motion Classification', () => {
             }
 
             const centroid = computeCentroid(sourcePoints);
-            const joint = extractJointFromTransform(icpResult, centroid);
+            const joint = extractJointFromTransform(icpResult, centroid, sourcePoints);
+
+            expect(joint).not.toBeNull();
+            if (!joint) return;
 
             expect(joint.type).toBe('prismatic');
             expect(joint.magnitude).toBeGreaterThan(0.05);
@@ -90,7 +93,7 @@ describe('ICP Motion Classification', () => {
             expect(icpResult.rmsError).toBeLessThan(1e-4);
 
             const centroid = computeCentroid(points);
-            const joint = extractJointFromTransform(icpResult, centroid);
+            const joint = extractJointFromTransform(icpResult, centroid, points);
 
             // No motion should return null (not a joint)
             expect(joint).toBeNull();
@@ -114,7 +117,7 @@ describe('ICP Motion Classification', () => {
 
             const icpResult = ICP.align(pointsA, pointsB);
             const centroid = computeCentroid(pointsA);
-            const joint = extractJointFromTransform(icpResult, centroid);
+            const joint = extractJointFromTransform(icpResult, centroid, pointsA);
 
             // 1mm motion is noise, should return null
             expect(joint).toBeNull();
@@ -138,7 +141,7 @@ describe('ICP Motion Classification', () => {
 
             const icpResult = ICP.align(pointsA, pointsB);
             const centroid = computeCentroid(pointsA);
-            const joint = extractJointFromTransform(icpResult, centroid);
+            const joint = extractJointFromTransform(icpResult, centroid, pointsA);
 
             // 0.5° rotation is noise, should return null
             expect(joint).toBeNull();

@@ -549,7 +549,7 @@ export class KinematicExtractionPipeline {
         .scale(1 / retracted.pointCloud.length);
 
       // Extract joint from transform
-      const jointFit = extractJointFromTransform(icpResult, centroid, opts.jointExtraction);
+      const jointFit = extractJointFromTransform(icpResult, centroid, retracted.pointCloud, opts.jointExtraction);
 
       if (!jointFit) {
         console.warn(
@@ -867,7 +867,7 @@ export class KinematicExtractionPipeline {
       .reduce((sum, p) => sum.add(p), BABYLON.Vector3.Zero())
       .scale(1 / retracted.pointCloud.length);
 
-    const jointFit = extractJointFromTransform(icpResult, centroid, opts.jointExtraction);
+    const jointFit = extractJointFromTransform(icpResult, centroid, retracted.pointCloud, opts.jointExtraction);
 
     if (!jointFit) {
       throw new Error(
