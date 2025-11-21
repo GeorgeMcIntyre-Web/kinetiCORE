@@ -184,7 +184,7 @@ export function extractJointFromTransform(
   icpResult: ICPResult,
   movingPointsCentroid: BABYLON.Vector3,
   options: JointExtractionOptions = {}
-): JointFitResult {
+): JointFitResult | null {
   const opts = { ...DEFAULT_EXTRACTION_OPTIONS, ...options };
 
   // Decompose transform
@@ -200,8 +200,20 @@ export function extractJointFromTransform(
   let magnitude: number;
   let confidence: number;
 
-  const isPrismatic = translationMagnitude > opts.translationThreshold;
+  // For distant hinges, the total translation can be large due to circular motion,
+  // but the translation parallel to the rotation axis should be small.
+  // We use parallel translation to distinguish screw joints from pure rotations.
   const isHinge = rotationMagnitude > opts.rotationThreshold;
+  let effectiveTranslation = translationMagnitude;
+
+  if (isHinge && translationMagnitude > 1e-6) {
+    // Calculate translation component parallel to rotation axis
+    const normalizedRotationAxis = rotationAxis.normalize();
+    const parallelTranslation = BABYLON.Vector3.Dot(translation, normalizedRotationAxis);
+    effectiveTranslation = Math.abs(parallelTranslation);
+  }
+
+  const isPrismatic = effectiveTranslation > opts.translationThreshold;
 
   if (isPrismatic && !isHinge) {
     // Pure prismatic motion
@@ -219,7 +231,7 @@ export function extractJointFromTransform(
     confidence = 0.9; // High confidence for pure rotation
   } else if (isPrismatic && isHinge) {
     // Mixed motion (screw joint) - choose dominant component
-    if (translationMagnitude / opts.translationThreshold > rotationMagnitude / opts.rotationThreshold) {
+    if (effectiveTranslation / opts.translationThreshold > rotationMagnitude / opts.rotationThreshold) {
       // Translation dominates
       type = 'prismatic';
       axis = translation.normalize();
@@ -237,13 +249,10 @@ export function extractJointFromTransform(
       console.warn('[JointExtractor] Mixed translation+rotation detected, choosing hinge (dominant)');
     }
   } else {
-    // Neither translation nor rotation significant - static or error
-    type = 'prismatic'; // Default fallback
-    axis = new BABYLON.Vector3(0, 0, 1); // Z-up default
-    anchor = movingPointsCentroid.clone();
-    magnitude = 0;
-    confidence = 0.1; // Very low confidence
-    console.warn('[JointExtractor] No significant motion detected, defaulting to static prismatic joint');
+    // Neither translation nor rotation significant - this is not a joint, it's a fixed part
+    // Return null to indicate no joint should be created
+    console.warn('[JointExtractor] No significant motion detected, treating as fixed (no joint)');
+    return null;
   }
 
   // Adjust confidence based on ICP residual error
@@ -351,6 +360,11 @@ export function batchExtractJoints(
     }
 
     const fitResult = extractJointFromTransform(icpResult, centroid, options);
+
+    if (!fitResult) {
+      console.warn(`[JointExtractor] No joint detected for ${jointId} (insufficient motion), skipping`);
+      continue;
+    }
 
     if (fitResult.confidence < 0.3) {
       console.warn(`[JointExtractor] Low confidence (${fitResult.confidence.toFixed(2)}) for joint ${jointId}, skipping`);

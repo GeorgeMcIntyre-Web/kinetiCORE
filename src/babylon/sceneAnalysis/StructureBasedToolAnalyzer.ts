@@ -232,9 +232,10 @@ const DEFAULT_STRUCTURE_OPTIONS: Required<StructureBasedAnalyzeOptions> = {
     // Max revolute translation ratio (4.0× bodySize) - allows revolute clamps with slight offset.
     // Previously 2.0, but some 1E1_LH clamps exceeded 2-3× due to scale.
     maxRevoluteTranslationRatio: 4.0,
-    // Min rotation angle (0.2°) - rejects joints with negligible rotation.
-    // Lowered from 0.3° to catch subtle revolute joints for 1E1_LH and 2174.
-    minRotationAngleDeg: 0.2,
+    // Min rotation angle (1.0°) - rejects joints with negligible rotation (noise, numerical errors).
+    // Increased from 0.2° to filter out spatial clone misclassifications and numerical noise
+    // while still catching all real kinematic joints (which are typically 30°+ for these fixtures).
+    minRotationAngleDeg: 1.0,
     // Max rotation angle (150°) - rejects joints with impossible rotation (> 180°).
     maxRotationAngleDeg: 150.0,
     // Unit clustering: groups related unit candidates into mechanical units.
@@ -1708,12 +1709,12 @@ export class StructureBasedToolAnalyzer {
     const maxJoints = jointCfg.maxJointsPerFixture ?? Infinity;
     const scoringCfg = jointCfg.selectionScoring;
     // Filter out joints with deltaType 'unknown' before selection (they have invalid motion data)
-    // Also filter out revolute joints without valid angleDeg (must be > 0.01° to be meaningful)
+    // Also filter out revolute joints without valid angleDeg (must be >= 1° to be meaningful)
     const validJoints = dedupedJoints.filter(j => {
       if (j.deltaType === 'unknown') return false;
       if (j.deltaType === 'revolute') {
         if (j.angleDeg === undefined || j.angleDeg === null || !Number.isFinite(j.angleDeg)) return false;
-        if (j.angleDeg < 0.01) return false; // Filter out joints with essentially zero rotation
+        if (j.angleDeg < 1) return false; // Filter out joints with essentially zero rotation
       }
       return true;
     });
@@ -1889,8 +1890,13 @@ export class StructureBasedToolAnalyzer {
         };
         toCenter = fromCenter; // For revolute, center is the same
         translationMagnitude = revoluteMotion.translationMagnitude;
-      } else if (jointFromICP.confidence > 0.3) {
+      } else if (jointFromICP) {
         // Use extractJointFromTransform result (Phase 3 tested API) as secondary source
+        if (jointFromICP.confidence <= 0.3) {
+          // Low confidence joint, skip
+          continue;
+        }
+
         if (jointFromICP.type === 'hinge') {
           motionAxis = {
             x: jointFromICP.axis.x,
@@ -1926,81 +1932,9 @@ export class StructureBasedToolAnalyzer {
           translationMagnitude = jointFromICP.magnitude;
         }
       } else {
-        // Fall back to transform decomposition
-        // Compute angle using shortest-arc
-        qw = Math.max(-1, Math.min(1, qw));
-        let angleRad = 2 * Math.acos(qw);
-        let computedAngleDeg = angleRad * (180 / Math.PI);
-
-        // Enforce shortest-arc: if angle > 180°, use 360° - angle and negate axis
-        // For revolute joints, always prefer the shorter arc representation
-        if (pair.jointType === 'revolute' && computedAngleDeg > 180) {
-          computedAngleDeg = 360 - computedAngleDeg;
-          angleRad = computedAngleDeg * (Math.PI / 180);
-          // Negate quaternion components to flip axis
-          qx = -qx;
-          qy = -qy;
-          qz = -qz;
-        }
-
-        // Also handle cases where angle is exactly 180° - prefer the representation that gives better axis alignment
-        // For 180°, we can't make it shorter, but we ensure the axis is correctly oriented
-        if (pair.jointType === 'revolute' && Math.abs(computedAngleDeg - 180) < 1e-6) {
-          // For 180° rotations, the quaternion represents a half-turn
-          // Ensure we're using the correct axis direction (the one that makes physical sense)
-          // This is already handled by the quaternion normalization above
-        }
-
-        // Compute axis (normalized)
-        const sinHalfAngle = Math.sin(angleRad / 2);
-        if (Math.abs(sinHalfAngle) > 1e-6) {
-          const axisVec = new BABYLON.Vector3(
-            qx / sinHalfAngle,
-            qy / sinHalfAngle,
-            qz / sinHalfAngle
-          ).normalize();
-
-          // Guard: check axis is valid
-          if (Number.isFinite(axisVec.x) && Number.isFinite(axisVec.y) && Number.isFinite(axisVec.z)) {
-            motionAxis = { x: axisVec.x, y: axisVec.y, z: axisVec.z };
-          }
-        }
-
-        // Fallback: if axis is still undefined but we have a valid angle, try to extract from quaternion directly
-        if (!motionAxis && angleRad > 1e-6 && angleRad < Math.PI + 1e-6) {
-          const quatVec = new BABYLON.Vector3(qx, qy, qz);
-          const quatLen = quatVec.length();
-          if (quatLen > 1e-6) {
-            quatVec.normalize();
-            if (Number.isFinite(quatVec.x) && Number.isFinite(quatVec.y) && Number.isFinite(quatVec.z)) {
-              motionAxis = { x: quatVec.x, y: quatVec.y, z: quatVec.z };
-            }
-          }
-        }
-
-        // Final fallback: use axisWorld if available (for revolute joints)
-        if (!motionAxis && pair.jointType === 'revolute' && axisWorld) {
-          motionAxis = { x: axisWorld.x, y: axisWorld.y, z: axisWorld.z };
-        }
-
-        // Get centers (world-space)
-        fromCenter = {
-          x: pair.sigA.center.x,
-          y: pair.sigA.center.y,
-          z: pair.sigA.center.z,
-        };
-        toCenter = {
-          x: pair.sigB.center.x,
-          y: pair.sigB.center.y,
-          z: pair.sigB.center.z,
-        };
-
-        // Compute translation magnitude between centers
-        translationMagnitude = BABYLON.Vector3.Distance(
-          new BABYLON.Vector3(fromCenter.x, fromCenter.y, fromCenter.z),
-          new BABYLON.Vector3(toCenter.x, toCenter.y, toCenter.z)
-        );
-        angleDeg = computedAngleDeg;
+        // No significant motion detected by extractJointFromTransform
+        // Skip creating a joint
+        continue;
       }
 
       // Determine deltaType
@@ -2247,6 +2181,53 @@ export class StructureBasedToolAnalyzer {
   /**
    * Select final joints for fixture: one best joint per unit, then take top N by score.
    * This ensures we get the best joint from each unit, not multiple joints from the same unit.
+   * 
+   * **DEV NOTES - Joint Detection Strategy:**
+   * 
+   * 1. **One Joint Per Unit Constraint:**
+   *    - Each mechanical unit should have at most ONE kinematic joint.
+   *    - Multiple joint candidates may exist for a unit due to:
+   *      a) Multiple state pairs being tested (e.g., open/closed, retracted/extended)
+   *      b) Spatial clones (same part in different positions) being incorrectly paired
+   *      c) Numerical noise creating small-angle "joints" from ICP
+   *    - We enforce this by grouping candidates by `unitId` and selecting the best one per unit.
+   *    - Selection criteria: highest rotation magnitude (for revolute) or translation (for prismatic),
+   *      combined with ICP quality, vertex similarity, and other geometric factors.
+   * 
+   * 2. **Spatial Clone Rejection:**
+   *    - Spatial clones are instances of the same rigid part mounted in different locations.
+   *    - They should NOT be paired as kinematic joints (they're fixed relative to the base).
+   *    - Rejection happens upstream via:
+   *      a) `minRotationAngleDeg` threshold (1.0°) - filters numerical noise
+   *      b) Distance filters - rejects pairs too far apart or too close together
+   *      c) ICP quality checks - rejects poor alignments
+   *    - This function provides final deduplication by keeping only the best joint per unit.
+   * 
+   * 3. **Threshold Strategy:**
+   *    - `minRotationAngleDeg = 1.0°`: Filters numerical noise and tiny rotations from spatial clones.
+   *      * Too low (0.2°): Allows noise joints through, causing over-detection.
+   *      * Too high (30°): Rejects real joints with small motions.
+   *      * 1.0° is a good balance: rejects noise while preserving real kinematic joints.
+   *    - We rely on this threshold + per-unit selection rather than aggressive filtering.
+   *    - This keeps the algorithm generic and avoids fixture-specific hard-coding.
+   * 
+   * 4. **Parallel Translation for Hinge Classification:**
+   *    - Distant hinges (rotation around a far-away axis) can have large total translation.
+   *    - Example: A clamp rotating 90° around an axis 500mm away moves ~780mm in space.
+   *    - We use parallel translation (translation component along rotation axis) to distinguish:
+   *      * Pure revolute: large total translation, small parallel translation
+   *      * Prismatic: large translation parallel to axis
+   *      * Screw joint: both large (not common in these fixtures)
+   *    - This logic is in `JointExtractor.ts` (extractJointFromTransform), not here.
+   *    - Reference: See JointExtractor.ts lines ~170-180 for implementation.
+   * 
+   * 5. **Base Unit Exclusion:**
+   *    - Base units (typically UNIT_101) should have zero joints.
+   *    - They're identified by:
+   *      a) Being marked as `isFixed = true` during unit classification
+   *      b) Having no valid state pairs (all states are identical)
+   *    - If a base unit gets joints, it indicates spatial clone mispairing upstream.
+   *    - Tests enforce this via assertions (e.g., `expect(unit101Joints.length).toBe(0)`).
    */
   private selectFinalJointsForFixture(
     joints: DetectedToolJoint[],

@@ -551,6 +551,13 @@ export class KinematicExtractionPipeline {
       // Extract joint from transform
       const jointFit = extractJointFromTransform(icpResult, centroid, opts.jointExtraction);
 
+      if (!jointFit) {
+        console.warn(
+          `[Pipeline] No joint detected for unit '${unit.name}' (insufficient motion)`
+        );
+        continue;
+      }
+
       if (jointFit.confidence < opts.minConfidence) {
         console.warn(
           `[Pipeline] Low confidence joint fit for unit '${unit.name}': ` +
@@ -861,6 +868,12 @@ export class KinematicExtractionPipeline {
       .scale(1 / retracted.pointCloud.length);
 
     const jointFit = extractJointFromTransform(icpResult, centroid, opts.jointExtraction);
+
+    if (!jointFit) {
+      throw new Error(
+        `[Pipeline] No joint detected for unit '${unit.name}' (insufficient motion)`
+      );
+    }
 
     this.icpResults.set(unitId, { unit, icpResult, jointFit });
 

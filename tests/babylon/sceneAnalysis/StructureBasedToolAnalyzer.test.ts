@@ -111,11 +111,11 @@ describe('StructureBasedToolAnalyzer', () => {
       // Debug: Print joint details for LH fixture
       console.log(`\n[DEBUG] LH Joint Details (${joints.length} joints):`);
       for (const j of joints) {
-        const axisDeg = j.isPrismatic 
-          ? 'N/A' 
+        const axisDeg = j.isPrismatic
+          ? 'N/A'
           : `${(j.travelWorld * 180 / Math.PI).toFixed(1)}°`;
-        const travelStr = j.isPrismatic 
-          ? `${(j.travelWorld * 1000).toFixed(1)}mm` 
+        const travelStr = j.isPrismatic
+          ? `${(j.travelWorld * 1000).toFixed(1)}mm`
           : axisDeg;
         console.log(`  ${j.jointId}: unit=${j.unitId}, axis=(${j.axisWorld.x.toFixed(2)},${j.axisWorld.y.toFixed(2)},${j.axisWorld.z.toFixed(2)}), bodySize=${(j.bodySize * 1000).toFixed(1)}mm, travel=${travelStr}, icpError=${j.icpError.toFixed(6)}`);
       }
@@ -132,7 +132,7 @@ describe('StructureBasedToolAnalyzer', () => {
 
       const unitIds = new Set(joints.map(j => j.unitId));
       expect(unitIds.size).toBe(4);
-      
+
       const finalUnitNames = new Set<string>();
       for (const unitId of unitIds) {
         const unitName = unitIdToName.get(unitId);
@@ -140,7 +140,7 @@ describe('StructureBasedToolAnalyzer', () => {
           finalUnitNames.add(unitName);
         }
       }
-      
+
       // Assert that the final units match exactly the expected set
       expect(finalUnitNames.size).toBe(4);
       expect(finalUnitNames).toEqual(LH_UNIT_SET);
@@ -160,8 +160,8 @@ describe('StructureBasedToolAnalyzer', () => {
         const nameB = c.stateBName?.toUpperCase() ?? '';
         const ancestorA = c.stateAAncestorName?.toUpperCase() ?? '';
         const ancestorB = c.stateBAncestorName?.toUpperCase() ?? '';
-        return nameA.includes('MOVING') || nameB.includes('MOVING') || 
-               ancestorA.includes('MOVING') || ancestorB.includes('MOVING');
+        return nameA.includes('MOVING') || nameB.includes('MOVING') ||
+          ancestorA.includes('MOVING') || ancestorB.includes('MOVING');
       }).length;
       expect(movingHitCount).toBeGreaterThanOrEqual(4);
     }, 60000);
@@ -225,7 +225,7 @@ describe('StructureBasedToolAnalyzer', () => {
       // - vertexCount > 0
       // - bodySize >= minClampSize (reasonable threshold, e.g., 0.05m = 50mm)
       const minClampSize = 0.05; // 50mm - clamp jaws should be at least this large
-      
+
       for (const clampName of clampUnitNames) {
         // Find unit ID for this clamp unit
         let clampUnitId: string | undefined;
@@ -246,11 +246,11 @@ describe('StructureBasedToolAnalyzer', () => {
         );
 
         expect(twoStateFamilies.length).toBeGreaterThanOrEqual(1);
-        
+
         // Verify at least one family has reasonable size (clamp jaw should be substantial)
         const largeFamilies = twoStateFamilies.filter(f => f.bodySize >= minClampSize);
         expect(largeFamilies.length).toBeGreaterThanOrEqual(1);
-        
+
         // Debug: Print details for this unit
         console.log(`\n[DEBUG] ${clampName} (${clampUnitId}):`);
         console.log(`  Total families: ${families.filter(f => f.unitId === clampUnitId).length}`);
@@ -367,7 +367,7 @@ describe('StructureBasedToolAnalyzer', () => {
    */
   async function loadToolingGlb(relativePath: string): Promise<{ rootNode: BABYLON.Node; glbPath: string } | null> {
     const glbPath = path.resolve(process.cwd(), '..', 'kinetiCORE_data', 'Tooling', 'testing_data', relativePath);
-    
+
     if (!existsSync(glbPath)) {
       console.warn(`[Test] GLB file not found at ${glbPath}, skipping test`);
       return null;
@@ -389,7 +389,7 @@ describe('StructureBasedToolAnalyzer', () => {
         return null;
       }
 
-      const rootNode = scene.rootNodes.find(n => 
+      const rootNode = scene.rootNodes.find(n =>
         n.name.includes('016ZF') || n.name.includes('CI00')
       ) || scene.rootNodes[0];
 
@@ -414,7 +414,7 @@ describe('StructureBasedToolAnalyzer', () => {
   ): Promise<{ toolGraph: Awaited<ReturnType<StructureBasedToolAnalyzer['analyze']>>; elapsedMs: number }> {
     const analyzer = new StructureBasedToolAnalyzer();
     const startTime = performance.now();
-    
+
     const toolGraph = await analyzer.analyze(scene, {
       minUnitCount: 2,
       maxDepth: 10,
@@ -456,23 +456,23 @@ describe('StructureBasedToolAnalyzer', () => {
    */
   function getNodeName(nodeId: string, rootNode: BABYLON.Node | null): string | undefined {
     if (!rootNode) return undefined;
-    
+
     // Recursively search for node by matching uniqueId or name
     function findNode(node: BABYLON.Node, targetId: string): BABYLON.Node | null {
       // Check if this node matches (by uniqueId or name)
       if (node.uniqueId.toString() === targetId || node.name === targetId) {
         return node;
       }
-      
+
       // Search children
       for (const child of node.getChildren()) {
         const found = findNode(child, targetId);
         if (found) return found;
       }
-      
+
       return null;
     }
-    
+
     const node = findNode(rootNode, nodeId);
     return node?.name;
   }
@@ -535,7 +535,7 @@ describe('StructureBasedToolAnalyzer', () => {
     for (const joint of joints) {
       const nodeAName = getNodeName(joint.nodeAId, rootNode);
       const nodeBName = getNodeName(joint.nodeBId, rootNode);
-      
+
       if (nodeAName?.toUpperCase().includes('MOVING')) movingHits += 1;
       if (nodeBName?.toUpperCase().includes('MOVING')) movingHits += 1;
     }
@@ -556,7 +556,7 @@ describe('StructureBasedToolAnalyzer', () => {
     console.log(`Unit candidates: ${snapshot.unitCandidatesCount ?? 'unknown'} → Final units: ${snapshot.totalUnits}`);
     console.log(`Joints: ${snapshot.totalJoints} (expected varies)`);
     console.log(`Prismatic: ${joints.filter(j => j.isPrismatic).length}`);
-    
+
     if (snapshot.unitDebug && snapshot.unitDebug.length > 0) {
       console.log(`\nPer-unit breakdown:`);
       for (const unit of snapshot.unitDebug) {
@@ -567,7 +567,7 @@ describe('StructureBasedToolAnalyzer', () => {
         }
       }
     }
-    
+
     if (snapshot.candidatePairs && snapshot.candidatePairs.length > 0) {
       const rejected = snapshot.candidatePairs.filter(p => p.classification === 'rejected');
       const accepted = snapshot.candidatePairs.filter(p => p.classification !== 'rejected');
@@ -701,7 +701,7 @@ describe('StructureBasedToolAnalyzer', () => {
     const toCenterStr = joint.toCenter
       ? `(${joint.toCenter.x.toFixed(3)}, ${joint.toCenter.y.toFixed(3)}, ${joint.toCenter.z.toFixed(3)})`
       : 'undefined';
-    
+
     console.log(`[JOINT_DEBUG] ${joint.jointId} (unit: ${unitName || joint.unitId}):`);
     console.log(`  deltaType: ${joint.deltaType}`);
     console.log(`  angleDeg: ${joint.angleDeg ?? 'undefined'}`);
@@ -714,6 +714,78 @@ describe('StructureBasedToolAnalyzer', () => {
     console.log(`  vertexCountB: ${joint.vertexCountB}`);
     console.log(`  bodySize: ${(joint.bodySize * 1000).toFixed(1)}mm`);
     console.log(`  isTwoStateFamily: ${joint.isTwoStateFamily}`);
+  }
+
+  /**
+   * Debug validation helper for UNIT_112 in the 140 fixture.
+   * Validates that ICP pairing is correct by comparing detected joint against known ground truth.
+   * 
+   * **IMPORTANT**: This is test-only validation code. Do NOT use in production algorithm.
+   * 
+   * Known ground truth for UNIT_112 in 016ZF_20142435_140_1E1_CI00:
+   * - World pivot: (-2889.0, 867.5, 1381.0) mm = (-2.889, 0.8675, 1.381) m
+   * - Rotation axis: World Y (0, 1, 0)
+   * - Expected rotation: ~90 degrees
+   */
+  function validateUnit112Joint(joint: DetectedToolJoint, unitName: string | undefined): void {
+    if (unitName !== 'UNIT_112') return;
+
+    const knownPivot = new BABYLON.Vector3(-2.889, 0.8675, 1.381); // meters
+    const knownAxis = new BABYLON.Vector3(0, 1, 0); // world Y
+
+    // Validate rotation axis alignment with world Y
+    if (joint.axis) {
+      const axisVec = new BABYLON.Vector3(joint.axis.x, joint.axis.y, joint.axis.z);
+      const dotProduct = BABYLON.Vector3.Dot(axisVec, knownAxis);
+      const angleDeg = Math.acos(Math.abs(dotProduct)) * 180 / Math.PI;
+
+      if (angleDeg > 15) {
+        console.warn(
+          `[UNIT_112_VALIDATION] ⚠️ Axis misalignment: ${angleDeg.toFixed(1)}° from world Y ` +
+          `(expected \u003c15°). Axis: (${joint.axis.x.toFixed(3)}, ${joint.axis.y.toFixed(3)}, ${joint.axis.z.toFixed(3)})`
+        );
+      } else {
+        console.log(
+          `[UNIT_112_VALIDATION] ✓ Axis aligned with world Y: ${angleDeg.toFixed(1)}° deviation`
+        );
+      }
+    }
+
+    // Validate pivot location (if we can derive it from joint data)
+    // For now, we can use fromCenter or toCenter as a rough proxy
+    if (joint.fromCenter) {
+      const fromVec = new BABYLON.Vector3(
+        joint.fromCenter.x,
+        joint.fromCenter.y,
+        joint.fromCenter.z
+      );
+      const distanceToPivot = BABYLON.Vector3.Distance(fromVec, knownPivot);
+
+      if (distanceToPivot > 0.1) { // 100mm tolerance
+        console.warn(
+          `[UNIT_112_VALIDATION] ⚠️ Pivot distance: ${(distanceToPivot * 1000).toFixed(1)}mm ` +
+          `from known pivot (expected \u003c100mm). This may indicate wrong state pairing.`
+        );
+      } else {
+        console.log(
+          `[UNIT_112_VALIDATION] ✓ Pivot location reasonable: ${(distanceToPivot * 1000).toFixed(1)}mm from known pivot`
+        );
+      }
+    }
+
+    // Validate rotation angle (~90 degrees expected)
+    if (joint.angleDeg !== undefined) {
+      const angleDiff = Math.abs(joint.angleDeg - 90);
+      if (angleDiff > 30) {
+        console.warn(
+          `[UNIT_112_VALIDATION] ⚠️ Rotation angle ${joint.angleDeg.toFixed(1)}° differs from expected ~90° by ${angleDiff.toFixed(1)}°`
+        );
+      } else {
+        console.log(
+          `[UNIT_112_VALIDATION] ✓ Rotation angle ${joint.angleDeg.toFixed(1)}° is close to expected 90°`
+        );
+      }
+    }
   }
 
   async function analyzeFixtureWithSnapshot(
@@ -753,7 +825,7 @@ describe('StructureBasedToolAnalyzer', () => {
     for (const unit of snapshot.units) {
       // For LH fixture, only process units that have joints
       if (!LH_UNIT_SET.has(unit.id)) continue;
-      
+
       const nodes = unit.nodes ?? [];
       if (nodes.length === 0) continue;
 
@@ -873,13 +945,13 @@ describe('StructureBasedToolAnalyzer', () => {
       }
 
       const { snapshot, joints, rootNode } = result;
-      
+
       // Debug summary for threshold tuning
       printFixtureDebugSummary(snapshot, joints);
-      
+
       expect(snapshot.totalUnits).toBe(4);
       expect(joints.length).toBe(6);
-      
+
       // Sanity check: Most joints should hit MOVING* nodes (test-time validation only)
       assertMostJointsHitMovingNodes(joints, rootNode, 0.5);
     }, 60000);
@@ -892,24 +964,24 @@ describe('StructureBasedToolAnalyzer', () => {
       }
 
       const { snapshot, joints, rootNode } = result;
-      
+
       // Debug summary for threshold tuning
       printFixtureDebugSummary(snapshot, joints);
-      
+
       expect(snapshot.totalUnits).toBe(17);
       expect(joints.length).toBe(11);
       const prismaticJoints = joints.filter(j => j.isPrismatic);
       expect(prismaticJoints.length).toBe(2);
-      
+
       // Sanity check: Prismatic joints should be location pins (test-time validation only)
       if (prismaticJoints.length > 0) {
         for (const joint of prismaticJoints) {
           const nodeAName = getNodeName(joint.nodeAId, rootNode);
           const nodeBName = getNodeName(joint.nodeBId, rootNode);
-          const hasPinName = nodeAName?.toUpperCase().includes('PIN') || 
-                           nodeBName?.toUpperCase().includes('PIN') ||
-                           nodeAName?.toUpperCase().includes('LOC') ||
-                           nodeBName?.toUpperCase().includes('LOC');
+          const hasPinName = nodeAName?.toUpperCase().includes('PIN') ||
+            nodeBName?.toUpperCase().includes('PIN') ||
+            nodeAName?.toUpperCase().includes('LOC') ||
+            nodeBName?.toUpperCase().includes('LOC');
           // Note: This is a soft check - if names don't match, it's not a failure
           // but helps validate that we're detecting the right joints
           if (hasPinName) {
@@ -918,7 +990,138 @@ describe('StructureBasedToolAnalyzer', () => {
         }
       }
     }, 60000);
+
+    it('fixture 016ZF_130 should have exactly 4 revolute joints', async () => {
+      const result = await analyzeFixture('016ZF_20142435_130/016ZF_20142435_130.glb', '016ZF_130');
+      if (!result) {
+        console.warn('[Test] GLB file not available for 016ZF_130, skipping golden test');
+        return;
+      }
+
+      const { snapshot, joints, rootNode } = result;
+
+      // Debug summary
+      printFixtureDebugSummary(snapshot, joints);
+
+      // Assert: Exactly 4 joints total
+      expect(joints.length).toBe(4);
+
+      // Assert: All joints are revolute (no prismatic)
+      const revoluteJoints = joints.filter(j => !j.isPrismatic);
+      const prismaticJoints = joints.filter(j => j.isPrismatic);
+      expect(revoluteJoints.length).toBe(4);
+      expect(prismaticJoints.length).toBe(0);
+
+      // Assert: Rotation angles are in reasonable range (1° to 360°, expect ~90° for this fixture)
+      for (const joint of revoluteJoints) {
+        const angleDeg = Math.abs(joint.travelWorld ?? 0) * 180 / Math.PI;
+        expect(angleDeg).toBeGreaterThanOrEqual(1);
+        expect(angleDeg).toBeLessThanOrEqual(360);
+        console.log(`[Test] 016ZF_130 joint ${joint.jointId}: ${angleDeg.toFixed(1)}°`);
+      }
+
+      // Assert: No joints on base unit (if identifiable by name pattern like UNIT_101)
+      const unitIdToName = new Map<string, string>();
+      for (const unit of snapshot.units) {
+        if (unit.name) unitIdToName.set(unit.id, unit.name);
+      }
+
+      const baseUnitJoints = joints.filter(j => {
+        const unitName = unitIdToName.get(j.unitId);
+        return unitName?.includes('101'); // Base unit typically named UNIT_101
+      });
+      expect(baseUnitJoints.length).toBe(0);
+
+      // Assert: At most one joint per unit
+      const jointsPerUnit = new Map<string, number>();
+      for (const joint of joints) {
+        const count = jointsPerUnit.get(joint.unitId) || 0;
+        jointsPerUnit.set(joint.unitId, count + 1);
+      }
+      for (const [unitId, count] of jointsPerUnit.entries()) {
+        const unitName = unitIdToName.get(unitId) || unitId;
+        expect(count).toBeLessThanOrEqual(1);
+        console.log(`[Test] 016ZF_130 unit ${unitName}: ${count} joint(s)`);
+      }
+
+      // Sanity check: Most joints should hit MOVING* nodes
+      assertMostJointsHitMovingNodes(joints, rootNode, 0.5);
+    }, 60000);
+
+    it('fixture 016ZF_20142435_140_1E1_CI00 should have exactly 4 revolute joints', async () => {
+      const result = await analyzeFixture('8X-140-1E1_LH/016ZF_20142435_140_1E1_CI00.glb', '016ZF_140_1E1');
+      if (!result) {
+        console.warn('[Test] GLB file not available for 016ZF_140_1E1, skipping golden test');
+        return;
+      }
+
+      const { snapshot, joints, rootNode } = result;
+
+      // Debug summary
+      printFixtureDebugSummary(snapshot, joints);
+
+      // Assert: Exactly 4 joints total
+      expect(joints.length).toBe(4);
+
+      // Assert: All joints are revolute (no prismatic)
+      const revoluteJoints = joints.filter(j => !j.isPrismatic);
+      const prismaticJoints = joints.filter(j => j.isPrismatic);
+      expect(revoluteJoints.length).toBe(4);
+      expect(prismaticJoints.length).toBe(0);
+
+      // Assert: Rotation angles are in reasonable range (1° to 360°, expect ~90° for this fixture)
+      for (const joint of revoluteJoints) {
+        const angleDeg = Math.abs(joint.travelWorld ?? 0) * 180 / Math.PI;
+        expect(angleDeg).toBeGreaterThanOrEqual(1);
+        expect(angleDeg).toBeLessThanOrEqual(360);
+        console.log(`[Test] 016ZF_140 joint ${joint.jointId}: ${angleDeg.toFixed(1)}°`);
+      }
+
+      // Map unit IDs to names for validation
+      const unitIdToName = new Map<string, string>();
+      for (const unit of snapshot.units) {
+        if (unit.name) unitIdToName.set(unit.id, unit.name);
+      }
+
+      // Assert: No joints on UNIT_101 (base unit)
+      const unit101Joints = joints.filter(j => {
+        const unitName = unitIdToName.get(j.unitId);
+        return unitName === 'UNIT_101';
+      });
+      expect(unit101Joints.length).toBe(0);
+
+      // Assert: Expected moving units have exactly one joint each
+      const expectedMovingUnits = ['UNIT_102', 'UNIT_110', 'UNIT_112', 'UNIT_116'];
+      for (const expectedUnit of expectedMovingUnits) {
+        const unitJoints = joints.filter(j => {
+          const unitName = unitIdToName.get(j.unitId);
+          return unitName === expectedUnit;
+        });
+        expect(unitJoints.length).toBe(1);
+        console.log(`[Test] 016ZF_140 unit ${expectedUnit}: ${unitJoints.length} joint(s)`);
+
+        // Optional: Run UNIT_112 debug validation
+        if (expectedUnit === 'UNIT_112' && unitJoints.length > 0) {
+          validateUnit112Joint(unitJoints[0], expectedUnit);
+        }
+      }
+
+      // Assert: At most one joint per unit (no duplicates)
+      const jointsPerUnit = new Map<string, number>();
+      for (const joint of joints) {
+        const count = jointsPerUnit.get(joint.unitId) || 0;
+        jointsPerUnit.set(joint.unitId, count + 1);
+      }
+      for (const [unitId, count] of jointsPerUnit.entries()) {
+        const unitName = unitIdToName.get(unitId) || unitId;
+        expect(count).toBeLessThanOrEqual(1);
+      }
+
+      // Sanity check: Most joints should hit MOVING* nodes
+      assertMostJointsHitMovingNodes(joints, rootNode, 0.5);
+    }, 60000);
   });
+
 
   describe('Golden Test: Main GLB (8X-140_GEO)', () => {
     it('should detect 9 units with 9 joints total (4/3/2 per unit)', async () => {
@@ -938,7 +1141,7 @@ describe('StructureBasedToolAnalyzer', () => {
       // Assert: Total joint count
       const jointCounts = getJointCountsPerUnit(toolGraph);
       const totalJoints = Array.from(jointCounts.values()).reduce((sum, count) => sum + count, 0);
-      
+
       // Get specific unit joint counts
       const unit102 = toolGraph.units.find(u => u.name === 'UNIT_102');
       const unit104 = toolGraph.units.find(u => u.name === 'UNIT_104');
@@ -946,7 +1149,7 @@ describe('StructureBasedToolAnalyzer', () => {
       const unit102Joints = unit102 ? (jointCounts.get(unit102.id) || 0) : 0;
       const unit104Joints = unit104 ? (jointCounts.get(unit104.id) || 0) : 0;
       const unit106Joints = unit106 ? (jointCounts.get(unit106.id) || 0) : 0;
-      
+
       // Expected: UNIT_102: 4 joints, UNIT_104: 3 joints, UNIT_106: 2 joints = 9 total
       // NOTE: These counts are specific to this tooling fixture (8X-140_GEO).
       // The algorithm does not enforce a maximum joints per unit; these counts are
@@ -1015,7 +1218,7 @@ describe('StructureBasedToolAnalyzer', () => {
       // Assert: Joint count >= reasonable minimum (at least 1 if units exist)
       const jointCounts = getJointCountsPerUnit(toolGraph);
       const totalJoints = Array.from(jointCounts.values()).reduce((sum, count) => sum + count, 0);
-      
+
       // For robustness, we allow 0 joints (some GLBs may not have joints)
       // But log if we find some
       if (totalJoints > 0) {
@@ -1230,7 +1433,7 @@ describe('StructureBasedToolAnalyzer', () => {
       // Create a known 90° rotation matrix around Z axis for testing angle extraction
       // This tests the angle/axis extraction logic independently of ICP quality
       const knownRotation = BABYLON.Matrix.RotationZ(angle90Rad);
-      
+
       // Also try ICP to see if it works
       const result = icpFitter.fit(sourcePoints, targetPoints);
 
@@ -1299,5 +1502,197 @@ describe('StructureBasedToolAnalyzer', () => {
       expect(Math.abs(axis.x)).toBeLessThan(0.1);
       expect(Math.abs(axis.y)).toBeLessThan(0.1);
     });
+  });
+
+  describe('Golden Test: 016ZF_140_1E1_CI00 (4 revolute joints, UNIT_101 base)', () => {
+    const FIXTURE_140_PATH = '016ZF_20142435_140_1E1_CI00/016ZF_20142435_140_1E1_CI00.glb';
+    const FIXTURE_140_ID = '016ZF_20142435_140_1E1_CI00';
+
+    // Ground truth: UNIT_101 is the base (no kinematics)
+    // Four rotation joints total on other units
+    const EXPECTED_JOINT_COUNT = 4;
+    const BASE_UNIT_NAME = 'UNIT_101';
+
+    it('should detect exactly 4 revolute joints with no joints on UNIT_101', async () => {
+      const result = await analyzeFixtureWithSnapshot(FIXTURE_140_PATH, FIXTURE_140_ID);
+
+      if (!result) {
+        console.warn(`[Test] GLB file not available at ${FIXTURE_140_PATH}, skipping 016ZF_140 test`);
+        return;
+      }
+
+      const { snapshot, analyzer } = result;
+      const joints = analyzer.getDetectedToolJoints();
+
+      // Map unitId → unitName
+      const unitIdToName = new Map<string, string>();
+      for (const unit of snapshot.units) {
+        if (unit.name) unitIdToName.set(unit.id, unit.name);
+      }
+
+      // Print summary
+      console.log(`\n[016ZF_140] Total units: ${snapshot.totalUnits}`);
+      console.log(`[016ZF_140] Total joints: ${joints.length}`);
+      console.log(`[016ZF_140] Joint breakdown by unit:`);
+
+      const jointsByUnit = new Map<string, typeof joints>();
+      for (const joint of joints) {
+        const list = jointsByUnit.get(joint.unitId) ?? [];
+        list.push(joint);
+        jointsByUnit.set(joint.unitId, list);
+      }
+
+      for (const [unitId, unitJoints] of jointsByUnit.entries()) {
+        const unitName = unitIdToName.get(unitId) || unitId;
+        console.log(`  ${unitName}: ${unitJoints.length} joints`);
+        for (const joint of unitJoints) {
+          const typeStr = joint.isPrismatic ? 'prismatic' : 'revolute';
+          const valueStr = joint.isPrismatic
+            ? `${(joint.travelWorld * 1000).toFixed(1)}mm`
+            : `${(joint.travelWorld * 180 / Math.PI).toFixed(1)}°`;
+          console.log(`    - ${joint.jointId}: ${typeStr}, ${valueStr}`);
+        }
+      }
+
+      // CRITICAL ASSERTION: Exactly 4 joints total
+      if (joints.length !== EXPECTED_JOINT_COUNT) {
+        console.error(`\n[ERROR] Expected ${EXPECTED_JOINT_COUNT} joints, found ${joints.length}`);
+      }
+      expect(joints.length).toBe(EXPECTED_JOINT_COUNT);
+
+      // CRITICAL ASSERTION: All joints are revolute (no prismatic)
+      const prismaticJoints = joints.filter(j => j.isPrismatic);
+      if (prismaticJoints.length > 0) {
+        console.error(`\n[ERROR] Found ${prismaticJoints.length} prismatic joints (expected 0):`);
+        for (const joint of prismaticJoints) {
+          const unitName = unitIdToName.get(joint.unitId) || joint.unitId;
+          console.error(`  - ${unitName}: ${joint.jointId}, ${(joint.travelWorld * 1000).toFixed(1)}mm`);
+        }
+      }
+      expect(prismaticJoints.length).toBe(0);
+
+      // CRITICAL ASSERTION: UNIT_101 has 0 joints
+      const baseJoints = joints.filter(j => {
+        const unitName = unitIdToName.get(j.unitId);
+        return unitName === BASE_UNIT_NAME;
+      });
+
+      if (baseJoints.length > 0) {
+        console.error(`\n[ERROR] UNIT_101 has ${baseJoints.length} joints (expected 0):`);
+        for (const joint of baseJoints) {
+          console.error(`  - ${joint.jointId}: ${joint.deltaType}`);
+        }
+      }
+
+      expect(baseJoints.length).toBe(0);
+
+      // All detected joints should be revolute with ~90° rotation
+      for (const joint of joints) {
+        const unitName = unitIdToName.get(joint.unitId) || joint.unitId;
+
+        expect(joint.deltaType).toBe('revolute');
+        expect(joint.isPrismatic).toBe(false);
+
+        // Rotation angle should be defined and reasonable (within 30-180°)
+        expect(joint.angleDeg).toBeDefined();
+        if (joint.angleDeg !== undefined) {
+          expect(joint.angleDeg).toBeGreaterThanOrEqual(30);
+          expect(joint.angleDeg).toBeLessThanOrEqual(180);
+
+          console.log(`  ${unitName} (${joint.jointId}): ${joint.angleDeg.toFixed(1)}°`);
+        }
+      }
+    }, 60000);
+  });
+
+  describe('Golden Test: 016ZF_130 (4 revolute joints, UNIT_101 base)', () => {
+    const FIXTURE_130_PATH = '016ZF_20142435_130/016ZF_20142435_130.glb';
+    const FIXTURE_130_ID = '016ZF_20142435_130';
+
+    // Ground truth: UNIT_101 is the base (no kinematics)
+    // Four rotation joints total on other units
+    const EXPECTED_JOINT_COUNT = 4;
+    const BASE_UNIT_NAME = 'UNIT_101';
+
+    it('should detect exactly 4 revolute joints with no joints on UNIT_101', async () => {
+      const result = await analyzeFixtureWithSnapshot(FIXTURE_130_PATH, FIXTURE_130_ID);
+
+      if (!result) {
+        console.warn(`[Test] GLB file not available at ${FIXTURE_130_PATH}, skipping 016ZF_130 test`);
+        return;
+      }
+
+      const { snapshot, analyzer } = result;
+      const joints = analyzer.getDetectedToolJoints();
+
+      // Map unitId → unitName
+      const unitIdToName = new Map<string, string>();
+      for (const unit of snapshot.units) {
+        if (unit.name) unitIdToName.set(unit.id, unit.name);
+      }
+
+      // Print summary
+      console.log(`\n[016ZF_130] Total units: ${snapshot.totalUnits}`);
+      console.log(`[016ZF_130] Total joints: ${joints.length}`);
+      console.log(`[016ZF_130] Joint breakdown by unit:`);
+
+      const jointsByUnit = new Map<string, typeof joints>();
+      for (const joint of joints) {
+        const list = jointsByUnit.get(joint.unitId) ?? [];
+        list.push(joint);
+        jointsByUnit.set(joint.unitId, list);
+      }
+
+      for (const [unitId, unitJoints] of jointsByUnit.entries()) {
+        const unitName = unitIdToName.get(unitId) || unitId;
+        console.log(`  ${unitName}: ${unitJoints.length} joints`);
+        for (const joint of unitJoints) {
+          const typeStr = joint.isPrismatic ? 'prismatic' : 'revolute';
+          const valueStr = joint.isPrismatic
+            ? `${(joint.travelWorld * 1000).toFixed(1)}mm`
+            : `${(joint.travelWorld * 180 / Math.PI).toFixed(1)}°`;
+          console.log(`    - ${joint.jointId}: ${typeStr}, ${valueStr}`);
+        }
+      }
+
+      // CRITICAL ASSERTION: Exactly 4 joints total
+      expect(joints.length).toBe(EXPECTED_JOINT_COUNT);
+
+      // CRITICAL ASSERTION: All joints are revolute (no prismatic)
+      const prismaticJoints = joints.filter(j => j.isPrismatic);
+      expect(prismaticJoints.length).toBe(0);
+
+      // CRITICAL ASSERTION: UNIT_101 has 0 joints
+      const baseJoints = joints.filter(j => {
+        const unitName = unitIdToName.get(j.unitId);
+        return unitName === BASE_UNIT_NAME;
+      });
+
+      if (baseJoints.length > 0) {
+        console.error(`\n[ERROR] UNIT_101 has ${baseJoints.length} joints (expected 0):`);
+        for (const joint of baseJoints) {
+          console.error(`  - ${joint.jointId}: ${joint.deltaType}`);
+        }
+      }
+
+      expect(baseJoints.length).toBe(0);
+
+      // All detected joints should be revolute with ~90° rotation
+      for (const joint of joints) {
+        const unitName = unitIdToName.get(joint.unitId) || joint.unitId;
+
+        expect(joint.deltaType).toBe('revolute');
+        expect(joint.isPrismatic).toBe(false);
+
+        // Rotation angle should be defined and reasonable (within 30-180°)
+        expect(joint.angleDeg).toBeDefined();
+        if (joint.angleDeg !== undefined) {
+          expect(joint.angleDeg).toBeGreaterThanOrEqual(30);
+          expect(joint.angleDeg).toBeLessThanOrEqual(180);
+
+          console.log(`  ${unitName} (${joint.jointId}): ${joint.angleDeg.toFixed(1)}°`);
+        }
+      }
+    }, 60000);
   });
 });

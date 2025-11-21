@@ -74,7 +74,7 @@ describe('ICP Motion Classification', () => {
             expect(icpResult.rmsError).toBeGreaterThan(1.0);
         });
 
-        it('should give low confidence for no motion', () => {
+        it('should return null for no motion', () => {
             const points: BABYLON.Vector3[] = [];
             for (let i = 0; i < 20; i++) {
                 points.push(new BABYLON.Vector3(
@@ -92,8 +92,56 @@ describe('ICP Motion Classification', () => {
             const centroid = computeCentroid(points);
             const joint = extractJointFromTransform(icpResult, centroid);
 
-            // No motion = low confidence
-            expect(joint.confidence).toBeLessThan(0.2);
+            // No motion should return null (not a joint)
+            expect(joint).toBeNull();
+        });
+
+        it('should return null for noise-level translation (1mm)', () => {
+            // Create two point clouds with only 1mm difference (below threshold)
+            const pointsA: BABYLON.Vector3[] = [];
+            const pointsB: BABYLON.Vector3[] = [];
+
+            for (let i = 0; i < 20; i++) {
+                const basePoint = new BABYLON.Vector3(
+                    Math.random() * 0.1,
+                    Math.random() * 0.1,
+                    Math.random() * 0.1
+                );
+                pointsA.push(basePoint);
+                // Add 1mm noise (0.001m) - below typical threshold (10mm)
+                pointsB.push(basePoint.add(new BABYLON.Vector3(0.001, 0, 0)));
+            }
+
+            const icpResult = ICP.align(pointsA, pointsB);
+            const centroid = computeCentroid(pointsA);
+            const joint = extractJointFromTransform(icpResult, centroid);
+
+            // 1mm motion is noise, should return null
+            expect(joint).toBeNull();
+        });
+
+        it('should return null for noise-level rotation (0.5 degrees)', () => {
+            // Create two point clouds with only 0.5° rotation (below threshold)
+            const pointsA: BABYLON.Vector3[] = [];
+
+            for (let i = 0; i < 20; i++) {
+                pointsA.push(new BABYLON.Vector3(
+                    Math.random() * 0.1,
+                    Math.random() * 0.1,
+                    Math.random() * 0.1
+                ));
+            }
+
+            // Rotate by 0.5° (0.00873 radians) - below typical threshold (1-2°)
+            const tinyRotation = BABYLON.Matrix.RotationZ(0.00873);
+            const pointsB = pointsA.map(p => BABYLON.Vector3.TransformCoordinates(p, tinyRotation));
+
+            const icpResult = ICP.align(pointsA, pointsB);
+            const centroid = computeCentroid(pointsA);
+            const joint = extractJointFromTransform(icpResult, centroid);
+
+            // 0.5° rotation is noise, should return null
+            expect(joint).toBeNull();
         });
     });
 
