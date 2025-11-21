@@ -73,6 +73,10 @@ import { CreateDropdown } from '../components/CreateDropdown';
 import { SelectionLevelDropdown } from '../components/SelectionLevelDropdown';
 import { ViewDropdown } from '../components/ViewDropdown';
 import { MeasurementTools, MeasurementType } from '../components/MeasurementTools';
+import { KinematicsManager } from '../../kinematics/KinematicsManager';
+import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
+import { RobotJoggingPanelWithGizmo } from '../components/RobotJoggingPanelWithGizmo';
+import { FloatingPanel } from '../components/FloatingPanel/FloatingPanel';
 import './EssentialModeLayout.css';
 import './ProfessionalModeLayout.css';
 
@@ -142,9 +146,18 @@ export const EssentialModeLayout: React.FC = () => {
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [showSnapDialog, setShowSnapDialog] = useState(false);
   const [showSnapSetupPopup, setShowSnapSetupPopup] = useState(false);
+  const [showJointJogPanel, setShowJointJogPanel] = useState(false);
+  const [showRobotJogPanel, setShowRobotJogPanel] = useState(false);
+  const [showPosesPanel, setShowPosesPanel] = useState(false);
   const [showWarehousePanel, setShowWarehousePanel] = useState(false);
   const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation'>('modeling');
   const [activeMeasurement, setActiveMeasurement] = useState<MeasurementType>(null);
+  // Kinematics inline robot state
+  const [kinActiveRobotId, setKinActiveRobotId] = useState<string | null>(null);
+  const [kinJoints, setKinJoints] = useState<any[]>([]);
+  const [kinActiveRobotMeta, setKinActiveRobotMeta] = useState<{ name: string; jointCount: number } | null>(null);
+  const kinematicsManagerRef = useRef(KinematicsManager.getInstance());
+  const fkSolverRef = useRef(ForwardKinematicsSolver.getInstance());
 
   // Resizable sidebar state
   const [sidebarWidth, setSidebarWidth] = useState(256); // Default 256px (w-64)
@@ -162,6 +175,61 @@ export const EssentialModeLayout: React.FC = () => {
     arrowWidth: 14,
     badgeWidth: 40
   });
+
+  // Auto-select robot for kinematics actions
+  useEffect(() => {
+    const resolveRobotFromSelection = () => {
+      if (!selectedNodeId) return null;
+      const tree = SceneTreeManager.getInstance();
+      const chains = kinematicsManagerRef.current.getAllChains();
+      let node = tree.getNode(selectedNodeId);
+      while (node) {
+        const isRobotRoot = chains.some((chain: any) =>
+          chain.joints?.some((j: any) => typeof j.id === 'string' && j.id.startsWith(node.id))
+        );
+        if (isRobotRoot) return node.id;
+        if (!node.parentId) break;
+        const parent = tree.getNode(node.parentId);
+        if (!parent || parent.name === 'Assets') break;
+        node = parent;
+      }
+      return null;
+    };
+
+    const updateActive = () => {
+      const next = resolveRobotFromSelection();
+      setKinActiveRobotId(prev => (prev !== next ? next : prev));
+    };
+
+    updateActive();
+    const onTree = () => updateActive();
+    window.addEventListener('scenetree-update', onTree);
+    window.addEventListener('model-import-complete', onTree);
+    return () => {
+      window.removeEventListener('scenetree-update', onTree);
+      window.removeEventListener('model-import-complete', onTree);
+    };
+  }, [selectedNodeId]);
+
+  useEffect(() => {
+    const updateJoints = () => {
+      if (!kinActiveRobotId) {
+        setKinJoints([]);
+        setKinActiveRobotMeta(null);
+        return;
+      }
+      const allJoints = kinematicsManagerRef.current.getAllJoints();
+      const jointsForRobot = allJoints.filter((j: any) => j.id.startsWith(kinActiveRobotId));
+      setKinJoints(jointsForRobot);
+      const tree = SceneTreeManager.getInstance();
+      const node = tree.getNode(kinActiveRobotId);
+      const name = node?.name || 'Active Robot';
+      setKinActiveRobotMeta({ name, jointCount: jointsForRobot.length });
+    };
+    updateJoints();
+    const id = setInterval(updateJoints, 500);
+    return () => clearInterval(id);
+  }, [kinActiveRobotId]);
 
   // Update sidebar width when optimal width changes
   useEffect(() => {
@@ -1115,6 +1183,18 @@ export const EssentialModeLayout: React.FC = () => {
                     <TestTube size={18} />
                     <span className="tool-btn-label">ICP Test</span>
                   </button>
+                  <button className="tool-btn" onClick={() => setShowJointJogPanel(true)} title="Joint Jog Panel">
+                    <Move size={18} />
+                    <span className="tool-btn-label">Joint Jog</span>
+                  </button>
+                  <button className="tool-btn" onClick={() => setShowRobotJogPanel(true)} title="Robot Jog Panel">
+                    <Navigation size={18} />
+                    <span className="tool-btn-label">Robot Jog</span>
+                  </button>
+                  <button className="tool-btn" onClick={() => setShowPosesPanel(true)} title="Poses Panel">
+                    <Play size={18} />
+                    <span className="tool-btn-label">Poses</span>
+                  </button>
                 </div>
               </div>
             </>
@@ -1335,6 +1415,156 @@ export const EssentialModeLayout: React.FC = () => {
         onClose={() => setShowSettingsPanel(false)}
         zIndex={1009}
       />
+
+      <FloatingPanel
+        className="joint-jog-panel"
+        title="Joint Jog"
+        subtitle={kinActiveRobotId ? 'Joint-only jogging' : 'Select a robot to jog'}
+        isVisible={showJointJogPanel}
+        onClose={() => setShowJointJogPanel(false)}
+        defaultSize={{ width: 360, height: 520 }}
+        minWidth={320}
+        minHeight={420}
+        maxWidth={500}
+        maxHeight={720}
+      >
+        {kinActiveRobotId && kinJoints.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '6px' }}>
+            <div
+              style={{
+                padding: '12px 14px',
+                borderRadius: 12,
+                border: '1px solid rgba(80,166,255,0.25)',
+                background:
+                  'linear-gradient(135deg, rgba(27,32,44,0.96), rgba(27,32,44,0.92))',
+                color: '#eaf4ff',
+              }}
+            >
+              <div style={{ fontSize: 14, textTransform: 'uppercase', letterSpacing: 0.12, opacity: 0.86 }}>
+                Jogging
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 800, marginTop: 6 }}>
+                {kinActiveRobotMeta?.name || 'Active Robot'}
+              </div>
+              <div style={{ fontSize: 14, color: '#d6e3f7', marginTop: 6 }}>
+                {kinActiveRobotMeta?.jointCount ?? kinJoints.length} joints detected
+              </div>
+            </div>
+
+            <RobotJoggingPanelWithGizmo
+              joints={kinJoints}
+              fkSolver={fkSolverRef.current}
+              robotId={kinActiveRobotId}
+              allowedModes={['joint']}
+              hideModeSelector
+            />
+          </div>
+        ) : (
+          <div style={{ padding: '12px', color: '#cbd5e0', fontSize: 13 }}>
+            Select a robot in the scene to jog joints.
+          </div>
+        )}
+      </FloatingPanel>
+
+      <FloatingPanel
+        className="joint-jog-panel"
+        title="Robot Jog"
+        subtitle={kinActiveRobotId ? 'TCP jogging' : 'Select a robot to jog'}
+        isVisible={showRobotJogPanel}
+        onClose={() => setShowRobotJogPanel(false)}
+        defaultSize={{ width: 360, height: 520 }}
+        minWidth={320}
+        minHeight={420}
+        maxWidth={500}
+        maxHeight={720}
+      >
+        {kinActiveRobotId && kinJoints.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '6px' }}>
+            <div
+              style={{
+                padding: '12px 14px',
+                borderRadius: 12,
+                border: '1px solid rgba(80,166,255,0.25)',
+                background:
+                  'linear-gradient(135deg, rgba(27,32,44,0.96), rgba(27,32,44,0.92))',
+                color: '#eaf4ff',
+              }}
+            >
+              <div style={{ fontSize: 14, textTransform: 'uppercase', letterSpacing: 0.12, opacity: 0.86 }}>
+                Robot Jog
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 800, marginTop: 6 }}>
+                {kinActiveRobotMeta?.name || 'Active Robot'}
+              </div>
+              <div style={{ fontSize: 14, color: '#d6e3f7', marginTop: 6 }}>
+                {kinActiveRobotMeta?.jointCount ?? kinJoints.length} joints detected
+              </div>
+            </div>
+
+            <RobotJoggingPanelWithGizmo
+              joints={kinJoints}
+              fkSolver={fkSolverRef.current}
+              robotId={kinActiveRobotId}
+              allowedModes={['tcp']}
+              hideModeSelector
+            />
+          </div>
+        ) : (
+          <div style={{ padding: '12px', color: '#cbd5e0', fontSize: 13 }}>
+            Select a robot in the scene to jog.
+          </div>
+        )}
+      </FloatingPanel>
+
+      <FloatingPanel
+        className="joint-jog-panel"
+        title="Poses"
+        subtitle={kinActiveRobotId ? 'Pose jogging' : 'Select a robot to jog'}
+        isVisible={showPosesPanel}
+        onClose={() => setShowPosesPanel(false)}
+        defaultSize={{ width: 360, height: 520 }}
+        minWidth={320}
+        minHeight={420}
+        maxWidth={500}
+        maxHeight={720}
+      >
+        {kinActiveRobotId && kinJoints.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '6px' }}>
+            <div
+              style={{
+                padding: '12px 14px',
+                borderRadius: 12,
+                border: '1px solid rgba(80,166,255,0.25)',
+                background:
+                  'linear-gradient(135deg, rgba(27,32,44,0.96), rgba(27,32,44,0.92))',
+                color: '#eaf4ff',
+              }}
+            >
+              <div style={{ fontSize: 14, textTransform: 'uppercase', letterSpacing: 0.12, opacity: 0.86 }}>
+                Poses
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 800, marginTop: 6 }}>
+                {kinActiveRobotMeta?.name || 'Active Robot'}
+              </div>
+              <div style={{ fontSize: 14, color: '#d6e3f7', marginTop: 6 }}>
+                {kinActiveRobotMeta?.jointCount ?? kinJoints.length} joints detected
+              </div>
+            </div>
+
+            <RobotJoggingPanelWithGizmo
+              joints={kinJoints}
+              fkSolver={fkSolverRef.current}
+              robotId={kinActiveRobotId}
+              allowedModes={['poses']}
+              hideModeSelector
+            />
+          </div>
+        ) : (
+          <div style={{ padding: '12px', color: '#cbd5e0', fontSize: 13 }}>
+            Select a robot in the scene to jog poses.
+          </div>
+        )}
+      </FloatingPanel>
 
       <PipingPanel
         isVisible={useEditorStore((state) => state.pipingModeEnabled)}
