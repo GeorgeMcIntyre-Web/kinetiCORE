@@ -355,11 +355,10 @@
 }
 
 .tcp-axis {
-  display: grid;
-  grid-template-columns: 28px auto auto;
+  display: flex;
   align-items: center;
-  justify-items: start;
-  gap: 6px;
+  gap: 4px;
+  width: 100%;
 }
 
 .axis-label {
@@ -371,6 +370,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .tcp-axis .jog-btn {
@@ -381,6 +381,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Push first button to the far right */
+.tcp-axis .jog-btn:first-of-type {
+  margin-left: auto;
 }
 
 /* Ensure SVG icons are properly sized and visible */
