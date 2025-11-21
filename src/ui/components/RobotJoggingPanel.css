@@ -86,7 +86,7 @@
   justify-content: space-between;
   gap: 6px;
   background: rgba(255, 255, 255, 0.03);
-  padding: 8px;
+  padding: 6px;
   border-radius: 8px;
   width: 100%;
   border: 1px solid var(--settings-border);
@@ -316,41 +316,41 @@
 .tcp-controls {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .tcp-jog-mode {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .tcp-section {
   background: rgba(255, 255, 255, 0.02);
   border-radius: 8px;
-  padding: 8px;
+  padding: 6px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   border: 1px solid var(--settings-border);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .tcp-section h4 {
-  margin: 0 0 6px 0;
+  margin: 0 0 4px 0;
   font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.5px;
   color: var(--settings-text-secondary);
   border-bottom: 1px solid var(--settings-border);
-  padding-bottom: 6px;
+  padding-bottom: 4px;
 }
 
 .tcp-axis-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   width: 100%;
 }
 
@@ -363,7 +363,7 @@
 
 .axis-label {
   width: 28px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--settings-accent);
   text-align: center;
@@ -401,14 +401,14 @@
 /* TCP Info - Enhanced */
 .tcp-info {
   background: linear-gradient(145deg, rgb(59, 71, 115), rgb(45, 55, 88));
-  border-radius: 9px;
-  padding: 8px;
+  border-radius: 8px;
+  padding: 6px;
   border: 1px solid #2f3a55;
-  border-left: 4px solid var(--settings-warning);
+  border-left: 3px solid var(--settings-warning);
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+  gap: 3px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
 }
 
 .tcp-info-header {
@@ -419,8 +419,8 @@
 
 .info-title {
   margin: 0;
-  font-size: 14px;
-  font-weight: 750;
+  font-size: 13px;
+  font-weight: 700;
   color: #f1f5ff;
 }
 
@@ -428,7 +428,7 @@
   background: rgba(16, 185, 129, 0.12);
   color: #7ce8c2;
   padding: 2px 6px;
-  border-radius: 12px;
+  border-radius: 10px;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -438,31 +438,36 @@
 .tcp-pos-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
+  gap: 3px;
 }
 
 .tcp-pos-cell {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 6px;
+  border-radius: 4px;
+  padding: 3px 4px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 3px;
 }
 
 .tcp-pos-cell .cell-label {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
   color: #9fb4d8;
+  flex-shrink: 0;
 }
 
 .tcp-pos-cell .cell-value {
-  font-size: 13px;
-  font-weight: 750;
+  font-size: 12px;
+  font-weight: 600;
   color: #eef4ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* TCP Info styling */
