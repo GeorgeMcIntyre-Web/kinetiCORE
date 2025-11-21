@@ -34,10 +34,21 @@ interface RobotJoggingPanelProps {
   joints: any[]; // Filtered joints for this specific robot
   fkSolver: ForwardKinematicsSolver;
   robotId: string; // Robot collection ID for filtering
+  allowedModes?: JogMode[];
+  hideModeSelector?: boolean;
 }
 
-export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ joints: propsJoints, fkSolver, robotId }) => {
-  const [jogMode, setJogMode] = useState<JogMode>('joint');
+export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
+  joints: propsJoints,
+  fkSolver,
+  robotId,
+  allowedModes: allowedModesProp,
+  hideModeSelector = false,
+}) => {
+  const allowedModes: JogMode[] = (allowedModesProp && allowedModesProp.length > 0
+    ? allowedModesProp
+    : ['joint', 'tcp', 'poses', 'targets']);
+  const [jogMode, setJogMode] = useState<JogMode>(allowedModes[0]);
   const [jogStepJoint, setJogStepJoint] = useState(5); // degrees
   const [jogStepTcpLinear, setJogStepTcpLinear] = useState(10); // mm for linear
   const [jogStepTcpRotary, setJogStepTcpRotary] = useState(5); // degrees for rotary
@@ -57,6 +68,10 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [useGroups, setUseGroups] = useState<boolean>(false);
   const [debugMode] = useState<IKDebugMode>(() => (localStorage.getItem('ikDebugMode') as IKDebugMode) || 'none');
+  const setJogModeSafe = (mode: JogMode) => {
+    if (!allowedModes.includes(mode)) return;
+    setJogMode(mode);
+  };
   
   // Gizmo management
   const [unifiedGizmo] = useState(() => UnifiedGizmoManager.getInstance());
@@ -1045,37 +1060,46 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({ j
 
   return (
     <div className="robot-jogging-panel">
-      {/* Mode Selector */}
-      <div className="jog-mode-selector">
-        <button
-          className={`mode-button ${jogMode === 'joint' ? 'active' : ''}`}
-          onClick={() => setJogMode('joint')}
-        >
-          <Move size={14} />
-          <span>Joint</span>
-        </button>
-        <button
-          className={`mode-button ${jogMode === 'tcp' ? 'active' : ''}`}
-          onClick={() => setJogMode('tcp')}
-        >
-          <RotateCw size={14} />
-          <span>TCP</span>
-        </button>
-        <button
-          className={`mode-button ${jogMode === 'targets' ? 'active' : ''}`}
-          onClick={() => setJogMode('targets')}
-        >
-          <Target size={14} />
-          <span>Targets</span>
-        </button>
-        <button
-          className={`mode-button ${jogMode === 'poses' ? 'active' : ''}`}
-          onClick={() => setJogMode('poses')}
-        >
-          <Play size={14} />
-          <span>Poses</span>
-        </button>
-      </div>
+      {!hideModeSelector && allowedModes.length > 1 && (
+        <div className="jog-mode-selector">
+          {allowedModes.includes('joint') && (
+            <button
+              className={`mode-button ${jogMode === 'joint' ? 'active' : ''}`}
+              onClick={() => setJogModeSafe('joint')}
+            >
+              <Move size={14} />
+              <span>Joint</span>
+            </button>
+          )}
+          {allowedModes.includes('tcp') && (
+            <button
+              className={`mode-button ${jogMode === 'tcp' ? 'active' : ''}`}
+              onClick={() => setJogModeSafe('tcp')}
+            >
+              <RotateCw size={14} />
+              <span>TCP</span>
+            </button>
+          )}
+          {allowedModes.includes('targets') && (
+            <button
+              className={`mode-button ${jogMode === 'targets' ? 'active' : ''}`}
+              onClick={() => setJogModeSafe('targets')}
+            >
+              <Target size={14} />
+              <span>Targets</span>
+            </button>
+          )}
+          {allowedModes.includes('poses') && (
+            <button
+              className={`mode-button ${jogMode === 'poses' ? 'active' : ''}`}
+              onClick={() => setJogModeSafe('poses')}
+            >
+              <Play size={14} />
+              <span>Poses</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Joint Mode */}
       {jogMode === 'joint' && (

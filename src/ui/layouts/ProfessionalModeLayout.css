@@ -329,6 +329,22 @@
   display: none;
 }
 
+/* Joint Jog panel styling */
+.joint-jog-panel {
+  background: rgb(27, 32, 44);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+}
+
+.joint-jog-panel .floating-panel-header {
+  background: rgb(27, 32, 44);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.joint-jog-panel .floating-panel-content {
+  background: rgb(27, 32, 44);
+}
+
 /* Left Sidebar */
 .professional-left-sidebar {
   width: 280px;
