@@ -1205,43 +1205,25 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
       {/* TCP Mode with Gizmo */}
       {jogMode === 'tcp' && (
         <div className="tcp-jog-mode">
-          <div className="jog-step-control">
-            <label>Step</label>
-            <div className="step-selector">
-              <button onClick={() => setJogStepTcpLinear(Math.max(1, jogStepTcpLinear - 1))}>-</button>
-              <input
-                type="number"
-                value={jogStepTcpLinear}
-                onChange={(e) => setJogStepTcpLinear(Math.max(1, parseInt(e.target.value) || 1))}
-                min="1"
-                max="100"
-                placeholder="10"
-              />
-              <span className="unit">mm</span>
-              <button onClick={() => setJogStepTcpLinear(Math.min(100, jogStepTcpLinear + 1))}>+</button>
-            </div>
-          </div>
-
-          <div className="jog-step-control">
-            <label>Step</label>
-            <div className="step-selector">
-              <button onClick={() => setJogStepTcpRotary(Math.max(1, jogStepTcpRotary - 1))}>-</button>
-              <input
-                type="number"
-                value={jogStepTcpRotary}
-                onChange={(e) => setJogStepTcpRotary(Math.max(1, parseInt(e.target.value) || 1))}
-                min="1"
-                max="90"
-                placeholder="5"
-              />
-              <span className="unit">°</span>
-              <button onClick={() => setJogStepTcpRotary(Math.min(90, jogStepTcpRotary + 1))}>+</button>
-            </div>
-          </div>
-
           <div className="tcp-controls">
             <div className="tcp-section">
               <h4>Linear</h4>
+              <div className="jog-step-control">
+                <label>Step</label>
+                <div className="step-selector">
+                  <button onClick={() => setJogStepTcpLinear(Math.max(1, jogStepTcpLinear - 1))}>-</button>
+                  <input
+                    type="number"
+                    value={jogStepTcpLinear}
+                    onChange={(e) => setJogStepTcpLinear(Math.max(1, parseInt(e.target.value) || 1))}
+                    min="1"
+                    max="100"
+                    placeholder="10"
+                  />
+                  <span className="unit">mm</span>
+                  <button onClick={() => setJogStepTcpLinear(Math.min(100, jogStepTcpLinear + 1))}>+</button>
+                </div>
+              </div>
               <div className="tcp-axis-group">
                 {(['X', 'Y', 'Z'] as JogAxis[]).map(axis => (
                   <div key={axis} className="tcp-axis">
@@ -1267,6 +1249,22 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
 
             <div className="tcp-section">
               <h4>Rotary</h4>
+              <div className="jog-step-control">
+                <label>Step</label>
+                <div className="step-selector">
+                  <button onClick={() => setJogStepTcpRotary(Math.max(1, jogStepTcpRotary - 1))}>-</button>
+                  <input
+                    type="number"
+                    value={jogStepTcpRotary}
+                    onChange={(e) => setJogStepTcpRotary(Math.max(1, parseInt(e.target.value) || 1))}
+                    min="1"
+                    max="90"
+                    placeholder="5"
+                  />
+                  <span className="unit">°</span>
+                  <button onClick={() => setJogStepTcpRotary(Math.min(90, jogStepTcpRotary + 1))}>+</button>
+                </div>
+              </div>
               <div className="tcp-axis-group">
                 {(['RX', 'RY', 'RZ'] as JogAxis[]).map(axis => (
                   <div key={axis} className="tcp-axis">
@@ -1291,12 +1289,30 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
             </div>
 
             <div className="tcp-info">
-              <p className="info-text">
-                📍 Current TCP Position
-              </p>
-              <p className="info-subtext">
-                {tcpPosition}
-              </p>
+              <div className="tcp-info-header">
+                <div className="info-title">📍 Current TCP</div>
+                <div className="info-badge">Live</div>
+              </div>
+              <div className="tcp-pos-grid">
+                {[
+                  { label: 'X', unit: 'mm' },
+                  { label: 'Y', unit: 'mm' },
+                  { label: 'Z', unit: 'mm' },
+                  { label: 'Rx', unit: '°' },
+                  { label: 'Ry', unit: '°' },
+                  { label: 'Rz', unit: '°' },
+                ].map(({ label, unit }) => {
+                  const pattern = new RegExp(`${label}:([-0-9.+]+)`);
+                  const match = tcpPosition.match(pattern);
+                  const value = match ? match[1] : '—';
+                  return (
+                    <div key={label} className="tcp-pos-cell">
+                      <div className="cell-label">{label}</div>
+                      <div className="cell-value">{value === '—' ? '—' : `${value} ${unit}`}</div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

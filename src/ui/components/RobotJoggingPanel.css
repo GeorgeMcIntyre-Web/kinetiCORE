@@ -1,48 +1,61 @@
 /* Robot Jogging Panel - Professional 6-axis robot control */
+/* Aligned with kinetiCORE design system */
 
 .robot-jogging-panel {
+  --settings-bg: #1a1a1a;
+  --settings-surface: #2a2a2a;
+  --settings-border: #3a3a3a;
+  --settings-text: #ffffff;
+  --settings-text-secondary: #a0a0a0;
+  --settings-accent: #3b82f6;
+  --settings-accent-hover: #2563eb;
+  --settings-success: #10b981;
+  --settings-warning: #f59e0b;
+  --settings-error: #ef4444;
+
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 10px;
-  background: #1f2433;
-  color: #e9eef7;
+  gap: 8px;
+  padding: 12px;
+  background: var(--settings-bg);
+  color: var(--settings-text);
   height: 100%;
   overflow-y: auto;
   border-radius: 10px;
 }
 
-/* Mode Selector */
+/* Mode Selector - Enhanced with gradients */
 .jog-mode-selector {
   display: flex;
   gap: 6px;
-  background: #2c3244;
+  background: linear-gradient(145deg, rgba(19, 24, 39, 0.94), rgba(12, 16, 27, 0.92));
   padding: 6px;
-  border-radius: 10px;
-  flex-wrap: nowrap; /* keep tabs on a single line */
-  overflow: hidden;  /* no scrollbar; contents must fit */
-  container-type: inline-size; /* enable container query-based scaling */
+  border-radius: 8px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--settings-border);
 }
 
 .mode-button {
-  flex: 1 1 0; /* distribute space equally and allow shrinking */
-  min-width: 0; /* allow shrinking */
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 10px;
+  padding: 8px 12px;
   background: rgba(255, 255, 255, 0.04);
   border: none;
   border-radius: 8px;
-  color: #d5deed;
-  font-size: 13px; /* base, scaled down with container queries below */
+  color: var(--settings-text-secondary);
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Icons scale with text size */
 .mode-button svg {
   width: 1.05em;
   height: 1.05em;
@@ -50,39 +63,42 @@
 
 .mode-button span {
   white-space: nowrap;
-  overflow: hidden;      /* allow truncation to keep one line */
+  overflow: hidden;
   text-overflow: ellipsis;
 }
 
-
 .mode-button:hover {
-  background: #3a4359;
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--settings-text);
+  border-color: #4a5568;
 }
 
 .mode-button.active {
-  background: #3b82f6;
-  color: white;
+  background: radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.28), rgba(59, 130, 246, 0.08));
+  color: #fff;
+  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.28);
 }
 
-/* Jog Step Control */
+/* Jog Step Control - Enhanced */
 .jog-step-control {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  background: #242c3d;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
   padding: 8px;
   border-radius: 8px;
   width: 100%;
+  border: 1px solid var(--settings-border);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
 .jog-step-control label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: #c6d4eb;
+  letter-spacing: 0.5px;
+  color: var(--settings-text-secondary);
   white-space: nowrap;
 }
 
@@ -93,23 +109,26 @@
 }
 
 .step-selector button {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #4b556a;
-  border: none;
-  border-radius: 6px;
-  color: #eaf0ff;
-  font-size: 15px;
-  font-weight: 800;
+  background: var(--settings-surface);
+  border: 1px solid var(--settings-border);
+  border-radius: 8px;
+  color: var(--settings-text);
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s ease;
 }
 
 .step-selector button:hover {
-  background: #64748b;
+  background: var(--settings-accent);
+  border-color: var(--settings-accent);
+  color: #fff;
+  transform: scale(1.05);
 }
 
 .step-selector button:active {
@@ -117,22 +136,30 @@
 }
 
 .step-selector input {
-  background: #1f2937;
-  border: 1px solid #4b556a;
-  border-radius: 6px;
-  color: rgba(255, 255, 255, 0.98); /* ensure visible text */
-  -webkit-text-fill-color: rgba(255, 255, 255, 0.98); /* chrome/safari */
-  font-size: 12px;
-  font-weight: 700;
+  background: rgb(25, 31, 49);
+  border: 1px solid #2f3a55;
+  border-radius: 8px;
+  color: var(--settings-text);
+  font-size: 11px;
+  font-weight: 600;
   text-align: center;
   padding: 4px 6px;
   width: 44px;
-  height: 26px;
-  line-height: 18px;
-  appearance: textfield;
+  height: 24px;
+  transition: all 0.2s ease;
 }
 
-/* Hide native number spinners to avoid overlaying text */
+.step-selector input:focus {
+  outline: none;
+  border-color: var(--settings-accent);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.step-selector input:hover {
+  border-color: var(--settings-accent);
+}
+
+/* Hide native number spinners */
 .step-selector input::-webkit-outer-spin-button,
 .step-selector input::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -144,74 +171,90 @@
 }
 
 .step-selector .unit {
-  color: #eaeffb;
+  color: var(--settings-text-secondary);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
-/* Joint Mode - Grid Layout */
+/* Joint Mode - Enhanced Grid Layout */
 .joint-jog-mode {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .joints-grid {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .joint-jog-item {
-  background: #262f45;
+  background: rgba(255, 255, 255, 0.03);
   border-radius: 8px;
   padding: 8px 10px;
   display: grid;
-  grid-template-columns: 30px 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: 34px 1fr auto;
+  gap: 6px;
   align-items: center;
-  border: 1px solid #3b465f;
+  border: 1px solid var(--settings-border);
   width: 100%;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+}
+
+.joint-jog-item:hover {
+  border-color: var(--settings-accent);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.18);
 }
 
 .joint-label {
-  font-size: 12px;
-  font-weight: 800;
-  color: #8dd3ff;
-  letter-spacing: 0.4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--settings-accent);
+  letter-spacing: 0.5px;
   text-transform: uppercase;
 }
 
 .joint-value {
-  font-size: 13px;
-  font-weight: 700;
-  color: #8ef0b4;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--settings-success);
   font-family: 'Courier New', monospace;
   text-align: left;
 }
 
-/* Jog Buttons */
+/* Jog Buttons - Enhanced */
 .jog-buttons {
   display: flex;
-  gap: 6px;
-  min-width: 70px;
-  width: 100%;
+  gap: 8px;
+  min-width: 80px;
   justify-content: flex-end;
 }
 
 .jog-btn {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  border-radius: 6px;
-  font-size: 13px;
+  border: 1px solid var(--settings-border);
+  border-radius: 8px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s ease;
   user-select: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Ensure all SVG icons in buttons are visible */
+.jog-btn svg {
+  display: block;
+  flex-shrink: 0;
+  stroke: currentColor;
+  fill: none;
 }
 
 .jog-btn:active {
@@ -219,21 +262,27 @@
 }
 
 .jog-minus {
-  background: #fc8181;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
   color: #ffffff;
+  border-color: #dc2626;
 }
 
 .jog-minus:hover {
-  background: #f56565;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  box-shadow: 0 6px 14px rgba(239, 68, 68, 0.35);
+  transform: translateY(-2px);
 }
 
 .jog-plus {
-  background: #68d391;
+  background: linear-gradient(135deg, #10b981, #059669);
   color: #ffffff;
+  border-color: #059669;
 }
 
 .jog-plus:hover {
-  background: #48bb78;
+  background: linear-gradient(135deg, #059669, #047857);
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.35);
+  transform: translateY(-2px);
 }
 
 /* Joint Limits Indicator */
@@ -263,109 +312,204 @@
   transform: translateX(-50%);
 }
 
-/* TCP Mode */
+/* TCP Mode - Enhanced */
 .tcp-controls {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
+.tcp-jog-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .tcp-section {
-  background: #262f45;
+  background: rgba(255, 255, 255, 0.02);
   border-radius: 8px;
   padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--settings-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .tcp-section h4 {
   margin: 0 0 6px 0;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  color: #d5deed;
+  color: var(--settings-text-secondary);
+  border-bottom: 1px solid var(--settings-border);
+  padding-bottom: 6px;
 }
 
 .tcp-axis-group {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   width: 100%;
 }
 
 .tcp-axis {
-  display: flex;
+  display: grid;
+  grid-template-columns: 28px auto auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 1px;
-  width: 100%;
+  justify-items: start;
+  gap: 6px;
 }
 
 .axis-label {
-  width: 14px;
-  font-size: 10px;
-  font-weight: 800;
-  color: #8dd3ff;
+  width: 28px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--settings-accent);
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tcp-axis .jog-btn {
-  width: 22px;
-  height: 22px;
-  font-size: 12px;
-  flex: 1;
-  max-width: 34px;
+  width: 26px;
+  height: 26px;
+  font-size: 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* TCP Info */
+/* Ensure SVG icons are properly sized and visible */
+.tcp-axis .jog-btn svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+  flex-shrink: 0;
+  stroke: currentColor;
+  stroke-width: 2.5;
+}
+
+/* TCP Info - Enhanced */
 .tcp-info {
-  background: #262f45;
-  border-radius: 10px;
-  padding: 12px;
-  border: 1px solid #3b465f;
-  border-left: 3px solid #ed8936;
+  background: linear-gradient(145deg, rgb(59, 71, 115), rgb(45, 55, 88));
+  border-radius: 9px;
+  padding: 8px;
+  border: 1px solid #2f3a55;
+  border-left: 4px solid var(--settings-warning);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
 }
 
-.info-text {
-  margin: 0 0 6px 0;
-  font-size: 15px;
-  font-weight: 800;
+.tcp-info-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.info-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 750;
   color: #f1f5ff;
+}
+
+.info-badge {
+  background: rgba(16, 185, 129, 0.12);
+  color: #7ce8c2;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.tcp-pos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.tcp-pos-cell {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tcp-pos-cell .cell-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #9fb4d8;
+}
+
+.tcp-pos-cell .cell-value {
+  font-size: 13px;
+  font-weight: 750;
+  color: #eef4ff;
+}
+
+/* TCP Info styling */
+.info-text {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--settings-text);
+  letter-spacing: 0.02em;
 }
 
 .info-subtext {
   margin: 0;
   font-size: 14px;
-  color: #d6deef;
-  line-height: 1.4;
+  font-weight: 600;
+  color: var(--settings-text);
+  font-family: 'Courier New', monospace;
 }
 
-/* Panel Actions */
+/* Panel Actions - Enhanced */
 .panel-actions {
   display: flex;
-  gap: 6px;
-  padding-top: 4px;
-  border-top: 1px solid #4a5568;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--settings-border);
+  margin-top: auto;
 }
 
 .reset-button {
-  flex: none;
-  padding: 4px 8px;
-  background: #4a5568;
-  border: none;
-  border-radius: 4px;
-  color: #e2e8f0;
-  font-size: 10px;
+  flex: 1;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--settings-border);
+  border-radius: 10px;
+  color: var(--settings-text);
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
 .reset-button:hover {
-  background: #718096;
+  background: var(--settings-surface);
+  border-color: var(--settings-accent);
+  color: var(--settings-text);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.2);
 }
 
 .reset-button:active {
-  transform: scale(0.98);
+  transform: translateY(0) scale(0.98);
 }
 
 /* Responsive */
@@ -402,31 +546,35 @@
   .mode-button span { display: none; }
 }
 
-/* Poses Mode */
+/* Poses Mode - Enhanced */
 .poses-mode {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .poses-content {
-  background: #2d3748;
-  border-radius: 4px;
-  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--settings-border);
+  border-radius: 10px;
+  padding: 14px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
 }
 
 .poses-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--settings-border);
 }
 
 .poses-header h4 {
   margin: 0;
-  font-size: 11px;
-  font-weight: 600;
-  color: #a0aec0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--settings-text);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -487,58 +635,72 @@
 
 /* Pose count badge */
 .poses-count {
-  font-size: 10px;
-  color: #a0aec0;
-  padding: 2px 6px;
-  background: #2d3748;
-  border-radius: 10px;
+  font-size: 12px;
+  color: var(--settings-text-secondary);
+  padding: 4px 10px;
+  background: var(--settings-surface);
+  border-radius: 12px;
+  font-weight: 600;
+  border: 1px solid var(--settings-border);
 }
 
-/* Add new pose section */
+/* Add new pose section - Enhanced */
 .pose-add-section {
   display: flex;
-  gap: 6px;
-  padding: 8px;
-  background: #1a202c;
-  border-radius: 4px;
-  margin-bottom: 8px;
+  gap: 8px;
+  padding: 12px;
+  background: var(--settings-surface);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  border: 1px solid var(--settings-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .pose-name-input {
   flex: 1;
-  padding: 6px 8px;
-  font-size: 11px;
-  background: #2d3748;
-  border: 1px solid #4a5568;
-  border-radius: 3px;
-  color: #e2e8f0;
+  padding: 10px 12px;
+  font-size: 13px;
+  background: rgb(25, 31, 49);
+  border: 1px solid #2f3a55;
+  border-radius: 8px;
+  color: var(--settings-text);
   outline: none;
+  transition: all 0.2s ease;
 }
 
 .pose-name-input::placeholder {
-  color: #718096;
+  color: var(--settings-text-secondary);
 }
 
 .pose-name-input:focus {
-  border-color: #63b3ed;
+  border-color: var(--settings-accent);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.pose-name-input:hover {
+  border-color: var(--settings-accent);
 }
 
 .pose-save-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  font-size: 11px;
-  background: #3182ce;
-  border: none;
-  border-radius: 3px;
+  gap: 6px;
+  padding: 10px 16px;
+  font-size: 13px;
+  background: var(--settings-accent);
+  border: 1px solid var(--settings-accent);
+  border-radius: 8px;
   color: white;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  box-shadow: 0 6px 14px rgba(59, 130, 246, 0.25);
 }
 
 .pose-save-btn:hover:not(:disabled) {
-  background: #2c5282;
+  background: var(--settings-accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(59, 130, 246, 0.35);
 }
 
 .pose-save-btn:disabled {
@@ -546,75 +708,87 @@
   cursor: not-allowed;
 }
 
-/* Pose item */
+/* Pose item - Enhanced */
 .pose-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px;
-  background: #2d3748;
-  border-radius: 4px;
-  margin-bottom: 4px;
-  transition: background 0.15s;
+  padding: 12px;
+  background: var(--settings-surface);
+  border: 1px solid var(--settings-border);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
 }
 
 .pose-item:hover {
-  background: #374151;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--settings-accent);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.15);
+  transform: translateX(4px);
 }
 
 .pose-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   flex: 1;
 }
 
 .pose-name {
-  font-size: 12px;
-  font-weight: 500;
-  color: #e2e8f0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--settings-text);
 }
 
 .pose-joints {
-  font-size: 10px;
-  color: #a0aec0;
+  font-size: 12px;
+  color: var(--settings-text-secondary);
 }
 
 .pose-actions {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 .pose-load-btn,
 .pose-delete-btn {
   display: flex;
   align-items: center;
-  gap: 3px;
-  padding: 4px 8px;
-  font-size: 10px;
-  border: none;
-  border-radius: 3px;
+  gap: 4px;
+  padding: 8px 12px;
+  font-size: 12px;
+  border: 1px solid var(--settings-border);
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s ease;
+  font-weight: 600;
 }
 
 .pose-load-btn {
-  background: #48bb78;
+  background: linear-gradient(135deg, #10b981, #059669);
   color: white;
+  border-color: #059669;
 }
 
 .pose-load-btn:hover {
-  background: #38a169;
+  background: linear-gradient(135deg, #059669, #047857);
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.35);
+  transform: translateY(-2px);
 }
 
 .pose-delete-btn {
-  background: #4a5568;
-  color: #e2e8f0;
+  background: var(--settings-surface);
+  color: var(--settings-text-secondary);
 }
 
 .pose-delete-btn:hover {
-  background: #e53e3e;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
   color: white;
+  border-color: #dc2626;
+  box-shadow: 0 6px 14px rgba(239, 68, 68, 0.35);
+  transform: translateY(-2px);
 }
 
 /* Joint Groups */
