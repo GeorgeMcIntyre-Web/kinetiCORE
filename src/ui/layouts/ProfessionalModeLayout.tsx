@@ -1,4 +1,4 @@
-// Professional Mode Layout - Engineer/Designer interface
+﻿// Professional Mode Layout - Engineer/Designer interface
 // Owner: George (Architecture)
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -31,7 +31,7 @@ import {
   Building2,
   Plus,
   Link,
-  } from 'lucide-react';
+} from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { useAssetLibraryStore } from '../store/assetLibraryStore';
@@ -58,7 +58,8 @@ import { FloatingComplexIKPanel } from '../components/FloatingComplexIKPanel';
 import { WholeBodyIKPanel } from '../components/WholeBodyIKPanel';
 import { ICPTestPanel } from '../components/ICPTestPanel';
 import { PipingPanel } from '../piping/PipingPanel';
-import { FeaBackendDemoPanel } from '../components/FeaBackendDemoPanel';
+import { FloatingFEAPanel } from '../components/FloatingFEAPanel';
+import { FloatingFlexiblePanel } from '../components/FloatingFlexiblePanel';
 import { Scan, Settings } from 'lucide-react';
 import { RotateCcw, Target, CornerDownRight, Square } from 'lucide-react';
 import { Rocket, Calculator, GitBranch, Network, TestTube, Zap } from 'lucide-react';
@@ -120,9 +121,10 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [showComplexIKPanel, setShowComplexIKPanel] = useState(false);
   const [showWholeBodyIKPanel, setShowWholeBodyIKPanel] = useState(false);
   const [showICPTestPanel, setShowICPTestPanel] = useState(false);
-  const [showFeaBackendDemo, setShowFeaBackendDemo] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showSnapSetupPopup, setShowSnapSetupPopup] = useState(false);
+  const [showFEAPanel, setShowFEAPanel] = useState(false);
+  const [showFlexPanel, setShowFlexPanel] = useState(false);
   const debugLabelsRef = useRef<RouteDebugLabels | null>(null);
   const routeSelection = useRoutingStore((state) => state.selectedRoute);
   // Auto size the left scene tree based on content (inline to avoid nested hook issues)
@@ -200,14 +202,6 @@ export const ProfessionalModeLayout: React.FC = () => {
       setSavedLayout(layout);
     }
   }, [loadPanelLayout]);
-
-  // Expose FEA demo panel toggle for E2E testing
-  useEffect(() => {
-    (window as any).__DEBUG_showFeaBackendDemo = () => setShowFeaBackendDemo(true);
-    return () => {
-      delete (window as any).__DEBUG_showFeaBackendDemo;
-    };
-  }, []);
 
   // Initialize RouteDebugLabels when scene is available
   useEffect(() => {
@@ -545,446 +539,454 @@ export const ProfessionalModeLayout: React.FC = () => {
       {/* Ribbon Toolbar wrapped in experiment container */}
       <div className="ribbon-toolbar">
         <ToolbarContainer className="compact">
-        {activeWorkspace === 'modeling' && (
-          <>
-        {/* Creation Tools */}
-        <div className="tool-group">
-          <div className="group-label">Creation</div>
-          <div className="tool-buttons">
-            <CreateDropdown
-              onCreateBox={() => createObject('box')}
-              onCreateSphere={() => createObject('sphere')}
-              onCreateCylinder={() => createObject('cylinder')}
-              onCreateCone={() => createObject('cone')}
-              onCreateTorus={() => createObject('torus')}
-              onCreatePlane={() => createObject('plane')}
-              onCreateGround={() => createObject('ground')}
-              onCreateCapsule={() => createObject('capsule')}
-              onCreateDisc={() => createObject('disc')}
-              onCreateTorusKnot={() => createObject('torusknot')}
-              onCreatePolyhedron={() => createObject('polyhedron')}
-            />
-          </div>
-        </div>
-
-        <div className="toolbar-separator"></div>
-
-        {/* Transform Tools */}
-        <div className="tool-group">
-          <div className="group-label center">Transform</div>
-          <div className="tool-buttons">
-            <button
-              className={`tool-btn ${transformMode === 'translate' && transformGizmoEnabled ? 'active' : ''}`}
-              disabled={!selectedNodeId}
-              title={selectedNodeId ? 'Translate' : 'Select an object first'}
-              onClick={() => handleTransformTool('translate')}
-            >
-              <Move size={18} />
-              <span>Translate</span>
-            </button>
-            <button
-              className={`tool-btn ${transformMode === 'rotate' && transformGizmoEnabled ? 'active' : ''}`}
-              disabled={!selectedNodeId}
-              title={selectedNodeId ? 'Rotate' : 'Select an object first'}
-              onClick={() => handleTransformTool('rotate')}
-            >
-              <RotateCw size={18} />
-              <span>Rotate</span>
-            </button>
-            <button
-              className={`tool-btn ${transformMode === 'scale' && transformGizmoEnabled ? 'active' : ''}`}
-              disabled={!selectedNodeId}
-              title={selectedNodeId ? 'Scale' : 'Select an object first'}
-              onClick={() => handleTransformTool('scale')}
-            >
-              <Scale size={18} />
-              <span>Scale</span>
-            </button>
-            
-            <button
-              className="tool-btn"
-              disabled={!selectedNodeId}
-              title={selectedNodeId ? 'Duplicate (Ctrl+D)' : 'Select an object first'}
-              onClick={handleCopy}
-            >
-              <Copy size={18} />
-              <span>Duplicate</span>
-            </button>
-            <button
-              className="tool-btn"
-              disabled={!selectedNodeId}
-              title={
-                selectedNodeId
-                  ? 'Quick Move Dialog (Relative/Absolute positioning)'
-                  : 'Select an object first'
-              }
-              onClick={() => setShowMoveDialog(true)}
-            >
-              <Navigation size={18} />
-              <span>Position</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="toolbar-separator"></div>
-
-        {/* View */}
-        <div className="tool-group">
-          <div className="group-label">View</div>
-          <div className="tool-buttons">
-            <button className="tool-btn" title="Reset View" onClick={handleResetView}>
-              <RotateCcw size={18} />
-              <span>Reset</span>
-            </button>
-            <button className="tool-btn" title="Zoom Fit" onClick={handleZoomFit}>
-              <Maximize2 size={18} />
-              <span>Fit</span>
-            </button>
-            <button className="tool-btn" title="Zoom to Selected" onClick={handleZoomToSelected} disabled={!selectedNodeId}>
-              <Target size={18} />
-              <span>Selected</span>
-            </button>
-            <ViewDropdown
-              onTopViewClick={handleTopView}
-              onRightViewClick={handleRightView}
-              onFrontViewClick={handleFrontView}
-              onIsoViewClick={handleIsoView}
-              currentView={currentView}
-            />
-          </div>
-        </div>
-
-        <div className="toolbar-separator"></div>
-
-        {/* Utilities */}
-        <div className="tool-group">
-          <div className="group-label">Utilities</div>
-          <div className="tool-buttons">
-            <SelectionLevelDropdown currentLevel={selectionLevel} onLevelChange={setSelectionLevel} />
-            <button className="tool-btn" title="Add Frame at Selection" onClick={handleAddFrame}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="12" x2="20" y2="12" stroke="#ff0000" strokeWidth="2.5" />
-                <polygon points="20,12 18,11 18,13" fill="#ff0000" />
-                <line x1="12" y1="12" x2="12" y2="4" stroke="#00ff00" strokeWidth="2.5" />
-                <polygon points="12,4 11,6 13,6" fill="#00ff00" />
-                <line x1="12" y1="12" x2="6" y2="18" stroke="#0000ff" strokeWidth="2.5" />
-                <polygon points="6,18 7.5,16.5 8,17.5" fill="#0000ff" />
-              </svg>
-              <span>Frame</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="toolbar-separator"></div>
-
-        {/* Align */}
-        <div className="tool-group">
-          <div className="group-label">Align</div>
-          <div className="tool-buttons">
-            <button className={`tool-btn ${alignMode === 'vertex' ? 'active' : ''}`} onClick={() => setAlignMode('vertex')} title="Align Vertex">
-              <CornerDownRight size={18} />
-              <span>Vertex</span>
-            </button>
-            <button className={`tool-btn ${alignMode === 'edge' ? 'active' : ''}`} onClick={() => setAlignMode('edge')} title="Align Edge">
-              <Minus size={18} />
-              <span>Edge</span>
-            </button>
-            <button className={`tool-btn ${alignMode === 'face' ? 'active' : ''}`} onClick={() => setAlignMode('face')} title="Align Face">
-              <Square size={18} />
-              <span>Face</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="toolbar-separator"></div>
-
-        {/* Snap Tools */}
-        <div className="tool-group">
-          <div className="group-label">Snap</div>
-          <div className="tool-buttons">
-            <button
-              className={`tool-btn ${snapToolActive ? 'active' : ''}`}
-              title="Snap - Click first point on source object, then click target point"
-              onClick={() => setSnapToolActive(!snapToolActive)}
-            >
-              <Magnet size={18} />
-              <span>Snap</span>
-            </button>
-            <button
-              className="tool-btn"
-              title="Snap Setup"
-              onClick={() => setShowSnapSetupPopup(true)}
-            >
-              <Crosshair size={18} />
-              <span>Snap Setup</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="toolbar-separator"></div>
-
-        {/* Modify Tools */}
-        <div className="tool-group">
-          <div className="group-label">Modify</div>
-          <div className="tool-buttons">
-            <button
-              className="tool-btn"
-              title={
-                  selectedNodeIds.length === 2
-                  ? 'Union - Combine two objects into one'
-                  : 'Union - Select exactly 2 objects (Ctrl+Click)'
-              }
-              disabled={selectedNodeIds.length !== 2}
-              onClick={() => handleBooleanOperation('union')}
-            >
-              <Layers size={18} />
-              <span>Union</span>
-            </button>
-            <button
-              className="tool-btn"
-              title={
-                  selectedNodeIds.length === 2
-                  ? 'Subtract - Remove 2nd object from 1st'
-                  : 'Subtract - Select exactly 2 objects (Ctrl+Click)'
-              }
-              disabled={selectedNodeIds.length !== 2}
-              onClick={() => handleBooleanOperation('subtract')}
-            >
-              <Minus size={18} />
-              <span>Subtract</span>
-            </button>
-            <button
-              className="tool-btn"
-              title={
-                  selectedNodeIds.length === 2
-                  ? 'Intersect - Keep only overlapping volume'
-                  : 'Intersect - Select exactly 2 objects (Ctrl+Click)'
-              }
-              disabled={selectedNodeIds.length !== 2}
-              onClick={() => handleBooleanOperation('intersect')}
-            >
-              <LayoutTemplate size={18} />
-              <span>Intersect</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="toolbar-separator"></div>
-
-        {/* Measure Tools */}
-        <div className="tool-group">
-          <div className="group-label">Measure</div>
-          <div className="tool-buttons">
-            <button
-              className="tool-btn"
-              title="Measure distance between two points"
-              onClick={() => handleMeasurement('distance')}
-            >
-              <Maximize2 size={18} />
-              <span>Distance</span>
-            </button>
-            <button
-              className="tool-btn"
-              title="Measure angle between three points"
-              onClick={() => handleMeasurement('angle')}
-            >
-              <RotateCw size={18} />
-              <span>Angle</span>
-            </button>
-            <button
-              className="tool-btn"
-              title="Measure volume of selected objects"
-              onClick={() => handleMeasurement('volume')}
-            >
-              <Box size={18} />
-              <span>Volume</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Routing section moved to Routing tab */}
-          </>
-        )}
-
-        {activeWorkspace === 'simulation' && (
-          <>
-            <div className="tool-group">
-              <div className="group-label">Simulation</div>
-              <div className="tool-buttons">
-                <button className="tool-btn" title="Start Simulation">
-                  <Play size={18} />
-                  <span>Start</span>
-                </button>
-                <button className="tool-btn" title="Pause Simulation">
-                  <Pause size={18} />
-                  <span>Pause</span>
-                </button>
-                <button className="tool-btn" title="Reset Simulation">
-                  <RefreshCw size={18} />
-                  <span>Reset</span>
-                </button>
+          {activeWorkspace === 'modeling' && (
+            <>
+              {/* Creation Tools */}
+              <div className="tool-group">
+                <div className="group-label">Creation</div>
+                <div className="tool-buttons">
+                  <CreateDropdown
+                    onCreateBox={() => createObject('box')}
+                    onCreateSphere={() => createObject('sphere')}
+                    onCreateCylinder={() => createObject('cylinder')}
+                    onCreateCone={() => createObject('cone')}
+                    onCreateTorus={() => createObject('torus')}
+                    onCreatePlane={() => createObject('plane')}
+                    onCreateGround={() => createObject('ground')}
+                    onCreateCapsule={() => createObject('capsule')}
+                    onCreateDisc={() => createObject('disc')}
+                    onCreateTorusKnot={() => createObject('torusknot')}
+                    onCreatePolyhedron={() => createObject('polyhedron')}
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="toolbar-separator"></div>
+              <div className="toolbar-separator"></div>
 
-            {/* Kinematics Tools moved here */}
-            <div className="tool-group">
-              <div className="group-label">Kinematics</div>
-              <div className="tool-buttons">
-                <button
-                  className="tool-btn"
-                  onClick={() => setShowKinematicsPanel(true)}
-                  title="Motion Panel"
-                >
-                  <Rocket size={18} />
-                  <span className="tool-btn-label">Motion</span>
-                </button>
-                <button
-                  className="tool-btn"
-                  onClick={() => setShowKinematicsAnalysisPanel(true)}
-                  title="Kinematics Analysis"
-                >
-                  <Calculator size={18} />
-                  <span className="tool-btn-label">Analysis</span>
-                </button>
-                <button
-                  className="tool-btn"
-                  onClick={() => setShowActuatorPanel(true)}
-                  title="Actuator Control"
-                >
-                  <div style={{ position: 'relative', width: 18, height: 18 }}>
-                    <Zap size={12} style={{ position: 'absolute', left: 1, top: 1 }} />
-                    <Settings size={12} style={{ position: 'absolute', right: 1, bottom: 1 }} />
-                  </div>
-                  <span className="tool-btn-label">Actuators</span>
-                </button>
-                <button
-                  className="tool-btn"
-                  onClick={() => setShowComplexIKPanel(true)}
-                  title="Complex IK Systems"
-                >
-                  <GitBranch size={18} />
-                  <span className="tool-btn-label">Complex IK</span>
-                </button>
-                <button
-                  className="tool-btn"
-                  onClick={() => setShowWholeBodyIKPanel(true)}
-                  title="FullBody IK"
-                >
-                  <Network size={18} />
-                  <span className="tool-btn-label">FullBody IK</span>
-                </button>
-                <button
-                  className={`tool-btn ${showKinematicExtractionPanel ? 'active' : ''}`}
-                  onClick={() => setShowKinematicExtractionPanel(!showKinematicExtractionPanel)}
-                  title="Auto Kinematic Extraction - Hierarchical BBox Pairing"
-                >
-                  <Scan size={18} />
-                  <span className="tool-btn-label">Auto Extract</span>
-                </button>
-                <button
-                  className="tool-btn"
-                  onClick={() => setShowICPTestPanel(true)}
-                  title="ICP Test Tool - Manual FIXED/MOVING Selection"
-                >
-                  <TestTube size={18} />
-                  <span className="tool-btn-label">ICP Test</span>
-                </button>
+              {/* Transform Tools */}
+              <div className="tool-group">
+                <div className="group-label center">Transform</div>
+                <div className="tool-buttons">
+                  <button
+                    className={`tool-btn ${transformMode === 'translate' && transformGizmoEnabled ? 'active' : ''}`}
+                    disabled={!selectedNodeId}
+                    title={selectedNodeId ? 'Translate' : 'Select an object first'}
+                    onClick={() => handleTransformTool('translate')}
+                  >
+                    <Move size={18} />
+                    <span>Translate</span>
+                  </button>
+                  <button
+                    className={`tool-btn ${transformMode === 'rotate' && transformGizmoEnabled ? 'active' : ''}`}
+                    disabled={!selectedNodeId}
+                    title={selectedNodeId ? 'Rotate' : 'Select an object first'}
+                    onClick={() => handleTransformTool('rotate')}
+                  >
+                    <RotateCw size={18} />
+                    <span>Rotate</span>
+                  </button>
+                  <button
+                    className={`tool-btn ${transformMode === 'scale' && transformGizmoEnabled ? 'active' : ''}`}
+                    disabled={!selectedNodeId}
+                    title={selectedNodeId ? 'Scale' : 'Select an object first'}
+                    onClick={() => handleTransformTool('scale')}
+                  >
+                    <Scale size={18} />
+                    <span>Scale</span>
+                  </button>
+
+                  <button
+                    className="tool-btn"
+                    disabled={!selectedNodeId}
+                    title={selectedNodeId ? 'Duplicate (Ctrl+D)' : 'Select an object first'}
+                    onClick={handleCopy}
+                  >
+                    <Copy size={18} />
+                    <span>Duplicate</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    disabled={!selectedNodeId}
+                    title={
+                      selectedNodeId
+                        ? 'Quick Move Dialog (Relative/Absolute positioning)'
+                        : 'Select an object first'
+                    }
+                    onClick={() => setShowMoveDialog(true)}
+                  >
+                    <Navigation size={18} />
+                    <span>Position</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          </>
-        )}
 
-        {activeWorkspace === 'routing' && (
-          <>
-            {/* Routing Tools moved from Modeling */}
-            <div className="tool-group">
-              <div className="group-label">Routing</div>
-              <div className="tool-buttons">
-                <button
-                  className={`tool-btn ${showDebugLabels ? 'active' : ''}`}
-                  onClick={() => setShowDebugLabels(!showDebugLabels)}
-                  title="Toggle Route Debug Labels (D)"
-                >
-                  {showDebugLabels ? <Eye size={18} /> : <EyeOff size={18} />}
-                  <span className="tool-btn-label">Labels</span>
-                </button>
-                <button
-                  className="tool-btn"
-                  onClick={handleToggleBabylonInspector}
-                  title="Toggle Babylon Scene Inspector (Alt+I)"
-                >
-                  <Search size={18} />
-                  <span className="tool-btn-label">Inspector</span>
-                </button>
-                <button
-                  className={`tool-btn ${showTemplatesPanel ? 'active' : ''}`}
-                  onClick={() => setShowTemplatesPanel(!showTemplatesPanel)}
-                  title="Open Route Templates Library"
-                >
-                  <LayoutTemplate size={18} />
-                  <span className="tool-btn-label">Templates</span>
-                </button>
+              <div className="toolbar-separator"></div>
+
+              {/* View */}
+              <div className="tool-group">
+                <div className="group-label">View</div>
+                <div className="tool-buttons">
+                  <button className="tool-btn" title="Reset View" onClick={handleResetView}>
+                    <RotateCcw size={18} />
+                    <span>Reset</span>
+                  </button>
+                  <button className="tool-btn" title="Zoom Fit" onClick={handleZoomFit}>
+                    <Maximize2 size={18} />
+                    <span>Fit</span>
+                  </button>
+                  <button className="tool-btn" title="Zoom to Selected" onClick={handleZoomToSelected} disabled={!selectedNodeId}>
+                    <Target size={18} />
+                    <span>Selected</span>
+                  </button>
+                  <ViewDropdown
+                    onTopViewClick={handleTopView}
+                    onRightViewClick={handleRightView}
+                    onFrontViewClick={handleFrontView}
+                    onIsoViewClick={handleIsoView}
+                    currentView={currentView}
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="toolbar-separator"></div>
+              <div className="toolbar-separator"></div>
 
-            {/* Factory Services */}
-            <div className="tool-group">
-              <div className="group-label">Factory Services</div>
-              <div className="tool-buttons">
-                <button
-                  className={`tool-btn ${pipingModeEnabled ? 'active' : ''}`}
-                  onClick={() => setPipingModeEnabled(!pipingModeEnabled)}
-                  title="Factory Piping - Design water, air, and steam networks"
-                >
-                  <Building2 size={18} />
-                  <span className="tool-btn-label">Piping</span>
-                </button>
-                <button
-                  className={`tool-btn ${pipingQuickMode === 'node' ? 'active' : ''}`}
-                  onClick={handlePipingQuickNode}
-                  title="Add Node - Click in viewport to create piping nodes"
-                >
-                  <Plus size={18} />
-                  <span className="tool-btn-label">Add Node</span>
-                </button>
-                <button
-                  className={`tool-btn ${pipingQuickMode === 'segment' ? 'active' : ''}`}
-                  onClick={handlePipingQuickSegment}
-                  title="Add Segment - Shift+click nodes to connect them"
-                >
-                  <Link size={18} />
-                  <span className="tool-btn-label">Add Segment</span>
-                </button>
+              {/* Utilities */}
+              <div className="tool-group">
+                <div className="group-label">Utilities</div>
+                <div className="tool-buttons">
+                  <SelectionLevelDropdown currentLevel={selectionLevel} onLevelChange={setSelectionLevel} />
+                  <button className="tool-btn" title="Add Frame at Selection" onClick={handleAddFrame}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="12" y1="12" x2="20" y2="12" stroke="#ff0000" strokeWidth="2.5" />
+                      <polygon points="20,12 18,11 18,13" fill="#ff0000" />
+                      <line x1="12" y1="12" x2="12" y2="4" stroke="#00ff00" strokeWidth="2.5" />
+                      <polygon points="12,4 11,6 13,6" fill="#00ff00" />
+                      <line x1="12" y1="12" x2="6" y2="18" stroke="#0000ff" strokeWidth="2.5" />
+                      <polygon points="6,18 7.5,16.5 8,17.5" fill="#0000ff" />
+                    </svg>
+                    <span>Frame</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          </>
-        )}
 
-        {activeWorkspace === 'analysis' && (
-          <>
-            <div className="tool-group">
-              <div className="group-label">Analysis</div>
-              <div className="tool-buttons">
-                <button className="tool-btn" title="Placeholder">
-                  <Search size={18} />
-                  <span>Inspect</span>
-                </button>
-                <button className="tool-btn" title="Placeholder">
-                  <Activity size={18} />
-                  <span>Metrics</span>
-                </button>
-                <button className="tool-btn" title="Placeholder">
-                  <Download size={18} />
-                  <span>Export</span>
-                </button>
+              <div className="toolbar-separator"></div>
+
+              {/* Align */}
+              <div className="tool-group">
+                <div className="group-label">Align</div>
+                <div className="tool-buttons">
+                  <button className={`tool-btn ${alignMode === 'vertex' ? 'active' : ''}`} onClick={() => setAlignMode('vertex')} title="Align Vertex">
+                    <CornerDownRight size={18} />
+                    <span>Vertex</span>
+                  </button>
+                  <button className={`tool-btn ${alignMode === 'edge' ? 'active' : ''}`} onClick={() => setAlignMode('edge')} title="Align Edge">
+                    <Minus size={18} />
+                    <span>Edge</span>
+                  </button>
+                  <button className={`tool-btn ${alignMode === 'face' ? 'active' : ''}`} onClick={() => setAlignMode('face')} title="Align Face">
+                    <Square size={18} />
+                    <span>Face</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          </>
-        )}
+
+              <div className="toolbar-separator"></div>
+
+              {/* Snap Tools */}
+              <div className="tool-group">
+                <div className="group-label">Snap</div>
+                <div className="tool-buttons">
+                  <button
+                    className={`tool-btn ${snapToolActive ? 'active' : ''}`}
+                    title="Snap - Click first point on source object, then click target point"
+                    onClick={() => setSnapToolActive(!snapToolActive)}
+                  >
+                    <Magnet size={18} />
+                    <span>Snap</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    title="Snap Setup"
+                    onClick={() => setShowSnapSetupPopup(true)}
+                  >
+                    <Crosshair size={18} />
+                    <span>Snap Setup</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="toolbar-separator"></div>
+
+              {/* Modify Tools */}
+              <div className="tool-group">
+                <div className="group-label">Modify</div>
+                <div className="tool-buttons">
+                  <button
+                    className="tool-btn"
+                    title={
+                      selectedNodeIds.length === 2
+                        ? 'Union - Combine two objects into one'
+                        : 'Union - Select exactly 2 objects (Ctrl+Click)'
+                    }
+                    disabled={selectedNodeIds.length !== 2}
+                    onClick={() => handleBooleanOperation('union')}
+                  >
+                    <Layers size={18} />
+                    <span>Union</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    title={
+                      selectedNodeIds.length === 2
+                        ? 'Subtract - Remove 2nd object from 1st'
+                        : 'Subtract - Select exactly 2 objects (Ctrl+Click)'
+                    }
+                    disabled={selectedNodeIds.length !== 2}
+                    onClick={() => handleBooleanOperation('subtract')}
+                  >
+                    <Minus size={18} />
+                    <span>Subtract</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    title={
+                      selectedNodeIds.length === 2
+                        ? 'Intersect - Keep only overlapping volume'
+                        : 'Intersect - Select exactly 2 objects (Ctrl+Click)'
+                    }
+                    disabled={selectedNodeIds.length !== 2}
+                    onClick={() => handleBooleanOperation('intersect')}
+                  >
+                    <LayoutTemplate size={18} />
+                    <span>Intersect</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="toolbar-separator"></div>
+
+              {/* Measure Tools */}
+              <div className="tool-group">
+                <div className="group-label">Measure</div>
+                <div className="tool-buttons">
+                  <button
+                    className="tool-btn"
+                    title="Measure distance between two points"
+                    onClick={() => handleMeasurement('distance')}
+                  >
+                    <Maximize2 size={18} />
+                    <span>Distance</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    title="Measure angle between three points"
+                    onClick={() => handleMeasurement('angle')}
+                  >
+                    <RotateCw size={18} />
+                    <span>Angle</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    title="Measure volume of selected objects"
+                    onClick={() => handleMeasurement('volume')}
+                  >
+                    <Box size={18} />
+                    <span>Volume</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Routing section moved to Routing tab */}
+            </>
+          )}
+
+          {activeWorkspace === 'simulation' && (
+            <>
+              <div className="tool-group">
+                <div className="group-label">Simulation</div>
+                <div className="tool-buttons">
+                  <button className="tool-btn" title="Start Simulation">
+                    <Play size={18} />
+                    <span>Start</span>
+                  </button>
+                  <button className="tool-btn" title="Pause Simulation">
+                    <Pause size={18} />
+                    <span>Pause</span>
+                  </button>
+                  <button className="tool-btn" title="Reset Simulation">
+                    <RefreshCw size={18} />
+                    <span>Reset</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="toolbar-separator"></div>
+
+              {/* Kinematics Tools moved here */}
+              <div className="tool-group">
+                <div className="group-label">Kinematics</div>
+                <div className="tool-buttons">
+                  <button
+                    className="tool-btn"
+                    onClick={() => setShowKinematicsPanel(true)}
+                    title="Motion Panel"
+                  >
+                    <Rocket size={18} />
+                    <span className="tool-btn-label">Motion</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    onClick={() => setShowKinematicsAnalysisPanel(true)}
+                    title="Kinematics Analysis"
+                  >
+                    <Calculator size={18} />
+                    <span className="tool-btn-label">Analysis</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    onClick={() => setShowActuatorPanel(true)}
+                    title="Actuator Control"
+                  >
+                    <div style={{ position: 'relative', width: 18, height: 18 }}>
+                      <Zap size={12} style={{ position: 'absolute', left: 1, top: 1 }} />
+                      <Settings size={12} style={{ position: 'absolute', right: 1, bottom: 1 }} />
+                    </div>
+                    <span className="tool-btn-label">Actuators</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    onClick={() => setShowComplexIKPanel(true)}
+                    title="Complex IK Systems"
+                  >
+                    <GitBranch size={18} />
+                    <span className="tool-btn-label">Complex IK</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    onClick={() => setShowWholeBodyIKPanel(true)}
+                    title="FullBody IK"
+                  >
+                    <Network size={18} />
+                    <span className="tool-btn-label">FullBody IK</span>
+                  </button>
+                  <button
+                    className={`tool-btn ${showKinematicExtractionPanel ? 'active' : ''}`}
+                    onClick={() => setShowKinematicExtractionPanel(!showKinematicExtractionPanel)}
+                    title="Auto Kinematic Extraction - Hierarchical BBox Pairing"
+                  >
+                    <Scan size={18} />
+                    <span className="tool-btn-label">Auto Extract</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    onClick={() => setShowICPTestPanel(true)}
+                    title="ICP Test Tool - Manual FIXED/MOVING Selection"
+                  >
+                    <TestTube size={18} />
+                    <span className="tool-btn-label">ICP Test</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeWorkspace === 'routing' && (
+            <>
+              {/* Routing Tools moved from Modeling */}
+              <div className="tool-group">
+                <div className="group-label">Routing</div>
+                <div className="tool-buttons">
+                  <button
+                    className={`tool-btn ${showDebugLabels ? 'active' : ''}`}
+                    onClick={() => setShowDebugLabels(!showDebugLabels)}
+                    title="Toggle Route Debug Labels (D)"
+                  >
+                    {showDebugLabels ? <Eye size={18} /> : <EyeOff size={18} />}
+                    <span className="tool-btn-label">Labels</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    onClick={handleToggleBabylonInspector}
+                    title="Toggle Babylon Scene Inspector (Alt+I)"
+                  >
+                    <Search size={18} />
+                    <span className="tool-btn-label">Inspector</span>
+                  </button>
+                  <button
+                    className={`tool-btn ${showTemplatesPanel ? 'active' : ''}`}
+                    onClick={() => setShowTemplatesPanel(!showTemplatesPanel)}
+                    title="Open Route Templates Library"
+                  >
+                    <LayoutTemplate size={18} />
+                    <span className="tool-btn-label">Templates</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="toolbar-separator"></div>
+
+              {/* Factory Services */}
+              <div className="tool-group">
+                <div className="group-label">Factory Services</div>
+                <div className="tool-buttons">
+                  <button
+                    className={`tool-btn ${pipingModeEnabled ? 'active' : ''}`}
+                    onClick={() => setPipingModeEnabled(!pipingModeEnabled)}
+                    title="Factory Piping - Design water, air, and steam networks"
+                  >
+                    <Building2 size={18} />
+                    <span className="tool-btn-label">Piping</span>
+                  </button>
+                  <button
+                    className={`tool-btn ${pipingQuickMode === 'node' ? 'active' : ''}`}
+                    onClick={handlePipingQuickNode}
+                    title="Add Node - Click in viewport to create piping nodes"
+                  >
+                    <Plus size={18} />
+                    <span className="tool-btn-label">Add Node</span>
+                  </button>
+                  <button
+                    className={`tool-btn ${pipingQuickMode === 'segment' ? 'active' : ''}`}
+                    onClick={handlePipingQuickSegment}
+                    title="Add Segment - Shift+click nodes to connect them"
+                  >
+                    <Link size={18} />
+                    <span className="tool-btn-label">Add Segment</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeWorkspace === 'analysis' && (
+            <>
+              <div className="tool-group">
+                <div className="group-label">Analysis</div>
+                <div className="tool-buttons">
+                  <button
+                    className={`tool-btn ${showFEAPanel ? 'active' : ''}`}
+                    onClick={() => setShowFEAPanel(!showFEAPanel)}
+                    title="Structural Analysis"
+                  >
+                    <Calculator size={18} />
+                    <span>FEA</span>
+                  </button>
+                  <button
+                    className={`tool-btn ${showFlexPanel ? 'active' : ''}`}
+                    onClick={() => setShowFlexPanel(!showFlexPanel)}
+                    title="Flexible Dynamics"
+                  >
+                    <Zap size={18} />
+                    <span>Flexible</span>
+                  </button>
+                  <button className="tool-btn" title="Placeholder">
+                    <Activity size={18} />
+                    <span>Metrics</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </ToolbarContainer>
       </div>
 
@@ -1105,15 +1107,19 @@ export const ProfessionalModeLayout: React.FC = () => {
         onClose={() => setShowICPTestPanel(false)}
         zIndex={1007}
       />
-      {/* FEA Backend Demo Panel - Debug/Testing */}
-      {showFeaBackendDemo && (
-        <FeaBackendDemoPanel
-          onClose={() => setShowFeaBackendDemo(false)}
-        />
-      )}
       <PipingPanel
         isVisible={pipingModeEnabled}
         onClose={() => setPipingModeEnabled(false)}
+      />
+      <FloatingFEAPanel
+        isVisible={showFEAPanel}
+        onClose={() => setShowFEAPanel(false)}
+        zIndex={1008}
+      />
+      <FloatingFlexiblePanel
+        isVisible={showFlexPanel}
+        onClose={() => setShowFlexPanel(false)}
+        zIndex={1009}
       />
       <SnapSetupPopup isOpen={showSnapSetupPopup} onClose={() => setShowSnapSetupPopup(false)} />
     </div>

@@ -133,18 +133,6 @@ Web Browser (React + Babylon.js + Rapier Physics)
 - **PyOpenJt** - JT file parsing and conversion
 - **Omniverse Create** - NVIDIA USD to glTF conversion (optional)
 
-### Development Tools
-- **Vitest** - Unit testing framework
-- **ESLint + Prettier** - Code quality and formatting
-- **Husky** - Git hooks for quality gates
-- **Wrangler** - Cloudflare Pages deployment
-
-## 🚀 Quick Start
-
-### Prerequisites
-- **Node.js 18+** and npm 9+
-- **Modern web browser** (Chrome, Firefox, Safari, Edge)
-
 ### Installation
 
 ```bash

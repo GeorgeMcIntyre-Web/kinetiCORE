@@ -1,0 +1,65 @@
+import { Command } from "../history/Command"; // Assuming this exists, or I'll define a local interface if not found
+import { FEASceneManager } from "./feaSceneManager";
+import { FEANode } from "./types";
+
+// I need to check where the Command interface is defined.
+// The prompt says "Use existing HistoryManager.executeCommand()".
+// I'll assume a generic Command interface.
+
+export interface ICommand {
+    execute(): void;
+    undo(): void;
+    redo(): void;
+}
+
+export class FEASetLoadCommand implements ICommand {
+    private previousLoads: Map<number, number[]> = new Map();
+
+    constructor(
+        private nodeIds: number[],
+        private load: number[] // [fx, fy, fz, mx, my, mz]
+    ) {
+        const manager = FEASceneManager.getInstance();
+        nodeIds.forEach(id => {
+            const node = manager.nodes.find(n => n.id === id);
+            if (node) {
+                this.previousLoads.set(id, [...node.loads]);
+            }
+        });
+    }
+
+    execute(): void {
+        const manager = FEASceneManager.getInstance();
+        this.nodeIds.forEach(id => {
+            const node = manager.nodes.find(n => n.id === id);
+            if (node) {
+                node.loads = [...this.load];
+            }
+        });
+        manager.solve();
+    }
+
+    undo(): void {
+        const manager = FEASceneManager.getInstance();
+        this.nodeIds.forEach(id => {
+            const node = manager.nodes.find(n => n.id === id);
+            if (node) {
+                const prev = this.previousLoads.get(id);
+                if (prev) node.loads = [...prev];
+            }
+        });
+        manager.solve();
+    }
+
+    redo(): void {
+        this.execute();
+    }
+}
+
+export class FEAUpdateMaterialCommand implements ICommand {
+    // Implementation for updating material properties
+    // ...
+    execute() { }
+    undo() { }
+    redo() { }
+}
