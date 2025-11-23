@@ -1,0 +1,33 @@
+FROM nvidia/cuda:12.2.2-runtime-ubuntu22.04
+
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-pip \
+    python3-dev \
+    git \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create cache directory
+RUN mkdir -p .cache && chmod 777 .cache
+
+# Expose port
+EXPOSE 5001
+
+# Environment variables for Omniverse
+ENV OMNI_KIT_ALLOW_ROOT=1
+ENV USD_CONVERTER_PATH=/app/converter
+
+# Start application
+CMD ["python3", "app.py"]
