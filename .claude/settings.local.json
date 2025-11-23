@@ -39,7 +39,18 @@
       "Bash(git revert:*)",
       "Bash(\"c:\\Users\\georgem\\source\\repos\\kinetiCORE\\docs\\UNIT_PAIR_FINDER_GUIDE.md\")",
       "Bash(git for-each-ref:*)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(mkdir:*)",
+      "Bash(nul)",
+      "Bash(serverrequirements.txt)",
+      "Bash(if not exist docsfea mkdir docsfea)",
+      "Bash(python -m pytest:*)",
+      "Bash(pip install:*)",
+      "Bash(node:*)",
+      "Bash(if exist nul del nul)",
+      "Bash(git rm:*)",
+      "Bash(if exist serverrequirements.txt del serverrequirements.txt)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []
