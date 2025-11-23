@@ -28,7 +28,7 @@ export class CameraService {
   private engine: BABYLON.Engine | BABYLON.WebGPUEngine | null = null;
   private scene: BABYLON.Scene | null = null;
 
-  private constructor() {}
+  private constructor() { }
 
   static getInstance(): CameraService {
     if (!CameraService.instance) {
@@ -377,7 +377,7 @@ export class CameraService {
   resetClippingPlanes(): void {
     if (!this.camera) return;
     if (!this.camera.getScene()) return;
-    
+
     this.camera.minZ = CAMERA_MIN_Z;
     this.camera.maxZ = CAMERA_MAX_Z;
     console.log('[CameraService] Reset clipping planes to defaults');
