@@ -109,6 +109,19 @@ export interface FitJointsResult {
 }
 
 /**
+ * Result from one-click auto-fit workflow.
+ */
+export interface AutoFitResult {
+  success: boolean;
+  fixtureRootId: string;
+  totalUnits: number;
+  unitsWithJoints: number;
+  jointsCreated: number;
+  message?: string;
+  errors?: string[];
+}
+
+/**
  * Integration helper that connects auto-kinematics extraction to ValveBank animation.
  *
  * **Workflow:**
@@ -233,8 +246,136 @@ export class ToolingFixtureAnimator {
   }
 
   /**
+   * ONE-CLICK AUTO-FIT: Analyze fixture and register all detected joints.
+   *
+   * This is the primary workflow for users - no manual state capture required.
+   * The StructureBasedToolAnalyzer automatically detects joints from embedded
+   * two-state families (FIXED/MOVING, OPEN/CLOSED, etc.) in the GLB.
+   *
+   * @returns AutoFitResult with success status, counts, and any errors
+   */
+  async autoFitAllToolingJoints(): Promise<AutoFitResult> {
+    console.log('[ToolingFixtureAnimator] ========== AUTO-FIT ALL TOOLING JOINTS ==========');
+
+    // Guard: rootNode must exist
+    if (!this.rootNode) {
+      return {
+        success: false,
+        fixtureRootId: '',
+        totalUnits: 0,
+        unitsWithJoints: 0,
+        jointsCreated: 0,
+        message: 'No root node provided',
+        errors: ['Root node is required'],
+      };
+    }
+
+    const fixtureRootId = this.rootNode.id || this.rootNode.name;
+
+    // Step 1: Ensure analysis is run
+    if (!this.pipeline) {
+      this.pipeline = new KinematicExtractionPipeline(this.scene);
+    }
+
+    // Run analysis if not already done
+    if (this.workflowState === 'idle') {
+      console.log('[AutoFit] Running fixture analysis...');
+      await this.pipeline.analyzeScene(this.pipelineOptions, this.rootNode);
+    }
+
+    const toolGraph = this.pipeline.getToolGraph();
+    if (!toolGraph) {
+      return {
+        success: false,
+        fixtureRootId,
+        totalUnits: 0,
+        unitsWithJoints: 0,
+        jointsCreated: 0,
+        message: 'Analysis failed - no tool graph',
+        errors: ['analyzeScene did not produce a tool graph'],
+      };
+    }
+
+    // Step 2: Get detected joints from structure-based analyzer
+    const detectedJoints = this.pipeline.getDetectedJoints();
+    console.log(`[AutoFit] Found ${detectedJoints.length} detected joints from analyzer`);
+
+    if (detectedJoints.length === 0) {
+      return {
+        success: false,
+        fixtureRootId,
+        totalUnits: toolGraph.units.length,
+        unitsWithJoints: 0,
+        jointsCreated: 0,
+        message: 'No joints detected. Fixture may be static or missing two-state families.',
+        errors: ['StructureBasedToolAnalyzer found no joints'],
+      };
+    }
+
+    // Step 3: Create adapter context for world matrix lookups
+    const context: import('../../kinematics/toolingKinematicsAdapter').KinematicsAdapterContext = {
+      getNodeWorldMatrix: (nodeId: string) => {
+        // Try multiple ways to find the node
+        const node = this.scene.getTransformNodeById(nodeId) ||
+                     this.scene.getTransformNodeByName(nodeId) ||
+                     this.scene.getMeshById(nodeId) ||
+                     this.scene.getMeshByName(nodeId);
+        if (!node) return null;
+        node.computeWorldMatrix(true);
+        return node.getWorldMatrix();
+      },
+    };
+
+    // Step 4: Register joints with KinematicsManager
+    const { ToolingKinematicsAdapter } = await import('../../kinematics/toolingKinematicsAdapter');
+    const result = ToolingKinematicsAdapter.registerFromDetectedJoints(
+      fixtureRootId,
+      detectedJoints,
+      context
+    );
+
+    // Count unique units with joints
+    const unitIdsWithJoints = new Set(detectedJoints.map(j => j.unitId));
+
+    // Update workflow state
+    this.workflowState = 'joints_fitted';
+
+    // Log summary
+    console.log('[AutoFit] Registration complete:', {
+      chainId: result.chainId,
+      jointsRegistered: result.jointsRegistered,
+      errors: result.errors,
+    });
+
+    if (result.chainId === null) {
+      return {
+        success: false,
+        fixtureRootId,
+        totalUnits: toolGraph.units.length,
+        unitsWithJoints: unitIdsWithJoints.size,
+        jointsCreated: 0,
+        message: 'Failed to register joints',
+        errors: result.errors,
+      };
+    }
+
+    return {
+      success: true,
+      fixtureRootId,
+      totalUnits: toolGraph.units.length,
+      unitsWithJoints: unitIdsWithJoints.size,
+      jointsCreated: result.jointsRegistered,
+      message: `Auto-fitted ${result.jointsRegistered} joint(s) on ${unitIdsWithJoints.size} unit(s). Open Motion Panel → Tooling Motion to drive clamps.`,
+      errors: result.errors.length > 0 ? result.errors : undefined,
+    };
+  }
+
+  /**
    * Step 2a: Capture retracted (home) state for all moving units.
    * Call this when all moving parts are in their retracted position.
+   *
+   * NOTE: This is part of the MANUAL/DEBUG workflow.
+   * For normal use, prefer autoFitAllToolingJoints() instead.
    */
   async captureRetractedState(): Promise<CaptureResult> {
     // Guard: Must analyze first

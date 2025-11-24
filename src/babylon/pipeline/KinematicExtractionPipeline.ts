@@ -774,6 +774,14 @@ export class KinematicExtractionPipeline {
   }
 
   /**
+   * Get detected joints from the structure-based analyzer.
+   * These are auto-detected joints from ICP on two-state families.
+   */
+  getDetectedJoints(): import('../sceneAnalysis/ToolingTypes').DetectedToolJoint[] {
+    return this.structureBasedAnalyzer.getDetectedToolJoints();
+  }
+
+  /**
    * Reset pipeline state (useful for restarting workflow).
    */
   reset(): void {

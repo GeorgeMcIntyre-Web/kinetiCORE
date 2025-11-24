@@ -8,7 +8,7 @@
 
 import React, { useState, useCallback } from 'react';
 import * as BABYLON from '@babylonjs/core';
-import { Play, Loader2, AlertCircle, CheckCircle, Info, Camera, Cog, RotateCcw } from 'lucide-react';
+import { Play, Loader2, AlertCircle, CheckCircle, Camera, Cog, RotateCcw, Zap, ChevronDown, ChevronRight } from 'lucide-react';
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
@@ -17,6 +17,7 @@ import {
   type CaptureWorkflowState,
   type MovingUnitInfo,
   type JointFitResultInfo,
+  type AutoFitResult,
 } from '../../babylon/pipeline/ToolingFixtureAnimator';
 import { buildToolingStructureFromScene, buildGeometryIndex } from '../../domain/tooling/babylonAdapter';
 import { runUnitsV2Pipeline } from '../../domain/tooling/unitsV2Pipeline';
@@ -48,6 +49,8 @@ export const ToolingFixtureAnimatorPanel: React.FC<ToolingFixtureAnimatorPanelPr
     channelCount: number;
     highErrorJoints: Array<{ id: string; error?: number }>;
   } | null>(null);
+  const [autoFitResult, setAutoFitResult] = useState<AutoFitResult | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   /**
    * Resolve root node from selection or scene.
@@ -336,6 +339,50 @@ export const ToolingFixtureAnimatorPanel: React.FC<ToolingFixtureAnimatorPanelPr
   }, [animator]);
 
   /**
+   * ONE-CLICK AUTO-FIT: Analyze and register all detected joints automatically.
+   * This is the PRIMARY workflow - no manual state capture required.
+   */
+  const handleAutoFit = useCallback(async () => {
+    setLastError(null);
+    setAutoFitResult(null);
+
+    const scene = SceneManager.getInstance().getScene();
+    if (!scene) {
+      toast.error('No scene loaded. Please load a GLB file first.');
+      return;
+    }
+
+    const rootNode = getRootNode();
+    if (!rootNode) {
+      toast.error('No root node found. Please select a fixture in the scene tree.');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const newAnimator = new ToolingFixtureAnimator({ scene, rootNode });
+      const result = await newAnimator.autoFitAllToolingJoints();
+
+      setAutoFitResult(result);
+      setAnimator(newAnimator);
+      setWorkflowState(result.success ? 'joints_fitted' : 'idle');
+
+      if (result.success) {
+        toast.success(result.message || `Auto-fitted ${result.jointsCreated} joint(s)`);
+      } else {
+        setLastError(result.message || 'Auto-fit failed');
+        toast.error(result.message || 'Auto-fit failed');
+      }
+    } catch (error: any) {
+      console.error('[ToolingFixtureAnimatorPanel] Auto-fit failed:', error);
+      setLastError(error.message || 'Unknown error');
+      toast.error(`Auto-fit failed: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [getRootNode]);
+
+  /**
    * Reset workflow.
    */
   const handleReset = useCallback(() => {
@@ -345,6 +392,8 @@ export const ToolingFixtureAnimatorPanel: React.FC<ToolingFixtureAnimatorPanelPr
     setJointDetails([]);
     setLastError(null);
     setSummary(null);
+    setAutoFitResult(null);
+    setShowAdvanced(false);
     toast.info('Workflow reset');
   }, []);
 
@@ -423,17 +472,68 @@ export const ToolingFixtureAnimatorPanel: React.FC<ToolingFixtureAnimatorPanelPr
       data-testid="tooling-animator-panel"
     >
       <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {/* Instructions */}
-        <div style={{ padding: '12px', background: 'rgba(0, 0, 0, 0.2)', borderRadius: '4px' }}>
+        {/* ONE-CLICK AUTO-FIT - PRIMARY WORKFLOW */}
+        <div style={{ padding: '12px', background: 'rgba(0, 200, 100, 0.1)', border: '1px solid rgba(0, 200, 100, 0.3)', borderRadius: '4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-            <Info size={16} />
-            <strong>Guided Workflow</strong>
+            <Zap size={16} color="#00cc66" />
+            <strong style={{ color: '#00cc66' }}>One-Click Auto-Fit</strong>
           </div>
-          <p style={{ fontSize: '12px', margin: 0, lineHeight: '1.5', color: '#ccc' }}>
-            Follow the steps below to extract joint kinematics from your fixture.
-            Move parts between captures to detect motion.
+          <p style={{ fontSize: '12px', margin: '0 0 12px 0', lineHeight: '1.5', color: '#ccc' }}>
+            Automatically detect and register all tooling joints from embedded fixture states.
+            No manual movement required.
           </p>
+          <button
+            data-testid="auto-fit-tooling-joints-button"
+            onClick={handleAutoFit}
+            disabled={isProcessing || (workflowState !== 'idle' && workflowState !== 'analyzed')}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              background: (workflowState === 'idle' || workflowState === 'analyzed') && !isProcessing ? '#00cc66' : '#333',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: (workflowState === 'idle' || workflowState === 'analyzed') && !isProcessing ? 'pointer' : 'not-allowed',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+            }}
+          >
+            {isProcessing ? (
+              <><Loader2 size={16} className="spin" /> Auto-Fitting...</>
+            ) : (
+              <><Zap size={16} /> Analyze & Auto-Fit Joints</>
+            )}
+          </button>
         </div>
+
+        {/* Auto-Fit Result */}
+        {autoFitResult && (
+          <div style={{
+            padding: '10px',
+            background: autoFitResult.success ? 'rgba(0, 200, 100, 0.1)' : 'rgba(255, 100, 100, 0.1)',
+            border: `1px solid ${autoFitResult.success ? 'rgba(0, 200, 100, 0.3)' : 'rgba(255, 100, 100, 0.3)'}`,
+            borderRadius: '4px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+              {autoFitResult.success ? <CheckCircle size={14} color="#00cc66" /> : <AlertCircle size={14} color="#ff6666" />}
+              <span style={{ fontSize: '12px', fontWeight: 'bold', color: autoFitResult.success ? '#00cc66' : '#ff6666' }}>
+                {autoFitResult.success ? 'Auto-Fit Complete' : 'Auto-Fit Failed'}
+              </span>
+            </div>
+            <div style={{ fontSize: '11px', color: '#ccc', lineHeight: '1.5' }}>
+              {autoFitResult.message}
+            </div>
+            {autoFitResult.success && (
+              <div style={{ fontSize: '11px', color: '#888', marginTop: '6px' }}>
+                Units: {autoFitResult.totalUnits} | With Joints: {autoFitResult.unitsWithJoints} | Joints Created: {autoFitResult.jointsCreated}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Selected Node Info */}
         {selectedNodeId && (
@@ -444,168 +544,198 @@ export const ToolingFixtureAnimatorPanel: React.FC<ToolingFixtureAnimatorPanelPr
           </div>
         )}
 
-        {/* Workflow Steps */}
-        <div style={{ padding: '12px', background: 'rgba(0, 0, 0, 0.3)', borderRadius: '4px' }}>
-          <StepIndicator step={1} label="Analyze Fixture" />
-          <StepIndicator step={2} label="Capture Retracted State" />
-          <StepIndicator step={3} label="Capture Extended State" />
-          <StepIndicator step={4} label="Fit Joints (ICP)" />
-          <StepIndicator step={5} label="Play Animation" />
+        {/* Advanced / Manual Debug Section - Collapsed by default */}
+        <div style={{ borderTop: '1px solid #333', paddingTop: '12px' }}>
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              background: 'transparent',
+              color: '#888',
+              border: '1px solid #444',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            {showAdvanced ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            Advanced / Manual Debug
+          </button>
         </div>
 
-        {/* Step 1: Analyze */}
-        <button
-          data-testid="animator-analyze-button"
-          onClick={handleAnalyze}
-          disabled={isProcessing || workflowState !== 'idle'}
-          style={{
-            padding: '10px 16px',
-            background: workflowState === 'idle' ? '#00aaff' : '#333',
-            color: '#fff',
-            border: '1px solid #555',
-            borderRadius: '4px',
-            cursor: workflowState === 'idle' && !isProcessing ? 'pointer' : 'not-allowed',
-            fontSize: '13px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-          }}
-        >
-          {isProcessing && workflowState === 'idle' ? (
-            <><Loader2 size={14} className="spin" /> Analyzing...</>
-          ) : (
-            <><Cog size={14} /> 1. Analyze Fixture</>
-          )}
-        </button>
+        {showAdvanced && (
+          <>
+            {/* Manual Workflow Steps */}
+            <div style={{ padding: '12px', background: 'rgba(0, 0, 0, 0.3)', borderRadius: '4px' }}>
+              <div style={{ fontSize: '11px', color: '#888', marginBottom: '8px' }}>
+                Manual state capture workflow (for debugging):
+              </div>
+              <StepIndicator step={1} label="Analyze Fixture" />
+              <StepIndicator step={2} label="Capture Retracted State" />
+              <StepIndicator step={3} label="Capture Extended State" />
+              <StepIndicator step={4} label="Fit Joints (ICP)" />
+              <StepIndicator step={5} label="Play Animation" />
+            </div>
 
-        {/* Step 2a: Capture Retracted */}
-        <button
-          data-testid="capture-retracted-button"
-          onClick={handleCaptureRetracted}
-          disabled={isProcessing || workflowState !== 'analyzed'}
-          style={{
-            padding: '10px 16px',
-            background: workflowState === 'analyzed' ? '#00aaff' : '#333',
-            color: '#fff',
-            border: '1px solid #555',
-            borderRadius: '4px',
-            cursor: workflowState === 'analyzed' && !isProcessing ? 'pointer' : 'not-allowed',
-            fontSize: '13px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-          }}
-        >
-          {isProcessing && workflowState === 'analyzed' ? (
-            <><Loader2 size={14} className="spin" /> Capturing...</>
-          ) : (
-            <><Camera size={14} /> 2a. Capture Retracted (Home)</>
-          )}
-        </button>
+            {/* Step 1: Analyze */}
+            <button
+              data-testid="animator-analyze-button"
+              onClick={handleAnalyze}
+              disabled={isProcessing || workflowState !== 'idle'}
+              style={{
+                padding: '10px 16px',
+                background: workflowState === 'idle' ? '#00aaff' : '#333',
+                color: '#fff',
+                border: '1px solid #555',
+                borderRadius: '4px',
+                cursor: workflowState === 'idle' && !isProcessing ? 'pointer' : 'not-allowed',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}
+            >
+              {isProcessing && workflowState === 'idle' ? (
+                <><Loader2 size={14} className="spin" /> Analyzing...</>
+              ) : (
+                <><Cog size={14} /> 1. Analyze Fixture</>
+              )}
+            </button>
 
-        {/* Instructions: Move clamp manually before capturing extended state */}
-        {workflowState === 'retracted_captured' && movingUnits.length > 0 && (
-          <div style={{
-            padding: '10px',
-            background: 'rgba(255, 170, 0, 0.1)',
-            border: '1px solid rgba(255, 170, 0, 0.3)',
-            borderRadius: '4px',
-          }}>
-            <div style={{ fontSize: '11px', color: '#ffaa00', marginBottom: '8px' }}>
-              <strong>⚠️ Move the clamp before capturing!</strong>
-            </div>
-            <div style={{ fontSize: '11px', color: '#ccc', lineHeight: '1.5' }}>
-              Manually move the clamp to the fully extended/open position using:
-              <ul style={{ margin: '6px 0 0 16px', padding: 0 }}>
-                <li>The transform gizmo in the 3D viewport</li>
-                <li>The Motion Panel joint slider (if joints already exist)</li>
-              </ul>
-            </div>
-            <div style={{ fontSize: '10px', color: '#888', marginTop: '8px', fontStyle: 'italic' }}>
-              Then click "Capture Extended" below.
-            </div>
-          </div>
+            {/* Step 2a: Capture Retracted */}
+            <button
+              data-testid="capture-retracted-button"
+              onClick={handleCaptureRetracted}
+              disabled={isProcessing || workflowState !== 'analyzed'}
+              style={{
+                padding: '10px 16px',
+                background: workflowState === 'analyzed' ? '#00aaff' : '#333',
+                color: '#fff',
+                border: '1px solid #555',
+                borderRadius: '4px',
+                cursor: workflowState === 'analyzed' && !isProcessing ? 'pointer' : 'not-allowed',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}
+            >
+              {isProcessing && workflowState === 'analyzed' ? (
+                <><Loader2 size={14} className="spin" /> Capturing...</>
+              ) : (
+                <><Camera size={14} /> 2a. Capture Retracted (Home)</>
+              )}
+            </button>
+
+            {/* Instructions: Move clamp manually before capturing extended state */}
+            {workflowState === 'retracted_captured' && movingUnits.length > 0 && (
+              <div style={{
+                padding: '10px',
+                background: 'rgba(255, 170, 0, 0.1)',
+                border: '1px solid rgba(255, 170, 0, 0.3)',
+                borderRadius: '4px',
+              }}>
+                <div style={{ fontSize: '11px', color: '#ffaa00', marginBottom: '8px' }}>
+                  <strong>⚠️ Move the clamp before capturing!</strong>
+                </div>
+                <div style={{ fontSize: '11px', color: '#ccc', lineHeight: '1.5' }}>
+                  Manually move the clamp to the fully extended/open position using:
+                  <ul style={{ margin: '6px 0 0 16px', padding: 0 }}>
+                    <li>The transform gizmo in the 3D viewport</li>
+                    <li>The Motion Panel joint slider (if joints already exist)</li>
+                  </ul>
+                </div>
+                <div style={{ fontSize: '10px', color: '#888', marginTop: '8px', fontStyle: 'italic' }}>
+                  Then click "Capture Extended" below.
+                </div>
+              </div>
+            )}
+
+            {/* Step 2b: Capture Extended */}
+            <button
+              data-testid="capture-extended-button"
+              onClick={handleCaptureExtended}
+              disabled={isProcessing || workflowState !== 'retracted_captured'}
+              style={{
+                padding: '10px 16px',
+                background: workflowState === 'retracted_captured' ? '#ffaa00' : '#333',
+                color: '#fff',
+                border: '1px solid #555',
+                borderRadius: '4px',
+                cursor: workflowState === 'retracted_captured' && !isProcessing ? 'pointer' : 'not-allowed',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}
+            >
+              {isProcessing && workflowState === 'retracted_captured' ? (
+                <><Loader2 size={14} className="spin" /> Capturing...</>
+              ) : (
+                <><Camera size={14} /> 2b. Capture Extended (Actuated)</>
+              )}
+            </button>
+
+            {/* Step 3: Fit Joints */}
+            <button
+              data-testid="fit-joints-button"
+              onClick={handleFitJoints}
+              disabled={isProcessing || workflowState !== 'extended_captured'}
+              style={{
+                padding: '10px 16px',
+                background: workflowState === 'extended_captured' ? '#00aa00' : '#333',
+                color: '#fff',
+                border: '1px solid #555',
+                borderRadius: '4px',
+                cursor: workflowState === 'extended_captured' && !isProcessing ? 'pointer' : 'not-allowed',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}
+            >
+              {isProcessing && workflowState === 'extended_captured' ? (
+                <><Loader2 size={14} className="spin" /> Fitting...</>
+              ) : (
+                <><Cog size={14} /> 3. Fit Joints (ICP)</>
+              )}
+            </button>
+
+            {/* Step 4: Play Demo */}
+            <button
+              onClick={handlePlayDemo}
+              disabled={isPlaying || workflowState !== 'ready_to_play'}
+              style={{
+                padding: '12px 16px',
+                background: workflowState === 'ready_to_play' ? '#00aaff' : '#333',
+                color: '#fff',
+                border: '1px solid #555',
+                borderRadius: '4px',
+                cursor: workflowState === 'ready_to_play' && !isPlaying ? 'pointer' : 'not-allowed',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}
+            >
+              {isPlaying ? (
+                <><Loader2 size={16} className="spin" /> Playing...</>
+              ) : (
+                <><Play size={16} /> 4. Play Demo</>
+              )}
+            </button>
+          </>
         )}
-
-        {/* Step 2b: Capture Extended */}
-        <button
-          data-testid="capture-extended-button"
-          onClick={handleCaptureExtended}
-          disabled={isProcessing || workflowState !== 'retracted_captured'}
-          style={{
-            padding: '10px 16px',
-            background: workflowState === 'retracted_captured' ? '#ffaa00' : '#333',
-            color: '#fff',
-            border: '1px solid #555',
-            borderRadius: '4px',
-            cursor: workflowState === 'retracted_captured' && !isProcessing ? 'pointer' : 'not-allowed',
-            fontSize: '13px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-          }}
-        >
-          {isProcessing && workflowState === 'retracted_captured' ? (
-            <><Loader2 size={14} className="spin" /> Capturing...</>
-          ) : (
-            <><Camera size={14} /> 2b. Capture Extended (Actuated)</>
-          )}
-        </button>
-
-        {/* Step 3: Fit Joints */}
-        <button
-          data-testid="fit-joints-button"
-          onClick={handleFitJoints}
-          disabled={isProcessing || workflowState !== 'extended_captured'}
-          style={{
-            padding: '10px 16px',
-            background: workflowState === 'extended_captured' ? '#00aa00' : '#333',
-            color: '#fff',
-            border: '1px solid #555',
-            borderRadius: '4px',
-            cursor: workflowState === 'extended_captured' && !isProcessing ? 'pointer' : 'not-allowed',
-            fontSize: '13px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-          }}
-        >
-          {isProcessing && workflowState === 'extended_captured' ? (
-            <><Loader2 size={14} className="spin" /> Fitting...</>
-          ) : (
-            <><Cog size={14} /> 3. Fit Joints (ICP)</>
-          )}
-        </button>
-
-        {/* Step 4: Play Demo */}
-        <button
-          onClick={handlePlayDemo}
-          disabled={isPlaying || workflowState !== 'ready_to_play'}
-          style={{
-            padding: '12px 16px',
-            background: workflowState === 'ready_to_play' ? '#00aaff' : '#333',
-            color: '#fff',
-            border: '1px solid #555',
-            borderRadius: '4px',
-            cursor: workflowState === 'ready_to_play' && !isPlaying ? 'pointer' : 'not-allowed',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-          }}
-        >
-          {isPlaying ? (
-            <><Loader2 size={16} className="spin" /> Playing...</>
-          ) : (
-            <><Play size={16} /> 4. Play Demo</>
-          )}
-        </button>
 
         {/* Error Display */}
         {lastError && (

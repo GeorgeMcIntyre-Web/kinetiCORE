@@ -4,6 +4,7 @@ import type { JointDefinitionOutput } from '../babylon/io/Schemas';
 import type { ToolMotionJoint } from '../domain/tooling/toolingMotion';
 import type { KinematicChain, JointConfig, JointType } from './KinematicsManager';
 import { KinematicsManager } from './KinematicsManager';
+import type { DetectedToolJoint } from '../babylon/sceneAnalysis/ToolingTypes';
 
 /**
  * Interface for looking up world transforms during adaptation.
@@ -228,5 +229,124 @@ export class ToolingKinematicsAdapter {
         const manager = KinematicsManager.getInstance();
         manager.registerToolingChain(chain);
         return chain.id;
+    }
+
+    /**
+     * Register tooling joints directly from StructureBasedToolAnalyzer detected joints.
+     * This is the ONE-CLICK AUTO-FIT path - no manual state capture required.
+     *
+     * @param fixtureRootId - ID of the fixture root node
+     * @param detectedJoints - Joints from StructureBasedToolAnalyzer.getDetectedToolJoints()
+     * @param context - Context for resolving world matrices
+     * @returns Chain ID if successful, null if no valid joints
+     */
+    static registerFromDetectedJoints(
+        fixtureRootId: string,
+        detectedJoints: DetectedToolJoint[],
+        context: KinematicsAdapterContext
+    ): { chainId: string | null; jointsRegistered: number; errors: string[] } {
+        const errors: string[] = [];
+
+        if (detectedJoints.length === 0) {
+            return { chainId: null, jointsRegistered: 0, errors: ['No detected joints provided'] };
+        }
+
+        const runtimeJoints: JointConfig[] = [];
+
+        for (const dj of detectedJoints) {
+            // Guard: skip unknown joint types
+            if (dj.deltaType === 'unknown') {
+                errors.push(`Skipped joint ${dj.jointId}: unknown type`);
+                continue;
+            }
+
+            // Guard: skip joints with insufficient motion
+            if (dj.deltaType === 'revolute' && (dj.angleDeg === undefined || dj.angleDeg < 1)) {
+                errors.push(`Skipped joint ${dj.jointId}: insufficient rotation (${dj.angleDeg?.toFixed(1) ?? 0}°)`);
+                continue;
+            }
+
+            // Use nodeAId as parent (fixed state) and nodeBId as child (moving state)
+            const parentNodeId = dj.nodeAId;
+            const childNodeId = dj.nodeBId;
+
+            // Get parent world matrix for local transform computation
+            const parentWorld = context.getNodeWorldMatrix(parentNodeId);
+            if (parentWorld === null) {
+                errors.push(`Skipped joint ${dj.jointId}: could not resolve parent node ${parentNodeId}`);
+                continue;
+            }
+
+            const parentInv = parentWorld.clone().invert();
+
+            // Transform axis to local space
+            const axisLocal = Vector3.TransformNormal(dj.axisWorld.clone(), parentInv).normalize();
+
+            // Transform origin to local space
+            const originLocal = Vector3.TransformCoordinates(dj.originWorld.clone(), parentInv);
+
+            // Determine joint type
+            const type: JointType = dj.deltaType === 'revolute' ? 'revolute' : 'prismatic';
+
+            // Compute limits
+            let lower = 0;
+            let upper = 0;
+
+            if (type === 'revolute') {
+                // Revolute: use detected angle as range (0 to angleDeg in radians)
+                const angleDeg = dj.angleDeg ?? 90;
+                upper = (angleDeg * Math.PI) / 180;
+            }
+            if (type === 'prismatic') {
+                // Prismatic: use travel distance
+                upper = Math.abs(dj.travelWorld);
+            }
+
+            const jointConfig: JointConfig = {
+                id: `autofit_${dj.jointId}`,
+                name: dj.unitId,
+                type,
+                parentNodeId,
+                childNodeId,
+                axis: { x: axisLocal.x, y: axisLocal.y, z: axisLocal.z },
+                origin: { x: originLocal.x, y: originLocal.y, z: originLocal.z },
+                limits: {
+                    lower,
+                    upper,
+                    velocity: 1.0,
+                    effort: 100.0,
+                },
+                position: 0,
+                velocity: 0,
+                effort: 0,
+                showAxis: true,
+                showLimits: false,
+            };
+
+            runtimeJoints.push(jointConfig);
+        }
+
+        if (runtimeJoints.length === 0) {
+            return { chainId: null, jointsRegistered: 0, errors };
+        }
+
+        // Create the chain
+        const chain: KinematicChain = {
+            id: `autofit_tooling_${fixtureRootId}`,
+            name: `Auto-Fit Tooling`,
+            type: 'tree',
+            rootNodeId: fixtureRootId,
+            joints: runtimeJoints,
+            dof: runtimeJoints.length,
+            tcpFrames: [],
+        };
+
+        // Register with KinematicsManager
+        const manager = KinematicsManager.getInstance();
+        manager.registerToolingChain(chain);
+
+        console.log(`[ToolingKinematicsAdapter] Registered ${runtimeJoints.length} joints for fixture ${fixtureRootId}`);
+
+        return { chainId: chain.id, jointsRegistered: runtimeJoints.length, errors };
     }
 }
