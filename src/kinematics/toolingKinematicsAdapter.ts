@@ -1,7 +1,9 @@
 import { Matrix, Vector3 } from '@babylonjs/core';
 import type { UnitsV2Output } from '../domain/tooling/unitsV2Pipeline';
+import type { JointDefinitionOutput } from '../babylon/io/Schemas';
 import type { ToolMotionJoint } from '../domain/tooling/toolingMotion';
 import type { KinematicChain, JointConfig, JointType } from './KinematicsManager';
+import { KinematicsManager } from './KinematicsManager';
 
 /**
  * Interface for looking up world transforms during adaptation.
@@ -53,6 +55,22 @@ export class ToolingKinematicsAdapter {
         }
 
         return chains;
+    }
+
+    static registerChains(
+        output: UnitsV2Output,
+        context: KinematicsAdapterContext
+    ): string[] {
+        const manager = KinematicsManager.getInstance();
+        const chains = this.buildChains(output, context);
+        const ids: string[] = [];
+
+        for (const chain of chains) {
+            manager.registerToolingChain(chain);
+            ids.push(chain.id);
+        }
+
+        return ids;
     }
 
     /**
@@ -159,5 +177,56 @@ export class ToolingKinematicsAdapter {
             showAxis: true,
             showLimits: false,
         };
+    }
+
+    static registerSingleChainFromAnimator(
+        rootNodeId: string,
+        jointsOut: JointDefinitionOutput[],
+        context: KinematicsAdapterContext
+    ): string | null {
+        const runtimeJoints: JointConfig[] = [];
+        for (const j of jointsOut) {
+            const parentWorld = context.getNodeWorldMatrix(j.parentId);
+            if (!parentWorld) continue;
+            const parentInv = parentWorld.clone().invert();
+            const axisWorldVec = new Vector3(j.axisWorld.x, j.axisWorld.y, j.axisWorld.z);
+            const axisLocal = Vector3.TransformNormal(axisWorldVec, parentInv).normalize();
+            const originWorldVec = new Vector3(j.anchorWorld.x, j.anchorWorld.y, j.anchorWorld.z);
+            const originLocal = Vector3.TransformCoordinates(originWorldVec, parentInv);
+            const type: JointType = j.type === 'hinge' ? 'revolute' : j.type === 'prismatic' ? 'prismatic' : 'fixed';
+            runtimeJoints.push({
+                id: j.id,
+                name: j.id,
+                type,
+                parentNodeId: j.parentId,
+                childNodeId: j.childId,
+                axis: { x: axisLocal.x, y: axisLocal.y, z: axisLocal.z },
+                origin: { x: originLocal.x, y: originLocal.y, z: originLocal.z },
+                limits: {
+                    lower: j.limits.lower,
+                    upper: j.limits.upper,
+                    velocity: 1.0,
+                    effort: 100.0,
+                },
+                position: 0,
+                velocity: 0,
+                effort: 0,
+                showAxis: true,
+                showLimits: false,
+            });
+        }
+        if (runtimeJoints.length === 0) return null;
+        const chain: KinematicChain = {
+            id: `tooling_animator_chain_${rootNodeId}`,
+            name: `Tooling Animator Chain`,
+            type: 'tree',
+            rootNodeId,
+            joints: runtimeJoints,
+            dof: runtimeJoints.length,
+            tcpFrames: [],
+        } as any;
+        const manager = KinematicsManager.getInstance();
+        manager.registerToolingChain(chain);
+        return chain.id;
     }
 }

@@ -279,3 +279,4 @@ Enabling the remote debugging port (`--remote-debugging-port=9222`) opens a debu
 **Last Updated**: Based on chrome-devtools-mcp@latest (2024)
 
 
+

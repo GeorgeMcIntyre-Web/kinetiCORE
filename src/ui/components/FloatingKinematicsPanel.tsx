@@ -11,6 +11,7 @@ import * as BABYLON from '@babylonjs/core';
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { AssetLibraryDarkPanel, AssetLibraryDarkSection, AssetLibraryDarkDisabled } from './FloatingPanel/AssetLibraryDarkPanel';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
+import type { KinematicChain, JointConfig } from '../../kinematics/KinematicsManager';
 import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { useEditorStore } from '../store/editorStore';
@@ -47,6 +48,7 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
   const [activeRobotId, setActiveRobotId] = useState<string | null>(null);
   const [isPinned] = useState(false);
   const [joints, setJoints] = useState<any[]>([]);
+  const [toolingChains, setToolingChains] = useState<KinematicChain[]>([]);
 
   // Visualization state from store
   const skeletonEnabled = useEditorStore((s) => s.skeletonEnabled);
@@ -105,6 +107,20 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       }
     }
   }, [fkSolver, ikSolver, kinematicsManager, activeRobotId, visualizer, testHarness]);
+
+  useEffect(() => {
+    const updateTooling = () => {
+      const chains = kinematicsManager.getToolingChains();
+      setToolingChains(chains);
+    };
+    updateTooling();
+    const unsub = kinematicsManager.onFkUpdated(() => updateTooling());
+    const interval = setInterval(updateTooling, 1000);
+    return () => {
+      unsub();
+      clearInterval(interval);
+    };
+  }, [kinematicsManager, setToolingChains]);
 
   // Update visualizer when enabled
   useEffect(() => {
@@ -1052,6 +1068,199 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
         )}
       </AssetLibraryDarkSection>
 
+      {toolingChains.length > 0 && (
+        <AssetLibraryDarkSection title="Tooling Motion" data-testid="motion-panel-tooling-section">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {toolingChains.map((chain) => {
+              // Filter actuated joints only (no fixed joints)
+              const actuatedJoints = chain.joints.filter(
+                (j: JointConfig) => j.type === 'revolute' || j.type === 'prismatic'
+              );
+
+              // Guard: No actuated joints in this chain
+              if (actuatedJoints.length === 0) {
+                return (
+                  <div key={chain.id} style={{ padding: '12px', fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)', textAlign: 'center', fontStyle: 'italic' }}>
+                    {chain.name}: No actuated joints found
+                  </div>
+                );
+              }
+
+              return (
+                <div key={chain.id} style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: 10 }}>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', fontWeight: 'bold', marginBottom: 8 }}>
+                    {chain.name}
+                  </div>
+
+                  {/* "All Clamps" aggregate slider - only show when multiple revolute joints exist */}
+                  {actuatedJoints.filter(j => j.type === 'revolute').length >= 2 && (() => {
+                    const revoluteJoints = actuatedJoints.filter(j => j.type === 'revolute');
+                    // Compute aggregate position as average of all revolute joints (normalized 0-1)
+                    const avgNormalized = revoluteJoints.reduce((sum, j) => {
+                      const range = j.limits.upper - j.limits.lower;
+                      const normalized = range > 0 ? (j.position - j.limits.lower) / range : 0;
+                      return sum + normalized;
+                    }, 0) / revoluteJoints.length;
+
+                    return (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 4,
+                          marginBottom: 16,
+                          paddingBottom: 12,
+                          borderBottom: '1px solid rgba(255,255,255,0.15)',
+                          background: 'rgba(0, 212, 170, 0.05)',
+                          padding: 8,
+                          borderRadius: 4,
+                        }}
+                      >
+                        {/* Aggregate label row */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ fontSize: 11, color: '#00d4aa', fontWeight: '600' }}>
+                            All Clamps ({revoluteJoints.length})
+                          </div>
+                          <div style={{ fontSize: 11, color: '#a0aec0', fontFamily: 'monospace' }} data-testid="slider-value-all-clamps">
+                            {(avgNormalized * 100).toFixed(0)}%
+                          </div>
+                        </div>
+
+                        {/* Aggregate slider */}
+                        <input
+                          type="range"
+                          data-testid="tooling-motion-slider-all-clamps"
+                          min={0}
+                          max={1}
+                          step={0.01}
+                          value={avgNormalized}
+                          onChange={(e) => {
+                            const normalizedTarget = parseFloat(e.target.value);
+
+                            // Guard: Invalid value
+                            if (isNaN(normalizedTarget)) {
+                              console.error('[MotionPanel] Invalid aggregate slider value:', e.target.value);
+                              return;
+                            }
+
+                            // Update all revolute joints to the same normalized position
+                            revoluteJoints.forEach(joint => {
+                              const range = joint.limits.upper - joint.limits.lower;
+                              const targetValue = joint.limits.lower + normalizedTarget * range;
+                              fkSolver.updateJointPosition(joint.id, targetValue);
+                            });
+
+                            console.log('[MotionPanel]', {
+                              action: 'updateAllClamps',
+                              normalizedTarget,
+                              jointCount: revoluteJoints.length,
+                            });
+                          }}
+                          style={{ width: '100%', cursor: 'pointer', accentColor: '#00d4aa' }}
+                          aria-label="Jog All Clamps"
+                        />
+
+                        {/* Range labels row */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#718096' }}>
+                          <span>Retracted</span>
+                          <span>Extended</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {actuatedJoints.map((joint: JointConfig, index: number) => (
+                    <div
+                      key={joint.id}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 4,
+                        marginBottom: index < actuatedJoints.length - 1 ? 12 : 0,
+                        paddingBottom: index < actuatedJoints.length - 1 ? 12 : 0,
+                        borderBottom: index < actuatedJoints.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none'
+                      }}
+                    >
+                      {/* Joint label row */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ fontSize: 11, color: '#cbd5e0', fontWeight: '500' }}>
+                          {joint.name || joint.id}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#a0aec0', fontFamily: 'monospace' }} data-testid={`slider-value-${joint.name?.toLowerCase() || joint.id.toLowerCase()}`}>
+                          {joint.type === 'revolute'
+                            ? `${(joint.position * 180 / Math.PI).toFixed(1)}°`
+                            : `${(joint.position * 1000).toFixed(1)}mm`}
+                        </div>
+                      </div>
+
+                      {/* Slider row */}
+                      <input
+                        type="range"
+                        data-testid={`tooling-motion-slider-${joint.name?.toLowerCase() || joint.id.toLowerCase()}`}
+                        min={joint.limits.lower}
+                        max={joint.limits.upper}
+                        step={joint.type === 'revolute' ? Math.PI / 180 : 0.001}
+                        value={joint.position}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value);
+
+                          // Guard: Invalid value
+                          if (isNaN(v)) {
+                            console.error('[MotionPanel] Invalid joint value:', e.target.value);
+                            return;
+                          }
+
+                          // Update joint via FK solver
+                          const success = fkSolver.updateJointPosition(joint.id, v);
+
+                          // Log structured data for debugging
+                          console.log('[MotionPanel]', {
+                            action: 'updateJointPosition',
+                            jointId: joint.id,
+                            jointName: joint.name,
+                            value: v,
+                            valueDeg: joint.type === 'revolute' ? (v * 180 / Math.PI).toFixed(1) + '°' : undefined,
+                            success,
+                          });
+                        }}
+                        style={{ width: '100%', cursor: 'pointer' }}
+                        aria-label={`Jog ${joint.name || joint.id}`}
+                      />
+
+                      {/* Range labels row */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#718096' }}>
+                        <span>
+                          {joint.type === 'revolute'
+                            ? `${(joint.limits.lower * 180 / Math.PI).toFixed(0)}°`
+                            : `${(joint.limits.lower * 1000).toFixed(0)}mm`}
+                        </span>
+                        <span>
+                          {joint.type === 'revolute'
+                            ? `${(joint.limits.upper * 180 / Math.PI).toFixed(0)}°`
+                            : `${(joint.limits.upper * 1000).toFixed(0)}mm`}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        </AssetLibraryDarkSection>
+      )}
+
+      {/* No tooling joints hint */}
+      {toolingChains.length === 0 && (
+        <AssetLibraryDarkSection title="Tooling Motion">
+          <div style={{ padding: '16px', fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)', textAlign: 'center', lineHeight: '1.6' }}>
+            <div style={{ marginBottom: 8 }}>No tooling joints registered.</div>
+            <div style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.4)' }}>
+              Run <strong>Auto-Fit</strong> in Tooling Fixture Animator to extract joints.
+            </div>
+          </div>
+        </AssetLibraryDarkSection>
+      )}
+
       {/* Edit Section - Conditional, only show joint selection when edit mode is enabled */}
       {editableKinematicsFlag && editModeEnabled && (
         <AssetLibraryDarkSection title="Edit" hint={!activeRobotId ? 'Select a device to enable' : undefined}>
@@ -1096,6 +1305,7 @@ export const FloatingKinematicsPanel: React.FC<FloatingKinematicsPanelProps> = (
       maxHeight={700}
       draggable={true}
       resizable={true}
+      data-testid="motion-panel"
     >
       <AssetLibraryDarkPanel
         title=""

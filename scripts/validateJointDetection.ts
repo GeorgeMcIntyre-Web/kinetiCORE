@@ -65,6 +65,7 @@ const FIXTURES = [
     { id: '016ZF_140_CI00', path: 'Tooling/testing_data/8X-140_GEO/016ZF_20142435_140_CI00.glb' },
     { id: '8X_140_1E1_LH', path: 'Tooling/testing_data/8X-140_GEO/016ZF_20142435_140_1E1_LH.glb' },
     { id: '8X_140_2E1_RH', path: 'Tooling/testing_data/8X-140_GEO/016ZF_20142435_140_2E1_CI00.glb' },
+    { id: '8X_140_1E1_CI00', path: 'Tooling/8X-140-1E1_LH/016ZF_20142435_140_1E1_CI00.glb' },
 ];
 
 async function createHeadlessScene(): Promise<{ engine: BABYLON.NullEngine; scene: BABYLON.Scene }> {
@@ -74,23 +75,40 @@ async function createHeadlessScene(): Promise<{ engine: BABYLON.NullEngine; scen
 }
 
 async function loadGLB(scene: BABYLON.Scene, glbPath: string): Promise<BABYLON.TransformNode | null> {
-    return new Promise((resolve) => {
-        BABYLON.SceneLoader.ImportMesh('', '', `file://${glbPath}`, scene, (meshes) => {
-            const root = scene.getTransformNodeByName('__root__') ||
-                scene.transformNodes.find(n => n.name.includes('Scene') || n.name.includes('ROOT'));
+    try {
+        const buffer = fs.readFileSync(glbPath);
+        const result = await BABYLON.SceneLoader.ImportMeshAsync(
+            undefined,
+            '',
+            buffer,
+            scene,
+            undefined,
+            '.glb'
+        );
 
-            if (!root) {
-                console.warn('No root node found');
-                resolve(null);
-                return;
+        const roots: BABYLON.TransformNode[] = [];
+        const seen = new Set<string>();
+        for (const mesh of result.meshes) {
+            let node: BABYLON.Node | null = mesh;
+            while (node && node.parent) node = node.parent;
+            if (node && node instanceof BABYLON.TransformNode) {
+                const id = String(node.uniqueId);
+                if (!seen.has(id)) { roots.push(node); seen.add(id); }
             }
+        }
 
-            resolve(root);
-        }, undefined, (scene, message) => {
-            console.error('GLB load error:', message);
-            resolve(null);
-        });
-    });
+        if (roots.length === 0) {
+            const tn = scene.rootNodes.find(n => n instanceof BABYLON.TransformNode) as BABYLON.TransformNode | undefined;
+            if (tn) return tn;
+            console.warn('No root nodes found');
+            return null;
+        }
+
+        return roots[0];
+    } catch (e) {
+        console.error('GLB load error:', e);
+        return null;
+    }
 }
 
 async function validateFixture(fixtureId: string, fixturePath: string): Promise<JointReport | null> {
@@ -124,6 +142,9 @@ async function validateFixture(fixtureId: string, fixturePath: string): Promise<
 
     const detectedJoints = analyzer.getDetectedToolJoints();
     console.log(`[ValidateJoints] Detected ${detectedJoints.length} joints`);
+
+    const snapshot = analyzer.getDebugSnapshot(fixtureId);
+    console.log(`[ValidateJoints] Units detected: ${snapshot.totalUnits}`);
 
     // Build report
     const joints = detectedJoints.map(j => ({
@@ -162,6 +183,9 @@ async function validateFixture(fixtureId: string, fixturePath: string): Promise<
             byConfidence: { high, medium, low },
         },
     };
+    if (snapshot.totalUnits !== undefined) {
+        console.log(`[ValidateJoints] Summary: units=${snapshot.totalUnits}, revolute=${revolute}, prismatic=${prismatic}, unknown=${unknown}`);
+    }
 
     // Log per-unit summary
     const byUnit = new Map<string, typeof joints>();

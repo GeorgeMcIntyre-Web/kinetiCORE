@@ -198,3 +198,4 @@ export async function buildGeometryIndex(
   return geometryIndex;
 }
 
+

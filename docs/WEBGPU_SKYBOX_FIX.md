@@ -93,3 +93,4 @@ console.log('Bloom enabled:', pipeline?.bloomEnabled);
 **File:** `src/routing/core/WarehouseModel.ts`
 
 
+

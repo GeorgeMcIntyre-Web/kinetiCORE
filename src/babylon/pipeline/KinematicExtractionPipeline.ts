@@ -831,6 +831,44 @@ export class KinematicExtractionPipeline {
     );
   }
 
+  async captureUnitStateFromPoints(
+    unitId: string,
+    state: 'retract' | 'advance',
+    points: BABYLON.Vector3[],
+  ): Promise<void> {
+    if (!this.toolGraph) {
+      throw new Error('[Pipeline] Must call analyzeScene() first');
+    }
+
+    const unit = this.toolGraph.units.find(u => u.id === unitId);
+    if (!unit) {
+      throw new Error(`[Pipeline] Unit '${unitId}' not found in tool graph`);
+    }
+
+    const snapshot = this.stateCapture.capture(
+      this.scene,
+      unit.id,
+      state,
+      { kind: 'points', points },
+      {}
+    );
+
+    if (!this.statePairs.has(unitId)) {
+      this.statePairs.set(unitId, { unit } as UnitStatePair);
+    }
+
+    if (state === 'retract') {
+      this.statePairs.get(unitId)!.retracted = snapshot;
+    } else {
+      this.statePairs.get(unitId)!.extended = snapshot;
+    }
+
+    console.log(
+      `[Pipeline] Captured ${state} state (points) for unit '${unit.name}': ` +
+      `${snapshot.pointCloud.length} points`
+    );
+  }
+
   /**
    * Manually fit joint for a specific unit.
    *

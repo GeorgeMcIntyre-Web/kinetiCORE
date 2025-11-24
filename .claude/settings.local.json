@@ -48,7 +48,8 @@
       "Bash(test:*)",
       "Bash(npm run smoke:units-motion:*)",
       "Bash(node -e \"require(''fs'').readFileSync(''tests/babylon/sceneAnalysis/StructureBasedToolAnalyzer.test.ts'', ''utf-8'')\" 2 >& 1:*)",
-      "Bash(node -p:*)"
+      "Bash(node -p:*)",
+      "Bash(timeout 30 npm test:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Matrix, Vector3 } from '@babylonjs/core';
 import { ToolingKinematicsAdapter, KinematicsAdapterContext } from '../../src/kinematics/toolingKinematicsAdapter';
+import { KinematicsManager } from '../../src/kinematics/KinematicsManager';
 import type { UnitsV2Output } from '../../src/domain/tooling/unitsV2Pipeline';
 import type { ToolMotionJoint } from '../../src/domain/tooling/toolingMotion';
 
@@ -189,5 +190,36 @@ describe('ToolingKinematicsAdapter', () => {
 
         expect(jConfig.axis.y).toBeCloseTo(0);
         expect(Math.abs(jConfig.axis.z)).toBeCloseTo(1);
+    });
+
+    it('should register chains with KinematicsManager', () => {
+        const manager = KinematicsManager.getInstance();
+        manager.reset();
+
+        const joint: ToolMotionJoint = {
+            id: 'j_reg',
+            motionType: 'revolute',
+            baseNodeId: 'base_reg',
+            movingNodeId: 'move_reg',
+            axisWorld: { x: 0, y: 1, z: 0 },
+            axisOriginWorld: { x: 0, y: 0, z: 0 },
+            rangeMin: -45,
+            rangeMax: 45,
+            unitId: 'unit_reg',
+        };
+
+        const output: UnitsV2Output = {
+            units: [],
+            motionJoints: [joint],
+        } as any;
+
+        const ids = ToolingKinematicsAdapter.registerChains(output, mockContext);
+        expect(ids).toHaveLength(1);
+
+        const toolingChains = manager.getToolingChains();
+        expect(toolingChains).toHaveLength(1);
+        expect(toolingChains[0].id).toBe(ids[0]);
+        expect(toolingChains[0].joints).toHaveLength(1);
+        expect(toolingChains[0].joints[0].type).toBe('revolute');
     });
 });
