@@ -1140,36 +1140,30 @@ export class StructureBasedToolAnalyzer {
     const children: BABYLON.Node[] = [];
     const seen = new Set<BABYLON.Node>();
 
-    // Use getChildTransformNodes(false) and getChildMeshes(false) ONLY
-    // The (false) parameter ensures we get DIRECT children only, not all descendants
+    // CRITICAL: Filter by parent to ensure DIRECT children only
+    // Babylon's API methods sometimes return unexpected results
 
-    // Method 1: getChildTransformNodes(false) - direct transform node children
     if (node instanceof BABYLON.TransformNode) {
-      try {
-        const transformChildren = node.getChildTransformNodes(false);
-        for (const child of transformChildren) {
-          if (!seen.has(child)) {
-            children.push(child);
-            seen.add(child);
-          }
+      // Get all child transform nodes (may be recursive despite 'false' param)
+      const transformChildren = node.getChildTransformNodes(false);
+
+      // FILTER: Only include nodes where parent === this node
+      for (const child of transformChildren) {
+        if (child.parent === node && !seen.has(child)) {
+          children.push(child);
+          seen.add(child);
         }
-      } catch (e) {
-        // Ignore errors
       }
-    }
 
-    // Method 2: getChildMeshes(false) - direct mesh children
-    if (node instanceof BABYLON.TransformNode) {
-      try {
-        const meshChildren = node.getChildMeshes(false);
-        for (const child of meshChildren) {
-          if (!seen.has(child) && child instanceof BABYLON.TransformNode) {
-            children.push(child);
-            seen.add(child);
-          }
+      // Get all child meshes
+      const meshChildren = node.getChildMeshes(false);
+
+      // FILTER: Only include nodes where parent === this node
+      for (const child of meshChildren) {
+        if (child.parent === node && !seen.has(child) && child instanceof BABYLON.TransformNode) {
+          children.push(child);
+          seen.add(child);
         }
-      } catch (e) {
-        // Ignore errors
       }
     }
 
