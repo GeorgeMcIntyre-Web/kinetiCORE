@@ -16,6 +16,11 @@ export interface KinematicsAdapterContext {
      * Used to transform world-space joint data into parent-local space.
      */
     getNodeWorldMatrix(nodeId: string): Matrix | null;
+    /**
+     * Get the name of a node by its ID.
+     * Used to display human-readable joint names in Motion Panel.
+     */
+    getNodeName?(nodeId: string): string | null;
 }
 
 /**
@@ -261,8 +266,15 @@ export class ToolingKinematicsAdapter {
             }
 
             // Guard: skip joints with insufficient motion
-            if (dj.deltaType === 'revolute' && (dj.angleDeg === undefined || dj.angleDeg < 1)) {
+            // Use 5° threshold to filter out noise/floating-point drift
+            if (dj.deltaType === 'revolute' && (dj.angleDeg === undefined || dj.angleDeg < 5)) {
                 errors.push(`Skipped joint ${dj.jointId}: insufficient rotation (${dj.angleDeg?.toFixed(1) ?? 0}°)`);
+                continue;
+            }
+
+            // Guard: skip prismatic joints with zero travel
+            if (dj.deltaType === 'prismatic' && Math.abs(dj.travelWorld) < 0.001) {
+                errors.push(`Skipped joint ${dj.jointId}: insufficient travel (${(dj.travelWorld * 1000).toFixed(1)}mm)`);
                 continue;
             }
 
@@ -275,6 +287,15 @@ export class ToolingKinematicsAdapter {
             if (parentWorld === null) {
                 errors.push(`Skipped joint ${dj.jointId}: could not resolve parent node ${parentNodeId}`);
                 continue;
+            }
+
+            // Resolve human-readable joint name from child node (e.g., "UNIT_112" instead of "unit_226")
+            let jointName = dj.unitId; // Fallback to analyzer's internal ID
+            if (context.getNodeName) {
+                const childName = context.getNodeName(childNodeId);
+                if (childName) {
+                    jointName = childName;
+                }
             }
 
             const parentInv = parentWorld.clone().invert();
@@ -304,7 +325,7 @@ export class ToolingKinematicsAdapter {
 
             const jointConfig: JointConfig = {
                 id: `autofit_${dj.jointId}`,
-                name: dj.unitId,
+                name: jointName, // Use resolved scene node name (e.g., "UNIT_112")
                 type,
                 parentNodeId,
                 childNodeId,

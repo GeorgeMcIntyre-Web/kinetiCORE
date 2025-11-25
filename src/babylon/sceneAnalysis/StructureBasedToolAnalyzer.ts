@@ -1954,9 +1954,36 @@ export class StructureBasedToolAnalyzer {
           translationMagnitude = jointFromICP.magnitude;
         }
       } else {
-        // No significant motion detected by extractJointFromTransform
-        // Skip creating a joint
-        continue;
+        // Fallback: use raw ICP transform decomposition when orbit-based extractors fail
+        // This ensures we don't lose valid joints just because point clouds were insufficient
+        if (pair.jointType === 'revolute') {
+          // Extract axis from quaternion
+          const angle = 2 * Math.acos(Math.min(1, Math.abs(qw)));
+          const sinHalfAngle = Math.sin(angle / 2);
+          if (sinHalfAngle > 1e-6) {
+            motionAxis = {
+              x: qx / sinHalfAngle,
+              y: qy / sinHalfAngle,
+              z: qz / sinHalfAngle,
+            };
+            angleDeg = pair.rotationAngle; // Use pre-computed rotation angle from ICP
+          } else {
+            // Very small rotation, use Z as default axis
+            motionAxis = { x: 0, y: 0, z: 1 };
+            angleDeg = pair.rotationAngle;
+          }
+          console.log(`[FALLBACK] Using raw ICP transform for revolute joint ${unitId}: angle=${angleDeg.toFixed(1)}°`);
+        } else {
+          // Prismatic: use translation direction
+          if (translationMagnitude > 1e-6) {
+            const dir = deltaTranslation.normalize();
+            motionAxis = { x: dir.x, y: dir.y, z: dir.z };
+          } else {
+            motionAxis = { x: 1, y: 0, z: 0 };
+          }
+          angleDeg = 0;
+          console.log(`[FALLBACK] Using raw ICP transform for prismatic joint ${unitId}: travel=${(translationMagnitude * 1000).toFixed(1)}mm`);
+        }
       }
 
       // Determine deltaType
