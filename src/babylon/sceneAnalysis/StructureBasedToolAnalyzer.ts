@@ -395,8 +395,14 @@ export class StructureBasedToolAnalyzer {
       console.log(`[StructureBasedToolAnalyzer] Starting analysis from root: ${rootNode.name || rootNode.id}`);
     }
 
-    // Step 1: Find the "units level" - highest level with count >= minUnitCount
-    const unitsLevel = this.findUnitsLevel(rootNode, opts);
+    // Step 1: Find the "units level" using point cloud analysis (name-agnostic)
+    // Try point-cloud-based detection first, fallback to hierarchy-based
+    let unitsLevel = this.findUnitsLevelByPointCloud(rootNode, opts);
+
+    if (!unitsLevel) {
+      console.log('[StructureBasedToolAnalyzer] Point cloud detection failed, falling back to hierarchy-based detection');
+      unitsLevel = this.findUnitsLevel(rootNode, opts);
+    }
 
     if (!unitsLevel) {
       console.warn(
@@ -706,10 +712,118 @@ export class StructureBasedToolAnalyzer {
   }
 
   /**
+   * Count total vertices (points) in a node and its descendants.
+   * Returns 0 if node has no geometry.
+   */
+  private countVertices(node: BABYLON.Node): number {
+    let total = 0;
+
+    // Count this node's vertices if it's a mesh
+    if (node instanceof BABYLON.Mesh || node instanceof BABYLON.InstancedMesh) {
+      const mesh = node instanceof BABYLON.InstancedMesh ? node.sourceMesh : node;
+      if (mesh && mesh.geometry) {
+        const positions = mesh.geometry.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+        if (positions) {
+          total += positions.length / 3; // 3 floats per vertex (x, y, z)
+        }
+      }
+    }
+
+    // Recursively count descendants
+    if (node.getChildren) {
+      for (const child of node.getChildren()) {
+        total += this.countVertices(child);
+      }
+    }
+
+    return total;
+  }
+
+  /**
+   * Find units using point cloud analysis (name-agnostic).
+   *
+   * Algorithm:
+   * 1. Start at root with total point count (e.g., 300K)
+   * 2. Traverse down - skip levels where children have same point count as parent
+   * 3. Stop at level where children's point counts SUM to parent's total → These are UNITS
+   * 4. Return the unit nodes
+   *
+   * This is purely geometry-based and doesn't rely on node names.
+   */
+  private findUnitsLevelByPointCloud(
+    root: BABYLON.Node,
+    opts: Required<StructureBasedAnalyzeOptions>
+  ): { children: BABYLON.Node[]; depth: number } | null {
+    const rootPointCount = this.countVertices(root);
+
+    if (rootPointCount === 0) {
+      console.warn('[StructureBasedToolAnalyzer] Root node has no vertices');
+      return null;
+    }
+
+    console.log(`[StructureBasedToolAnalyzer] Root has ${rootPointCount} vertices`);
+
+    let currentLevel: BABYLON.Node[] = [root];
+    let depth = 0;
+
+    while (depth < opts.maxDepth) {
+      const nextLevel: BABYLON.Node[] = [];
+
+      // Get all children at this level
+      for (const node of currentLevel) {
+        nextLevel.push(...this.getImmediateChildren(node));
+      }
+
+      if (nextLevel.length === 0) break;
+
+      // Count points for each child
+      const childPointCounts = nextLevel.map(child => ({
+        node: child,
+        count: this.countVertices(child),
+      }));
+
+      // Calculate total points in children
+      const totalChildPoints = childPointCounts.reduce((sum, c) => sum + c.count, 0);
+
+      // Log for debugging
+      console.log(
+        `[StructureBasedToolAnalyzer] Depth ${depth + 1}: ${nextLevel.length} children, ` +
+        `total points: ${totalChildPoints} (parent: ${rootPointCount})`
+      );
+
+      // Check if children's point counts sum to parent's total (within 10% tolerance)
+      const sumRatio = totalChildPoints / rootPointCount;
+
+      if (sumRatio >= 0.9 && sumRatio <= 1.1) {
+        // Filter out children with very few points (< 1% of total)
+        const threshold = rootPointCount * 0.01;
+        const significantChildren = childPointCounts
+          .filter(c => c.count > threshold)
+          .map(c => c.node);
+
+        if (significantChildren.length >= opts.minUnitCount) {
+          console.log(
+            `[StructureBasedToolAnalyzer] ✅ Found units level at depth ${depth + 1}: ` +
+            `${significantChildren.length} units with point counts summing to total`
+          );
+          return { children: significantChildren, depth: depth + 1 };
+        }
+      }
+
+      // Continue deeper
+      currentLevel = nextLevel;
+      depth++;
+    }
+
+    console.warn('[StructureBasedToolAnalyzer] Could not find units level by point cloud analysis');
+    return null;
+  }
+
+  /**
    * Find the highest level in hierarchy where child count >= minUnitCount.
-   * 
+   *
    * Traverses from root downward, stopping at first level with enough children.
-   * 
+   *
    * IMPORTANT: We want to find the level with the actual UNIT nodes (like UNIT_114, UNIT_112),
    * not too deep where we hit individual mesh components. The algorithm prefers levels
    * with a reasonable number of children (not thousands).
