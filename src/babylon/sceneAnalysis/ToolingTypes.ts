@@ -16,8 +16,10 @@ export type Vector3Like = {
 };
 
 export type DetectedToolJoint = {
-  /** Unit ID this joint belongs to */
+  /** Unit ID this joint belongs to (internal analyzer ID, e.g., "unit_226") */
   unitId: string;
+  /** Unit scene node name (e.g., "UNIT_112", "RH") - for display in Motion Panel */
+  unitName?: string;
   /** Geometry family ID this joint belongs to (for deduplication) */
   familyId: string;
   /** Unique joint identifier (unitId + joint index) */

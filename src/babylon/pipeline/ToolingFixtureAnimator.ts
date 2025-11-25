@@ -350,14 +350,6 @@ export class ToolingFixtureAnimator {
         node.computeWorldMatrix(true);
         return node.getWorldMatrix();
       },
-      getNodeName: (nodeId: string) => {
-        const node = resolveNode(nodeId);
-        if (!node) {
-          return null;
-        }
-        // Return the node's name, or fallback to its ID
-        return node.name || node.id || null;
-      },
     };
 
     // Step 4: Register joints with KinematicsManager

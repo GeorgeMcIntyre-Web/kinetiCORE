@@ -16,11 +16,6 @@ export interface KinematicsAdapterContext {
      * Used to transform world-space joint data into parent-local space.
      */
     getNodeWorldMatrix(nodeId: string): Matrix | null;
-    /**
-     * Get the name of a node by its ID.
-     * Used to display human-readable joint names in Motion Panel.
-     */
-    getNodeName?(nodeId: string): string | null;
 }
 
 /**
@@ -289,14 +284,9 @@ export class ToolingKinematicsAdapter {
                 continue;
             }
 
-            // Resolve human-readable joint name from child node (e.g., "UNIT_112" instead of "unit_226")
-            let jointName = dj.unitId; // Fallback to analyzer's internal ID
-            if (context.getNodeName) {
-                const childName = context.getNodeName(childNodeId);
-                if (childName) {
-                    jointName = childName;
-                }
-            }
+            // Use unit scene node name from analyzer (e.g., "UNIT_112", "RH")
+            // This is more reliable than resolving from child node which might be "MOVING" or deep nested
+            const jointName = dj.unitName || dj.unitId; // Fallback to internal ID if name unavailable
 
             const parentInv = parentWorld.clone().invert();
 

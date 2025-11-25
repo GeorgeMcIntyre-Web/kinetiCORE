@@ -2015,6 +2015,7 @@ export class StructureBasedToolAnalyzer {
 
       detected.push({
         unitId,
+        unitName: pair.unit.name, // Store scene node name (e.g., "UNIT_112", "RH") for Motion Panel display
         familyId: pair.familyId,
         jointId,
         strokeCategory: pair.strokeCategory,
