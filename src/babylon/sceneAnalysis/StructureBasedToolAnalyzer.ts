@@ -804,10 +804,10 @@ export class StructureBasedToolAnalyzer {
           .filter(c => c.count > threshold)
           .map(c => c.node);
 
-        if (significantChildren.length >= opts.minUnitCount) {
+        if (significantChildren.length >= 1) {
           console.log(
             `[StructureBasedToolAnalyzer] ✅ Found units level at depth ${depth + 1}: ` +
-            `${significantChildren.length} units with point counts summing to total`
+            `${significantChildren.length} unit(s) with point counts summing to total`
           );
           return { children: significantChildren, depth: depth + 1 };
         }
