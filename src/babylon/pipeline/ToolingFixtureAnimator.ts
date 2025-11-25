@@ -300,6 +300,11 @@ export class ToolingFixtureAnimator {
     const detectedJoints = this.pipeline.getDetectedJoints();
     console.log(`[AutoFit] Found ${detectedJoints.length} detected joints from analyzer`);
 
+    // Debug: log each detected joint
+    for (const dj of detectedJoints) {
+      console.log(`[AutoFit]   Joint: ${dj.jointId}, type: ${dj.deltaType}, angle: ${dj.angleDeg?.toFixed(1) ?? 'N/A'}°, nodeA: ${dj.nodeAId}, nodeB: ${dj.nodeBId}`);
+    }
+
     if (detectedJoints.length === 0) {
       return {
         success: false,
@@ -315,12 +320,31 @@ export class ToolingFixtureAnimator {
     // Step 3: Create adapter context for world matrix lookups
     const context: import('../../kinematics/toolingKinematicsAdapter').KinematicsAdapterContext = {
       getNodeWorldMatrix: (nodeId: string) => {
-        // Try multiple ways to find the node
-        const node = this.scene.getTransformNodeById(nodeId) ||
-                     this.scene.getTransformNodeByName(nodeId) ||
-                     this.scene.getMeshById(nodeId) ||
-                     this.scene.getMeshByName(nodeId);
-        if (!node) return null;
+        // DetectedToolJoint stores Babylon unique IDs as strings (e.g., "240", "330")
+        // Try numeric unique ID first (most common for auto-detected joints)
+        const numericId = parseInt(nodeId, 10);
+        let node: BABYLON.TransformNode | BABYLON.Mesh | null = null;
+
+        if (!isNaN(numericId)) {
+          // Try by unique ID (numeric Babylon internal ID)
+          // Babylon doesn't have getNodeByUniqueId, so we search through all nodes
+          const allNodes = this.scene.transformNodes.concat(this.scene.meshes as any[]);
+          node = allNodes.find(n => n.uniqueId === numericId) || null;
+        }
+
+        // Fallback: try string-based lookups (for named nodes)
+        if (!node) {
+          node = this.scene.getTransformNodeById(nodeId) ||
+                 this.scene.getTransformNodeByName(nodeId) ||
+                 this.scene.getMeshById(nodeId) ||
+                 this.scene.getMeshByName(nodeId);
+        }
+
+        if (!node) {
+          console.warn(`[AutoFit] Could not resolve node: ${nodeId} (numeric: ${numericId})`);
+          return null;
+        }
+
         node.computeWorldMatrix(true);
         return node.getWorldMatrix();
       },
@@ -348,6 +372,10 @@ export class ToolingFixtureAnimator {
     });
 
     if (result.chainId === null) {
+      console.log('='.repeat(60));
+      console.log('[AutoFit] ❌ FAILED! No joints registered');
+      console.log('[AutoFit] Errors:', result.errors);
+      console.log('='.repeat(60));
       return {
         success: false,
         fixtureRootId,
@@ -358,6 +386,11 @@ export class ToolingFixtureAnimator {
         errors: result.errors,
       };
     }
+
+    console.log('='.repeat(60));
+    console.log('[AutoFit] ✅ SUCCESS! Registered', result.jointsRegistered, 'joints');
+    console.log('[AutoFit] Open Motion Panel → Tooling Motion to control clamps');
+    console.log('='.repeat(60));
 
     return {
       success: true,
