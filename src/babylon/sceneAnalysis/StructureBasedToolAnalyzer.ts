@@ -1140,25 +1140,10 @@ export class StructureBasedToolAnalyzer {
     const children: BABYLON.Node[] = [];
     const seen = new Set<BABYLON.Node>();
 
-    // Method 1: getChildren() - most common for TransformNode
-    if ((node as any).getChildren) {
-      try {
-        const allChildren = (node as any).getChildren() as BABYLON.Node[];
-        for (const child of allChildren) {
-          if (!seen.has(child)) {
-            // Include transform nodes and meshes (which are also transform nodes)
-            if (child instanceof BABYLON.TransformNode || child instanceof BABYLON.AbstractMesh) {
-              children.push(child);
-              seen.add(child);
-            }
-          }
-        }
-      } catch (e) {
-        // Ignore errors
-      }
-    }
+    // Use getChildTransformNodes(false) and getChildMeshes(false) ONLY
+    // The (false) parameter ensures we get DIRECT children only, not all descendants
 
-    // Method 2: getChildTransformNodes() - if available
+    // Method 1: getChildTransformNodes(false) - direct transform node children
     if (node instanceof BABYLON.TransformNode) {
       try {
         const transformChildren = node.getChildTransformNodes(false);
@@ -1173,7 +1158,7 @@ export class StructureBasedToolAnalyzer {
       }
     }
 
-    // Method 3: getChildMeshes() - for mesh containers
+    // Method 2: getChildMeshes(false) - direct mesh children
     if (node instanceof BABYLON.TransformNode) {
       try {
         const meshChildren = node.getChildMeshes(false);
