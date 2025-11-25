@@ -712,10 +712,10 @@ export class StructureBasedToolAnalyzer {
   }
 
   /**
-   * Count total vertices (points) in a node and its descendants.
-   * Returns 0 if node has no geometry.
+   * Count vertices in all descendant meshes of a node (recursive, deep count).
+   * Returns total vertex count across all meshes in the subtree.
    */
-  private countVertices(node: BABYLON.Node): number {
+  private countVerticesRecursive(node: BABYLON.Node): number {
     let total = 0;
 
     // Count this node's vertices if it's a mesh
@@ -732,7 +732,7 @@ export class StructureBasedToolAnalyzer {
     // Recursively count descendants
     if (node.getChildren) {
       for (const child of node.getChildren()) {
-        total += this.countVertices(child);
+        total += this.countVerticesRecursive(child);
       }
     }
 
@@ -754,7 +754,7 @@ export class StructureBasedToolAnalyzer {
     root: BABYLON.Node,
     opts: Required<StructureBasedAnalyzeOptions>
   ): { children: BABYLON.Node[]; depth: number } | null {
-    const rootPointCount = this.countVertices(root);
+    const rootPointCount = this.countVerticesRecursive(root);
 
     if (rootPointCount === 0) {
       console.warn('[StructureBasedToolAnalyzer] Root node has no vertices');
@@ -763,23 +763,20 @@ export class StructureBasedToolAnalyzer {
 
     console.log(`[StructureBasedToolAnalyzer] Root has ${rootPointCount} vertices`);
 
-    let currentLevel: BABYLON.Node[] = [root];
+    let currentNode = root;
     let depth = 0;
 
     while (depth < opts.maxDepth) {
-      const nextLevel: BABYLON.Node[] = [];
+      // Get immediate children
+      const children = this.getImmediateChildren(currentNode);
 
-      // Get all children at this level
-      for (const node of currentLevel) {
-        nextLevel.push(...this.getImmediateChildren(node));
-      }
+      if (children.length === 0) break;
 
-      if (nextLevel.length === 0) break;
-
-      // Count points for each child
-      const childPointCounts = nextLevel.map(child => ({
+      // Count points for each child's entire subtree
+      const childPointCounts = children.map(child => ({
         node: child,
-        count: this.countVertices(child),
+        count: this.countVerticesRecursive(child),
+        name: child.name || 'unnamed',
       }));
 
       // Calculate total points in children
@@ -787,9 +784,15 @@ export class StructureBasedToolAnalyzer {
 
       // Log for debugging
       console.log(
-        `[StructureBasedToolAnalyzer] Depth ${depth + 1}: ${nextLevel.length} children, ` +
+        `[StructureBasedToolAnalyzer] Depth ${depth + 1}: ${children.length} children, ` +
         `total points: ${totalChildPoints} (parent: ${rootPointCount})`
       );
+
+      // Log top 5 children by point count for debugging
+      const topChildren = [...childPointCounts].sort((a, b) => b.count - a.count).slice(0, 5);
+      for (const c of topChildren) {
+        console.log(`  - ${c.name}: ${c.count} vertices`);
+      }
 
       // Check if children's point counts sum to parent's total (within 10% tolerance)
       const sumRatio = totalChildPoints / rootPointCount;
@@ -810,9 +813,16 @@ export class StructureBasedToolAnalyzer {
         }
       }
 
-      // Continue deeper
-      currentLevel = nextLevel;
-      depth++;
+      // If we have only 1 child with all the points, go deeper into that child
+      if (children.length === 1) {
+        currentNode = children[0];
+        depth++;
+        continue;
+      }
+
+      // If children's points don't sum to parent, we've gone too deep - go back up
+      console.log(`[StructureBasedToolAnalyzer] Point sum ratio ${sumRatio.toFixed(2)} out of range, trying parent level`);
+      break;
     }
 
     console.warn('[StructureBasedToolAnalyzer] Could not find units level by point cloud analysis');
