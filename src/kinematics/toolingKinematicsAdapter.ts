@@ -261,15 +261,15 @@ export class ToolingKinematicsAdapter {
             }
 
             // Guard: skip joints with insufficient motion
-            // Use 5° threshold to filter out noise/floating-point drift
-            if (dj.deltaType === 'revolute' && (dj.angleDeg === undefined || dj.angleDeg < 5)) {
-                errors.push(`Skipped joint ${dj.jointId}: insufficient rotation (${dj.angleDeg?.toFixed(1) ?? 0}°)`);
+            // Use 45° threshold to filter out noise/floating-point drift
+            if (dj.deltaType === 'revolute' && (dj.angleDeg === undefined || dj.angleDeg < 45)) {
+                errors.push(`Skipped joint ${dj.jointId}: insufficient rotation (< 45° minimum) (${dj.angleDeg?.toFixed(1) ?? 0}°)`);
                 continue;
             }
 
             // Guard: skip prismatic joints with zero travel
-            if (dj.deltaType === 'prismatic' && Math.abs(dj.travelWorld) < 0.001) {
-                errors.push(`Skipped joint ${dj.jointId}: insufficient travel (${(dj.travelWorld * 1000).toFixed(1)}mm)`);
+            if (dj.deltaType === 'prismatic' && Math.abs(dj.travelWorld) < 0.100) {
+                errors.push(`Skipped joint ${dj.jointId}: insufficient travel (< 100mm minimum) (${(dj.travelWorld * 1000).toFixed(1)}mm)`);
                 continue;
             }
 
