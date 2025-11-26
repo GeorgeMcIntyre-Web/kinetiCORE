@@ -946,6 +946,35 @@
   box-shadow: 0 0 0 1px rgba(99, 179, 237, 0.4);
 }
 
+.targets-cartesian-toggle {
+  min-width: 36px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(99, 179, 237, 0.35);
+  border-radius: 4px;
+  background: rgba(45, 55, 72, 0.8);
+  color: #e2e8f0;
+  font-weight: 800;
+  font-size: 10px;
+  padding: 0 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.targets-cartesian-toggle:hover {
+  background: rgba(99, 179, 237, 0.25);
+  color: #ffffff;
+}
+
+.targets-cartesian-toggle.active {
+  background: #63b3ed;
+  color: #0b1726;
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 1px rgba(99, 179, 237, 0.4);
+}
+
 .targets-move-toggle,
 .targets-jump-toggle {
   width: 22px;

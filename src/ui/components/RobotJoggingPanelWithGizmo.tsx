@@ -61,6 +61,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
   const [moveOnSelectEnabled, setMoveOnSelectEnabled] = useState<boolean>(true);
   const [jumpOnSelectEnabled, setJumpOnSelectEnabled] = useState<boolean>(false);
   const [showPath, setShowPath] = useState<boolean>(true);
+  const [hideAllVisuals, setHideAllVisuals] = useState<boolean>(false);
 
   // Targets (teaching points with motion type)
   const [targets, setTargets] = useState<SixAxisTarget[]>([]);
@@ -78,6 +79,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
   };
 
   const renderTargetFrame = (target: SixAxisTarget) => {
+    if (hideAllVisuals) return;
     if (hiddenFrames[target.id]) return;
     if (!target.cartesian) return;
     const scene = (window as any).sceneManager?.getScene?.();
@@ -1095,11 +1097,13 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
       }
     });
 
-    // Ensure frames are drawn for existing targets when not hidden
-    targets.forEach(target => {
-      if (hiddenFrames[target.id]) return;
-      renderTargetFrame(target);
-    });
+    if (!hideAllVisuals) {
+      // Ensure frames are drawn for existing targets when not hidden
+      targets.forEach(target => {
+        if (hiddenFrames[target.id]) return;
+        renderTargetFrame(target);
+      });
+    }
 
     // Draw path line through visible targets
     if (pathLineRef.current) {
@@ -1107,7 +1111,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
       pathLineRef.current = null;
     }
 
-    if (showPath) {
+    if (showPath && !hideAllVisuals) {
       const scene = (window as any).sceneManager?.getScene?.();
       const points = targets
         .filter(t => t.cartesian && !hiddenFrames[t.id])
@@ -1125,7 +1129,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
         pathLineRef.current = line;
       }
     }
-  }, [targets, hiddenFrames, showPath]);
+  }, [targets, hiddenFrames, showPath, hideAllVisuals]);
 
   const handlePlaySequence = async () => {
     if (targets.length === 0) return;
@@ -1671,14 +1675,6 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
               <span className="targets-count">{targets.length} targets</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <button
-                  className={`targets-path-toggle ${showPath ? 'active' : ''}`}
-                  onClick={() => setShowPath(!showPath)}
-                  title="Show path through targets"
-                  aria-pressed={showPath}
-                >
-                  P
-                </button>
-                <button
                   className="targets-detail-toggle"
                   onClick={() => setShowTargetDetails(!showTargetDetails)}
                   title={showTargetDetails ? "Hide Cartesian coordinates" : "Show Cartesian coordinates"}
@@ -1708,9 +1704,9 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
               </button>
             </div>
 
-            {/* Teach new target - compact, icon-only controls */}
-            <div className="target-teach-section" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <div className="motion-type-toggle" style={{ display: 'flex', gap: 4 }}>
+            {/* Toggle controls */}
+            <div className="target-teach-section" style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
+              <div className="motion-type-toggle" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                 <button
                   className={`targets-move-toggle ${moveOnSelectEnabled ? 'active' : ''}`}
                   onClick={() => {
@@ -1723,7 +1719,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
                   title="Move to selected target"
                   aria-pressed={moveOnSelectEnabled}
                 >
-                  M
+                  MOV
                 </button>
                 <button
                   className={`targets-jump-toggle ${jumpOnSelectEnabled ? 'active' : ''}`}
@@ -1737,34 +1733,51 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
                   title="Jump on select"
                   aria-pressed={jumpOnSelectEnabled}
                 >
-                  J
+                  JMP
                 </button>
                 <button
-                  aria-label="Joint move"
-                  title="Joint"
-                  onClick={() => setNewTargetMotionType('JOINT')}
-                  className={`icon-toggle ${newTargetMotionType === 'JOINT' ? 'active' : ''}`}
-                  style={{ width: 24, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', background: newTargetMotionType === 'JOINT' ? '#3182ce' : '#4a5568', border: 'none', borderRadius: 3, color: '#fff' }}
+                  className={`targets-path-toggle ${showPath ? 'active' : ''}`}
+                  onClick={() => setShowPath(!showPath)}
+                  title="Show path through targets"
+                  aria-pressed={showPath}
                 >
-                  <Move size={16} color="#ffffff" stroke="#ffffff" strokeWidth={2} style={{ display: 'block', flexShrink: 0, pointerEvents: 'none' }} />
+                  Path
                 </button>
                 <button
-                  aria-label="Linear move"
-                  title="Linear"
-                  onClick={() => setNewTargetMotionType('LINEAR')}
-                  className={`icon-toggle ${newTargetMotionType === 'LINEAR' ? 'active' : ''}`}
-                  style={{ width: 24, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', background: newTargetMotionType === 'LINEAR' ? '#3182ce' : '#4a5568', border: 'none', borderRadius: 3, color: '#fff' }}
+                  className={`targets-cartesian-toggle ${hideAllVisuals ? 'active' : ''}`}
+                  onClick={() => {
+                    setHideAllVisuals(prev => {
+                      const next = !prev;
+                      if (next) {
+                        // hide everything
+                        setShowPath(false);
+                        targetFramesRef.current.forEach(frame => frame.nodes.forEach(n => n.dispose(false, true)));
+                        targetFramesRef.current.clear();
+                        if (pathLineRef.current) {
+                          pathLineRef.current.dispose(false, true);
+                          pathLineRef.current = null;
+                        }
+                      }
+                      return next;
+                    });
+                  }}
+                  title="Hide/show all frames and path"
+                  aria-pressed={hideAllVisuals}
                 >
-                  <ArrowRight size={16} color="#ffffff" stroke="#ffffff" strokeWidth={2} style={{ display: 'block', flexShrink: 0, pointerEvents: 'none' }} />
+                  Frame
                 </button>
               </div>
+            </div>
+
+            {/* Teach new target - dedicated row */}
+            <div className="target-teach-section" style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
               <button
                 className="target-teach-btn"
                 onClick={handleTeachTarget}
                 title="Teach current position as target"
-                style={{ width: 28, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#2f855a', border: 'none', borderRadius: 3, color: '#fff' }}
+                style={{ width: '100%', height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#2f855a', border: 'none', borderRadius: 4, color: '#fff', fontWeight: 700, fontSize: 12, letterSpacing: 0.2 }}
               >
-                <Target size={16} color="#ffffff" stroke="#ffffff" strokeWidth={2} style={{ display: 'block', flexShrink: 0, pointerEvents: 'none' }} />
+                Teach Location
               </button>
             </div>
 

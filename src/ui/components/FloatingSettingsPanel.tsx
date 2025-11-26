@@ -125,10 +125,12 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({
               <button
                 type="button"
                 className="settings-btn settings-btn-secondary settings-color-reset"
-                onClick={() => onBackgroundColorChange(defaultBackgroundColor)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onBackgroundColorChange(defaultBackgroundColor);
+                }}
                 onMouseDown={(e) => e.stopPropagation()}
                 onMouseUp={(e) => e.stopPropagation()}
-                onClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
                 onPointerUp={(e) => e.stopPropagation()}
               >
