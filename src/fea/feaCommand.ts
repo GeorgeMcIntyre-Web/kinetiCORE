@@ -1,4 +1,3 @@
-import { Command } from "../history/Command"; // Assuming this exists, or I'll define a local interface if not found
 import { FEASceneManager } from "./feaSceneManager";
 import { FEANode } from "./types";
 
@@ -36,7 +35,7 @@ export class FEASetLoadCommand implements ICommand {
                 node.loads = [...this.load];
             }
         });
-        manager.solve();
+        manager.solveStatic();
     }
 
     undo(): void {
@@ -48,7 +47,7 @@ export class FEASetLoadCommand implements ICommand {
                 if (prev) node.loads = [...prev];
             }
         });
-        manager.solve();
+        manager.solveStatic();
     }
 
     redo(): void {
