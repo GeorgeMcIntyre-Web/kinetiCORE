@@ -60,6 +60,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
   // Toggles for target click actions
   const [moveOnSelectEnabled, setMoveOnSelectEnabled] = useState<boolean>(true);
   const [jumpOnSelectEnabled, setJumpOnSelectEnabled] = useState<boolean>(false);
+  const [showPath, setShowPath] = useState<boolean>(true);
 
   // Targets (teaching points with motion type)
   const [targets, setTargets] = useState<SixAxisTarget[]>([]);
@@ -84,8 +85,9 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
 
     if (!targetFrameMatRef.current) {
       const mat = new BABYLON.StandardMaterial('targetFrameMat', scene);
-      mat.diffuseColor = new BABYLON.Color3(0.6, 0.4, 1);
-      mat.emissiveColor = new BABYLON.Color3(0.6, 0.4, 1);
+      const frameColor = new BABYLON.Color3(0.82, 0.32, 0.04); // deeper burnt orange for contrast
+      mat.diffuseColor = frameColor;
+      mat.emissiveColor = frameColor;
       mat.specularColor = new BABYLON.Color3(0, 0, 0);
       mat.backFaceCulling = false;
       targetFrameMatRef.current = mat;
@@ -180,6 +182,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
   const targetFramesRef = useRef<Map<string, TargetFrameSet>>(new Map());
   const targetFrameMatRef = useRef<BABYLON.StandardMaterial | null>(null);
   const [hiddenFrames, setHiddenFrames] = useState<Record<string, boolean>>({});
+  const pathLineRef = useRef<BABYLON.LinesMesh | null>(null);
 
   // Cleanup debug/visual lines on unmount
   useEffect(() => {
@@ -197,6 +200,10 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
       if (targetFrameMatRef.current) {
         targetFrameMatRef.current.dispose(false, true);
         targetFrameMatRef.current = null;
+      }
+      if (pathLineRef.current) {
+        pathLineRef.current.dispose(false, true);
+        pathLineRef.current = null;
       }
     };
   }, []);
@@ -1083,7 +1090,32 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
       if (hiddenFrames[target.id]) return;
       renderTargetFrame(target);
     });
-  }, [targets, hiddenFrames]);
+
+    // Draw path line through visible targets
+    if (pathLineRef.current) {
+      pathLineRef.current.dispose(false, true);
+      pathLineRef.current = null;
+    }
+
+    if (showPath) {
+      const scene = (window as any).sceneManager?.getScene?.();
+      const points = targets
+        .filter(t => t.cartesian && !hiddenFrames[t.id])
+        .map(t => new BABYLON.Vector3(
+          (t.cartesian!.position?.[0] ?? 0) * 0.001,
+          (t.cartesian!.position?.[1] ?? 0) * 0.001,
+          (t.cartesian!.position?.[2] ?? 0) * 0.001
+        ));
+
+      if (scene && points.length >= 2) {
+        const line = BABYLON.MeshBuilder.CreateLines('target_path', { points, updatable: false }, scene) as BABYLON.LinesMesh;
+        const pathColor = new BABYLON.Color3(1, 0.88, 0.62); // lighter amber for clear contrast
+        line.color = pathColor;
+        line.isPickable = false;
+        pathLineRef.current = line;
+      }
+    }
+  }, [targets, hiddenFrames, showPath]);
 
   const handlePlaySequence = async () => {
     if (targets.length === 0) return;
@@ -1628,6 +1660,14 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
             <div className="targets-header">
               <span className="targets-count">{targets.length} targets</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button
+                  className={`targets-path-toggle ${showPath ? 'active' : ''}`}
+                  onClick={() => setShowPath(!showPath)}
+                  title="Show path through targets"
+                  aria-pressed={showPath}
+                >
+                  P
+                </button>
                 <button
                   className="targets-detail-toggle"
                   onClick={() => setShowTargetDetails(!showTargetDetails)}
