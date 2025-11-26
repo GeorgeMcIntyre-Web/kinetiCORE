@@ -150,7 +150,7 @@ export const EssentialModeLayout: React.FC = () => {
   const [showRobotJogPanel, setShowRobotJogPanel] = useState(false);
   const [showPosesPanel, setShowPosesPanel] = useState(false);
   const [showWarehousePanel, setShowWarehousePanel] = useState(false);
-  const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation'>('modeling');
+  const [activeWorkspace, setActiveWorkspace] = useState<'modeling' | 'simulation' | 'kinematics'>('modeling');
   const [activeMeasurement, setActiveMeasurement] = useState<MeasurementType>(null);
   // Kinematics inline robot state
   const [kinActiveRobotId, setKinActiveRobotId] = useState<string | null>(null);
@@ -788,6 +788,12 @@ export const EssentialModeLayout: React.FC = () => {
             >
               Simulation
             </button>
+            <button
+              className={`workspace-tab ${activeWorkspace === 'kinematics' ? 'active' : ''}`}
+              onClick={() => setActiveWorkspace('kinematics')}
+            >
+              Kinematics
+            </button>
           </div>
         </div>
         <div className="header-right">
@@ -1150,54 +1156,53 @@ export const EssentialModeLayout: React.FC = () => {
                   </button>
                 </div>
               </div>
-
-              <div className="toolbar-separator"></div>
-
-              <div className="tool-group">
-                <div className="group-label">Kinematics</div>
-                <div className="tool-buttons">
-                  <button className="tool-btn" onClick={() => setShowKinematicsPanel(true)} title="Motion Panel">
-                    <Rocket size={18} />
-                    <span className="tool-btn-label">Motion</span>
-                  </button>
-                  <button className="tool-btn" onClick={() => setShowKinematicsAnalysisPanel(true)} title="Kinematics Analysis">
-                    <Calculator size={18} />
-                    <span className="tool-btn-label">Analysis</span>
-                  </button>
-                  <button className="tool-btn" onClick={() => setShowActuatorPanel(true)} title="Actuator Control">
-                    <div style={{ position: 'relative', width: 18, height: 18 }}>
-                      <Zap size={12} style={{ position: 'absolute', left: 1, top: 1 }} />
-                      <Settings size={12} style={{ position: 'absolute', right: 1, bottom: 1 }} />
-                    </div>
-                    <span className="tool-btn-label">Actuators</span>
-                  </button>
-                  <button className="tool-btn" onClick={() => setShowComplexIKPanel(true)} title="Complex IK Systems">
-                    <GitBranch size={18} />
-                    <span className="tool-btn-label">Complex IK</span>
-                  </button>
-                  <button className="tool-btn" onClick={() => setShowWholeBodyIKPanel(true)} title="FullBody IK">
-                    <Network size={18} />
-                    <span className="tool-btn-label">FullBody IK</span>
-                  </button>
-                  <button className="tool-btn" onClick={() => setShowICPTestPanel(true)} title="ICP Test Tool">
-                    <TestTube size={18} />
-                    <span className="tool-btn-label">ICP Test</span>
-                  </button>
-                  <button className="tool-btn" onClick={() => setShowJointJogPanel(true)} title="Joint Jog Panel">
-                    <Move size={18} />
-                    <span className="tool-btn-label">Joint Jog</span>
-                  </button>
-                  <button className="tool-btn" onClick={() => setShowRobotJogPanel(true)} title="Robot Jog Panel">
-                    <Navigation size={18} />
-                    <span className="tool-btn-label">Robot Jog</span>
-                  </button>
-                  <button className="tool-btn" onClick={() => setShowPosesPanel(true)} title="Poses Panel">
-                    <Play size={18} />
-                    <span className="tool-btn-label">Poses</span>
-                  </button>
-                </div>
-              </div>
             </>
+          )}
+          {activeWorkspace === 'kinematics' && (
+            <div className="tool-group">
+              <div className="group-label">Kinematics</div>
+              <div className="tool-buttons">
+                <button className="tool-btn" onClick={() => setShowKinematicsPanel(true)} title="Motion Panel">
+                  <Rocket size={18} />
+                  <span className="tool-btn-label">Motion</span>
+                </button>
+                <button className="tool-btn" onClick={() => setShowKinematicsAnalysisPanel(true)} title="Kinematics Analysis">
+                  <Calculator size={18} />
+                  <span className="tool-btn-label">Analysis</span>
+                </button>
+                <button className="tool-btn" onClick={() => setShowActuatorPanel(true)} title="Actuator Control">
+                  <div style={{ position: 'relative', width: 18, height: 18 }}>
+                    <Zap size={12} style={{ position: 'absolute', left: 1, top: 1 }} />
+                    <Settings size={12} style={{ position: 'absolute', right: 1, bottom: 1 }} />
+                  </div>
+                  <span className="tool-btn-label">Actuators</span>
+                </button>
+                <button className="tool-btn" onClick={() => setShowComplexIKPanel(true)} title="Complex IK Systems">
+                  <GitBranch size={18} />
+                  <span className="tool-btn-label">Complex IK</span>
+                </button>
+                <button className="tool-btn" onClick={() => setShowWholeBodyIKPanel(true)} title="FullBody IK">
+                  <Network size={18} />
+                  <span className="tool-btn-label">FullBody IK</span>
+                </button>
+                <button className="tool-btn" onClick={() => setShowICPTestPanel(true)} title="ICP Test Tool">
+                  <TestTube size={18} />
+                  <span className="tool-btn-label">ICP Test</span>
+                </button>
+                <button className="tool-btn" onClick={() => setShowJointJogPanel(true)} title="Joint Jog Panel">
+                  <Move size={18} />
+                  <span className="tool-btn-label">Joint Jog</span>
+                </button>
+                <button className="tool-btn" onClick={() => setShowRobotJogPanel(true)} title="Robot Jog Panel">
+                  <Navigation size={18} />
+                  <span className="tool-btn-label">Robot Jog</span>
+                </button>
+                <button className="tool-btn" onClick={() => setShowPosesPanel(true)} title="Poses Panel">
+                  <Play size={18} />
+                  <span className="tool-btn-label">Poses</span>
+                </button>
+              </div>
+            </div>
           )}
 
         </ToolbarContainer>
