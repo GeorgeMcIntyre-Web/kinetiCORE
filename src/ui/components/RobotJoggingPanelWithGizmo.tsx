@@ -57,6 +57,9 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
   const [ikSolver] = useState(() => InverseKinematicsSolver.getInstance());
   const [keyframes, setKeyframes] = useState<RobotKeyframe[]>([]);
   const [newPoseName, setNewPoseName] = useState<string>('');
+  // Toggles for target click actions
+  const [moveOnSelectEnabled, setMoveOnSelectEnabled] = useState<boolean>(true);
+  const [jumpOnSelectEnabled, setJumpOnSelectEnabled] = useState<boolean>(false);
 
   // Targets (teaching points with motion type)
   const [targets, setTargets] = useState<SixAxisTarget[]>([]);
@@ -836,6 +839,91 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
     console.log(`✅ Target deleted`);
   };
 
+  const handleMoveToTarget = async (target: SixAxisTarget) => {
+    if (!moveOnSelectEnabled && !jumpOnSelectEnabled) return;
+    const km = KinematicsManager.getInstance();
+    const chains = km.getAllChains();
+    const chain = chains.find(c => c.joints.some((j: any) => j.id.startsWith(robotId)));
+    if (!chain) {
+      console.warn('[JumpToTarget] No kinematic chain found for robotId:', robotId);
+      return;
+    }
+
+    const actuated = km.getActuatedJoints(chain.id).slice(0, 6);
+    if (actuated.length === 0) return;
+
+    // If jump toggle is on (and move is off), apply immediate jump
+    if (jumpOnSelectEnabled && !moveOnSelectEnabled) {
+      actuated.forEach((joint, idx) => {
+        const deg = target.joints[idx] ?? 0;
+        const rad = (deg * Math.PI) / 180;
+        fkSolver.updateJointPosition(joint.id, rad);
+      });
+    } else {
+      // Animated move-to-target (single-target playback)
+      const targetRad: number[] = target.joints.map(j => (j * Math.PI) / 180);
+      const currentRad: number[] = actuated.map(j => j.position);
+
+      const steps = 30;
+      const stepDelay = 30;
+
+      if (target.motionType === 'JOINT') {
+        for (let s = 1; s <= steps; s++) {
+          const t = s / steps;
+          for (let j = 0; j < actuated.length - 1; j++) {
+            const jointId = actuated[j].id;
+            const value = currentRad[j] + (targetRad[j] - currentRad[j]) * t;
+            fkSolver.updateJointPosition(jointId, value, false);
+          }
+          const lastJoint = actuated[actuated.length - 1];
+          const lastValue = currentRad[actuated.length - 1] + (targetRad[actuated.length - 1] - currentRad[actuated.length - 1]) * t;
+          fkSolver.updateJointPosition(lastJoint.id, lastValue, true);
+          await new Promise(res => setTimeout(res, stepDelay));
+        }
+      } else if (target.motionType === 'LINEAR' && target.cartesian) {
+        const currentPose = fkSolver.getTCPPose?.(chain.name) || fkSolver.getNullTCPPose(chain.name);
+        if (currentPose) {
+          const targetPos = new BABYLON.Vector3(
+            target.cartesian.position[0] * 0.001,
+            target.cartesian.position[1] * 0.001,
+            target.cartesian.position[2] * 0.001
+          );
+          const startPos = currentPose.position.clone();
+          for (let s = 1; s <= steps; s++) {
+            const t = s / steps;
+            const intermediatePos = BABYLON.Vector3.Lerp(startPos, targetPos, t);
+            const delta = intermediatePos.subtract(currentPose.position);
+            ikSolver.moveTCP(chain.name, delta, 'jacobian');
+            const newPose = fkSolver.getTCPPose?.(chain.name) || fkSolver.getNullTCPPose(chain.name);
+            if (newPose) currentPose.position.copyFrom(newPose.position);
+            await new Promise(res => setTimeout(res, stepDelay));
+          }
+        } else {
+          actuated.forEach((joint, idx) => {
+            const deg = target.joints[idx] ?? 0;
+            const rad = (deg * Math.PI) / 180;
+            fkSolver.updateJointPosition(joint.id, rad);
+          });
+        }
+      } else {
+        actuated.forEach((joint, idx) => {
+          const deg = target.joints[idx] ?? 0;
+          const rad = (deg * Math.PI) / 180;
+          fkSolver.updateJointPosition(joint.id, rad);
+        });
+      }
+    }
+
+    // Refresh TCP gizmo to reflect new pose
+    const tcpPose = fkSolver.getTCPPose?.(chain.name) || fkSolver.getNullTCPPose(chain.name);
+    if (tcpPose) {
+      const unifiedGizmo = UnifiedGizmoManager.getInstance();
+      const targetId = `tcp_${robotId}`;
+      unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
+      unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
+    }
+  };
+
   const handleMoveTargetUp = (index: number) => {
     if (index === 0) return;
     setTargets(prev => {
@@ -1398,13 +1486,15 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
           <div className="targets-content">
             <div className="targets-header">
               <span className="targets-count">{targets.length} targets</span>
-              <button
-                className="targets-detail-toggle"
-                onClick={() => setShowTargetDetails(!showTargetDetails)}
-                title={showTargetDetails ? "Hide Cartesian coordinates" : "Show Cartesian coordinates"}
-              >
-                <Info size={12} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button
+                  className="targets-detail-toggle"
+                  onClick={() => setShowTargetDetails(!showTargetDetails)}
+                  title={showTargetDetails ? "Hide Cartesian coordinates" : "Show Cartesian coordinates"}
+                >
+                  <Info size={12} />
+                </button>
+              </div>
             </div>
 
             {/* Playback controls */}
@@ -1430,6 +1520,34 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
             {/* Teach new target - compact, icon-only controls */}
             <div className="target-teach-section" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <div className="motion-type-toggle" style={{ display: 'flex', gap: 4 }}>
+                <button
+                  className={`targets-move-toggle ${moveOnSelectEnabled ? 'active' : ''}`}
+                  onClick={() => {
+                    setMoveOnSelectEnabled(prev => {
+                      const next = !prev;
+                      if (next) setJumpOnSelectEnabled(false);
+                      return next;
+                    });
+                  }}
+                  title="Move to selected target"
+                  aria-pressed={moveOnSelectEnabled}
+                >
+                  M
+                </button>
+                <button
+                  className={`targets-jump-toggle ${jumpOnSelectEnabled ? 'active' : ''}`}
+                  onClick={() => {
+                    setJumpOnSelectEnabled(prev => {
+                      const next = !prev;
+                      if (next) setMoveOnSelectEnabled(false);
+                      return next;
+                    });
+                  }}
+                  title="Jump on select"
+                  aria-pressed={jumpOnSelectEnabled}
+                >
+                  J
+                </button>
                 <button
                   aria-label="Joint move"
                   title="Joint"
@@ -1463,7 +1581,11 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
             <div className="targets-list">
               {targets.length > 0 ? (
                 targets.map((target, index) => (
-                  <div key={target.id} className="target-item">
+                  <div
+                    key={target.id}
+                    className="target-item"
+                    onClick={() => handleMoveToTarget(target)}
+                  >
                     <div className="target-number">{index + 1}</div>
                     <div className="target-info">
                       <div className="target-title-row">
@@ -1479,7 +1601,10 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
                     <div className="target-actions">
                       <button
                         className="target-move-btn"
-                        onClick={() => handleMoveTargetUp(index)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMoveTargetUp(index);
+                        }}
                         disabled={index === 0}
                         title="Move up"
                       >
@@ -1487,7 +1612,10 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
                       </button>
                       <button
                         className="target-move-btn"
-                        onClick={() => handleMoveTargetDown(index)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMoveTargetDown(index);
+                        }}
                         disabled={index === targets.length - 1}
                         title="Move down"
                       >
@@ -1495,7 +1623,10 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
                       </button>
                       <button
                         className="target-delete-btn"
-                        onClick={() => handleDeleteTarget(target.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTarget(target.id);
+                        }}
                         title="Delete target"
                       >
                         <Trash2 size={8} />
