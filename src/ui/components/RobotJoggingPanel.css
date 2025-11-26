@@ -1055,7 +1055,7 @@
 /* Target Item - Ultra Compact Single Line */
 .target-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
   padding: 2px 4px;
   background: #2d3748;
@@ -1084,12 +1084,13 @@
 
 .target-info {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
   min-width: 0;
   overflow: hidden;
   flex: 1;
   flex-direction: column;
+  align-self: stretch;
 }
 
 .target-title-row {
@@ -1097,6 +1098,8 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
+  justify-content: flex-start;
+  width: 100%;
 }
 
 .target-name {
@@ -1109,6 +1112,11 @@
   flex: 1 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: left;
+}
+
+.motion-type {
+  align-self: flex-start;
 }
 
 .target-details {

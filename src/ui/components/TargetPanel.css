@@ -69,6 +69,8 @@
 .target-card .target-info {
   flex-direction: column;
   gap: 4px;
+  align-items: flex-start;
+  align-self: stretch;
 }
 
 .target-card .target-title-row {
@@ -76,6 +78,8 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
+  justify-content: flex-start;
+  width: 100%;
 }
 
 .target-card .target-info {
