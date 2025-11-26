@@ -1096,7 +1096,7 @@
 .target-title-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
   justify-content: flex-start;
   width: 100%;
@@ -1108,15 +1108,26 @@
   color: #e2e8f0;
   white-space: nowrap;
   line-height: 1.1;
-  min-width: 40px;
-  flex: 1 1 auto;
+  min-width: 24px;
+  flex: 0 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: left;
 }
 
 .motion-type {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  background: #4a5568;
+  border-radius: 4px;
+  color: #e2e8f0;
+  text-transform: uppercase;
+  line-height: 1.1;
+  min-width: 44px;
+  text-align: center;
   align-self: flex-start;
+  flex-shrink: 0;
 }
 
 .target-details {
