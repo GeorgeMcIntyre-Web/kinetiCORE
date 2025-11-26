@@ -53,6 +53,96 @@
   overflow: hidden;
 }
 
+/* Readability overrides for targets list */
+.target-card .targets-mode {
+  background: rgba(19, 25, 38, 0.92);
+  border: 1px solid rgba(79, 163, 255, 0.15);
+  border-radius: 10px;
+  padding: 8px;
+}
+
+.target-card .targets-content {
+  color: #e9eefc;
+  gap: 8px;
+}
+
+.target-card .target-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  flex: 1;
+}
+
+.target-card .target-name {
+  font-size: 10px !important;
+  font-weight: 700;
+  color: #e9eefc !important;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.1;
+  min-width: 40px;
+}
+
+.target-card .targets-header,
+.target-card .playback-controls,
+.target-card .target-teach-section {
+  background: rgba(45, 55, 72, 0.65);
+  border: 1px solid rgba(99, 179, 237, 0.2);
+}
+
+.target-card .targets-count,
+.target-card .target-name,
+.target-card .motion-type,
+.target-card .target-details,
+.target-card .target-position {
+  color: #e9eefc !important;
+  font-size: 10px !important;
+}
+
+.target-card .target-number {
+  color: #7cd2ff;
+  font-size: 9px;
+}
+
+.target-card .target-item {
+  background: rgba(47, 59, 82, 0.85);
+  border: 1px solid rgba(99, 179, 237, 0.3);
+  min-height: 24px;
+  height: 24px;
+  padding: 4px 6px;
+}
+
+.target-card .target-item:hover {
+  background: rgba(80, 149, 255, 0.16);
+  border-color: rgba(99, 179, 237, 0.6);
+}
+
+.target-card .target-actions button {
+  color: #e9eefc;
+}
+
+.target-card .targets-list {
+  background: rgba(17, 23, 35, 0.85);
+  border: 1px solid rgba(99, 179, 237, 0.2);
+  padding: 6px;
+  border-radius: 6px;
+}
+
+.target-card .target-position {
+  font-size: 9px !important;
+  color: #c9d9ff !important;
+}
+
+.target-card .motion-type {
+  font-size: 9px !important;
+  background: rgba(99, 179, 237, 0.24);
+  padding: 2px 6px;
+  border-radius: 4px;
+  min-width: 44px;
+}
+
 .target-tab-widget {
   display: flex;
   flex-direction: column;

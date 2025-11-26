@@ -1085,20 +1085,23 @@
 .target-info {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 6px;
   min-width: 0;
   overflow: hidden;
   flex: 1;
+  flex-wrap: nowrap;
 }
 
 .target-name {
-  font-size: 8px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   color: #e2e8f0;
   white-space: nowrap;
-  flex-shrink: 0;
-  line-height: 1;
-  min-width: 30px;
+  line-height: 1.1;
+  min-width: 40px;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .target-details {
@@ -1113,17 +1116,17 @@
 }
 
 .motion-type {
-  font-size: 6px;
-  font-weight: 700;
-  padding: 2px 3px;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
   background: #4a5568;
-  border-radius: 2px;
+  border-radius: 4px;
   color: #e2e8f0;
   text-transform: uppercase;
-  line-height: 1;
+  line-height: 1.1;
   flex-shrink: 0;
   white-space: nowrap;
-  min-width: 32px;
+  min-width: 44px;
   text-align: center;
 }
 
