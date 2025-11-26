@@ -995,15 +995,6 @@ export const ProfessionalModeLayout: React.FC = () => {
             <div className="tool-group">
               <div className="group-label">Robot Kinematics</div>
               <div className="tool-buttons kinematics-inline-controls">
-                <button
-                  className="tool-btn"
-                  onClick={() => setShowKinematicsPanel(true)}
-                  title="Motion Panel"
-                >
-                  <Rocket size={18} />
-                  <span className="tool-btn-label">Motion</span>
-                </button>
-
                 <button className="tool-btn" onClick={handleKinematicsReset} title="Home all joints">
                   <Home size={18} />
                   <span>Home</span>
@@ -1097,8 +1088,16 @@ export const ProfessionalModeLayout: React.FC = () => {
             <div className="toolbar-separator"></div>
 
             <div className="tool-group">
-              <div className="group-label">Kinematics</div>
+              <div className="group-label">Fixture kinematics</div>
               <div className="tool-buttons">
+                <button
+                  className="tool-btn"
+                  onClick={() => setShowKinematicsPanel(true)}
+                  title="Motion Panel"
+                >
+                  <Rocket size={18} />
+                  <span className="tool-btn-label">Motion</span>
+                </button>
                 <button
                   className="tool-btn"
                   onClick={() => setShowKinematicsAnalysisPanel(true)}
@@ -1106,6 +1105,14 @@ export const ProfessionalModeLayout: React.FC = () => {
                 >
                   <Calculator size={18} />
                   <span className="tool-btn-label">Analysis</span>
+                </button>
+                <button
+                  className="tool-btn"
+                  onClick={() => setShowPosesPanel(true)}
+                  title="Open Poses Panel"
+                >
+                  <Play size={18} />
+                  <span className="tool-btn-label">Poses</span>
                 </button>
                 <button
                   className="tool-btn"
