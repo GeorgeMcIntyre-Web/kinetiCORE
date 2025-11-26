@@ -214,3 +214,39 @@ wrangler-debug.toml
 public/assets/textures/grass/*.png
 public/assets/textures/asphalt/*.jpg
 agent-notes/
+# Auto-Kinematics Debug/Temp Files (to be cleaned up)
+scripts/analyze8X140.ts
+scripts/checkChildMeshes.ts
+scripts/checkGLBStructure.ts
+scripts/checkMeshReferences.ts
+scripts/corrected8X140Analysis.ts
+scripts/correctedICPAnalysis.ts
+scripts/debugMeshMatching.ts
+scripts/debugNodeCounts.ts
+scripts/debugVertexExtraction.ts
+scripts/diagnosticDeeper.ts
+scripts/diagnosticMoving.ts
+scripts/diagnosticOrder.ts
+scripts/diagnosticSubtrees.ts
+scripts/findGLTFIndexMapping.ts
+scripts/findMovingPairs.ts
+scripts/identifyMovingGeometry.ts
+scripts/manual8X140Analysis.ts
+scripts/verify*.ts
+scripts/verifyMovingNodes.ts
+scripts/verifyPoseStates.ts
+
+# Test output files
+*_output.txt
+*_validation_results.txt
+test_output*.txt
+*_hierarchy.txt
+nul
+
+# Markdown reports (temporary analysis)
+8X140_*.md
+BATCH_VALIDATION_REPORT.md
+PHASE2_REAL_FIXTURE_VALIDATION.md
+POSE_PAIR_DETECTION_PROBLEM.md
+QUICKSTART_PHASE1.md
+U112_hierarchy.txt

@@ -92,6 +92,14 @@ export function mat3Multiply(a: Mat3, b: Mat3): Mat3 {
   return result;
 }
 
+export function mat3Subtract(a: Mat3, b: Mat3): Mat3 {
+  return [
+    [a[0][0] - b[0][0], a[0][1] - b[0][1], a[0][2] - b[0][2]],
+    [a[1][0] - b[1][0], a[1][1] - b[1][1], a[1][2] - b[1][2]],
+    [a[2][0] - b[2][0], a[2][1] - b[2][1], a[2][2] - b[2][2]],
+  ];
+}
+
 export function mat4Multiply(a: Mat4, b: Mat4): Mat4 {
   const result: Mat4 = [
     [0, 0, 0, 0],

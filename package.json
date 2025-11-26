@@ -63,6 +63,7 @@
     "jszip": "^3.10.1",
     "lucide-react": "^0.544.0",
     "manifold-3d": "^3.2.1",
+    "ml-matrix": "^6.12.1",
     "multer": "^2.0.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

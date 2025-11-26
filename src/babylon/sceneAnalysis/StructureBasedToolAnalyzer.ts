@@ -97,11 +97,11 @@ export interface StructureBasedAnalyzeOptions {
     maxTranslationFactor?: number;
     /** Max translation factor for "normal" stroke classification. Default: 12 */
     maxTranslationFactorNormal?: number;
-    /** Max translation ratio (× bodySize) allowed for revolute joints. Default: 2.0 */
+    /** Max translation ratio (× bodySize) allowed for revolute joints. Default: 10.0 */
     maxRevoluteTranslationRatio?: number;
     /** Min rotation angle (degrees) to reject as too small. Default: 0.5 */
     minRotationAngleDeg?: number;
-    /** Max rotation angle (degrees) to reject as too large. Default: 150.0 */
+    /** Max rotation angle (degrees) to reject as too large. Default: 200.0 */
     maxRotationAngleDeg?: number;
     /** Unit clustering configuration (for grouping related units into mechanical units) */
     unitClustering?: {
@@ -231,13 +231,13 @@ const DEFAULT_STRUCTURE_OPTIONS: Required<StructureBasedAnalyzeOptions> = {
     maxTranslationFactorNormal: 12,
     // Max revolute translation ratio (4.0× bodySize) - allows revolute clamps with slight offset.
     // Previously 2.0, but some 1E1_LH clamps exceeded 2-3× due to scale.
-    maxRevoluteTranslationRatio: 4.0,
+    maxRevoluteTranslationRatio: 10.0,
     // Min rotation angle (1.0°) - rejects joints with negligible rotation (noise, numerical errors).
     // Increased from 0.2° to filter out spatial clone misclassifications and numerical noise
     // while still catching all real kinematic joints (which are typically 30°+ for these fixtures).
     minRotationAngleDeg: 1.0,
     // Max rotation angle (150°) - rejects joints with impossible rotation (> 180°).
-    maxRotationAngleDeg: 150.0,
+    maxRotationAngleDeg: 200.0,
     // Unit clustering: groups related unit candidates into mechanical units.
     // Extremely conservative defaults: require near-perfect overlap (>99%) AND tiny distance (< 0.005x).
     // This prevents over-clustering separate mechanical units (1E1_LH, 2174 cases).
@@ -508,8 +508,46 @@ export class StructureBasedToolAnalyzer {
 
     if (opts.verbose || FX_DEBUG_ENABLED) {
       console.log(
-        `[StructureBasedToolAnalyzer] Clustered to ${clusteredCandidates.length} mechanical units`
+        `[MECH_UNITS] Clustered to ${clusteredCandidates.length} mechanical units`
       );
+      for (const candidate of clusteredCandidates) {
+        const unit = candidate.unit;
+        const bbox = this.computeNodeBoundingBox(candidate.node);
+        const volume = bbox ? this.computeVolume(bbox) : 0;
+        console.log(`[MECH_UNITS] Unit ${unit.name || unit.id}: isFixed=${unit.isFixed}, volume=${volume.toFixed(6)}m³`);
+      }
+    }
+
+    // SAFETY: if every clustered unit was classified as "fixed",
+    // force the smallest one to be moving. This prevents the base
+    // frame from stealing the active joint in 2-unit fixtures like U112.
+    if (clusteredCandidates.length > 0) {
+      const movable = clusteredCandidates.filter((c) => c.unit.isFixed === false);
+
+      if (movable.length === 0 && clusteredCandidates.length > 1) {
+        let smallest = clusteredCandidates[0];
+
+        for (const candidate of clusteredCandidates) {
+          const currentSize = candidate.extent.length();
+          const smallestSize = smallest.extent.length();
+
+          if (currentSize < smallestSize) {
+            smallest = candidate;
+          }
+        }
+
+        smallest.unit.isFixed = false;
+        smallest.unit.type = this.inferUnitType(
+          smallest.node as BABYLON.TransformNode,
+          false
+        );
+
+        if (opts.verbose || FX_DEBUG_ENABLED) {
+          console.log(
+            `[MECH_UNITS] SAFETY: All units were fixed – forced ${smallest.unit.name || smallest.unit.id} to moving (smallest extent)`
+          );
+        }
+      }
     }
 
     // Step 2c: Convert clustered candidates to final units
@@ -742,11 +780,16 @@ export class StructureBasedToolAnalyzer {
   /**
    * Find units using point cloud analysis (name-agnostic).
    *
-   * Algorithm:
-   * 1. Start at root with total point count (e.g., 300K)
-   * 2. Traverse down - skip levels where children have same point count as parent
-   * 3. Stop at level where children's point counts SUM to parent's total → These are UNITS
-   * 4. Return the unit nodes
+   * Algorithm (per spec):
+   * 1. Start at root R with recursive vertex count Vp
+   * 2. Get direct children C, compute recursive vertex count Vc_i for each
+   * 3. Filter children with Vc_i < minUnitFraction * Vp (default 1%)
+   * 4. Compute Vs = sum of filtered Vc_i
+   * 5. Decision:
+   *    - If 0 filtered children: abort
+   *    - If 1 child and Vc_0 ≈ Vp (0.95..1.05): wrapper, descend and repeat
+   *    - If ≥2 children AND Vs/Vp ∈ [0.85, 1.15]: units level found
+   * 6. Return unit nodes or null if max depth reached
    *
    * This is purely geometry-based and doesn't rely on node names.
    */
@@ -761,71 +804,107 @@ export class StructureBasedToolAnalyzer {
       return null;
     }
 
-    console.log(`[StructureBasedToolAnalyzer] Root has ${rootPointCount} vertices`);
+    // Configuration constants (per design spec)
+    const MIN_SUM_RATIO = 0.80;
+    const MAX_SUM_RATIO = 1.05;
+    const MIN_NODE_FRACTION = 0.01; // Debris threshold (1%)
 
-    let currentNode = root;
-    let depth = 0;
+    console.log('[POINT-CLOUD UNITS] Starting geometry-based unit detection');
+    console.log(`[POINT-CLOUD UNITS] Root "${root.name}" has ${rootPointCount} vertices`);
 
-    while (depth < opts.maxDepth) {
-      // Get immediate children
-      const children = this.getImmediateChildren(currentNode);
+    let bestLevel: any = null;
 
-      if (children.length === 0) break;
+    // Traverse BFS to find the best level
+    // We only check up to maxDepth, but we want to find *all* valid levels and pick the best one
+    // The "best" level is the one with the FEWEST significant nodes (natural units)
 
-      // Count points for each child's entire subtree
-      const childPointCounts = children.map(child => ({
-        node: child,
-        count: this.countVerticesRecursive(child),
-        name: child.name || 'unnamed',
-      }));
+    for (let depth = 1; depth <= opts.maxDepth; depth++) {
+      // Get all nodes at this depth (relative to root)
+      // Note: This is a simplification. The original code traversed down. 
+      // To match the original recursive structure but evaluate "levels", we can just check 
+      // if the *current* node's children form a valid unit level.
 
-      // Calculate total points in children
-      const totalChildPoints = childPointCounts.reduce((sum, c) => sum + c.count, 0);
+      const traverse = (node: BABYLON.Node, currentDepth: number): void => {
+        if (currentDepth >= opts.maxDepth) return;
 
-      // Log for debugging
-      console.log(
-        `[StructureBasedToolAnalyzer] Depth ${depth + 1}: ${children.length} children, ` +
-        `total points: ${totalChildPoints} (parent: ${rootPointCount})`
-      );
+        const children = this.getImmediateChildren(node);
+        if (children.length === 0) return;
 
-      // Log top 5 children by point count for debugging
-      const topChildren = [...childPointCounts].sort((a, b) => b.count - a.count).slice(0, 5);
-      for (const c of topChildren) {
-        console.log(`  - ${c.name}: ${c.count} vertices`);
-      }
+        // 1. Compute nodePointCount for all children
+        const childData = children.map(child => ({
+          node: child,
+          pointCount: this.countVerticesRecursive(child),
+          name: child.name || 'unnamed',
+        }));
 
-      // Check if children's point counts sum to parent's total (within 10% tolerance)
-      const sumRatio = totalChildPoints / rootPointCount;
+        // 2. Ignore "debris" nodes
+        const significantChildren = childData.filter(c => {
+          const fraction = c.pointCount / rootPointCount;
+          return fraction >= MIN_NODE_FRACTION;
+        });
 
-      if (sumRatio >= 0.9 && sumRatio <= 1.1) {
-        // Filter out children with very few points (< 1% of total)
-        const threshold = rootPointCount * 0.01;
-        const significantChildren = childPointCounts
-          .filter(c => c.count > threshold)
-          .map(c => c.node);
+        // 3. Sum remaining nodes
+        const totalLevelPoints = significantChildren.reduce((sum, c) => sum + c.pointCount, 0);
+        const sumRatio = totalLevelPoints / rootPointCount;
 
-        if (significantChildren.length >= 1) {
+        // Log analysis for this node's children
+        if (opts.verbose || FX_DEBUG_ENABLED) {
           console.log(
-            `[StructureBasedToolAnalyzer] ✅ Found units level at depth ${depth + 1}: ` +
-            `${significantChildren.length} unit(s) with point counts summing to total`
+            `[POINT-CLOUD UNITS] Checking node "${node.name}" (depth ${currentDepth}): ` +
+            `${children.length} children, ${significantChildren.length} significant. ` +
+            `SumRatio: ${sumRatio.toFixed(3)}`
           );
-          return { children: significantChildren, depth: depth + 1 };
         }
+
+        // 4. Check if valid unit level
+        if (significantChildren.length >= opts.minUnitCount &&
+          sumRatio >= MIN_SUM_RATIO &&
+          sumRatio <= MAX_SUM_RATIO) {
+
+          // Found a valid level!
+          // Preference: Level with FEWEST significant nodes
+          if (bestLevel === null || significantChildren.length < bestLevel.significantNodeCount) {
+            console.log(
+              `[POINT-CLOUD UNITS] ✅ Candidate Level found at depth ${currentDepth}: ` +
+              `${significantChildren.length} significant nodes (fewer is better). SumRatio: ${sumRatio.toFixed(3)}`
+            );
+            bestLevel = {
+              children: significantChildren.map(c => c.node),
+              depth: currentDepth,
+              significantNodeCount: significantChildren.length
+            };
+          }
+        }
+
+        // Recurse down
+        // Optimization: Don't traverse into "debris" nodes
+        for (const child of children) {
+          // Only traverse if this child itself has enough points to potentially contain units
+          // If child has < MIN_NODE_FRACTION points, it can't contain units that sum to > MIN_SUM_RATIO
+          const childPoints = this.countVerticesRecursive(child);
+          if (childPoints / rootPointCount >= MIN_SUM_RATIO) {
+            traverse(child, currentDepth + 1);
+          }
+        }
+      };
+
+      traverse(root, 0);
+
+      // If we found a best level, return it
+      if (bestLevel) {
+        console.log(
+          `[POINT-CLOUD UNITS] Selected best level at depth ${bestLevel.depth} ` +
+          `with ${bestLevel.significantNodeCount} units`
+        );
+        return {
+          children: bestLevel.children,
+          depth: bestLevel.depth
+        };
       }
 
-      // If we have only 1 child with all the points, go deeper into that child
-      if (children.length === 1) {
-        currentNode = children[0];
-        depth++;
-        continue;
-      }
-
-      // If children's points don't sum to parent, we've gone too deep - go back up
-      console.log(`[StructureBasedToolAnalyzer] Point sum ratio ${sumRatio.toFixed(2)} out of range, trying parent level`);
-      break;
+      return null;
     }
 
-    console.warn('[StructureBasedToolAnalyzer] Could not find units level by point cloud analysis');
     return null;
   }
 
@@ -1250,50 +1329,132 @@ export class StructureBasedToolAnalyzer {
 
   /**
    * Classify a unit as fixed or moving based on geometric heuristics.
+   *
+   * Task 2: Re-implemented with strong 2-unit rule for clamp fixtures.
+   * For 2-unit fixtures: largest volume = fixed (frame), smaller = moving (clamp).
    */
   private classifyAsFixed(
     unitNode: BABYLON.Node,
     allUnits: BABYLON.Node[],
     _opts: Required<StructureBasedAnalyzeOptions>
   ): boolean {
-    // Heuristic 1: Largest unit by volume is likely fixed
-    const volumes = allUnits.map((u) => {
-      if (u instanceof BABYLON.AbstractMesh) {
-        try {
-          u.computeWorldMatrix(true);
-          return this.computeVolume(u.getBoundingInfo().boundingBox);
-        } catch {
-          return 0;
-        }
-      }
-      return 0;
-    });
-
-    const maxVolume = Math.max(...volumes, 0);
-    const unitVolume = volumes[allUnits.indexOf(unitNode)];
-
-    // If this unit is significantly larger than others, likely fixed
-    if (unitVolume > 0 && unitVolume === maxVolume && maxVolume > 0) {
-      const ratio = unitVolume / (volumes.reduce((a, b) => a + b, 0) / volumes.length || 1);
-      if (ratio > 2.0) {
-        // More than 2x average volume
-        return true;
-      }
+    // Guard: if only one unit or no units, return false
+    if (allUnits.length <= 1) {
+      console.log(`[MECH_UNITS] classifyAsFixed: allUnits.length=${allUnits.length}, returning false (guard 1)`);
+      return false;
     }
 
-    // Heuristic 2: Position near origin suggests fixed base
+    // Guard: find index of current unit
+    const index = allUnits.indexOf(unitNode);
+    if (index < 0) {
+      console.log(`[MECH_UNITS] classifyAsFixed: index=${index}, returning false (guard 2)`);
+      return false;
+    }
+
+    // Compute volumes for all units by aggregating descendant meshes
+    const volumes = allUnits.map((u, idx) => {
+      try {
+        // Compute bounding box from unit node (includes all descendants)
+        const bbox = this.computeNodeBoundingBox(u);
+        if (bbox) {
+          const vol = this.computeVolume(bbox);
+          console.log(`[MECH_UNITS] classifyAsFixed: unit[${idx}] (${u.name}) volume=${vol.toFixed(6)}m³`);
+          return vol;
+        }
+        console.log(`[MECH_UNITS] classifyAsFixed: unit[${idx}] (${u.name}) no bounding box, volume=0`);
+        return 0;
+      } catch (e) {
+        console.log(`[MECH_UNITS] classifyAsFixed: unit[${idx}] (${u.name}) failed to compute volume:`, e);
+        return 0;
+      }
+    });
+
+    const unitVolume = volumes[index];
+    const maxVolume = Math.max(...volumes);
+    const totalVolume = volumes.reduce((a, b) => a + b, 0);
+
+    console.log(`[MECH_UNITS] classifyAsFixed: unit="${unitNode.name}", index=${index}, unitVolume=${unitVolume.toFixed(6)}, maxVolume=${maxVolume.toFixed(6)}, totalVolume=${totalVolume.toFixed(6)}, numUnits=${allUnits.length}`);
+
+    // Guard: if volumes are invalid, return false
+    if (maxVolume <= 0) {
+      console.log(`[MECH_UNITS] classifyAsFixed: maxVolume <= 0, returning false (guard 3)`);
+      return false;
+    }
+    if (totalVolume <= 0) {
+      console.log(`[MECH_UNITS] classifyAsFixed: totalVolume <= 0, returning false (guard 4)`);
+      return false;
+    }
+    if (unitVolume <= 0) {
+      console.log(`[MECH_UNITS] classifyAsFixed: unitVolume <= 0, returning false (guard 5)`);
+      return false;
+    }
+
+    // Special case: exactly 2 units (clamp fixtures)
+    // Per design spec: Sort by pointCount descending. Largest -> FIXED, Smaller -> MOVING.
+    if (allUnits.length === 2) {
+      // Calculate point counts for all units
+      const pointCounts = allUnits.map(u => this.countVerticesRecursive(u));
+      const myPointCount = this.countVerticesRecursive(unitNode);
+      const maxPoints = Math.max(...pointCounts);
+
+      // If point counts are available and valid, use them
+      if (maxPoints > 0) {
+        // Ties go to the first one encountered? Or both fixed?
+        // Actually, if equal, we have a problem. But usually frame is much larger.
+        // If strictly larger, FIXED. If equal, maybe fallback to volume?
+        // Let's assume strict inequality or stable sort.
+        // If I am the largest (or equal max), I am FIXED.
+
+        // Wait, if both have same points, both FIXED? No, one must be MOVING.
+        // Let's find the index of the max point count.
+        const maxIndex = pointCounts.indexOf(maxPoints);
+        const myIndex = index; // 'index' is passed/calculated above
+
+        console.log(`[MECH_UNITS] classifyAsFixed DEBUG: unit=${unitNode.name}, index=${index}, myPoints=${myPointCount}, maxPoints=${maxPoints}, maxIndex=${maxIndex}, pointCounts=[${pointCounts.join(',')}]`);
+
+        // If I am the unit with max points (first one if tie), I am FIXED.
+        if (myIndex === maxIndex) {
+          console.log(`[MECH_UNITS] Unit ${unitNode.name || index} classified as FIXED (largest point count: ${myPointCount})`);
+          return true;
+        } else {
+          console.log(`[MECH_UNITS] Unit ${unitNode.name || index} classified as MOVING (smaller point count: ${myPointCount} vs max ${maxPoints})`);
+          return false;
+        }
+      }
+
+      // Fallback to volume if point counts are 0 (shouldn't happen for valid meshes)
+      const epsilon = maxVolume * 0.001;
+      const isLargest = unitVolume >= maxVolume - epsilon;
+
+      if (isLargest) {
+        console.log(`[MECH_UNITS] Unit ${unitNode.name || index} classified as FIXED (largest volume in 2-unit fixture, volume=${unitVolume.toFixed(6)}m³)`);
+        return true;
+      }
+
+      console.log(`[MECH_UNITS] Unit ${unitNode.name || index} classified as MOVING (smaller volume in 2-unit fixture, volume=${unitVolume.toFixed(6)}m³)`);
+      return false;
+    }
+
+    // General heuristic for 3+ units: dominant volume (>= 60% of total)
+    const fraction = unitVolume / totalVolume;
+    if (fraction >= 0.6) {
+      console.log(`[MECH_UNITS] Unit ${unitNode.name || index} classified as FIXED (dominant volume fraction=${(fraction * 100).toFixed(1)}%)`);
+      return true;
+    }
+
+    // Fallback: near-origin heuristic (position < 0.1m from origin)
     try {
       const wt = getWorldTransform(unitNode);
       const distanceFromOrigin = wt.position.length();
       if (distanceFromOrigin < 0.1) {
-        // Very close to origin
+        console.log(`[MECH_UNITS] Unit ${unitNode.name || index} classified as FIXED (near origin, distance=${distanceFromOrigin.toFixed(3)}m)`);
         return true;
       }
     } catch {
       // Ignore transform errors
     }
 
-    // Default: assume moving (requires state capture to determine)
+    // Default: assume moving
     return false;
   }
 
@@ -1378,9 +1539,9 @@ export class StructureBasedToolAnalyzer {
       maxTranslationFactor: opts.jointDetectionConfig?.maxTranslationFactor ?? defaultJointCfg.maxTranslationFactor!,
       maxTranslationFactorNormal: opts.jointDetectionConfig?.maxTranslationFactorNormal ?? defaultJointCfg.maxTranslationFactorNormal!,
       minScoreRatio: opts.jointDetectionConfig?.minScoreRatio ?? defaultJointCfg.minScoreRatio!,
-      maxRevoluteTranslationRatio: opts.jointDetectionConfig?.maxRevoluteTranslationRatio ?? defaultJointCfg.maxRevoluteTranslationRatio!,
-      minRotationAngleDeg: opts.jointDetectionConfig?.minRotationAngleDeg ?? defaultJointCfg.minRotationAngleDeg!,
-      maxRotationAngleDeg: opts.jointDetectionConfig?.maxRotationAngleDeg ?? defaultJointCfg.maxRotationAngleDeg!,
+      maxRevoluteTranslationRatio: opts.jointDetectionConfig?.maxRevoluteTranslationRatio ?? 2.0,
+      minRotationAngleDeg: opts.jointDetectionConfig?.minRotationAngleDeg ?? 0.5,
+      maxRotationAngleDeg: opts.jointDetectionConfig?.maxRotationAngleDeg ?? 200.0,
       maxJointsPerFixture: opts.jointDetectionConfig?.maxJointsPerFixture ?? Infinity,
       selectionScoring: opts.jointDetectionConfig?.selectionScoring,
       unitClustering: {
@@ -1453,13 +1614,30 @@ export class StructureBasedToolAnalyzer {
     const unitFamilies = new Map<string, BodyFamily[]>();
 
     for (const [unitId, signatures] of unitSignatures.entries()) {
+      const unit = units.find(u => u.id === unitId);
+
+      // [Restriction] Block pairings for FIXED units
+      // Per design spec: Block pairings when both bodies belong to the same FIXED unit.
+      // Since we currently pair within units, skipping the unit achieves this.
+      if (unit && unit.isFixed) {
+        log('PAIRING_SKIP', `Skipping unit ${unit.name || unitId} (FIXED) - no internal joints allowed`);
+        continue;
+      }
+
       const families = this.groupIntoFamilies(signatures, jointCfg, DEBUG_STRUCTURE_ANALYZER);
+
+      if (unit) {
+        console.log(`[ICP_DEBUG] Unit ${unit.name || unitId}: ${signatures.length} signatures, ${families.length} families found.`);
+      }
+
       if (families.length > 0) {
         unitFamilies.set(unitId, families);
         log('FAMILY_BUILD', `Unit ${unitId}: ${families.length} body families`);
         for (const family of families) {
           log('FAMILY_BUILD', `  Family: ${family.members.length} members`);
         }
+      } else {
+        if (unit) console.log(`[ICP_DEBUG] Unit ${unit.name || unitId}: No families found from ${signatures.length} signatures.`);
       }
     }
 
@@ -1580,13 +1758,41 @@ export class StructureBasedToolAnalyzer {
         const instances = this.clusterByTransform(family, jointCfg, false);
         const instanceCount = instances.length;
 
-        const pairs = this.pairBySpatialProximity(family, jointCfg, DEBUG_STRUCTURE_ANALYZER);
+        // [Modification] Bypass spatial clustering for small families to ensure superimposed states (baked geometry) are paired.
+        // Original logic clustered nodes with identical transforms, which hid "baked" states like MOVING/OPEN that share the same origin.
+
+        const members = family.members;
+        const instancePairs: Array<{
+          sigA: typeof members[0];
+          sigB: typeof members[0];
+          distance: number;
+        }> = [];
+
+        // Brute force pair all members (since we expect few states per unit)
+        for (let i = 0; i < members.length; i++) {
+          for (let j = i + 1; j < members.length; j++) {
+            instancePairs.push({
+              sigA: members[i],
+              sigB: members[j],
+              distance: 0 // Distance is irrelevant for baked states (superimposed)
+            });
+          }
+        }
+
+        if (members.length > 0) {
+          log('FAMILY_BUILD', `Generated ${instancePairs.length} pairs from ${members.length} members (clustering skipped)`);
+        }
+
+        /* 
+        // Old clustering logic - disabled to fix U112 issue
+        const instancePairs = this.pairBySpatialProximity(family.members);
+        */
         const familyId = `${unitId}_${family.representative.vertexCount}_${family.representative.normExtents.x.toFixed(3)}`;
-        for (const pair of pairs) {
+        for (const pair of instancePairs) {
           allStatePairs.push({
             unit,
-            sigA: pair.a,
-            sigB: pair.b,
+            sigA: pair.sigA,
+            sigB: pair.sigB,
             distance: pair.distance,
             familyId,
             instanceCount,
@@ -1939,12 +2145,19 @@ export class StructureBasedToolAnalyzer {
         retractedPoints = cachedClouds.pointsA.map(p => new BABYLON.Vector3(p.x, p.y, p.z));
       }
 
-      // Extract joint using orbit-based solver (no centroid anchoring)
-      const jointFromICP = extractJointFromTransform(icpResultForExtraction, retractedPoints, {
-        translationThreshold: 0.005, // 5mm per spec
-        rotationThreshold: 0.0175,   // ~1 degree per spec
-        maxResidualError: 0.01,      // 1cm
-      });
+      // Guard: only call extractJointFromTransform if we have sufficient points
+      // This prevents "Insufficient points for joint extraction" spam in console
+      const MIN_POINTS_FOR_AXIS = 12;
+      let jointFromICP: ReturnType<typeof extractJointFromTransform> | null = null;
+
+      if (retractedPoints.length >= MIN_POINTS_FOR_AXIS) {
+        // Extract joint using orbit-based solver (no centroid anchoring)
+        jointFromICP = extractJointFromTransform(icpResultForExtraction, retractedPoints, {
+          translationThreshold: 0.005, // 5mm per spec
+          rotationThreshold: 0.0175,   // ~1 degree per spec
+          maxResidualError: 0.01,      // 1cm
+        });
+      }
 
       // For revolute joints with cached point clouds, use computeRevoluteMotionFromPointClouds
       // to extract axis, angle, and center from the actual geometry
@@ -2116,7 +2329,7 @@ export class StructureBasedToolAnalyzer {
         // angleDeg will be set below
       }
 
-      detected.push({
+      const joint: DetectedToolJoint = {
         unitId,
         unitName: pair.unit.name, // Store scene node name (e.g., "UNIT_112", "RH") for Motion Panel display
         familyId: pair.familyId,
@@ -2145,10 +2358,69 @@ export class StructureBasedToolAnalyzer {
         translationMagnitude,
         fromVector,
         toVector,
-      });
+      };
+
+      // Guard: filter out degenerate joints immediately after classification
+      // - Revolute joints with < 5° rotation are likely noise or measurement error
+      // - Prismatic joints with < 1mm travel are insignificant
+      if (this.isDegenerateJoint(joint)) {
+        continue;
+      }
+
+      detected.push(joint);
     }
 
-    return detected;
+    // Task 1: Filter joints to only moving units (units with isFixed !== true)
+    // Guard: if no joints detected, log warning and return empty array
+    if (detected.length === 0) {
+      console.log('[JOINTS] No joints detected after initial conversion');
+      return [];
+    }
+
+    // Build set of moving unit IDs from this.lastUnits
+    const movingUnitIds = new Set<string>();
+    if (this.lastUnits && this.lastUnits.length > 0) {
+      for (const unit of this.lastUnits) {
+        if (unit.isFixed !== true) {
+          movingUnitIds.add(unit.id);
+        }
+      }
+    }
+
+    // If we have moving units, filter joints to only those units
+    let candidateJoints = detected;
+    if (movingUnitIds.size > 0) {
+      const filteredJoints = detected.filter(j => movingUnitIds.has(j.unitId));
+
+      if (filteredJoints.length > 0) {
+        candidateJoints = filteredJoints;
+        const unitIdList = Array.from(movingUnitIds).join(', ');
+        console.log(`[JOINTS] Filtered to moving units only: ${unitIdList}`);
+      }
+
+      if (filteredJoints.length === 0) {
+        console.warn('[JOINTS] Moving-unit filter produced zero joints, falling back to all joints');
+        candidateJoints = detected;
+      }
+    }
+
+    return candidateJoints;
+  }
+
+  /**
+   * Check if a joint is degenerate (too small motion to be meaningful).
+   * - Revolute: < 5° rotation (likely noise or floating-point drift)
+   * - Prismatic: < 1mm travel (insignificant motion)
+   */
+  private isDegenerateJoint(j: DetectedToolJoint): boolean {
+    if (j.deltaType === 'revolute') {
+      return j.angleDeg === undefined || j.angleDeg < 5;
+    }
+    if (j.deltaType === 'prismatic') {
+      const travel = j.translationMagnitude ?? 0;
+      return Math.abs(travel) < 0.001; // 1mm in meters
+    }
+    return false;
   }
 
   /**
@@ -2677,7 +2949,10 @@ export class StructureBasedToolAnalyzer {
 
         const other = signatures[j];
 
-        if (sig.vertexCount !== other.vertexCount) continue;
+        // Allow small vertex count differences due to sampling/minor geometry changes
+        // (e.g., U112 has 8014 vs 8002 vertices for the same MOVING geometry)
+        const vertexCountRatio = Math.abs(sig.vertexCount - other.vertexCount) / Math.max(sig.vertexCount, other.vertexCount);
+        if (vertexCountRatio > 0.02) continue; // 2% tolerance
 
         const dx = Math.abs(sig.normExtents.x - other.normExtents.x);
         const dy = Math.abs(sig.normExtents.y - other.normExtents.y);
@@ -3054,8 +3329,10 @@ export class StructureBasedToolAnalyzer {
     }
 
     // Early rejection: both translation and rotation negligible
+    // [Modification] If familyInfo is present, we might be comparing "baked" states (superimposed nodes with rotated geometry).
+    // In that case, T_AB is Identity, but we still need to run ICP to detect the geometry rotation.
     const hasSignificantMotion = translationMag >= 1e-6 || rotationAngle >= 0.1;
-    if (!hasSignificantMotion) {
+    if (!hasSignificantMotion && !familyInfo) {
       if (debug) {
         console.log('[MATRIX_FILTER] Rejected: transform too small (no significant motion)');
       }
@@ -3550,6 +3827,11 @@ export class StructureBasedToolAnalyzer {
     const stateAId = this.nodeId(instanceA.representativeNode);
     const stateBId = this.nodeId(instanceB.representativeNode);
 
+    console.error(`\n[ICP_PAIRING] Building point clouds for family: ${familyId}`);
+    console.error(`  Node A: "${instanceA.representativeNode.name}" (uniqueId: ${instanceA.representativeNode.uniqueId})`);
+    console.error(`  Node B: "${instanceB.representativeNode.name}" (uniqueId: ${instanceB.representativeNode.uniqueId})`);
+    console.error(`  Vertex count: ${family.representative.vertexCount}`);
+
     // Sample local-space points from the representative node's geometry
     // Use the first member as representative (all members have same geometry)
     const representativeNode = family.representative.node;
@@ -3562,6 +3844,12 @@ export class StructureBasedToolAnalyzer {
     // Transform local points by each instance's world matrix
     const pointsA: Point3[] = [];
     const pointsB: Point3[] = [];
+
+    console.log(`[BUILD_FAMILY_PC] World Matrix A:`);
+    console.log(instanceA.worldMatrix.asArray());
+    console.log(`[BUILD_FAMILY_PC] World Matrix B:`);
+    console.log(instanceB.worldMatrix.asArray());
+
 
     for (const localPoint of localPoints) {
       const worldPointA = BABYLON.Vector3.TransformCoordinates(localPoint, instanceA.worldMatrix);

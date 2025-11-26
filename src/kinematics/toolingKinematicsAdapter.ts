@@ -232,6 +232,43 @@ export class ToolingKinematicsAdapter {
     }
 
     /**
+     * Simplify tooling joints by preferring revolute over prismatic and keeping only primary joint.
+     * Most BIW tooling (clamps, locators) have a single primary motion: either hinge OR slide, not both.
+     * This prevents false prismatic detections from contaminating pure revolute fixtures.
+     *
+     * Strategy:
+     * - If any revolute joints exist, keep only the largest revolute (by angle)
+     * - Otherwise, keep only the largest prismatic (by travel)
+     * - This can be enhanced later to detect genuine hybrid fixtures
+     */
+    private static simplifyToolingJoints(joints: DetectedToolJoint[]): DetectedToolJoint[] {
+        if (joints.length === 0) return joints;
+
+        const revolute = joints.filter(j => j.deltaType === 'revolute');
+        const prismatic = joints.filter(j => j.deltaType === 'prismatic');
+
+        // Prefer revolute joints (hinges/clamps are most common)
+        if (revolute.length > 0) {
+            // Keep only the revolute with the largest angle
+            const sorted = [...revolute].sort((a, b) =>
+                (b.angleDeg ?? 0) - (a.angleDeg ?? 0)
+            );
+            return [sorted[0]];
+        }
+
+        // Fall back to prismatic if no revolute found
+        if (prismatic.length > 0) {
+            // Keep only the prismatic with the largest travel
+            const sorted = [...prismatic].sort((a, b) =>
+                Math.abs(b.travelWorld ?? 0) - Math.abs(a.travelWorld ?? 0)
+            );
+            return [sorted[0]];
+        }
+
+        return [];
+    }
+
+    /**
      * Register tooling joints directly from StructureBasedToolAnalyzer detected joints.
      * This is the ONE-CLICK AUTO-FIT path - no manual state capture required.
      *
@@ -251,9 +288,18 @@ export class ToolingKinematicsAdapter {
             return { chainId: null, jointsRegistered: 0, errors: ['No detected joints provided'] };
         }
 
+        // Apply tooling-specific simplification: prefer single primary joint
+        const simplifiedJoints = this.simplifyToolingJoints(detectedJoints);
+
+        if (simplifiedJoints.length === 0) {
+            return { chainId: null, jointsRegistered: 0, errors: ['No valid joints after simplification'] };
+        }
+
+        console.log(`[ToolingKinematicsAdapter] Simplified ${detectedJoints.length} detected joints to ${simplifiedJoints.length} primary joint(s)`);
+
         const runtimeJoints: JointConfig[] = [];
 
-        for (const dj of detectedJoints) {
+        for (const dj of simplifiedJoints) {
             // Guard: skip unknown joint types
             if (dj.deltaType === 'unknown') {
                 errors.push(`Skipped joint ${dj.jointId}: unknown type`);
@@ -261,9 +307,9 @@ export class ToolingKinematicsAdapter {
             }
 
             // Guard: skip joints with insufficient motion
-            // Use 45° threshold to filter out noise/floating-point drift
-            if (dj.deltaType === 'revolute' && (dj.angleDeg === undefined || dj.angleDeg < 45)) {
-                errors.push(`Skipped joint ${dj.jointId}: insufficient rotation (< 45° minimum) (${dj.angleDeg?.toFixed(1) ?? 0}°)`);
+            // Use 5° threshold to filter out noise/floating-point drift while allowing small real motions
+            if (dj.deltaType === 'revolute' && (dj.angleDeg === undefined || dj.angleDeg < 5)) {
+                errors.push(`Skipped joint ${dj.jointId}: insufficient rotation (< 5° minimum) (${dj.angleDeg?.toFixed(1) ?? 0}°)`);
                 continue;
             }
 
