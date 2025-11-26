@@ -6,7 +6,17 @@ export type ToolUnitType = 'fixture' | 'gripper' | 'clamp' | 'pin' | 'dump' | 's
 export interface ToolUnit {
   id: string;
   name: string;
-  root: string; // node id
+  /**
+   * Legacy root node ID.
+   * Invariant: Should match a SceneTreeNode ID, but is less reliable than babylonUniqueId.
+   */
+  root: string;
+  /**
+   * Canonical Babylon.js uniqueId for the source node (TransformNode or Mesh).
+   * Invariant: Must map to at most one SceneTreeNode via babylonTransformNodeId or babylonMeshId.
+   * Invariant: If the unit was built from a Babylon node, this must be set and valid.
+   */
+  babylonUniqueId: number;
   type: ToolUnitType;
   isFixed: boolean;
   nodes: string[]; // descendant node ids
@@ -138,10 +148,15 @@ export class ToolGraphAnalyzer {
       const nodeIds = collectDescendantIds(root);
       const wt = getWorldTransform(root);
 
+      if (root.uniqueId === undefined) {
+        console.warn(`[ToolGraphAnalyzer] ⚠️ Unit '${root.name}' has no uniqueId! Mapping to SceneTree will fail.`);
+      }
+
       units.push({
         id,
         name: root.name || id,
         root: nodeId(root),
+        babylonUniqueId: root.uniqueId,
         type,
         isFixed,
         nodes: nodeIds,

@@ -1,19 +1,20 @@
 /**
  * Button System Tests
  * Owner: George
- * 
+ *
  * Comprehensive tests for the systematic button implementation
  */
 
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ButtonTemplate } from '../../ui/components/buttons/ButtonTemplate';
 import { SnapTypeButton } from '../../ui/components/buttons/SnapTypeButton';
 import { useEditorStore } from '../../ui/store/editorStore';
 
 // Mock the store
-jest.mock('../../ui/store/editorStore');
+vi.mock('../../ui/store/editorStore');
 
-const mockUseEditorStore = useEditorStore as jest.MockedFunction<typeof useEditorStore>;
+const mockUseEditorStore = useEditorStore as ReturnType<typeof vi.fn>;
 
 describe('Button System Tests', () => {
   let mockStore: any;
@@ -23,25 +24,25 @@ describe('Button System Tests', () => {
     mockStore = {
       buttonStates: {},
       buttonActions: {},
-      setButtonState: jest.fn(),
-      getButtonState: jest.fn(),
-      registerButtonAction: jest.fn(),
-      executeButtonAction: jest.fn(),
-      setSnapEnabled: jest.fn(),
-      setSnapToVertex: jest.fn(),
-      setSnapToEdge: jest.fn(),
-      setSnapToFace: jest.fn(),
-      setSnapToCenter: jest.fn(),
-      setSnapToObject: jest.fn(),
-      setSnapToMidpoint: jest.fn(),
-      setSnapToIntersection: jest.fn(),
-      setSnapToPerpendicular: jest.fn(),
-      setSnapToTangent: jest.fn(),
-      setSnapAlong: jest.fn(),
-      setSnapToNormal: jest.fn(),
-      setSnapToPlane: jest.fn(),
-      setSnapToGrid: jest.fn(),
-      setSnapDistance: jest.fn()
+      setButtonState: vi.fn(),
+      getButtonState: vi.fn(),
+      registerButtonAction: vi.fn(),
+      executeButtonAction: vi.fn(),
+      setSnapEnabled: vi.fn(),
+      setSnapToVertex: vi.fn(),
+      setSnapToEdge: vi.fn(),
+      setSnapToFace: vi.fn(),
+      setSnapToCenter: vi.fn(),
+      setSnapToObject: vi.fn(),
+      setSnapToMidpoint: vi.fn(),
+      setSnapToIntersection: vi.fn(),
+      setSnapToPerpendicular: vi.fn(),
+      setSnapToTangent: vi.fn(),
+      setSnapAlong: vi.fn(),
+      setSnapToNormal: vi.fn(),
+      setSnapToPlane: vi.fn(),
+      setSnapToGrid: vi.fn(),
+      setSnapDistance: vi.fn()
     };
 
     mockUseEditorStore.mockReturnValue(mockStore);

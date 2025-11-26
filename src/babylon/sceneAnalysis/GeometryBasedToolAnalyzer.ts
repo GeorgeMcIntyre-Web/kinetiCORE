@@ -358,6 +358,7 @@ export class GeometryBasedToolAnalyzer {
         type: jointType as any,
         isFixed: true,
         root: pair.fixed.nodeId,
+        babylonUniqueId: pair.fixed.node.uniqueId,
         nodes: [pair.fixed.nodeId],
       };
 
@@ -368,6 +369,7 @@ export class GeometryBasedToolAnalyzer {
         type: jointType as any,
         isFixed: false,
         root: pair.moving.nodeId,
+        babylonUniqueId: pair.moving.node.uniqueId,
         nodes: [pair.moving.nodeId],
       };
 

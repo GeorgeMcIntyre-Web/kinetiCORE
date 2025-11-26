@@ -2,6 +2,11 @@
 
 [![Deploy Status](https://img.shields.io/badge/Cloudflare-Pages-orange)](https://kineticore.pages.dev)
 
+> 🛡 **U112 GOLD PIPELINE PROTECTED**
+> Auto-kinematics system validated against canonical reference fixture.
+> All new tooling fixtures must reference this baseline.
+> **Status**: ✅ PASSING (34 unit tests) | [View Tests](tests/gold/u112-gold.test.ts) | [Documentation](docs/auto-kinematics/AUTO_KINEMATICS_PIPELINE.md)
+
 **The Linux of Manufacturing Simulation**
 
 The Future of Industrial Robot Simulation

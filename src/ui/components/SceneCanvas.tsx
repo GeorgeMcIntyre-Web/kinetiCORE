@@ -18,6 +18,8 @@ import { babylonToUser } from '../../core/CoordinateSystem';
 import { toast } from './ToastNotifications';
 import { SnappingHelper } from '../../manipulation/SnappingHelper';
 import { DEBUG_SNAP, DEBUG_SNAP_DIAG } from '../../manipulation/snap/preview';
+import { KinematicsManager } from '../../kinematics/KinematicsManager';
+import { attachToolingTestHelper } from '../../dev/ToolingTestHelper';
 
 export const SceneCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -166,6 +168,14 @@ export const SceneCanvas: React.FC = () => {
 
       // Expose managers to window for console debugging
       (window as any).sceneManager = sceneManager;
+
+      // Attach test helper for E2E testing (dev/test only)
+      if (import.meta.env.DEV || import.meta.env.VITE_ENABLE_TOOLING_HELPER === 'true') {
+        if (scene) {
+          const kinematicsManager = KinematicsManager.getInstance();
+          attachToolingTestHelper({ scene, kinematicsManager });
+        }
+      }
 
       // Snapshot replay functionality (dev only)
       let forcedPointer: { x: number; y: number } | null = null;

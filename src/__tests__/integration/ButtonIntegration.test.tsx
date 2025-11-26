@@ -1,20 +1,21 @@
 /**
  * Frontend-Backend Integration Tests
  * Owner: George
- * 
+ *
  * Tests for the complete button system integration
  */
 
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ButtonTemplate } from '../../ui/components/buttons/ButtonTemplate';
 import { ButtonService } from '../../services/ButtonService';
 import { useEditorStore } from '../../ui/store/editorStore';
 
 // Mock the store
-jest.mock('../../ui/store/editorStore');
+vi.mock('../../ui/store/editorStore');
 
 // Mock fetch for HTTP requests
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 // Mock WebSocket
 class MockWebSocket {
@@ -57,12 +58,12 @@ describe('Frontend-Backend Button Integration', () => {
       buttonStates: {},
       buttonActions: {},
       buttonService: null,
-      setButtonState: jest.fn(),
-      getButtonState: jest.fn(),
-      registerButtonAction: jest.fn(),
-      executeButtonAction: jest.fn(),
-      syncButtonState: jest.fn(),
-      syncAllButtonStates: jest.fn()
+      setButtonState: vi.fn(),
+      getButtonState: vi.fn(),
+      registerButtonAction: vi.fn(),
+      executeButtonAction: vi.fn(),
+      syncButtonState: vi.fn(),
+      syncAllButtonStates: vi.fn()
     };
 
     (useEditorStore as jest.MockedFunction<typeof useEditorStore>).mockReturnValue(mockStore);
@@ -323,7 +324,7 @@ describe('Frontend-Backend Button Integration', () => {
     it('should handle WebSocket connection failures', () => {
       // Mock WebSocket constructor to throw error
       const originalWebSocket = global.WebSocket;
-      global.WebSocket = jest.fn().mockImplementation(() => {
+      global.WebSocket = vi.fn().mockImplementation(() => {
         throw new Error('WebSocket connection failed');
       });
 

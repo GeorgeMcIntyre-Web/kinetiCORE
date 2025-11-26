@@ -11,7 +11,7 @@
  * 5. Export tooling JSON
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import {
   Scan,
@@ -23,6 +23,8 @@ import {
   Loader2,
   Info,
   RefreshCw,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { SceneManager } from '../../scene/SceneManager';
@@ -32,6 +34,7 @@ import { downloadTreeReport, downloadMappedSceneTreeReport } from '../../babylon
 import type { ToolGraph } from '../../babylon/sceneAnalysis/ToolGraphAnalyzer';
 import type { KinematicModelExport } from '../../babylon/io/Schemas';
 import { useEditorStore } from '../store/editorStore';
+import { JointDebugOverlayController } from '../../babylon/sceneDebug/JointDebugOverlayController';
 
 type WorkflowStep = 'analyze' | 'capture_retracted' | 'capture_extended' | 'fit_joints' | 'export';
 
@@ -63,8 +66,10 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
     export: { step: 'export', status: 'pending' },
   });
   const [exportedModel, setExportedModel] = useState<KinematicModelExport | null>(null);
+  const [showJointOverlay, setShowJointOverlay] = useState(false);
+  const overlayControllerRef = useRef<JointDebugOverlayController | null>(null);
 
-  // Initialize pipeline when component mounts or becomes visible
+  // Initialize pipeline and overlay controller when component mounts or becomes visible
   useEffect(() => {
     if (!isVisible) return;
 
@@ -74,9 +79,23 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
     if (scene) {
       console.log('[KinematicExtractionPanel] Initializing pipeline with scene');
       setPipeline(new KinematicExtractionPipeline(scene));
+
+      // Initialize overlay controller
+      if (!overlayControllerRef.current) {
+        overlayControllerRef.current = new JointDebugOverlayController(scene);
+        console.log('[KinematicExtractionPanel] Joint overlay controller initialized');
+      }
     } else {
       console.warn('[KinematicExtractionPanel] Scene not ready yet');
     }
+
+    // Cleanup on unmount
+    return () => {
+      if (overlayControllerRef.current) {
+        overlayControllerRef.current.dispose();
+        overlayControllerRef.current = null;
+      }
+    };
   }, [isVisible]);
 
   // Update step status helper
@@ -181,11 +200,11 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
         console.log(`  - ${childName} (${childMeshCount} meshes)`);
       });
 
-      // Use geometry-based analyzer (ICP matching - ROBUST to naming changes)
-      console.log('[KinematicExtractionPanel] Using geometry-based analyzer (ICP matching)');
+      // Use structure-based analyzer (hierarchy structure - ROBUST, name-agnostic)
+      console.log('[KinematicExtractionPanel] Using structure-based analyzer (hierarchy structure, name-agnostic)');
 
       const graph = await activePipeline.analyzeScene(
-        { analysisMethod: 'geometry-based', geometryBased: { verbose: true } },
+        { analysisMethod: 'structure-based', structureBased: { verbose: true, minUnitCount: 2 } },
         rootBabylonNode
       );
 
@@ -198,6 +217,20 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
       if (graph.units.length === 0) {
         updateStepStatus('analyze', 'error', 'No tool units detected under the selected device. Check console for mesh counts and try selecting a deeper node.');
         return;
+      }
+
+      // Update joint overlay with detected joints from analyzer
+      if (overlayControllerRef.current && activePipeline) {
+        try {
+          const analyzer = (activePipeline as any).structureBasedAnalyzer;
+          if (analyzer && typeof analyzer.getDetectedToolJoints === 'function') {
+            const joints = analyzer.getDetectedToolJoints();
+            overlayControllerRef.current.updateFromJoints(joints);
+            console.log(`[KinematicExtractionPanel] Updated overlay with ${joints.length} detected joints`);
+          }
+        } catch (error) {
+          console.warn('[KinematicExtractionPanel] Could not update joint overlay:', error);
+        }
       }
 
       updateStepStatus(
@@ -400,13 +433,26 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
     URL.revokeObjectURL(url);
   }, [exportedModel]);
 
+  // Toggle joint overlay
+  const handleToggleJointOverlay = useCallback((enabled: boolean) => {
+    setShowJointOverlay(enabled);
+    if (overlayControllerRef.current) {
+      overlayControllerRef.current.setEnabled(enabled);
+      console.log(`[KinematicExtractionPanel] Joint overlay ${enabled ? 'enabled' : 'disabled'}`);
+    }
+  }, []);
+
   // Reset workflow
   const handleReset = useCallback(() => {
     if (pipeline) {
       pipeline.reset();
     }
+    if (overlayControllerRef.current) {
+      overlayControllerRef.current.clear();
+    }
     setToolGraph(null);
     setExportedModel(null);
+    setShowJointOverlay(false);
     setStepStatuses({
       analyze: { step: 'analyze', status: 'pending' },
       capture_retracted: { step: 'capture_retracted', status: 'pending' },
@@ -652,6 +698,24 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
           )}
         </div>
 
+        {/* Joint Debug Overlay Toggle */}
+        <div className="debug-section">
+          <label className="debug-toggle">
+            <input
+              type="checkbox"
+              checked={showJointOverlay}
+              onChange={(e) => handleToggleJointOverlay(e.target.checked)}
+            />
+            {showJointOverlay ? <Eye size={16} /> : <EyeOff size={16} />}
+            <span>Show joint debug overlay</span>
+          </label>
+          {overlayControllerRef.current && overlayControllerRef.current.getCachedJointsCount() > 0 && (
+            <span className="debug-info">
+              {overlayControllerRef.current.getCachedJointsCount()} joints cached
+            </span>
+          )}
+        </div>
+
         {/* Reset Button */}
         <div className="reset-section">
           <button className="btn btn-secondary" onClick={handleReset}>
@@ -850,6 +914,33 @@ export const KinematicExtractionPanel: React.FC<KinematicExtractionPanelProps> =
           font-size: 0.85rem;
           color: #86efac;
           text-align: center;
+        }
+
+        .debug-section {
+          padding: 0.75rem;
+          background: rgba(0, 0, 0, 0.2);
+          border-radius: 0.5rem;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .debug-toggle {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          cursor: pointer;
+          font-size: 0.875rem;
+          color: #e5e7eb;
+        }
+
+        .debug-toggle input[type="checkbox"] {
+          cursor: pointer;
+        }
+
+        .debug-info {
+          display: block;
+          margin-top: 0.5rem;
+          font-size: 0.75rem;
+          color: #9ca3af;
         }
 
         .reset-section {

@@ -140,3 +140,4 @@ If snapping is still flaky:
 
 The binning system should now reliably find vertices at the MH5 base regardless of ground hits or mesh density.
 
+

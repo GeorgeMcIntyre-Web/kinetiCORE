@@ -1,0 +1,3 @@
+# Ignore generated joint reports (dev-only)
+*.json  
+!.gitignore

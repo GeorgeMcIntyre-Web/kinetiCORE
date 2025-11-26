@@ -60,6 +60,7 @@ import { ICPTestPanel } from '../components/ICPTestPanel';
 import { PipingPanel } from '../piping/PipingPanel';
 import { FloatingFEAPanel } from '../components/FloatingFEAPanel';
 import { FloatingFlexiblePanel } from '../components/FloatingFlexiblePanel';
+import { ToolingFixtureAnimatorPanel } from '../components/ToolingFixtureAnimatorPanel';
 import { Scan, Settings } from 'lucide-react';
 import { RotateCcw, Target, CornerDownRight, Square } from 'lucide-react';
 import { Rocket, Calculator, GitBranch, Network, TestTube, Zap } from 'lucide-react';
@@ -121,6 +122,7 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [showComplexIKPanel, setShowComplexIKPanel] = useState(false);
   const [showWholeBodyIKPanel, setShowWholeBodyIKPanel] = useState(false);
   const [showICPTestPanel, setShowICPTestPanel] = useState(false);
+  const [showToolingFixtureAnimatorPanel, setShowToolingFixtureAnimatorPanel] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showSnapSetupPopup, setShowSnapSetupPopup] = useState(false);
   const [showFEAPanel, setShowFEAPanel] = useState(false);
@@ -885,6 +887,22 @@ export const ProfessionalModeLayout: React.FC = () => {
                     <TestTube size={18} />
                     <span className="tool-btn-label">ICP Test</span>
                   </button>
+                  <button
+                    className={`tool-btn ${showToolingFixtureAnimatorPanel ? 'active' : ''}`}
+                    onClick={() => setShowToolingFixtureAnimatorPanel(!showToolingFixtureAnimatorPanel)}
+                    title="Tooling Fixture Animator - Auto-fit joints & play demo"
+                  >
+                    <Play size={18} />
+                    <span className="tool-btn-label">Tooling Animator</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    onClick={() => setShowICPTestPanel(true)}
+                    title="ICP Test Tool - Manual FIXED/MOVING Selection"
+                  >
+                    <TestTube size={18} />
+                    <span className="tool-btn-label">ICP Test</span>
+                  </button>
                 </div>
               </div>
             </>
@@ -1101,6 +1119,11 @@ export const ProfessionalModeLayout: React.FC = () => {
         isVisible={showKinematicExtractionPanel}
         onClose={() => setShowKinematicExtractionPanel(false)}
         zIndex={1006}
+      />
+      <ToolingFixtureAnimatorPanel
+        isVisible={showToolingFixtureAnimatorPanel}
+        onClose={() => setShowToolingFixtureAnimatorPanel(false)}
+        zIndex={1007}
       />
       <ICPTestPanel
         isVisible={showICPTestPanel}

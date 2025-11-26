@@ -29,6 +29,7 @@ describe('JointMath.applyJointTransform', () => {
 
 		JointMath.applyJointTransform(scene, def, state);
 		scene.onBeforeRenderObservable.notifyObservers(scene);
+		child.computeWorldMatrix(true);
 		const w = child.getWorldMatrix();
 		const pos = new BABYLON.Vector3(w.m[12], w.m[13], w.m[14]);
 		// point (1,0,0) rotated 90 deg about Z around origin becomes (0,1,0)
@@ -36,6 +37,7 @@ describe('JointMath.applyJointTransform', () => {
 		expect(pos.y).toBeCloseTo(1, 3);
 	});
 });
+
 
 
 
