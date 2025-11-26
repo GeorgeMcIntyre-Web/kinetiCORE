@@ -54,12 +54,30 @@ export {
   matrixToAxisAngle,
 } from './icp';
 
-// Step 5 & 6: Joint Classification and Pivot Computation
+// Step 4b: High-Precision ICP with Open3D (Recommended)
+export {
+  runICPWithOpen3D,
+} from './icpOpen3D';
+export type { Open3DICPConfig } from './icpOpen3D';
+
+// Step 5: Joint Classification
 export {
   classifyJoint,
-  computePivotPoint,
   fitCircleToPointMotion,
 } from './jointClassification';
+
+// Step 6: Pivot Point Computation
+// Legacy bisector method (still exported for compatibility)
+export {
+  computePivotPoint,
+} from './jointClassification';
+
+// Step 6b: Circle-Fitting Pivot Computation (Recommended)
+export {
+  computePivotFromMatrix,
+  validatePivot,
+  computeRotationRadius,
+} from './pivotComputation';
 
 // Math utilities
 export type { Vec3, Quat, Mat3, Mat4 } from './mathUtils';
