@@ -1,7 +1,3 @@
-// Floating Settings Panel - Comprehensive settings management
-// Owner: George
-// Floating panel with tabs for all application settings
-
 import React, { useState } from 'react';
 import {
   Settings,
@@ -42,48 +38,22 @@ interface SettingsTab {
   component: React.ReactNode;
 }
 
-export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
-  onClose,
-  isVisible = true,
-  zIndex = 1004,
+// --- Extracted Settings Components ---
+
+interface GeneralSettingsProps {
+  backgroundColorHex: string;
+  onBackgroundColorChange: (hex: string) => void;
+  defaultBackgroundColor: string;
+}
+
+const GeneralSettings: React.FC<GeneralSettingsProps> = ({
+  backgroundColorHex,
+  onBackgroundColorChange,
+  defaultBackgroundColor,
 }) => {
-  const [activeTab, setActiveTab] = useState('general');
   const { userLevel, setUserLevel } = useUserLevel();
-  const sceneManager = SceneManager.getInstance();
-  const colorToHex = (color: { r: number; g: number; b: number }) =>
-    `#${[color.r, color.g, color.b]
-      .map((component) => {
-        const v = Math.round(component * 255);
-        return v.toString(16).padStart(2, '0');
-      })
-      .join('')}`;
-  const hexToColor = (hex: string) => ({
-    r: parseInt(hex.slice(1, 3), 16) / 255,
-    g: parseInt(hex.slice(3, 5), 16) / 255,
-    b: parseInt(hex.slice(5, 7), 16) / 255,
-    a: 1,
-  });
-  const DEFAULT_BACKGROUND_HEX = '#FFFFFF';
-  const [backgroundColorHex, setBackgroundColorHex] = useState<string>(() =>
-    colorToHex(sceneManager.getBackgroundColor())
-  );
-  
-  // Get settings from store (only the ones we actually use)
-  const {
-    positionIncrement,
-    rotationIncrement,
-    setPositionIncrement,
-    setRotationIncrement,
-  } = useEditorStore();
 
-  const handleBackgroundColorChange = (hex: string) => {
-    setBackgroundColorHex(hex);
-    const color = hexToColor(hex);
-    sceneManager.setBackgroundColor(color);
-  };
-
-  // General Settings Component
-  const GeneralSettings = () => (
+  return (
     <div className="settings-section">
       <div className="settings-grid">
         <div className="settings-compact-group">
@@ -132,18 +102,35 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
           </div>
           <div className="settings-compact-option">
             <label className="settings-compact-label">Viewport Background</label>
-            <div className="settings-color-row">
+            <div
+              className="settings-color-row"
+              onMouseDown={(e) => e.stopPropagation()}
+              onMouseUp={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerUp={(e) => e.stopPropagation()}
+            >
               <input
                 type="color"
                 value={backgroundColorHex}
-                onChange={(e) => handleBackgroundColorChange(e.target.value)}
+                onChange={(e) => onBackgroundColorChange(e.target.value)}
                 className="settings-color-input"
                 aria-label="Viewport background color"
+                onMouseDown={(e) => e.stopPropagation()}
+                onMouseUp={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+                onPointerUp={(e) => e.stopPropagation()}
               />
               <button
                 type="button"
                 className="settings-btn settings-btn-secondary settings-color-reset"
-                onClick={() => handleBackgroundColorChange(DEFAULT_BACKGROUND_HEX)}
+                onClick={() => onBackgroundColorChange(defaultBackgroundColor)}
+                onMouseDown={(e) => e.stopPropagation()}
+                onMouseUp={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+                onPointerUp={(e) => e.stopPropagation()}
               >
                 Reset
               </button>
@@ -225,9 +212,17 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
       </div>
     </div>
   );
+};
 
-  // Transform Settings Component
-  const TransformSettings = () => (
+const TransformSettings: React.FC = () => {
+  const {
+    positionIncrement,
+    rotationIncrement,
+    setPositionIncrement,
+    setRotationIncrement,
+  } = useEditorStore();
+
+  return (
     <div className="settings-section">
       <div className="settings-group">
         <h4 className="settings-group-title">
@@ -259,197 +254,234 @@ export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
           />
         </div>
       </div>
-
     </div>
   );
+};
 
-  // Snap Settings Component
-  
-  // Physics Settings Component
-  const PhysicsSettings = () => (
-    <div className="settings-section">
-      <div className="settings-group">
-        <h4 className="settings-group-title">
-          <Zap size={16} />
-          Physics Engine
-        </h4>
-        <div className="settings-option">
-          <label className="settings-label">Physics Engine</label>
-          <select className="settings-select" defaultValue="rapier">
-            <option value="rapier">Rapier (Recommended)</option>
-            <option value="havok">Havok (Advanced)</option>
-          </select>
-        </div>
-        <div className="settings-option">
-          <label className="settings-label">Gravity (m/s²)</label>
-          <div className="settings-input-group">
-            <input type="number" className="settings-input" defaultValue="0" placeholder="X" />
-            <input type="number" className="settings-input" defaultValue="-9.81" placeholder="Y" />
-            <input type="number" className="settings-input" defaultValue="0" placeholder="Z" />
-          </div>
-        </div>
+const PhysicsSettings: React.FC = () => (
+  <div className="settings-section">
+    <div className="settings-group">
+      <h4 className="settings-group-title">
+        <Zap size={16} />
+        Physics Engine
+      </h4>
+      <div className="settings-option">
+        <label className="settings-label">Physics Engine</label>
+        <select className="settings-select" defaultValue="rapier">
+          <option value="rapier">Rapier (Recommended)</option>
+          <option value="havok">Havok (Advanced)</option>
+        </select>
       </div>
-
-      <div className="settings-group">
-        <h4 className="settings-group-title">
-          <Sliders size={16} />
-          Simulation Parameters
-        </h4>
-        <div className="settings-option">
-          <label className="settings-label">Iterations per frame</label>
-          <input type="number" className="settings-input" defaultValue="10" min="1" max="50" />
-        </div>
-        <div className="settings-option">
-          <label className="settings-label">Time step (ms)</label>
-          <input type="number" className="settings-input" defaultValue="16" min="1" max="100" />
-        </div>
-        <div className="settings-option">
-          <label className="settings-checkbox">
-            <input type="checkbox" defaultChecked />
-            <span className="checkmark"></span>
-            Enable sleeping bodies
-          </label>
-        </div>
-        <div className="settings-option">
-          <label className="settings-checkbox">
-            <input type="checkbox" defaultChecked />
-            <span className="checkmark"></span>
-            Continuous collision detection
-          </label>
+      <div className="settings-option">
+        <label className="settings-label">Gravity (m/s²)</label>
+        <div className="settings-input-group">
+          <input type="number" className="settings-input" defaultValue="0" placeholder="X" />
+          <input type="number" className="settings-input" defaultValue="-9.81" placeholder="Y" />
+          <input type="number" className="settings-input" defaultValue="0" placeholder="Z" />
         </div>
       </div>
     </div>
-  );
 
-  // View Settings Component
-  const ViewSettings = () => (
-    <div className="settings-section">
-      <div className="settings-group">
-        <h4 className="settings-group-title">
-          <Camera size={16} />
-          Camera Settings
-        </h4>
-        <div className="settings-option">
-          <label className="settings-label">Default camera speed</label>
-          <input type="range" className="settings-range" defaultValue="1" min="0.1" max="5" step="0.1" />
-        </div>
-        <div className="settings-option">
-          <label className="settings-checkbox">
-            <input type="checkbox" defaultChecked />
-            <span className="checkmark"></span>
-            Invert mouse Y-axis
-          </label>
-        </div>
-        <div className="settings-option">
-          <label className="settings-checkbox">
-            <input type="checkbox" />
-            <span className="checkmark"></span>
-            Smooth camera transitions
-          </label>
-        </div>
+    <div className="settings-group">
+      <h4 className="settings-group-title">
+        <Sliders size={16} />
+        Simulation Parameters
+      </h4>
+      <div className="settings-option">
+        <label className="settings-label">Iterations per frame</label>
+        <input type="number" className="settings-input" defaultValue="10" min="1" max="50" />
       </div>
-
-      <div className="settings-group">
-        <h4 className="settings-group-title">
-          <Eye size={16} />
-          Viewport Display
-        </h4>
-        <div className="settings-option">
-          <label className="settings-checkbox">
-            <input type="checkbox" defaultChecked />
-            <span className="checkmark"></span>
-            Show coordinate frame
-          </label>
-        </div>
-        <div className="settings-option">
-          <label className="settings-checkbox">
-            <input type="checkbox" defaultChecked />
-            <span className="checkmark"></span>
-            Show selection outlines
-          </label>
-        </div>
-        <div className="settings-option">
-          <label className="settings-checkbox">
-            <input type="checkbox" />
-            <span className="checkmark"></span>
-            Show wireframes
-          </label>
-        </div>
-        <div className="settings-option">
-          <label className="settings-checkbox">
-            <input type="checkbox" />
-            <span className="checkmark"></span>
-            Show bounding boxes
-          </label>
-        </div>
+      <div className="settings-option">
+        <label className="settings-label">Time step (ms)</label>
+        <input type="number" className="settings-input" defaultValue="16" min="1" max="100" />
+      </div>
+      <div className="settings-option">
+        <label className="settings-checkbox">
+          <input type="checkbox" defaultChecked />
+          <span className="checkmark"></span>
+          Enable sleeping bodies
+        </label>
+      </div>
+      <div className="settings-option">
+        <label className="settings-checkbox">
+          <input type="checkbox" defaultChecked />
+          <span className="checkmark"></span>
+          Continuous collision detection
+        </label>
       </div>
     </div>
-  );
+  </div>
+);
 
-  // Project Settings Component
-  const ProjectSettings = () => (
-    <div className="settings-section">
-      <div className="settings-group">
-        <h4 className="settings-group-title">
-          <Folder size={16} />
-          Default Project Settings
-        </h4>
-        <div className="settings-option">
-          <label className="settings-label">Default project template</label>
-          <select className="settings-select" defaultValue="blank">
-            <option value="blank">Blank Project</option>
-            <option value="industrial">Industrial Template</option>
-            <option value="robotics">Robotics Template</option>
-            <option value="manufacturing">Manufacturing Template</option>
-          </select>
-        </div>
-        <div className="settings-option">
-          <label className="settings-label">Units</label>
-          <select className="settings-select" defaultValue="mm">
-            <option value="mm">Millimeters</option>
-            <option value="cm">Centimeters</option>
-            <option value="m">Meters</option>
-            <option value="in">Inches</option>
-            <option value="ft">Feet</option>
-          </select>
-        </div>
+const ViewSettings: React.FC = () => (
+  <div className="settings-section">
+    <div className="settings-group">
+      <h4 className="settings-group-title">
+        <Camera size={16} />
+        Camera Settings
+      </h4>
+      <div className="settings-option">
+        <label className="settings-label">Default camera speed</label>
+        <input type="range" className="settings-range" defaultValue="1" min="0.1" max="5" step="0.1" />
       </div>
-
-      <div className="settings-group">
-        <h4 className="settings-group-title">
-          <Save size={16} />
-          Export Settings
-        </h4>
-        <div className="settings-option">
-          <label className="settings-checkbox">
-            <input type="checkbox" defaultChecked />
-            <span className="checkmark"></span>
-            Include metadata in exports
-          </label>
-        </div>
-        <div className="settings-option">
-          <label className="settings-checkbox">
-            <input type="checkbox" />
-            <span className="checkmark"></span>
-            Compress exported files
-          </label>
-        </div>
-        <div className="settings-option">
-          <label className="settings-label">Default export format</label>
-          <select className="settings-select" defaultValue="gltf">
-            <option value="gltf">GLTF</option>
-            <option value="glb">GLB</option>
-            <option value="obj">OBJ</option>
-            <option value="stl">STL</option>
-            <option value="usd">USD</option>
-          </select>
-        </div>
+      <div className="settings-option">
+        <label className="settings-checkbox">
+          <input type="checkbox" defaultChecked />
+          <span className="checkmark"></span>
+          Invert mouse Y-axis
+        </label>
+      </div>
+      <div className="settings-option">
+        <label className="settings-checkbox">
+          <input type="checkbox" />
+          <span className="checkmark"></span>
+          Smooth camera transitions
+        </label>
       </div>
     </div>
+
+    <div className="settings-group">
+      <h4 className="settings-group-title">
+        <Eye size={16} />
+        Viewport Display
+      </h4>
+      <div className="settings-option">
+        <label className="settings-checkbox">
+          <input type="checkbox" defaultChecked />
+          <span className="checkmark"></span>
+          Show coordinate frame
+        </label>
+      </div>
+      <div className="settings-option">
+        <label className="settings-checkbox">
+          <input type="checkbox" defaultChecked />
+          <span className="checkmark"></span>
+          Show selection outlines
+        </label>
+      </div>
+      <div className="settings-option">
+        <label className="settings-checkbox">
+          <input type="checkbox" />
+          <span className="checkmark"></span>
+          Show wireframes
+        </label>
+      </div>
+      <div className="settings-option">
+        <label className="settings-checkbox">
+          <input type="checkbox" />
+          <span className="checkmark"></span>
+          Show bounding boxes
+        </label>
+      </div>
+    </div>
+  </div>
+);
+
+const ProjectSettings: React.FC = () => (
+  <div className="settings-section">
+    <div className="settings-group">
+      <h4 className="settings-group-title">
+        <Folder size={16} />
+        Default Project Settings
+      </h4>
+      <div className="settings-option">
+        <label className="settings-label">Default project template</label>
+        <select className="settings-select" defaultValue="blank">
+          <option value="blank">Blank Project</option>
+          <option value="industrial">Industrial Template</option>
+          <option value="robotics">Robotics Template</option>
+          <option value="manufacturing">Manufacturing Template</option>
+        </select>
+      </div>
+      <div className="settings-option">
+        <label className="settings-label">Units</label>
+        <select className="settings-select" defaultValue="mm">
+          <option value="mm">Millimeters</option>
+          <option value="cm">Centimeters</option>
+          <option value="m">Meters</option>
+          <option value="in">Inches</option>
+          <option value="ft">Feet</option>
+        </select>
+      </div>
+    </div>
+
+    <div className="settings-group">
+      <h4 className="settings-group-title">
+        <Save size={16} />
+        Export Settings
+      </h4>
+      <div className="settings-option">
+        <label className="settings-checkbox">
+          <input type="checkbox" defaultChecked />
+          <span className="checkmark"></span>
+          Include metadata in exports
+        </label>
+      </div>
+      <div className="settings-option">
+        <label className="settings-checkbox">
+          <input type="checkbox" />
+          <span className="checkmark"></span>
+          Compress exported files
+        </label>
+      </div>
+      <div className="settings-option">
+        <label className="settings-label">Default export format</label>
+        <select className="settings-select" defaultValue="gltf">
+          <option value="gltf">GLTF</option>
+          <option value="glb">GLB</option>
+          <option value="obj">OBJ</option>
+          <option value="stl">STL</option>
+          <option value="usd">USD</option>
+        </select>
+      </div>
+    </div>
+  </div>
+);
+
+export const FloatingSettingsPanel: React.FC<FloatingSettingsPanelProps> = ({
+  onClose,
+  isVisible = true,
+  zIndex = 1004,
+}) => {
+  const [activeTab, setActiveTab] = useState('general');
+  const sceneManager = SceneManager.getInstance();
+  const colorToHex = (color: { r: number; g: number; b: number }) =>
+    `#${[color.r, color.g, color.b]
+      .map((component) => {
+        const v = Math.round(component * 255);
+        return v.toString(16).padStart(2, '0');
+      })
+      .join('')}`;
+  const hexToColor = (hex: string) => ({
+    r: parseInt(hex.slice(1, 3), 16) / 255,
+    g: parseInt(hex.slice(3, 5), 16) / 255,
+    b: parseInt(hex.slice(5, 7), 16) / 255,
+    a: 1,
+  });
+  const DEFAULT_BACKGROUND_HEX = '#FFFFFF';
+  const [backgroundColorHex, setBackgroundColorHex] = useState<string>(() =>
+    colorToHex(sceneManager.getBackgroundColor())
   );
+
+  const handleBackgroundColorChange = (hex: string) => {
+    setBackgroundColorHex(hex);
+    const color = hexToColor(hex);
+    sceneManager.setBackgroundColor(color);
+  };
 
   const tabs: SettingsTab[] = [
-    { id: 'general', label: 'General', icon: <User size={16} />, component: <GeneralSettings /> },
+    {
+      id: 'general',
+      label: 'General',
+      icon: <User size={16} />,
+      component: (
+        <GeneralSettings
+          backgroundColorHex={backgroundColorHex}
+          onBackgroundColorChange={handleBackgroundColorChange}
+          defaultBackgroundColor={DEFAULT_BACKGROUND_HEX}
+        />
+      ),
+    },
     { id: 'floor', label: 'Floor', icon: <Grid3X3 size={16} />, component: <FloorSettingsPanel /> },
     { id: 'transform', label: 'Transform', icon: <Move size={16} />, component: <TransformSettings /> },
     { id: 'physics', label: 'Physics', icon: <Zap size={16} />, component: <PhysicsSettings /> },

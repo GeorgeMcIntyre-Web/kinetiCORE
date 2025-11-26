@@ -1185,7 +1185,7 @@
   line-height: 1.1;
   min-width: 44px;
   text-align: center;
-  align-self: flex-start;
+  align-self: center;
   flex-shrink: 0;
 }
 
@@ -1213,6 +1213,28 @@
   white-space: nowrap;
   min-width: 44px;
   text-align: center;
+}
+
+.motion-type-button {
+  border: none;
+  cursor: pointer;
+  background: #4a5568;
+  color: #e2e8f0;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  line-height: 1.1;
+  min-width: 48px;
+  text-align: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.motion-type-button:hover {
+  background: #63b3ed;
+  color: #0b1726;
 }
 
 .target-position {

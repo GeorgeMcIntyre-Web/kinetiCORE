@@ -1072,6 +1072,16 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
     });
   };
 
+  const handleToggleTargetMotion = (targetId: string) => {
+    setTargets(prev =>
+      prev.map(t =>
+        t.id === targetId
+          ? { ...t, motionType: t.motionType === 'JOINT' ? 'LINEAR' : 'JOINT' }
+          : t
+      )
+    );
+  };
+
   // Maintain frame visibility for all targets by default
   useEffect(() => {
     const scene = (window as any).sceneManager?.getScene?.();
@@ -1771,7 +1781,17 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
                     <div className="target-info">
                       <div className="target-title-row">
                         <span className="target-name">{target.name}</span>
-                        <span className="motion-type">{target.motionType}</span>
+                        <button
+                          className="motion-type-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleTargetMotion(target.id);
+                          }}
+                          title="Toggle motion type"
+                          aria-pressed={target.motionType === 'LINEAR'}
+                        >
+                          {target.motionType === 'JOINT' ? 'Joint' : 'Linear'}
+                        </button>
                       </div>
                       {showTargetDetails && target.cartesian && (
                         <span className="target-position">
