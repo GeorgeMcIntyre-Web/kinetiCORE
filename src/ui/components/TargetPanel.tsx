@@ -75,13 +75,25 @@ export const TargetPanel: React.FC = () => {
   return (
     <div className="target-panel">
       {kinActiveRobotId && kinJoints.length > 0 ? (
-        <RobotJoggingPanelWithGizmo
-          joints={kinJoints}
-          fkSolver={fkSolverRef.current}
-          robotId={kinActiveRobotId}
-          allowedModes={['targets']}
-          hideModeSelector
-        />
+        <div className="target-panel-content">
+          <div className="target-card">
+            <div className="target-robot-header">
+              <div className="target-robot-title">{kinActiveRobotMeta?.name || 'Active Robot'}</div>
+              <div className="target-robot-meta">
+                {kinActiveRobotMeta?.jointCount ?? kinJoints.length} joints detected
+              </div>
+            </div>
+            <div className="target-card-body">
+              <RobotJoggingPanelWithGizmo
+                joints={kinJoints}
+                fkSolver={fkSolverRef.current}
+                robotId={kinActiveRobotId}
+                allowedModes={['targets']}
+                hideModeSelector
+              />
+            </div>
+          </div>
+        </div>
       ) : (
         <div style={{ padding: '12px', color: '#cbd5e0', fontSize: 13 }}>
           Select a robot in the scene to manage targets.
