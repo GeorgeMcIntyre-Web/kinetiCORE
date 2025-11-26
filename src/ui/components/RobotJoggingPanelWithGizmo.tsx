@@ -75,6 +75,94 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
     if (!allowedModes.includes(mode)) return;
     setJogMode(mode);
   };
+
+  const renderTargetFrame = (target: SixAxisTarget) => {
+    if (hiddenFrames[target.id]) return;
+    if (!target.cartesian) return;
+    const scene = (window as any).sceneManager?.getScene?.();
+    if (!scene) return;
+
+    if (!targetFrameMatRef.current) {
+      const mat = new BABYLON.StandardMaterial('targetFrameMat', scene);
+      mat.diffuseColor = new BABYLON.Color3(0.6, 0.4, 1);
+      mat.emissiveColor = new BABYLON.Color3(0.6, 0.4, 1);
+      mat.specularColor = new BABYLON.Color3(0, 0, 0);
+      mat.backFaceCulling = false;
+      targetFrameMatRef.current = mat;
+    }
+
+    const existing = targetFramesRef.current.get(target.id);
+    if (existing) {
+      existing.nodes.forEach(n => n.dispose(false, true));
+      targetFramesRef.current.delete(target.id);
+    }
+
+    const pos = new BABYLON.Vector3(
+      (target.cartesian.position?.[0] ?? 0) * 0.001,
+      (target.cartesian.position?.[1] ?? 0) * 0.001,
+      (target.cartesian.position?.[2] ?? 0) * 0.001
+    );
+    const quat = new BABYLON.Quaternion(
+      target.cartesian.quaternion?.[0] ?? 0,
+      target.cartesian.quaternion?.[1] ?? 0,
+      target.cartesian.quaternion?.[2] ?? 0,
+      target.cartesian.quaternion?.[3] ?? 1
+    );
+    const rotM = new BABYLON.Matrix();
+    quat.toRotationMatrix(rotM);
+    const xDir = new BABYLON.Vector3(rotM.m[0], rotM.m[1], rotM.m[2]);
+    const yDir = new BABYLON.Vector3(rotM.m[4], rotM.m[5], rotM.m[6]);
+    const zDir = new BABYLON.Vector3(rotM.m[8], rotM.m[9], rotM.m[10]);
+    const axisLen = 0.12;
+
+    const rotationFromTo = (from: BABYLON.Vector3, to: BABYLON.Vector3) => {
+      const f = from.normalize();
+      const t = to.normalize();
+      const dot = BABYLON.Vector3.Dot(f, t);
+      if (dot > 0.9999) return BABYLON.Quaternion.Identity();
+      if (dot < -0.9999) {
+        const orth = Math.abs(f.x) < 0.1 ? new BABYLON.Vector3(1, 0, 0) : new BABYLON.Vector3(0, 1, 0);
+        const axis = BABYLON.Vector3.Cross(f, orth).normalize();
+        return BABYLON.Quaternion.RotationAxis(axis, Math.PI);
+      }
+      const axis = BABYLON.Vector3.Cross(f, t).normalize();
+      const angle = Math.acos(dot);
+      return BABYLON.Quaternion.RotationAxis(axis, angle);
+    };
+
+      const createArrow = (key: 'x' | 'y' | 'z', dir: BABYLON.Vector3) => {
+        const parent = new BABYLON.TransformNode(`target_frame_${key}_${target.id}`, scene);
+        parent.position = pos.clone();
+        parent.rotationQuaternion = rotationFromTo(BABYLON.Axis.Y, dir.normalize());
+
+      const shaftLen = axisLen * 0.75;
+      const headLen = axisLen * 0.25;
+      const shaft = BABYLON.MeshBuilder.CreateCylinder(
+        `target_frame_${key}_shaft_${target.id}`,
+        { height: shaftLen, diameter: 0.006, tessellation: 8 },
+        scene
+      );
+      shaft.position = new BABYLON.Vector3(0, shaftLen / 2, 0);
+      shaft.material = targetFrameMatRef.current!;
+      shaft.isPickable = false;
+      shaft.parent = parent;
+
+      const head = BABYLON.MeshBuilder.CreateCylinder(
+        `target_frame_${key}_head_${target.id}`,
+        { height: headLen, diameterTop: 0, diameterBottom: 0.012, tessellation: 8 },
+        scene
+      );
+      head.position = new BABYLON.Vector3(0, shaftLen + headLen / 2, 0);
+      head.material = targetFrameMatRef.current!;
+      head.isPickable = false;
+      head.parent = parent;
+
+      return parent;
+    };
+
+    const nodes = [createArrow('x', xDir), createArrow('y', yDir), createArrow('z', zDir)];
+    targetFramesRef.current.set(target.id, { nodes });
+  };
   
   // Gizmo management
   const [unifiedGizmo] = useState(() => UnifiedGizmoManager.getInstance());
@@ -88,7 +176,9 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
   const ikDeltaRef = useRef<BABYLON.LinesMesh | null>(null);
   const ikErrorRef = useRef<BABYLON.LinesMesh | null>(null);
   // Target frame visualization
-  const targetFramesRef = useRef<Map<string, { x: BABYLON.LinesMesh | null; y: BABYLON.LinesMesh | null; z: BABYLON.LinesMesh | null }>>(new Map());
+  type TargetFrameSet = { nodes: BABYLON.TransformNode[] };
+  const targetFramesRef = useRef<Map<string, TargetFrameSet>>(new Map());
+  const targetFrameMatRef = useRef<BABYLON.StandardMaterial | null>(null);
   const [hiddenFrames, setHiddenFrames] = useState<Record<string, boolean>>({});
 
   // Cleanup debug/visual lines on unmount
@@ -101,12 +191,13 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
         }
       });
       targetFramesRef.current.forEach((frame) => {
-        ['x', 'y', 'z'].forEach(axis => {
-          const mesh = (frame as any)[axis] as BABYLON.LinesMesh | null;
-          if (mesh) mesh.dispose(false, true);
-        });
+        frame.nodes.forEach(node => node.dispose(false, true));
       });
       targetFramesRef.current.clear();
+      if (targetFrameMatRef.current) {
+        targetFrameMatRef.current.dispose(false, true);
+        targetFrameMatRef.current = null;
+      }
     };
   }, []);
 
@@ -875,52 +966,10 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
 
     // Draw oriented frame for the selected target (if cartesian is present)
     try {
-      if (target.cartesian && !hiddenFrames[target.id]) {
-        const scene = (window as any).sceneManager?.getScene?.();
-        if (scene) {
-          const pos = new BABYLON.Vector3(
-            (target.cartesian.position?.[0] ?? 0) * 0.001,
-            (target.cartesian.position?.[1] ?? 0) * 0.001,
-            (target.cartesian.position?.[2] ?? 0) * 0.001
-          );
-          const quat = new BABYLON.Quaternion(
-            target.cartesian.quaternion?.[0] ?? 0,
-            target.cartesian.quaternion?.[1] ?? 0,
-            target.cartesian.quaternion?.[2] ?? 0,
-            target.cartesian.quaternion?.[3] ?? 1
-          );
-          const rotM = new BABYLON.Matrix();
-          quat.toRotationMatrix(rotM);
-          const xDir = new BABYLON.Vector3(rotM.m[0], rotM.m[1], rotM.m[2]);
-          const yDir = new BABYLON.Vector3(rotM.m[4], rotM.m[5], rotM.m[6]);
-          const zDir = new BABYLON.Vector3(rotM.m[8], rotM.m[9], rotM.m[10]);
-          const axisLen = 0.12; // 120mm axes
-
-          const drawLine = (key: 'x' | 'y' | 'z', dir: BABYLON.Vector3, color: BABYLON.Color3) => {
-            const existingFrame = targetFramesRef.current.get(target.id);
-            const existing = existingFrame?.[key];
-            if (existing && !existing.isDisposed()) existing.dispose(false, true);
-            const line = BABYLON.MeshBuilder.CreateLines(
-              `target_frame_${key}_${target.id}`,
-              { points: [pos, pos.add(dir.scale(axisLen))], updatable: false },
-              scene
-            ) as BABYLON.LinesMesh;
-            line.color = color;
-            line.isPickable = false;
-            const frame = targetFramesRef.current.get(target.id) || { x: null, y: null, z: null };
-            frame[key] = line;
-            targetFramesRef.current.set(target.id, frame);
-          };
-
-          drawLine('x', xDir, BABYLON.Color3.Red());
-          drawLine('y', yDir, BABYLON.Color3.Green());
-          drawLine('z', zDir, BABYLON.Color3.Blue());
-        }
-      }
+      renderTargetFrame(target);
     } catch (err) {
       console.warn('[TargetFrame] Failed to render target frame', err);
     }
-
     // If neither move nor jump is enabled, only visualize frame
     if (!moveOnSelectEnabled && !jumpOnSelectEnabled) return;
 
@@ -1024,10 +1073,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
     // Dispose frames for removed targets
     targetFramesRef.current.forEach((frame, id) => {
       if (!targets.find(t => t.id === id)) {
-        ['x', 'y', 'z'].forEach(axis => {
-          const mesh = (frame as any)[axis] as BABYLON.LinesMesh | null;
-          if (mesh) mesh.dispose(false, true);
-        });
+        frame.nodes.forEach(n => n.dispose(false, true));
         targetFramesRef.current.delete(id);
       }
     });
@@ -1035,44 +1081,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
     // Ensure frames are drawn for existing targets when not hidden
     targets.forEach(target => {
       if (hiddenFrames[target.id]) return;
-      if (!target.cartesian) return;
-      const pos = new BABYLON.Vector3(
-        (target.cartesian.position?.[0] ?? 0) * 0.001,
-        (target.cartesian.position?.[1] ?? 0) * 0.001,
-        (target.cartesian.position?.[2] ?? 0) * 0.001
-      );
-      const quat = new BABYLON.Quaternion(
-        target.cartesian.quaternion?.[0] ?? 0,
-        target.cartesian.quaternion?.[1] ?? 0,
-        target.cartesian.quaternion?.[2] ?? 0,
-        target.cartesian.quaternion?.[3] ?? 1
-      );
-      const rotM = new BABYLON.Matrix();
-      quat.toRotationMatrix(rotM);
-      const xDir = new BABYLON.Vector3(rotM.m[0], rotM.m[1], rotM.m[2]);
-      const yDir = new BABYLON.Vector3(rotM.m[4], rotM.m[5], rotM.m[6]);
-      const zDir = new BABYLON.Vector3(rotM.m[8], rotM.m[9], rotM.m[10]);
-      const axisLen = 0.12;
-
-      const drawLine = (key: 'x' | 'y' | 'z', dir: BABYLON.Vector3, color: BABYLON.Color3) => {
-        const existingFrame = targetFramesRef.current.get(target.id);
-        const existing = existingFrame?.[key];
-        if (existing && !existing.isDisposed()) return; // already drawn
-        const line = BABYLON.MeshBuilder.CreateLines(
-          `target_frame_${key}_${target.id}`,
-          { points: [pos, pos.add(dir.scale(axisLen))], updatable: false },
-          scene
-        ) as BABYLON.LinesMesh;
-        line.color = color;
-        line.isPickable = false;
-        const frame = targetFramesRef.current.get(target.id) || { x: null, y: null, z: null };
-        frame[key] = line;
-        targetFramesRef.current.set(target.id, frame);
-      };
-
-      drawLine('x', xDir, BABYLON.Color3.Red());
-      drawLine('y', yDir, BABYLON.Color3.Green());
-      drawLine('z', zDir, BABYLON.Color3.Blue());
+      renderTargetFrame(target);
     });
   }, [targets, hiddenFrames]);
 
@@ -1741,10 +1750,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
                             if (!prev[target.id]) {
                               const frame = targetFramesRef.current.get(target.id);
                               if (frame) {
-                                ['x', 'y', 'z'].forEach(axis => {
-                                  const mesh = (frame as any)[axis] as BABYLON.LinesMesh | null;
-                                  if (mesh) mesh.dispose(false, true);
-                                });
+                                frame.nodes.forEach(n => n.dispose(false, true));
                               }
                               targetFramesRef.current.delete(target.id);
                             }
