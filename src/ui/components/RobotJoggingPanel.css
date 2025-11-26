@@ -1085,11 +1085,18 @@
 .target-info {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
   overflow: hidden;
   flex: 1;
-  flex-wrap: nowrap;
+  flex-direction: column;
+}
+
+.target-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
 .target-name {

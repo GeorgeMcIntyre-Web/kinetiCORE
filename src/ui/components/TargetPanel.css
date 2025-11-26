@@ -67,9 +67,21 @@
 }
 
 .target-card .target-info {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.target-card .target-title-row {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+}
+
+.target-card .target-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   min-width: 0;
   overflow: hidden;
   flex: 1;

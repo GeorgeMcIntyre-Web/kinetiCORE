@@ -1466,8 +1466,10 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
                   <div key={target.id} className="target-item">
                     <div className="target-number">{index + 1}</div>
                     <div className="target-info">
-                      <span className="target-name">{target.name}</span>
-                      <span className="motion-type">{target.motionType}</span>
+                      <div className="target-title-row">
+                        <span className="target-name">{target.name}</span>
+                        <span className="motion-type">{target.motionType}</span>
+                      </div>
                       {showTargetDetails && target.cartesian && (
                         <span className="target-position">
                           X:{target.cartesian.position[0].toFixed(0)} Y:{target.cartesian.position[1].toFixed(0)} Z:{target.cartesian.position[2].toFixed(0)}
