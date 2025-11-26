@@ -96,6 +96,36 @@ const modifyLayoutWidth = (layout: any, targetWidth: number, rightPanelIds: stri
   }
 };
 
+const removePanelFromLayout = (layout: any, panelId: string): any => {
+  if (!layout || typeof layout !== 'object') return layout;
+
+  if (Array.isArray(layout)) {
+    return layout
+      .map((item) => removePanelFromLayout(item, panelId))
+      .filter((item) => item !== null);
+  }
+
+  const cloned = { ...layout };
+
+  if (cloned.id === panelId) {
+    return null;
+  }
+
+  if (Array.isArray(cloned.views)) {
+    cloned.views = cloned.views
+      .map((view: any) => removePanelFromLayout(view, panelId))
+      .filter((v: any) => v !== null);
+  }
+
+  if (Array.isArray(cloned.children)) {
+    cloned.children = cloned.children
+      .map((child: any) => removePanelFromLayout(child, panelId))
+      .filter((c: any) => c !== null);
+  }
+
+  return cloned;
+};
+
 export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
   config,
   onLayoutChange,
@@ -114,6 +144,63 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
     ])
   ) as Record<string, React.FunctionComponent<any>>;
 
+  const openDynamicPanel = (
+    panelId: string,
+    panelType: PanelType,
+    title?: string,
+    position: 'bottom' | 'left' | 'right' = 'bottom',
+    referencePanel?: string,
+    size?: { width?: number; height?: number }
+  ) => {
+    if (!apiRef.current) return;
+    const existing = apiRef.current.getPanel(panelId);
+    if (existing) {
+      try {
+        existing.group?.api.setActivePanel(existing.id);
+      } catch (e) {
+        console.warn('[DockableLayoutWrapper] Failed to focus panel', panelId, e);
+      }
+      return;
+    }
+
+    const referenceId = referencePanel || config.centerPanel?.id;
+    const added = apiRef.current.addPanel({
+      id: panelId,
+      component: panelType,
+      title: title || PANEL_REGISTRY[panelType].title,
+      params: {},
+      position: { direction: position, referencePanel: referenceId },
+    });
+
+    if (position === 'bottom') {
+      const height = size?.height ?? bottomPanelHeight ?? PANEL_REGISTRY[panelType].defaultHeight ?? 260;
+      try {
+        added.api.setSize({ height });
+      } catch (e) {
+        console.warn('[DockableLayoutWrapper] Failed to size panel', panelId, e);
+      }
+    } else if (position === 'right' || position === 'left') {
+      const width = size?.width ?? PANEL_REGISTRY[panelType].defaultWidth ?? 320;
+      try {
+        added.api.setSize({ width });
+      } catch (e) {
+        console.warn('[DockableLayoutWrapper] Failed to size panel', panelId, e);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleOpenPanel = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      const { id, type, title, position, referencePanel, size } = detail;
+      if (!id || !type) return;
+      openDynamicPanel(id, type, title, position, referencePanel, size);
+    };
+
+    window.addEventListener('dock-open-panel', handleOpenPanel);
+    return () => window.removeEventListener('dock-open-panel', handleOpenPanel);
+  }, []);
+
   const onReady = (event: DockviewReadyEvent) => {
     apiRef.current = event.api;
 
@@ -122,29 +209,32 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
       try {
         // Modify saved layout to update right panel width to 300px BEFORE restoring
         const rightPanelIds = config.rightPanels?.map(p => p.id) || [];
-        const modifiedLayout = modifyLayoutWidth(savedLayout, 300, rightPanelIds);
-        event.api.fromJSON(modifiedLayout);
-        // Immediately enforce width after restore (no delay)
-        requestAnimationFrame(() => {
-          if (config.rightPanels && config.rightPanels.length > 0) {
-            const firstRightPanelId = config.rightPanels[0].id;
-            const panel = event.api.getPanel(firstRightPanelId);
-            if (panel) {
-              rightPanelApiRef.current = panel.api;
-              panel.api.setSize({ width: 300 });
+        const withoutTarget = removePanelFromLayout(savedLayout, 'target-panel');
+        const modifiedLayout = modifyLayoutWidth(withoutTarget, 300, rightPanelIds);
+        if (modifiedLayout) {
+          event.api.fromJSON(modifiedLayout);
+          // Immediately enforce width after restore (no delay)
+          requestAnimationFrame(() => {
+            if (config.rightPanels && config.rightPanels.length > 0) {
+              const firstRightPanelId = config.rightPanels[0].id;
+              const panel = event.api.getPanel(firstRightPanelId);
+              if (panel) {
+                rightPanelApiRef.current = panel.api;
+                panel.api.setSize({ width: 300 });
+              }
             }
-          }
 
-          // Enforce bottom panel height if provided
-          if (config.bottomPanels && config.bottomPanels.length > 0 && typeof bottomPanelHeight === 'number' && bottomPanelHeight > 0) {
-            const firstBottomPanelId = config.bottomPanels[0].id;
-            const panel = event.api.getPanel(firstBottomPanelId);
-            if (panel) {
-              panel.api.setSize({ height: bottomPanelHeight });
+            // Enforce bottom panel height if provided
+            if (config.bottomPanels && config.bottomPanels.length > 0 && typeof bottomPanelHeight === 'number' && bottomPanelHeight > 0) {
+              const firstBottomPanelId = config.bottomPanels[0].id;
+              const panel = event.api.getPanel(firstBottomPanelId);
+              if (panel) {
+                panel.api.setSize({ height: bottomPanelHeight });
+              }
             }
-          }
-        });
-        return;
+          });
+          return;
+        }
       } catch (error) {
         console.error('Failed to restore saved layout:', error);
       }

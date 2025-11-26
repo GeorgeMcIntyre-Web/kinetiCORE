@@ -1037,6 +1037,28 @@ export const ProfessionalModeLayout: React.FC = () => {
                 </button>
 
                 <button
+                  className="tool-btn"
+                  onClick={() => {
+                    window.dispatchEvent(
+                      new CustomEvent('dock-open-panel', {
+                        detail: {
+                          id: 'target-panel',
+                          type: 'target',
+                          title: 'Target',
+                          position: 'left',
+                          referencePanel: 'viewport-panel',
+                          size: { width: 380 },
+                        },
+                      })
+                    );
+                  }}
+                  title="Open Target Docked Panel"
+                >
+                  <Target size={18} />
+                  <span>Target</span>
+                </button>
+
+                <button
                   className={`tool-btn ${kinVisualizerEnabled ? 'active' : ''}`}
                   onClick={handleKinematicsVisualizerToggle}
                   title={kinVisualizerEnabled ? 'Hide debug visualizer' : 'Show debug visualizer'}
@@ -1516,6 +1538,7 @@ export const ProfessionalModeLayout: React.FC = () => {
           </div>
         )}
       </FloatingPanel>
+
     </div>
   );
 };

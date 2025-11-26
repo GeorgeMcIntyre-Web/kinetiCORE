@@ -6,6 +6,7 @@ import { IDockviewPanelProps } from 'dockview-react';
 import { SceneTree } from '../components/SceneTree';
 import { Inspector } from '../components/Inspector';
 import { KinematicsPanel } from '../components/KinematicsPanel';
+import { TargetPanel } from '../components/TargetPanel';
 import { RouteStatsPanel } from '../../routing/ui/RouteStatsPanel';
 import { RoutingControlPanel } from '../../routing/ui/RoutingControlPanel';
 import { WarehousePanel } from '../../routing/ui/WarehousePanel';
@@ -21,7 +22,7 @@ import { SceneManager } from '../../scene/SceneManager';
 import { babylonToUser } from '../../core/CoordinateSystem';
 import { EntityRegistry } from '../../entities/EntityRegistry';
 
-export type PanelType = 'sceneTree' | 'inspector' | 'babylonInspector' | 'kinematics' | 'toolPalette' | 'routeStats' | 'routingControl' | 'warehouse' | 'viewport';
+export type PanelType = 'sceneTree' | 'inspector' | 'babylonInspector' | 'kinematics' | 'toolPalette' | 'routeStats' | 'routingControl' | 'warehouse' | 'viewport' | 'target';
 
 export interface PanelConfig {
   id: PanelType;
@@ -43,6 +44,10 @@ const InspectorPanel: React.FC<IDockviewPanelProps> = () => {
 
 const KinematicsControlPanel: React.FC<IDockviewPanelProps> = () => {
   return <KinematicsPanel />;
+};
+
+const TargetPanelWrapper: React.FC<IDockviewPanelProps> = () => {
+  return <TargetPanel />;
 };
 
 const ToolPalettePanel: React.FC<IDockviewPanelProps> = () => {
@@ -342,6 +347,12 @@ export const PANEL_REGISTRY: Record<PanelType, PanelConfig> = {
     id: 'viewport',
     title: '3D Viewport',
     component: ViewportPanel,
+  },
+  target: {
+    id: 'target',
+    title: 'Target',
+    component: TargetPanelWrapper,
+    defaultHeight: 280,
   },
 };
 
