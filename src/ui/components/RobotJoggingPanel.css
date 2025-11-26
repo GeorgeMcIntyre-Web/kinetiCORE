@@ -1201,12 +1201,13 @@
 /* Target Actions - Icon-Only Compact Buttons */
 .target-actions {
   display: flex;
-  gap: 1px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
 .target-move-btn,
-.target-delete-btn {
+.target-delete-btn,
+.target-visibility-btn {
   width: 14px;
   height: 14px;
   display: flex;
@@ -1237,6 +1238,26 @@
 .target-delete-btn {
   background: #4a5568;
   color: #e2e8f0;
+}
+
+.target-visibility-btn {
+  background: #4a5568;
+  color: #e2e8f0;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.target-visibility-btn.active {
+  background: #63b3ed;
+  color: #0b1726;
+}
+
+.target-visibility-btn:hover {
+  background: #63b3ed;
+  color: #0b1726;
 }
 
 .target-delete-btn:hover {

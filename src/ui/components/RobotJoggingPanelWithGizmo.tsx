@@ -87,6 +87,28 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
   const ikAxisZRef = useRef<BABYLON.LinesMesh | null>(null);
   const ikDeltaRef = useRef<BABYLON.LinesMesh | null>(null);
   const ikErrorRef = useRef<BABYLON.LinesMesh | null>(null);
+  // Target frame visualization
+  const targetFramesRef = useRef<Map<string, { x: BABYLON.LinesMesh | null; y: BABYLON.LinesMesh | null; z: BABYLON.LinesMesh | null }>>(new Map());
+  const [hiddenFrames, setHiddenFrames] = useState<Record<string, boolean>>({});
+
+  // Cleanup debug/visual lines on unmount
+  useEffect(() => {
+    return () => {
+      [ikAxisXRef, ikAxisYRef, ikAxisZRef, ikDeltaRef, ikErrorRef].forEach(ref => {
+        if (ref.current) {
+          ref.current.dispose(false, true);
+          ref.current = null;
+        }
+      });
+      targetFramesRef.current.forEach((frame) => {
+        ['x', 'y', 'z'].forEach(axis => {
+          const mesh = (frame as any)[axis] as BABYLON.LinesMesh | null;
+          if (mesh) mesh.dispose(false, true);
+        });
+      });
+      targetFramesRef.current.clear();
+    };
+  }, []);
 
   // Logging helpers
   const logSummary = (...args: any[]) => {
@@ -840,7 +862,6 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
   };
 
   const handleMoveToTarget = async (target: SixAxisTarget) => {
-    if (!moveOnSelectEnabled && !jumpOnSelectEnabled) return;
     const km = KinematicsManager.getInstance();
     const chains = km.getAllChains();
     const chain = chains.find(c => c.joints.some((j: any) => j.id.startsWith(robotId)));
@@ -851,6 +872,57 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
 
     const actuated = km.getActuatedJoints(chain.id).slice(0, 6);
     if (actuated.length === 0) return;
+
+    // Draw oriented frame for the selected target (if cartesian is present)
+    try {
+      if (target.cartesian && !hiddenFrames[target.id]) {
+        const scene = (window as any).sceneManager?.getScene?.();
+        if (scene) {
+          const pos = new BABYLON.Vector3(
+            (target.cartesian.position?.[0] ?? 0) * 0.001,
+            (target.cartesian.position?.[1] ?? 0) * 0.001,
+            (target.cartesian.position?.[2] ?? 0) * 0.001
+          );
+          const quat = new BABYLON.Quaternion(
+            target.cartesian.quaternion?.[0] ?? 0,
+            target.cartesian.quaternion?.[1] ?? 0,
+            target.cartesian.quaternion?.[2] ?? 0,
+            target.cartesian.quaternion?.[3] ?? 1
+          );
+          const rotM = new BABYLON.Matrix();
+          quat.toRotationMatrix(rotM);
+          const xDir = new BABYLON.Vector3(rotM.m[0], rotM.m[1], rotM.m[2]);
+          const yDir = new BABYLON.Vector3(rotM.m[4], rotM.m[5], rotM.m[6]);
+          const zDir = new BABYLON.Vector3(rotM.m[8], rotM.m[9], rotM.m[10]);
+          const axisLen = 0.12; // 120mm axes
+
+          const drawLine = (key: 'x' | 'y' | 'z', dir: BABYLON.Vector3, color: BABYLON.Color3) => {
+            const existingFrame = targetFramesRef.current.get(target.id);
+            const existing = existingFrame?.[key];
+            if (existing && !existing.isDisposed()) existing.dispose(false, true);
+            const line = BABYLON.MeshBuilder.CreateLines(
+              `target_frame_${key}_${target.id}`,
+              { points: [pos, pos.add(dir.scale(axisLen))], updatable: false },
+              scene
+            ) as BABYLON.LinesMesh;
+            line.color = color;
+            line.isPickable = false;
+            const frame = targetFramesRef.current.get(target.id) || { x: null, y: null, z: null };
+            frame[key] = line;
+            targetFramesRef.current.set(target.id, frame);
+          };
+
+          drawLine('x', xDir, BABYLON.Color3.Red());
+          drawLine('y', yDir, BABYLON.Color3.Green());
+          drawLine('z', zDir, BABYLON.Color3.Blue());
+        }
+      }
+    } catch (err) {
+      console.warn('[TargetFrame] Failed to render target frame', err);
+    }
+
+    // If neither move nor jump is enabled, only visualize frame
+    if (!moveOnSelectEnabled && !jumpOnSelectEnabled) return;
 
     // If jump toggle is on (and move is off), apply immediate jump
     if (jumpOnSelectEnabled && !moveOnSelectEnabled) {
@@ -943,6 +1015,66 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
       return newTargets.map((t, i) => ({ ...t, name: generatePointName(i) }));
     });
   };
+
+  // Maintain frame visibility for all targets by default
+  useEffect(() => {
+    const scene = (window as any).sceneManager?.getScene?.();
+    if (!scene) return;
+
+    // Dispose frames for removed targets
+    targetFramesRef.current.forEach((frame, id) => {
+      if (!targets.find(t => t.id === id)) {
+        ['x', 'y', 'z'].forEach(axis => {
+          const mesh = (frame as any)[axis] as BABYLON.LinesMesh | null;
+          if (mesh) mesh.dispose(false, true);
+        });
+        targetFramesRef.current.delete(id);
+      }
+    });
+
+    // Ensure frames are drawn for existing targets when not hidden
+    targets.forEach(target => {
+      if (hiddenFrames[target.id]) return;
+      if (!target.cartesian) return;
+      const pos = new BABYLON.Vector3(
+        (target.cartesian.position?.[0] ?? 0) * 0.001,
+        (target.cartesian.position?.[1] ?? 0) * 0.001,
+        (target.cartesian.position?.[2] ?? 0) * 0.001
+      );
+      const quat = new BABYLON.Quaternion(
+        target.cartesian.quaternion?.[0] ?? 0,
+        target.cartesian.quaternion?.[1] ?? 0,
+        target.cartesian.quaternion?.[2] ?? 0,
+        target.cartesian.quaternion?.[3] ?? 1
+      );
+      const rotM = new BABYLON.Matrix();
+      quat.toRotationMatrix(rotM);
+      const xDir = new BABYLON.Vector3(rotM.m[0], rotM.m[1], rotM.m[2]);
+      const yDir = new BABYLON.Vector3(rotM.m[4], rotM.m[5], rotM.m[6]);
+      const zDir = new BABYLON.Vector3(rotM.m[8], rotM.m[9], rotM.m[10]);
+      const axisLen = 0.12;
+
+      const drawLine = (key: 'x' | 'y' | 'z', dir: BABYLON.Vector3, color: BABYLON.Color3) => {
+        const existingFrame = targetFramesRef.current.get(target.id);
+        const existing = existingFrame?.[key];
+        if (existing && !existing.isDisposed()) return; // already drawn
+        const line = BABYLON.MeshBuilder.CreateLines(
+          `target_frame_${key}_${target.id}`,
+          { points: [pos, pos.add(dir.scale(axisLen))], updatable: false },
+          scene
+        ) as BABYLON.LinesMesh;
+        line.color = color;
+        line.isPickable = false;
+        const frame = targetFramesRef.current.get(target.id) || { x: null, y: null, z: null };
+        frame[key] = line;
+        targetFramesRef.current.set(target.id, frame);
+      };
+
+      drawLine('x', xDir, BABYLON.Color3.Red());
+      drawLine('y', yDir, BABYLON.Color3.Green());
+      drawLine('z', zDir, BABYLON.Color3.Blue());
+    });
+  }, [targets, hiddenFrames]);
 
   const handlePlaySequence = async () => {
     if (targets.length === 0) return;
@@ -1599,6 +1731,30 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
                       )}
                     </div>
                     <div className="target-actions">
+                      <button
+                        className={`target-visibility-btn ${hiddenFrames[target.id] ? '' : 'active'}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setHiddenFrames(prev => {
+                            const next = { ...prev, [target.id]: !prev[target.id] };
+                            // Dispose frame when hiding
+                            if (!prev[target.id]) {
+                              const frame = targetFramesRef.current.get(target.id);
+                              if (frame) {
+                                ['x', 'y', 'z'].forEach(axis => {
+                                  const mesh = (frame as any)[axis] as BABYLON.LinesMesh | null;
+                                  if (mesh) mesh.dispose(false, true);
+                                });
+                              }
+                              targetFramesRef.current.delete(target.id);
+                            }
+                            return next;
+                          });
+                        }}
+                        title={hiddenFrames[target.id] ? 'Show target frame' : 'Hide target frame'}
+                      >
+                        F
+                      </button>
                       <button
                         className="target-move-btn"
                         onClick={(e) => {
