@@ -122,7 +122,7 @@ export const ProfessionalModeLayout: React.FC = () => {
   const setPipingModeEnabled = useEditorStore((state) => state.setPipingModeEnabled);
 
   const [activeWorkspace, setActiveWorkspace] = useState<
-    'modeling' | 'simulation' | 'kinematics' | 'kinematicsRobot' | 'kinematicsFixture' | 'analysis' | 'routing'
+    'modeling' | 'simulation' | 'kinematicsRobot' | 'kinematicsFixture' | 'analysis' | 'routing'
   >('modeling');
   const [pipingQuickMode, setPipingQuickMode] = useState<'none' | 'node' | 'segment'>('none');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -621,16 +621,10 @@ export const ProfessionalModeLayout: React.FC = () => {
               Simulation
             </button>
             <button
-              className={`workspace-tab ${activeWorkspace === 'kinematics' ? 'active' : ''}`}
-              onClick={() => setActiveWorkspace('kinematics')}
-            >
-              Kinematics
-            </button>
-            <button
               className={`workspace-tab ${activeWorkspace === 'kinematicsRobot' ? 'active' : ''}`}
               onClick={() => setActiveWorkspace('kinematicsRobot')}
             >
-              Robot Kinematics
+              Robot
             </button>
             <button
               className={`workspace-tab ${activeWorkspace === 'kinematicsFixture' ? 'active' : ''}`}
@@ -1002,11 +996,9 @@ export const ProfessionalModeLayout: React.FC = () => {
           </>
         )}
 
-        {(activeWorkspace === 'kinematics' ||
-          activeWorkspace === 'kinematicsRobot' ||
-          activeWorkspace === 'kinematicsFixture') && (
+        {(activeWorkspace === 'kinematicsRobot' || activeWorkspace === 'kinematicsFixture') && (
           <>
-            {(activeWorkspace === 'kinematics' || activeWorkspace === 'kinematicsRobot') && (
+            {activeWorkspace === 'kinematicsRobot' && (
               <>
                 <div className="tool-group">
                   <div className="group-label">Robot Kinematics</div>
@@ -1100,12 +1092,10 @@ export const ProfessionalModeLayout: React.FC = () => {
                     </button>
                   </div>
                 </div>
-
-                {activeWorkspace === 'kinematics' && <div className="toolbar-separator"></div>}
               </>
             )}
 
-            {(activeWorkspace === 'kinematics' || activeWorkspace === 'kinematicsFixture') && (
+            {activeWorkspace === 'kinematicsFixture' && (
               <div className="tool-group">
                 <div className="group-label">Fixture kinematics</div>
                 <div className="tool-buttons">

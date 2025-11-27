@@ -161,7 +161,7 @@ export const EssentialModeLayout: React.FC = () => {
   const [showPosesPanel, setShowPosesPanel] = useState(false);
   const [showWarehousePanel, setShowWarehousePanel] = useState(false);
   const [activeWorkspace, setActiveWorkspace] = useState<
-    'modeling' | 'simulation' | 'kinematics' | 'kinematicsRobot' | 'kinematicsFixture'
+    'modeling' | 'simulation' | 'kinematicsRobot' | 'kinematicsFixture'
   >('modeling');
   const [activeMeasurement, setActiveMeasurement] = useState<MeasurementType>(null);
   // Kinematics inline robot state
@@ -881,16 +881,10 @@ export const EssentialModeLayout: React.FC = () => {
               Simulation
             </button>
             <button
-              className={`workspace-tab ${activeWorkspace === 'kinematics' ? 'active' : ''}`}
-              onClick={() => setActiveWorkspace('kinematics')}
-            >
-              Kinematics
-            </button>
-            <button
               className={`workspace-tab ${activeWorkspace === 'kinematicsRobot' ? 'active' : ''}`}
               onClick={() => setActiveWorkspace('kinematicsRobot')}
             >
-              Robot Kinematics
+              Robot
             </button>
             <button
               className={`workspace-tab ${activeWorkspace === 'kinematicsFixture' ? 'active' : ''}`}
@@ -1262,11 +1256,10 @@ export const EssentialModeLayout: React.FC = () => {
               </div>
             </>
           )}
-          {(activeWorkspace === 'kinematics' ||
-            activeWorkspace === 'kinematicsRobot' ||
+          {(activeWorkspace === 'kinematicsRobot' ||
             activeWorkspace === 'kinematicsFixture') && (
             <>
-              {(activeWorkspace === 'kinematics' || activeWorkspace === 'kinematicsRobot') && (
+              {activeWorkspace === 'kinematicsRobot' && (
                 <>
                   <div className="tool-group">
                     <div className="group-label">Robot Kinematics</div>
@@ -1356,16 +1349,14 @@ export const EssentialModeLayout: React.FC = () => {
                         title="Open visualization settings"
                       >
                         <Settings size={18} />
-                        <span>Viz Settings</span>
-                      </button>
-                    </div>
+                      <span>Viz Settings</span>
+                    </button>
                   </div>
-
-                  {activeWorkspace === 'kinematics' && <div className="toolbar-separator"></div>}
+                </div>
                 </>
               )}
 
-              {(activeWorkspace === 'kinematics' || activeWorkspace === 'kinematicsFixture') && (
+              {activeWorkspace === 'kinematicsFixture' && (
                 <div className="tool-group">
                   <div className="group-label">Fixture kinematics</div>
                   <div className="tool-buttons">

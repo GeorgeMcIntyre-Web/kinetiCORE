@@ -149,6 +149,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
       shaft.position = new BABYLON.Vector3(0, shaftLen / 2, 0);
       shaft.material = targetFrameMatRef.current!;
       shaft.isPickable = false;
+      shaft.renderingGroupId = 3; // Draw in gizmo/UI layer
       shaft.parent = parent;
 
       const head = BABYLON.MeshBuilder.CreateCylinder(
@@ -159,6 +160,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
       head.position = new BABYLON.Vector3(0, shaftLen + headLen / 2, 0);
       head.material = targetFrameMatRef.current!;
       head.isPickable = false;
+      head.renderingGroupId = 3; // Draw in gizmo/UI layer
       head.parent = parent;
 
       return parent;
