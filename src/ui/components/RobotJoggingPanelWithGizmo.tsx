@@ -85,8 +85,17 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
     const scene = (window as any).sceneManager?.getScene?.();
     if (!scene) return;
 
+    // Create or reuse utility layer so frames behave like gizmos (consistent screen scale & depth order)
+    if (!targetFrameLayerRef.current) {
+      const layer = new BABYLON.UtilityLayerRenderer(scene);
+      layer.utilityLayerScene.autoClearDepthAndStencil = false;
+      layer.utilityLayerScene.useRightHandedSystem = scene.useRightHandedSystem;
+      targetFrameLayerRef.current = layer;
+    }
+    const utilityScene = targetFrameLayerRef.current.utilityLayerScene;
+
     if (!targetFrameMatRef.current) {
-      const mat = new BABYLON.StandardMaterial('targetFrameMat', scene);
+      const mat = new BABYLON.StandardMaterial('targetFrameMat', utilityScene);
       const frameColor = new BABYLON.Color3(0.82, 0.32, 0.04); // deeper burnt orange for contrast
       mat.diffuseColor = frameColor;
       mat.emissiveColor = frameColor;
@@ -117,7 +126,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
     const xDir = new BABYLON.Vector3(rotM.m[0], rotM.m[1], rotM.m[2]);
     const yDir = new BABYLON.Vector3(rotM.m[4], rotM.m[5], rotM.m[6]);
     const zDir = new BABYLON.Vector3(rotM.m[8], rotM.m[9], rotM.m[10]);
-    const axisLen = 0.12;
+    const axisLen = 0.3;
 
     const rotationFromTo = (from: BABYLON.Vector3, to: BABYLON.Vector3) => {
       const f = from.normalize();
@@ -135,7 +144,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
     };
 
       const createArrow = (key: 'x' | 'y' | 'z', dir: BABYLON.Vector3) => {
-        const parent = new BABYLON.TransformNode(`target_frame_${key}_${target.id}`, scene);
+        const parent = new BABYLON.TransformNode(`target_frame_${key}_${target.id}`, utilityScene);
         parent.position = pos.clone();
         parent.rotationQuaternion = rotationFromTo(BABYLON.Axis.Y, dir.normalize());
 
@@ -144,7 +153,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
       const shaft = BABYLON.MeshBuilder.CreateCylinder(
         `target_frame_${key}_shaft_${target.id}`,
         { height: shaftLen, diameter: 0.006, tessellation: 8 },
-        scene
+        utilityScene
       );
       shaft.position = new BABYLON.Vector3(0, shaftLen / 2, 0);
       shaft.material = targetFrameMatRef.current!;
@@ -155,7 +164,7 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
       const head = BABYLON.MeshBuilder.CreateCylinder(
         `target_frame_${key}_head_${target.id}`,
         { height: headLen, diameterTop: 0, diameterBottom: 0.012, tessellation: 8 },
-        scene
+        utilityScene
       );
       head.position = new BABYLON.Vector3(0, shaftLen + headLen / 2, 0);
       head.material = targetFrameMatRef.current!;
@@ -163,11 +172,33 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
       head.renderingGroupId = 3; // Draw in gizmo/UI layer
       head.parent = parent;
 
-      return parent;
+      // Scale like gizmos: keep a roughly constant screen size based on camera distance
+      const updateScale = () => {
+        const cam = utilityScene.activeCamera;
+        if (!cam) return;
+        const worldPos = parent.getAbsolutePosition();
+        let distance = BABYLON.Vector3.Distance(cam.position, worldPos);
+        const arc = cam as BABYLON.ArcRotateCamera;
+        if (arc && typeof arc.radius === 'number') {
+          distance = arc.radius;
+        }
+        const scale = BABYLON.Scalar.Clamp(distance * 0.2, 0.15, 4);
+        parent.scaling.setAll(scale);
+      };
+      updateScale();
+
+      return { parent, updateScale };
     };
 
-    const nodes = [createArrow('x', xDir), createArrow('y', yDir), createArrow('z', zDir)];
-    targetFramesRef.current.set(target.id, { nodes });
+    const arrows = [createArrow('x', xDir), createArrow('y', yDir), createArrow('z', zDir)];
+    const nodes = arrows.map(a => a.parent);
+
+    // Sync scale with camera on each frame
+    const observer = utilityScene.onBeforeRenderObservable.add(() => {
+      arrows.forEach(a => a.updateScale());
+    });
+
+    targetFramesRef.current.set(target.id, { nodes, observer });
   };
   
   // Gizmo management
@@ -182,9 +213,10 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
   const ikDeltaRef = useRef<BABYLON.LinesMesh | null>(null);
   const ikErrorRef = useRef<BABYLON.LinesMesh | null>(null);
   // Target frame visualization
-  type TargetFrameSet = { nodes: BABYLON.TransformNode[] };
+  type TargetFrameSet = { nodes: BABYLON.TransformNode[]; observer?: BABYLON.Observer<BABYLON.Scene> };
   const targetFramesRef = useRef<Map<string, TargetFrameSet>>(new Map());
   const targetFrameMatRef = useRef<BABYLON.StandardMaterial | null>(null);
+  const targetFrameLayerRef = useRef<BABYLON.UtilityLayerRenderer | null>(null);
   const [hiddenFrames, setHiddenFrames] = useState<Record<string, boolean>>({});
   const pathLineRef = useRef<BABYLON.LinesMesh | null>(null);
 
@@ -198,6 +230,9 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
         }
       });
       targetFramesRef.current.forEach((frame) => {
+        if (frame.observer && targetFrameLayerRef.current) {
+          targetFrameLayerRef.current.utilityLayerScene.onBeforeRenderObservable.remove(frame.observer);
+        }
         frame.nodes.forEach(node => node.dispose(false, true));
       });
       targetFramesRef.current.clear();
@@ -208,6 +243,10 @@ export const RobotJoggingPanelWithGizmo: React.FC<RobotJoggingPanelProps> = ({
       if (pathLineRef.current) {
         pathLineRef.current.dispose(false, true);
         pathLineRef.current = null;
+      }
+      if (targetFrameLayerRef.current) {
+        targetFrameLayerRef.current.dispose();
+        targetFrameLayerRef.current = null;
       }
     };
   }, []);
