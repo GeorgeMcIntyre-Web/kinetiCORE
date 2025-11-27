@@ -37,7 +37,6 @@ export const SaveDropdown: React.FC<SaveDropdownProps> = ({
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-
   const saveManager = WorldSaveManager.getInstance();
 
   // Handle save to database
