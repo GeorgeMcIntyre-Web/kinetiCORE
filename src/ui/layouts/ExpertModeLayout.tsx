@@ -36,6 +36,9 @@ import {
   Link,
   Info,
   Crosshair,
+  Home,
+  Bug,
+  Edit,
 } from 'lucide-react';
 import { Scan, Settings } from 'lucide-react';
 import { RotateCcw, Target, CornerDownRight, Square } from 'lucide-react';
@@ -81,6 +84,7 @@ import { WarehousePanel } from '../../routing/ui/WarehousePanel';
 import { RobotJoggingPanelWithGizmo } from '../components/RobotJoggingPanelWithGizmo';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
+import { TransformDebugVisualizer } from '../../kinematics/TransformDebugVisualizer';
 import './ExpertModeLayout.css';
 import './ProfessionalModeLayout.css';
 
@@ -115,6 +119,9 @@ export const ExpertModeLayout: React.FC = () => {
   const setAlignMode = useEditorStore((state) => state.setAlignMode);
   const selectionLevel = useEditorStore((state) => state.selectionLevel);
   const setSelectionLevel = useEditorStore((state) => state.setSelectionLevel);
+  const editableKinematicsFlag = useEditorStore((state) => state.editableKinematicsFlag);
+  const editModeEnabled = useEditorStore((state) => state.editModeEnabled);
+  const setEditModeEnabled = useEditorStore((state) => state.setEditModeEnabled);
 
   const toggleLibrary = useAssetLibraryStore((state) => state.toggleVisibility);
   const showProjectManager = useProjectManagerStore((state) => state.show);
@@ -153,6 +160,7 @@ export const ExpertModeLayout: React.FC = () => {
   const [showJointJogPanel, setShowJointJogPanel] = useState(false);
   const [showRobotJogPanel, setShowRobotJogPanel] = useState(false);
   const [showPosesPanel, setShowPosesPanel] = useState(false);
+  const [kinVisualizerEnabled, setKinVisualizerEnabled] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const debugLabelsRef = useRef<RouteDebugLabels | null>(null);
@@ -513,6 +521,87 @@ export const ExpertModeLayout: React.FC = () => {
       setPipingModeEnabled(true);
     }
     setPipingQuickMode(pipingQuickMode === 'segment' ? 'none' : 'segment');
+  };
+
+  const handleKinematicsReset = () => {
+    const kinematicsManager = kinematicsManagerRef.current;
+    const fkSolver = fkSolverRef.current;
+    if (!kinActiveRobotId) {
+      alert('⚠️ Select a robot first (Kinematics tab)');
+      return;
+    }
+    const chain = kinematicsManager.getAllChains().find((c: any) =>
+      c.joints.some((j: any) => j.id.startsWith(kinActiveRobotId))
+    );
+    if (!chain) {
+      alert('❌ Robot chain not found for reset');
+      return;
+    }
+    const joints = kinematicsManager.getChainJoints(chain.id);
+    joints.forEach((j: any) => {
+      if (j.type === 'revolute' || j.type === 'continuous') {
+        fkSolver.updateJointPosition(j.id, 0);
+      }
+    });
+    const tcpPose = fkSolver.getNullTCPPose(chain.name);
+    if (tcpPose) {
+      import('../../kinematics/UnifiedGizmoManager').then(({ UnifiedGizmoManager }) => {
+        const unifiedGizmo = UnifiedGizmoManager.getInstance();
+        const targetId = `tcp_${kinActiveRobotId}`;
+        unifiedGizmo.updateTargetPosition(targetId, tcpPose.position);
+        unifiedGizmo.updateTargetRotation(targetId, tcpPose.rotation);
+      });
+    }
+  };
+
+  const handleKinematicsVisualizerToggle = () => {
+    const next = !kinVisualizerEnabled;
+    setKinVisualizerEnabled(next);
+    const vis = TransformDebugVisualizer.getInstance();
+    if (!kinActiveRobotId) {
+      vis.setEnabled(false, {});
+      return;
+    }
+    if (next) {
+      vis.setEnabled(true, {
+        showJointFrames: false,
+        showMeshFrames: true,
+        showFKFrames: true,
+        showDivergence: true,
+        frameSize: 0.1,
+        showBaseFrame: true,
+        showTCPFrame: true,
+        divergenceThreshold: 0.001,
+      });
+    } else {
+      vis.setEnabled(false, {});
+    }
+  };
+
+  const handleKinematicsVizSettings = () => {
+    setShowKinematicsPanel(true);
+  };
+
+  const handleKinematicsJointDebug = () => {
+    const kinematicsManager = kinematicsManagerRef.current;
+    if (!kinActiveRobotId) {
+      alert('⚠️ Select a robot first (Kinematics tab)');
+      return;
+    }
+    const scene = SceneManager.getInstance().getScene();
+    if (!scene) {
+      alert('❌ Scene not available');
+      return;
+    }
+    const chain = kinematicsManager.getAllChains().find((c: any) =>
+      c.joints.some((j: any) => j.id.startsWith(kinActiveRobotId))
+    );
+    if (!chain) {
+      alert('❌ Robot chain not found for debug');
+      return;
+    }
+    kinematicsManager.showAllJointDebugFrames(chain.id, scene);
+    alert(`✅ Debug frames added for ${chain.name}`);
   };
 
   return (
@@ -979,7 +1068,102 @@ export const ExpertModeLayout: React.FC = () => {
         {activeWorkspace === 'kinematics' && (
           <ToolbarContainer className="compact">
             <div className="tool-group">
-              <div className="group-label">Kinematics</div>
+              <div className="group-label">Robot Kinematics</div>
+              <div className="tool-buttons kinematics-inline-controls">
+                <button className="tool-btn" onClick={handleKinematicsReset} title="Home all joints">
+                  <Home size={18} />
+                  <span>Home</span>
+                </button>
+
+                <button
+                  className="tool-btn"
+                  onClick={() => setShowJointJogPanel(true)}
+                  title="Open Joint Jog"
+                >
+                  <Move size={18} />
+                  <span>Joint Jog</span>
+                </button>
+
+                <button
+                  className="tool-btn"
+                  onClick={() => setShowRobotJogPanel(true)}
+                  title="Open Robot Jog (TCP)"
+                >
+                  <Navigation size={18} />
+                  <span>Robot Jog</span>
+                </button>
+
+                <button
+                  className="tool-btn"
+                  onClick={() => setShowPosesPanel(true)}
+                  title="Open Poses Panel"
+                >
+                  <Play size={18} />
+                  <span>Poses</span>
+                </button>
+
+                <button
+                  className="tool-btn"
+                  onClick={() => {
+                    window.dispatchEvent(
+                      new CustomEvent('dock-open-panel', {
+                        detail: {
+                          id: 'target-panel',
+                          type: 'target',
+                          title: 'Target',
+                          position: 'left',
+                          referencePanel: 'viewport-panel',
+                          size: { width: 380 },
+                        },
+                      })
+                    );
+                  }}
+                  title="Open Target Docked Panel"
+                >
+                  <Target size={18} />
+                  <span>Target</span>
+                </button>
+
+                <button
+                  className={`tool-btn ${kinVisualizerEnabled ? 'active' : ''}`}
+                  onClick={handleKinematicsVisualizerToggle}
+                  title={kinVisualizerEnabled ? 'Hide debug visualizer' : 'Show debug visualizer'}
+                >
+                  {kinVisualizerEnabled ? <Eye size={18} /> : <EyeOff size={18} />}
+                  <span>Visualizer</span>
+                </button>
+
+                <button className="tool-btn" onClick={handleKinematicsJointDebug} title="Show joint debug frames">
+                  <Bug size={18} />
+                  <span>Joint Debug</span>
+                </button>
+
+                {editableKinematicsFlag && (
+                  <button
+                    className={`tool-btn ${editModeEnabled ? 'active' : ''}`}
+                    onClick={() => setEditModeEnabled(!editModeEnabled)}
+                    title="Toggle edit mode"
+                  >
+                    <Edit size={18} />
+                    <span>Edit Mode</span>
+                  </button>
+                )}
+
+                <button
+                  className="tool-btn"
+                  onClick={handleKinematicsVizSettings}
+                  title="Open visualization settings"
+                >
+                  <Settings size={18} />
+                  <span>Viz Settings</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="toolbar-separator"></div>
+
+            <div className="tool-group">
+              <div className="group-label">Fixture kinematics</div>
               <div className="tool-buttons">
                 <button className="tool-btn" onClick={() => setShowKinematicsPanel(true)} title="Motion Panel">
                   <Rocket size={18} />
@@ -988,6 +1172,10 @@ export const ExpertModeLayout: React.FC = () => {
                 <button className="tool-btn" onClick={() => setShowKinematicsAnalysisPanel(true)} title="Kinematics Analysis">
                   <Calculator size={18} />
                   <span className="tool-btn-label">Analysis</span>
+                </button>
+                <button className="tool-btn" onClick={() => setShowPosesPanel(true)} title="Open Poses Panel">
+                  <Play size={18} />
+                  <span className="tool-btn-label">Poses</span>
                 </button>
                 <button className="tool-btn" onClick={() => setShowActuatorPanel(true)} title="Actuator Control">
                   <div style={{ position: 'relative', width: 18, height: 18 }}>
@@ -1012,21 +1200,13 @@ export const ExpertModeLayout: React.FC = () => {
                   <Scan size={18} />
                   <span className="tool-btn-label">Auto Extract</span>
                 </button>
-                <button className="tool-btn" onClick={() => setShowICPTestPanel(true)} title="ICP Test Tool">
+                <button
+                  className="tool-btn"
+                  onClick={() => setShowICPTestPanel(true)}
+                  title="ICP Test Tool - Manual FIXED/MOVING Selection"
+                >
                   <TestTube size={18} />
                   <span className="tool-btn-label">ICP Test</span>
-                </button>
-                <button className="tool-btn" onClick={() => setShowJointJogPanel(true)} title="Joint Jog">
-                  <Move size={18} />
-                  <span className="tool-btn-label">Joint Jog</span>
-                </button>
-                <button className="tool-btn" onClick={() => setShowRobotJogPanel(true)} title="Robot Jog">
-                  <Navigation size={18} />
-                  <span className="tool-btn-label">Robot Jog</span>
-                </button>
-                <button className="tool-btn" onClick={() => setShowPosesPanel(true)} title="Poses">
-                  <Play size={18} />
-                  <span className="tool-btn-label">Poses</span>
                 </button>
               </div>
             </div>
