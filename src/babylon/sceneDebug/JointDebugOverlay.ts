@@ -93,8 +93,9 @@ export class JointDebugOverlay {
     }
 
     private createRevoluteGlyph(joint: DetectedToolJoint): void {
-        const axis = joint.axisWorld;
-        const origin = joint.originWorld;
+        // Type assertion safe because createJointGlyph already checks these exist
+        const axis = joint.axisWorld!;
+        const origin = joint.originWorld!;
 
         // Axis line (Blue Cylinder)
         const axisLength = 0.1; // 10cm
@@ -164,7 +165,7 @@ export class JointDebugOverlay {
             if (radius > 0.001) {
                 const points: BABYLON.Vector3[] = [];
                 const segments = 20;
-                const totalAngle = joint.travelWorld; // Radians
+                const totalAngle = joint.travelWorld ?? Math.PI / 2; // Radians, default 90°
 
                 // Generate arc points by rotating fromVector around axis
                 for (let i = 0; i <= segments; i++) {
@@ -220,7 +221,7 @@ export class JointDebugOverlay {
             if (radius > 0.001) {
                 const points: BABYLON.Vector3[] = [];
                 const segments = 20;
-                const totalAngle = joint.travelWorld; // Radians
+                const totalAngle = joint.travelWorld ?? Math.PI / 2; // Radians, default 90°
 
                 // Generate arc points
                 for (let i = 0; i <= segments; i++) {
@@ -265,11 +266,12 @@ export class JointDebugOverlay {
     }
 
     private createPrismaticGlyph(joint: DetectedToolJoint): void {
-        const direction = joint.axisWorld.normalize();
-        const origin = joint.originWorld;
+        // Type assertion safe because createJointGlyph already checks these exist
+        const direction = joint.axisWorld!.normalize();
+        const origin = joint.originWorld!;
 
         // Arrow length based on travel distance estimate
-        const arrowLength = Math.min(0.15, Math.max(0.05, joint.travelWorld));
+        const arrowLength = Math.min(0.15, Math.max(0.05, joint.travelWorld ?? 0.1));
         const arrowRadius = 0.005; // 5mm
 
         // Arrow shaft (cylinder)

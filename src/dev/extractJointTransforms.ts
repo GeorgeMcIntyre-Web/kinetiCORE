@@ -8,10 +8,15 @@
  * - Parent transform
  */
 
-import * as BABYLON from '@babylonjs/core';
-import '@babylonjs/loaders/glTF';
-import { HierarchicalToolAnalyzer } from '../babylon/sceneAnalysis/HierarchicalToolAnalyzer';
-import { analyzeJoint } from './ICPJointAnalyzer';
+// DEPRECATED: This file is no longer used. HierarchicalToolAnalyzer has been replaced
+// by the Statistical Pairing Engine in src/kinematics/statisticalPairing/
+//
+// import * as BABYLON from '@babylonjs/core';
+// import '@babylonjs/loaders/glTF';
+// import { HierarchicalToolAnalyzer } from '../babylon/sceneAnalysis/HierarchicalToolAnalyzer';
+// import { analyzeJoint } from './ICPJointAnalyzer';
+
+export {}; // Make this a module
 
 export interface JointTransform {
   jointName: string;

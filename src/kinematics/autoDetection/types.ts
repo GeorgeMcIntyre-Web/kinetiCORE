@@ -7,7 +7,7 @@
  * Input JSON structure from analyze_glb_json.py
  */
 export type Vec3 = [number, number, number];
-export type Mat3 = [Vec3, Vec3, Vec3];
+export type Mat3 = number[][];  // 3x3 matrix (compatible with mathUtils)
 
 export interface GLBTreeData {
   fileInfo: {

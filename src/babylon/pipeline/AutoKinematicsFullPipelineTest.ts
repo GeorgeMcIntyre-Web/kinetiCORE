@@ -13,8 +13,8 @@ import * as BABYLON from '@babylonjs/core';
 import { KinematicExtractionPipeline, type PipelineOptions } from './KinematicExtractionPipeline';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import type { KinematicModelExport } from '../io/Schemas';
-import { useEditorStore } from '../../ui/store/editorStore';
-import type { ToolUnit } from '../sceneAnalysis/ToolGraphAnalyzer';
+// import { useEditorStore } from '../../ui/store/editorStore';
+import type { ToolUnit } from './KinematicExtractionPipeline';
 
 /**
  * Test result for a single stage of the pipeline.
@@ -144,7 +144,7 @@ export class AutoKinematicsFullPipelineTest {
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    console.log(`\n[${ stageName}] Starting...`);
+    console.log(`\n[${stageName}] Starting...`);
 
     try {
       // Create Babylon scene
@@ -533,7 +533,7 @@ export class AutoKinematicsFullPipelineTest {
   }
 
   /**
-   * Stage 2: Analyze scene with geometric tool analyzer.
+   * Stage 2: Analyze scene with statistical pairing.
    */
   private async testStage2_AnalyzeScene(): Promise<void> {
     const stageName = 'Stage 2: Analyze Scene';
@@ -554,27 +554,6 @@ export class AutoKinematicsFullPipelineTest {
 
       // Prefer current user selection as analysis root if available
       let rootNode: BABYLON.TransformNode | null = null;
-
-      try {
-        const selectedNodeId = useEditorStore.getState().selectedNodeId;
-        if (selectedNodeId) {
-          const tree = SceneTreeManager.getInstance();
-          const selectedTreeNode = tree.getNode(selectedNodeId);
-          const transformId = selectedTreeNode?.babylonTransformNodeId;
-          if (transformId) {
-            const uid = parseInt(transformId, 10);
-            const candidate = this.scene.getTransformNodeByUniqueId(uid);
-            if (candidate) {
-              rootNode = candidate;
-              console.log(`[${stageName}] Using user-selected node as root: ${candidate.name} (uid=${uid})`);
-            }
-          }
-        }
-      } catch (e) {
-        console.warn(`[${stageName}] Could not resolve user selection as root:`, e);
-      }
-
-      // Fallback to the actual root node identified during GLB load
       if (!rootNode) {
         rootNode = this.loadedRootNode;
       }
@@ -582,88 +561,19 @@ export class AutoKinematicsFullPipelineTest {
         throw new Error('Root node not available from GLB load stage');
       }
 
-      // Configure options for detailed logging
+      // Configure options
       const options: PipelineOptions = {
-        analysisMethod: 'geometric',
-        geometric: {
-          minVolume: 0.00001, // 0.01 cm³ (very sensitive)
-          clusteringDistance: 0.5, // 50cm (group nearby parts)
-          fixedProximityThreshold: 1.0, // 1m from origin
-          fixedConnectivityThreshold: 2, // 2+ children = fixed
-          similarityThreshold: 0.90, // 90% match for duplicates
-        },
-        fastFiltering: {
-          enableDebug: true,
-          bypassGeometricFilter: true, // For static GLB testing
-          minPoints: 30, // Lower threshold for mock test (default is 50)
-        },
-        icp: {
-          enableDebug: true,
-        },
+        minConfidence: 0.5
       };
 
-      console.log(`[${stageName}] Analysis options:`, JSON.stringify(options.geometric, null, 2));
-
-      // DEBUG: Log what we're passing to analyze
       console.log(`[${stageName}] DEBUG: Root node name: ${rootNode.name}`);
-      console.log(`[${stageName}] DEBUG: Root node children: ${rootNode.getChildren().length}`);
-      console.log(`[${stageName}] DEBUG: Root node descendants: ${rootNode.getDescendants(true).length}`);
-      console.log(`[${stageName}] DEBUG: Scene meshes total: ${this.scene.meshes.length}`);
-      console.log(`[${stageName}] DEBUG: Scene transformNodes total: ${this.scene.transformNodes.length}`);
 
-      // TEST: Try new bounding box matching on UNIT_112
-      console.log(`\n[${stageName}] === TESTING BOUNDING BOX MATCHING ===`);
-      const { GeometricToolAnalyzer } = await import('../sceneAnalysis/GeometricToolAnalyzer');
-      const analyzer = new GeometricToolAnalyzer();
-
-      // Test at root level
-      console.log(`[${stageName}] Testing at root level (${rootNode.name}):`);
-      const rootPairs = analyzer.findTransformNodePairsByDimensions(
-        rootNode,
-        options.geometric?.similarityThreshold || 0.90
-      );
-      console.log(`[${stageName}] Root level pairs found: ${rootPairs.length}`);
-      for (const [node1, node2] of rootPairs) {
-        console.log(`[${stageName}]   - Pair: ${node1.name} ↔ ${node2.name}`);
-      }
-
-      // Test specifically on UNIT nodes (try UNIT_112, UNIT_124, or any UNIT_*)
-      let unitNode: BABYLON.TransformNode | null = null;
-      const unitNames = ['UNIT_112', 'UNIT_124', 'UNIT_118'];
-
-      for (const name of unitNames) {
-        unitNode = this.scene.getTransformNodeByName(name);
-        if (unitNode) {
-          console.log(`\n[${stageName}] Found ${name}, testing bounding box matching:`);
-          const unitPairs = analyzer.findTransformNodePairsByDimensions(
-            unitNode,
-            options.geometric?.similarityThreshold || 0.90
-          );
-          console.log(`[${stageName}] ${name} pairs found: ${unitPairs.length}`);
-          for (const [node1, node2] of unitPairs) {
-            console.log(`[${stageName}]   - Pair: ${node1.name} ↔ ${node2.name}`);
-          }
-          break;
-        }
-      }
-
-      if (!unitNode) {
-        console.log(`[${stageName}] No UNIT_* nodes found in scene`);
-        console.log(`[${stageName}] Available transform nodes (first 20):`);
-        const transformNodes = this.scene.transformNodes.slice(0, 20);
-        for (const node of transformNodes) {
-          console.log(`[${stageName}]   - ${node.name} (uniqueId: ${node.uniqueId})`);
-        }
-      }
-
-      console.log(`[${stageName}] === END BOUNDING BOX TEST ===\n`);
-
-      // Run analysis with fallback: try name-based first, then geometric
+      // Run analysis
       let toolGraph: any;
       try {
-        toolGraph = await this.pipeline.analyzeScene({ analysisMethod: 'name-based' }, rootNode);
-      } catch (_e) {
         toolGraph = await this.pipeline.analyzeScene(options, rootNode);
+      } catch (e) {
+        throw new Error(`Analysis failed: ${e}`);
       }
 
       console.log(`[${stageName}] ✓ Analysis complete`);
@@ -678,9 +588,7 @@ export class AutoKinematicsFullPipelineTest {
       // Log each unit
       console.log(`[${stageName}] Unit details:`);
       for (const unit of toolGraph.units) {
-        console.log(`[${stageName}]   ${unit.isFixed ? '🔒 FIXED' : '🔓 MOVING'}: ${unit.name}`);
-        console.log(`[${stageName}]     - Type: ${unit.type}`);
-        console.log(`[${stageName}]     - Root: ${unit.root}`);
+        console.log(`[${stageName}]   ${unit.isFixed ? '🔒 FIXED' : '🔓 MOVING'}: ${unit.id}`);
         console.log(`[${stageName}]     - Nodes: ${unit.nodes.length}`);
       }
 
@@ -705,9 +613,8 @@ export class AutoKinematicsFullPipelineTest {
           fixedUnits: fixedUnits.length,
           movingUnits: movingUnits.length,
           units: toolGraph.units.map((u: ToolUnit) => ({
-            name: u.name,
+            name: u.id,
             isFixed: u.isFixed,
-            type: u.type,
             nodeCount: u.nodes.length,
           })),
         },
@@ -1011,7 +918,7 @@ export class AutoKinematicsFullPipelineTest {
       console.log(`[${stageName}] Motion simulation complete: ${movedCount} moved, ${notFoundCount} not found`);
 
       // Force scene update to ensure all world matrices are current
-      this.scene.getEngine().runRenderLoop(() => {}); // Trigger one render pass
+      this.scene.getEngine().runRenderLoop(() => { }); // Trigger one render pass
       await new Promise(resolve => setTimeout(resolve, 16)); // Wait one frame (~16ms)
 
       // Capture extended states

@@ -5,9 +5,14 @@
  * Should detect 5 units with 7 joints total
  */
 
-import * as BABYLON from '@babylonjs/core';
-import '@babylonjs/loaders/glTF';
-import { HierarchicalToolAnalyzer } from '../babylon/sceneAnalysis/HierarchicalToolAnalyzer';
+// DEPRECATED: This file is no longer used. HierarchicalToolAnalyzer has been replaced
+// by the Statistical Pairing Engine in src/kinematics/statisticalPairing/
+//
+// import * as BABYLON from '@babylonjs/core';
+// import '@babylonjs/loaders/glTF';
+// import { HierarchicalToolAnalyzer } from '../babylon/sceneAnalysis/HierarchicalToolAnalyzer';
+
+export {}; // Make this a module
 
 /**
  * Test the hierarchical analyzer with a loaded GLB file

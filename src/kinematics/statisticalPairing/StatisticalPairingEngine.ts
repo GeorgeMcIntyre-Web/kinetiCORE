@@ -77,8 +77,7 @@ export function findUnitCandidates(flat: FlatNode[], fixtureTotal: number): Flat
 // 3.3 Select final Units (disjoint cover)
 export function selectUnits(
     candidates: FlatNode[],
-    scene: Scene,
-    fixtureTotal: number
+    scene: Scene
 ): string[] {
     const sorted = [...candidates].sort((a, b) => {
         if (a.totalPoints > b.totalPoints) return -1;

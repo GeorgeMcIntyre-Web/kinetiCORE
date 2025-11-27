@@ -195,9 +195,9 @@ export const EssentialModeLayout: React.FC = () => {
     Array.from(files).forEach(f => {
       const ext = f.name.toLowerCase();
       if (ext.endsWith('.xml') || ext.endsWith('.urdf') || ext.endsWith('.gltf') ||
-          ext.endsWith('.glb') || ext.endsWith('.obj') || ext.endsWith('.stl') ||
-          ext.endsWith('.jt') || ext.endsWith('.dwg') || ext.endsWith('.dxf') ||
-          ext.endsWith('.usd') || ext.endsWith('.usdz') || ext.endsWith('.zip')) {
+        ext.endsWith('.glb') || ext.endsWith('.obj') || ext.endsWith('.stl') ||
+        ext.endsWith('.jt') || ext.endsWith('.dwg') || ext.endsWith('.dxf') ||
+        ext.endsWith('.usd') || ext.endsWith('.usdz') || ext.endsWith('.zip')) {
         modelFiles.push(f);
       } else if (ext.endsWith('.stl') || ext.endsWith('.obj') || ext.endsWith('.dae')) {
         meshFiles.push(f);
@@ -205,13 +205,13 @@ export const EssentialModeLayout: React.FC = () => {
     });
 
     // Check if we have MJCF files and initialize batch processing
-    const mjcfFiles = modelFiles.filter(f => 
+    const mjcfFiles = modelFiles.filter(f =>
       f.name.toLowerCase().endsWith('.zip') || f.name.toLowerCase().endsWith('.xml')
     );
-    
+
     if (mjcfFiles.length > 0) {
       console.log(`[File Selection] Detected ${mjcfFiles.length} MJCF file(s), initializing batch processing`);
-      
+
       // Import MJCF loading status system
       try {
         const { mjcfLoading } = await import('../components/MJCFLoadingStatus');
@@ -329,7 +329,7 @@ export const EssentialModeLayout: React.FC = () => {
         try {
           const content = e.target?.result as string;
           const data = JSON.parse(content);
-          
+
           // Check if it's a comprehensive file
           if (data.format === 'comprehensive') {
             console.log('🔧 Detected comprehensive file, using comprehensive loader');
@@ -548,7 +548,7 @@ export const EssentialModeLayout: React.FC = () => {
       const newWidth = e.clientX;
       // Prevent reducing width below optimal width, but allow increasing
       const effectiveMinWidth = Math.max(minSidebarWidth, optimalWidth);
-      
+
       if (newWidth >= effectiveMinWidth && newWidth <= maxSidebarWidth) {
         setSidebarWidth(newWidth);
       }
@@ -724,7 +724,7 @@ export const EssentialModeLayout: React.FC = () => {
         </div>
         <div className="header-right">
           <div className="global-actions">
-            <button className="action-btn" title="Save Project" onClick={saveProject}>
+            <button className="action-btn" title="Save Project" onClick={() => setShowSaveDialog(true)}>
               <Save size={18} />
             </button>
             <button className="action-btn" title="Import Model" onClick={handleImport}>

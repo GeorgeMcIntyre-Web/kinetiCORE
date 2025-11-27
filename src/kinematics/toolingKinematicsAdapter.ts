@@ -300,12 +300,6 @@ export class ToolingKinematicsAdapter {
         const runtimeJoints: JointConfig[] = [];
 
         for (const dj of simplifiedJoints) {
-            // Guard: skip unknown joint types
-            if (dj.deltaType === 'unknown') {
-                errors.push(`Skipped joint ${dj.jointId}: unknown type`);
-                continue;
-            }
-
             // Guard: skip joints with insufficient motion
             // Use 5° threshold to filter out noise/floating-point drift while allowing small real motions
             if (dj.deltaType === 'revolute' && (dj.angleDeg === undefined || dj.angleDeg < 5)) {
@@ -314,8 +308,8 @@ export class ToolingKinematicsAdapter {
             }
 
             // Guard: skip prismatic joints with zero travel
-            if (dj.deltaType === 'prismatic' && Math.abs(dj.travelWorld) < 0.100) {
-                errors.push(`Skipped joint ${dj.jointId}: insufficient travel (< 100mm minimum) (${(dj.travelWorld * 1000).toFixed(1)}mm)`);
+            if (dj.deltaType === 'prismatic' && (!dj.travelWorld || Math.abs(dj.travelWorld) < 0.100)) {
+                errors.push(`Skipped joint ${dj.jointId}: insufficient travel (< 100mm minimum) (${((dj.travelWorld ?? 0) * 1000).toFixed(1)}mm)`);
                 continue;
             }
 
@@ -336,11 +330,13 @@ export class ToolingKinematicsAdapter {
 
             const parentInv = parentWorld.clone().invert();
 
-            // Transform axis to local space
-            const axisLocal = Vector3.TransformNormal(dj.axisWorld.clone(), parentInv).normalize();
+            // Transform axis to local space (fallback to global axis if axisWorld not available)
+            const worldAxis = dj.axisWorld ?? dj.axis;
+            const axisLocal = Vector3.TransformNormal(worldAxis.clone(), parentInv).normalize();
 
-            // Transform origin to local space
-            const originLocal = Vector3.TransformCoordinates(dj.originWorld.clone(), parentInv);
+            // Transform origin to local space (fallback to anchor if originWorld not available)
+            const worldOrigin = dj.originWorld ?? dj.anchor;
+            const originLocal = Vector3.TransformCoordinates(worldOrigin.clone(), parentInv);
 
             // Determine joint type
             const type: JointType = dj.deltaType === 'revolute' ? 'revolute' : 'prismatic';
@@ -356,7 +352,7 @@ export class ToolingKinematicsAdapter {
             }
             if (type === 'prismatic') {
                 // Prismatic: use travel distance
-                upper = Math.abs(dj.travelWorld);
+                upper = Math.abs(dj.travelWorld ?? 0);
             }
 
             const jointConfig: JointConfig = {

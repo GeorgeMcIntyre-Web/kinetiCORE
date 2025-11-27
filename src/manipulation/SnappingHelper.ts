@@ -223,16 +223,16 @@ export class SnappingHelper {
       // This allows face snap to work when hovering near faces, but gives priority to more precise snaps
       if (c.result.snapType === 'face' && c.distance < 0.0001) { // < 0.1mm
         // Only reject if there's a vertex, midpoint, or edge snap available (more precise)
-        const hasBetterSnap = candidates.some(cand => 
-          cand.result.snapType === 'vertex' || 
-          cand.result.snapType === 'midpoint' || 
+        const hasBetterSnap = candidates.some(cand =>
+          cand.result.snapType === 'vertex' ||
+          cand.result.snapType === 'midpoint' ||
           cand.result.snapType === 'edge'
         );
         if (hasBetterSnap) {
           return false; // Reject face snap in favor of more precise snap
         }
       }
-      
+
       // Edge snaps: reject when there's a vertex snap candidate nearby (vertex has higher priority)
       // This prevents edge snap from showing up too much when you're near vertices
       if (c.result.snapType === 'edge') {
@@ -248,7 +248,7 @@ export class SnappingHelper {
           }
         }
       }
-      
+
       return true;
     });
 
@@ -261,31 +261,31 @@ export class SnappingHelper {
     // Special handling for center vs midpoint: prefer center for circular faces, midpoint for edge midpoints
     filteredCandidates.sort((a, b) => {
       const distDiff = a.distance - b.distance;
-      
+
       // Special case: Center vs Midpoint
       // If center snap detects a circular face center and midpoint detects a face center (bounding box),
       // prefer center snap as it's more geometrically accurate for circular geometry
-      const isCenterVsMidpoint = 
+      const isCenterVsMidpoint =
         (a.result.snapType === 'center' && b.result.snapType === 'midpoint') ||
         (a.result.snapType === 'midpoint' && b.result.snapType === 'center');
-      
+
       if (isCenterVsMidpoint) {
         const centerCandidate = a.result.snapType === 'center' ? a : b;
         const midpointCandidate = a.result.snapType === 'midpoint' ? a : b;
-        
+
         // Check if center snap detected a circle (has radius in visualFeedback)
         // Center snap stores radius as visualFeedback[2].x when a circle is detected
-        const centerHasCircle = centerCandidate.result.visualFeedback && 
-                               centerCandidate.result.visualFeedback.length >= 3 &&
-                               centerCandidate.result.visualFeedback[2] instanceof BABYLON.Vector3 &&
-                               (centerCandidate.result.visualFeedback[2] as BABYLON.Vector3).x > 0;
-        
+        const centerHasCircle = centerCandidate.result.visualFeedback &&
+          centerCandidate.result.visualFeedback.length >= 3 &&
+          centerCandidate.result.visualFeedback[2] instanceof BABYLON.Vector3 &&
+          (centerCandidate.result.visualFeedback[2] as BABYLON.Vector3).x > 0;
+
         // Check if they're detecting the same or very close positions (within 5mm)
         const posDiff = BABYLON.Vector3.Distance(
           centerCandidate.result.position,
           midpointCandidate.result.position
         );
-        
+
         if (posDiff < 0.005) { // Within 5mm - likely the same logical point
           // If center snap detected a circle, always prefer it over midpoint
           // Circle fitting is more accurate than bounding box center for circular faces
@@ -293,12 +293,12 @@ export class SnappingHelper {
             // Center wins for circular faces (more accurate geometric calculation)
             return a.result.snapType === 'center' ? -1 : 1;
           }
-          
+
           // If center didn't detect a circle, check if midpoint is a face center vs edge midpoint
           // Face centers have visualFeedback.length === 1, edge midpoints have length === 3
-          const midpointHasEdges = midpointCandidate.result.visualFeedback && 
-                                   midpointCandidate.result.visualFeedback.length >= 3;
-          
+          const midpointHasEdges = midpointCandidate.result.visualFeedback &&
+            midpointCandidate.result.visualFeedback.length >= 3;
+
           // If midpoint is a face center (no edges), both are detecting centers
           // Prefer center snap as it might be more accurate even if not a perfect circle
           if (!midpointHasEdges) {
@@ -310,12 +310,12 @@ export class SnappingHelper {
             return a.result.snapType === 'midpoint' ? -1 : 1;
           }
         }
-        
+
         // If positions are different (> 5mm apart), prefer the closer one
         // This handles cases where center finds a circle center and midpoint finds a different edge midpoint
         // Distance comparison will handle this in the default case below
       }
-      
+
       // Default: If distances are within 3mm (very close), use priority to prefer more precise snaps
       // This gives higher priority snaps (vertex, midpoint) a better chance to win
       if (Math.abs(distDiff) < 0.003) { // 3mm threshold
@@ -326,17 +326,17 @@ export class SnappingHelper {
 
     // Return the best candidate
     const best = filteredCandidates[0];
-    
+
     // DEBUG: Compare face and center snap results when both are candidates
     if (best.result.snapType === 'center' || best.result.snapType === 'face') {
       const faceCandidate = filteredCandidates.find(c => c.result.snapType === 'face');
       const centerCandidate = filteredCandidates.find(c => c.result.snapType === 'center');
-      
+
       if (faceCandidate && centerCandidate && faceCandidate.result.targetMeshName === centerCandidate.result.targetMeshName) {
         const facePos = faceCandidate.result.position;
         const centerPos = centerCandidate.result.position;
         const posDiff = BABYLON.Vector3.Distance(facePos, centerPos);
-        
+
         if (SnappingHelper.DEBUG_SNAP) {
           console.log(`[SnappingHelper] 🔍 COMPARING FACE vs CENTER SNAP:`);
           console.log(`  Mesh: ${faceCandidate.result.targetMeshName}`);
@@ -345,7 +345,7 @@ export class SnappingHelper {
           console.log(`  Position difference: ${(posDiff * 1000).toFixed(3)}mm`);
           console.log(`  Selected snap type: ${best.result.snapType} (priority: ${best.priority})`);
         }
-        
+
         if (posDiff > 0.0001) { // > 0.1mm difference
           console.warn(`[SnappingHelper] ⚠️ WARNING: Face and center snap positions differ by ${(posDiff * 1000).toFixed(3)}mm!`);
         } else {
@@ -355,7 +355,7 @@ export class SnappingHelper {
         }
       }
     }
-    
+
     return best.result;
   }
 
@@ -751,49 +751,6 @@ export class SnappingHelper {
     return { snapped: false, position: position.clone() };
   }
 
-  /**
-   * Find closest points between two line segments
-   * @deprecated Used only by disabled intersection snapping
-   */
-  // @ts-expect-error - Unused but kept for when intersection snapping is re-enabled
-  private closestPointsBetweenSegments(
-    a1: BABYLON.Vector3,
-    a2: BABYLON.Vector3,
-    b1: BABYLON.Vector3,
-    b2: BABYLON.Vector3
-  ): { point1: BABYLON.Vector3; point2: BABYLON.Vector3; distance: number } | null {
-    const da = a2.subtract(a1);
-    const db = b2.subtract(b1);
-    const dc = b1.subtract(a1);
-
-    const daLenSq = BABYLON.Vector3.Dot(da, da);
-    const dbLenSq = BABYLON.Vector3.Dot(db, db);
-
-    if (daLenSq < 0.0001 || dbLenSq < 0.0001) return null;
-
-    const daDotDb = BABYLON.Vector3.Dot(da, db);
-    const daDotDc = BABYLON.Vector3.Dot(da, dc);
-    const dbDotDc = BABYLON.Vector3.Dot(db, dc);
-
-    const denom = daLenSq * dbLenSq - daDotDb * daDotDb;
-
-    let s = 0;
-    let t = 0;
-
-    if (Math.abs(denom) > 0.0001) {
-      s = (daDotDb * dbDotDc - dbLenSq * daDotDc) / denom;
-      t = (daLenSq * dbDotDc - daDotDb * daDotDc) / denom;
-    }
-
-    s = Math.max(0, Math.min(1, s));
-    t = Math.max(0, Math.min(1, t));
-
-    const point1 = a1.add(da.scale(s));
-    const point2 = b1.add(db.scale(t));
-    const distance = BABYLON.Vector3.Distance(point1, point2);
-
-    return { point1, point2, distance };
-  }
 
   /**
    * Snap to face normal direction

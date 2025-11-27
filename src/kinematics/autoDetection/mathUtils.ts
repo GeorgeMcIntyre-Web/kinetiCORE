@@ -3,9 +3,12 @@
  * Pure functions for linear algebra, geometry, and transformations.
  */
 
-export type Vec3 = [number, number, number];
+import type { Vec3, Mat3 } from './types';
+
+// Re-export types from types.ts
+export type { Vec3, Mat3 };
+
 export type Quat = [number, number, number, number];  // [x, y, z, w]
-export type Mat3 = number[][];  // 3x3 matrix
 export type Mat4 = number[][];  // 4x4 matrix
 
 /**

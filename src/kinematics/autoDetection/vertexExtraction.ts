@@ -6,7 +6,7 @@
  */
 
 import * as BABYLON from '@babylonjs/core';
-import type { GLBTreeData, FlatNode } from './types';
+import type { GLBTreeData } from './types';
 
 export interface VertexExtractionConfig {
   maxVerticesPerMesh?: number;  // Limit for performance

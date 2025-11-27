@@ -116,8 +116,8 @@ export async function runICPWithOpen3D(
   const cosAngle = Math.max(-1, Math.min(1, (trace - 1) / 2));
   const angleRad = Math.acos(cosAngle);
   const angleDeg = (angleRad * 180 / Math.PI);
-  
-  console.log(`[Open3D ICP] RMS error: ${result.inlier_rmse.toFixed(8)}m, fitness: ${result.fitness.toFixed(4)}`);
+
+  console.log(`[Open3D ICP] RMS error: ${result.inlier_rmse.toFixed(8)}m, fitness: ${result.fitness.toFixed(4)}, angle: ${angleDeg.toFixed(2)}°`);
   console.log(`[Open3D ICP] ${usingRowMajor ? 'Row' : 'Col'}-major rotation selected (det row=${detRow.toFixed(4)}, det col=${detCol.toFixed(4)})`);
 
   return {

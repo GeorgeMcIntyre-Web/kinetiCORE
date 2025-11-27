@@ -14,25 +14,12 @@ import type {
 } from '../io/Schemas';
 import { FastNodeFilter, type FilterOptions, type NodePair } from './FastNodeFilter';
 import { PCLICPSolver } from '../pointCloud/PCLICPSolver';
-import { collectSubtree, selectUnits, findUnitCandidates, getNodePairsForUnit, type Scene as StatScene } from '../../kinematics/statisticalPairing/StatisticalPairingEngine';
+import { collectSubtree, selectUnits, findUnitCandidates, getNodePairsForUnit } from '../../kinematics/statisticalPairing/StatisticalPairingEngine';
 import { BabylonAdapter } from './BabylonAdapter';
+import type { DetectedToolJoint } from '../sceneAnalysis/ToolingTypes';
 
-/**
- * Detected Joint from Tool Analysis
- */
-export interface DetectedToolJoint {
-  jointId: string;
-  unitId: string;
-  nodeAId: string;
-  nodeBId: string;
-  deltaType: 'revolute' | 'prismatic';
-  angleDeg?: number;
-  axis: BABYLON.Vector3;
-  anchor: BABYLON.Vector3;
-  confidence: number;
-  min?: number;
-  max?: number;
-}
+// Re-export for backwards compatibility
+export type { DetectedToolJoint };
 
 /**
  * Configuration for the complete kinematic extraction pipeline.
@@ -229,7 +216,7 @@ export class KinematicExtractionPipeline {
   /**
    * Step 1: Analyze scene to identify tool units using Statistical Pairing.
    */
-  async analyzeScene(options?: PipelineOptions, rootNode?: BABYLON.Node): Promise<ToolGraph> {
+  async analyzeScene(_options?: PipelineOptions, rootNode?: BABYLON.Node): Promise<ToolGraph> {
     console.log('[Pipeline] Step 1: Analyzing scene for tool units (Statistical Pairing)...');
 
     if (!rootNode) {
@@ -250,7 +237,7 @@ export class KinematicExtractionPipeline {
     const candidates = findUnitCandidates(flatNodes, fixtureTotal);
 
     // 3. Select Units
-    const unitIds = selectUnits(candidates, statScene, fixtureTotal);
+    const unitIds = selectUnits(candidates, statScene);
 
     console.log(`[Pipeline] Statistical Analysis found ${unitIds.length} units:`, unitIds);
 
@@ -551,7 +538,7 @@ export class KinematicExtractionPipeline {
 
     // Build node pairs for FastNodeFilter
     const nodePairs: NodePair[] = [];
-    for (const [unitId, statePair] of this.statePairs.entries()) {
+    for (const [unitId, statePair] of Array.from(this.statePairs.entries())) {
       const { unit, retracted, extended } = statePair;
 
       if (!retracted || !extended) {
@@ -788,7 +775,7 @@ export class KinematicExtractionPipeline {
       byUnitId.set(unitId, arr);
     }
 
-    for (const [unitId, entries] of byUnitId.entries()) {
+    for (const [unitId, entries] of Array.from(byUnitId.entries())) {
       const state = this.statePairs.get(unitId);
       const retractedPts = state?.retracted?.pointCloud;
       const extendedPts = state?.extended?.pointCloud;
