@@ -12,16 +12,10 @@ import {
   vecAdd,
   vecScale,
   vecDot,
-  vecCross,
   vecLength,
-  vecNormalize,
   mat3ApplyToVec,
-  mat3Subtract,
-  mat3Identity,
-  mat3Determinant,
   solve3x3,
   vecDistance,
-  projectToPlane,
 } from './mathUtils';
 
 /**
@@ -152,7 +146,7 @@ function verifyRotationPlane(
 function fitCircleCenter3D(
   pointsBefore: Vec3[],
   pointsAfter: Vec3[],
-  rotationAxis: Vec3
+  _rotationAxis: Vec3
 ): Vec3 {
   const n = Math.min(pointsBefore.length, pointsAfter.length);
   if (n < 3) {
@@ -245,73 +239,6 @@ function fitCircleCenter3D(
     }
     return vecScale(sum, 1 / (2 * n));
   }
-}
-
-/**
- * Fallback: Compute pivot point using rotation axis and translation.
- *
- * The pivot lies somewhere along the rotation axis. We find the point
- * on the axis closest to satisfying t = p - R*p.
- *
- * @param rotation - 3x3 rotation matrix
- * @param translation - Translation vector
- * @param axis - Normalized rotation axis
- * @returns Pivot point on the rotation axis
- */
-function computePivotFromAxis(
-  rotation: Mat3,
-  translation: Vec3,
-  axis: Vec3
-): Vec3 {
-  // For a 90° rotation around an axis through point p:
-  // The transformation is: x' = R*(x - p) + p = R*x + (I-R)*p
-  // So: t = (I-R)*p
-  //
-  // For a pure 90° rotation, (I-R) maps vectors perpendicular to the axis
-  // to other perpendicular vectors. The pivot lies on the axis.
-  //
-  // Strategy: Find the point on the rotation axis that minimizes |R*x + t - x|
-  // Parameterize axis as: p(s) = s * axis (assuming axis passes through origin)
-  // We need to find the offset along the axis.
-
-  // Compute the component of translation perpendicular to axis
-  const t_parallel = vecScale(axis, vecDot(translation, axis));
-  const t_perp = vecSub(translation, t_parallel);
-
-  console.log(`[PIVOT-AXIS] Translation perpendicular to axis: [${t_perp.map(v => v.toFixed(4)).join(', ')}], magnitude: ${vecLength(t_perp).toFixed(4)}m`);
-
-  // For a 90° rotation, if we have a point at distance r from the axis,
-  // the perpendicular component of translation should be ~ sqrt(2)*r
-  // We can estimate the pivot by finding where the axis intersects
-  // the perpendicular bisector plane of t_perp
-
-  // The pivot should lie on the axis at: p = -0.5 * t_perp (rotated by -45°)
-  // But simpler: for 90° rotation, pivot is at -t_perp/2 projected back
-  // Let's use a more robust approach:
-
-  // For 90° rotation about axis through p: t = p - R*p
-  // If p is on the axis, then R*p = p (axis is eigenvector with eigenvalue 1)
-  // This would give t = 0, which contradicts our non-zero t.
-  // This means pivot is NOT on the axis passing through origin.
-
-  // Better approach: Find point p such that t = p - R*p
-  // For 90° rotation, let's use the perpendicular bisector method in 2D
-  // Project everything onto the plane perpendicular to the axis
-
-  // Take a reference point and its rotation
-  // Use t_perp to find the center of rotation in the perpendicular plane
-  const R_t_perp = mat3ApplyToVec(rotation, t_perp);
-  const midpoint = vecScale(vecAdd(t_perp, R_t_perp), 0.5);
-
-  console.log(`[PIVOT-AXIS] Midpoint of translation: [${midpoint.map(v => v.toFixed(4)).join(', ')}]`);
-
-  // The pivot in the perpendicular plane is at the midpoint
-  // Add the parallel component to get the full 3D pivot
-  const pivot = vecAdd(midpoint, t_parallel);
-
-  console.log(`[PIVOT-AXIS] Computed pivot: [${pivot.map(v => v.toFixed(4)).join(', ')}]`);
-
-  return pivot;
 }
 
 /**

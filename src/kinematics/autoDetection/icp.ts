@@ -56,6 +56,38 @@ export function runICP(
   targetPoints: Float32Array,
   config: Partial<ICPConfig> = {}
 ): ICPResult {
+  // Input validation
+  if (!sourcePoints || sourcePoints.length === 0) {
+    console.error('[ICP] Source points array is empty');
+    return {
+      rotation: mat3Identity(),
+      translation: [0, 0, 0],
+      rmsError: Infinity,
+      correspondences: 0,
+      converged: false,
+    };
+  }
+  if (!targetPoints || targetPoints.length === 0) {
+    console.error('[ICP] Target points array is empty');
+    return {
+      rotation: mat3Identity(),
+      translation: [0, 0, 0],
+      rmsError: Infinity,
+      correspondences: 0,
+      converged: false,
+    };
+  }
+  if (sourcePoints.length % 3 !== 0 || targetPoints.length % 3 !== 0) {
+    console.error('[ICP] Point arrays must have length divisible by 3 (x, y, z coordinates)');
+    return {
+      rotation: mat3Identity(),
+      translation: [0, 0, 0],
+      rmsError: Infinity,
+      correspondences: 0,
+      converged: false,
+    };
+  }
+
   const cfg = { ...DEFAULT_CONFIG, ...config };
 
   console.log(`[ICP] Starting with ${sourcePoints.length / 3} source pts, ${targetPoints.length / 3} target pts`);

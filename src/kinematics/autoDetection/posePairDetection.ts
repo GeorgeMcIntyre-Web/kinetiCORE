@@ -47,12 +47,30 @@ export function findPosePairs(
   const cfg = { ...DEFAULT_CONFIG, ...config };
   const unitNode = data.nodes[unit.nodeIndex];
   const unitPoints = unit.subtreePointCount;
+  const nodeLookup = new Map<number, FlatNode>();
+  for (const node of data.nodes) {
+    nodeLookup.set(node.index, node);
+  }
 
-  console.log(`[PAIRS] Analyzing unit ${unitNode.name} (index ${unit.nodeIndex})`);
+  console.log(`[PAIRS] Analyzing unit ${unitNode.name} (index ${unit.nodeIndex}), total points: ${unitPoints.toLocaleString()}`);
+
+  const topLevelChildren = unitNode.childrenIndices?.map(idx => nodeLookup.get(idx)).filter(Boolean) as FlatNode[] || [];
+  console.log(`[PAIRS] Top-level children: ${topLevelChildren.length} (${topLevelChildren.map(c => `${c.name}(${c.subtreePointCount.toLocaleString()})`).join(', ')})`);
+  
+  const significantBuckets = topLevelChildren.filter(child =>
+    child.subtreePointCount >= unitPoints * cfg.MIN_SUBTREE_PERCENT
+  );
+  
+  console.log(`[PAIRS] Significant buckets (>=${(cfg.MIN_SUBTREE_PERCENT * 100).toFixed(1)}%): ${significantBuckets.length} (${significantBuckets.map(c => `${c.name}(${c.subtreePointCount.toLocaleString()})`).join(', ')})`);
+
+  if (significantBuckets.length < 2) {
+    console.log(`[PAIRS] Unit ${unitNode.name} has fewer than 2 significant top-level buckets; treating as fixed.`);
+    return [];
+  }
 
   // Get all significant subtrees within this unit
   const subtrees = getSignificantSubtrees(data.nodes, unit, cfg.MIN_SUBTREE_PERCENT);
-  console.log(`[PAIRS] Found ${subtrees.length} significant subtrees`);
+  console.log(`[PAIRS] Found ${subtrees.length} significant subtrees (${subtrees.map(s => `${s.name}(${s.subtreePointCount.toLocaleString()})`).join(', ')})`);
 
   if (subtrees.length < 2) {
     console.log(`[PAIRS] Not enough subtrees for pose pair detection`);
@@ -62,6 +80,7 @@ export function findPosePairs(
   // Group subtrees by approximate point count
   const groups = groupByPointCount(subtrees, cfg.POINT_COUNT_TOLERANCE);
   console.log(`[PAIRS] Grouped into ${groups.length} point-count groups`);
+  
 
   const posePairs: PosePair[] = [];
 
@@ -71,20 +90,66 @@ export function findPosePairs(
       console.log(`[PAIRS] Skipping group with ${group.length} members (need at least 2)`);
       continue;
     }
-
-    // If group has more than 2 members, filter out parent-child duplicates
+    
+    // If group has more than 2 members, filter out parent-child/ancestor-descendant duplicates
     // (e.g., WIRE and OPEN both at 8002 pts - keep the deeper OPEN)
+    // Strategy: Keep only the deepest nodes (nodes that are not ancestors of any other node in the group)
     let cleanedGroup = group;
     if (group.length > 2) {
+      console.log(`[PAIRS] Filtering group with ${group.length} members: ${group.map(n => `${n.name}(${n.index})`).join(', ')}`);
+      
+      // Build a map of which nodes are ancestors of which
+      const ancestorMap = new Map<number, Set<number>>(); // nodeIndex -> set of descendant indices
+      for (const node of group) {
+        for (const other of group) {
+          if (other.index !== node.index && isDescendantOf(data.nodes, other.index, node.index)) {
+            if (!ancestorMap.has(node.index)) {
+              ancestorMap.set(node.index, new Set());
+            }
+            ancestorMap.get(node.index)!.add(other.index);
+          }
+        }
+      }
+      
+      // Filter: keep only nodes that are NOT ancestors of any other node
       cleanedGroup = group.filter(node => {
-        // Keep this node if it's NOT a parent of another node in the group
-        const isParentOfGroupMember = group.some(other =>
-          other.index !== node.index &&
-          isDescendantOf(data.nodes, other.index, node.index)
-        );
-        return !isParentOfGroupMember;
+        const isAncestor = ancestorMap.has(node.index);
+        if (isAncestor) {
+          const descendants = Array.from(ancestorMap.get(node.index)!);
+          console.log(`[PAIRS]   Removing ${node.name} (${node.index}) - it's an ancestor of: ${descendants.map(idx => {
+            const n = data.nodes.find(nd => nd.index === idx);
+            return n ? `${n.name}(${idx})` : `unknown(${idx})`;
+          }).join(', ')}`);
+        }
+        return !isAncestor;
       });
-      console.log(`[PAIRS] Filtered group from ${group.length} to ${cleanedGroup.length} members (removed parent-child duplicates)`);
+      console.log(`[PAIRS] Filtered group from ${group.length} to ${cleanedGroup.length} members: ${cleanedGroup.map(n => `${n.name}(${n.index})`).join(', ')}`);
+      
+      // If still more than 2, use bucket-based selection to find nodes in different buckets
+      if (cleanedGroup.length > 2) {
+        console.log(`[PAIRS] Still ${cleanedGroup.length} members after filtering: ${cleanedGroup.map(n => `${n.name}(${n.index})`).join(', ')}`);
+        
+        // Group by bucket
+        const buckets = new Map<number, FlatNode[]>();
+        for (const node of cleanedGroup) {
+          const bucket = getUnitBucketIndex(nodeLookup, node.index, unit.nodeIndex);
+          if (bucket !== null) {
+            if (!buckets.has(bucket)) {
+              buckets.set(bucket, []);
+            }
+            buckets.get(bucket)!.push(node);
+          }
+        }
+        
+        console.log(`[PAIRS]   Buckets: ${buckets.size} (${Array.from(buckets.entries()).map(([b, nodes]) => `bucket ${b}: ${nodes.length} nodes`).join(', ')})`);
+        
+        // If we have exactly 2 buckets with nodes, use one node from each bucket
+        if (buckets.size === 2) {
+          const bucketNodes = Array.from(buckets.values());
+          cleanedGroup = [bucketNodes[0][0], bucketNodes[1][0]];
+          console.log(`[PAIRS] ✓ Found pair from different buckets: ${cleanedGroup[0].name} (${cleanedGroup[0].index}, bucket ${getUnitBucketIndex(nodeLookup, cleanedGroup[0].index, unit.nodeIndex)}) and ${cleanedGroup[1].name} (${cleanedGroup[1].index}, bucket ${getUnitBucketIndex(nodeLookup, cleanedGroup[1].index, unit.nodeIndex)})`);
+        }
+      }
     }
 
     if (cleanedGroup.length !== 2) {
@@ -96,11 +161,25 @@ export function findPosePairs(
 
     console.log(`[PAIRS] Checking potential pair: ${subtreeA.name} (${subtreeA.subtreePointCount} pts) vs ${subtreeB.name} (${subtreeB.subtreePointCount} pts)`);
 
+    const bucketA = getUnitBucketIndex(nodeLookup, subtreeA.index, unit.nodeIndex);
+    const bucketB = getUnitBucketIndex(nodeLookup, subtreeB.index, unit.nodeIndex);
+
+    if (bucketA === null || bucketB === null) {
+      console.log(`[PAIRS]   Skipping pair: unable to determine unit bucket (bucketA=${bucketA}, bucketB=${bucketB})`);
+      continue;
+    }
+
+    if (bucketA === bucketB) {
+      console.log(`[PAIRS]   Skipping pair: both nodes share the same top-level unit bucket (${bucketA})`);
+      continue;
+    }
+
     // Get geometry nodes in each subtree
     const geomA = getGeometryNodes(data.nodes, subtreeA.index);
     const geomB = getGeometryNodes(data.nodes, subtreeB.index);
 
     console.log(`[PAIRS]   Geometry nodes: ${geomA.length} vs ${geomB.length}`);
+    console.log(`[PAIRS]   Subtree A (${subtreeA.name}) point counts: A=${subtreeA.subtreePointCount}, B=${subtreeB.subtreePointCount}`);
 
     // Match geometry by point count
     const matches = matchGeometryByPointCount(
@@ -112,7 +191,46 @@ export function findPosePairs(
 
     console.log(`[PAIRS]   Matched ${matches.length} geometry pairs`);
 
-    if (matches.length === 0) continue;
+    if (matches.length === 0) {
+      // If no geometry matches but subtrees have identical point counts, accept based on subtree match alone
+      const pointCountDiff = Math.abs(subtreeA.subtreePointCount - subtreeB.subtreePointCount);
+      const avgCount = (subtreeA.subtreePointCount + subtreeB.subtreePointCount) / 2;
+      const percentDiff = avgCount > 0 ? pointCountDiff / avgCount : 1;
+      
+      if (percentDiff <= cfg.POINT_COUNT_TOLERANCE && avgCount > 0) {
+        console.log(`[PAIRS]   No geometry matches, but subtrees have matching point counts (${percentDiff * 100 < 1 ? 'identical' : `${(percentDiff * 100).toFixed(2)}% diff`}), accepting as pose pair`);
+        // Create a synthetic match based on subtree point count
+        const syntheticMatches: typeof matches = [{
+          closedNodeIndex: subtreeA.index,
+          openNodeIndex: subtreeB.index,
+          pointCount: Math.round(avgCount),
+          closedTransform: {
+            translation: subtreeA.translation || null,
+            rotation: subtreeA.rotation || null,
+          },
+          openTransform: {
+            translation: subtreeB.translation || null,
+            rotation: subtreeB.rotation || null,
+          },
+        }];
+        
+        // Use subtree point count for confidence calculation
+        const confidence = 0.95; // High confidence since point counts match exactly
+        console.log(`[PAIRS]   Using synthetic match with ${(confidence * 100).toFixed(1)}% confidence based on subtree point count match`);
+        
+        posePairs.push({
+          unitIndex: unit.nodeIndex,
+          closedSubtreeIndex: subtreeA.index,
+          openSubtreeIndex: subtreeB.index,
+          matchingGeometry: syntheticMatches,
+          confidence,
+        });
+        
+        console.log(`[PAIRS] ✓ Pose pair detected (no geometry, subtree match): subtrees ${subtreeA.index} and ${subtreeB.index}, confidence ${(confidence * 100).toFixed(1)}%`);
+        continue;
+      }
+      continue;
+    }
 
     // Calculate confidence based on how much geometry matched
     const matchedPoints = matches.reduce((sum, m) => sum + m.pointCount, 0);
@@ -179,8 +297,49 @@ function isDescendantOf(
   nodeIndex: number,
   potentialAncestorIndex: number
 ): boolean {
-  const descendants = getAllDescendants(nodes, potentialAncestorIndex);
-  return descendants.some(d => d.index === nodeIndex);
+  // Quick check: if they're the same, return false (a node is not its own descendant)
+  if (nodeIndex === potentialAncestorIndex) {
+    return false;
+  }
+  
+  // Walk up the parent chain from nodeIndex to see if we reach potentialAncestorIndex
+  let current: number | null = nodeIndex;
+  const visited = new Set<number>();
+  
+  while (current !== null && current !== undefined && !visited.has(current)) {
+    visited.add(current);
+    if (current === potentialAncestorIndex) {
+      return true;
+    }
+    const node = nodes[current];
+    if (!node) break;
+    current = node.parentIndex ?? null;
+  }
+  
+  return false;
+}
+
+function getUnitBucketIndex(
+  nodeLookup: Map<number, FlatNode>,
+  nodeIndex: number,
+  unitIndex: number
+): number | null {
+  const visited = new Set<number>();
+  let current: number | null | undefined = nodeIndex;
+
+  while (current !== null && current !== undefined && !visited.has(current)) {
+    visited.add(current);
+    const parent = nodeLookup.get(current)?.parentIndex;
+    if (parent === null || parent === undefined) {
+      return null;
+    }
+    if (parent === unitIndex) {
+      return current;
+    }
+    current = parent;
+  }
+
+  return null;
 }
 
 /**

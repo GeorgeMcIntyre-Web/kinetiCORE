@@ -121,6 +121,67 @@ export function mat4Multiply(a: Mat4, b: Mat4): Mat4 {
   return result;
 }
 
+export function mat4Invert(m: Mat4): Mat4 | null {
+  const a00 = m[0][0], a01 = m[0][1], a02 = m[0][2], a03 = m[0][3];
+  const a10 = m[1][0], a11 = m[1][1], a12 = m[1][2], a13 = m[1][3];
+  const a20 = m[2][0], a21 = m[2][1], a22 = m[2][2], a23 = m[2][3];
+  const a30 = m[3][0], a31 = m[3][1], a32 = m[3][2], a33 = m[3][3];
+
+  const b00 = a00 * a11 - a01 * a10;
+  const b01 = a00 * a12 - a02 * a10;
+  const b02 = a00 * a13 - a03 * a10;
+  const b03 = a01 * a12 - a02 * a11;
+  const b04 = a01 * a13 - a03 * a11;
+  const b05 = a02 * a13 - a03 * a12;
+  const b06 = a20 * a31 - a21 * a30;
+  const b07 = a20 * a32 - a22 * a30;
+  const b08 = a20 * a33 - a23 * a30;
+  const b09 = a21 * a32 - a22 * a31;
+  const b10 = a21 * a33 - a23 * a31;
+  const b11 = a22 * a33 - a23 * a32;
+
+  const det =
+    b00 * b11 -
+    b01 * b10 +
+    b02 * b09 +
+    b03 * b08 -
+    b04 * b07 +
+    b05 * b06;
+
+  if (Math.abs(det) < 1e-12) {
+    return null;
+  }
+
+  const invDet = 1 / det;
+
+  return [
+    [
+      (a11 * b11 - a12 * b10 + a13 * b09) * invDet,
+      (-a01 * b11 + a02 * b10 - a03 * b09) * invDet,
+      (a31 * b05 - a32 * b04 + a33 * b03) * invDet,
+      (-a21 * b05 + a22 * b04 - a23 * b03) * invDet,
+    ],
+    [
+      (-a10 * b11 + a12 * b08 - a13 * b07) * invDet,
+      (a00 * b11 - a02 * b08 + a03 * b07) * invDet,
+      (-a30 * b05 + a32 * b02 - a33 * b01) * invDet,
+      (a20 * b05 - a22 * b02 + a23 * b01) * invDet,
+    ],
+    [
+      (a10 * b10 - a11 * b08 + a13 * b06) * invDet,
+      (-a00 * b10 + a01 * b08 - a03 * b06) * invDet,
+      (a30 * b04 - a31 * b02 + a33 * b00) * invDet,
+      (-a20 * b04 + a21 * b02 - a23 * b00) * invDet,
+    ],
+    [
+      (-a10 * b09 + a11 * b07 - a12 * b06) * invDet,
+      (a00 * b09 - a01 * b07 + a02 * b06) * invDet,
+      (-a30 * b03 + a31 * b01 - a32 * b00) * invDet,
+      (a20 * b03 - a21 * b01 + a22 * b00) * invDet,
+    ],
+  ];
+}
+
 export function mat3ApplyToVec(m: Mat3, v: Vec3): Vec3 {
   return [
     m[0][0] * v[0] + m[0][1] * v[1] + m[0][2] * v[2],
@@ -264,7 +325,12 @@ export function computeCovarianceMatrix(
 
 /**
  * Simplified 3x3 SVD for rotation matrix extraction.
- * Uses power iteration method - good enough for ICP.
+ * 
+ * @deprecated This function is not used by the ICP implementation.
+ * The ICP algorithm in icp.ts uses ml-matrix's SVD which is numerically stable.
+ * This function is kept for reference only and may be removed in the future.
+ * 
+ * If you need SVD, use ml-matrix's SVD class directly (as done in icp.ts).
  */
 export function svd3x3(H: Mat3): { U: Mat3; S: Vec3; V: Mat3 } {
   // Compute H^T * H for V
@@ -284,11 +350,11 @@ export function svd3x3(H: Mat3): { U: Mat3; S: Vec3; V: Mat3 } {
   }
 
   // Power iteration to find eigenvectors of H^T * H
-  // For a 3x3 matrix, we can use a simplified approach
-  // This is a placeholder - for production, use a proper SVD library
+  // NOTE: This is a placeholder implementation.
+  // The actual ICP algorithm uses ml-matrix's SVD (see icp.ts:computeRotationViaSVD)
 
-  // For now, return identity matrices - this needs proper SVD implementation
-  console.warn('[MATH] Using simplified SVD - results may be approximate');
+  // For now, return identity matrices - this is not used in production
+  console.warn('[MATH] svd3x3 is deprecated - ICP uses ml-matrix SVD instead');
 
   return {
     U: mat3Identity(),

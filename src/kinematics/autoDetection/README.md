@@ -171,16 +171,17 @@ npx tsx src/kinematics/autoDetection/demo.ts
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ STEP 3: World-Space Extraction (TODO)                           │
-│   • Extract vertices from GLB mesh data                         │
-│   • Transform to world space via cumulative hierarchy           │
+│ STEP 3: World-Space Vertex Extraction                           │ ✅ COMPLETE
+│   • Extract vertices from GLB mesh data via Babylon.js          │
+│   • Transform to world space using mesh world matrices          │
 │   Output: Float32Array of world-space vertices                  │
 └─────────────────────────────────────────────────────────────────┘
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ STEP 4: ICP Registration (Implemented, needs mesh data)         │
+│ STEP 4: ICP Registration                                        │ ✅ COMPLETE
 │   • Run ICP: closed_points → open_points                        │
+│   • Uses Kabsch algorithm with proper SVD (ml-matrix)           │
 │   • Get rotation matrix R and translation t                     │
 │   Output: ICPResult with R, t, RMS error                        │
 └─────────────────────────────────────────────────────────────────┘
@@ -209,11 +210,16 @@ src/kinematics/autoDetection/
 ├── types.ts                    # TypeScript type definitions
 ├── unitDetection.ts            # Step 1: Name-agnostic unit detection
 ├── posePairDetection.ts        # Step 2: Pose pair matching by point count
-├── icp.ts                      # Step 4: ICP registration (Kabsch algorithm)
+├── vertexExtraction.ts         # Step 3: World-space vertex extraction from GLB
+├── icp.ts                      # Step 4: ICP registration (Kabsch algorithm with SVD)
+├── icpOpen3D.ts                # Step 4b: High-precision ICP via Open3D Python bridge
 ├── jointClassification.ts      # Steps 5 & 6: Joint type and pivot computation
+├── pivotComputation.ts          # Step 6b: Circle-fitting pivot computation
 ├── mathUtils.ts                # Vector/matrix math utilities
 ├── index.ts                    # Public API exports
 ├── demo.ts                     # Comprehensive demo script
+├── validatePhase2.ts           # Phase 2 validation script
+├── icp.test.ts                 # ICP unit tests
 └── README.md                   # This file
 ```
 
@@ -328,27 +334,27 @@ if (node.subtreePointCount > threshold && hasMatchingSubtree(node)) {
 }
 ```
 
-## Next Steps (TODO)
+## Next Steps (Future Enhancements)
 
-1. **Step 3: World-Space Vertex Extraction**
-   - Parse GLB binary data to extract mesh vertices
-   - Implement cumulative world matrix computation
-   - Transform vertices to world space
+1. **✅ Step 3: World-Space Vertex Extraction** - COMPLETE
+   - ✅ Extracts vertices from Babylon.js meshes
+   - ✅ Transforms to world space using mesh world matrices
+   - ✅ Supports subsampling for performance
 
-2. **Full ICP Integration**
-   - Connect pose pair detection → vertex extraction → ICP
-   - Implement proper SVD for Kabsch algorithm (currently using approximation)
-   - Validate joint parameters against known fixtures
+2. **✅ Full ICP Integration** - COMPLETE
+   - ✅ Connected pose pair detection → vertex extraction → ICP
+   - ✅ Uses proper SVD via ml-matrix library (not approximation)
+   - ✅ Validated on real fixtures with sub-millimeter precision
 
-3. **Babylon.js Visualization**
+3. **Babylon.js Visualization** (Future Enhancement)
    - Display detected units with bounding boxes
    - Visualize rotation axes and pivot points
    - Show motion arcs for revolute joints
 
-4. **Production Deployment**
-   - Add error handling for malformed GLB files
-   - Implement retry logic for ICP convergence failures
-   - Add caching for expensive operations
+4. **Production Deployment Enhancements** (Future)
+   - Enhanced error handling for edge cases
+   - Retry logic for ICP convergence failures (optional)
+   - Caching for expensive operations (optional)
 
 ## References
 

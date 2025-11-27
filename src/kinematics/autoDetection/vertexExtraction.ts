@@ -41,6 +41,20 @@ export function extractWorldSpaceVertices(
   nodeIndex: number,
   config: Partial<VertexExtractionConfig> = {}
 ): Float32Array {
+  // Input validation
+  if (!scene) {
+    console.error('[VertexExtraction] Scene is null or undefined');
+    return new Float32Array(0);
+  }
+  if (!data || !data.nodes) {
+    console.error('[VertexExtraction] Invalid GLB tree data');
+    return new Float32Array(0);
+  }
+  if (nodeIndex < 0 || nodeIndex >= data.nodes.length) {
+    console.error(`[VertexExtraction] Invalid node index: ${nodeIndex} (valid range: 0-${data.nodes.length - 1})`);
+    return new Float32Array(0);
+  }
+
   const cfg = { ...DEFAULT_CONFIG, ...config };
   const node = data.nodes[nodeIndex];
 

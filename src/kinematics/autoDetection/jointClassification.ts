@@ -44,9 +44,13 @@ export function classifyJoint(
 
   const { axis, angle } = matrixToAxisAngle(icpResult.rotation);
   const translationMag = vecLength(icpResult.translation);
+  
+  const angleDeg = (angle * 180 / Math.PI);
+  const minRotationDeg = (cfg.MIN_ROTATION_RAD * 180 / Math.PI);
 
-  console.log(`[JOINT] Rotation: ${(angle * 180 / Math.PI).toFixed(1)}° around [${axis.map(v => v.toFixed(3)).join(', ')}]`);
+  console.log(`[JOINT] Rotation: ${angleDeg.toFixed(1)}° around [${axis.map(v => v.toFixed(3)).join(', ')}]`);
   console.log(`[JOINT] Translation: ${translationMag.toFixed(4)}m = ${(translationMag * 1000).toFixed(1)}mm`);
+  console.log(`[JOINT] Classification check: angle=${angleDeg.toFixed(1)}° >= ${minRotationDeg.toFixed(1)}°? ${angle >= cfg.MIN_ROTATION_RAD}, translation=${(translationMag * 1000).toFixed(1)}mm >= ${(cfg.MIN_TRANSLATION * 1000).toFixed(1)}mm? ${translationMag >= cfg.MIN_TRANSLATION}`);
 
   // Case 1: Significant rotation, minimal translation → REVOLUTE
   if (angle >= cfg.MIN_ROTATION_RAD && translationMag < cfg.PURE_ROTATION_TRANS_THRESHOLD) {
@@ -60,6 +64,8 @@ export function classifyJoint(
   }
 
   // Case 2: Significant rotation WITH translation → REVOLUTE (pivot not at origin)
+  // IMPORTANT: Even if there's translation, if there's significant rotation, it's REVOLUTE
+  // The translation is due to the pivot being offset from the origin
   if (angle >= cfg.MIN_ROTATION_RAD) {
     console.log(`[JOINT] Classified as REVOLUTE (rotation with offset pivot)`);
     return {
@@ -71,8 +77,9 @@ export function classifyJoint(
   }
 
   // Case 3: No rotation, significant translation → PRISMATIC
+  // ONLY classify as PRISMATIC if rotation is truly minimal (< 2°) AND translation is significant
   if (angle < cfg.MIN_ROTATION_RAD && translationMag >= cfg.MIN_TRANSLATION) {
-    console.log(`[JOINT] Classified as PRISMATIC`);
+    console.log(`[JOINT] Classified as PRISMATIC (minimal rotation: ${angleDeg.toFixed(2)}°, translation: ${(translationMag * 1000).toFixed(1)}mm)`);
     return {
       type: 'prismatic',
       axis: vecNormalize(icpResult.translation),

@@ -43,9 +43,18 @@ def icp_registration(source_points, target_points, config):
         max_iteration=max_iteration
     )
 
-    # Run ICP (point-to-point)
+    # Initial alignment: use provided transform if available, else align centroids
     initial_transform = np.identity(4)
-
+    if 'initial_transform' in config and config['initial_transform'] is not None:
+        initial_transform = np.array(config['initial_transform'], dtype=np.float64)
+    else:
+        source_center = source_cloud.get_center()
+        target_center = target_cloud.get_center()
+        translation = target_center - source_center
+        initial_transform[0:3, 3] = translation
+    
+    # Also try point-to-plane ICP which is more robust
+    # First try point-to-point with centroid alignment
     result = o3d.pipelines.registration.registration_icp(
         source_cloud,
         target_cloud,
@@ -54,6 +63,29 @@ def icp_registration(source_points, target_points, config):
         o3d.pipelines.registration.TransformationEstimationPointToPoint(),
         criteria
     )
+    
+    # If point-to-point didn't work well, try point-to-plane (more robust)
+    if result.inlier_rmse > config.get('rmse_threshold', 0.001) * 2:  # If RMS is > 2x threshold
+        # Estimate normals for point-to-plane ICP
+        source_cloud.estimate_normals(
+            search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30)
+        )
+        target_cloud.estimate_normals(
+            search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30)
+        )
+        
+        result_ptp = o3d.pipelines.registration.registration_icp(
+            source_cloud,
+            target_cloud,
+            max_correspondence_distance,
+            initial_transform,
+            o3d.pipelines.registration.TransformationEstimationPointToPlane(),
+            criteria
+        )
+        
+        # Use point-to-plane if it's better
+        if result_ptp.inlier_rmse < result.inlier_rmse:
+            result = result_ptp
 
     # If forward ICP didn't converge well, try reverse
     if result.inlier_rmse > config.get('rmse_threshold', 0.001):
