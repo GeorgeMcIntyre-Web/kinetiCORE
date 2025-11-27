@@ -1,10 +1,11 @@
 .toolbar-container {
   display: inline-flex; /* shrink-to-fit width */
   flex-wrap: wrap; /* allow button groups to wrap when space is tight */
-  align-items: stretch; /* allow children (separators) to stretch full height */
+  align-items: center; /* keep rows aligned and consistent height */
   justify-content: flex-start;
   gap: 8px;
   padding: 8px 12px; /* more breathing room for contents */
+  min-height: 64px; /* uniform toolbar height across layouts */
   /* Solid background for clear contrast against parent row */
   background: rgb(33, 38, 52);
   border: 1px solid #333845;
@@ -43,6 +44,7 @@
 .toolbar-container.compact {
   padding: 3px 6px;
   gap: 6px;
+  min-height: 64px; /* keep toolbar rows consistent height across layouts */
 }
 
 .toolbar-container.compact .tool-group { gap: 2px; }
@@ -50,9 +52,29 @@
 
 .toolbar-container.compact .tool-buttons { gap: 6px; }
 
+.toolbar-container .tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px; /* consistent baseline height without clipping icons */
+  padding: 4px 10px;
+  gap: 2px; /* tighter icon/text spacing */
+  line-height: 1.2;
+}
+
+.toolbar-container .tool-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.toolbar-container .tool-btn span {
+  line-height: 1.2;
+}
+
 .toolbar-container.compact .tool-btn {
   padding: 3px 7px;
   min-width: 52px;
+  min-height: 30px;
   font-size: 12px;
 }
 

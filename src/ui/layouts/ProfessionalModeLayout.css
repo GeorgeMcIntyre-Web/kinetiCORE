@@ -49,14 +49,18 @@
 }
 
 .workspace-tab {
-  padding: 8px 16px; /* increase vertical padding for taller tabs */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px; /* uniform height across layouts */
+  padding: 0 16px;
   background: transparent;
   border: none;
   color: #e2e8f0; /* match Essentials header text tone */
   font-size: 14px; /* align with Essentials text-sm */
   font-weight: 600; /* crisper tab labels */
-  margin-top: 4px; /* further increase tab height */
-  margin-bottom: 4px; /* further increase tab height */
+  margin-top: 4px; /* keep slight vertical breathing room */
+  margin-bottom: 4px;
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.2s;
