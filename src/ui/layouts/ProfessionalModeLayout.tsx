@@ -122,7 +122,7 @@ export const ProfessionalModeLayout: React.FC = () => {
   const setPipingModeEnabled = useEditorStore((state) => state.setPipingModeEnabled);
 
   const [activeWorkspace, setActiveWorkspace] = useState<
-    'modeling' | 'simulation' | 'kinematics' | 'analysis' | 'routing'
+    'modeling' | 'simulation' | 'kinematics' | 'kinematicsRobot' | 'kinematicsFixture' | 'analysis' | 'routing'
   >('modeling');
   const [pipingQuickMode, setPipingQuickMode] = useState<'none' | 'node' | 'segment'>('none');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -627,6 +627,18 @@ export const ProfessionalModeLayout: React.FC = () => {
               Kinematics
             </button>
             <button
+              className={`workspace-tab ${activeWorkspace === 'kinematicsRobot' ? 'active' : ''}`}
+              onClick={() => setActiveWorkspace('kinematicsRobot')}
+            >
+              Robot Kinematics
+            </button>
+            <button
+              className={`workspace-tab ${activeWorkspace === 'kinematicsFixture' ? 'active' : ''}`}
+              onClick={() => setActiveWorkspace('kinematicsFixture')}
+            >
+              Fixture Kinematics
+            </button>
+            <button
               className={`workspace-tab ${activeWorkspace === 'routing' ? 'active' : ''}`}
               onClick={() => setActiveWorkspace('routing')}
             >
@@ -990,175 +1002,183 @@ export const ProfessionalModeLayout: React.FC = () => {
           </>
         )}
 
-        {activeWorkspace === 'kinematics' && (
+        {(activeWorkspace === 'kinematics' ||
+          activeWorkspace === 'kinematicsRobot' ||
+          activeWorkspace === 'kinematicsFixture') && (
           <>
-            <div className="tool-group">
-              <div className="group-label">Robot Kinematics</div>
-              <div className="tool-buttons kinematics-inline-controls">
-                <button className="tool-btn" onClick={handleKinematicsReset} title="Home all joints">
-                  <Home size={18} />
-                  <span>Home</span>
-                </button>
+            {(activeWorkspace === 'kinematics' || activeWorkspace === 'kinematicsRobot') && (
+              <>
+                <div className="tool-group">
+                  <div className="group-label">Robot Kinematics</div>
+                  <div className="tool-buttons kinematics-inline-controls">
+                    <button className="tool-btn" onClick={handleKinematicsReset} title="Home all joints">
+                      <Home size={18} />
+                      <span>Home</span>
+                    </button>
 
-                <button
-                  className="tool-btn"
-                  onClick={() => setShowJointJogPanel(true)}
-                  title="Open Joint Jog"
-                >
-                  <Move size={18} />
-                  <span>Joint Jog</span>
-                </button>
+                    <button
+                      className="tool-btn"
+                      onClick={() => setShowJointJogPanel(true)}
+                      title="Open Joint Jog"
+                    >
+                      <Move size={18} />
+                      <span>Joint Jog</span>
+                    </button>
 
-                <button
-                  className="tool-btn"
-                  onClick={() => setShowRobotJogPanel(true)}
-                  title="Open Robot Jog (TCP)"
-                >
-                  <Navigation size={18} />
-                  <span>Robot Jog</span>
-                </button>
+                    <button
+                      className="tool-btn"
+                      onClick={() => setShowRobotJogPanel(true)}
+                      title="Open Robot Jog (TCP)"
+                    >
+                      <Navigation size={18} />
+                      <span>Robot Jog</span>
+                    </button>
 
-                <button
-                  className="tool-btn"
-                  onClick={() => setShowPosesPanel(true)}
-                  title="Open Poses Panel"
-                >
-                  <Play size={18} />
-                  <span>Poses</span>
-                </button>
+                    <button
+                      className="tool-btn"
+                      onClick={() => setShowPosesPanel(true)}
+                      title="Open Poses Panel"
+                    >
+                      <Play size={18} />
+                      <span>Poses</span>
+                    </button>
 
-                <button
-                  className="tool-btn"
-                  onClick={() => {
-                    window.dispatchEvent(
-                      new CustomEvent('dock-open-panel', {
-                        detail: {
-                          id: 'target-panel',
-                          type: 'target',
-                          title: 'Target',
-                          position: 'left',
-                          referencePanel: 'viewport-panel',
-                          size: { width: 380 },
-                        },
-                      })
-                    );
-                  }}
-                  title="Open Target Docked Panel"
-                >
-                  <Target size={18} />
-                  <span>Target</span>
-                </button>
+                    <button
+                      className="tool-btn"
+                      onClick={() => {
+                        window.dispatchEvent(
+                          new CustomEvent('dock-open-panel', {
+                            detail: {
+                              id: 'target-panel',
+                              type: 'target',
+                              title: 'Target',
+                              position: 'left',
+                              referencePanel: 'viewport-panel',
+                              size: { width: 380 },
+                            },
+                          })
+                        );
+                      }}
+                      title="Open Target Docked Panel"
+                    >
+                      <Target size={18} />
+                      <span>Target</span>
+                    </button>
 
-                <button
-                  className={`tool-btn ${kinVisualizerEnabled ? 'active' : ''}`}
-                  onClick={handleKinematicsVisualizerToggle}
-                  title={kinVisualizerEnabled ? 'Hide debug visualizer' : 'Show debug visualizer'}
-                >
-                  {kinVisualizerEnabled ? <Eye size={18} /> : <EyeOff size={18} />}
-                  <span>Visualizer</span>
-                </button>
+                    <button
+                      className={`tool-btn ${kinVisualizerEnabled ? 'active' : ''}`}
+                      onClick={handleKinematicsVisualizerToggle}
+                      title={kinVisualizerEnabled ? 'Hide debug visualizer' : 'Show debug visualizer'}
+                    >
+                      {kinVisualizerEnabled ? <Eye size={18} /> : <EyeOff size={18} />}
+                      <span>Visualizer</span>
+                    </button>
 
-                <button className="tool-btn" onClick={handleKinematicsJointDebug} title="Show joint debug frames">
-                  <Bug size={18} />
-                  <span>Joint Debug</span>
-                </button>
+                    <button className="tool-btn" onClick={handleKinematicsJointDebug} title="Show joint debug frames">
+                      <Bug size={18} />
+                      <span>Joint Debug</span>
+                    </button>
 
-                {editableKinematicsFlag && (
-                  <button
-                    className={`tool-btn ${editModeEnabled ? 'active' : ''}`}
-                    onClick={() => setEditModeEnabled(!editModeEnabled)}
-                    title="Toggle edit mode"
-                  >
-                    <Edit size={18} />
-                    <span>Edit Mode</span>
-                  </button>
-                )}
+                    {editableKinematicsFlag && (
+                      <button
+                        className={`tool-btn ${editModeEnabled ? 'active' : ''}`}
+                        onClick={() => setEditModeEnabled(!editModeEnabled)}
+                        title="Toggle edit mode"
+                      >
+                        <Edit size={18} />
+                        <span>Edit Mode</span>
+                      </button>
+                    )}
 
-                <button
-                  className="tool-btn"
-                  onClick={handleKinematicsVizSettings}
-                  title="Open visualization settings"
-                >
-                  <Settings size={18} />
-                  <span>Viz Settings</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="toolbar-separator"></div>
-
-            <div className="tool-group">
-              <div className="group-label">Fixture kinematics</div>
-              <div className="tool-buttons">
-                <button
-                  className="tool-btn"
-                  onClick={() => setShowKinematicsPanel(true)}
-                  title="Motion Panel"
-                >
-                  <Rocket size={18} />
-                  <span className="tool-btn-label">Motion</span>
-                </button>
-                <button
-                  className="tool-btn"
-                  onClick={() => setShowKinematicsAnalysisPanel(true)}
-                  title="Kinematics Analysis"
-                >
-                  <Calculator size={18} />
-                  <span className="tool-btn-label">Analysis</span>
-                </button>
-                <button
-                  className="tool-btn"
-                  onClick={() => setShowPosesPanel(true)}
-                  title="Open Poses Panel"
-                >
-                  <Play size={18} />
-                  <span className="tool-btn-label">Poses</span>
-                </button>
-                <button
-                  className="tool-btn"
-                  onClick={() => setShowActuatorPanel(true)}
-                  title="Actuator Control"
-                >
-                  <div style={{ position: 'relative', width: 18, height: 18 }}>
-                    <Zap size={12} style={{ position: 'absolute', left: 1, top: 1 }} />
-                    <Settings size={12} style={{ position: 'absolute', right: 1, bottom: 1 }} />
+                    <button
+                      className="tool-btn"
+                      onClick={handleKinematicsVizSettings}
+                      title="Open visualization settings"
+                    >
+                      <Settings size={18} />
+                      <span>Viz Settings</span>
+                    </button>
                   </div>
-                  <span className="tool-btn-label">Actuators</span>
-                </button>
-                <button
-                  className="tool-btn"
-                  onClick={() => setShowComplexIKPanel(true)}
-                  title="Complex IK Systems"
-                >
-                  <GitBranch size={18} />
-                  <span className="tool-btn-label">Complex IK</span>
-                </button>
-                <button
-                  className="tool-btn"
-                  onClick={() => setShowWholeBodyIKPanel(true)}
-                  title="FullBody IK"
-                >
-                  <Network size={18} />
-                  <span className="tool-btn-label">FullBody IK</span>
-                </button>
-                <button
-                  className={`tool-btn ${showKinematicExtractionPanel ? 'active' : ''}`}
-                  onClick={() => setShowKinematicExtractionPanel(!showKinematicExtractionPanel)}
-                  title="Auto Kinematic Extraction - Hierarchical BBox Pairing"
-                >
-                  <Scan size={18} />
-                  <span className="tool-btn-label">Auto Extract</span>
-                </button>
-                <button
-                  className="tool-btn"
-                  onClick={() => setShowICPTestPanel(true)}
-                  title="ICP Test Tool - Manual FIXED/MOVING Selection"
-                >
-                  <TestTube size={18} />
-                  <span className="tool-btn-label">ICP Test</span>
-                </button>
+                </div>
+
+                {activeWorkspace === 'kinematics' && <div className="toolbar-separator"></div>}
+              </>
+            )}
+
+            {(activeWorkspace === 'kinematics' || activeWorkspace === 'kinematicsFixture') && (
+              <div className="tool-group">
+                <div className="group-label">Fixture kinematics</div>
+                <div className="tool-buttons">
+                  <button
+                    className="tool-btn"
+                    onClick={() => setShowKinematicsPanel(true)}
+                    title="Motion Panel"
+                  >
+                    <Rocket size={18} />
+                    <span className="tool-btn-label">Motion</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    onClick={() => setShowKinematicsAnalysisPanel(true)}
+                    title="Kinematics Analysis"
+                  >
+                    <Calculator size={18} />
+                    <span className="tool-btn-label">Analysis</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    onClick={() => setShowPosesPanel(true)}
+                    title="Open Poses Panel"
+                  >
+                    <Play size={18} />
+                    <span className="tool-btn-label">Poses</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    onClick={() => setShowActuatorPanel(true)}
+                    title="Actuator Control"
+                  >
+                    <div style={{ position: 'relative', width: 18, height: 18 }}>
+                      <Zap size={12} style={{ position: 'absolute', left: 1, top: 1 }} />
+                      <Settings size={12} style={{ position: 'absolute', right: 1, bottom: 1 }} />
+                    </div>
+                    <span className="tool-btn-label">Actuators</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    onClick={() => setShowComplexIKPanel(true)}
+                    title="Complex IK Systems"
+                  >
+                    <GitBranch size={18} />
+                    <span className="tool-btn-label">Complex IK</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    onClick={() => setShowWholeBodyIKPanel(true)}
+                    title="FullBody IK"
+                  >
+                    <Network size={18} />
+                    <span className="tool-btn-label">FullBody IK</span>
+                  </button>
+                  <button
+                    className={`tool-btn ${showKinematicExtractionPanel ? 'active' : ''}`}
+                    onClick={() => setShowKinematicExtractionPanel(!showKinematicExtractionPanel)}
+                    title="Auto Kinematic Extraction - Hierarchical BBox Pairing"
+                  >
+                    <Scan size={18} />
+                    <span className="tool-btn-label">Auto Extract</span>
+                  </button>
+                  <button
+                    className="tool-btn"
+                    onClick={() => setShowICPTestPanel(true)}
+                    title="ICP Test Tool - Manual FIXED/MOVING Selection"
+                  >
+                    <TestTube size={18} />
+                    <span className="tool-btn-label">ICP Test</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </>
         )}
 
