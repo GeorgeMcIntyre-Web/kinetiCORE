@@ -33,12 +33,23 @@ export const KeyboardShortcuts: React.FC = () => {
   const toggleInspector = useEditorStore((state) => state.toggleInspector);
   const undo = useEditorStore((state) => state.undo);
   const redo = useEditorStore((state) => state.redo);
+  const performBooleanUnion = useEditorStore((state) => state.performBooleanUnion);
+  const performBooleanSubtract = useEditorStore((state) => state.performBooleanSubtract);
+  const performBooleanIntersect = useEditorStore((state) => state.performBooleanIntersect);
+  const toggleTransformGizmo = useEditorStore((state) => state.toggleTransformGizmo);
 
   const shortcuts: Shortcut[] = [
     // Transform modes
     { key: 'g', description: 'Move/Translate', action: () => setTransformMode('translate'), category: 'Transform' },
     { key: 'r', description: 'Rotate', action: () => setTransformMode('rotate'), category: 'Transform' },
     { key: 's', description: 'Scale', action: () => setTransformMode('scale'), category: 'Transform' },
+    { key: 't', description: 'Toggle Transform Gizmo', action: () => {
+      const { selectedNodeId, selectedMeshes } = useEditorStore.getState();
+      if (!selectedNodeId && selectedMeshes.length === 0) {
+        return;
+      }
+      toggleTransformGizmo();
+    }, category: 'Transform' },
 
     // Selection
     { key: 'a', ctrl: true, description: 'Select All', action: () => {}, category: 'Selection' },
@@ -70,6 +81,54 @@ export const KeyboardShortcuts: React.FC = () => {
     { key: 'c', ctrl: true, shift: true, description: 'Toggle Orthographic/Perspective', action: () => toggleCameraMode(), category: 'View' },
     { key: 'i', ctrl: true, shift: true, description: 'Toggle Inspector', action: () => toggleInspector(), category: 'View' },
     { key: ' ', ctrl: true, description: 'Focus Camera on Selected', action: () => selectedNodeId && zoomToNode(selectedNodeId), category: 'View' },
+
+    // Boolean Operations
+    {
+      key: 'u',
+      ctrl: true,
+      description: 'Boolean Union (two selected nodes)',
+      action: () => {
+        const state = useEditorStore.getState();
+        const ids = state.selectedNodeIds;
+        if (!ids || ids.length < 2) {
+          return;
+        }
+        const [nodeIdA, nodeIdB] = ids;
+        performBooleanUnion(nodeIdA, nodeIdB);
+      },
+      category: 'Boolean',
+    },
+    {
+      key: 'u',
+      ctrl: true,
+      shift: true,
+      description: 'Boolean Subtract (two selected nodes)',
+      action: () => {
+        const state = useEditorStore.getState();
+        const ids = state.selectedNodeIds;
+        if (!ids || ids.length < 2) {
+          return;
+        }
+        const [nodeIdA, nodeIdB] = ids;
+        performBooleanSubtract(nodeIdA, nodeIdB);
+      },
+      category: 'Boolean',
+    },
+    {
+      key: 'i',
+      ctrl: true,
+      description: 'Boolean Intersect (two selected nodes)',
+      action: () => {
+        const state = useEditorStore.getState();
+        const ids = state.selectedNodeIds;
+        if (!ids || ids.length < 2) {
+          return;
+        }
+        const [nodeIdA, nodeIdB] = ids;
+        performBooleanIntersect(nodeIdA, nodeIdB);
+      },
+      category: 'Boolean',
+    },
 
     // Help
     { key: '?', description: 'Show Shortcuts', action: () => setShowHelp(!showHelp), category: 'Help' },

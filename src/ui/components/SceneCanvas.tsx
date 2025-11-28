@@ -1121,6 +1121,41 @@ App    : minPx=${appMinPx} near=${appNear} rw=${appRw} rh=${appRh} dpr=${appDpr.
                   
                   (center as any).faceNormal = faceNormal;
                 }
+
+                // Update snapped coordinate debug overlay in store
+                try {
+                  const editorState = useEditorStore.getState();
+                  const world = {
+                    x: center.x,
+                    y: center.y,
+                    z: center.z,
+                  };
+
+                  let local: { x: number; y: number; z: number } | undefined;
+                  const targetMeshName = snapResult.targetMeshName;
+                  const targetMesh = targetMeshName ? scene.getMeshByName(targetMeshName) as BABYLON.Mesh | null : null;
+                  if (targetMesh) {
+                    const worldMatrix = targetMesh.computeWorldMatrix(true);
+                    const inverse = new BABYLON.Matrix();
+                    if (worldMatrix.invertToRef(inverse)) {
+                      const localVec = BABYLON.Vector3.TransformCoordinates(center, inverse);
+                      local = {
+                        x: localVec.x,
+                        y: localVec.y,
+                        z: localVec.z,
+                      };
+                    }
+                  }
+
+                  editorState.setLastSnapResult({
+                    world,
+                    local,
+                    type: (snapResult.snapType as any) || 'unknown',
+                    targetName: snapResult.targetMeshName || targetMesh?.name,
+                  });
+                } catch {
+                  // Overlay update is best-effort; ignore errors to avoid breaking snapping
+                }
                 
                 snappingHelper.showPreviewDot(center, snapResult.snapType);
               } else {
@@ -1300,13 +1335,18 @@ App    : minPx=${appMinPx} near=${appNear} rw=${appRw} rh=${appRh} dpr=${appDpr.
     if (!gizmoRef.current) return;
 
     // Check if gizmo should be enabled
-    const shouldEnable = transformGizmoEnabled && (selectedMeshes.length > 0 || selectedCollectionTransformNode);
+    const shouldEnable =
+      transformGizmoEnabled && (selectedCollectionTransformNode || selectedMeshes.length > 0);
 
     if (shouldEnable) {
       gizmoRef.current.setEnabled(true);
       const registry = EntityRegistry.getInstance();
 
-      if (selectedMeshes.length > 0) {
+      if (selectedCollectionTransformNode) {
+        // Attach gizmo directly to the resolved TransformNode (collections, devices, grouped nodes)
+        gizmoRef.current.attachToNode(selectedCollectionTransformNode);
+        gizmoRef.current.setMode(transformMode);
+      } else if (selectedMeshes.length > 0) {
         const selectedMesh = selectedMeshes[0];
         const entity = registry.getByMesh(selectedMesh);
 
@@ -1322,10 +1362,6 @@ App    : minPx=${appMinPx} near=${appNear} rw=${appRw} rh=${appRh} dpr=${appDpr.
           gizmoRef.current.attachToMesh(selectedMesh);
           gizmoRef.current.setMode(transformMode);
         }
-      } else if (selectedCollectionTransformNode) {
-        // Collection node selected from tree - attach gizmo to TransformNode
-        gizmoRef.current.attachToNode(selectedCollectionTransformNode);
-        gizmoRef.current.setMode(transformMode);
       }
     } else {
       // Disable and detach gizmo

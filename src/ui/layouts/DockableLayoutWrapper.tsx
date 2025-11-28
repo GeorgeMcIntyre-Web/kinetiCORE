@@ -32,6 +32,8 @@ interface DockableLayoutWrapperProps {
   // Optional initial width for the left dock group (e.g., Scene Tree). If provided,
   // the first left panel is sized to this width and updated when the prop changes.
   leftGroupWidth?: number;
+  // Optional initial height for the bottom dock group.
+  bottomPanelHeight?: number;
 }
 
 // Helper function to modify saved layout JSON to update right panel width
@@ -99,6 +101,7 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
   onLayoutChange,
   savedLayout,
   leftGroupWidth,
+  bottomPanelHeight,
 }) => {
   const apiRef = useRef<DockviewApi | null>(null);
   const leftPanelApiRef = useRef<any | null>(null);
@@ -129,6 +132,15 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
             if (panel) {
               rightPanelApiRef.current = panel.api;
               panel.api.setSize({ width: 300 });
+            }
+          }
+
+          // Enforce bottom panel height if provided
+          if (config.bottomPanels && config.bottomPanels.length > 0 && typeof bottomPanelHeight === 'number' && bottomPanelHeight > 0) {
+            const firstBottomPanelId = config.bottomPanels[0].id;
+            const panel = event.api.getPanel(firstBottomPanelId);
+            if (panel) {
+              panel.api.setSize({ height: bottomPanelHeight });
             }
           }
         });
@@ -238,6 +250,13 @@ export const DockableLayoutWrapper: React.FC<DockableLayoutWrapperProps> = ({
         params: {},
         position: { direction: 'below' },
       });
+
+      // Apply initial height if provided
+      if (typeof bottomPanelHeight === 'number' && bottomPanelHeight > 0) {
+        requestAnimationFrame(() => {
+          bottomPanel.api.setSize({ height: bottomPanelHeight });
+        });
+      }
 
       // Add remaining bottom panels to the same group
       for (const panelDef of restPanels) {
