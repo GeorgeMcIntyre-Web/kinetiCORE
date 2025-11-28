@@ -33,7 +33,6 @@ import {
   Link,
   Scan,
   Settings,
-  RotateCcw,
   Target,
   CornerDownRight,
   Square,
@@ -53,6 +52,8 @@ import { useAssetLibraryStore } from '../store/assetLibraryStore';
 import { useProjectManagerStore } from '../store/projectManagerStore';
 import { DockableLayoutWrapper } from './DockableLayoutWrapper';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
+import { CreateProjectionViewCommand } from '../../history/commands/CreateProjectionViewCommand';
+import { toast } from '../components/ToastNotifications';
 
 import { MoveObjectDialog } from '../components/MoveObjectDialog';
 import { ExportDialog } from '../components/ExportDialog';
@@ -351,6 +352,105 @@ export const ProfessionalModeLayout: React.FC = () => {
 
   const handleCloseMeasurement = () => {
     setActiveMeasurement(null);
+  };
+
+  const handleCreateProjectionView = () => {
+    if (selectedNodeIds.length === 0) {
+      toast.warning('Select object(s) to project');
+      return;
+    }
+
+    const tree = SceneTreeManager.getInstance();
+    const sceneManager = SceneManager.getInstance();
+    const scene = sceneManager.getScene();
+
+    if (!scene) {
+      toast.error('Scene not initialized');
+      return;
+    }
+
+    let sourceMesh: any = null;
+    let targetMesh: any = null;
+
+    if (selectedNodeIds.length === 1) {
+      // Single selection: project onto ground
+      const node = tree.getNode(selectedNodeIds[0]);
+      if (!node) {
+        toast.error('Node not found');
+        return;
+      }
+
+      sourceMesh = node.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node.babylonMeshId)) : null;
+      targetMesh = scene.getMeshByName('ground');
+
+      if (!sourceMesh) {
+        toast.error('Select a mesh object');
+        return;
+      }
+
+      if (!targetMesh) {
+        toast.error('Ground not found');
+        return;
+      }
+    } else if (selectedNodeIds.length === 2) {
+      // Two selections: project first onto second
+      const node1 = tree.getNode(selectedNodeIds[0]);
+      const node2 = tree.getNode(selectedNodeIds[1]);
+
+      if (!node1 || !node2) {
+        toast.error('Nodes not found');
+        return;
+      }
+
+      sourceMesh = node1.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node1.babylonMeshId)) : null;
+      targetMesh = node2.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node2.babylonMeshId)) : null;
+
+      if (!sourceMesh || !targetMesh) {
+        toast.error('Select 2 meshes');
+        return;
+      }
+    } else {
+      // Multiple selections: project all onto ground
+      targetMesh = scene.getMeshByName('ground');
+      if (!targetMesh) {
+        toast.error('Ground not found');
+        return;
+      }
+
+      // Project each selected object onto ground
+      let successCount = 0;
+      for (const nodeId of selectedNodeIds) {
+        const node = tree.getNode(nodeId);
+        if (!node) continue;
+
+        sourceMesh = node.babylonMeshId ? scene.getMeshByUniqueId(parseInt(node.babylonMeshId)) : null;
+        if (!sourceMesh) continue;
+
+        try {
+          const command = new CreateProjectionViewCommand(sourceMesh.name, targetMesh.name, 'auto');
+          commandManager.execute(command);
+          successCount++;
+        } catch (error) {
+          console.error('Failed to project:', error);
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`Created ${successCount} projections!`);
+      } else {
+        toast.error('No projections created');
+      }
+      return;
+    }
+
+    try {
+      const command = new CreateProjectionViewCommand(sourceMesh.name, targetMesh.name, 'auto');
+      commandManager.execute(command);
+      toast.success('Projection created!');
+    } catch (error) {
+      console.error('Failed to create projection:', error);
+      toast.error(`Failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   const handleToggleBabylonInspector = async () => {
@@ -782,16 +882,16 @@ export const ProfessionalModeLayout: React.FC = () => {
 
         {/* Transform Tools */}
         <div className="tool-group">
-          <div className="group-label center">Transform</div>
+          <div className="group-label">Transform</div>
           <div className="tool-buttons">
             <button
               className={`tool-btn ${transformMode === 'translate' && transformGizmoEnabled ? 'active' : ''}`}
               disabled={!selectedNodeId}
-              title={selectedNodeId ? 'Translate' : 'Select an object first'}
+              title={selectedNodeId ? 'Move' : 'Select an object first'}
               onClick={() => handleTransformTool('translate')}
             >
               <Move size={18} />
-              <span>Translate</span>
+              <span>Move</span>
             </button>
             <button
               className={`tool-btn ${transformMode === 'rotate' && transformGizmoEnabled ? 'active' : ''}`}
@@ -811,7 +911,6 @@ export const ProfessionalModeLayout: React.FC = () => {
               <Scale size={18} />
               <span>Scale</span>
             </button>
-            
             <button
               className="tool-btn"
               disabled={!selectedNodeId}
@@ -839,132 +938,25 @@ export const ProfessionalModeLayout: React.FC = () => {
 
         <div className="toolbar-separator"></div>
 
-        {/* View */}
-        <div className="tool-group">
-          <div className="group-label">View</div>
-          <div className="tool-buttons">
-            <button className="tool-btn" title="Reset View" onClick={handleResetView}>
-              <RotateCcw size={18} />
-              <span>Reset</span>
-            </button>
-            <button className="tool-btn" title="Zoom Fit" onClick={handleZoomFit}>
-              <Maximize2 size={18} />
-              <span>Fit</span>
-            </button>
-            <button className="tool-btn" title="Zoom to Selected" onClick={handleZoomToSelected} disabled={!selectedNodeId}>
-              <Target size={18} />
-              <span>Selected</span>
-            </button>
-            <ViewOptionsDropdown
-              onTopViewClick={handleTopView}
-              onRightViewClick={handleRightView}
-              onFrontViewClick={handleFrontView}
-              onIsoViewClick={handleIsoView}
-              currentView={currentView}
-            />
-          </div>
-        </div>
-
-        <div className="toolbar-separator"></div>
-
-        {/* Utilities */}
-        <div className="tool-group">
-          <div className="group-label">Utilities</div>
-          <div className="tool-buttons">
-            <SelectionLevelDropdown currentLevel={selectionLevel} onLevelChange={setSelectionLevel} />
-          </div>
-        </div>
-
-        <div className="toolbar-separator"></div>
-
-        {/* Align */}
-        <div className="tool-group">
-          <div className="group-label">Align</div>
-          <div className="tool-buttons">
-            <button className={`tool-btn ${alignMode === 'vertex' ? 'active' : ''}`} onClick={() => setAlignMode('vertex')} title="Align Vertex">
-              <CornerDownRight size={18} />
-              <span>Vertex</span>
-            </button>
-            <button className={`tool-btn ${alignMode === 'edge' ? 'active' : ''}`} onClick={() => setAlignMode('edge')} title="Align Edge">
-              <Minus size={18} />
-              <span>Edge</span>
-            </button>
-            <button className={`tool-btn ${alignMode === 'face' ? 'active' : ''}`} onClick={() => setAlignMode('face')} title="Align Face">
-              <Square size={18} />
-              <span>Face</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="toolbar-separator"></div>
-
         {/* Snap Tools */}
         <div className="tool-group">
           <div className="group-label">Snap</div>
           <div className="tool-buttons">
             <button
               className={`tool-btn ${snapToolActive ? 'active' : ''}`}
-              title="Snap - Click first point on source object, then click target point"
               onClick={() => setSnapToolActive(!snapToolActive)}
+              title="Snap - Click first point on source object, then click target point"
             >
               <Magnet size={18} />
               <span>Snap</span>
             </button>
             <button
               className="tool-btn"
-              title="Snap Setup"
               onClick={() => setShowSnapSetupPopup(true)}
+              title="Snap Setup"
             >
               <Crosshair size={18} />
-              <span>Snap Setup</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="toolbar-separator"></div>
-
-        {/* Modify Tools */}
-        <div className="tool-group">
-          <div className="group-label">Modify</div>
-          <div className="tool-buttons">
-            <button
-              className="tool-btn"
-              title={
-                  selectedNodeIds.length === 2
-                  ? 'Union - Combine two objects into one'
-                  : 'Union - Select exactly 2 objects (Ctrl+Click)'
-              }
-              disabled={selectedNodeIds.length !== 2}
-              onClick={() => handleBooleanOperation('union')}
-            >
-              <Layers size={18} />
-              <span>Union</span>
-            </button>
-            <button
-              className="tool-btn"
-              title={
-                  selectedNodeIds.length === 2
-                  ? 'Subtract - Remove 2nd object from 1st'
-                  : 'Subtract - Select exactly 2 objects (Ctrl+Click)'
-              }
-              disabled={selectedNodeIds.length !== 2}
-              onClick={() => handleBooleanOperation('subtract')}
-            >
-              <Minus size={18} />
-              <span>Subtract</span>
-            </button>
-            <button
-              className="tool-btn"
-              title={
-                  selectedNodeIds.length === 2
-                  ? 'Intersect - Keep only overlapping volume'
-                  : 'Intersect - Select exactly 2 objects (Ctrl+Click)'
-              }
-              disabled={selectedNodeIds.length !== 2}
-              onClick={() => handleBooleanOperation('intersect')}
-            >
-              <LayoutTemplate size={18} />
-              <span>Intersect</span>
+              <span>Setup</span>
             </button>
           </div>
         </div>
@@ -998,6 +990,86 @@ export const ProfessionalModeLayout: React.FC = () => {
             >
               <Box size={18} />
               <span>Volume</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
+        {/* View */}
+        <div className="tool-group">
+          <div className="group-label">View</div>
+          <div className="tool-buttons">
+            <button className="tool-btn" title="Reset View" onClick={handleResetView}>
+              <RotateCw size={18} />
+              <span>Reset</span>
+            </button>
+            <button className="tool-btn" title="Zoom Fit" onClick={handleZoomFit}>
+              <Maximize2 size={18} />
+              <span>Fit</span>
+            </button>
+            <button
+              className="tool-btn"
+              title="Zoom to Selected"
+              onClick={handleZoomToSelected}
+              disabled={!selectedNodeId}
+            >
+              <Target size={18} />
+              <span>Selected</span>
+            </button>
+            <ViewOptionsDropdown
+              onTopViewClick={handleTopView}
+              onRightViewClick={handleRightView}
+              onFrontViewClick={handleFrontView}
+              onIsoViewClick={handleIsoView}
+              currentView={currentView}
+            />
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
+        {/* Utilities */}
+        <div className="tool-group">
+          <div className="group-label">Utilities</div>
+          <div className="tool-buttons">
+            <SelectionLevelDropdown currentLevel={selectionLevel} onLevelChange={setSelectionLevel} />
+            <button className="tool-btn" title="Create Projection View" onClick={handleCreateProjectionView}>
+              <LayoutTemplate size={18} />
+              <span>Projection</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
+        {/* Align */}
+        <div className="tool-group">
+          <div className="group-label">Align</div>
+          <div className="tool-buttons">
+            <button
+              className={`tool-btn ${alignMode === 'vertex' ? 'active' : ''}`}
+              onClick={() => setAlignMode('vertex')}
+              title="Align Vertex"
+            >
+              <CornerDownRight size={18} />
+              <span>Vertex</span>
+            </button>
+            <button
+              className={`tool-btn ${alignMode === 'edge' ? 'active' : ''}`}
+              onClick={() => setAlignMode('edge')}
+              title="Align Edge"
+            >
+              <Minus size={18} />
+              <span>Edge</span>
+            </button>
+            <button
+              className={`tool-btn ${alignMode === 'face' ? 'active' : ''}`}
+              onClick={() => setAlignMode('face')}
+              title="Align Face"
+            >
+              <Square size={18} />
+              <span>Face</span>
             </button>
           </div>
         </div>
