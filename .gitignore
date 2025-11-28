@@ -276,6 +276,7 @@ scripts/runTestsWithFileOutput.ts
 
 # Ignore all temporary/debug scripts except quickAnalyze.ts
 scripts/analyze*.ts
+!scripts/quickAnalyze.ts
 scripts/batch*.ts
 scripts/check*.ts
 scripts/debug*.ts
