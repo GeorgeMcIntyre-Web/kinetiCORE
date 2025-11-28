@@ -11,7 +11,8 @@
   justify-content: center;
   gap: 2px;
   width: 56px;
-  height: 34px;
+  height: 35px;
+  min-height: 35px;
   padding: 0;
   background: #2a3145 !important; /* match toolbar buttons */
   border: 1px solid #3a4154 !important;
@@ -64,7 +65,7 @@
   border: 1px solid #333845;
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
+  z-index: 5000;
   min-width: 140px;
   overflow: hidden;
   animation: dropdownSlideDown 0.15s ease-out;
