@@ -40,6 +40,7 @@ import {
   Bug,
   Edit,
   Scan,
+  Activity,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
