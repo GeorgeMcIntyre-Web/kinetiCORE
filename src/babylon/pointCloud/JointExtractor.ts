@@ -1,6 +1,8 @@
 import * as BABYLON from '@babylonjs/core';
 import type { ICPResult } from './ICP';
 import type { JointDefinitionOutput } from '../io/Schemas';
+import { decomposeTransform, solveOrbitBasedPivot } from '../kinematics/JointMath';
+
 
 /**
  * Result of joint extraction from ICP transform.
@@ -18,6 +20,10 @@ export interface JointFitResult {
   confidence: number;
   /** Residual error from ICP (meters) */
   residualError: number;
+  /** From vector for visualization (pivot → start, projected to plane) - hinge only */
+  fromVector?: BABYLON.Vector3;
+  /** To vector for visualization (pivot → end, projected to plane) - hinge only */
+  toVector?: BABYLON.Vector3;
 }
 
 /**
@@ -27,14 +33,14 @@ export interface JointExtractionOptions {
   /**
    * Minimum translation magnitude (m) to classify as prismatic joint.
    * Below this threshold, pure rotation is assumed.
-   * Default: 0.001 (1mm)
+   * Default: 0.005 (5mm)
    */
   translationThreshold?: number;
 
   /**
    * Minimum rotation angle (radians) to classify as hinge joint.
    * Below this threshold, pure translation is assumed.
-   * Default: 0.05 (≈2.86°)
+   * Default: 0.0175 (≈1°)
    */
   rotationThreshold?: number;
 
@@ -43,224 +49,132 @@ export interface JointExtractionOptions {
    * Default: 0.01 (1cm)
    */
   maxResidualError?: number;
-
-  /**
-   * Anchor point estimation strategy.
-   * - 'centroid': Use centroid of moving points
-   * - 'closest_to_origin': Use point closest to world origin
-   * - 'axis_projection': Project centroid onto rotation axis
-   * Default: 'axis_projection'
-   */
-  anchorStrategy?: 'centroid' | 'closest_to_origin' | 'axis_projection';
 }
 
 const DEFAULT_EXTRACTION_OPTIONS: Required<JointExtractionOptions> = {
-  translationThreshold: 0.001,
-  rotationThreshold: 0.05,
+  translationThreshold: 0.005, // 5mm - spec says MIN_TRANSLATION ≈ 5mm
+  rotationThreshold: 0.0175,   // ~1 degree - spec says MIN_ROTATION ≈ 1°
   maxResidualError: 0.01,
-  anchorStrategy: 'axis_projection',
 };
-
-/**
- * Decompose a 4x4 transformation matrix into translation and rotation components.
- */
-function decomposePose(T: BABYLON.Matrix): {
-  translation: BABYLON.Vector3;
-  rotation: BABYLON.Quaternion;
-  rotationAxis: BABYLON.Vector3;
-  rotationAngle: number;
-} {
-  // Extract translation
-  const translation = new BABYLON.Vector3(T.m[12], T.m[13], T.m[14]);
-
-  // Extract 3x3 rotation matrix
-  const rotMat = BABYLON.Matrix.FromArray([
-    T.m[0], T.m[1], T.m[2], 0,
-    T.m[4], T.m[5], T.m[6], 0,
-    T.m[8], T.m[9], T.m[10], 0,
-    0, 0, 0, 1,
-  ]);
-
-  // Convert to quaternion
-  const rotation = BABYLON.Quaternion.FromRotationMatrix(rotMat);
-
-  // Extract axis-angle representation
-  const angle = 2 * Math.acos(Math.min(1, Math.max(-1, rotation.w)));
-  const sinHalfAngle = Math.sin(angle / 2);
-
-  let axis: BABYLON.Vector3;
-  if (Math.abs(sinHalfAngle) < 1e-6) {
-    // Near-zero rotation, axis is arbitrary
-    axis = new BABYLON.Vector3(0, 0, 1);
-  } else {
-    axis = new BABYLON.Vector3(
-      rotation.x / sinHalfAngle,
-      rotation.y / sinHalfAngle,
-      rotation.z / sinHalfAngle
-    ).normalize();
-  }
-
-  return {
-    translation,
-    rotation,
-    rotationAxis: axis,
-    rotationAngle: angle,
-  };
-}
-
-/**
- * Compute anchor point for hinge joint from rotation axis and point cloud.
- *
- * For a hinge joint, the anchor is a point on the rotation axis.
- * We find it by projecting the centroid of the moving points onto the axis.
- */
-function computeHingeAnchor(
-  axis: BABYLON.Vector3,
-  movingPointsCentroid: BABYLON.Vector3,
-  strategy: 'centroid' | 'closest_to_origin' | 'axis_projection'
-): BABYLON.Vector3 {
-  if (strategy === 'centroid') {
-    return movingPointsCentroid.clone();
-  }
-
-  if (strategy === 'closest_to_origin') {
-    // Find point on axis closest to origin
-    // Line: P = t * axis (assuming axis passes through origin)
-    // Minimize |P|² = t² |axis|² → t = 0
-    // But we want closest to centroid, so use centroid projection
-    const t = BABYLON.Vector3.Dot(movingPointsCentroid, axis) / axis.lengthSquared();
-    return axis.scale(t);
-  }
-
-  // Default: axis_projection
-  // Project centroid onto axis passing through origin
-  const t = BABYLON.Vector3.Dot(movingPointsCentroid, axis);
-  return axis.scale(t);
-}
 
 /**
  * Extract joint definition from ICP alignment result.
  *
- * **Algorithm:**
- * 1. Decompose ICP transform into translation + rotation
- * 2. Classify joint type:
- *    - If translation >> rotation → prismatic
- *    - If rotation >> translation → hinge
- *    - If both significant → screw joint (not supported, fallback to dominant)
- * 3. Extract axis:
- *    - Prismatic: normalized translation vector
- *    - Hinge: rotation axis from quaternion
- * 4. Compute anchor point:
- *    - Prismatic: centroid of moving points
- *    - Hinge: projection of centroid onto rotation axis
- * 5. Estimate limits from magnitude
+ * **ORBIT-BASED CIRCLE FIT ALGORITHM (NO CENTROID ANCHORING)**
  *
- * **Limitations:**
- * - Assumes single DOF motion (prismatic OR hinge, not screw)
- * - Does not handle spherical joints or other multi-DOF joints
- * - Anchor estimation may be inaccurate for complex geometries
+ * Algorithm:
+ * 1. Decompose ICP transform into translation + rotation (for classification only)
+ * 2. Classify joint type based on thresholds:
+ *    - rotation > MIN_ROTATION → candidate revolute
+ *    - no rotation + translation > MIN_TRANSLATION → candidate prismatic
+ *    - otherwise → fixed/noise
+ * 3. For revolute joints:
+ *    - Generate orbits by repeatedly applying T_icp to sample points
+ *    - Fit 2D circle to each orbit via PCA plane + Kåsa method
+ *    - Combine pivot estimates with weighted average
+ *    - Compute fromVector/toVector for visualization
+ * 4. For prismatic joints:
+ *    - Use translation direction as axis
+ *    - Compute mean of retracted points as anchor
+ *
+ * NO CENTROID ANCHORING for revolute pivots - all geometry from orbits.
  *
  * @param icpResult - Result from ICP alignment (retracted → extended)
- * @param movingPointsCentroid - Centroid of moving part point cloud
+ * @param retractedPoints - Point cloud in retracted state
  * @param options - Configuration for joint extraction heuristics
- * @returns Joint fit result with type, axis, anchor, and confidence
- *
- * @example
- * ```typescript
- * const retractedPoints = capturePointCloud(scene, movingNodeId, 'retracted');
- * const extendedPoints = capturePointCloud(scene, movingNodeId, 'extended');
- * const icpResult = ICP.align(retractedPoints, extendedPoints);
- *
- * const centroid = retractedPoints.reduce((sum, p) => sum.add(p), Vector3.Zero())
- *   .scale(1 / retractedPoints.length);
- *
- * const joint = extractJointFromTransform(icpResult, centroid);
- * if (joint.confidence > 0.7) {
- *   console.log(`Detected ${joint.type} joint: ${joint.magnitude}m`);
- * }
- * ```
+ * @returns Joint fit result with type, axis, anchor, fromVector, toVector
  */
 export function extractJointFromTransform(
   icpResult: ICPResult,
-  movingPointsCentroid: BABYLON.Vector3,
+  retractedPoints: BABYLON.Vector3[],
   options: JointExtractionOptions = {}
-): JointFitResult {
+): JointFitResult | null {
   const opts = { ...DEFAULT_EXTRACTION_OPTIONS, ...options };
 
-  // Decompose transform
-  const { translation, rotationAxis, rotationAngle } = decomposePose(icpResult.transform);
+  // Guard: need minimum points
+  if (retractedPoints.length < 3) {
+    console.warn('[JointExtractor] Insufficient points for joint extraction');
+    return null;
+  }
+
+  // Decompose transform for classification
+  const { translation, axis: rotationAxis, angle: rotationAngle } = decomposeTransform(icpResult.transform);
 
   const translationMagnitude = translation.length();
   const rotationMagnitude = Math.abs(rotationAngle);
 
-  // Classify joint type
-  let type: 'hinge' | 'prismatic';
-  let axis: BABYLON.Vector3;
-  let anchor: BABYLON.Vector3;
-  let magnitude: number;
-  let confidence: number;
+  // Classification thresholds (from spec)
+  const isRotating = rotationMagnitude > opts.rotationThreshold;
 
-  const isPrismatic = translationMagnitude > opts.translationThreshold;
-  const isHinge = rotationMagnitude > opts.rotationThreshold;
+  // For hinges, only parallel-to-axis translation counts as "real" translation
+  let effectiveTranslation = translationMagnitude;
+  if (isRotating && translationMagnitude > 1e-6) {
+    const normalizedAxis = rotationAxis.normalize();
+    const parallelComponent = Math.abs(BABYLON.Vector3.Dot(translation, normalizedAxis));
+    effectiveTranslation = parallelComponent;
+  }
 
-  if (isPrismatic && !isHinge) {
-    // Pure prismatic motion
-    type = 'prismatic';
-    axis = translation.normalize();
-    anchor = movingPointsCentroid.clone();
-    magnitude = translationMagnitude;
-    confidence = 0.9; // High confidence for pure translation
-  } else if (isHinge && !isPrismatic) {
-    // Pure hinge motion
-    type = 'hinge';
-    axis = rotationAxis.normalize();
-    anchor = computeHingeAnchor(axis, movingPointsCentroid, opts.anchorStrategy);
-    magnitude = rotationAngle;
-    confidence = 0.9; // High confidence for pure rotation
-  } else if (isPrismatic && isHinge) {
-    // Mixed motion (screw joint) - choose dominant component
-    if (translationMagnitude / opts.translationThreshold > rotationMagnitude / opts.rotationThreshold) {
-      // Translation dominates
-      type = 'prismatic';
-      axis = translation.normalize();
-      anchor = movingPointsCentroid.clone();
-      magnitude = translationMagnitude;
-      confidence = 0.6; // Lower confidence due to mixed motion
-      console.warn('[JointExtractor] Mixed translation+rotation detected, choosing prismatic (dominant)');
-    } else {
-      // Rotation dominates
-      type = 'hinge';
-      axis = rotationAxis.normalize();
-      anchor = computeHingeAnchor(axis, movingPointsCentroid, opts.anchorStrategy);
-      magnitude = rotationAngle;
-      confidence = 0.6; // Lower confidence due to mixed motion
-      console.warn('[JointExtractor] Mixed translation+rotation detected, choosing hinge (dominant)');
-    }
-  } else {
-    // Neither translation nor rotation significant - static or error
-    type = 'prismatic'; // Default fallback
-    axis = new BABYLON.Vector3(0, 0, 1); // Z-up default
-    anchor = movingPointsCentroid.clone();
-    magnitude = 0;
-    confidence = 0.1; // Very low confidence
-    console.warn('[JointExtractor] No significant motion detected, defaulting to static prismatic joint');
+  const isTranslating = effectiveTranslation > opts.translationThreshold;
+
+  // Classification logic
+  if (!isRotating && !isTranslating) {
+    console.warn('[JointExtractor] No significant motion detected, treating as fixed');
+    return null;
+  }
+
+  // PRISMATIC: no rotation + translation
+  if (!isRotating && isTranslating) {
+    const mean = retractedPoints.reduce((acc, p) => acc.add(p), BABYLON.Vector3.Zero())
+      .scale(1 / retractedPoints.length);
+
+    return {
+      type: 'prismatic',
+      axis: translation.normalize(),
+      anchor: mean,
+      magnitude: translationMagnitude,
+      confidence: 0.9,
+      residualError: icpResult.rmsError,
+    };
+  }
+
+  // REVOLUTE: rotation present - use orbit-based solver
+  const orbitResult = solveOrbitBasedPivot(
+    retractedPoints,
+    icpResult.transform,
+    rotationAxis,
+    rotationAngle
+  );
+
+  if (!orbitResult) {
+    console.warn('[JointExtractor] Orbit-based pivot solving failed');
+    return null;
   }
 
   // Adjust confidence based on ICP residual error
+  let confidence = orbitResult.confidence;
   if (icpResult.rmsError > opts.maxResidualError) {
-    confidence *= 0.5; // Halve confidence if error exceeds threshold
-    console.warn(`[JointExtractor] High ICP residual error: ${icpResult.rmsError.toFixed(4)}m (threshold: ${opts.maxResidualError}m)`);
+    confidence *= 0.5;
+    console.warn(`[JointExtractor] High ICP error: ${icpResult.rmsError.toFixed(4)}m`);
+  }
+
+  // Mixed motion warning (screw joint)
+  if (isRotating && isTranslating) {
+    confidence *= 0.7;
+    console.warn('[JointExtractor] Mixed rotation+translation detected (screw-like), choosing revolute');
   }
 
   return {
-    type,
-    axis,
-    anchor,
-    magnitude,
+    type: 'hinge',
+    axis: orbitResult.axis,
+    anchor: orbitResult.pivot,
+    magnitude: orbitResult.angle,
     confidence,
     residualError: icpResult.rmsError,
+    fromVector: orbitResult.fromVector,
+    toVector: orbitResult.toVector,
   };
 }
+
 
 /**
  * Convert joint fit result to full joint definition output.
@@ -315,27 +229,14 @@ export function convertToJointDefinition(
 /**
  * Batch extract joints from multiple ICP results.
  *
- * Useful for processing multiple tool units in parallel.
- *
  * @param icpResults - Array of ICP results with metadata
  * @param options - Joint extraction options
  * @returns Array of joint definitions
- *
- * @example
- * ```typescript
- * const results = [
- *   { icpResult, centroid, jointId: 'clamp1', parentId: 'fixture', childId: 'clamp1_jaw' },
- *   { icpResult: icpResult2, centroid: centroid2, jointId: 'pin1', parentId: 'fixture', childId: 'pin1' }
- * ];
- *
- * const joints = batchExtractJoints(results);
- * console.log(`Extracted ${joints.length} joints`);
- * ```
  */
 export function batchExtractJoints(
   icpResults: Array<{
     icpResult: ICPResult;
-    centroid: BABYLON.Vector3;
+    retractedPoints: BABYLON.Vector3[];
     jointId: string;
     parentId: string;
     childId: string;
@@ -344,16 +245,21 @@ export function batchExtractJoints(
 ): JointDefinitionOutput[] {
   const joints: JointDefinitionOutput[] = [];
 
-  for (const { icpResult, centroid, jointId, parentId, childId } of icpResults) {
+  for (const { icpResult, retractedPoints, jointId, parentId, childId } of icpResults) {
     if (!icpResult.success) {
-      console.warn(`[JointExtractor] Skipping failed ICP result for joint ${jointId}`);
+      console.warn(`[JointExtractor] Skipping failed ICP for joint ${jointId}`);
       continue;
     }
 
-    const fitResult = extractJointFromTransform(icpResult, centroid, options);
+    const fitResult = extractJointFromTransform(icpResult, retractedPoints, options);
+
+    if (!fitResult) {
+      console.warn(`[JointExtractor] No joint detected for ${jointId}, skipping`);
+      continue;
+    }
 
     if (fitResult.confidence < 0.3) {
-      console.warn(`[JointExtractor] Low confidence (${fitResult.confidence.toFixed(2)}) for joint ${jointId}, skipping`);
+      console.warn(`[JointExtractor] Low confidence for joint ${jointId}, skipping`);
       continue;
     }
 
@@ -362,9 +268,7 @@ export function batchExtractJoints(
 
     console.log(
       `[JointExtractor] Extracted ${fitResult.type} joint '${jointId}': ` +
-      `magnitude=${fitResult.magnitude.toFixed(4)}, ` +
-      `confidence=${fitResult.confidence.toFixed(2)}, ` +
-      `error=${fitResult.residualError.toFixed(4)}m`
+      `magnitude=${fitResult.magnitude.toFixed(4)}, confidence=${fitResult.confidence.toFixed(2)}`
     );
   }
 

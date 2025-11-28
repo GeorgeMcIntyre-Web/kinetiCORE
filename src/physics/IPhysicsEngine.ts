@@ -2,7 +2,7 @@
 // Owner: George
 // DO NOT import Rapier directly anywhere else - use this interface!
 
-import { Vector3, Quaternion, BodyDescriptor, RaycastHit } from '@core/types';
+import { Vector3, Quaternion, BodyDescriptor, RaycastHit } from '../core/types';
 
 /**
  * Abstract physics engine interface
@@ -164,7 +164,7 @@ export interface IPhysicsEngine {
    * Get all active collision pairs
    * @returns Array of collision pairs with body handles
    */
-  getActiveCollisions(): Array<{bodyA: string, bodyB: string}>;
+  getActiveCollisions(): Array<{ bodyA: string, bodyB: string }>;
 
   /**
    * Check collision between two specific bodies

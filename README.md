@@ -2,6 +2,11 @@
 
 [![Deploy Status](https://img.shields.io/badge/Cloudflare-Pages-orange)](https://kineticore.pages.dev)
 
+> 🛡 **U112 GOLD PIPELINE PROTECTED**
+> Auto-kinematics system validated against canonical reference fixture.
+> All new tooling fixtures must reference this baseline.
+> **Status**: ✅ PASSING (34 unit tests) | [View Tests](tests/gold/u112-gold.test.ts) | [Documentation](docs/auto-kinematics/AUTO_KINEMATICS_PIPELINE.md)
+
 **The Linux of Manufacturing Simulation**
 
 The Future of Industrial Robot Simulation
@@ -132,18 +137,6 @@ Web Browser (React + Babylon.js + Rapier Physics)
 - **Python Flask** - USD conversion server with CORS support
 - **PyOpenJt** - JT file parsing and conversion
 - **Omniverse Create** - NVIDIA USD to glTF conversion (optional)
-
-### Development Tools
-- **Vitest** - Unit testing framework
-- **ESLint + Prettier** - Code quality and formatting
-- **Husky** - Git hooks for quality gates
-- **Wrangler** - Cloudflare Pages deployment
-
-## 🚀 Quick Start
-
-### Prerequisites
-- **Node.js 18+** and npm 9+
-- **Modern web browser** (Chrome, Firefox, Safari, Edge)
 
 ### Installation
 

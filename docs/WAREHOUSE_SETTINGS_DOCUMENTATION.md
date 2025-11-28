@@ -210,3 +210,4 @@ This document explains what each setting in the Warehouse panel does and how it 
 - **Panel Wrapper:** `src/routing/ui/WarehousePanel.tsx`
 
 
+

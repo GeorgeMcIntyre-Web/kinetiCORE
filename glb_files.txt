@@ -1,0 +1,9 @@
+﻿C:\Users\George\source\repos\kinetiCORE_DATA\Tooling_testing_data\016ZF_20142435_130\016ZF_20142435_130.glb
+C:\Users\George\source\repos\kinetiCORE_DATA\Tooling_testing_data\016ZF_20142452_110\016ZF_20142452_110.glb
+C:\Users\George\source\repos\kinetiCORE_DATA\Tooling_testing_data\2172493000_M00_GJR_DSH_BRD_ASY_BQ010_02\2172493000_M00_GJR_DSH_BRD_ASY_BQ010_02.glb
+C:\Users\George\source\repos\kinetiCORE_DATA\Tooling_testing_data\2172504000_M00_GJR_DSH_BRD_ASY_BQ020_02\2172504000_M00_GJR_DSH_BRD_ASY_BQ020_02.glb
+C:\Users\George\source\repos\kinetiCORE_DATA\Tooling_testing_data\2172520000_M00_DSH_BRD_ASY_BQ040\2172520000_M00_DSH_BRD_ASY_BQ040.glb
+C:\Users\George\source\repos\kinetiCORE_DATA\Tooling_testing_data\2174530000_M00_GJR_RR FLR_CM030_T01\2174530000_M00_GJR_RR FLR_CM030_T01.glb
+C:\Users\George\source\repos\kinetiCORE_DATA\Tooling_testing_data\8X-140-1E1_LH\016ZF_20142435_140_1E1_CI00.glb
+C:\Users\George\source\repos\kinetiCORE_DATA\Tooling_testing_data\8X-140-2E1_RH\016ZF_20142435_140_2E1_CI00.glb
+C:\Users\George\source\repos\kinetiCORE_DATA\Tooling_testing_data\8X-140_GEO\016ZF_20142435_140_CI00.glb

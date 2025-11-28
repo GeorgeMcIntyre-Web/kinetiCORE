@@ -63,16 +63,6 @@ interface SnapCache {
 }
 
 /**
- * Transform local vertex to world space
- * @deprecated Unused - kept for potential future use
- */
-// @ts-expect-error - Unused but kept for potential future use
-function toWorld(_v: BABYLON.Vector3, _worldMatrix: BABYLON.Matrix): BABYLON.Vector3 {
-  if (!_v || !_worldMatrix) return _v;
-  return BABYLON.Vector3.TransformCoordinates(_v, _worldMatrix);
-}
-
-/**
  * Project world-space vertex to screen space (render pixels)
  * Must match harness projection exactly for parity
  * Input pW is already in world space, so use Identity for worldMatrix
@@ -94,13 +84,13 @@ export function projectToScreen(
 
   // Use viewport.toGlobal(rw, rh) for viewport
   const vp = camera.viewport.toGlobal(rw, rh);
-  
+
   // Use scene.getTransformMatrix() for view-projection
   const viewProj = scene.getTransformMatrix();
-  
+
   // Given a world-space position, use Identity for worldMatrix (already world-space)
   const worldMatrix = BABYLON.Matrix.Identity();
-  
+
   // Project using Vector3.Project with separate view and projection matrices
   // Note: Vector3.Project expects viewProj to be view * projection combined
   const sp = BABYLON.Vector3.Project(worldPos, worldMatrix, viewProj, vp);
@@ -112,7 +102,7 @@ export function projectToScreen(
 
   // Reject if z outside [0, 1]
   if (sp.z < 0 || sp.z > 1) return null;
-  
+
   // Reject if outside viewport with 2-px tolerance
   if (sp.x < -2 || sp.x > rw + 2) return null;
   if (sp.y < -2 || sp.y > rh + 2) return null;
@@ -148,7 +138,7 @@ export function getWorldVerts(mesh: BABYLON.Mesh): Float32Array | null {
   if (!mesh.metadata) mesh.metadata = {};
 
   const cache = (mesh.metadata.__snap as SnapCache) ?? (mesh.metadata.__snap = {});
-  
+
   // Ensure world matrix is fresh before building/caching world-space vertices
   mesh.computeWorldMatrix(true);
   const worldMatrix = mesh.getWorldMatrix();
@@ -208,22 +198,22 @@ export function fitCircleToPoints(
   // This handles cases where the first 3 points might be nearly collinear
   let normal: BABYLON.Vector3 | null = null;
   const maxAttempts = Math.min(10, Math.floor(points.length / 3));
-  
+
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const i0 = attempt % points.length;
     const i1 = (attempt + Math.floor(points.length / 3)) % points.length;
     const i2 = (attempt + Math.floor(points.length * 2 / 3)) % points.length;
-    
+
     const v1 = points[i1].subtract(points[i0]);
     const v2 = points[i2].subtract(points[i0]);
     const cross = BABYLON.Vector3.Cross(v1, v2);
-    
+
     if (cross.lengthSquared() > 0.0001) {
       normal = cross.normalize();
       break;
     }
   }
-  
+
   // If still no good normal found, try averaging multiple cross products
   if (!normal) {
     const normals: BABYLON.Vector3[] = [];
@@ -231,16 +221,16 @@ export function fitCircleToPoints(
       const i0 = i % points.length;
       const i1 = (i + 1) % points.length;
       const i2 = (i + 2) % points.length;
-      
+
       const v1 = points[i1].subtract(points[i0]);
       const v2 = points[i2].subtract(points[i0]);
       const cross = BABYLON.Vector3.Cross(v1, v2);
-      
+
       if (cross.lengthSquared() > 0.00001) {
         normals.push(cross.normalize());
       }
     }
-    
+
     if (normals.length > 0) {
       // Average the normals (they should all point in similar directions for a circle)
       const avgNormal = normals.reduce((sum, n) => sum.add(n), BABYLON.Vector3.Zero())
@@ -250,7 +240,7 @@ export function fitCircleToPoints(
       }
     }
   }
-  
+
   if (!normal) {
     // Last resort: If all points are nearly coplanar with a coordinate plane, use that plane's normal
     // Check if points are mostly flat in XY, XZ, or YZ plane
@@ -313,13 +303,13 @@ export function fitCircleToPoints(
   // Filter out points that are too close to the center (likely the center vertex)
   const radii: number[] = [];
   const perimeterPoints: BABYLON.Vector3[] = [];
-  
+
   for (const p of projectedPoints) {
     const radius = BABYLON.Vector3.Distance(p, initialCenter);
     radii.push(radius);
   }
   const avgRadius = radii.reduce((sum, r) => sum + r, 0) / radii.length;
-  
+
   // Filter out points that are much closer to center than average (likely center vertex)
   // Since we already removed center vertices before calling this function, use a more lenient threshold
   // Keep points that are within 30% of average radius (perimeter points)
@@ -330,7 +320,7 @@ export function fitCircleToPoints(
       perimeterPoints.push(projectedPoints[i]);
     }
   }
-  
+
   // Need at least 3 perimeter points
   if (perimeterPoints.length < 3) {
     // If filtering removed too many, use all points
@@ -341,32 +331,32 @@ export function fitCircleToPoints(
   // Use robust circle fitting with outlier rejection
   // Method: Iteratively refine center by rejecting outliers based on radius variance
   let center = initialCenter;
-  
+
   // Multiple passes with increasingly strict filtering
   for (let pass = 0; pass < 3; pass++) {
     const radii: number[] = [];
     for (const p of perimeterPoints) {
       radii.push(BABYLON.Vector3.Distance(p, center));
     }
-    
+
     // Calculate median radius (more robust than mean for outlier rejection)
     const sortedRadii = [...radii].sort((a, b) => a - b);
     const medianRadius = sortedRadii.length % 2 === 0
       ? (sortedRadii[sortedRadii.length / 2 - 1] + sortedRadii[sortedRadii.length / 2]) / 2
       : sortedRadii[Math.floor(sortedRadii.length / 2)];
-    
+
     // Calculate MAD (Median Absolute Deviation) for robust outlier detection
     const deviations = radii.map(r => Math.abs(r - medianRadius));
     const sortedDeviations = [...deviations].sort((a, b) => a - b);
     const mad = sortedDeviations.length % 2 === 0
       ? (sortedDeviations[sortedDeviations.length / 2 - 1] + sortedDeviations[sortedDeviations.length / 2]) / 2
       : sortedDeviations[Math.floor(sortedDeviations.length / 2)];
-    
+
     // Use tighter tolerance on later passes
     // Since center vertices are already removed, use more lenient tolerances
     const toleranceFactor = pass === 0 ? 0.3 : (pass === 1 ? 0.2 : 0.1); // 30%, 20%, 10% (more lenient)
     const radiusTolerance = Math.max(mad * 3, medianRadius * toleranceFactor); // Use 3*MAD or percentage, whichever is larger
-    
+
     // Filter to only points that are on the circle (within tolerance of median radius)
     const inliers: BABYLON.Vector3[] = [];
     for (let i = 0; i < perimeterPoints.length; i++) {
@@ -374,14 +364,14 @@ export function fitCircleToPoints(
         inliers.push(perimeterPoints[i]);
       }
     }
-    
+
     // Need at least 3 inliers
     if (inliers.length < 3) {
       // If too many points were filtered, use all perimeter points
       inliers.length = 0;
       inliers.push(...perimeterPoints);
     }
-    
+
     // Recalculate center using least-squares circle fitting (more accurate than simple average)
     // For a circle, the center minimizes sum of (distance(p, center) - radius)^2
     // We use an iterative approach: calculate center as weighted average, where weights favor points closer to current radius estimate
@@ -389,7 +379,7 @@ export function fitCircleToPoints(
       // Calculate weighted center based on how close each point is to the median radius
       const weightedSum = BABYLON.Vector3.Zero();
       let totalWeight = 0;
-      
+
       for (const p of inliers) {
         const dist = BABYLON.Vector3.Distance(p, center);
         const error = Math.abs(dist - medianRadius);
@@ -398,7 +388,7 @@ export function fitCircleToPoints(
         weightedSum.addInPlace(p.scale(weight));
         totalWeight += weight;
       }
-      
+
       if (totalWeight > 0) {
         center = weightedSum.scale(1 / totalWeight);
       } else {
@@ -413,38 +403,38 @@ export function fitCircleToPoints(
   // Get final inliers (points on the circle) for accurate radius calculation
   const finalRadii: number[] = [];
   const finalInliers: BABYLON.Vector3[] = [];
-  
+
   const tempRadii: number[] = [];
   for (const p of perimeterPoints) {
     tempRadii.push(BABYLON.Vector3.Distance(p, center));
   }
-  
+
   // Use median radius for final filtering (more robust)
   const sortedFinalRadii = [...tempRadii].sort((a, b) => a - b);
   const finalMedianRadius = sortedFinalRadii.length % 2 === 0
     ? (sortedFinalRadii[sortedFinalRadii.length / 2 - 1] + sortedFinalRadii[sortedFinalRadii.length / 2]) / 2
     : sortedFinalRadii[Math.floor(sortedFinalRadii.length / 2)];
-  
+
   // Final pass: filter to only points that are on the circle (within tight tolerance)
   // Since center vertices are already removed, use more lenient tolerance
   const finalRadiusTolerance = finalMedianRadius * 0.15; // 15% tolerance for final filtering (more lenient)
-  
+
   for (let i = 0; i < perimeterPoints.length; i++) {
     if (Math.abs(tempRadii[i] - finalMedianRadius) <= finalRadiusTolerance) {
       finalInliers.push(perimeterPoints[i]);
       finalRadii.push(tempRadii[i]);
     }
   }
-  
+
   // Use filtered inliers if we have enough, otherwise use all perimeter points
   const radiiForFinal = finalInliers.length >= 3 ? finalRadii : tempRadii;
-  
+
   // Use median radius for final calculation (more robust than mean)
   const sortedRadiiForFinal = [...radiiForFinal].sort((a, b) => a - b);
   const finalAvgRadius = sortedRadiiForFinal.length % 2 === 0
     ? (sortedRadiiForFinal[sortedRadiiForFinal.length / 2 - 1] + sortedRadiiForFinal[sortedRadiiForFinal.length / 2]) / 2
     : sortedRadiiForFinal[Math.floor(sortedRadiiForFinal.length / 2)];
-  
+
   // Find max radius for visualization (use maximum to encompass all vertices)
   const maxRadiusValue = radiiForFinal.length > 0 ? Math.max(...radiiForFinal) : finalAvgRadius;
 

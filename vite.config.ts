@@ -132,7 +132,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ['@dimforge/rapier3d-compat', '@mlightcad/libredwg-web', 'pcl.js'],
-    include: ['@babylonjs/core/Debug/debugLayer.js', '@babylonjs/inspector'],
+    include: ['@babylonjs/core/Debug/debugLayer.js', '@babylonjs/inspector', 'numeric'],
   },
   assetsInclude: ['**/*.wasm', '**/pcl-core.wasm'],
   worker: {

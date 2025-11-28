@@ -5,17 +5,18 @@
  * Owner: George
  */
 
+/// <reference types="vite/client" />
 import { createClient } from '@supabase/supabase-js';
 
 // Environment variable configuration
 // In production (Cloudflare Pages), use worker proxy for better performance
 // In development, can use direct Supabase URL
 const supabaseUrl = import.meta.env.VITE_CLOUDFLARE_WORKER_URL ||
-                    import.meta.env.VITE_SUPABASE_URL ||
-                    'https://kineticore-supabase-proxy.fractalnexustech.workers.dev';
+  import.meta.env.VITE_SUPABASE_URL ||
+  'https://kineticore-supabase-proxy.fractalnexustech.workers.dev';
 
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY ||
-                        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oa3VzanNvdW56d2ttZXZqc2dsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExODE5ODQsImV4cCI6MjA3Njc1Nzk4NH0.NCmILj-aOpHTPtygngkiXgPNekEb0hyJ6bA7132Ywrg';
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oa3VzanNvdW56d2ttZXZqc2dsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExODE5ODQsImV4cCI6MjA3Njc1Nzk4NH0.NCmILj-aOpHTPtygngkiXgPNekEb0hyJ6bA7132Ywrg';
 
 // Singleton Supabase client to prevent multiple instances
 let supabaseInstance: any = null;
@@ -67,7 +68,7 @@ export const supabaseHelpers = {
   // Asset operations
   async uploadAsset(file: File, metadata: any) {
     const filePath = `assets/${Date.now()}-${file.name}`;
-    
+
     // Upload to Supabase Storage via Cloudflare Worker
     const { error } = await supabase.storage
       .from('assets')

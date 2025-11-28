@@ -139,7 +139,10 @@ export class KinematicsManager implements IKinematicsManager {
   // Cache of last FK world matrices per joint (chainId -> jointId -> worldMatrix)
   private _lastJointWorld = new Map<string, Map<string, BABYLON.Matrix>>();
 
-  private constructor() {}
+  // Tooling chains (separate from main robot chains)
+  private toolingChains = new Map<string, KinematicChain>();
+
+  private constructor() { }
 
   static getInstance(): KinematicsManager {
     if (!KinematicsManager.instance) {
@@ -347,9 +350,24 @@ export class KinematicsManager implements IKinematicsManager {
 
   /**
    * Get joint by ID
+   * Searches both regular chains and tooling chains
    */
   getJoint(jointId: string): JointConfig | undefined {
-    return this.joints.get(jointId);
+    // First check the global joints map (robot chains)
+    const joint = this.joints.get(jointId);
+    if (joint) {
+      return joint;
+    }
+
+    // If not found, search tooling chains
+    for (const chain of this.toolingChains.values()) {
+      const toolingJoint = chain.joints.find(j => j.id === jointId);
+      if (toolingJoint) {
+        return toolingJoint;
+      }
+    }
+
+    return undefined;
   }
 
   /**
@@ -404,10 +422,17 @@ export class KinematicsManager implements IKinematicsManager {
   }
 
   /**
-   * Get a kinematic chain by ID
+   * Get a kinematic chain by ID (searches both robot and tooling chains)
    */
   getChainById(chainId: string): KinematicChain | undefined {
-    return this.chains.get(chainId);
+    // Check robot chains first
+    const chain = this.chains.get(chainId);
+    if (chain) {
+      return chain;
+    }
+
+    // Check tooling chains
+    return this.toolingChains.get(chainId);
   }
 
   /**
@@ -415,6 +440,72 @@ export class KinematicsManager implements IKinematicsManager {
    */
   debugListChains(): string[] {
     return Array.from(this.chains.keys());
+  }
+
+  /**
+   * Register a tooling kinematic chain.
+   * These are stored separately from main robot chains to avoid polluting the main list.
+   */
+  registerToolingChain(chain: KinematicChain): void {
+    this.toolingChains.set(chain.id, chain);
+    console.log(`[KinematicsManager] Registered tooling chain: ${chain.name} (${chain.id})`);
+  }
+
+  /**
+   * Get all tooling chains.
+   */
+  getToolingChains(): KinematicChain[] {
+    return Array.from(this.toolingChains.values());
+  }
+
+  /**
+   * Get a tooling chain by ID.
+   */
+  getToolingChainById(id: string): KinematicChain | undefined {
+    return this.toolingChains.get(id);
+  }
+
+  /**
+   * Get tooling joints for a specific fixture root node.
+   * This is used by Motion Panel to filter joints by fixture.
+   *
+   * @param fixtureRootId - The root node ID of the fixture (e.g., "UNIT_101")
+   * @returns Array of joints for the specified fixture, or empty array if not found
+   */
+  getToolingJointsForFixture(fixtureRootId: string): JointConfig[] {
+    // Guard: Empty fixture ID
+    if (!fixtureRootId) {
+      console.log('[KinematicsManager]', {
+        action: 'getToolingJointsForFixture',
+        fixtureRootId,
+        result: 'empty fixtureRootId',
+      });
+      return [];
+    }
+
+    // Find tooling chain with matching root node
+    for (const chain of this.toolingChains.values()) {
+      if (chain.rootNodeId === fixtureRootId) {
+        const actuatedJoints = chain.joints.filter(
+          j => j.type === 'revolute' || j.type === 'prismatic'
+        );
+        console.log('[KinematicsManager]', {
+          action: 'getToolingJointsForFixture',
+          fixtureRootId,
+          chainId: chain.id,
+          totalJoints: chain.joints.length,
+          actuatedJoints: actuatedJoints.length,
+        });
+        return actuatedJoints;
+      }
+    }
+
+    console.log('[KinematicsManager]', {
+      action: 'getToolingJointsForFixture',
+      fixtureRootId,
+      result: 'no matching chain found',
+    });
+    return [];
   }
 
   /**
@@ -500,12 +591,12 @@ export class KinematicsManager implements IKinematicsManager {
     if (childNode.babylonMeshId) {
       babylonNode = scene.getMeshByUniqueId(parseInt(childNode.babylonMeshId)) as BABYLON.TransformNode;
     }
-          if (!babylonNode && childNode.babylonTransformNodeId) {
-            babylonNode = scene.transformNodes.find((tn: any) => tn.uniqueId === parseInt(childNode.babylonTransformNodeId!)) || null;
-          }
-          if (!babylonNode && childNode.type === 'collection') {
-            babylonNode = scene.transformNodes.find((tn: any) => tn.name === childNode.name) || null;
-          }
+    if (!babylonNode && childNode.babylonTransformNodeId) {
+      babylonNode = scene.transformNodes.find((tn: any) => tn.uniqueId === parseInt(childNode.babylonTransformNodeId!)) || null;
+    }
+    if (!babylonNode && childNode.type === 'collection') {
+      babylonNode = scene.transformNodes.find((tn: any) => tn.name === childNode.name) || null;
+    }
     if (!babylonNode) return undefined;
 
     // Get world transformation
@@ -592,11 +683,11 @@ export class KinematicsManager implements IKinematicsManager {
     }
 
     const firstJoint = chain.joints[0];
-    
+
     // Get base_link transform node
     const baseNodeId = firstJoint.parentNodeId;
     const baseTransformNode = this.getTransformNodeForTreeId(baseNodeId);
-    
+
     if (!baseTransformNode) {
       console.warn(`[KinematicsManager] getBaseWorldMatrix: could not resolve base transform for nodeId: ${baseNodeId}`);
       return null;
@@ -716,7 +807,7 @@ export class KinematicsManager implements IKinematicsManager {
     // Use the last joint's child link world transform
     const lastJoint = chain.joints[chain.joints.length - 1];
     const childLinkWorld = this.getJointChildLinkWorld(chainId, lastJoint.id);
-    
+
     if (childLinkWorld) {
       const origin = childLinkWorld.getTranslation();
       return { origin, world: childLinkWorld };
@@ -738,7 +829,7 @@ export class KinematicsManager implements IKinematicsManager {
     const sceneManager = (window as any).sceneManager;
     const scene = sceneManager?.getScene?.();
     const tree = (window as any).sceneTreeManager;
-    
+
     if (!scene || !tree) return null;
 
     const childNode = tree.getNode(joint.childNodeId);
@@ -755,7 +846,7 @@ export class KinematicsManager implements IKinematicsManager {
     if (!babylonNode && childNode.type === 'collection') {
       babylonNode = scene.transformNodes.find((tn: any) => tn.name === childNode.name) || null;
     }
-    
+
     if (!babylonNode) return null;
 
     babylonNode.computeWorldMatrix(true);
@@ -763,18 +854,32 @@ export class KinematicsManager implements IKinematicsManager {
   }
 
   /**
-   * Get all kinematic chains
+   * Get all kinematic chains (both robot chains and tooling chains)
    */
   getAllChains(): KinematicChain[] {
-    return Array.from(this.chains.values());
+    return [
+      ...Array.from(this.chains.values()),
+      ...Array.from(this.toolingChains.values()),
+    ];
   }
 
   /**
-   * Get joints for a specific chain
+   * Get joints for a specific chain (searches both robot and tooling chains)
    */
   getChainJoints(chainId: string): JointConfig[] {
+    // Check robot chains first
     const chain = this.chains.get(chainId);
-    return chain ? chain.joints : [];
+    if (chain) {
+      return chain.joints;
+    }
+
+    // Check tooling chains
+    const toolingChain = this.toolingChains.get(chainId);
+    if (toolingChain) {
+      return toolingChain.joints;
+    }
+
+    return [];
   }
 
   /**
@@ -783,10 +888,10 @@ export class KinematicsManager implements IKinematicsManager {
   getActuatedJoints(chainId: string): JointConfig[] {
     const chain = this.chains.get(chainId);
     if (!chain) return [];
-    
-    return chain.joints.filter(joint => 
-      joint.type === 'revolute' || 
-      joint.type === 'prismatic' || 
+
+    return chain.joints.filter(joint =>
+      joint.type === 'revolute' ||
+      joint.type === 'prismatic' ||
       joint.type === 'spherical'
     );
   }

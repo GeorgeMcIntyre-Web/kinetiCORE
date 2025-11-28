@@ -235,3 +235,95 @@ TEST_*.md
 # Debug folders
 src/babylon/kinematics/debug/
 src/*/debug/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Playwright test artifacts
+playwright-report/
+playwright-results.json
+test-results/
+playwright/.cache/
+
+# Invalid Windows files
+nul
+
+# Fixture analysis output files
+fixture_analysis*.txt
+fixture_analysis*.json
+unit_structure_analysis.txt
+
+# Unwanted script files (temporary/debug scripts)
+docs/BATCH_TESTING_Draco_OFF_GLBS.md
+docs/SVD_ACCURACY_VALIDATION.md
+scripts/analyzeFixture.ts
+scripts/analyzeFromJSON.ts
+scripts/analyzeUnitStructure.ts
+scripts/batchTestDracoOffGLBs.ts
+scripts/checkMovingNodes.ts
+scripts/debugNodeParents.ts
+scripts/diagnosticTest.ts
+scripts/getMovingNodePoints.js
+scripts/listDracoOffFiles.ts
+scripts/minimalTest.ts
+scripts/quickCheckDracoFiles.ts
+scripts/runAllTests.ts
+scripts/runTestsWithFileOutput.ts
+.claude/settings.local.json
+
+# Ignore all temporary/debug scripts except quickAnalyze.ts
+scripts/analyze*.ts
+scripts/batch*.ts
+scripts/check*.ts
+scripts/debug*.ts
+scripts/diagnostic*.ts
+scripts/list*.ts
+scripts/minimal*.ts
+scripts/quickCheck*.ts
+scripts/run*.ts
+scripts/getMoving*.js
+scripts/simpleAnalyze.js
+scripts/simpleTest.js
+scripts/testAndDebug.ts
+scripts/testSingleFixture.ts
+scripts/validateSVDAccuracyOnRealFixtures.ts
+docs/*_TESTING*.md
+docs/*_VALIDATION*.md
+
+# Ignore temporary markdown and result files
+AUTO_KINEMATICS_BRANCH_IMPROVEMENTS.md
+BUG_FIXES.md
+CRITICAL_BUG_FIXES.md
+DRACO_OFF_FILES_READY.md
+FIXTURE_ANALYSIS_RESULTS.md
+GLB_LOADING_FIX.md
+PRIMARY_JOINT_SELECTION.md
+RUN_TESTS_AND_DEBUG.md
+TEST_SCRIPTS_READY.md
+TESTING_COMPLETE_SUMMARY.md
+batch_test_results.json
+diagnostic_results.txt
+svd_validation_results.json
+run_all_tests.ps1
+
+# Markdown reports (temporary analysis)
+8X140_*.md
+BATCH_VALIDATION_REPORT.md
+PHASE2_REAL_FIXTURE_VALIDATION.md
+POSE_PAIR_DETECTION_PROBLEM.md
+QUICKSTART_PHASE1.md
+U112_hierarchy.txt
+
+# Diagnostic and test output files
+*_FINAL_OUTPUT.txt
+diagnostic_test_output.txt
+test_single_fixture_output.txt
+*_output.txt
+
+# AI workspace folders
+agent-notes/Gemini*/
+agent-notes/Claude*/
+agent-notes/GPT*/

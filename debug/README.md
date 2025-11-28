@@ -111,3 +111,4 @@ The app now has matching telemetry in `SnappingHelper.ts`:
 - These show the same metrics as the harness
 - Compare harness values with app values to identify discrepancies
 
+

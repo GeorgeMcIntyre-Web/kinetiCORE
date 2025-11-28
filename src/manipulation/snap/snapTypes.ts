@@ -37,3 +37,4 @@ export interface SnapResult {
   circleVertices?: BABYLON.Vector3[];
 }
 
+

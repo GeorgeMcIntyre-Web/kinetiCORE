@@ -43,7 +43,7 @@ export class ProjectDatabase {
   private isInitialized = false;
   private initializationPromise: Promise<void> | null = null;
 
-  private constructor() {}
+  private constructor() { }
 
   /**
    * Get singleton instance
@@ -71,7 +71,7 @@ export class ProjectDatabase {
       throw new Error('IndexedDB is not available in this environment. Project data persistence is disabled.');
     }
 
-    this.initializationPromise = new Promise((resolve, reject) => {
+    this.initializationPromise = new Promise<void>((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
       let settled = false;
 
@@ -401,7 +401,7 @@ export class ProjectDatabase {
             projects = projects.filter(p => filters.visibility!.includes(p.visibility));
           }
           if (filters.tags && filters.tags.length > 0) {
-            projects = projects.filter(p => 
+            projects = projects.filter(p =>
               filters.tags!.some(tag => p.tags.includes(tag))
             );
           }
@@ -410,7 +410,7 @@ export class ProjectDatabase {
           }
           if (filters.search) {
             const searchLower = filters.search.toLowerCase();
-            projects = projects.filter(p => 
+            projects = projects.filter(p =>
               p.name.toLowerCase().includes(searchLower) ||
               p.description?.toLowerCase().includes(searchLower)
             );
@@ -478,7 +478,7 @@ export class ProjectDatabase {
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([STORES.PROJECT_SAVES, STORES.PROJECTS], 'readwrite');
-      
+
       // Save the project save
       const savesStore = transaction.objectStore(STORES.PROJECT_SAVES);
       savesStore.put(entry);
@@ -572,43 +572,43 @@ export class ProjectDatabase {
     // Import the ProjectWorldLoader to capture scene state
     const { ProjectWorldLoader } = await import('./ProjectWorldLoader');
     const worldLoader = ProjectWorldLoader.getInstance();
-    
+
     try {
       return await worldLoader.captureCurrentSceneState();
     } catch (error) {
       console.error('[ProjectDatabase] Failed to capture scene state:', error);
       // Return default state as fallback
       return {
-        camera: { 
-          position: { x: 0, y: 0, z: 0 } as any, 
-          target: { x: 0, y: 0, z: 0 } as any, 
-          alpha: 0, 
-          beta: 0, 
-          radius: 10 
+        camera: {
+          position: { x: 0, y: 0, z: 0 } as any,
+          target: { x: 0, y: 0, z: 0 } as any,
+          alpha: 0,
+          beta: 0,
+          radius: 10
         },
-        lighting: { 
-          ambientIntensity: 0.3, 
-          directionalLights: [], 
-          pointLights: [] 
+        lighting: {
+          ambientIntensity: 0.3,
+          directionalLights: [],
+          pointLights: []
         },
-        physics: { 
-          gravity: { x: 0, y: -9.81, z: 0 } as any, 
-          enabled: true, 
-          timeStep: 1/60, 
-          entities: [] 
+        physics: {
+          gravity: { x: 0, y: -9.81, z: 0 } as any,
+          enabled: true,
+          timeStep: 1 / 60,
+          entities: []
         },
-        kinematics: { 
-          chains: [], 
-          actuators: [] 
+        kinematics: {
+          chains: [],
+          actuators: []
         },
-        environment: { 
-          backgroundColor: { x: 0.5, y: 0.5, z: 0.5 } as any, 
-          fogEnabled: false, 
-          fogDensity: 0.1, 
-          fogColor: { x: 1, y: 1, z: 1 } as any, 
-          groundEnabled: true, 
-          groundSize: 100, 
-          groundColor: { x: 0.8, y: 0.8, z: 0.8 } as any 
+        environment: {
+          backgroundColor: { x: 0.5, y: 0.5, z: 0.5 } as any,
+          fogEnabled: false,
+          fogDensity: 0.1,
+          fogColor: { x: 1, y: 1, z: 1 } as any,
+          groundEnabled: true,
+          groundSize: 100,
+          groundColor: { x: 0.8, y: 0.8, z: 0.8 } as any
         }
       };
     }

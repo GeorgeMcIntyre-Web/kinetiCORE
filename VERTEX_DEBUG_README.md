@@ -85,3 +85,4 @@ Once you can see the vertex behavior:
 
 The harness uses the **exact same projection logic** as your snapping system, so what you see here is what the snapping code sees.
 
+

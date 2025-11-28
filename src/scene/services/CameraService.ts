@@ -26,9 +26,8 @@ export class CameraService {
   private static instance: CameraService | null = null;
   private camera: BABYLON.ArcRotateCamera | null = null;
   private engine: BABYLON.Engine | BABYLON.WebGPUEngine | null = null;
-  private scene: BABYLON.Scene | null = null;
 
-  private constructor() {}
+  private constructor() { }
 
   static getInstance(): CameraService {
     if (!CameraService.instance) {
@@ -40,9 +39,8 @@ export class CameraService {
   /**
    * Initialize camera for the scene
    */
-  initialize(scene: BABYLON.Scene, canvas: HTMLCanvasElement, engine: BABYLON.Engine | BABYLON.WebGPUEngine): void {
+  initialize(_scene: BABYLON.Scene, canvas: HTMLCanvasElement, engine: BABYLON.Engine | BABYLON.WebGPUEngine): void {
     this.engine = engine;
-    this.scene = scene;
 
     // Create default camera (Y-up Babylon native)
     // Note: User sees Z-up via CoordinateSystem.ts conversions
@@ -52,7 +50,7 @@ export class CameraService {
       CAMERA_DEFAULT_BETA,  // Angle from Y-axis
       CAMERA_DEFAULT_RADIUS,
       BABYLON.Vector3.Zero(),
-      scene
+      _scene
     );
 
     // Enable camera to render UI layer (snap previews, measurements, indicators)
@@ -377,7 +375,7 @@ export class CameraService {
   resetClippingPlanes(): void {
     if (!this.camera) return;
     if (!this.camera.getScene()) return;
-    
+
     this.camera.minZ = CAMERA_MIN_Z;
     this.camera.maxZ = CAMERA_MAX_Z;
     console.log('[CameraService] Reset clipping planes to defaults');

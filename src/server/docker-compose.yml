@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.nvidia
+    runtime: nvidia
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./cache:/app/.cache
+      - ./temp_uploads:/app/temp_uploads
+    environment:
+      - FLASK_ENV=production
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    restart: always

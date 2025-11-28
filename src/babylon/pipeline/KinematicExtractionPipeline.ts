@@ -1,8 +1,4 @@
 import * as BABYLON from '@babylonjs/core';
-import { GeometricToolAnalyzer, type GeometricAnalyzeOptions } from '../sceneAnalysis/GeometricToolAnalyzer';
-import { NameBasedToolAnalyzer, type NameBasedAnalyzeOptions } from '../sceneAnalysis/NameBasedToolAnalyzer';
-import { GeometryBasedToolAnalyzer, type GeometryBasedAnalyzeOptions } from '../sceneAnalysis/GeometryBasedToolAnalyzer';
-import type { ToolGraph, ToolUnit } from '../sceneAnalysis/ToolGraphAnalyzer';
 import { StateCapture, type CapturedStateSnapshot } from '../stateCapture/StateCapture';
 import { ICP, type ICPOptions, type ICPResult } from '../pointCloud/ICP';
 import {
@@ -18,31 +14,39 @@ import type {
 } from '../io/Schemas';
 import { FastNodeFilter, type FilterOptions, type NodePair } from './FastNodeFilter';
 import { PCLICPSolver } from '../pointCloud/PCLICPSolver';
-import { SceneTreeManager } from '../../scene/SceneTreeManager';
+import { collectSubtree, selectUnits, findUnitCandidates, getNodePairsForUnit } from '../../kinematics/statisticalPairing/StatisticalPairingEngine';
+import { BabylonAdapter } from './BabylonAdapter';
+import type { DetectedToolJoint } from '../sceneAnalysis/ToolingTypes';
+
+// Re-export for backwards compatibility
+export type { DetectedToolJoint };
 
 /**
  * Configuration for the complete kinematic extraction pipeline.
  */
+/**
+ * Configuration for the complete kinematic extraction pipeline.
+ */
 export interface PipelineOptions {
-  /** Analysis method: 'geometry-based' (ICP matching - ROBUST), 'name-based' (string matching - BRITTLE), or 'geometric' (heuristic - FALLBACK) */
-  analysisMethod?: 'geometry-based' | 'name-based' | 'geometric';
+  /**
+   * Minimum confidence threshold to include a joint in output.
+   * Range: 0-1, default: 0.5
+   */
+  minConfidence?: number;
 
-  /** Geometric analysis options (used when analysisMethod = 'geometric') */
-  geometric?: GeometricAnalyzeOptions;
-
-  /** Name-based analysis options (used when analysisMethod = 'name-based') */
-  nameBased?: NameBasedAnalyzeOptions;
-
-  /** Geometry-based analysis options (used when analysisMethod = 'geometry-based') */
-  geometryBased?: GeometryBasedAnalyzeOptions;
-
-  /** ICP alignment options */
+  /**
+   * ICP alignment options
+   */
   icp?: ICPOptions;
 
-  /** Joint extraction options */
+  /**
+   * Joint extraction options
+   */
   jointExtraction?: JointExtractionOptions;
 
-  /** State capture options */
+  /**
+   * State capture options
+   */
   stateCapture?: {
     /** Sample mesh vertices for point cloud */
     samplePoints?: boolean;
@@ -56,31 +60,20 @@ export interface PipelineOptions {
   limitSafetyFactor?: number;
 
   /**
-   * Minimum confidence threshold to include a joint in output.
-   * Range: 0-1, default: 0.5
-   */
-  minConfidence?: number;
-
-  /**
    * Fast node filtering options (multi-stage ICP-based filtering).
-   * Enables early rejection of invalid node pairs for performance.
    */
   fastFiltering?: FilterOptions;
 
   /**
    * Use professional ICP solver (icpts) instead of custom ICP.
-   * Recommended for production use (cascaded registration from ModelAnalyzer3D).
    */
   useProfessionalICP?: boolean;
 }
 
 const DEFAULT_PIPELINE_OPTIONS: Required<PipelineOptions> = {
-  analysisMethod: 'geometric',
-  geometric: {},
-  nameBased: {},
-  geometryBased: {},
+  minConfidence: 0.5,
   icp: {
-    enableDebug: true, // Enable detailed ICP debugging by default
+    enableDebug: true,
   },
   jointExtraction: {},
   stateCapture: {
@@ -89,24 +82,44 @@ const DEFAULT_PIPELINE_OPTIONS: Required<PipelineOptions> = {
     maxPoints: 1000,
   },
   limitSafetyFactor: 1.1,
-  minConfidence: 0.5,
   fastFiltering: {
     minPoints: 50,
-    maxCentroidDistance: 2.0, // 2m for automotive tooling
-    minCentroidDistance: 0.001, // 1mm minimum motion
-    bypassGeometricFilter: false, // Set to true for testing static GLB files
+    maxCentroidDistance: 2.0,
+    minCentroidDistance: 0.001,
+    bypassGeometricFilter: false,
     coarsePointCount: 100,
     coarseMaxIterations: 20,
-    coarseErrorMin: 0.001, // Below = no motion
-    coarseErrorMax: 0.5, // Above = bad correspondence
+    coarseErrorMin: 0.001,
+    coarseErrorMax: 0.5,
     fullMaxIterations: 200,
     fullErrorTolerance: 1e-7,
-    translationRange: { min: 0.01, max: 2.0 }, // 10mm - 2m
-    rotationRange: { min: 1.0, max: 180.0 }, // 1° - 180°
+    translationRange: { min: 0.01, max: 2.0 },
+    rotationRange: { min: 1.0, max: 180.0 },
     enableDebug: true,
   },
-  useProfessionalICP: true, // Use icpts by default (ModelAnalyzer3D proven)
+  useProfessionalICP: true,
 };
+
+/**
+ * Tool Unit definition (replaces legacy ToolUnit)
+ */
+export interface ToolUnit {
+  id: string;
+  name: string;
+  root: string;
+  nodes: string[];
+  nodeCount: number; // Number of nodes in this unit
+  isFixed: boolean;
+  type?: 'fixed' | 'moving';
+}
+
+/**
+ * Tool Graph definition (replaces legacy ToolGraph)
+ */
+export interface ToolGraph {
+  units: ToolUnit[];
+}
+
 
 /**
  * State captured for a single tool unit.
@@ -173,20 +186,15 @@ interface UnitICPResult {
  */
 export class KinematicExtractionPipeline {
   private scene: BABYLON.Scene;
-  private geometricAnalyzer: GeometricToolAnalyzer;
-  private nameBasedAnalyzer: NameBasedToolAnalyzer;
-  private geometryBasedAnalyzer: GeometryBasedToolAnalyzer;
   private stateCapture: StateCapture;
 
   private toolGraph: ToolGraph | null = null;
   private statePairs: Map<string, UnitStatePair> = new Map();
   private icpResults: Map<string, UnitICPResult> = new Map();
+  private detectedJoints: DetectedToolJoint[] = [];
 
   constructor(scene: BABYLON.Scene) {
     this.scene = scene;
-    this.geometricAnalyzer = new GeometricToolAnalyzer();
-    this.nameBasedAnalyzer = new NameBasedToolAnalyzer();
-    this.geometryBasedAnalyzer = new GeometryBasedToolAnalyzer();
     this.stateCapture = new StateCapture();
   }
 
@@ -206,164 +214,234 @@ export class KinematicExtractionPipeline {
    * await pipeline.analyzeScene({ analysisMethod: 'geometric', geometric: { ... } }, rootNode);
    * ```
    */
-  async analyzeScene(options?: PipelineOptions | GeometricAnalyzeOptions, rootNode?: BABYLON.Node): Promise<ToolGraph> {
-    console.log('[Pipeline] Step 1: Analyzing scene for tool units...');
+  /**
+   * Step 1: Analyze scene to identify tool units using Statistical Pairing.
+   */
+  async analyzeScene(_options?: PipelineOptions, rootNode?: BABYLON.Node): Promise<ToolGraph> {
+    console.log('[Pipeline] Step 1: Analyzing scene for tool units (Statistical Pairing)...');
 
-    // Support both old (GeometricAnalyzeOptions) and new (PipelineOptions) signatures
-    const pipelineOpts: PipelineOptions = (options as any)?.analysisMethod
-      ? (options as PipelineOptions)
-      : { analysisMethod: 'geometric', geometric: options as GeometricAnalyzeOptions };
-
-    const method = pipelineOpts.analysisMethod || 'geometric';
-
-    if (method === 'geometry-based') {
-      if (!rootNode) {
-        throw new Error('[Pipeline] Geometry-based analysis requires a rootNode parameter');
-      }
-
-      console.log(`[Pipeline] Using geometry-based analyzer (ICP matching - ROBUST)`);
-      this.toolGraph = await this.geometryBasedAnalyzer.analyze(
-        this.scene,
-        rootNode,
-        pipelineOpts.geometryBased
-      );
-    } else if (method === 'name-based') {
-      if (!rootNode) {
-        throw new Error('[Pipeline] Name-based analysis requires a rootNode parameter');
-      }
-
-      console.log(`[Pipeline] Using name-based analyzer (automotive GLB structure - BRITTLE)`);
-      this.toolGraph = this.nameBasedAnalyzer.analyze(
-        this.scene,
-        rootNode,
-        pipelineOpts.nameBased
-      );
-    } else {
-      console.log(`[Pipeline] Using geometric analyzer (heuristic-based - FALLBACK)`);
-      this.toolGraph = this.geometricAnalyzer.analyze(
-        this.scene,
-        pipelineOpts.geometric,
-        rootNode
-      );
+    if (!rootNode) {
+      // Fallback to scene root if not provided
+      rootNode = this.scene.rootNodes[0];
     }
 
-    const fixed = this.toolGraph.units.filter(u => u.isFixed);
-    const moving = this.toolGraph.units.filter(u => !u.isFixed);
+    if (!rootNode) {
+      throw new Error('[Pipeline] No root node found to analyze');
+    }
+
+    // 1. Convert Babylon scene to Statistical Scene
+    const statScene = BabylonAdapter.convert(rootNode);
+    const flatNodes = collectSubtree(statScene, statScene.rootId);
+
+    // 2. Find Unit Candidates
+    const fixtureTotal = flatNodes[0].totalPoints; // Root total
+    const candidates = findUnitCandidates(flatNodes, fixtureTotal);
+
+    // 3. Select Units
+    const unitIds = selectUnits(candidates, statScene);
+
+    console.log(`[Pipeline] Statistical Analysis found ${unitIds.length} units:`, unitIds);
+
+    // 4. Convert to ToolUnit objects
+    // Heuristic: The unit with the most points is likely the base (Fixed)
+    let maxPoints = -1;
+    let fixedUnitId = '';
+
+    const units: ToolUnit[] = unitIds.map(id => {
+      const node = statScene.nodes.get(id);
+      const points = node?.totalPointCount ?? 0;
+
+      if (points > maxPoints) {
+        maxPoints = points;
+        fixedUnitId = id;
+      }
+
+      // Collect all descendant node IDs for this unit
+      const unitNodes = collectSubtree(statScene, id).map(n => n.id);
+
+      return {
+        id: id,
+        name: id, // Use ID as name (name-agnostic)
+        root: id,
+        nodes: unitNodes,
+        nodeCount: unitNodes.length,
+        isFixed: false, // Will update below
+        type: 'moving'
+      };
+    });
+
+    // Mark fixed unit
+    const fixedUnit = units.find(u => u.id === fixedUnitId);
+    if (fixedUnit) {
+      fixedUnit.isFixed = true;
+      fixedUnit.type = 'fixed';
+    }
+
+    this.toolGraph = { units };
 
     console.log(
-      `[Pipeline] Analysis complete: ${this.toolGraph.units.length} units ` +
-      `(${fixed.length} fixed, ${moving.length} moving)`
+      `[Pipeline] Analysis complete: ${units.length} units ` +
+      `(${fixedUnitId} identified as base/fixed)`
     );
 
-    // DEBUG: Log SceneTree structure to verify node mappings
-    console.log('[Pipeline] ===== SCENE TREE STRUCTURE =====');
-    const tree = SceneTreeManager.getInstance();
-
-    // First, log how many nodes are in SceneTree total
-    console.log(`[Pipeline] SceneTree has ${tree.getAllNodes().length} total nodes`);
-
-    for (const unit of this.toolGraph.units) {
-      // Enhanced debug logging
-      console.log(`[Pipeline] Checking unit: ${unit.name}, root: ${unit.root}`);
-
-      // Try to find the Babylon node first
-      const uid = parseInt(unit.root, 10);
-      const babylonNode = !isNaN(uid) ? this.scene.getTransformNodeByUniqueId(uid) : null;
-
-      if (babylonNode) {
-        console.log(`  - ✓ Babylon TransformNode found: ${babylonNode.name} (uniqueId: ${babylonNode.uniqueId})`);
-      } else {
-        console.error(`  - ❌ Babylon TransformNode NOT found for uniqueId: ${unit.root}`);
-      }
-
-      const sceneNode = tree.getNodeByBabylonTransformNodeId(unit.root);
-      if (!sceneNode) {
-        console.error(`[Pipeline] ❌ Unit ${unit.name} not found in SceneTree!`);
-        console.error(`  - Looking for babylonTransformNodeId: ${unit.root}`);
-
-        // Try to find by name as a fallback diagnostic
-        const allNodes = tree.getAllNodes();
-        const nodesByName = allNodes.filter(n => n.name.includes(unit.name) || unit.name.includes(n.name));
-
-        if (nodesByName.length > 0) {
-          console.log(`  - Found ${nodesByName.length} nodes with similar names:`);
-          nodesByName.forEach(n => {
-            console.log(`    - "${n.name}" (id: ${n.id}, babylonTransformNodeId: ${n.babylonTransformNodeId || 'NONE'})`);
-          });
-        } else {
-          console.log(`  - No nodes found with similar names to "${unit.name}"`);
-        }
-
-        continue;
-      }
-
-      console.log(`[Pipeline] Unit: ${unit.name}`);
-      console.log(`  - SceneTree ID: ${sceneNode.id}`);
-      console.log(`  - babylonTransformNodeId: ${sceneNode.babylonTransformNodeId || '❌ MISSING'}`);
-      console.log(`  - babylonMeshId: ${sceneNode.babylonMeshId || 'N/A'}`);
-      console.log(`  - Parent: ${sceneNode.parentId || 'N/A'}`);
-      console.log(`  - Children: ${sceneNode.childIds.length}`);
-
-      // Show parent and sibling info
-      if (sceneNode.parentId) {
-        const parent = tree.getNode(sceneNode.parentId);
-        if (parent) {
-          console.log(`  - Parent name: ${parent.name}`);
-          console.log(`  - Siblings count: ${parent.childIds.length - 1}`);
-
-          // Show sibling names (useful for finding FIXED/MOVING pairs)
-          const siblings = parent.childIds
-            .map(id => tree.getNode(id))
-            .filter(n => n && n.id !== sceneNode.id);
-
-          if (siblings.length > 0) {
-            console.log(`  - Sibling names: ${siblings.map(s => s?.name).join(', ')}`);
-          }
-        }
-      }
-    }
-    console.log('[Pipeline] ===== END SCENE TREE =====');
-
-    // DEBUG: Per-unit geometry overview (origins and bounding boxes)
-    for (const unit of this.toolGraph.units) {
-      // Resolve root transform node
-      const uid = parseInt(unit.root, 10);
-      const rootTn = !isNaN(uid) ? this.scene.getTransformNodeByUniqueId(uid) : null;
-      if (!rootTn) {
-        console.warn(`[Pipeline][DEBUG] Unit '${unit.name}': root TransformNode not found for uid=${unit.root}`);
-        continue;
-      }
-
-      // World origin of unit root
-      rootTn.computeWorldMatrix(true);
-      const rootPos = rootTn.getAbsolutePosition();
-
-      // Collect child meshes and compute combined world-space bounding box
-      const meshes = rootTn.getChildMeshes(false) as BABYLON.AbstractMesh[];
-      let min = new BABYLON.Vector3(+Infinity, +Infinity, +Infinity);
-      let max = new BABYLON.Vector3(-Infinity, -Infinity, -Infinity);
-      for (const m of meshes) {
-        m.computeWorldMatrix(true);
-        const bbox = m.getBoundingInfo().boundingBox;
-        min = BABYLON.Vector3.Minimize(min, bbox.minimumWorld);
-        max = BABYLON.Vector3.Maximize(max, bbox.maximumWorld);
-      }
-      const size = max.subtract(min);
-      const dimsSorted = [Math.abs(size.x), Math.abs(size.y), Math.abs(size.z)].sort((a, b) => a - b);
-
-      console.log(
-        `[Pipeline][DEBUG] Unit '${unit.name}' ` +
-        `(fixed=${unit.isFixed})
-  - root uid: ${unit.root}
-  - root world pos: (${rootPos.x.toFixed(3)}, ${rootPos.y.toFixed(3)}, ${rootPos.z.toFixed(3)})
-  - child meshes: ${meshes.length}
-  - bbox min: (${min.x.toFixed(3)}, ${min.y.toFixed(3)}, ${min.z.toFixed(3)})
-  - bbox max: (${max.x.toFixed(3)}, ${max.y.toFixed(3)}, ${max.z.toFixed(3)})
-  - dims sorted: [${dimsSorted.map(d => d.toFixed(3)).join(', ')}]`
-      );
-    }
-
     return this.toolGraph;
+  }
+
+  /**
+   * Auto-detect joints by statistically pairing units and nodes.
+   * This replaces the manual state capture workflow.
+   */
+  async detectJointsStatistically(options?: PipelineOptions): Promise<DetectedToolJoint[]> {
+    if (!this.toolGraph) {
+      throw new Error('[Pipeline] Must call analyzeScene() before detecting joints');
+    }
+
+    console.log('[Pipeline] Detecting joints statistically...');
+    const detectedJoints: DetectedToolJoint[] = [];
+    const statScene = BabylonAdapter.convert(this.scene.rootNodes[0]); // Re-convert or cache? Re-convert is safer for now.
+
+    // 1. Pair Units (Self-Pairing Strategy)
+    // Group units by point count (within 1% tolerance)
+    const units = this.toolGraph.units;
+    const groups: ToolUnit[][] = [];
+    const processed = new Set<string>();
+
+    for (const u1 of units) {
+      if (processed.has(u1.id)) continue;
+
+      const group = [u1];
+      processed.add(u1.id);
+      const p1 = statScene.nodes.get(u1.id)?.totalPointCount ?? 0;
+
+      for (const u2 of units) {
+        if (processed.has(u2.id)) continue;
+        const p2 = statScene.nodes.get(u2.id)?.totalPointCount ?? 0;
+
+        // Tolerance: 1% relative or 50 points absolute
+        const diff = Math.abs(p1 - p2);
+        const maxP = Math.max(p1, p2);
+        const rel = maxP === 0 ? 0 : diff / maxP;
+
+        if (diff < 50 || rel < 0.01) {
+          group.push(u2);
+          processed.add(u2.id);
+        }
+      }
+      groups.push(group);
+    }
+
+    console.log(`[Pipeline] Found ${groups.length} unit groups based on point count.`);
+
+    // 2. Process Pairs
+    for (const group of groups) {
+      if (group.length !== 2) {
+        console.log(`[Pipeline] Group with ${group.length} units (points ~${statScene.nodes.get(group[0].id)?.totalPointCount}) - skipping (not a pair)`);
+        continue;
+      }
+
+      const [uA, uB] = group;
+      console.log(`[Pipeline] Processing Unit Pair: ${uA.id} <-> ${uB.id}`);
+
+      // We don't know which is Open/Closed, but it doesn't matter for finding the joint *axis*.
+      // We just need to find the transform between them.
+      // Arbitrarily assign Open/Closed for the helper function
+      const unitPair = { openUnitId: uA.id, closedUnitId: uB.id };
+
+      // 3. Pair Nodes within Units
+      const nodePairs = getNodePairsForUnit(statScene, statScene, unitPair);
+      console.log(`[Pipeline]   Found ${nodePairs.length} node pairs.`);
+
+      if (nodePairs.length === 0) continue;
+
+      // 4. Run ICP on Node Pairs to find Joint
+      // We aggregate points from all paired nodes to get a robust fit
+      let pointsA: BABYLON.Vector3[] = [];
+      let pointsB: BABYLON.Vector3[] = [];
+
+      for (const pair of nodePairs) {
+        const nodeA = this.scene.getTransformNodeById(pair.openNodeId) || this.scene.getMeshById(pair.openNodeId);
+        const nodeB = this.scene.getTransformNodeById(pair.closedNodeId) || this.scene.getMeshById(pair.closedNodeId);
+
+        if (nodeA && nodeB) {
+          // Extract world vertices
+          // Note: We need a helper to extract vertices. StateCapture has one, or we can use a simple one here.
+          // For now, let's assume meshes.
+          const ptsA = this.extractVertices(nodeA);
+          const ptsB = this.extractVertices(nodeB);
+          pointsA.push(...ptsA);
+          pointsB.push(...ptsB);
+        }
+      }
+
+      if (pointsA.length < 50 || pointsB.length < 50) {
+        console.warn('[Pipeline] Insufficient points for ICP.');
+        continue;
+      }
+
+      // Run ICP
+      // Use PCLICPSolver if available
+      const icpResultRaw = await PCLICPSolver.align(pointsA, pointsB, { maxIterations: 100 });
+
+      if (!icpResultRaw.success) {
+        console.warn(`[Pipeline] ICP failed for pair ${uA.id}-${uB.id}`);
+        continue;
+      }
+
+      // Extract Joint
+      const icpResult: ICPResult = {
+        success: icpResultRaw.success,
+        transform: icpResultRaw.transform,
+        rmsError: icpResultRaw.error,
+        iterations: icpResultRaw.iterations,
+        correspondences: pointsA.length
+      };
+
+      const jointFit = extractJointFromTransform(
+        icpResult,
+        pointsA,
+        options?.jointExtraction
+      );
+
+      if (jointFit && jointFit.confidence > (options?.minConfidence ?? 0.5)) {
+        console.log(`[Pipeline] Detected ${jointFit.type} joint!`);
+
+        detectedJoints.push({
+          jointId: `${uA.id}_joint`,
+          unitId: uA.id, // Assign to one of them
+          nodeAId: uA.id,
+          nodeBId: uB.id,
+          deltaType: jointFit.type === 'hinge' ? 'revolute' : 'prismatic',
+          angleDeg: (jointFit.magnitude * 180) / Math.PI,
+          axis: new BABYLON.Vector3(jointFit.axis.x, jointFit.axis.y, jointFit.axis.z),
+          anchor: new BABYLON.Vector3(jointFit.anchor.x, jointFit.anchor.y, jointFit.anchor.z),
+          confidence: jointFit.confidence,
+          min: 0, // TODO: Infer limits
+          max: jointFit.magnitude
+        });
+      }
+    }
+
+    this.detectedJoints = detectedJoints;
+    return detectedJoints;
+  }
+
+  private extractVertices(node: BABYLON.Node): BABYLON.Vector3[] {
+    const points: BABYLON.Vector3[] = [];
+    if (node instanceof BABYLON.Mesh) {
+      const data = node.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+      if (data) {
+        node.computeWorldMatrix(true);
+        const matrix = node.getWorldMatrix();
+        for (let i = 0; i < data.length; i += 3) {
+          const v = new BABYLON.Vector3(data[i], data[i + 1], data[i + 2]);
+          points.push(BABYLON.Vector3.TransformCoordinates(v, matrix));
+        }
+      }
+    }
+    // Recurse? collectSubtree already gave us the nodes, so we iterate them in the caller.
+    // But wait, getNodePairsForUnit returns pairs of *individual* nodes.
+    // So if I pass a node here, it's just that node.
+    return points;
   }
 
   /**
@@ -400,13 +478,6 @@ export class KinematicExtractionPipeline {
       }
 
       console.log(`[Pipeline] Captured retracted state for unit '${unit.name}': ${snapshot.pointCloud.length} points`);
-      // DEBUG: Show centroid and first points
-      if (snapshot.pointCloud.length > 0) {
-        const centroid = snapshot.pointCloud.reduce((s, p) => s.add(p), BABYLON.Vector3.Zero()).scale(1 / snapshot.pointCloud.length);
-        console.log(`[Pipeline][DEBUG] Retracted centroid for '${unit.name}': (${centroid.x.toFixed(3)}, ${centroid.y.toFixed(3)}, ${centroid.z.toFixed(3)})`);
-        const sample = snapshot.pointCloud.slice(0, 3).map(p => `(${p.x.toFixed(3)}, ${p.y.toFixed(3)}, ${p.z.toFixed(3)})`);
-        console.log(`[Pipeline][DEBUG] Retracted sample points: ${sample.join(', ')}`);
-      }
     }
   }
 
@@ -444,13 +515,6 @@ export class KinematicExtractionPipeline {
       this.statePairs.get(unit.id)!.extended = snapshot;
 
       console.log(`[Pipeline] Captured extended state for unit '${unit.name}': ${snapshot.pointCloud.length} points`);
-      // DEBUG: Show centroid and first points
-      if (snapshot.pointCloud.length > 0) {
-        const centroid = snapshot.pointCloud.reduce((s, p) => s.add(p), BABYLON.Vector3.Zero()).scale(1 / snapshot.pointCloud.length);
-        console.log(`[Pipeline][DEBUG] Extended centroid for '${unit.name}': (${centroid.x.toFixed(3)}, ${centroid.y.toFixed(3)}, ${centroid.z.toFixed(3)})`);
-        const sample = snapshot.pointCloud.slice(0, 3).map(p => `(${p.x.toFixed(3)}, ${p.y.toFixed(3)}, ${p.z.toFixed(3)})`);
-        console.log(`[Pipeline][DEBUG] Extended sample points: ${sample.join(', ')}`);
-      }
     }
   }
 
@@ -476,7 +540,7 @@ export class KinematicExtractionPipeline {
 
     // Build node pairs for FastNodeFilter
     const nodePairs: NodePair[] = [];
-    for (const [unitId, statePair] of this.statePairs.entries()) {
+    for (const [unitId, statePair] of Array.from(this.statePairs.entries())) {
       const { unit, retracted, extended } = statePair;
 
       if (!retracted || !extended) {
@@ -502,25 +566,6 @@ export class KinematicExtractionPipeline {
       const extendedSample = extended.pointCloud.slice(0, 3);
       console.log(`  - Retracted sample:`, retractedSample.map(p => `(${p.x.toFixed(3)}, ${p.y.toFixed(3)}, ${p.z.toFixed(3)})`));
       console.log(`  - Extended sample:`, extendedSample.map(p => `(${p.x.toFixed(3)}, ${p.y.toFixed(3)}, ${p.z.toFixed(3)})`));
-
-      // DEBUG: Compare world vs unit-root-relative coordinates
-      const uid = parseInt(unit.root, 10);
-      const rootTn = !isNaN(uid) ? this.scene.getTransformNodeByUniqueId(uid) : null;
-      if (rootTn) {
-        rootTn.computeWorldMatrix(true);
-        const rootPos = rootTn.getAbsolutePosition();
-        const relCentroidRetr = retracted.pointCloud
-          .reduce((sum, p) => sum.add(p.subtract(rootPos)), BABYLON.Vector3.Zero())
-          .scale(1 / retracted.pointCloud.length);
-        const relCentroidExt = extended.pointCloud
-          .reduce((sum, p) => sum.add(p.subtract(rootPos)), BABYLON.Vector3.Zero())
-          .scale(1 / extended.pointCloud.length);
-        const relDelta = relCentroidExt.subtract(relCentroidRetr);
-        console.log(
-          `  - [DEBUG] Root world pos: (${rootPos.x.toFixed(3)}, ${rootPos.y.toFixed(3)}, ${rootPos.z.toFixed(3)})\n` +
-          `    Relative centroid delta (ext - retr): (${relDelta.x.toFixed(3)}, ${relDelta.y.toFixed(3)}, ${relDelta.z.toFixed(3)})`
-        );
-      }
 
       nodePairs.push({
         fixedNodeId: unitId, // Use unitId as identifier
@@ -619,13 +664,15 @@ export class KinematicExtractionPipeline {
         continue;
       }
 
-      // Compute centroid of retracted point cloud
-      const centroid = retracted.pointCloud
-        .reduce((sum, p) => sum.add(p), BABYLON.Vector3.Zero())
-        .scale(1 / retracted.pointCloud.length);
+      // Extract joint from transform (orbit-based circle fitting, no centroid)
+      const jointFit = extractJointFromTransform(icpResult, retracted.pointCloud, opts.jointExtraction);
 
-      // Extract joint from transform
-      const jointFit = extractJointFromTransform(icpResult, centroid, opts.jointExtraction);
+      if (!jointFit) {
+        console.warn(
+          `[Pipeline] No joint detected for unit '${unit.name}' (insufficient motion)`
+        );
+        continue;
+      }
 
       if (jointFit.confidence < opts.minConfidence) {
         console.warn(
@@ -686,16 +733,10 @@ export class KinematicExtractionPipeline {
     }
 
     // Generate actuator program (simple timeline)
-    // Build reverse map from unit.root (Babylon uniqueId string) to unit.id
-    const rootToUnitId = new Map<string, string>();
-    if (this.toolGraph) {
-      for (const u of this.toolGraph.units) rootToUnitId.set(u.root, u.id);
-    }
-
     const actuatorProgram: ActuatorProgramOutput = {
       channels: joints.map((joint, idx) => ({
         id: `ch${idx + 1}`,
-        unitId: rootToUnitId.get(joint.childId) || joint.childId,
+        unitId: this.icpResults.get(joint.childId)?.unit.id || joint.childId,
         timeline: [
           { tMs: 0, cmd: 'retract' as const },
           { tMs: 1000, cmd: 'extend' as const },
@@ -736,7 +777,7 @@ export class KinematicExtractionPipeline {
       byUnitId.set(unitId, arr);
     }
 
-    for (const [unitId, entries] of byUnitId.entries()) {
+    for (const [unitId, entries] of Array.from(byUnitId.entries())) {
       const state = this.statePairs.get(unitId);
       const retractedPts = state?.retracted?.pointCloud;
       const extendedPts = state?.extended?.pointCloud;
@@ -814,7 +855,7 @@ export class KinematicExtractionPipeline {
     const opts = { ...DEFAULT_PIPELINE_OPTIONS, ...options };
 
     // Step 1: Analyze scene
-    await this.analyzeScene(opts.geometric);
+    await this.analyzeScene(opts);
 
     // Step 2 & 3: Capture states
     // NOTE: In a real implementation, this would pause for user interaction
@@ -826,6 +867,9 @@ export class KinematicExtractionPipeline {
     // Step 4: Fit joints (only if states already captured)
     if (this.statePairs.size > 0) {
       await this.fitJoints(opts);
+    } else {
+      // Auto-detect if no manual states
+      await this.detectJointsStatistically(opts);
     }
 
     // Step 5: Export
@@ -851,6 +895,14 @@ export class KinematicExtractionPipeline {
    */
   getICPResults(): Map<string, UnitICPResult> {
     return this.icpResults;
+  }
+
+  /**
+   * Get detected joints from the structure-based analyzer.
+   * These are auto-detected joints from ICP on two-state families.
+   */
+  getDetectedJoints(): DetectedToolJoint[] {
+    return this.detectedJoints;
   }
 
   /**
@@ -911,6 +963,44 @@ export class KinematicExtractionPipeline {
     );
   }
 
+  async captureUnitStateFromPoints(
+    unitId: string,
+    state: 'retract' | 'advance',
+    points: BABYLON.Vector3[],
+  ): Promise<void> {
+    if (!this.toolGraph) {
+      throw new Error('[Pipeline] Must call analyzeScene() first');
+    }
+
+    const unit = this.toolGraph.units.find(u => u.id === unitId);
+    if (!unit) {
+      throw new Error(`[Pipeline] Unit '${unitId}' not found in tool graph`);
+    }
+
+    const snapshot = this.stateCapture.capture(
+      this.scene,
+      unit.id,
+      state,
+      { kind: 'points', points },
+      {}
+    );
+
+    if (!this.statePairs.has(unitId)) {
+      this.statePairs.set(unitId, { unit } as UnitStatePair);
+    }
+
+    if (state === 'retract') {
+      this.statePairs.get(unitId)!.retracted = snapshot;
+    } else {
+      this.statePairs.get(unitId)!.extended = snapshot;
+    }
+
+    console.log(
+      `[Pipeline] Captured ${state} state (points) for unit '${unit.name}': ` +
+      `${snapshot.pointCloud.length} points`
+    );
+  }
+
   /**
    * Manually fit joint for a specific unit.
    *
@@ -938,11 +1028,14 @@ export class KinematicExtractionPipeline {
       );
     }
 
-    const centroid = retracted.pointCloud
-      .reduce((sum, p) => sum.add(p), BABYLON.Vector3.Zero())
-      .scale(1 / retracted.pointCloud.length);
+    // Extract joint from transform (orbit-based circle fitting, no centroid)
+    const jointFit = extractJointFromTransform(icpResult, retracted.pointCloud, opts.jointExtraction);
 
-    const jointFit = extractJointFromTransform(icpResult, centroid, opts.jointExtraction);
+    if (!jointFit) {
+      throw new Error(
+        `[Pipeline] No joint detected for unit '${unit.name}' (insufficient motion)`
+      );
+    }
 
     this.icpResults.set(unitId, { unit, icpResult, jointFit });
 

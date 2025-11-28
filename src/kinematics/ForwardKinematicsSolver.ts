@@ -66,46 +66,46 @@ export class ForwardKinematicsSolver {
     if (scene) {
       this.kinematicsManager.updateJointGizmo(jointId, scene);
       this.updateChildJointGizmos(joint.childNodeId, scene);
-      
+
       // Cache the joint frame world matrix (joint origin position + rotation)
       const parentNode = this.sceneTreeManager.getNode(joint.parentNodeId);
       const childNode = this.sceneTreeManager.getNode(joint.childNodeId);
       if (parentNode && childNode) {
         const parentBabylonNode = this.getBabylonNode(parentNode.id, scene);
         const childBabylonNode = this.getBabylonNode(childNode.id, scene);
-        
+
         if (parentBabylonNode && childBabylonNode) {
           // The joint frame is at parent's world transform + joint origin
           parentBabylonNode.computeWorldMatrix(true);
           const parentWorldMatrix = parentBabylonNode.getWorldMatrix();
-          
+
           // Joint origin in parent's local space
           const originLocal = new BABYLON.Vector3(
             joint.origin.x,
             joint.origin.y,
             joint.origin.z
           );
-          
+
           // Transform joint origin to world space
           const originWorld = BABYLON.Vector3.TransformCoordinates(originLocal, parentWorldMatrix);
-          
+
           // Create a simple matrix representing the joint frame position
           const jointWorldMatrix = BABYLON.Matrix.Translation(
             originWorld.x,
             originWorld.y,
             originWorld.z
           );
-          
+
           // Apply joint rotation to the matrix
           const transform = this.calculateJointTransform(joint);
           const rotationMatrix = BABYLON.Matrix.Identity();
           rotationMatrix.setTranslation(jointWorldMatrix.getTranslation());
           const rotationQuat = transform.rotation;
           rotationQuat.toRotationMatrix(rotationMatrix);
-          
+
           const rotatedMatrix = BABYLON.Matrix.Identity();
           rotationMatrix.multiplyToRef(jointWorldMatrix, rotatedMatrix);
-          
+
           // Defer cache + emit: we'll cache all joints in the chain once after transforms are applied
           const chains = this.kinematicsManager.getAllChains();
           const owningChain = chains.find(c => c.joints.some(j => j.id === jointId));
@@ -198,7 +198,7 @@ export class ForwardKinematicsSolver {
     // Debug: Log when we update tool0
     if (joint.name && joint.name.includes('tool0')) {
       const euler = transform.rotation.toEulerAngles();
-      console.log(`[FK applyJointTransform] Setting tool0 LOCAL rotation: Rx=${(euler.x*180/Math.PI).toFixed(1)}° Ry=${(euler.y*180/Math.PI).toFixed(1)}° Rz=${(euler.z*180/Math.PI).toFixed(1)}°`);
+      console.log(`[FK applyJointTransform] Setting tool0 LOCAL rotation: Rx=${(euler.x * 180 / Math.PI).toFixed(1)}° Ry=${(euler.y * 180 / Math.PI).toFixed(1)}° Rz=${(euler.z * 180 / Math.PI).toFixed(1)}°`);
     }
 
     // Sync to physics if entity exists (skip during initial FK solve to avoid Rapier errors)
@@ -230,11 +230,11 @@ export class ForwardKinematicsSolver {
     // Start with the origin rotation (base orientation from URDF)
     let rotation = joint.originRotation
       ? new BABYLON.Quaternion(
-          joint.originRotation.x,
-          joint.originRotation.y,
-          joint.originRotation.z,
-          joint.originRotation.w
-        )
+        joint.originRotation.x,
+        joint.originRotation.y,
+        joint.originRotation.z,
+        joint.originRotation.w
+      )
       : BABYLON.Quaternion.Identity();
 
     switch (joint.type) {
@@ -789,7 +789,7 @@ export class ForwardKinematicsSolver {
     // This is the last joint's child node, which is the actual end of the kinematic chain
     let lastLinkNodeId: string | null = null;
     const lastJoint = joints[joints.length - 1];
-    
+
     if (lastJoint && lastJoint.childNodeId) {
       lastLinkNodeId = lastJoint.childNodeId;
     }
@@ -820,13 +820,13 @@ export class ForwardKinematicsSolver {
     // Get ACTUAL world position from the mesh in the last link
     // If it's a TransformNode, get its child meshes
     let actualMesh: BABYLON.Mesh | BABYLON.TransformNode | null = null;
-    
+
     if (babylonNode instanceof BABYLON.Mesh) {
       actualMesh = babylonNode;
     } else if (babylonNode instanceof BABYLON.TransformNode) {
       // Get all child meshes and use the first one
       const childMeshes = babylonNode.getChildMeshes(false, (node): node is BABYLON.Mesh => node instanceof BABYLON.Mesh);
-      
+
       if (childMeshes.length > 0) {
         actualMesh = childMeshes[0];
       } else {
@@ -847,12 +847,12 @@ export class ForwardKinematicsSolver {
     const worldMatrix = actualMesh.getWorldMatrix();
     const worldPosition = new BABYLON.Vector3();
     worldMatrix.getTranslationToRef(worldPosition);
-    
+
     // Extract rotation from the world matrix
     // Get the rotation matrix (extract scale and rotation, normalizing scale)
     const rotationMatrix = worldMatrix.getRotationMatrix();
     const worldRotation = BABYLON.Quaternion.FromRotationMatrix(rotationMatrix);
-    
+
     return {
       position: worldPosition,
       rotation: worldRotation
@@ -907,7 +907,7 @@ export class ForwardKinematicsSolver {
     console.log(`[FK getTCPPose] Available TCP frames (${tcpFrames.length}):`);
     tcpFrames.forEach((frame, idx) => {
       const euler = new BABYLON.Quaternion(frame.rotation.x, frame.rotation.y, frame.rotation.z, frame.rotation.w).toEulerAngles();
-      console.log(`  [${idx}] ${frame.name}: rot=(${(euler.x*180/Math.PI).toFixed(1)}°, ${(euler.y*180/Math.PI).toFixed(1)}°, ${(euler.z*180/Math.PI).toFixed(1)}°), offset=(${frame.offset.x.toFixed(3)}, ${frame.offset.y.toFixed(3)}, ${frame.offset.z.toFixed(3)})`);
+      console.log(`  [${idx}] ${frame.name}: rot=(${(euler.x * 180 / Math.PI).toFixed(1)}°, ${(euler.y * 180 / Math.PI).toFixed(1)}°, ${(euler.z * 180 / Math.PI).toFixed(1)}°), offset=(${frame.offset.x.toFixed(3)}, ${frame.offset.y.toFixed(3)}, ${frame.offset.z.toFixed(3)})`);
     });
 
     // Select TCP frame (use specified ID or default to first frame)
@@ -925,7 +925,7 @@ export class ForwardKinematicsSolver {
     // The TCP frame represents a tool mounted on the robot with an offset/rotation.
     // Since solve() processes ALL joints including fixed ones, the null TCP pose (tool0) already includes
     // the position and orientation of the last link. Now we apply the TCP frame transform and convert to world space.
-    
+
     // Get null TCP pose - now returns ACTUAL world position from mesh
     const nullTCPPose = this.getNullTCPPose(chainName);
     if (!nullTCPPose) {
@@ -965,81 +965,6 @@ export class ForwardKinematicsSolver {
     return {
       position: tcpPositionWorld,
       rotation: tcpRotationWorld
-    };
-  }
-
-  /**
-   * Transform a robot-local pose to world space
-   * Helper method used by both null TCP and TCP frame transformations
-   */
-  // @ts-expect-error - Reserved for future use
-
-  private _transformToWorldSpace(
-    chainName: string,
-    localPosition: BABYLON.Vector3,
-    localRotation: BABYLON.Quaternion
-  ): {
-    position: BABYLON.Vector3;
-    rotation: BABYLON.Quaternion;
-  } | null {
-    // Get chain
-    const chain = this.kinematicsManager.getChain(chainName);
-    if (!chain) {
-      console.warn(`[FK getTCPPose] Chain not found: ${chainName}`);
-      return null;
-    }
-
-    // Get robot base node (first joint's parent)
-    const joints = this.kinematicsManager.getChainJoints(chain.id);
-    if (joints.length === 0) {
-      console.warn(`[FK getTCPPose] No joints in chain ${chainName}`);
-      return { position: localPosition, rotation: localRotation };
-    }
-
-    const firstJoint = joints[0];
-    const baseNode = this.sceneTreeManager.getNode(firstJoint.parentNodeId);
-    if (!baseNode) {
-      console.warn(`[FK getTCPPose] Base node not found for chain ${chainName}`);
-      return { position: localPosition, rotation: localRotation };
-    }
-
-    // Get base node's world transform
-    const scene = this.sceneManager.getScene();
-    if (!scene) {
-      console.warn(`[FK getTCPPose] Scene not available`);
-      return { position: localPosition, rotation: localRotation };
-    }
-
-    const baseBabylonNode = this.getBabylonNode(baseNode.id, scene);
-    if (!baseBabylonNode) {
-      console.warn(`[FK getTCPPose] Base Babylon node not found for ${baseNode.id}`);
-      return { position: localPosition, rotation: localRotation };
-    }
-
-    // Get world matrix for base
-    baseBabylonNode.computeWorldMatrix(true);
-    const baseWorldMatrix = baseBabylonNode.getWorldMatrix();
-
-    // Transform position from robot-local to world space
-    const worldPosition = BABYLON.Vector3.TransformCoordinates(
-      localPosition,
-      baseWorldMatrix
-    );
-
-    // Transform rotation to world space
-    const baseWorldRotation = BABYLON.Quaternion.FromRotationMatrix(baseWorldMatrix);
-    const worldRotation = baseWorldRotation.multiply(localRotation);
-
-    // Debug logging
-    const localEuler = localRotation.toEulerAngles();
-    const worldEuler = worldRotation.toEulerAngles();
-    console.log(`[FK transformToWorldSpace] Transforming to world space:`);
-    console.log(`  Local: pos=(${localPosition.x.toFixed(3)}, ${localPosition.y.toFixed(3)}, ${localPosition.z.toFixed(3)}), rot=(Rx=${(localEuler.x*180/Math.PI).toFixed(1)}°, Ry=${(localEuler.y*180/Math.PI).toFixed(1)}°, Rz=${(localEuler.z*180/Math.PI).toFixed(1)}°)`);
-    console.log(`  World: pos=(${worldPosition.x.toFixed(3)}, ${worldPosition.y.toFixed(3)}, ${worldPosition.z.toFixed(3)}), rot=(Rx=${(worldEuler.x*180/Math.PI).toFixed(1)}°, Ry=${(worldEuler.y*180/Math.PI).toFixed(1)}°, Rz=${(worldEuler.z*180/Math.PI).toFixed(1)}°)`);
-
-    return {
-      position: worldPosition,
-      rotation: worldRotation
     };
   }
 

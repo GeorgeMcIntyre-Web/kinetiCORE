@@ -1,0 +1,54 @@
+name: FEA Backend Tests
+
+on:
+  pull_request:
+    paths:
+      - 'server/**'
+      - '.github/workflows/fea-backend-tests.yml'
+  push:
+    branches:
+      - fea-backend-mvp
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          cd server
+          pip install -r requirements-fea.txt
+          pip install pytest pytest-cov httpx
+      
+      - name: Run tests
+        run: |
+          cd server
+          python -m pytest -v --cov=app --cov-report=term --cov-report=xml
+      
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: ./server/coverage.xml
+          flags: backend
+          fail_ci_if_error: false
