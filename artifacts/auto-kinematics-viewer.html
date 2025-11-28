@@ -200,6 +200,7 @@
         <input type="file" id="fileInput" class="file-input" accept=".glb,.gltf">
 
         <h2>Quick Load (Test Files)</h2>
+        <button class="button" onclick="quickLoad('floor_clamp')">Floor Clamp (Simple)</button>
         <button class="button" onclick="quickLoad('9X_110')">9X-110 Fixture</button>
         <button class="button" onclick="quickLoad('kr270')">KR270 Robot</button>
         <div style="margin-top: 8px;">
@@ -334,24 +335,22 @@
             }
 
             detectJointsInUnit(unit) {
-                // Simplified joint detection: Look for nodes with significant vertex count
-                // that are likely moving parts
+                // Simplified: Just look for LH/RH pairs (typical clamp structure)
                 const joints = [];
-                const MIN_JOINT_RATIO = 0.05; // 5% of unit vertices
 
                 const checkNode = (node) => {
                     if (!node) return;
 
+                    const name = node.name.toUpperCase();
                     const ratio = node.totalVertices / unit.totalVertices;
 
-                    // Potential joint if:
-                    // 1. Has moderate vertex count (not too small, not the whole unit)
-                    // 2. Has children (moving parts)
-                    // 3. Reasonable depth
-                    if (ratio > MIN_JOINT_RATIO &&
-                        ratio < 0.8 &&
-                        node.children.length > 0 &&
-                        node.depth > unit.depth) {
+                    // Look for typical clamp components (LH/RH sides)
+                    const isClampSide = name.includes('LH') || name.includes('RH') ||
+                                       name.includes('LEFT') || name.includes('RIGHT');
+                    const hasEnoughGeometry = ratio > 0.05 && ratio < 0.80;
+
+                    if (isClampSide && hasEnoughGeometry && node.mesh) {
+                        const pivotPoint = this.calculatePivotPoint(node.mesh);
 
                         joints.push({
                             name: node.name,
@@ -359,16 +358,36 @@
                             vertexCount: node.totalVertices,
                             ratio: ratio,
                             mesh: node.mesh,
-                            position: node.mesh.getAbsolutePosition(),
-                            type: this.guessJointType(node)
+                            position: pivotPoint,
+                            type: 'revolute'  // Clamps are typically revolute
                         });
                     }
 
+                    // Check all children
                     node.children.forEach(child => checkNode(child));
                 };
 
                 checkNode(unit);
                 return joints;
+            }
+
+            calculatePivotPoint(mesh) {
+                // Calculate pivot from bounding box
+                // For revolute joints, this approximates the rotation axis center
+                try {
+                    const bounds = mesh.getHierarchyBoundingVectors();
+                    const min = bounds.min;
+                    const max = bounds.max;
+
+                    // Use bottom-center of bounding box (typical for revolute joints)
+                    return new BABYLON.Vector3(
+                        (min.x + max.x) / 2,
+                        min.y,  // Bottom of bounding box
+                        (min.z + max.z) / 2
+                    );
+                } catch (e) {
+                    return mesh.getAbsolutePosition();
+                }
             }
 
             guessJointType(node) {
@@ -474,12 +493,59 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 const arrayBuffer = e.target.result;
-                const blob = new Blob([arrayBuffer]);
+
+                // Create blob with correct MIME type
+                const blob = new Blob([arrayBuffer], { type: 'model/gltf-binary' });
                 const url = URL.createObjectURL(blob);
 
-                loadGLBModel(url, file.name);
+                // Load with explicit file extension
+                loadGLBModelFromBlob(url, file.name);
             };
             reader.readAsArrayBuffer(file);
+        }
+
+        // Load GLB from blob URL with proper plugin detection
+        function loadGLBModelFromBlob(blobUrl, filename) {
+            if (loadedModel) {
+                loadedModel.dispose();
+                loadedModel = null;
+            }
+
+            // Use SceneLoader with explicit plugin
+            BABYLON.SceneLoader.ImportMesh(
+                '',
+                '',
+                blobUrl,
+                scene,
+                (meshes) => {
+                    hideLoader();
+
+                    if (meshes.length === 0) {
+                        updateStatus('Error: No meshes found in GLB');
+                        return;
+                    }
+
+                    loadedModel = meshes[0];
+
+                    // Frame camera
+                    const bounds = loadedModel.getHierarchyBoundingVectors();
+                    const center = BABYLON.Vector3.Center(bounds.min, bounds.max);
+                    const size = bounds.max.subtract(bounds.min);
+                    const maxDim = Math.max(size.x, size.y, size.z);
+
+                    camera.setTarget(center);
+                    camera.radius = maxDim * 2.5;
+
+                    updateStatus(`✓ Loaded: ${filename}\n${meshes.length} meshes\nClick "Analyze Hierarchy" to detect joints`);
+                },
+                null,
+                (scene, message) => {
+                    hideLoader();
+                    updateStatus('Error loading model:\n' + message);
+                    console.error('GLB load failed:', message);
+                },
+                '.glb'  // Explicit file extension tells Babylon to use GLTF plugin
+            );
         }
 
         // Load GLB model
@@ -487,6 +553,12 @@
             if (loadedModel) {
                 loadedModel.dispose();
                 loadedModel = null;
+            }
+
+            // Configure loader to skip Draco compression (avoid CDN dependency)
+            if (BABYLON.GLTFFileLoader) {
+                BABYLON.GLTFFileLoader.IncrementalLoading = false;
+                // Note: Draco is optional - loader will fallback to uncompressed data
             }
 
             BABYLON.SceneLoader.ImportMesh(
@@ -720,9 +792,11 @@
 
         // Quick load presets
         function quickLoad(preset) {
+            // Serve from same origin (port 8080) to avoid Draco CDN issues
             const urls = {
-                '9X_110': 'http://127.0.0.1:8081/9X_110_GEO.glb',
-                'kr270': 'http://127.0.0.1:8081/kr270_enhanced.glb'
+                'floor_clamp': 'http://127.0.0.1:8080/floor_clamp.glb',
+                '9X_110': 'http://127.0.0.1:8080/9X_110_GEO.glb',
+                'kr270': 'http://127.0.0.1:8080/kr270_enhanced.glb'
             };
 
             const url = urls[preset];
