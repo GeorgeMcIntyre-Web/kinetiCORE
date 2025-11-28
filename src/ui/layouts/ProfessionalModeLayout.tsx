@@ -72,6 +72,8 @@ import { FloatingKinematicsAnalysisPanel } from '../components/FloatingKinematic
 import { FloatingActuatorPanel } from '../components/FloatingActuatorPanel';
 import { FloatingComplexIKPanel } from '../components/FloatingComplexIKPanel';
 import { WholeBodyIKPanel } from '../components/WholeBodyIKPanel';
+import { FloatingPhysicsPanel } from '../components/FloatingPhysicsPanel';
+import { FloatingCollisionPanel } from '../components/FloatingCollisionPanel';
 import { ICPTestPanel } from '../components/ICPTestPanel';
 import { PipingPanel } from '../piping/PipingPanel';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
@@ -145,6 +147,8 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [showJointJogPanel, setShowJointJogPanel] = useState(false);
   const [showRobotJogPanel, setShowRobotJogPanel] = useState(false);
   const [showPosesPanel, setShowPosesPanel] = useState(false);
+  const [showPhysicsSettings, setShowPhysicsSettings] = useState(false);
+  const [showCollisionVisualizer, setShowCollisionVisualizer] = useState(false);
   const debugLabelsRef = useRef<RouteDebugLabels | null>(null);
   const routeSelection = useRoutingStore((state) => state.selectedRoute);
   const [rightDockAnchor, setRightDockAnchor] = useState<string | null>(null);
@@ -1097,6 +1101,20 @@ export const ProfessionalModeLayout: React.FC = () => {
                 </button>
               </div>
             </div>
+            <div className="toolbar-separator"></div>
+            <div className="tool-group">
+              <div className="group-label">Physics</div>
+              <div className="tool-buttons">
+                <button className="tool-btn" onClick={() => setShowPhysicsSettings(true)} title="Physics Settings">
+                  <Activity size={18} />
+                  <span>Settings</span>
+                </button>
+                <button className="tool-btn" onClick={() => setShowCollisionVisualizer(true)} title="Collision Visualizer">
+                  <Scan size={18} />
+                  <span>Collisions</span>
+                </button>
+              </div>
+            </div>
           </>
         )}
 
@@ -1465,6 +1483,16 @@ export const ProfessionalModeLayout: React.FC = () => {
         isVisible={showSettingsPanel}
         onClose={() => setShowSettingsPanel(false)}
         zIndex={1010}
+      />
+      <FloatingPhysicsPanel
+        isVisible={showPhysicsSettings}
+        onClose={() => setShowPhysicsSettings(false)}
+        zIndex={1009}
+      />
+      <FloatingCollisionPanel
+        isVisible={showCollisionVisualizer}
+        onClose={() => setShowCollisionVisualizer(false)}
+        zIndex={1008}
       />
 
       {/* Snap Setup Popup - Quick access from ribbon */}

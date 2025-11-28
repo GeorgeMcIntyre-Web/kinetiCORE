@@ -1201,8 +1201,22 @@ export const EssentialModeLayout: React.FC = () => {
                     <span>Pause</span>
                   </button>
                   <button className="tool-btn" title="Reset Simulation" onClick={() => handleSimulationAction('reset')}>
-                    <RefreshCw size={18} />
-                    <span>Reset</span>
+                  <RefreshCw size={18} />
+                  <span>Reset</span>
+                </button>
+              </div>
+              </div>
+              <div className="toolbar-separator"></div>
+              <div className="tool-group">
+                <div className="group-label">Physics</div>
+                <div className="tool-buttons">
+                  <button className="tool-btn" onClick={() => setShowPhysicsSettings(true)} title="Physics Settings">
+                    <Activity size={18} />
+                    <span>Settings</span>
+                  </button>
+                  <button className="tool-btn" onClick={() => setShowCollisionVisualizer(true)} title="Collision Visualizer">
+                    <Scan size={18} />
+                    <span>Collisions</span>
                   </button>
                 </div>
               </div>
