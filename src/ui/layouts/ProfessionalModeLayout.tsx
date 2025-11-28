@@ -572,6 +572,10 @@ export const ProfessionalModeLayout: React.FC = () => {
     setPipingQuickMode(pipingQuickMode === 'segment' ? 'none' : 'segment');
   };
 
+  const handleRoutingControl = () => {
+    console.log('[Routing] Control clicked');
+  };
+
   return (
     <div className="professional-layout">
       {/* Route Warnings Panel - Top notification bar */}
@@ -1178,6 +1182,14 @@ export const ProfessionalModeLayout: React.FC = () => {
             <div className="tool-group">
               <div className="group-label">Routing</div>
               <div className="tool-buttons">
+                <button
+                  className="tool-btn"
+                  onClick={handleRoutingControl}
+                  title="Routing Control"
+                >
+                  <Settings size={18} />
+                  <span className="tool-btn-label">Control</span>
+                </button>
                 <button
                   className={`tool-btn ${showDebugLabels ? 'active' : ''}`}
                   onClick={() => setShowDebugLabels(!showDebugLabels)}
