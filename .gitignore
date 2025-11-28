@@ -316,3 +316,14 @@ PHASE2_REAL_FIXTURE_VALIDATION.md
 POSE_PAIR_DETECTION_PROBLEM.md
 QUICKSTART_PHASE1.md
 U112_hierarchy.txt
+
+# Diagnostic and test output files
+*_FINAL_OUTPUT.txt
+diagnostic_test_output.txt
+test_single_fixture_output.txt
+*_output.txt
+
+# AI workspace folders
+agent-notes/Gemini*/
+agent-notes/Claude*/
+agent-notes/GPT*/
