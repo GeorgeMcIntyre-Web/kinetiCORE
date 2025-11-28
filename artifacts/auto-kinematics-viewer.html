@@ -200,7 +200,7 @@
         <input type="file" id="fileInput" class="file-input" accept=".glb,.gltf">
 
         <h2>Quick Load (Test Files)</h2>
-        <button class="button" onclick="quickLoad('8X-140_LH')">8X-140 LH ⭐</button>
+        <button class="button" onclick="quickLoad('8X-140-1E1_LH')">8X-140-1E1_LH ⭐</button>
         <button class="button" onclick="quickLoad('floor_clamp')">Floor Clamp</button>
         <button class="button" onclick="quickLoad('9X_110')">9X-110</button>
         <button class="button" onclick="quickLoad('kr270')">Robot</button>
@@ -817,7 +817,7 @@
         function quickLoad(preset) {
             // Serve from same origin (port 8080) to avoid Draco CDN issues
             const urls = {
-                '8X-140_LH': 'http://127.0.0.1:8080/8X-140_LH.glb',
+                '8X-140-1E1_LH': 'http://127.0.0.1:8080/8X-140_LH.glb',
                 'floor_clamp': 'http://127.0.0.1:8080/floor_clamp.glb',
                 '9X_110': 'http://127.0.0.1:8080/9X_110_GEO.glb',
                 'kr270': 'http://127.0.0.1:8080/kr270_enhanced.glb'
