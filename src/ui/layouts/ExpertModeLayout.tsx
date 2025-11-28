@@ -71,7 +71,7 @@ import { ViewDropdown } from '../components/ViewDropdown';
 import { SelectionLevelDropdown } from '../components/SelectionLevelDropdown';
 import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
-import { CameraService } from '../../scene/services/CameraService';
+// import { CameraService } from '../../scene/services/CameraService'; // Unused - keeping for future warehouse feature
 import { WarehousePanel } from '../../routing/ui/WarehousePanel';
 import './ExpertModeLayout.css';
 import './ProfessionalModeLayout.css';
@@ -416,19 +416,20 @@ export const ExpertModeLayout: React.FC = () => {
     }
   }, [setCurrentView]);
 
-  const handleWarehouseResetCamera = useCallback(() => {
-    const camera = CameraService.getInstance().getCamera();
-    if (camera && camera instanceof BABYLON.ArcRotateCamera) {
-      camera.alpha = Math.PI / 4;
-      camera.beta = Math.PI / 6;
-      camera.radius = 50;
-      camera.target = BABYLON.Vector3.Zero();
-    }
-  }, []);
+  // Unused handlers - keeping for future warehouse feature
+  // const handleWarehouseResetCamera = useCallback(() => {
+  //   const camera = CameraService.getInstance().getCamera();
+  //   if (camera && camera instanceof BABYLON.ArcRotateCamera) {
+  //     camera.alpha = Math.PI / 4;
+  //     camera.beta = Math.PI / 6;
+  //     camera.radius = 50;
+  //     camera.target = BABYLON.Vector3.Zero();
+  //   }
+  // }, []);
 
-  const handleWarehouseToggle = useCallback(() => {
-    setShowWarehousePanel((prev) => !prev);
-  }, []);
+  // const handleWarehouseToggle = useCallback(() => {
+  //   setShowWarehousePanel((prev) => !prev);
+  // }, []);
 
   const handlePipingQuickNode = () => {
     if (!pipingModeEnabled) {

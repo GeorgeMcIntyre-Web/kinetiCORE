@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>kinetiCORE 3D Viewer - Artifact</title>
+
+    <!-- Babylon.js from CDN (antigravity/Chrome compatible) -->
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #renderCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            outline: none;
+            touch-action: none;
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 12px;
+            color: white;
+            font-size: 14px;
+            max-width: 300px;
+            z-index: 100;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .controls h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #00f0ff;
+            font-weight: 600;
+        }
+
+        .controls p {
+            margin-bottom: 16px;
+            opacity: 0.9;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #00f0ff, #0099cc);
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 240, 255, 0.3);
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 240, 255, 0.5);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .status {
+            margin-top: 12px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            z-index: 50;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #00f0ff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+
+    <div class="controls">
+        <h1>⚡ kinetiCORE 3D</h1>
+        <p>Industrial simulation viewer - Artifact Edition</p>
+
+        <button class="button" onclick="loadDemoModel()">Load Demo</button>
+        <button class="button" onclick="resetCamera()">Reset View</button>
+        <button class="button" onclick="toggleWireframe()">Wireframe</button>
+
+        <div class="status" id="status">Ready</div>
+    </div>
+
+    <div class="loader hidden" id="loader">
+        <div class="spinner"></div>
+        <div>Loading 3D Model...</div>
+    </div>
+
+    <script>
+        // Global state
+        let engine, scene, camera, wireframeMode = false;
+
+        // Initialize Babylon.js scene
+        function initScene() {
+            const canvas = document.getElementById('renderCanvas');
+
+            // Create engine
+            engine = new BABYLON.Engine(canvas, true, {
+                preserveDrawingBuffer: true,
+                stencil: true,
+                antialias: true
+            });
+
+            // Create scene
+            scene = new BABYLON.Scene(engine);
+            scene.clearColor = new BABYLON.Color4(182/255, 199/255, 209/255, 1);
+
+            // Camera (ArcRotateCamera - industry standard for CAD viewing)
+            camera = new BABYLON.ArcRotateCamera(
+                'camera',
+                -Math.PI / 2,  // Alpha (horizontal rotation)
+                Math.PI / 3,   // Beta (vertical rotation)
+                10,            // Radius
+                BABYLON.Vector3.Zero(),
+                scene
+            );
+            camera.attachControl(canvas, true);
+            camera.wheelPrecision = 50;
+            camera.minZ = 0.01;
+            camera.maxZ = 10000;
+
+            // Lighting (3-point lighting setup)
+            const hemiLight = new BABYLON.HemisphericLight(
+                'hemiLight',
+                new BABYLON.Vector3(0, 1, 0),
+                scene
+            );
+            hemiLight.intensity = 0.7;
+
+            const dirLight1 = new BABYLON.DirectionalLight(
+                'dirLight1',
+                new BABYLON.Vector3(-1, -2, -1),
+                scene
+            );
+            dirLight1.intensity = 0.5;
+
+            const dirLight2 = new BABYLON.DirectionalLight(
+                'dirLight2',
+                new BABYLON.Vector3(1, -2, 1),
+                scene
+            );
+            dirLight2.intensity = 0.3;
+
+            // Ground plane (grid)
+            const ground = BABYLON.MeshBuilder.CreateGround(
+                'ground',
+                { width: 50, height: 50 },
+                scene
+            );
+            const groundMaterial = new BABYLON.GridMaterial('groundMat', scene);
+            groundMaterial.gridRatio = 1;
+            groundMaterial.majorUnitFrequency = 5;
+            groundMaterial.minorUnitVisibility = 0.45;
+            groundMaterial.mainColor = new BABYLON.Color3(1, 1, 1);
+            groundMaterial.lineColor = new BABYLON.Color3(0.3, 0.3, 0.3);
+            groundMaterial.opacity = 0.98;
+            ground.material = groundMaterial;
+            ground.receiveShadows = true;
+
+            // Render loop
+            engine.runRenderLoop(() => {
+                scene.render();
+            });
+
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                engine.resize();
+            });
+
+            updateStatus('Scene initialized ✓');
+            console.log('✅ kinetiCORE 3D Viewer initialized');
+        }
+
+        // Load a demo model (simple box for testing)
+        function loadDemoModel() {
+            updateStatus('Creating demo geometry...');
+            showLoader();
+
+            // Clear existing meshes (except ground)
+            scene.meshes.forEach(mesh => {
+                if (mesh.name !== 'ground') {
+                    mesh.dispose();
+                }
+            });
+
+            // Create demo assembly: Robot arm placeholder
+            const base = BABYLON.MeshBuilder.CreateCylinder('base', {
+                height: 0.5,
+                diameter: 2
+            }, scene);
+            base.position.y = 0.25;
+
+            const arm1 = BABYLON.MeshBuilder.CreateBox('arm1', {
+                width: 0.3,
+                height: 3,
+                depth: 0.3
+            }, scene);
+            arm1.position.y = 2;
+            arm1.position.z = 1;
+
+            const arm2 = BABYLON.MeshBuilder.CreateBox('arm2', {
+                width: 0.25,
+                height: 2,
+                depth: 0.25
+            }, scene);
+            arm2.position.y = 3.5;
+            arm2.position.z = 2.5;
+            arm2.rotation.z = Math.PI / 4;
+
+            const gripper = BABYLON.MeshBuilder.CreateBox('gripper', {
+                width: 0.5,
+                height: 0.2,
+                depth: 0.2
+            }, scene);
+            gripper.position.y = 4.5;
+            gripper.position.z = 3.5;
+
+            // Apply materials
+            const baseMat = new BABYLON.StandardMaterial('baseMat', scene);
+            baseMat.diffuseColor = new BABYLON.Color3(0.3, 0.3, 0.3);
+            baseMat.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+            base.material = baseMat;
+
+            const armMat = new BABYLON.StandardMaterial('armMat', scene);
+            armMat.diffuseColor = new BABYLON.Color3(0, 0.6, 1);
+            armMat.specularColor = new BABYLON.Color3(1, 1, 1);
+            arm1.material = armMat;
+            arm2.material = armMat;
+
+            const gripperMat = new BABYLON.StandardMaterial('gripperMat', scene);
+            gripperMat.diffuseColor = new BABYLON.Color3(1, 0.5, 0);
+            gripperMat.specularColor = new BABYLON.Color3(1, 1, 1);
+            gripper.material = gripperMat;
+
+            // Frame camera on the model
+            setTimeout(() => {
+                camera.setTarget(new BABYLON.Vector3(0, 2, 1.5));
+                camera.radius = 12;
+                hideLoader();
+                updateStatus('Demo model loaded ✓');
+            }, 500);
+        }
+
+        // Reset camera to default view
+        function resetCamera() {
+            camera.alpha = -Math.PI / 2;
+            camera.beta = Math.PI / 3;
+            camera.radius = 10;
+            camera.setTarget(BABYLON.Vector3.Zero());
+            updateStatus('Camera reset ✓');
+        }
+
+        // Toggle wireframe mode
+        function toggleWireframe() {
+            wireframeMode = !wireframeMode;
+            scene.meshes.forEach(mesh => {
+                if (mesh.material && mesh.name !== 'ground') {
+                    mesh.material.wireframe = wireframeMode;
+                }
+            });
+            updateStatus(wireframeMode ? 'Wireframe ON' : 'Wireframe OFF');
+        }
+
+        // UI helpers
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+            console.log('📊', message);
+        }
+
+        function showLoader() {
+            document.getElementById('loader').classList.remove('hidden');
+        }
+
+        function hideLoader() {
+            document.getElementById('loader').classList.add('hidden');
+        }
+
+        // Load external GLB model (for future use)
+        function loadGLBModel(url) {
+            updateStatus('Loading model from URL...');
+            showLoader();
+
+            BABYLON.SceneLoader.ImportMesh(
+                '',
+                '',
+                url,
+                scene,
+                (meshes) => {
+                    // Frame camera on loaded model
+                    if (meshes.length > 0) {
+                        const bounds = meshes[0].getHierarchyBoundingVectors();
+                        const center = BABYLON.Vector3.Center(bounds.min, bounds.max);
+                        const size = bounds.max.subtract(bounds.min);
+                        const maxDim = Math.max(size.x, size.y, size.z);
+
+                        camera.setTarget(center);
+                        camera.radius = maxDim * 2;
+                    }
+
+                    hideLoader();
+                    updateStatus(`Model loaded: ${meshes.length} meshes ✓`);
+                },
+                null,
+                (scene, message) => {
+                    hideLoader();
+                    updateStatus('Error: ' + message);
+                    console.error('Model load failed:', message);
+                }
+            );
+        }
+
+        // Expose for Claude Code testing
+        if (typeof window !== 'undefined') {
+            window.loadGLBModel = loadGLBModel;
+            window.scene = scene;
+            window.camera = camera;
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            initScene();
+            updateStatus('Ready - Click "Load Demo" to start');
+        });
+    </script>
+</body>
+</html>

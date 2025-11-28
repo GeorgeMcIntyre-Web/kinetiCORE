@@ -3,3 +3,4 @@ export * from './icpOpen3D';
 export * from './vertexExtraction';
 export * from './mathUtils';
 export * from './types';
+export * from './jointClassification';

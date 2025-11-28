@@ -70,7 +70,10 @@
       "Bash(winget install:*)",
       "Bash(choco install:*)",
       "Bash(\"C:\\Users\\georgem\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\" -m pip install open3d)",
-      "Bash(git rebase:*)"
+      "Bash(git rebase:*)",
+      "Bash(py --version)",
+      "Bash(npx tsx:*)",
+      "Bash(timeout 10 npx tsx:*)"
     ],
     "deny": [],
     "ask": []
