@@ -89,7 +89,30 @@
 }
 
 /* Compact the dropdown-style buttons as well */
-.toolbar-container.compact .create-dropdown .create-dropdown-main-btn,
+.toolbar-container.compact .create-dropdown .create-dropdown-main-btn {
+  height: 36px;
+  min-height: 36px;
+  padding: 3px 10px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  align-items: center !important;
+}
+
+.toolbar-container.compact .create-dropdown .create-dropdown-content-wrapper {
+  gap: 2px !important;
+}
+
+.toolbar-container.compact .create-dropdown .create-dropdown-icon-wrapper,
+.toolbar-container.compact .create-dropdown .create-dropdown-icon-wrapper svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+.toolbar-container.compact .create-dropdown .create-dropdown-label {
+  font-size: 12px !important;
+  line-height: 14px !important;
+}
+
 .toolbar-container.compact .view-dropdown .view-dropdown-main-btn,
 .toolbar-container.compact .selection-level-dropdown .selection-level-dropdown-btn {
   height: 30px;

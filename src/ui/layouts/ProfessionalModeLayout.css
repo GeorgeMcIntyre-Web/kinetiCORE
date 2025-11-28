@@ -315,10 +315,12 @@
 
 .toolbar-separator {
   width: 1px;
-  height: 100%; /* fill ribbon height */
-  background: #333845; /* requested separator color */
-  margin: 0 2px; /* minimal margin */
-  align-self: stretch; /* extend from top to bottom within container */
+  height: 48px; /* center-aligned within the ribbon row */
+  background: rgb(130, 148, 179);
+  margin: 0 10px; /* breathing room around separators */
+  align-self: center; /* visually centered between button rows */
+  border-radius: 1px;
+  box-shadow: none; /* single stroke */
 }
 
 /* Main Content */
