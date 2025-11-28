@@ -200,9 +200,10 @@
         <input type="file" id="fileInput" class="file-input" accept=".glb,.gltf">
 
         <h2>Quick Load (Test Files)</h2>
-        <button class="button" onclick="quickLoad('floor_clamp')">Floor Clamp (Simple)</button>
-        <button class="button" onclick="quickLoad('9X_110')">9X-110 Fixture</button>
-        <button class="button" onclick="quickLoad('kr270')">KR270 Robot</button>
+        <button class="button" onclick="quickLoad('8X-140_LH')">8X-140 LH ⭐</button>
+        <button class="button" onclick="quickLoad('floor_clamp')">Floor Clamp</button>
+        <button class="button" onclick="quickLoad('9X_110')">9X-110</button>
+        <button class="button" onclick="quickLoad('kr270')">Robot</button>
         <div style="margin-top: 8px;">
             <input type="text" id="customUrl" placeholder="Or paste GLB URL..."
                    style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #555; background: rgba(255,255,255,0.1); color: white; margin-bottom: 8px;">
@@ -335,7 +336,7 @@
             }
 
             detectJointsInUnit(unit) {
-                // Simplified: Just look for LH/RH pairs (typical clamp structure)
+                // Look for moving components (FIXED vs non-FIXED)
                 const joints = [];
 
                 const checkNode = (node) => {
@@ -344,12 +345,23 @@
                     const name = node.name.toUpperCase();
                     const ratio = node.totalVertices / unit.totalVertices;
 
-                    // Look for typical clamp components (LH/RH sides)
-                    const isClampSide = name.includes('LH') || name.includes('RH') ||
-                                       name.includes('LEFT') || name.includes('RIGHT');
-                    const hasEnoughGeometry = ratio > 0.05 && ratio < 0.80;
+                    // Strategy 1: Look for FIXED vs moving parts
+                    const isMovingPart = !name.includes('FIXED') &&
+                                        !name.includes('FASTENER') &&
+                                        !name.includes('BASE');
 
-                    if (isClampSide && hasEnoughGeometry && node.mesh) {
+                    // Strategy 2: Look for ORDER/CARRY nodes (typical moving assemblies)
+                    const isOrderNode = name.includes('ORDER') ||
+                                       name.includes('CARRY') ||
+                                       name.includes('CLAMP');
+
+                    // Reasonable geometry size (5-75% of unit)
+                    const hasEnoughGeometry = ratio > 0.05 && ratio < 0.75;
+
+                    // Must be a direct or near-direct child of unit
+                    const isNearUnit = node.depth <= (unit.depth + 3);
+
+                    if ((isMovingPart || isOrderNode) && hasEnoughGeometry && isNearUnit && node.mesh) {
                         const pivotPoint = this.calculatePivotPoint(node.mesh);
 
                         joints.push({
@@ -359,7 +371,7 @@
                             ratio: ratio,
                             mesh: node.mesh,
                             position: pivotPoint,
-                            type: 'revolute'  // Clamps are typically revolute
+                            type: 'revolute'
                         });
                     }
 
@@ -368,7 +380,18 @@
                 };
 
                 checkNode(unit);
-                return joints;
+
+                // Deduplicate by name (avoid counting same part multiple times)
+                const uniqueJoints = [];
+                const seen = new Set();
+                for (const joint of joints) {
+                    if (!seen.has(joint.name)) {
+                        seen.add(joint.name);
+                        uniqueJoints.push(joint);
+                    }
+                }
+
+                return uniqueJoints;
             }
 
             calculatePivotPoint(mesh) {
@@ -794,6 +817,7 @@
         function quickLoad(preset) {
             // Serve from same origin (port 8080) to avoid Draco CDN issues
             const urls = {
+                '8X-140_LH': 'http://127.0.0.1:8080/8X-140_LH.glb',
                 'floor_clamp': 'http://127.0.0.1:8080/floor_clamp.glb',
                 '9X_110': 'http://127.0.0.1:8080/9X_110_GEO.glb',
                 'kr270': 'http://127.0.0.1:8080/kr270_enhanced.glb'
