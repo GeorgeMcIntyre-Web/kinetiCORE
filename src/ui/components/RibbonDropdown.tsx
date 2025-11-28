@@ -19,7 +19,8 @@
  * ```
  */
 
-import { useState, useRef, useEffect, ReactNode } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import './RibbonDropdown.css';
 
@@ -60,22 +61,17 @@ export const RibbonDropdown: React.FC<RibbonDropdownProps> = ({
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-
-  // Calculate menu position when opened
-  useEffect(() => {
-    if (isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setMenuPosition({
-        top: rect.bottom + 4,
-        left: rect.left
-      });
-    }
-  }, [isOpen]);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target) &&
+        (!menuRef.current || !menuRef.current.contains(target))
+      ) {
         setIsOpen(false);
       }
     };
@@ -91,13 +87,47 @@ export const RibbonDropdown: React.FC<RibbonDropdownProps> = ({
     setIsOpen(false);
   };
 
-  const handleMainButtonClick = () => {
+  const updateMenuPosition = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 4,
+        left: rect.left
+      });
+    }
+  };
+
+  useLayoutEffect(() => {
+    if (isOpen) {
+      updateMenuPosition();
+      window.addEventListener('resize', updateMenuPosition);
+      window.addEventListener('scroll', updateMenuPosition, true);
+      return () => {
+        window.removeEventListener('resize', updateMenuPosition);
+        window.removeEventListener('scroll', updateMenuPosition, true);
+      };
+    }
+  }, [isOpen]);
+
+  const toggleDropdown = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    setIsOpen((prev) => !prev);
+  };
+
+  const handleMainButtonClick = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('.dropdown-chevron-hitbox')) {
+      return;
+    }
     onMainClick();
   };
 
-  const handleDropdownClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsOpen(!isOpen);
+  const handleChevronKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      toggleDropdown(e);
+    }
   };
 
   return (
@@ -110,46 +140,47 @@ export const RibbonDropdown: React.FC<RibbonDropdownProps> = ({
           onClick={handleMainButtonClick}
           title={tooltip}
           style={{ width: `${width}px` }}
+          type="button"
         >
           {icon}
-          <ChevronDown
-            size={10}
-            className={`dropdown-chevron ${isOpen ? 'open' : ''}`}
-            style={{ marginLeft: '2px' }}
-          />
-        </button>
-
-        {/* Hidden clickable area for dropdown */}
-        <button
-          className="ribbon-dropdown-arrow-btn"
-          onClick={handleDropdownClick}
-          title="More options"
-          style={{ position: 'absolute', right: 0, top: 0, width: '16px', height: '100%', opacity: 0 }}
-        >
+          <span
+            className="dropdown-chevron-hitbox"
+            role="button"
+            tabIndex={0}
+            aria-label="More options"
+            onClick={toggleDropdown}
+            onKeyDown={handleChevronKey}
+          >
+            <ChevronDown
+              size={10}
+              className={`dropdown-chevron ${isOpen ? 'open' : ''}`}
+              aria-hidden="true"
+            />
+          </span>
         </button>
       </div>
 
-      {isOpen && (
-        <div
-          className="ribbon-dropdown-menu"
-          style={{
-            top: `${menuPosition.top}px`,
-            left: `${menuPosition.left}px`
-          }}
-        >
-          {options.map(option => (
-            <button
-              key={option.id}
-              className={`ribbon-dropdown-item ${option.active ? 'active' : ''}`}
-              onClick={() => handleItemClick(option)}
-              title={option.description || option.label}
-            >
-              <span className="item-icon">{option.icon}</span>
-              <span className="item-label">{option.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      {isOpen &&
+        createPortal(
+          <div
+            className="ribbon-dropdown-menu"
+            ref={menuRef}
+            style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
+          >
+            {options.map(option => (
+              <button
+                key={option.id}
+                className={`ribbon-dropdown-item ${option.active ? 'active' : ''}`}
+                onClick={() => handleItemClick(option)}
+                title={option.description || option.label}
+              >
+                <span className="item-icon">{option.icon}</span>
+                <span className="item-label">{option.label}</span>
+              </button>
+            ))}
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

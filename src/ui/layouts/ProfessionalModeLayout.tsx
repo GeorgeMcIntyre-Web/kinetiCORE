@@ -77,7 +77,7 @@ import { CreateDropdown } from '../components/CreateDropdown';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
 import { SnapSetupPopup } from '../components/SnapSetupPopup';
 import { ToolbarContainer } from '../components/ToolbarContainer';
-import { ViewDropdown } from '../components/ViewDropdown';
+import { ViewOptionsDropdown } from '../components/ViewOptionsDropdown';
 import { SelectionLevelDropdown } from '../components/SelectionLevelDropdown';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
@@ -812,7 +812,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               <Target size={18} />
               <span>Selected</span>
             </button>
-            <ViewDropdown
+            <ViewOptionsDropdown
               onTopViewClick={handleTopView}
               onRightViewClick={handleRightView}
               onFrontViewClick={handleFrontView}

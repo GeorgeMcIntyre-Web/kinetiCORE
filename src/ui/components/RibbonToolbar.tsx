@@ -77,7 +77,7 @@ const QuickMoveIcon = ({ size = 32 }: { size?: number }) => (
   </svg>
 );
 import { useEditorStore } from '../store/editorStore';
-import { ViewDropdown } from './ViewDropdown';
+import { ViewOptionsDropdown } from './ViewOptionsDropdown';
 import { SaveDropdown } from './SaveDropdown';
 import { CreateDropdown } from './CreateDropdown';
 import { SelectionLevelDropdown } from './SelectionLevelDropdown';
@@ -536,7 +536,7 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
           <button className="ribbon-btn" onClick={onZoomToSelectedClick} title="Zoom to Selected">
             <Target size={32} />
           </button>
-          <ViewDropdown
+          <ViewOptionsDropdown
             onTopViewClick={handleTopViewClick}
             onRightViewClick={handleRightViewClick}
             onFrontViewClick={handleFrontViewClick}

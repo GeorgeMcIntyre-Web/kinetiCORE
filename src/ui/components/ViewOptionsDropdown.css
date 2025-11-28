@@ -1,0 +1,96 @@
+/* Secondary view dropdown placed next to the primary view button */
+
+.view-options-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.view-options-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 35px;
+  min-height: 35px;
+  padding: 0 10px;
+  background: #2a3145;
+  border: 1px solid #3a4154;
+  border-radius: 6px;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-options-trigger:hover {
+  background: #323a50;
+  border-color: rgba(var(--kc-accent-rgb), 0.25);
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.view-options-chevron {
+  transition: transform 0.2s ease;
+}
+
+.view-options-chevron.open {
+  transform: rotate(180deg);
+}
+
+.view-options-menu {
+  position: fixed;
+  background: #20232c;
+  border: 1px solid #333845;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 5000;
+  min-width: 140px;
+  overflow: hidden;
+  animation: dropdownSlideDownAlt 0.15s ease-out;
+}
+
+.view-options-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.view-options-item:hover {
+  background: #2a3145;
+  color: #ffffff;
+}
+
+.view-options-item.active {
+  background: rgba(var(--kc-accent-rgb), 0.18);
+  color: rgb(var(--kc-accent-rgb));
+}
+
+.view-options-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.view-options-item-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+@keyframes dropdownSlideDownAlt {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

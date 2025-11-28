@@ -77,7 +77,7 @@ import { VersionDisplay } from '../components/VersionDisplay';
 import { ToolbarContainer } from '../components/ToolbarContainer';
 import { CreateDropdown } from '../components/CreateDropdown';
 import { SelectionLevelDropdown } from '../components/SelectionLevelDropdown';
-import { ViewDropdown } from '../components/ViewDropdown';
+import { ViewOptionsDropdown } from '../components/ViewOptionsDropdown';
 import { MeasurementTools, MeasurementType } from '../components/MeasurementTools';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
@@ -1166,7 +1166,7 @@ export const EssentialModeLayout: React.FC = () => {
                     <Target size={18} />
                     <span>Selected</span>
                   </button>
-                  <ViewDropdown
+                  <ViewOptionsDropdown
                     onTopViewClick={handleTopView}
                     onRightViewClick={handleRightView}
                     onFrontViewClick={handleFrontView}

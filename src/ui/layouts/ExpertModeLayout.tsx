@@ -75,7 +75,7 @@ import { PipingPanel } from '../piping/PipingPanel';
 import { SnapSetupPopup } from '../components/SnapSetupPopup';
 import { CreateDropdown } from '../components/CreateDropdown';
 import { ToolbarContainer } from '../components/ToolbarContainer';
-import { ViewDropdown } from '../components/ViewDropdown';
+import { ViewOptionsDropdown } from '../components/ViewOptionsDropdown';
 import { SelectionLevelDropdown } from '../components/SelectionLevelDropdown';
 import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
@@ -831,7 +831,7 @@ export const ExpertModeLayout: React.FC = () => {
                   <Target size={18} />
                   <span>Selected</span>
                 </button>
-                <ViewDropdown
+                <ViewOptionsDropdown
                   onTopViewClick={handleTopView}
                   onRightViewClick={handleRightView}
                   onFrontViewClick={handleFrontView}
