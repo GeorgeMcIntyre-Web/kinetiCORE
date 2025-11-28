@@ -91,9 +91,9 @@ export class ModalSolver {
             }
 
             // Store per node
-            const nodeDisps = [];
+            const nodeDisps: number[][] = [];
             nodes.forEach(node => {
-                const disp = [];
+                const disp: number[] = [];
                 for (let i = 0; i < 6; i++) {
                     disp.push(modeVector[node.dofIndices[i]]);
                 }

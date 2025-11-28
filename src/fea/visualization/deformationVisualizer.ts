@@ -1,4 +1,4 @@
-import { Scene, Mesh, Vector3, MeshBuilder, StandardMaterial, Color3, LinesMesh } from "@babylonjs/core";
+import { Scene, Mesh, Vector3, MeshBuilder, StandardMaterial, LinesMesh } from "@babylonjs/core";
 import { FEANode, FEAElement, FEAResult } from "../types";
 import { StressColorMapper } from "./stressColorMapper";
 
@@ -23,8 +23,8 @@ export class DeformationVisualizer {
         // For beams, we can use Tube or ExtrudeShape
         // For MVP, we'll use lines for wireframe and tubes for solid
 
-        const path: Vector3[] = [];
-        const colors: Color4[] = [];
+        // const path: Vector3[] = [];  // Unused in current MVP
+        // const colors: Color4[] = [];  // Unused in current MVP
 
         // Collect all deformed positions
         const deformedPositions = new Map<number, Vector3>();

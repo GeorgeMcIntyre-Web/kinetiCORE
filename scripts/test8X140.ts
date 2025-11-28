@@ -13,15 +13,15 @@
 
 import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
+import { GLTF2 } from '@babylonjs/loaders';
 import { KinematicExtractionPipeline } from '../src/babylon/pipeline/KinematicExtractionPipeline';
 import type { DetectedToolJoint } from '../src/babylon/sceneAnalysis/ToolingTypes';
 import * as fs from 'fs';
-import xhr2 from 'xhr2';
 
-// Setup XMLHttpRequest polyfill for Node.js (required for Draco decompression)
-(global as any).XMLHttpRequest = xhr2;
+console.log('⚙️  Configuring glTF loader for Node.js environment...');
 
-console.log('⚙️  Initializing Draco compression support...');
+// Disable Draco compression extension (not supported in Node.js)
+GLTF2.GLTFLoader.RegisterExtension('KHR_draco_mesh_compression', () => null);
 
 const TEST_FIXTURES = [
     {
@@ -57,14 +57,19 @@ async function loadGLB(scene: BABYLON.Scene, filePath: string) {
         data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
     );
 
+    // Disable Draco compression for Node.js environment
     const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(
         "",
         arrayBufferView,
         scene,
-        undefined,
+        (evt) => {
+            // Optional progress callback
+        },
         ".glb"
     );
 
+    // Note: If models use Draco compression, they won't load in Node.js
+    // Consider re-exporting models without Draco compression for testing
     console.log('   ✅ GLB loaded');
     container.addAllToScene();
 

@@ -30,7 +30,8 @@ export class FlexibleUR10eDemo {
 
         // 3. Assemble Full Matrices
         const K = StiffnessAssembler.assemble(nodes, elements);
-        const M = MassAssembler.assembleGlobalMassMatrix(nodes, elements);
+        // NOTE: Type cast needed - FEAElement will be extended to FrameElement3D in future
+        const M = MassAssembler.assembleGlobalMassMatrix(nodes, elements as any);
 
         // 4. Perform Craig-Bampton Reduction
         // Fix the start node (Index 0)

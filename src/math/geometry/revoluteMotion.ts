@@ -25,7 +25,7 @@ export type RevoluteMotion = {
  */
 export function computeRevoluteMotionFromPointClouds(
   pointsClosed: BABYLON.Vector3[],
-  pointsOpen: BABYLON.Vector3[],
+  _pointsOpen: BABYLON.Vector3[],
   transform: BABYLON.Matrix
 ): RevoluteMotion | undefined {
   // 1. Decompose Transform to get Rotation Matrix and Translation

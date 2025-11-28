@@ -1,5 +1,12 @@
-import { FEANode, FrameElement3D } from '../types';
-import * as numeric from 'numeric';
+import type { FEANode } from '../types';
+// import * as numeric from 'numeric';  // Unused in current MVP
+
+// Placeholder type for FrameElement3D (not yet implemented)
+interface FrameElement3D {
+    node1: FEANode;
+    node2: FEANode;
+    getMassMatrix(): number[][];
+}
 
 export class MassAssembler {
     public static assembleGlobalMassMatrix(

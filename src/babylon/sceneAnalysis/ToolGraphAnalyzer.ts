@@ -9,6 +9,7 @@ export interface ToolUnit {
     name: string;
     root: string; // Node ID
     nodes: string[];
+    nodeCount: number; // Number of nodes in this unit
     isFixed: boolean;
     type?: 'fixed' | 'moving';
     babylonUniqueId?: number;

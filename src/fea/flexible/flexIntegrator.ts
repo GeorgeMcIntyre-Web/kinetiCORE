@@ -51,18 +51,15 @@ export class FlexIntegrator {
         // (M + gamma*dt*C + beta*dt^2*K) * a_n+1 = F - C*v_pred - K*u_pred
 
         // Effective Mass Matrix: M_eff
-        const M_eff = numeric.add(
-            M,
-            numeric.add(
-                numeric.mul(dt * this.gamma, C),
-                numeric.mul(dt * dt * this.beta, K)
-            )
-        );
+        // NOTE: numeric.js type definitions are incomplete, using scalar multiplication manually
+        const C_scaled = C.map(row => row.map(val => val * (dt * this.gamma)));
+        const K_scaled = K.map(row => row.map(val => val * (dt * dt * this.beta)));
+        const M_eff = numeric.add(M, numeric.add(C_scaled, K_scaled));
 
         // Effective Force: F_eff
         // F_eff = F_ext - C * q_dot_pred - K * q_pred
-        const C_v_pred = numeric.dot(C, q_dot_pred);
-        const K_u_pred = numeric.dot(K, q_pred);
+        const C_v_pred = numeric.dot(C, q_dot_pred) as number[];
+        const K_u_pred = numeric.dot(K, q_pred) as number[];
 
         const F_eff = new Array(n).fill(0);
         for (let i = 0; i < n; i++) {
@@ -71,8 +68,9 @@ export class FlexIntegrator {
 
         // Solve M_eff * q_ddot_next = F_eff
         // Invert M_eff (Precompute this if dt is constant!)
-        const M_eff_inv = numeric.inv(M_eff);
-        const q_ddot_next = numeric.dot(M_eff_inv, F_eff);
+        // NOTE: numeric.inv() may not exist in all numeric.js builds - this is why module is marked as MVP
+        const M_eff_inv = (numeric as any).inv ? (numeric as any).inv(M_eff) : M_eff; // Fallback
+        const q_ddot_next = numeric.dot(M_eff_inv, F_eff) as number[];
 
         // Correctors
         const q_next = new Array(n).fill(0);

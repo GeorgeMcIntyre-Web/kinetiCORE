@@ -1,5 +1,5 @@
 import { FEASceneManager } from "./feaSceneManager";
-import { FEANode } from "./types";
+// import type { FEANode } from "./types";  // Unused - reserved for future command implementations
 
 // I need to check where the Command interface is defined.
 // The prompt says "Use existing HistoryManager.executeCommand()".

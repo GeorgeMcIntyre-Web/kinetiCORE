@@ -1,4 +1,4 @@
-import { Scene, Mesh, Vector3, StandardMaterial, Color3, MeshBuilder, VertexBuffer } from '@babylonjs/core';
+import { Scene, Mesh, Vector3, StandardMaterial, Color3, MeshBuilder } from '@babylonjs/core';
 import { FlexibleBody } from '../flexible/flexibleBody';
 
 export class FlexDeformationVisualizer {
@@ -40,7 +40,7 @@ export class FlexDeformationVisualizer {
             if (!body) continue;
 
             // Get current physical displacements
-            const u = body.getPhysicalDisplacements();
+            // const u = body.getPhysicalDisplacements();  // Unused in current MVP
 
             // Update mesh vertices
             // This is a simplified approach: we update the "path" of the tube.

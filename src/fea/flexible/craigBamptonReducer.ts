@@ -9,9 +9,8 @@
 // - Reduces DOFs while maintaining accuracy
 // - See FlexibleUR10eDemo.ts for intended usage
 
-/*
-import * as numeric from 'numeric';
-import { FEANode } from '../types';
+// import * as numeric from 'numeric';
+// import { FEANode } from '../types';
 
 export interface ReductionOptions {
     boundaryNodeIndices: number[];
@@ -25,34 +24,38 @@ export interface ReducedModel {
     boundaryDofs: number[];
     interiorDofs: number[];
     frequencies: number[];
+    // Alias for compatibility
+    K_reduced: number[][];
+    M_reduced: number[][];
+    C_reduced: number[][];
 }
 
 export class CraigBamptonReducer {
     public static reduce(
-        K: number[][],
-        M: number[][],
-        options: ReductionOptions
+        _K: number[][],
+        _M: number[][],
+        _options: ReductionOptions
     ): ReducedModel {
         throw new Error("Craig-Bampton reduction not implemented - requires numeric.inv()");
     }
 
-    private static extractSubMatrix(
-        matrix: number[][],
-        rowIndices: number[],
-        colIndices: number[]
-    ): number[][] {
-        const sub: number[][] = [];
-        for (let i = 0; i < rowIndices.length; i++) {
-            const row: number[] = [];
-            for (let j = 0; j < colIndices.length; j++) {
-                row.push(matrix[rowIndices[i]][colIndices[j]]);
-            }
-            sub.push(row);
-        }
-        return sub;
-    }
+    // private static _extractSubMatrix(
+    //     matrix: number[][],
+    //     rowIndices: number[],
+    //     colIndices: number[]
+    // ): number[][] {
+    //     const sub: number[][] = [];
+    //     for (let i = 0; i < rowIndices.length; i++) {
+    //         const row: number[] = [];
+    //         for (let j = 0; j < colIndices.length; j++) {
+    //             row.push(matrix[rowIndices[i]][colIndices[j]]);
+    //         }
+    //         sub.push(row);
+    //     }
+    //     return sub;
+    // }
+    // NOTE: Commented out for MVP - will be used when Craig-Bampton is fully implemented
 }
-*/
 
 // TODO: Implement in future phase when numeric.js is fully configured
 // References:

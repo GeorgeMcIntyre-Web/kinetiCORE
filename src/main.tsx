@@ -8,9 +8,10 @@ import { runAutoKinematicsFullTest } from './babylon/pipeline/AutoKinematicsFull
 import { analyzeGLBJoints } from './dev/findJointsByGeometry';
 import { inspectGLBStructure } from './dev/inspectGLBStructure';
 import { analyzeUnitStructure } from './dev/analyzeUnitStructure';
-import { testHierarchicalAnalyzer } from './dev/testHierarchicalAnalyzer';
-import { extractJointTransforms } from './dev/extractJointTransforms';
-import { visualizeJoints, clearJointVisualizations } from './dev/visualizeJoints';
+// NOTE: These files were deprecated as part of Statistical Pairing Engine migration:
+// import { testHierarchicalAnalyzer } from './dev/testHierarchicalAnalyzer'; // DEPRECATED
+// import { extractJointTransforms } from './dev/extractJointTransforms'; // DEPRECATED
+// import { visualizeJoints, clearJointVisualizations } from './dev/visualizeJoints'; // DEPRECATED
 import { debugTools } from './dev/globalDebugTools';
 import * as BABYLON from '@babylonjs/core';
 // Side-effect imports: ensure Inspector bundle is loaded on cold refresh
@@ -79,21 +80,19 @@ if (typeof window !== 'undefined') {
   (window as any).analyzeGLBJoints = analyzeGLBJoints; // Geometry-based joint finder
   (window as any).inspectGLBStructure = inspectGLBStructure; // Full GLB structure inspector
   (window as any).analyzeUnitStructure = analyzeUnitStructure; // Correct unit/joint analyzer
-  (window as any).testHierarchicalAnalyzer = testHierarchicalAnalyzer; // NEW: Test hierarchical analyzer
-  (window as any).extractJointTransforms = extractJointTransforms; // NEW: Extract joint 3D transforms
-  (window as any).visualizeJoints = visualizeJoints; // NEW: Visualize joints with gizmos
-  (window as any).clearJointVisualizations = clearJointVisualizations; // NEW: Clear joint gizmos
-  (window as any).debugTools = debugTools; // NEW: Unified debug tools API
+  // NOTE: Deprecated tools removed (use Statistical Pairing Engine instead):
+  // (window as any).testHierarchicalAnalyzer = testHierarchicalAnalyzer; // DEPRECATED
+  // (window as any).extractJointTransforms = extractJointTransforms; // DEPRECATED
+  // (window as any).visualizeJoints = visualizeJoints; // DEPRECATED
+  // (window as any).clearJointVisualizations = clearJointVisualizations; // DEPRECATED
+  (window as any).debugTools = debugTools; // Unified debug tools API
 
   console.log('[DEV] Auto Kinematics test exposed: window.testAutoKinematics()');
   console.log('[DEV] GLB Analysis tools:');
-  console.log('  - window.testHierarchicalAnalyzer() - Test NEW hierarchical analyzer (RECOMMENDED)');
-  console.log('  - window.extractJointTransforms() - Extract 3D transform matrices for joints');
-  console.log('  - window.visualizeJoints() - Visualize joints with 3D gizmos');
-  console.log('  - window.clearJointVisualizations() - Clear joint visualizations');
   console.log('  - window.analyzeUnitStructure(scene) - Analyze UNIT_XXX structure');
   console.log('  - window.analyzeGLBJoints(path, scene) - Find joint pairs by geometry');
   console.log('  - window.inspectGLBStructure(path, scene) - Full structure inspection');
+  console.log('  - window.debugTools - Unified debug API (see docs/STATISTICAL_PAIRING_COMPLETE.md)');
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

@@ -1,5 +1,5 @@
-import { ReducedModel } from './craigBamptonReducer';
-import { Vector3, Matrix } from '@babylonjs/core';
+import type { ReducedModel } from './craigBamptonReducer';
+import { Vector3 } from '@babylonjs/core';
 
 export class FlexibleBody {
     public name: string;
@@ -13,7 +13,7 @@ export class FlexibleBody {
 
     // Physical Mapping
     public originalNodePositions: Vector3[]; // Initial positions of all nodes
-    public originalIndices: number[]; // Mapping from local node index to global system if needed
+    public originalIndices: number[] = []; // Mapping from local node index to global system if needed
 
     constructor(name: string, reducedModel: ReducedModel, originalNodePositions: Vector3[]) {
         this.name = name;

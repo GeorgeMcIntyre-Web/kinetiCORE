@@ -108,6 +108,7 @@ export interface ToolUnit {
   name: string;
   root: string;
   nodes: string[];
+  nodeCount: number; // Number of nodes in this unit
   isFixed: boolean;
   type?: 'fixed' | 'moving';
 }
@@ -263,6 +264,7 @@ export class KinematicExtractionPipeline {
         name: id, // Use ID as name (name-agnostic)
         root: id,
         nodes: unitNodes,
+        nodeCount: unitNodes.length,
         isFixed: false, // Will update below
         type: 'moving'
       };

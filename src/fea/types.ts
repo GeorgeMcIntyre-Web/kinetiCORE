@@ -1,4 +1,4 @@
-import { Vector3, Matrix } from "@babylonjs/core";
+import type { Vector3 } from "@babylonjs/core";
 
 export interface FEANode {
     id: number;
