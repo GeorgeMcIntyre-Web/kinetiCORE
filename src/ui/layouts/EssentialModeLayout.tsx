@@ -75,7 +75,7 @@ import { useTreeAutoResize } from '../hooks/useTreeAutoResize';
 import { PerformanceMonitor, usePerformanceMonitor } from '../components/debug/PerformanceMonitor';
 import { VersionDisplay } from '../components/VersionDisplay';
 import { ToolbarContainer } from '../components/ToolbarContainer';
-import { CreateDropdown } from '../components/CreateDropdown';
+import { ModeDropdown } from '../components/ModeDropdown';
 import { SelectionLevelDropdown } from '../components/SelectionLevelDropdown';
 import { ViewOptionsDropdown } from '../components/ViewOptionsDropdown';
 import { MeasurementTools, MeasurementType } from '../components/MeasurementTools';
@@ -959,11 +959,11 @@ export const EssentialModeLayout: React.FC = () => {
         <ToolbarContainer className="compact">
           {activeWorkspace === 'modeling' && (
             <>
-              {/* Creation Tools */}
+              {/* Create Tools */}
               <div className="tool-group">
-                <div className="group-label">Creation</div>
+                <div className="group-label">Create</div>
                 <div className="tool-buttons">
-                  <CreateDropdown
+                  <ModeDropdown
                     onCreateBox={() => createObject('box')}
                     onCreateSphere={() => createObject('sphere')}
                     onCreateCylinder={() => createObject('cylinder')}
@@ -976,6 +976,17 @@ export const EssentialModeLayout: React.FC = () => {
                     onCreateTorusKnot={() => createObject('torusknot')}
                     onCreatePolyhedron={() => createObject('polyhedron')}
                   />
+                  <button className="tool-btn" title="Add Frame at Selection" onClick={handleAddFrame}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="12" y1="12" x2="20" y2="12" stroke="#ff0000" strokeWidth="2.5" />
+                      <polygon points="20,12 18,11 18,13" fill="#ff0000" />
+                      <line x1="12" y1="12" x2="12" y2="4" stroke="#00ff00" strokeWidth="2.5" />
+                      <polygon points="12,4 11,6 13,6" fill="#00ff00" />
+                      <line x1="12" y1="12" x2="6" y2="18" stroke="#0000ff" strokeWidth="2.5" />
+                      <polygon points="6,18 7.5,16.5 8,17.5" fill="#0000ff" />
+                    </svg>
+                    <span>Frame</span>
+                  </button>
                 </div>
               </div>
 
@@ -1064,54 +1075,6 @@ export const EssentialModeLayout: React.FC = () => {
 
               <div className="toolbar-separator"></div>
 
-              {/* Modify Tools */}
-              <div className="tool-group">
-                <div className="group-label">Modify</div>
-                <div className="tool-buttons">
-                  <button
-                    className="tool-btn"
-                    title={
-                      selectedNodeIds.length === 2
-                        ? 'Union - Combine two objects into one'
-                        : 'Union - Select exactly 2 objects (Ctrl+Click)'
-                    }
-                    disabled={selectedNodeIds.length !== 2}
-                    onClick={() => handleBooleanOperation('union')}
-                  >
-                    <Layers size={18} />
-                    <span>Union</span>
-                  </button>
-                  <button
-                    className="tool-btn"
-                    title={
-                      selectedNodeIds.length === 2
-                        ? 'Subtract - Remove 2nd object from 1st'
-                        : 'Subtract - Select exactly 2 objects (Ctrl+Click)'
-                    }
-                    disabled={selectedNodeIds.length !== 2}
-                    onClick={() => handleBooleanOperation('subtract')}
-                  >
-                    <Minus size={18} />
-                    <span>Subtract</span>
-                  </button>
-                  <button
-                    className="tool-btn"
-                    title={
-                      selectedNodeIds.length === 2
-                        ? 'Intersect - Keep only overlapping volume'
-                        : 'Intersect - Select exactly 2 objects (Ctrl+Click)'
-                    }
-                    disabled={selectedNodeIds.length !== 2}
-                    onClick={() => handleBooleanOperation('intersect')}
-                  >
-                    <LayoutTemplate size={18} />
-                    <span>Intersect</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="toolbar-separator"></div>
-
               {/* Measure Tools */}
               <div className="tool-group">
                 <div className="group-label">Measure</div>
@@ -1180,25 +1143,14 @@ export const EssentialModeLayout: React.FC = () => {
 
               {/* Utilities */}
               <div className="tool-group">
-                <div className="group-label">Utilities</div>
-                <div className="tool-buttons">
-                  <SelectionLevelDropdown currentLevel={selectionLevel} onLevelChange={setSelectionLevel} />
-                  <button className="tool-btn" title="Add Frame at Selection" onClick={handleAddFrame}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="12" y1="12" x2="20" y2="12" stroke="#ff0000" strokeWidth="2.5" />
-                      <polygon points="20,12 18,11 18,13" fill="#ff0000" />
-                      <line x1="12" y1="12" x2="12" y2="4" stroke="#00ff00" strokeWidth="2.5" />
-                      <polygon points="12,4 11,6 13,6" fill="#00ff00" />
-                      <line x1="12" y1="12" x2="6" y2="18" stroke="#0000ff" strokeWidth="2.5" />
-                      <polygon points="6,18 7.5,16.5 8,17.5" fill="#0000ff" />
-                    </svg>
-                    <span>Frame</span>
-                  </button>
-                  <button className="tool-btn" title="Create Projection View" onClick={handleCreateProjectionView}>
-                    <LayoutTemplate size={18} />
-                    <span>Projection</span>
-                  </button>
-                </div>
+              <div className="group-label">Utilities</div>
+              <div className="tool-buttons">
+                <SelectionLevelDropdown currentLevel={selectionLevel} onLevelChange={setSelectionLevel} />
+                <button className="tool-btn" title="Create Projection View" onClick={handleCreateProjectionView}>
+                  <LayoutTemplate size={18} />
+                  <span>Projection</span>
+                </button>
+              </div>
               </div>
 
               <div className="toolbar-separator"></div>
