@@ -146,6 +146,7 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [showPosesPanel, setShowPosesPanel] = useState(false);
   const debugLabelsRef = useRef<RouteDebugLabels | null>(null);
   const routeSelection = useRoutingStore((state) => state.selectedRoute);
+  const [rightDockAnchor, setRightDockAnchor] = useState<string | null>(null);
 
   // Kinematics inline actions (for toolbar)
   const [kinActiveRobotId, setKinActiveRobotId] = useState<string | null>(null);
@@ -572,8 +573,35 @@ export const ProfessionalModeLayout: React.FC = () => {
     setPipingQuickMode(pipingQuickMode === 'segment' ? 'none' : 'segment');
   };
 
+  const openRightPanel = (id: string, type: string, title: string) => {
+    const referencePanel = rightDockAnchor || 'viewport-panel';
+    window.dispatchEvent(
+      new CustomEvent('dock-open-panel', {
+        detail: {
+          id,
+          type,
+          title,
+          position: 'right',
+          referencePanel,
+          size: { width: 360 },
+        },
+      })
+    );
+    if (!rightDockAnchor) {
+      setRightDockAnchor(id);
+    }
+  };
+
   const handleRoutingControl = () => {
-    console.log('[Routing] Control clicked');
+    openRightPanel('routingControl-panel', 'routingControl', 'Route');
+  };
+
+  const handleFactoryControl = () => {
+    openRightPanel('warehouse-panel', 'warehouse', 'Factory');
+  };
+
+  const handleRoutingAnalysis = () => {
+    openRightPanel('routeStats-panel', 'routeStats', 'Routing Analyses');
   };
 
   return (
@@ -1214,6 +1242,14 @@ export const ProfessionalModeLayout: React.FC = () => {
                   <LayoutTemplate size={18} />
                   <span className="tool-btn-label">Templates</span>
                 </button>
+                <button
+                  className="tool-btn"
+                  onClick={handleRoutingAnalysis}
+                  title="Routing Analysis"
+                >
+                  <Activity size={18} />
+                  <span className="tool-btn-label">Analysis</span>
+                </button>
               </div>
             </div>
 
@@ -1223,6 +1259,14 @@ export const ProfessionalModeLayout: React.FC = () => {
             <div className="tool-group">
               <div className="group-label">Factory Services</div>
               <div className="tool-buttons">
+                <button
+                  className="tool-btn"
+                  onClick={handleFactoryControl}
+                  title="Factory"
+                >
+                  <Building2 size={18} />
+                  <span className="tool-btn-label">Factory</span>
+                </button>
                 <button
                   className={`tool-btn ${pipingModeEnabled ? 'active' : ''}`}
                   onClick={() => setPipingModeEnabled(!pipingModeEnabled)}
@@ -1289,11 +1333,7 @@ export const ProfessionalModeLayout: React.FC = () => {
               { id: 'sceneTree-panel', type: 'sceneTree' },
               { id: 'toolPalette-panel', type: 'toolPalette' },
             ],
-            rightPanels: [
-              { id: 'warehouse-panel', type: 'warehouse', title: 'Factory' },
-              { id: 'routingControl-panel', type: 'routingControl', title: 'Route' },
-              { id: 'routeStats-panel', type: 'routeStats', title: 'Routing Analyses' },
-            ],
+            rightPanels: [],
             bottomPanels: [],
           }}
           leftGroupWidth={leftTreeWidth}
