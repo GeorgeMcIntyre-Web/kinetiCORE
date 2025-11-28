@@ -21,15 +21,17 @@
 
 /* Ensure the button matches tool-btn sizing and styling */
 .create-dropdown-main-btn {
-  /* Match .tool-btn styling but with vertical layout for icon/text and chevron on right */
+  /* Match .tool-btn styling but with chevron on the right */
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
   justify-content: flex-start !important;
   position: relative;
   overflow: hidden; /* Prevent chevron from overflowing */
-  gap: 0;
-  padding: 6px 10px 6px 12px !important; /* standardized padding */
+  gap: 6px;
+  height: 35px;
+  min-height: 35px;
+  padding: 6px 12px !important; /* standardized padding */
   margin: 0 !important; /* spacing handled by parent gap */
   min-width: 80px; /* ensure content fits */
   width: auto;
@@ -45,10 +47,10 @@
 
 .create-dropdown-content-wrapper {
   display: flex !important;
-  flex-direction: column !important;
+  flex-direction: row !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 4px !important; /* Increased padding between icon and text */
+  gap: 6px !important; /* Spacing between icon and text */
   flex: 0 1 auto; /* Don't grow, allow shrink, auto basis */
   min-width: 0; /* Allow shrinking below content size if needed */
 }
@@ -72,11 +74,11 @@
 
 .create-dropdown-label {
   display: block !important;
-  font-size: 10px !important;
+  font-size: 12px !important;
   font-weight: 500 !important;
   white-space: nowrap !important;
   flex: 0 0 auto !important;
-  line-height: 12px !important;
+  line-height: 16px !important;
   color: inherit !important;
   margin: 0 !important;
   text-align: center !important;
@@ -92,7 +94,8 @@
   height: 100%;
   margin-left: 4px; /* Increased space between content and chevron */
   margin-right: 0;
-  padding: 0; /* No padding on wrapper */
+  padding: 6px 4px;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
   visibility: visible;
   opacity: 1;
   cursor: pointer; /* Indicate chevron is clickable */

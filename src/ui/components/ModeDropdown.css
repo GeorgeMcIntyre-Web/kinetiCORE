@@ -1,0 +1,119 @@
+/* Mode Dropdown - matches SelectionLevel styling */
+
+.mode-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.mode-dropdown-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 35px;
+  min-height: 35px;
+  padding: 6px 10px;
+  background: #2a3145;
+  border: 1px solid #3a4154;
+  border-radius: 6px;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.mode-dropdown-btn:hover {
+  background: #323a50;
+  border-color: rgba(var(--kc-accent-rgb), 0.25);
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.mode-dropdown-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.mode-dropdown .dropdown-chevron-hitbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px;
+  margin-left: 2px;
+  border-left: 1px solid #3a4154;
+  height: 100%;
+  cursor: pointer;
+}
+
+.mode-dropdown-btn:hover .dropdown-chevron-hitbox {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dropdown-chevron {
+  transition: transform 0.2s ease;
+}
+
+.dropdown-chevron.open {
+  transform: rotate(180deg);
+}
+
+.mode-dropdown-menu {
+  position: fixed;
+  background: #20232c;
+  border: 1px solid #333845;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 5000;
+  min-width: 140px;
+  overflow: hidden;
+  animation: dropdownSlideDown 0.15s ease-out;
+}
+
+.mode-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.mode-dropdown-item:hover {
+  background: #2a3145;
+  color: #ffffff;
+}
+
+.mode-dropdown-item.active {
+  background: rgba(var(--kc-accent-rgb), 0.18);
+  color: rgb(var(--kc-accent-rgb));
+}
+
+.mode-dropdown-item .item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.mode-dropdown-item .item-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+@keyframes dropdownSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

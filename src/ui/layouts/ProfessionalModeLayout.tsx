@@ -73,12 +73,12 @@ import { FloatingComplexIKPanel } from '../components/FloatingComplexIKPanel';
 import { WholeBodyIKPanel } from '../components/WholeBodyIKPanel';
 import { ICPTestPanel } from '../components/ICPTestPanel';
 import { PipingPanel } from '../piping/PipingPanel';
-import { CreateDropdown } from '../components/CreateDropdown';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
 import { SnapSetupPopup } from '../components/SnapSetupPopup';
 import { ToolbarContainer } from '../components/ToolbarContainer';
 import { ViewOptionsDropdown } from '../components/ViewOptionsDropdown';
 import { SelectionLevelDropdown } from '../components/SelectionLevelDropdown';
+import { ModeDropdown } from '../components/ModeDropdown';
 import { KinematicsManager } from '../../kinematics/KinematicsManager';
 import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolver';
 import { TransformDebugVisualizer } from '../../kinematics/TransformDebugVisualizer';
@@ -747,11 +747,11 @@ export const ProfessionalModeLayout: React.FC = () => {
         <ToolbarContainer className="compact">
         {activeWorkspace === 'modeling' && (
           <>
-        {/* Creation Tools */}
+        {/* Create Tools */}
         <div className="tool-group">
-          <div className="group-label">Creation</div>
+          <div className="group-label">Create</div>
           <div className="tool-buttons">
-            <CreateDropdown
+            <ModeDropdown
               onCreateBox={() => createObject('box')}
               onCreateSphere={() => createObject('sphere')}
               onCreateCylinder={() => createObject('cylinder')}
@@ -764,6 +764,17 @@ export const ProfessionalModeLayout: React.FC = () => {
               onCreateTorusKnot={() => createObject('torusknot')}
               onCreatePolyhedron={() => createObject('polyhedron')}
             />
+            <button className="tool-btn" title="Add Frame at Selection" onClick={handleAddFrame}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="12" x2="20" y2="12" stroke="#ff0000" strokeWidth="2.5" />
+                <polygon points="20,12 18,11 18,13" fill="#ff0000" />
+                <line x1="12" y1="12" x2="12" y2="4" stroke="#00ff00" strokeWidth="2.5" />
+                <polygon points="12,4 11,6 13,6" fill="#00ff00" />
+                <line x1="12" y1="12" x2="6" y2="18" stroke="#0000ff" strokeWidth="2.5" />
+                <polygon points="6,18 7.5,16.5 8,17.5" fill="#0000ff" />
+              </svg>
+              <span>Frame</span>
+            </button>
           </div>
         </div>
 
@@ -861,17 +872,6 @@ export const ProfessionalModeLayout: React.FC = () => {
           <div className="group-label">Utilities</div>
           <div className="tool-buttons">
             <SelectionLevelDropdown currentLevel={selectionLevel} onLevelChange={setSelectionLevel} />
-            <button className="tool-btn" title="Add Frame at Selection" onClick={handleAddFrame}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="12" x2="20" y2="12" stroke="#ff0000" strokeWidth="2.5" />
-                <polygon points="20,12 18,11 18,13" fill="#ff0000" />
-                <line x1="12" y1="12" x2="12" y2="4" stroke="#00ff00" strokeWidth="2.5" />
-                <polygon points="12,4 11,6 13,6" fill="#00ff00" />
-                <line x1="12" y1="12" x2="6" y2="18" stroke="#0000ff" strokeWidth="2.5" />
-                <polygon points="6,18 7.5,16.5 8,17.5" fill="#0000ff" />
-              </svg>
-              <span>Frame</span>
-            </button>
           </div>
         </div>
 

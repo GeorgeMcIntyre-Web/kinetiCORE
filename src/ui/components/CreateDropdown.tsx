@@ -5,7 +5,7 @@
  * Consolidates all primitive creation buttons into a single combobox dropdown
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   ChevronDown, 
@@ -66,10 +66,10 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const chevronRef = useRef<HTMLSpanElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const toggleMenu = () => {
-    const rect = buttonRef.current?.getBoundingClientRect();
-    if (rect) {
-      setMenuPosition({ top: rect.bottom + 12, left: rect.left });
+  const toggleMenu = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
     setIsOpen((prev) => !prev);
   };
@@ -157,13 +157,14 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
   const currentOption = createOptions.find(option => option.id === currentShape) || createOptions[0];
 
   // Calculate menu position when opened and on scroll/resize
-  useEffect(() => {
-    const updatePosition = () => {
-      if (buttonRef.current) {
-        const rect = buttonRef.current.getBoundingClientRect();
-        setMenuPosition({ top: rect.bottom + 12, left: rect.left });
-      }
-    };
+  const updatePosition = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPosition({ top: rect.bottom + 4, left: rect.left });
+    }
+  };
+
+  useLayoutEffect(() => {
     if (isOpen) {
       updatePosition();
       window.addEventListener('scroll', updatePosition, true);
@@ -200,10 +201,15 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
   };
 
   const handleChevronMouseDown = (e: React.MouseEvent) => {
-    // Open on mousedown to avoid any click delay
     e.stopPropagation();
     e.preventDefault();
-    toggleMenu();
+    toggleMenu(e);
+  };
+
+  const handleChevronKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      toggleMenu(e);
+    }
   };
 
   const handleMainButtonClick = (e: React.MouseEvent) => {
@@ -237,15 +243,20 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
               {currentOption.label}
             </span>
           </div>
-          <span 
+          <span
             ref={chevronRef}
-            className="create-dropdown-chevron-wrapper"
+            className="create-dropdown-chevron-wrapper dropdown-chevron-hitbox"
+            role="button"
+            tabIndex={0}
+            aria-label="Create options"
             onMouseDown={handleChevronMouseDown}
-            onClick={(e) => { e.stopPropagation(); /* prevent double-toggle on click after mousedown */ }}
-            >
+            onKeyDown={handleChevronKey}
+            onClick={(e) => e.stopPropagation()}
+          >
             <ChevronDown
               size={14}
               className={`create-dropdown-chevron ${isOpen ? 'open' : ''}`}
+              aria-hidden="true"
             />
           </span>
         </button>
@@ -257,10 +268,8 @@ export const CreateDropdown: React.FC<CreateDropdownProps> = ({
             ref={menuRef}
             className="create-dropdown-menu"
             style={{
-              position: 'fixed',
               top: `${menuPosition.top}px`,
               left: `${menuPosition.left}px`,
-              zIndex: 10000
             }}
           >
             {createOptions.map(option => (
