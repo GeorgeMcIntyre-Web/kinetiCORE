@@ -23,6 +23,21 @@
   flex-shrink: 0;
 }
 
+.selection-level-dropdown .dropdown-chevron-hitbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px;
+  margin-left: 2px;
+  border-left: 1px solid #3a4154;
+  height: 100%;
+  cursor: pointer;
+}
+
+.selection-level-dropdown-btn:hover .dropdown-chevron-hitbox {
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .selection-level-dropdown-btn svg {
   flex-shrink: 0;
 }

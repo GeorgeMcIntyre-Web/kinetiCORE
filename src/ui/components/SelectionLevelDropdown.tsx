@@ -103,9 +103,25 @@ export const SelectionLevelDropdown: React.FC<SelectionLevelDropdownProps> = ({
     setIsOpen(false);
   };
 
-  const handleMainButtonClick = () => {
-    // Clicking the main button toggles dropdown
-    setIsOpen(!isOpen);
+  const toggleDropdown = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setIsOpen((prev) => !prev);
+  };
+
+  const handleMainButtonClick = (e: React.MouseEvent) => {
+    // If click came from chevron hitbox, let chevron handler manage toggle
+    const target = e.target as HTMLElement;
+    if (target.closest('.dropdown-chevron-hitbox')) return;
+    toggleDropdown(e);
+  };
+
+  const handleChevronKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      toggleDropdown(e);
+    }
   };
 
   return (
@@ -115,9 +131,23 @@ export const SelectionLevelDropdown: React.FC<SelectionLevelDropdownProps> = ({
         className="selection-level-dropdown-btn"
         onClick={handleMainButtonClick}
         title={`${currentOption.description} (Click to change)`}
+        type="button"
       >
         {currentOption.icon}
-        <ChevronDown size={10} className={`dropdown-chevron ${isOpen ? 'open' : ''}`} style={{ marginLeft: '2px' }} />
+        <span
+          className="dropdown-chevron-hitbox"
+          role="button"
+          tabIndex={0}
+          aria-label="Selection level options"
+          onClick={toggleDropdown}
+          onKeyDown={handleChevronKey}
+        >
+          <ChevronDown
+            size={10}
+            className={`dropdown-chevron ${isOpen ? 'open' : ''}`}
+            aria-hidden="true"
+          />
+        </span>
       </button>
 
       {isOpen &&
