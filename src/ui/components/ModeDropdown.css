@@ -8,8 +8,10 @@
 .mode-dropdown-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
+  min-width: 120px; /* ensure label + icon + chevron fit without clipping */
+  max-width: 135px;
   height: 35px;
   min-height: 35px;
   padding: 6px 10px;
@@ -32,6 +34,8 @@
 .mode-dropdown-label {
   font-size: 12px;
   font-weight: 500;
+  text-align: left;
+  flex: 1 1 auto;
 }
 
 .mode-dropdown .dropdown-chevron-hitbox {
@@ -39,7 +43,7 @@
   align-items: center;
   justify-content: center;
   padding: 6px 4px;
-  margin-left: 2px;
+  margin-left: auto;
   border-left: 1px solid #3a4154;
   height: 100%;
   cursor: pointer;
