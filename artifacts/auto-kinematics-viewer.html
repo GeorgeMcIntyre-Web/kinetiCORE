@@ -199,6 +199,15 @@
         <label class="file-label" for="fileInput">📁 Load GLB File</label>
         <input type="file" id="fileInput" class="file-input" accept=".glb,.gltf">
 
+        <h2>Quick Load (Test Files)</h2>
+        <button class="button" onclick="quickLoad('9X_110')">9X-110 Fixture</button>
+        <button class="button" onclick="quickLoad('kr270')">KR270 Robot</button>
+        <div style="margin-top: 8px;">
+            <input type="text" id="customUrl" placeholder="Or paste GLB URL..."
+                   style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #555; background: rgba(255,255,255,0.1); color: white; margin-bottom: 8px;">
+            <button class="button-secondary button" onclick="loadFromCustomUrl()">Load URL</button>
+        </div>
+
         <h2>Analysis</h2>
         <button class="button" onclick="analyzeFixture()">Analyze Hierarchy</button>
         <button class="button" onclick="detectUnits()">Detect Units</button>
@@ -709,8 +718,37 @@
             document.getElementById('loader').classList.add('hidden');
         }
 
+        // Quick load presets
+        function quickLoad(preset) {
+            const urls = {
+                '9X_110': 'http://127.0.0.1:8081/9X_110_GEO.glb',
+                'kr270': 'http://127.0.0.1:8081/kr270_enhanced.glb'
+            };
+
+            const url = urls[preset];
+            if (!url) {
+                updateStatus('Error: Unknown preset');
+                return;
+            }
+
+            loadGLBModel(url, preset + '.glb');
+        }
+
+        // Load from custom URL
+        function loadFromCustomUrl() {
+            const url = document.getElementById('customUrl').value.trim();
+            if (!url) {
+                updateStatus('Error: Enter a URL first');
+                return;
+            }
+
+            loadGLBModel(url, 'custom.glb');
+        }
+
         // Expose API
         window.loadGLBModel = loadGLBModel;
+        window.quickLoad = quickLoad;
+        window.loadFromCustomUrl = loadFromCustomUrl;
         window.analyzeFixture = analyzeFixture;
         window.detectUnits = detectUnits;
         window.visualizeJoints = visualizeJoints;
