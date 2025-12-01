@@ -147,25 +147,51 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     previousMaterialRef.current.clear();
   };
 
-  const highlightNode = (node: SceneNode) => {
-    const scene = SceneManager.getInstance().getScene();
-    if (!scene || !node.babylonMeshId) return;
+  // Helper function to collect all meshes from a node (including children for transform nodes)
+  const collectMeshesFromNode = (node: SceneNode, scene: BABYLON.Scene): BABYLON.Mesh[] => {
+    const meshes: BABYLON.Mesh[] = [];
 
-    const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10)) as BABYLON.Mesh | null;
-    if (!mesh || !mesh.material) return;
-
-    const material = mesh.material as BABYLON.StandardMaterial;
-
-    if (!previousMaterialRef.current.has(mesh.uniqueId)) {
-      previousMaterialRef.current.set(mesh.uniqueId, {
-        diffuseColor: material.diffuseColor ? material.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
-        emissiveColor: material.emissiveColor ? material.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
-        alpha: material.alpha ?? 1.0,
-      });
+    // If this node has a direct mesh, add it
+    if (node.babylonMeshId) {
+      const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10)) as BABYLON.Mesh | null;
+      if (mesh && mesh.geometry) {
+        meshes.push(mesh);
+      }
     }
 
-    material.diffuseColor = new BABYLON.Color3(1, 0, 0);
-    material.emissiveColor = new BABYLON.Color3(0.3, 0, 0);
+    // If this is a transform node or has children, recursively collect their meshes
+    const tree = SceneTreeManager.getInstance();
+    const children = tree.getChildren(node.id);
+    for (const child of children) {
+      meshes.push(...collectMeshesFromNode(child, scene));
+    }
+
+    return meshes;
+  };
+
+  const highlightNode = (node: SceneNode) => {
+    const scene = SceneManager.getInstance().getScene();
+    if (!scene) return;
+
+    // Collect all meshes from this node (handles transform nodes with children)
+    const meshes = collectMeshesFromNode(node, scene);
+
+    for (const mesh of meshes) {
+      if (!mesh.material) continue;
+
+      const material = mesh.material as BABYLON.StandardMaterial;
+
+      if (!previousMaterialRef.current.has(mesh.uniqueId)) {
+        previousMaterialRef.current.set(mesh.uniqueId, {
+          diffuseColor: material.diffuseColor ? material.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
+          emissiveColor: material.emissiveColor ? material.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
+          alpha: material.alpha ?? 1.0,
+        });
+      }
+
+      material.diffuseColor = new BABYLON.Color3(1, 0, 0);
+      material.emissiveColor = new BABYLON.Color3(0.3, 0, 0);
+    }
   };
 
   const runCollisionCheck = async () => {
