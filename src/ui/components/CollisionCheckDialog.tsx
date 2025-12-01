@@ -147,26 +147,34 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     previousMaterialRef.current.clear();
   };
 
-  // Helper function to collect all meshes from a node (including children for transform nodes)
-  const collectMeshesFromNode = (node: SceneNode, scene: BABYLON.Scene): BABYLON.Mesh[] => {
-    const meshes: BABYLON.Mesh[] = [];
+  // Helper function to collect all meshes from a node with their corresponding nodes (for precise highlighting)
+  const collectMeshesWithNodes = (
+    node: SceneNode,
+    scene: BABYLON.Scene
+  ): Array<{ mesh: BABYLON.Mesh; node: SceneNode }> => {
+    const results: Array<{ mesh: BABYLON.Mesh; node: SceneNode }> = [];
 
-    // If this node has a direct mesh, add it
+    // If this node has a direct mesh, add it with this node
     if (node.babylonMeshId) {
       const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10)) as BABYLON.Mesh | null;
       if (mesh && mesh.geometry) {
-        meshes.push(mesh);
+        results.push({ mesh, node });
       }
     }
 
-    // If this is a transform node or has children, recursively collect their meshes
+    // Recursively collect from children
     const tree = SceneTreeManager.getInstance();
     const children = tree.getChildren(node.id);
     for (const child of children) {
-      meshes.push(...collectMeshesFromNode(child, scene));
+      results.push(...collectMeshesWithNodes(child, scene));
     }
 
-    return meshes;
+    return results;
+  };
+
+  // Helper function to collect just meshes (for backward compatibility)
+  const collectMeshesFromNode = (node: SceneNode, scene: BABYLON.Scene): BABYLON.Mesh[] => {
+    return collectMeshesWithNodes(node, scene).map(r => r.mesh);
   };
 
   const highlightNode = (node: SceneNode) => {
@@ -220,21 +228,21 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     const nodeToMeshMapA = new Map<BABYLON.Mesh, SceneNode>();
     const nodeToMeshMapB = new Map<BABYLON.Mesh, SceneNode>();
 
-    // Collect meshes from Group A (including children of transform nodes)
-    for (const node of nodesA) {
-      const nodeMeshes = collectMeshesFromNode(node, scene);
-      for (const mesh of nodeMeshes) {
+    // Collect meshes from Group A with their specific nodes (not top-level parent)
+    for (const topLevelNode of nodesA) {
+      const meshNodePairs = collectMeshesWithNodes(topLevelNode, scene);
+      for (const { mesh, node } of meshNodePairs) {
         meshesA.push(mesh);
-        nodeToMeshMapA.set(mesh, node);
+        nodeToMeshMapA.set(mesh, node); // Map to the specific child node, not the parent
       }
     }
 
-    // Collect meshes from Group B (including children of transform nodes)
-    for (const node of nodesB) {
-      const nodeMeshes = collectMeshesFromNode(node, scene);
-      for (const mesh of nodeMeshes) {
+    // Collect meshes from Group B with their specific nodes (not top-level parent)
+    for (const topLevelNode of nodesB) {
+      const meshNodePairs = collectMeshesWithNodes(topLevelNode, scene);
+      for (const { mesh, node } of meshNodePairs) {
         meshesB.push(mesh);
-        nodeToMeshMapB.set(mesh, node);
+        nodeToMeshMapB.set(mesh, node); // Map to the specific child node, not the parent
       }
     }
 
