@@ -38,6 +38,10 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [position, setPosition] = useState({ x: window.innerWidth / 2 - 250, y: 100 });
   const [showAllCollisions, setShowAllCollisions] = useState(false);
+  const [addModeA, setAddModeA] = useState(false);
+  const [addModeB, setAddModeB] = useState(false);
+  const [baselineSelectionA, setBaselineSelectionA] = useState<string[]>([]);
+  const [baselineSelectionB, setBaselineSelectionB] = useState<string[]>([]);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const COLLISION_DISPLAY_LIMIT = 20;
@@ -59,6 +63,22 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     }
     return () => clearHighlights();
   }, [isOpen]);
+
+  // Auto-add new selections when in add-selection mode (but not the baseline when toggled on)
+  useEffect(() => {
+    const sameSelection = (a: string[], b: string[]) =>
+      a.length === b.length && a.every((id, idx) => id === b[idx]);
+
+    if (addModeA && selectionIds.length > 0 && !sameSelection(selectionIds, baselineSelectionA)) {
+      addSelectionToGroupA(selectionIds);
+      setBaselineSelectionA(selectionIds);
+    }
+
+    if (addModeB && selectionIds.length > 0 && !sameSelection(selectionIds, baselineSelectionB)) {
+      addSelectionToGroupB(selectionIds);
+      setBaselineSelectionB(selectionIds);
+    }
+  }, [selectionIds, addModeA, addModeB, baselineSelectionA, baselineSelectionB]);
 
   // Dragging functionality
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -95,27 +115,27 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     }
   }, [isDragging, dragOffset]);
 
-  const addSelectionToGroupA = () => {
-    if (selectionIds.length === 0) return;
+  const addSelectionToGroupA = (ids: string[] = selectionIds) => {
+    if (ids.length === 0) return;
     setGroupA(prev => {
       // Filter out any IDs that are already in Group B
-      const newIds = selectionIds.filter(id => !groupB.includes(id));
+      const newIds = ids.filter(id => !groupB.includes(id));
       return [...new Set([...prev, ...newIds])];
     });
     // Remove from Group B if they were there
-    setGroupB(prev => prev.filter(id => !selectionIds.includes(id)));
+    setGroupB(prev => prev.filter(id => !ids.includes(id)));
     setStatus('');
   };
 
-  const addSelectionToGroupB = () => {
-    if (selectionIds.length === 0) return;
+  const addSelectionToGroupB = (ids: string[] = selectionIds) => {
+    if (ids.length === 0) return;
     setGroupB(prev => {
       // Filter out any IDs that are already in Group A
-      const newIds = selectionIds.filter(id => !groupA.includes(id));
+      const newIds = ids.filter(id => !groupA.includes(id));
       return [...new Set([...prev, ...newIds])];
     });
     // Remove from Group A if they were there
-    setGroupA(prev => prev.filter(id => !selectionIds.includes(id)));
+    setGroupA(prev => prev.filter(id => !ids.includes(id)));
     setStatus('');
   };
 
@@ -323,13 +343,21 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
             <div className="collision-dialog__section-header">
               <span>Group A ({groupA.length})</span>
               <button
-                className="collision-dialog__add-btn"
-                onClick={addSelectionToGroupA}
+                className={`collision-dialog__add-btn ${addModeA ? 'active' : ''}`}
+                onClick={() => {
+                  if (addModeA) {
+                    setAddModeA(false);
+                  } else {
+                    setAddModeA(true);
+                    setAddModeB(false);
+                    setBaselineSelectionA(selectionIds); // do not add current selection immediately
+                  }
+                }}
                 disabled={selectionIds.length === 0}
-                title="Add current selection"
+                title="Add Selection Mode (toggle)"
               >
                 <MousePointer2 size={14} />
-                Add Selection
+                {addModeA ? 'Adding…' : 'Add Selection'}
               </button>
             </div>
             <div className="collision-dialog__node-list">
@@ -357,13 +385,21 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
             <div className="collision-dialog__section-header">
               <span>Group B ({groupB.length})</span>
               <button
-                className="collision-dialog__add-btn"
-                onClick={addSelectionToGroupB}
+                className={`collision-dialog__add-btn ${addModeB ? 'active' : ''}`}
+                onClick={() => {
+                  if (addModeB) {
+                    setAddModeB(false);
+                  } else {
+                    setAddModeB(true);
+                    setAddModeA(false);
+                    setBaselineSelectionB(selectionIds); // do not add current selection immediately
+                  }
+                }}
                 disabled={selectionIds.length === 0}
-                title="Add current selection"
+                title="Add Selection Mode (toggle)"
               >
                 <MousePointer2 size={14} />
-                Add Selection
+                {addModeB ? 'Adding…' : 'Add Selection'}
               </button>
             </div>
             <div className="collision-dialog__node-list">

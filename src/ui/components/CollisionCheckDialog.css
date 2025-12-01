@@ -97,6 +97,12 @@
   transition: all 0.2s ease;
 }
 
+.collision-dialog__add-btn.active {
+  background: linear-gradient(90deg, #22d3ee, #2563eb);
+  color: #0b1220;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+}
+
 .collision-dialog__add-btn:hover {
   background: rgba(37, 99, 235, 0.2);
 }
