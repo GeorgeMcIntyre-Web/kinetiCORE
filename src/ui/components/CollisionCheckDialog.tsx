@@ -36,13 +36,13 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
   const [collisions, setCollisions] = useState<CollisionResultRow[]>([]);
   const [status, setStatus] = useState<string>('Select two groups to check collisions.');
   const [isRunning, setIsRunning] = useState(false);
-  const previousOutlineRef = useRef<
+  const previousMaterialRef = useRef<
     Map<
       number,
       {
-        renderOutline: boolean;
-        outlineColor: BABYLON.Color3;
-        outlineWidth: number;
+        diffuseColor: BABYLON.Color3;
+        emissiveColor: BABYLON.Color3;
+        alpha: number;
       }
     >
   >(new Map());
@@ -113,21 +113,24 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
   };
 
   const clearHighlights = () => {
-    if (previousOutlineRef.current.size === 0) return;
+    if (previousMaterialRef.current.size === 0) return;
     const scene = SceneManager.getInstance().getScene();
     if (!scene) {
-      previousOutlineRef.current.clear();
+      previousMaterialRef.current.clear();
       return;
     }
 
-    for (const [uniqueId, state] of previousOutlineRef.current.entries()) {
+    for (const [uniqueId, state] of previousMaterialRef.current.entries()) {
       const mesh = scene.getMeshByUniqueId(uniqueId) as BABYLON.Mesh | null;
-      if (!mesh) continue;
-      mesh.renderOutline = state.renderOutline;
-      mesh.outlineColor = state.outlineColor;
-      mesh.outlineWidth = state.outlineWidth;
+      if (!mesh || !mesh.material) continue;
+
+      // Restore original material colors
+      const material = mesh.material as BABYLON.StandardMaterial;
+      material.diffuseColor = state.diffuseColor;
+      material.emissiveColor = state.emissiveColor;
+      material.alpha = state.alpha;
     }
-    previousOutlineRef.current.clear();
+    previousMaterialRef.current.clear();
   };
 
   const highlightNode = (node: SceneNode) => {
@@ -135,19 +138,22 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     if (!scene || !node.babylonMeshId) return;
 
     const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10)) as BABYLON.Mesh | null;
-    if (!mesh) return;
+    if (!mesh || !mesh.material) return;
 
-    if (!previousOutlineRef.current.has(mesh.uniqueId)) {
-      previousOutlineRef.current.set(mesh.uniqueId, {
-        renderOutline: mesh.renderOutline,
-        outlineColor: mesh.outlineColor ? mesh.outlineColor.clone() : new BABYLON.Color3(0, 0, 0),
-        outlineWidth: mesh.outlineWidth,
+    const material = mesh.material as BABYLON.StandardMaterial;
+
+    // Save current material state before modifying
+    if (!previousMaterialRef.current.has(mesh.uniqueId)) {
+      previousMaterialRef.current.set(mesh.uniqueId, {
+        diffuseColor: material.diffuseColor ? material.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
+        emissiveColor: material.emissiveColor ? material.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
+        alpha: material.alpha ?? 1.0,
       });
     }
 
-    mesh.renderOutline = true;
-    mesh.outlineColor = new BABYLON.Color3(1, 0, 0);
-    mesh.outlineWidth = Math.max(mesh.outlineWidth, 0.08);
+    // Change mesh color to bright red
+    material.diffuseColor = new BABYLON.Color3(1, 0, 0); // Bright red
+    material.emissiveColor = new BABYLON.Color3(0.3, 0, 0); // Slight red glow for visibility
   };
 
   const runCollisionCheck = async () => {
