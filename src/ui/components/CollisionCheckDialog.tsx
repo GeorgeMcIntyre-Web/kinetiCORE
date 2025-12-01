@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, CheckCircle, ListChecks, MousePointer2, Repeat, X, Radio } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { AlertTriangle, CheckCircle, MousePointer2, Repeat, X, Trash2 } from 'lucide-react';
 import * as BABYLON from '@babylonjs/core';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import type { SceneNode } from '../../scene/SceneTreeNode';
@@ -12,8 +12,6 @@ interface CollisionCheckDialogProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-type GroupKey = 'A' | 'B';
 
 interface CollisionResultRow {
   nodeA: SceneNode;
@@ -30,12 +28,17 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
         : [],
     shallow
   );
+
   const [groupA, setGroupA] = useState<string[]>([]);
   const [groupB, setGroupB] = useState<string[]>([]);
-  const [followSelectionTarget, setFollowSelectionTarget] = useState<GroupKey>('A');
   const [collisions, setCollisions] = useState<CollisionResultRow[]>([]);
-  const [status, setStatus] = useState<string>('Select two groups to check collisions.');
+  const [status, setStatus] = useState<string>('');
   const [isRunning, setIsRunning] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [position, setPosition] = useState({ x: window.innerWidth / 2 - 250, y: 100 });
+  const dialogRef = useRef<HTMLDivElement>(null);
+
   const previousMaterialRef = useRef<
     Map<
       number,
@@ -47,69 +50,66 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     >
   >(new Map());
 
-  // State to track when to refresh the selectable nodes
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  const selectableNodes = useMemo(() => {
-    const tree = SceneTreeManager.getInstance();
-    return tree
-      .getAllNodes()
-      .filter((node) => (node.babylonMeshId || node.entityId) && !['world', 'scene', 'system'].includes(node.type))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [refreshKey]); // Recompute when refreshKey changes
-
-  // Refresh selectable nodes when dialog opens or scene tree updates
-  useEffect(() => {
-    if (isOpen) {
-      setRefreshKey(prev => prev + 1);
-    }
-  }, [isOpen]);
-
-  // Listen for scene tree updates
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleSceneTreeUpdate = () => {
-      setRefreshKey(prev => prev + 1);
-    };
-
-    window.addEventListener('scenetree-update', handleSceneTreeUpdate);
-    return () => {
-      window.removeEventListener('scenetree-update', handleSceneTreeUpdate);
-    };
-  }, [isOpen]);
-
-  // Keep one group in sync with current selection (scene or tree)
-  useEffect(() => {
-    if (selectionIds.length === 0) return;
-    if (followSelectionTarget === 'A') {
-      setGroupA([...selectionIds]);
-    } else {
-      setGroupB([...selectionIds]);
-    }
-  }, [selectionIds, followSelectionTarget]);
-
   useEffect(() => {
     if (!isOpen) {
       clearHighlights();
-      return;
     }
     return () => clearHighlights();
   }, [isOpen]);
 
-  const toggleNodeInGroup = (group: GroupKey, nodeId: string) => {
-    setFollowSelectionTarget(group); // mark this group as active for selection syncing
-    const setter = group === 'A' ? setGroupA : setGroupB;
-    setter((current) =>
-      current.includes(nodeId) ? current.filter((id) => id !== nodeId) : [...current, nodeId]
-    );
+  // Dragging functionality
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('.collision-dialog__header')) {
+      setIsDragging(true);
+      setDragOffset({
+        x: e.clientX - position.x,
+        y: e.clientY - position.y
+      });
+    }
   };
 
-  const useSelectionForGroup = (group: GroupKey) => {
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging) {
+        setPosition({
+          x: e.clientX - dragOffset.x,
+          y: e.clientY - dragOffset.y
+        });
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, dragOffset]);
+
+  const addSelectionToGroupA = () => {
     if (selectionIds.length === 0) return;
-    setFollowSelectionTarget(group);
-    const setter = group === 'A' ? setGroupA : setGroupB;
-    setter(selectionIds);
+    setGroupA(prev => [...new Set([...prev, ...selectionIds])]);
+    setStatus('');
+  };
+
+  const addSelectionToGroupB = () => {
+    if (selectionIds.length === 0) return;
+    setGroupB(prev => [...new Set([...prev, ...selectionIds])]);
+    setStatus('');
+  };
+
+  const removeFromGroupA = (nodeId: string) => {
+    setGroupA(prev => prev.filter(id => id !== nodeId));
+  };
+
+  const removeFromGroupB = (nodeId: string) => {
+    setGroupB(prev => prev.filter(id => id !== nodeId));
   };
 
   const clearHighlights = () => {
@@ -124,7 +124,6 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       const mesh = scene.getMeshByUniqueId(uniqueId) as BABYLON.Mesh | null;
       if (!mesh || !mesh.material) continue;
 
-      // Restore original material colors
       const material = mesh.material as BABYLON.StandardMaterial;
       material.diffuseColor = state.diffuseColor;
       material.emissiveColor = state.emissiveColor;
@@ -142,7 +141,6 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
 
     const material = mesh.material as BABYLON.StandardMaterial;
 
-    // Save current material state before modifying
     if (!previousMaterialRef.current.has(mesh.uniqueId)) {
       previousMaterialRef.current.set(mesh.uniqueId, {
         diffuseColor: material.diffuseColor ? material.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
@@ -151,9 +149,8 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       });
     }
 
-    // Change mesh color to bright red
-    material.diffuseColor = new BABYLON.Color3(1, 0, 0); // Bright red
-    material.emissiveColor = new BABYLON.Color3(0.3, 0, 0); // Slight red glow for visibility
+    material.diffuseColor = new BABYLON.Color3(1, 0, 0);
+    material.emissiveColor = new BABYLON.Color3(0.3, 0, 0);
   };
 
   const runCollisionCheck = async () => {
@@ -172,12 +169,11 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     const nodesB = groupB.map((id) => tree.getNode(id)).filter(Boolean) as SceneNode[];
 
     if (nodesA.length === 0 || nodesB.length === 0) {
-      setStatus('Pick at least one mesh in both Group A and Group B.');
+      setStatus('Add objects to both groups.');
       setIsRunning(false);
       return;
     }
 
-    // Get meshes for all nodes
     const meshesA: BABYLON.Mesh[] = [];
     const meshesB: BABYLON.Mesh[] = [];
     const nodeToMeshMapA = new Map<BABYLON.Mesh, SceneNode>();
@@ -202,17 +198,15 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     }
 
     if (meshesA.length === 0 || meshesB.length === 0) {
-      setStatus('Could not find valid meshes for the selected nodes.');
+      setStatus('Could not find valid meshes.');
       setIsRunning(false);
       return;
     }
 
-    // Check collisions using Babylon.js built-in intersection
     const collisionsFound: CollisionResultRow[] = [];
     const seenPairs = new Set<string>();
 
     for (const meshA of meshesA) {
-      // Ensure world matrix is up to date
       meshA.computeWorldMatrix(true);
       const nodeA = nodeToMeshMapA.get(meshA)!;
 
@@ -220,10 +214,8 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
         meshB.computeWorldMatrix(true);
         const nodeB = nodeToMeshMapB.get(meshB)!;
 
-        // Skip if same mesh
         if (meshA === meshB) continue;
 
-        // Create unique key for this pair
         const key = meshA.uniqueId < meshB.uniqueId
           ? `${meshA.uniqueId}|${meshB.uniqueId}`
           : `${meshB.uniqueId}|${meshA.uniqueId}`;
@@ -232,9 +224,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
         seenPairs.add(key);
 
         try {
-          // Use Babylon.js built-in intersection check (bounding box)
-          // This is fast and doesn't require physics or transform meshes
-          const isColliding = meshA.intersectsMesh(meshB, false); // false = use bounding boxes
+          const isColliding = meshA.intersectsMesh(meshB, false);
 
           if (isColliding) {
             collisionsFound.push({ nodeA, nodeB });
@@ -250,169 +240,151 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     setCollisions(collisionsFound);
     setStatus(
       collisionsFound.length > 0
-        ? `Detected ${collisionsFound.length} collision${collisionsFound.length === 1 ? '' : 's'}.`
-        : 'No collisions detected for the selected groups.'
+        ? `${collisionsFound.length} collision${collisionsFound.length === 1 ? '' : 's'} detected`
+        : 'No collisions detected'
     );
     setIsRunning(false);
+  };
+
+  const getNodeName = (nodeId: string): string => {
+    const tree = SceneTreeManager.getInstance();
+    const node = tree.getNode(nodeId);
+    return node?.name || nodeId;
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="collision-dialog-overlay">
-      <div className="collision-dialog">
-        <div className="collision-dialog__header">
+      <div
+        ref={dialogRef}
+        className="collision-dialog"
+        style={{
+          position: 'fixed',
+          left: `${position.x}px`,
+          top: `${position.y}px`,
+          cursor: isDragging ? 'grabbing' : 'default'
+        }}
+        onMouseDown={handleMouseDown}
+      >
+        <div className="collision-dialog__header" style={{ cursor: 'grab' }}>
           <div className="collision-dialog__title">
             <AlertTriangle size={18} />
-            <div>
-              <div>Collision Check</div>
-              <div className="collision-dialog__subtitle">
-                {groupA.length === 0 && groupB.length === 0
-                  ? 'Click meshes in the scene or tree, then click "Use selection" to add them to a group'
-                  : groupA.length === 0
-                  ? 'Add objects to Group A to continue'
-                  : groupB.length === 0
-                  ? 'Add objects to Group B to continue'
-                  : `Ready to check ${groupA.length} vs ${groupB.length} objects`}
-              </div>
-            </div>
+            <span>Collision Check</span>
           </div>
           <button className="collision-dialog__icon-btn" onClick={() => { clearHighlights(); onClose(); }}>
             <X size={16} />
           </button>
         </div>
 
-        <div className="collision-dialog__groups">
-          <div className="collision-dialog__group">
-            <div className="collision-dialog__group-header">
-              <div className="collision-dialog__group-title">
-                <ListChecks size={16} />
-                <span>Group A ({groupA.length})</span>
-              </div>
+        <div className="collision-dialog__content">
+          {/* Group A */}
+          <div className="collision-dialog__section">
+            <div className="collision-dialog__section-header">
+              <span>Group A ({groupA.length})</span>
               <button
-                className="collision-dialog__pill-btn"
-                onClick={() => useSelectionForGroup('A')}
+                className="collision-dialog__add-btn"
+                onClick={addSelectionToGroupA}
                 disabled={selectionIds.length === 0}
-                title={selectionIds.length === 0 ? 'No objects selected' : 'Add current selection to Group A'}
+                title="Add current selection"
               >
                 <MousePointer2 size={14} />
-                Use selection
-              </button>
-              <button
-                className={`collision-dialog__pill-btn ${followSelectionTarget === 'A' ? 'active' : ''}`}
-                onClick={() => setFollowSelectionTarget('A')}
-                title="Auto-sync Group A with scene/tree selection"
-              >
-                <Radio size={14} />
-                Follow selection
+                Add Selection
               </button>
             </div>
-            <div className="collision-dialog__list">
-              {selectableNodes.length === 0 ? (
-                <div style={{ padding: '16px', textAlign: 'center', color: '#666' }}>
-                  No selectable objects in scene
-                </div>
+            <div className="collision-dialog__node-list">
+              {groupA.length === 0 ? (
+                <div className="collision-dialog__empty">Select objects in scene and click "Add Selection"</div>
               ) : (
-                selectableNodes.map((node) => (
-                  <label key={`${node.id}-A`} className="collision-dialog__row">
-                    <input
-                      type="checkbox"
-                      checked={groupA.includes(node.id)}
-                      onChange={() => toggleNodeInGroup('A', node.id)}
-                    />
-                    <span className="collision-dialog__row-name">{node.name}</span>
-                    <span className="collision-dialog__row-type">{node.type}</span>
-                  </label>
+                groupA.map((nodeId) => (
+                  <div key={nodeId} className="collision-dialog__node-item">
+                    <span className="collision-dialog__node-name">{getNodeName(nodeId)}</span>
+                    <button
+                      className="collision-dialog__delete-btn"
+                      onClick={() => removeFromGroupA(nodeId)}
+                      title="Remove from group"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 ))
               )}
             </div>
           </div>
 
-          <div className="collision-dialog__group">
-            <div className="collision-dialog__group-header">
-              <div className="collision-dialog__group-title">
-                <ListChecks size={16} />
-                <span>Group B ({groupB.length})</span>
-              </div>
+          {/* Group B */}
+          <div className="collision-dialog__section">
+            <div className="collision-dialog__section-header">
+              <span>Group B ({groupB.length})</span>
               <button
-                className="collision-dialog__pill-btn"
-                onClick={() => useSelectionForGroup('B')}
+                className="collision-dialog__add-btn"
+                onClick={addSelectionToGroupB}
                 disabled={selectionIds.length === 0}
-                title={selectionIds.length === 0 ? 'No objects selected' : 'Add current selection to Group B'}
+                title="Add current selection"
               >
                 <MousePointer2 size={14} />
-                Use selection
-              </button>
-              <button
-                className={`collision-dialog__pill-btn ${followSelectionTarget === 'B' ? 'active' : ''}`}
-                onClick={() => setFollowSelectionTarget('B')}
-                title="Auto-sync Group B with scene/tree selection"
-              >
-                <Radio size={14} />
-                Follow selection
+                Add Selection
               </button>
             </div>
-            <div className="collision-dialog__list">
-              {selectableNodes.length === 0 ? (
-                <div style={{ padding: '16px', textAlign: 'center', color: '#666' }}>
-                  No selectable objects in scene
-                </div>
+            <div className="collision-dialog__node-list">
+              {groupB.length === 0 ? (
+                <div className="collision-dialog__empty">Select objects in scene and click "Add Selection"</div>
               ) : (
-                selectableNodes.map((node) => (
-                  <label key={`${node.id}-B`} className="collision-dialog__row">
-                    <input
-                      type="checkbox"
-                      checked={groupB.includes(node.id)}
-                      onChange={() => toggleNodeInGroup('B', node.id)}
-                    />
-                    <span className="collision-dialog__row-name">{node.name}</span>
-                    <span className="collision-dialog__row-type">{node.type}</span>
-                  </label>
+                groupB.map((nodeId) => (
+                  <div key={nodeId} className="collision-dialog__node-item">
+                    <span className="collision-dialog__node-name">{getNodeName(nodeId)}</span>
+                    <button
+                      className="collision-dialog__delete-btn"
+                      onClick={() => removeFromGroupB(nodeId)}
+                      title="Remove from group"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 ))
               )}
             </div>
           </div>
-        </div>
 
-        <div className="collision-dialog__footer">
-          <div className="collision-dialog__status">
-            {collisions.length > 0 ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
-            <span>{status}</span>
-          </div>
+          {/* Actions */}
           <div className="collision-dialog__actions">
-            <button className="collision-dialog__ghost" onClick={clearHighlights}>
-              Clear highlights
-            </button>
-            <button className="collision-dialog__ghost" onClick={() => { clearHighlights(); setCollisions([]); setGroupA([]); setGroupB([]); setStatus('Select two groups to check collisions.'); }}>
-              Reset
-            </button>
             <button
-              className="collision-dialog__primary"
+              className="collision-dialog__btn collision-dialog__btn--primary"
               onClick={runCollisionCheck}
               disabled={isRunning || groupA.length === 0 || groupB.length === 0}
-              title={groupA.length === 0 || groupB.length === 0 ? 'Add objects to both groups first' : 'Check for collisions between groups'}
             >
               <Repeat size={14} />
-              {isRunning ? 'Checking...' : 'Run collision check'}
+              {isRunning ? 'Checking...' : 'Check Collisions'}
             </button>
+            {collisions.length > 0 && (
+              <button className="collision-dialog__btn" onClick={clearHighlights}>
+                Clear Highlights
+              </button>
+            )}
           </div>
-        </div>
 
-        {collisions.length > 0 && (
-          <div className="collision-dialog__results">
-            <div className="collision-dialog__results-title">Collisions</div>
-            <div className="collision-dialog__results-list">
+          {/* Status */}
+          {status && (
+            <div className={`collision-dialog__status ${collisions.length > 0 ? 'collision-dialog__status--warning' : ''}`}>
+              {collisions.length > 0 ? <AlertTriangle size={14} /> : <CheckCircle size={14} />}
+              <span>{status}</span>
+            </div>
+          )}
+
+          {/* Results */}
+          {collisions.length > 0 && (
+            <div className="collision-dialog__results">
+              <div className="collision-dialog__results-title">Colliding Pairs:</div>
               {collisions.map((row, idx) => (
                 <div className="collision-dialog__result-row" key={`${row.nodeA.id}-${row.nodeB.id}-${idx}`}>
-                  <div className="collision-dialog__badge">A</div>
-                  <div className="collision-dialog__result-name">{row.nodeA.name}</div>
-                  <div className="collision-dialog__badge badge--secondary">B</div>
-                  <div className="collision-dialog__result-name">{row.nodeB.name}</div>
+                  <span>{row.nodeA.name}</span>
+                  <span>↔</span>
+                  <span>{row.nodeB.name}</span>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
