@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { loadOBJFile } from '../../loaders/obj/OBJLoader';
 import { SceneManager } from '../../scene/SceneManager';
+import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { toast } from '../components/ToastNotifications';
 import { loading } from '../components/LoadingIndicator';
 import { RoutingToolbar } from '../../routing/ui/RoutingToolbar';
@@ -382,14 +383,14 @@ export const RibbonToolbar: React.FC<RibbonToolbarProps> = ({
       return null;
     }
 
-    const state = useEditorStore.getState();
+    // const state = useEditorStore.getState();
     const tree = SceneTreeManager.getInstance();
 
     const meshA = selectedMeshes[0];
     const meshB = selectedMeshes[1];
 
-    const nodeA = tree.findNodeByMesh(meshA);
-    const nodeB = tree.findNodeByMesh(meshB);
+    const nodeA = tree.getNodeByBabylonMeshId(meshA.id);
+    const nodeB = tree.getNodeByBabylonMeshId(meshB.id);
 
     if (!nodeA || !nodeB) {
       toast.error('Could not resolve selected meshes to scene nodes');

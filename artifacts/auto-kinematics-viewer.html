@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>kinetiCORE Auto-Kinematics Viewer</title>
+
+    <!-- Babylon.js from CDN -->
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+    <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #renderCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            outline: none;
+            touch-action: none;
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 12px;
+            color: white;
+            font-size: 14px;
+            max-width: 350px;
+            max-height: 90vh;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .controls h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #00f0ff;
+            font-weight: 600;
+        }
+
+        .controls h2 {
+            font-size: 16px;
+            margin: 16px 0 8px 0;
+            color: #00f0ff;
+            font-weight: 500;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            padding-top: 12px;
+        }
+
+        .controls p {
+            margin-bottom: 12px;
+            opacity: 0.9;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #00f0ff, #0099cc);
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 240, 255, 0.3);
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 240, 255, 0.5);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button-secondary {
+            background: linear-gradient(135deg, #555, #777);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-label {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff6b00, #ff9500);
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(255, 107, 0, 0.3);
+        }
+
+        .file-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 0, 0.5);
+        }
+
+        .status {
+            margin-top: 12px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            line-height: 1.4;
+        }
+
+        .joints-list {
+            margin-top: 8px;
+            padding: 8px;
+            background: rgba(0, 240, 255, 0.1);
+            border-radius: 6px;
+            font-size: 11px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .joint-item {
+            padding: 4px 8px;
+            margin: 4px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .joint-item:hover {
+            background: rgba(0, 240, 255, 0.2);
+        }
+
+        .loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            z-index: 50;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #00f0ff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+
+    <div class="controls">
+        <h1>⚡ Auto-Kinematics</h1>
+        <p>Load GLB fixture → Auto-detect joints → Animate</p>
+
+        <label class="file-label" for="fileInput">📁 Load GLB File</label>
+        <input type="file" id="fileInput" class="file-input" accept=".glb,.gltf">
+
+        <h2>Quick Load (Test Files)</h2>
+        <button class="button" onclick="quickLoad('8X-140-1E1_LH')">8X-140-1E1_LH ⭐</button>
+        <button class="button" onclick="quickLoad('floor_clamp')">Floor Clamp</button>
+        <button class="button" onclick="quickLoad('9X_110')">9X-110</button>
+        <button class="button" onclick="quickLoad('kr270')">Robot</button>
+        <div style="margin-top: 8px;">
+            <input type="text" id="customUrl" placeholder="Or paste GLB URL..."
+                   style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #555; background: rgba(255,255,255,0.1); color: white; margin-bottom: 8px;">
+            <button class="button-secondary button" onclick="loadFromCustomUrl()">Load URL</button>
+        </div>
+
+        <h2>Analysis</h2>
+        <button class="button" onclick="analyzeFixture()">Analyze Hierarchy</button>
+        <button class="button" onclick="detectUnits()">Detect Units</button>
+        <button class="button" onclick="visualizeJoints()">Show Joints</button>
+
+        <h2>View Controls</h2>
+        <button class="button-secondary button" onclick="resetCamera()">Reset View</button>
+        <button class="button-secondary button" onclick="toggleWireframe()">Wireframe</button>
+        <button class="button-secondary button" onclick="toggleAxes()">Axes</button>
+
+        <div class="status" id="status">Ready - Load a GLB file to start</div>
+
+        <div id="jointsContainer" class="hidden">
+            <h2>Detected Joints</h2>
+            <div class="joints-list" id="jointsList"></div>
+        </div>
+    </div>
+
+    <div class="loader hidden" id="loader">
+        <div class="spinner"></div>
+        <div id="loaderText">Loading...</div>
+    </div>
+
+    <script>
+        // Global state
+        let engine, scene, camera, wireframeMode = false, axesMode = false;
+        let loadedModel = null;
+        let sceneHierarchy = null;
+        let detectedUnits = [];
+        let detectedJoints = [];
+        let jointGizmos = [];
+
+        // Statistical Pairing Engine (Simplified for artifact)
+        class HierarchyAnalyzer {
+            constructor(rootMesh) {
+                this.rootMesh = rootMesh;
+                this.nodes = new Map();
+            }
+
+            analyzeHierarchy() {
+                const results = {
+                    totalNodes: 0,
+                    totalVertices: 0,
+                    maxDepth: 0,
+                    nodes: []
+                };
+
+                const traverse = (mesh, depth = 0) => {
+                    if (!mesh) return;
+
+                    const vertexCount = this.getVertexCount(mesh);
+
+                    const nodeInfo = {
+                        name: mesh.name,
+                        id: mesh.uniqueId,
+                        depth: depth,
+                        vertexCount: vertexCount,
+                        totalVertices: vertexCount,
+                        children: [],
+                        mesh: mesh
+                    };
+
+                    // Count child vertices
+                    if (mesh.getChildren) {
+                        const children = mesh.getChildren();
+                        children.forEach(child => {
+                            const childResult = traverse(child, depth + 1);
+                            if (childResult) {
+                                nodeInfo.children.push(childResult);
+                                nodeInfo.totalVertices += childResult.totalVertices;
+                            }
+                        });
+                    }
+
+                    results.totalNodes++;
+                    results.totalVertices += vertexCount;
+                    results.maxDepth = Math.max(results.maxDepth, depth);
+                    results.nodes.push(nodeInfo);
+
+                    this.nodes.set(mesh.uniqueId, nodeInfo);
+
+                    return nodeInfo;
+                };
+
+                results.root = traverse(this.rootMesh, 0);
+                return results;
+            }
+
+            getVertexCount(mesh) {
+                try {
+                    const geometry = mesh.geometry || mesh._geometry;
+                    if (geometry) {
+                        const positions = geometry.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+                        return positions ? positions.length / 3 : 0;
+                    }
+                    return 0;
+                } catch (e) {
+                    return 0;
+                }
+            }
+
+            detectUnits(hierarchyResults) {
+                const UNIT_MIN_RATIO = 0.02; // 2% of total vertices
+                const UNIT_MAX_RATIO = 0.60; // 60% of total vertices
+                const totalVerts = hierarchyResults.totalVertices;
+
+                const candidates = [];
+
+                hierarchyResults.nodes.forEach(node => {
+                    const ratio = node.totalVertices / totalVerts;
+                    if (ratio >= UNIT_MIN_RATIO && ratio <= UNIT_MAX_RATIO) {
+                        candidates.push({
+                            ...node,
+                            ratio: ratio,
+                            score: node.totalVertices
+                        });
+                    }
+                });
+
+                // Sort by vertex count (descending)
+                candidates.sort((a, b) => b.totalVertices - a.totalVertices);
+
+                return candidates;
+            }
+
+            detectJointsInUnit(unit) {
+                // Look for moving components (FIXED vs non-FIXED)
+                const joints = [];
+
+                const checkNode = (node) => {
+                    if (!node) return;
+
+                    const name = node.name.toUpperCase();
+                    const ratio = node.totalVertices / unit.totalVertices;
+
+                    // Strategy 1: Look for FIXED vs moving parts
+                    const isMovingPart = !name.includes('FIXED') &&
+                                        !name.includes('FASTENER') &&
+                                        !name.includes('BASE');
+
+                    // Strategy 2: Look for ORDER/CARRY nodes (typical moving assemblies)
+                    const isOrderNode = name.includes('ORDER') ||
+                                       name.includes('CARRY') ||
+                                       name.includes('CLAMP');
+
+                    // Reasonable geometry size (5-75% of unit)
+                    const hasEnoughGeometry = ratio > 0.05 && ratio < 0.75;
+
+                    // Must be a direct or near-direct child of unit
+                    const isNearUnit = node.depth <= (unit.depth + 3);
+
+                    if ((isMovingPart || isOrderNode) && hasEnoughGeometry && isNearUnit && node.mesh) {
+                        const pivotPoint = this.calculatePivotPoint(node.mesh);
+
+                        joints.push({
+                            name: node.name,
+                            id: node.id,
+                            vertexCount: node.totalVertices,
+                            ratio: ratio,
+                            mesh: node.mesh,
+                            position: pivotPoint,
+                            type: 'revolute'
+                        });
+                    }
+
+                    // Check all children
+                    node.children.forEach(child => checkNode(child));
+                };
+
+                checkNode(unit);
+
+                // Deduplicate by name (avoid counting same part multiple times)
+                const uniqueJoints = [];
+                const seen = new Set();
+                for (const joint of joints) {
+                    if (!seen.has(joint.name)) {
+                        seen.add(joint.name);
+                        uniqueJoints.push(joint);
+                    }
+                }
+
+                return uniqueJoints;
+            }
+
+            calculatePivotPoint(mesh) {
+                // Calculate pivot from bounding box
+                // For revolute joints, this approximates the rotation axis center
+                try {
+                    const bounds = mesh.getHierarchyBoundingVectors();
+                    const min = bounds.min;
+                    const max = bounds.max;
+
+                    // Use bottom-center of bounding box (typical for revolute joints)
+                    return new BABYLON.Vector3(
+                        (min.x + max.x) / 2,
+                        min.y,  // Bottom of bounding box
+                        (min.z + max.z) / 2
+                    );
+                } catch (e) {
+                    return mesh.getAbsolutePosition();
+                }
+            }
+
+            guessJointType(node) {
+                // Simple heuristic: revolute if cylindrical-ish
+                const name = node.name.toLowerCase();
+                if (name.includes('clamp') || name.includes('jaw')) return 'revolute';
+                if (name.includes('slide') || name.includes('linear')) return 'prismatic';
+                return 'revolute'; // Default assumption
+            }
+        }
+
+        // Initialize Babylon.js scene
+        function initScene() {
+            const canvas = document.getElementById('renderCanvas');
+
+            engine = new BABYLON.Engine(canvas, true, {
+                preserveDrawingBuffer: true,
+                stencil: true,
+                antialias: true
+            });
+
+            scene = new BABYLON.Scene(engine);
+            scene.clearColor = new BABYLON.Color4(182/255, 199/255, 209/255, 1);
+
+            // Camera
+            camera = new BABYLON.ArcRotateCamera(
+                'camera',
+                -Math.PI / 2,
+                Math.PI / 3,
+                10,
+                BABYLON.Vector3.Zero(),
+                scene
+            );
+            camera.attachControl(canvas, true);
+            camera.wheelPrecision = 50;
+            camera.minZ = 0.001;
+            camera.maxZ = 10000;
+            camera.lowerRadiusLimit = 0.1;
+
+            // Lighting
+            const hemiLight = new BABYLON.HemisphericLight(
+                'hemiLight',
+                new BABYLON.Vector3(0, 1, 0),
+                scene
+            );
+            hemiLight.intensity = 0.7;
+
+            const dirLight1 = new BABYLON.DirectionalLight(
+                'dirLight1',
+                new BABYLON.Vector3(-1, -2, -1),
+                scene
+            );
+            dirLight1.intensity = 0.5;
+
+            const dirLight2 = new BABYLON.DirectionalLight(
+                'dirLight2',
+                new BABYLON.Vector3(1, -2, 1),
+                scene
+            );
+            dirLight2.intensity = 0.3;
+
+            // Ground
+            const ground = BABYLON.MeshBuilder.CreateGround(
+                'ground',
+                { width: 50, height: 50 },
+                scene
+            );
+            const groundMaterial = new BABYLON.GridMaterial('groundMat', scene);
+            groundMaterial.gridRatio = 1;
+            groundMaterial.majorUnitFrequency = 5;
+            groundMaterial.minorUnitVisibility = 0.45;
+            groundMaterial.mainColor = new BABYLON.Color3(1, 1, 1);
+            groundMaterial.lineColor = new BABYLON.Color3(0.3, 0.3, 0.3);
+            groundMaterial.opacity = 0.98;
+            ground.material = groundMaterial;
+            ground.receiveShadows = true;
+
+            // Render loop
+            engine.runRenderLoop(() => {
+                scene.render();
+            });
+
+            window.addEventListener('resize', () => {
+                engine.resize();
+            });
+
+            updateStatus('Scene initialized ✓\nReady to load GLB files');
+        }
+
+        // File input handler
+        document.getElementById('fileInput').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                loadGLBFromFile(file);
+            }
+        });
+
+        // Load GLB from File object
+        function loadGLBFromFile(file) {
+            updateStatus('Loading GLB file...');
+            showLoader('Loading GLB...');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const arrayBuffer = e.target.result;
+
+                // Create blob with correct MIME type
+                const blob = new Blob([arrayBuffer], { type: 'model/gltf-binary' });
+                const url = URL.createObjectURL(blob);
+
+                // Load with explicit file extension
+                loadGLBModelFromBlob(url, file.name);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Load GLB from blob URL with proper plugin detection
+        function loadGLBModelFromBlob(blobUrl, filename) {
+            if (loadedModel) {
+                loadedModel.dispose();
+                loadedModel = null;
+            }
+
+            // Use SceneLoader with explicit plugin
+            BABYLON.SceneLoader.ImportMesh(
+                '',
+                '',
+                blobUrl,
+                scene,
+                (meshes) => {
+                    hideLoader();
+
+                    if (meshes.length === 0) {
+                        updateStatus('Error: No meshes found in GLB');
+                        return;
+                    }
+
+                    loadedModel = meshes[0];
+
+                    // Frame camera
+                    const bounds = loadedModel.getHierarchyBoundingVectors();
+                    const center = BABYLON.Vector3.Center(bounds.min, bounds.max);
+                    const size = bounds.max.subtract(bounds.min);
+                    const maxDim = Math.max(size.x, size.y, size.z);
+
+                    camera.setTarget(center);
+                    camera.radius = maxDim * 2.5;
+
+                    updateStatus(`✓ Loaded: ${filename}\n${meshes.length} meshes\nClick "Analyze Hierarchy" to detect joints`);
+                },
+                null,
+                (scene, message) => {
+                    hideLoader();
+                    updateStatus('Error loading model:\n' + message);
+                    console.error('GLB load failed:', message);
+                },
+                '.glb'  // Explicit file extension tells Babylon to use GLTF plugin
+            );
+        }
+
+        // Load GLB model
+        function loadGLBModel(url, filename = 'model.glb') {
+            if (loadedModel) {
+                loadedModel.dispose();
+                loadedModel = null;
+            }
+
+            // Configure loader to skip Draco compression (avoid CDN dependency)
+            if (BABYLON.GLTFFileLoader) {
+                BABYLON.GLTFFileLoader.IncrementalLoading = false;
+                // Note: Draco is optional - loader will fallback to uncompressed data
+            }
+
+            BABYLON.SceneLoader.ImportMesh(
+                '',
+                '',
+                url,
+                scene,
+                (meshes) => {
+                    hideLoader();
+
+                    if (meshes.length === 0) {
+                        updateStatus('Error: No meshes found in GLB');
+                        return;
+                    }
+
+                    loadedModel = meshes[0];
+
+                    // Frame camera
+                    const bounds = loadedModel.getHierarchyBoundingVectors();
+                    const center = BABYLON.Vector3.Center(bounds.min, bounds.max);
+                    const size = bounds.max.subtract(bounds.min);
+                    const maxDim = Math.max(size.x, size.y, size.z);
+
+                    camera.setTarget(center);
+                    camera.radius = maxDim * 2.5;
+
+                    updateStatus(`✓ Loaded: ${filename}\n${meshes.length} meshes\nClick "Analyze Hierarchy" to detect joints`);
+                },
+                null,
+                (scene, message) => {
+                    hideLoader();
+                    updateStatus('Error loading model:\n' + message);
+                    console.error('GLB load failed:', message);
+                }
+            );
+        }
+
+        // Analyze fixture hierarchy
+        function analyzeFixture() {
+            if (!loadedModel) {
+                updateStatus('Error: No model loaded');
+                return;
+            }
+
+            showLoader('Analyzing hierarchy...');
+
+            setTimeout(() => {
+                const analyzer = new HierarchyAnalyzer(loadedModel);
+                sceneHierarchy = analyzer.analyzeHierarchy();
+
+                hideLoader();
+                updateStatus(
+                    `✓ Hierarchy Analysis:\n` +
+                    `Total Nodes: ${sceneHierarchy.totalNodes}\n` +
+                    `Total Vertices: ${sceneHierarchy.totalVertices.toLocaleString()}\n` +
+                    `Max Depth: ${sceneHierarchy.maxDepth}\n\n` +
+                    `Click "Detect Units" to find moving parts`
+                );
+
+                console.log('Hierarchy:', sceneHierarchy);
+            }, 100);
+        }
+
+        // Detect units (moving parts)
+        function detectUnits() {
+            if (!sceneHierarchy) {
+                updateStatus('Error: Run "Analyze Hierarchy" first');
+                return;
+            }
+
+            showLoader('Detecting units...');
+
+            setTimeout(() => {
+                const analyzer = new HierarchyAnalyzer(loadedModel);
+                detectedUnits = analyzer.detectUnits(sceneHierarchy);
+
+                hideLoader();
+
+                if (detectedUnits.length === 0) {
+                    updateStatus('No units detected\nTry adjusting thresholds');
+                    return;
+                }
+
+                updateStatus(
+                    `✓ Detected ${detectedUnits.length} Units:\n` +
+                    detectedUnits.slice(0, 5).map((u, i) =>
+                        `${i+1}. ${u.name} (${u.totalVertices.toLocaleString()} verts, ${(u.ratio*100).toFixed(1)}%)`
+                    ).join('\n') +
+                    (detectedUnits.length > 5 ? '\n...' : '') +
+                    `\n\nClick "Show Joints" to detect joints`
+                );
+
+                console.log('Detected Units:', detectedUnits);
+            }, 100);
+        }
+
+        // Visualize joints
+        function visualizeJoints() {
+            if (detectedUnits.length === 0) {
+                updateStatus('Error: Run "Detect Units" first');
+                return;
+            }
+
+            showLoader('Detecting joints...');
+
+            setTimeout(() => {
+                // Clear old gizmos
+                jointGizmos.forEach(g => g.dispose());
+                jointGizmos = [];
+                detectedJoints = [];
+
+                const analyzer = new HierarchyAnalyzer(loadedModel);
+
+                // Detect joints in top units
+                detectedUnits.slice(0, 5).forEach(unit => {
+                    const joints = analyzer.detectJointsInUnit(unit);
+                    detectedJoints.push(...joints);
+                });
+
+                hideLoader();
+
+                if (detectedJoints.length === 0) {
+                    updateStatus('No joints detected in units');
+                    return;
+                }
+
+                // Create gizmos for joints
+                detectedJoints.forEach((joint, i) => {
+                    const sphere = BABYLON.MeshBuilder.CreateSphere(
+                        `joint_gizmo_${i}`,
+                        { diameter: 0.1 },
+                        scene
+                    );
+                    sphere.position = joint.position.clone();
+
+                    const mat = new BABYLON.StandardMaterial(`joint_mat_${i}`, scene);
+                    mat.emissiveColor = new BABYLON.Color3(1, 0.5, 0);
+                    mat.diffuseColor = new BABYLON.Color3(1, 0.5, 0);
+                    sphere.material = mat;
+
+                    jointGizmos.push(sphere);
+                });
+
+                // Update UI
+                document.getElementById('jointsContainer').classList.remove('hidden');
+                const jointsList = document.getElementById('jointsList');
+                jointsList.innerHTML = detectedJoints.map((j, i) =>
+                    `<div class="joint-item" onclick="focusJoint(${i})">` +
+                    `${i+1}. ${j.name}<br>` +
+                    `Type: ${j.type}, Verts: ${j.vertexCount.toLocaleString()}</div>`
+                ).join('');
+
+                updateStatus(
+                    `✓ Detected ${detectedJoints.length} Joints!\n` +
+                    `Orange spheres mark joint locations\n` +
+                    `Click joints in list to focus camera`
+                );
+
+                console.log('Detected Joints:', detectedJoints);
+            }, 100);
+        }
+
+        // Focus camera on joint
+        function focusJoint(index) {
+            if (!detectedJoints[index]) return;
+
+            const joint = detectedJoints[index];
+            camera.setTarget(joint.position);
+            camera.radius = 2;
+
+            updateStatus(`Focused on: ${joint.name}\nType: ${joint.type}`);
+        }
+
+        // Reset camera
+        function resetCamera() {
+            if (loadedModel) {
+                const bounds = loadedModel.getHierarchyBoundingVectors();
+                const center = BABYLON.Vector3.Center(bounds.min, bounds.max);
+                const size = bounds.max.subtract(bounds.min);
+                const maxDim = Math.max(size.x, size.y, size.z);
+                camera.setTarget(center);
+                camera.radius = maxDim * 2.5;
+            } else {
+                camera.alpha = -Math.PI / 2;
+                camera.beta = Math.PI / 3;
+                camera.radius = 10;
+                camera.setTarget(BABYLON.Vector3.Zero());
+            }
+            updateStatus('Camera reset ✓');
+        }
+
+        // Toggle wireframe
+        function toggleWireframe() {
+            wireframeMode = !wireframeMode;
+            scene.meshes.forEach(mesh => {
+                if (mesh.material && mesh.name !== 'ground' && !mesh.name.startsWith('joint_gizmo')) {
+                    mesh.material.wireframe = wireframeMode;
+                }
+            });
+            updateStatus(wireframeMode ? 'Wireframe ON' : 'Wireframe OFF');
+        }
+
+        // Toggle axes
+        function toggleAxes() {
+            axesMode = !axesMode;
+            if (axesMode) {
+                new BABYLON.AxesViewer(scene, 2);
+                updateStatus('Axes ON');
+            } else {
+                scene.meshes.forEach(mesh => {
+                    if (mesh.name.includes('axis')) mesh.dispose();
+                });
+                updateStatus('Axes OFF');
+            }
+        }
+
+        // UI helpers
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+            console.log('📊', message);
+        }
+
+        function showLoader(text = 'Loading...') {
+            document.getElementById('loader').classList.remove('hidden');
+            document.getElementById('loaderText').textContent = text;
+        }
+
+        function hideLoader() {
+            document.getElementById('loader').classList.add('hidden');
+        }
+
+        // Quick load presets
+        function quickLoad(preset) {
+            // Serve from same origin (port 8080) to avoid Draco CDN issues
+            const urls = {
+                '8X-140-1E1_LH': 'http://127.0.0.1:8080/8X-140_LH.glb',
+                'floor_clamp': 'http://127.0.0.1:8080/floor_clamp.glb',
+                '9X_110': 'http://127.0.0.1:8080/9X_110_GEO.glb',
+                'kr270': 'http://127.0.0.1:8080/kr270_enhanced.glb'
+            };
+
+            const url = urls[preset];
+            if (!url) {
+                updateStatus('Error: Unknown preset');
+                return;
+            }
+
+            loadGLBModel(url, preset + '.glb');
+        }
+
+        // Load from custom URL
+        function loadFromCustomUrl() {
+            const url = document.getElementById('customUrl').value.trim();
+            if (!url) {
+                updateStatus('Error: Enter a URL first');
+                return;
+            }
+
+            loadGLBModel(url, 'custom.glb');
+        }
+
+        // Expose API
+        window.loadGLBModel = loadGLBModel;
+        window.quickLoad = quickLoad;
+        window.loadFromCustomUrl = loadFromCustomUrl;
+        window.analyzeFixture = analyzeFixture;
+        window.detectUnits = detectUnits;
+        window.visualizeJoints = visualizeJoints;
+        window.scene = scene;
+        window.camera = camera;
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            initScene();
+        });
+    </script>
+</body>
+</html>

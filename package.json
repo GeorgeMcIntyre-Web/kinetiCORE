@@ -33,6 +33,7 @@
     "tooling:profile": "tsx scripts/tooling-structure-profiler.ts",
     "tooling:regression": "tsx scripts/tooling-regression.ts",
     "tooling:pipeline:batch": "tsx scripts/tooling-pipeline-batch.ts",
+    "tooling:verify-icp": "tsx scripts/verifyICPRealTooling.ts",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\"",
     "prepare": "husky install",
     "deploy:preview": "npm run build && wrangler pages deploy dist --project-name=kineticore",

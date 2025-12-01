@@ -261,6 +261,7 @@ interface EditorState {
   snapPointOnEdge: boolean;
   snapBBoxCorner: boolean;
   gridSize: number; // mm
+  pickAtSnapPointEnabled: boolean; // Enable picking at snap points
   snapDistance: number; // mm - how close to snap
   temporaryOrigin: { x: number; y: number; z: number } | null;
 
