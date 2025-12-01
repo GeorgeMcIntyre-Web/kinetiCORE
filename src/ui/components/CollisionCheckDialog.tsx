@@ -47,13 +47,37 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     >
   >(new Map());
 
+  // State to track when to refresh the selectable nodes
+  const [refreshKey, setRefreshKey] = useState(0);
+
   const selectableNodes = useMemo(() => {
     const tree = SceneTreeManager.getInstance();
     return tree
       .getAllNodes()
       .filter((node) => (node.babylonMeshId || node.entityId) && !['world', 'scene', 'system'].includes(node.type))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, []);
+  }, [refreshKey]); // Recompute when refreshKey changes
+
+  // Refresh selectable nodes when dialog opens or scene tree updates
+  useEffect(() => {
+    if (isOpen) {
+      setRefreshKey(prev => prev + 1);
+    }
+  }, [isOpen]);
+
+  // Listen for scene tree updates
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleSceneTreeUpdate = () => {
+      setRefreshKey(prev => prev + 1);
+    };
+
+    window.addEventListener('scenetree-update', handleSceneTreeUpdate);
+    return () => {
+      window.removeEventListener('scenetree-update', handleSceneTreeUpdate);
+    };
+  }, [isOpen]);
 
   // Keep one group in sync with current selection (scene or tree)
   useEffect(() => {
