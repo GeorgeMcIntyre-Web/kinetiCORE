@@ -220,19 +220,19 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     const nodeToMeshMapA = new Map<BABYLON.Mesh, SceneNode>();
     const nodeToMeshMapB = new Map<BABYLON.Mesh, SceneNode>();
 
+    // Collect meshes from Group A (including children of transform nodes)
     for (const node of nodesA) {
-      if (!node.babylonMeshId) continue;
-      const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10)) as BABYLON.Mesh | null;
-      if (mesh) {
+      const nodeMeshes = collectMeshesFromNode(node, scene);
+      for (const mesh of nodeMeshes) {
         meshesA.push(mesh);
         nodeToMeshMapA.set(mesh, node);
       }
     }
 
+    // Collect meshes from Group B (including children of transform nodes)
     for (const node of nodesB) {
-      if (!node.babylonMeshId) continue;
-      const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10)) as BABYLON.Mesh | null;
-      if (mesh) {
+      const nodeMeshes = collectMeshesFromNode(node, scene);
+      for (const mesh of nodeMeshes) {
         meshesB.push(mesh);
         nodeToMeshMapB.set(mesh, node);
       }
