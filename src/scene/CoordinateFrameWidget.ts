@@ -214,29 +214,30 @@ export class CoordinateFrameWidget {
     direction: BABYLON.Vector3,
     color: BABYLON.Color3
   ): BABYLON.Mesh {
+    const normalizedDir = direction.normalize();
+    const arrowHeight = 0.02;
+
     const cone = BABYLON.MeshBuilder.CreateCylinder(
       'arrowHead',
       {
         diameterTop: 0,
         diameterBottom: 0.01,
-        height: 0.02,
+        height: arrowHeight,
         tessellation: 8,
       },
       this.scene
     );
 
-    cone.position = position;
+    // Offset so the tip sits at the axis end
+    cone.position = position.subtract(normalizedDir.scale(arrowHeight / 2));
 
-    // Align cone with direction
-    const up = BABYLON.Vector3.Up();
-    const angle = Math.acos(BABYLON.Vector3.Dot(up, direction));
-    const axis = BABYLON.Vector3.Cross(up, direction).normalize();
-
-    if (axis.length() > 0.001) {
-      cone.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis, angle);
-    } else if (BABYLON.Vector3.Dot(up, direction) < 0) {
-      cone.rotationQuaternion = BABYLON.Quaternion.RotationAxis(BABYLON.Vector3.Right(), Math.PI);
-    }
+    // Align cone so it points along the axis direction
+    const rotation = BABYLON.Quaternion.FromUnitVectorsToRef(
+      BABYLON.Axis.Y,
+      normalizedDir,
+      new BABYLON.Quaternion()
+    );
+    cone.rotationQuaternion = rotation;
 
     const material = new BABYLON.StandardMaterial('arrowHeadMaterial', this.scene);
     material.emissiveColor = color;
