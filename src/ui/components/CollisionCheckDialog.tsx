@@ -37,7 +37,10 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [position, setPosition] = useState({ x: window.innerWidth / 2 - 250, y: 100 });
+  const [showAllCollisions, setShowAllCollisions] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
+
+  const COLLISION_DISPLAY_LIMIT = 20;
 
   const previousMaterialRef = useRef<
     Map<
@@ -94,13 +97,25 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
 
   const addSelectionToGroupA = () => {
     if (selectionIds.length === 0) return;
-    setGroupA(prev => [...new Set([...prev, ...selectionIds])]);
+    setGroupA(prev => {
+      // Filter out any IDs that are already in Group B
+      const newIds = selectionIds.filter(id => !groupB.includes(id));
+      return [...new Set([...prev, ...newIds])];
+    });
+    // Remove from Group B if they were there
+    setGroupB(prev => prev.filter(id => !selectionIds.includes(id)));
     setStatus('');
   };
 
   const addSelectionToGroupB = () => {
     if (selectionIds.length === 0) return;
-    setGroupB(prev => [...new Set([...prev, ...selectionIds])]);
+    setGroupB(prev => {
+      // Filter out any IDs that are already in Group A
+      const newIds = selectionIds.filter(id => !groupA.includes(id));
+      return [...new Set([...prev, ...newIds])];
+    });
+    // Remove from Group A if they were there
+    setGroupA(prev => prev.filter(id => !selectionIds.includes(id)));
     setStatus('');
   };
 
@@ -374,14 +389,28 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
           {/* Results */}
           {collisions.length > 0 && (
             <div className="collision-dialog__results">
-              <div className="collision-dialog__results-title">Colliding Pairs:</div>
-              {collisions.map((row, idx) => (
-                <div className="collision-dialog__result-row" key={`${row.nodeA.id}-${row.nodeB.id}-${idx}`}>
-                  <span>{row.nodeA.name}</span>
-                  <span>↔</span>
-                  <span>{row.nodeB.name}</span>
+              <div className="collision-dialog__results-header">
+                <div className="collision-dialog__results-title">
+                  Colliding Pairs ({collisions.length})
                 </div>
-              ))}
+                {collisions.length > COLLISION_DISPLAY_LIMIT && (
+                  <button
+                    className="collision-dialog__btn collision-dialog__btn--small"
+                    onClick={() => setShowAllCollisions(!showAllCollisions)}
+                  >
+                    {showAllCollisions ? `Show Less` : `Show All (${collisions.length})`}
+                  </button>
+                )}
+              </div>
+              <div className="collision-dialog__results-list">
+                {(showAllCollisions ? collisions : collisions.slice(0, COLLISION_DISPLAY_LIMIT)).map((row, idx) => (
+                  <div className="collision-dialog__result-row" key={`${row.nodeA.id}-${row.nodeB.id}-${idx}`}>
+                    <span>{row.nodeA.name}</span>
+                    <span>↔</span>
+                    <span>{row.nodeB.name}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
