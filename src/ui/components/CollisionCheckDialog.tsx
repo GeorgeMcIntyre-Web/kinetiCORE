@@ -3,7 +3,6 @@ import { AlertTriangle, CheckCircle, ListChecks, MousePointer2, Repeat, X, Radio
 import * as BABYLON from '@babylonjs/core';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import type { SceneNode } from '../../scene/SceneTreeNode';
-import { EntityRegistry } from '../../entities/EntityRegistry';
 import { SceneManager } from '../../scene/SceneManager';
 import { useEditorStore } from '../store/editorStore';
 import { shallow } from 'zustand/shallow';
@@ -131,15 +130,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     clearHighlights();
     setIsRunning(true);
     const tree = SceneTreeManager.getInstance();
-    const registry = EntityRegistry.getInstance();
-    const engine = registry.getPhysicsEngine();
     const scene = SceneManager.getInstance().getScene();
-
-    if (!engine) {
-      setStatus('Physics engine not initialized.');
-      setIsRunning(false);
-      return;
-    }
 
     if (!scene) {
       setStatus('Scene not available.');
@@ -156,76 +147,64 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       return;
     }
 
-    // Create temporary physics bodies for nodes that don't have entities
-    const tempHandles: string[] = [];
-    const nodeToHandleMap = new Map<SceneNode, string>();
+    // Get meshes for all nodes
+    const meshesA: BABYLON.Mesh[] = [];
+    const meshesB: BABYLON.Mesh[] = [];
+    const nodeToMeshMapA = new Map<BABYLON.Mesh, SceneNode>();
+    const nodeToMeshMapB = new Map<BABYLON.Mesh, SceneNode>();
 
-    const createPhysicsForNode = (node: SceneNode): string | null => {
-      // Try to use existing entity
-      if (node.entityId) {
-        const entity = registry.get(node.entityId);
-        if (entity) {
-          const handle = entity.ensurePhysicsBody();
-          if (handle) return handle;
-        }
-      }
-
-      // Create temporary physics body for this mesh
-      if (!node.babylonMeshId) return null;
-
+    for (const node of nodesA) {
+      if (!node.babylonMeshId) continue;
       const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10)) as BABYLON.Mesh | null;
-      if (!mesh) return null;
-
-      // Compute world matrix for accurate bounds
-      mesh.computeWorldMatrix(true);
-      const boundingBox = mesh.getBoundingInfo().boundingBox;
-      const size = boundingBox.maximum.subtract(boundingBox.minimum);
-      const position = mesh.absolutePosition;
-      const rotation = mesh.rotationQuaternion || BABYLON.Quaternion.Identity();
-
-      try {
-        const handle = engine.createRigidBody({
-          type: 'static', // Use static for collision detection only
-          shape: 'box',
-          position: { x: position.x, y: position.y, z: position.z },
-          rotation: { x: rotation.x, y: rotation.y, z: rotation.z, w: rotation.w },
-          dimensions: { x: size.x, y: size.y, z: size.z }
-        });
-
-        tempHandles.push(handle);
-        return handle;
-      } catch (error) {
-        console.warn(`Failed to create physics body for ${node.name}:`, error);
-        return null;
-      }
-    };
-
-    // Create physics bodies for all nodes
-    for (const node of [...nodesA, ...nodesB]) {
-      const handle = createPhysicsForNode(node);
-      if (handle) {
-        nodeToHandleMap.set(node, handle);
+      if (mesh) {
+        meshesA.push(mesh);
+        nodeToMeshMapA.set(mesh, node);
       }
     }
 
-    // Check collisions
+    for (const node of nodesB) {
+      if (!node.babylonMeshId) continue;
+      const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10)) as BABYLON.Mesh | null;
+      if (mesh) {
+        meshesB.push(mesh);
+        nodeToMeshMapB.set(mesh, node);
+      }
+    }
+
+    if (meshesA.length === 0 || meshesB.length === 0) {
+      setStatus('Could not find valid meshes for the selected nodes.');
+      setIsRunning(false);
+      return;
+    }
+
+    // Check collisions using Babylon.js built-in intersection
     const collisionsFound: CollisionResultRow[] = [];
     const seenPairs = new Set<string>();
 
-    for (const nodeA of nodesA) {
-      const handleA = nodeToHandleMap.get(nodeA);
-      if (!handleA) continue;
+    for (const meshA of meshesA) {
+      // Ensure world matrix is up to date
+      meshA.computeWorldMatrix(true);
+      const nodeA = nodeToMeshMapA.get(meshA)!;
 
-      for (const nodeB of nodesB) {
-        const handleB = nodeToHandleMap.get(nodeB);
-        if (!handleB) continue;
+      for (const meshB of meshesB) {
+        meshB.computeWorldMatrix(true);
+        const nodeB = nodeToMeshMapB.get(meshB)!;
 
-        if (handleA === handleB) continue;
-        const key = handleA < handleB ? `${handleA}|${handleB}` : `${handleB}|${handleA}`;
+        // Skip if same mesh
+        if (meshA === meshB) continue;
+
+        // Create unique key for this pair
+        const key = meshA.uniqueId < meshB.uniqueId
+          ? `${meshA.uniqueId}|${meshB.uniqueId}`
+          : `${meshB.uniqueId}|${meshA.uniqueId}`;
+
         if (seenPairs.has(key)) continue;
+        seenPairs.add(key);
 
         try {
-          const isColliding = engine.checkCollision(handleA, handleB) || engine.checkBodyCollision(handleA, handleB);
+          // Use Babylon.js built-in intersection check (bounding box)
+          // This is fast and doesn't require physics or transform meshes
+          const isColliding = meshA.intersectsMesh(meshB, false); // false = use bounding boxes
 
           if (isColliding) {
             collisionsFound.push({ nodeA, nodeB });
@@ -235,17 +214,6 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
         } catch (error) {
           console.warn(`Error checking collision between ${nodeA.name} and ${nodeB.name}:`, error);
         }
-
-        seenPairs.add(key);
-      }
-    }
-
-    // Clean up temporary physics bodies
-    for (const handle of tempHandles) {
-      try {
-        engine.removeRigidBody(handle);
-      } catch (error) {
-        console.warn('Error removing temporary physics body:', error);
       }
     }
 
