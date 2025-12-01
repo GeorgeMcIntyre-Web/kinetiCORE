@@ -15,6 +15,8 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
   private joints = new Map<string, RAPIER.ImpulseJoint>();
   // Performance optimization: reverse mapping for O(1) collider lookup
   private colliderToHandle = new Map<RAPIER.Collider, string>();
+  private eventQueue: RAPIER.EventQueue | null = null;
+  private activeCollisions = new Map<string, { bodyA: string; bodyB: string }>();
 
   async initialize(gravity: Vector3 = DEFAULT_GRAVITY): Promise<void> {
     // Skip re-initialization if already initialized
@@ -28,6 +30,7 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
 
     // Create physics world
     this.world = new RAPIER.World(new RAPIER.Vector3(gravity.x, gravity.y, gravity.z));
+    this.eventQueue = new this.RAPIER.EventQueue(true);
   }
 
   step(_deltaTime: number): void {
@@ -35,7 +38,8 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
       console.error('Physics world not initialized');
       return;
     }
-    this.world.step();
+    this.world.step(this.eventQueue ?? undefined);
+    this.processCollisionEvents();
   }
 
   createRigidBody(descriptor: BodyDescriptor): string {
@@ -138,6 +142,7 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
 
     const rigidBody = this.bodies.get(handle);
     if (rigidBody) {
+      this.clearCollisionsForHandle(handle);
       // Remove collider first to avoid Rapier's "recursive use" error
       // Note: this.colliders is Map<string, Collider> (one collider per handle)
       const collider = this.colliders.get(handle);
@@ -434,15 +439,48 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
   }
 
   getActiveCollisions(): Array<{bodyA: string, bodyB: string}> {
-    // TODO: Implement proper collision detection using event queue
-    // Rapier doesn't provide a direct API to iterate all active collisions
-    // We need to use the event queue to track collisions
-    return [];
+    return Array.from(this.activeCollisions.values());
   }
 
-  checkBodyCollision(_bodyA: string, _bodyB: string): boolean {
-    // TODO: Implement using event queue or contact iteration
-    // Rapier doesn't expose narrowPhase.contactPairs - that was from old API
-    return false;
+  checkBodyCollision(bodyA: string, bodyB: string): boolean {
+    const key = this.getPairKey(bodyA, bodyB);
+    if (this.activeCollisions.has(key)) {
+      return true;
+    }
+    return this.checkCollision(bodyA, bodyB);
+  }
+
+  private processCollisionEvents(): void {
+    if (!this.world || !this.eventQueue) return;
+
+    this.eventQueue.drainCollisionEvents((handle1, handle2, started) => {
+      const colliderA = this.world?.getCollider(handle1);
+      const colliderB = this.world?.getCollider(handle2);
+      if (!colliderA || !colliderB) return;
+
+      const bodyA = this.colliderToHandle.get(colliderA);
+      const bodyB = this.colliderToHandle.get(colliderB);
+      if (!bodyA || !bodyB) return;
+
+      const key = this.getPairKey(bodyA, bodyB);
+      if (started) {
+        this.activeCollisions.set(key, { bodyA, bodyB });
+      } else {
+        this.activeCollisions.delete(key);
+      }
+    });
+  }
+
+  private clearCollisionsForHandle(handle: string): void {
+    for (const key of Array.from(this.activeCollisions.keys())) {
+      const [bodyA, bodyB] = key.split('|');
+      if (bodyA === handle || bodyB === handle) {
+        this.activeCollisions.delete(key);
+      }
+    }
+  }
+
+  private getPairKey(bodyA: string, bodyB: string): string {
+    return bodyA < bodyB ? `${bodyA}|${bodyB}` : `${bodyB}|${bodyA}`;
   }
 }

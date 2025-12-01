@@ -59,6 +59,13 @@ export class EntityRegistry {
   }
 
   /**
+   * Get the active physics engine (if configured)
+   */
+  getPhysicsEngine(): IPhysicsEngine | null {
+    return this.physicsEngine;
+  }
+
+  /**
    * Get entity by mesh name
    */
   getByName(name: string): SceneEntity | undefined {
@@ -75,6 +82,26 @@ export class EntityRegistry {
    */
   getAll(): SceneEntity[] {
     return Array.from(this.entities.values());
+  }
+
+  /**
+   * Ensure physics bodies exist for the provided entity IDs
+   * Returns a map of entityId -> physics handle for the successfully enabled bodies
+   */
+  ensurePhysicsForEntities(entityIds: string[]): Map<string, string> {
+    const handleMap = new Map<string, string>();
+
+    for (const id of entityIds) {
+      const entity = this.entities.get(id);
+      if (!entity) continue;
+
+      const handle = entity.ensurePhysicsBody();
+      if (handle) {
+        handleMap.set(id, handle);
+      }
+    }
+
+    return handleMap;
   }
 
   /**

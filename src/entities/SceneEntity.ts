@@ -246,6 +246,37 @@ export class SceneEntity {
     return this.mesh;
   }
 
+  /**
+   * Get physics handle (if created)
+   */
+  getPhysicsHandle(): string | null {
+    return this.physicsHandle;
+  }
+
+  /**
+   * Ensure a physics body exists, creating one on-demand if config+engine are available
+   */
+  ensurePhysicsBody(): string | null {
+    if (this.physicsEnabled && this.physicsHandle) {
+      return this.physicsHandle;
+    }
+
+    if (this.physicsEngine && this.physicsConfig) {
+      const configWithEnabled = { ...this.physicsConfig, enabled: true };
+      this.enablePhysics(this.physicsEngine, configWithEnabled);
+      return this.physicsHandle;
+    }
+
+    return null;
+  }
+
+  /**
+   * Get stored physics configuration (may be disabled)
+   */
+  getPhysicsConfig(): SceneEntityConfig['physics'] | null {
+    return this.physicsConfig;
+  }
+
   getMetadata(): EntityMetadata {
     return this.metadata;
   }

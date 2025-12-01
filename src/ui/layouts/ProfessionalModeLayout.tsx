@@ -45,6 +45,7 @@ import {
   Bug,
   Home,
   Edit,
+  AlertTriangle,
 } from 'lucide-react';
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
@@ -74,6 +75,7 @@ import { FloatingComplexIKPanel } from '../components/FloatingComplexIKPanel';
 import { WholeBodyIKPanel } from '../components/WholeBodyIKPanel';
 import { FloatingPhysicsPanel } from '../components/FloatingPhysicsPanel';
 import { FloatingCollisionPanel } from '../components/FloatingCollisionPanel';
+import { CollisionCheckDialog } from '../components/CollisionCheckDialog';
 import { ICPTestPanel } from '../components/ICPTestPanel';
 import { PipingPanel } from '../piping/PipingPanel';
 import { FloatingSettingsPanel } from '../components/FloatingSettingsPanel';
@@ -149,6 +151,7 @@ export const ProfessionalModeLayout: React.FC = () => {
   const [showPosesPanel, setShowPosesPanel] = useState(false);
   const [showPhysicsSettings, setShowPhysicsSettings] = useState(false);
   const [showCollisionVisualizer, setShowCollisionVisualizer] = useState(false);
+  const [showCollisionDialog, setShowCollisionDialog] = useState(false);
   const debugLabelsRef = useRef<RouteDebugLabels | null>(null);
   const routeSelection = useRoutingStore((state) => state.selectedRoute);
   const [rightDockAnchor, setRightDockAnchor] = useState<string | null>(null);
@@ -1047,6 +1050,23 @@ export const ProfessionalModeLayout: React.FC = () => {
 
         <div className="toolbar-separator"></div>
 
+        {/* Collision */}
+        <div className="tool-group">
+          <div className="group-label">Collision</div>
+          <div className="tool-buttons">
+            <button
+              className="tool-btn"
+              title="Select two groups of meshes and check collisions"
+              onClick={() => setShowCollisionDialog(true)}
+            >
+              <AlertTriangle size={18} />
+              <span>Collision</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="toolbar-separator"></div>
+
         {/* Align */}
         <div className="tool-group">
           <div className="group-label">Align</div>
@@ -1493,6 +1513,10 @@ export const ProfessionalModeLayout: React.FC = () => {
         isVisible={showCollisionVisualizer}
         onClose={() => setShowCollisionVisualizer(false)}
         zIndex={1008}
+      />
+      <CollisionCheckDialog
+        isOpen={showCollisionDialog}
+        onClose={() => setShowCollisionDialog(false)}
       />
 
       {/* Snap Setup Popup - Quick access from ribbon */}
