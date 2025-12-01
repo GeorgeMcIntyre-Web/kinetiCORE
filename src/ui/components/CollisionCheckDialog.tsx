@@ -57,6 +57,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       }
     >
   >(new Map());
+
   const groupMaterialRef = useRef<
     Map<
       number,
@@ -64,9 +65,6 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
         diffuseColor: BABYLON.Color3 | null;
         emissiveColor: BABYLON.Color3 | null;
         alpha: number;
-        renderOverlay: boolean;
-        overlayColor?: BABYLON.Color3;
-        overlayAlpha?: number;
       }
     >
   >(new Map());
@@ -76,7 +74,10 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       clearHighlights();
       clearGroupVisualization();
     }
-    return () => clearHighlights();
+    return () => {
+      clearHighlights();
+      clearGroupVisualization();
+    };
   }, [isOpen]);
 
   // Auto-add new selections when in add-selection mode (but not the baseline when toggled on)
@@ -94,13 +95,6 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       setBaselineSelectionB(selectionIds);
     }
   }, [selectionIds, addModeA, addModeB, baselineSelectionA, baselineSelectionB]);
-
-  // Re-apply group view when membership changes
-  useEffect(() => {
-    if (showGroupView) {
-      applyGroupVisualization();
-    }
-  }, [groupA, groupB, showGroupView]);
 
   // Dragging functionality
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -189,37 +183,6 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     previousMaterialRef.current.clear();
   };
 
-  const clearGroupVisualization = () => {
-    if (groupMaterialRef.current.size === 0) return;
-    const scene = SceneManager.getInstance().getScene();
-    if (!scene) {
-      groupMaterialRef.current.clear();
-      return;
-    }
-
-    for (const [uniqueId, state] of groupMaterialRef.current.entries()) {
-      const mesh = scene.getMeshByUniqueId(uniqueId) as BABYLON.Mesh | null;
-      if (!mesh || !mesh.material) continue;
-      const material = mesh.material as BABYLON.StandardMaterial;
-      material.alpha = state.alpha;
-      if (state.diffuseColor) {
-        (material as any).diffuseColor = state.diffuseColor.clone();
-      }
-      if (state.emissiveColor) {
-        (material as any).emissiveColor = state.emissiveColor.clone();
-      }
-      (mesh as any).renderOverlay = state.renderOverlay;
-      if (state.overlayColor) {
-        (mesh as any).overlayColor = state.overlayColor.clone();
-      }
-      if (state.overlayAlpha !== undefined) {
-        (mesh as any).overlayAlpha = state.overlayAlpha;
-      }
-    }
-    groupMaterialRef.current.clear();
-    setShowGroupView(false);
-  };
-
   // Helper function to collect all meshes from a node with their corresponding nodes (for precise highlighting)
   const collectMeshesWithNodes = (
     node: SceneNode,
@@ -263,6 +226,169 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     // Apply red highlighting
     material.diffuseColor = new BABYLON.Color3(1, 0, 0);
     material.emissiveColor = new BABYLON.Color3(0.3, 0, 0);
+  };
+
+  // Clear group visualization and restore original materials
+  const clearGroupVisualization = () => {
+    const scene = SceneManager.getInstance().getScene();
+    if (!scene || groupMaterialRef.current.size === 0) return;
+
+    for (const [uniqueId, state] of groupMaterialRef.current.entries()) {
+      const mesh = scene.getMeshByUniqueId(uniqueId) as BABYLON.Mesh | null;
+      if (!mesh || !mesh.material) continue;
+
+      const material = mesh.material;
+      const isStandard = material instanceof BABYLON.StandardMaterial;
+      const isPBR = material instanceof BABYLON.PBRMaterial;
+
+      if (isStandard) {
+        const stdMat = material as BABYLON.StandardMaterial;
+        if (state.diffuseColor) stdMat.diffuseColor = state.diffuseColor;
+        if (state.emissiveColor) stdMat.emissiveColor = state.emissiveColor;
+        stdMat.alpha = state.alpha;
+      } else if (isPBR) {
+        const pbrMat = material as BABYLON.PBRMaterial;
+        if (state.diffuseColor) pbrMat.albedoColor = state.diffuseColor;
+        if (state.emissiveColor) pbrMat.emissiveColor = state.emissiveColor;
+        pbrMat.alpha = state.alpha;
+      }
+    }
+    groupMaterialRef.current.clear();
+    setShowGroupView(false);
+  };
+
+  // Apply group visualization: color Group A and B, make others neutral gray
+  const applyGroupVisualization = () => {
+    const scene = SceneManager.getInstance().getScene();
+    if (!scene) return;
+
+    // Clear any previous visualization first
+    clearGroupVisualization();
+    // Also clear collision highlights to avoid conflicts
+    clearHighlights();
+
+    const tree = SceneTreeManager.getInstance();
+    const nodesA = groupA.map((id) => tree.getNode(id)).filter(Boolean) as SceneNode[];
+    const nodesB = groupB.map((id) => tree.getNode(id)).filter(Boolean) as SceneNode[];
+
+    // Collect all meshes from both groups
+    const meshesASet = new Set<number>();
+    const meshesBSet = new Set<number>();
+
+    console.log('[CollisionDialog] Group A nodes:', nodesA.map(n => n.name));
+    console.log('[CollisionDialog] Group B nodes:', nodesB.map(n => n.name));
+
+    for (const node of nodesA) {
+      const meshes = collectMeshesWithNodes(node, scene);
+      console.log(`[CollisionDialog] Node "${node.name}" has ${meshes.length} meshes:`, meshes.map(m => m.mesh.name));
+      meshes.forEach(({ mesh }) => meshesASet.add(mesh.uniqueId));
+    }
+
+    for (const node of nodesB) {
+      const meshes = collectMeshesWithNodes(node, scene);
+      console.log(`[CollisionDialog] Node "${node.name}" has ${meshes.length} meshes:`, meshes.map(m => m.mesh.name));
+      meshes.forEach(({ mesh }) => meshesBSet.add(mesh.uniqueId));
+    }
+
+    console.log('[CollisionDialog] Total meshes in Group A:', meshesASet.size);
+    console.log('[CollisionDialog] Total meshes in Group B:', meshesBSet.size);
+
+    // Define distinct colors - vivid deep blue and deep orange
+    const colorA = new BABYLON.Color3(0.1, 0.35, 1.0);  // Deep vivid blue for Group A
+    const colorB = new BABYLON.Color3(1.0, 0.45, 0.0);  // Deep vivid orange for Group B
+    const neutralGray = new BABYLON.Color3(0.5, 0.5, 0.5);  // Neutral gray for others
+
+    // Apply colors to all meshes in the scene
+    for (const mesh of scene.meshes) {
+      if (!mesh.material) continue;
+
+      // Skip skybox and grid/floor meshes (common naming patterns)
+      const meshName = mesh.name.toLowerCase();
+      if (
+        meshName.includes('skybox') ||
+        meshName.includes('sky') ||
+        meshName.includes('grid') ||
+        meshName.includes('ground') ||
+        meshName.includes('floor') ||
+        (meshName.includes('plane') && meshName.includes('ground'))
+      ) {
+        continue;
+      }
+
+      const material = mesh.material;
+
+      // Handle both StandardMaterial and PBRMaterial
+      const isStandard = material instanceof BABYLON.StandardMaterial;
+      const isPBR = material instanceof BABYLON.PBRMaterial;
+
+      if (!isStandard && !isPBR) continue;
+
+      // Save original material state
+      if (!groupMaterialRef.current.has(mesh.uniqueId)) {
+        if (isStandard) {
+          const stdMat = material as BABYLON.StandardMaterial;
+          groupMaterialRef.current.set(mesh.uniqueId, {
+            diffuseColor: stdMat.diffuseColor ? stdMat.diffuseColor.clone() : null,
+            emissiveColor: stdMat.emissiveColor ? stdMat.emissiveColor.clone() : null,
+            alpha: stdMat.alpha ?? 1.0,
+          });
+        } else if (isPBR) {
+          const pbrMat = material as BABYLON.PBRMaterial;
+          groupMaterialRef.current.set(mesh.uniqueId, {
+            diffuseColor: pbrMat.albedoColor ? pbrMat.albedoColor.clone() : null,
+            emissiveColor: pbrMat.emissiveColor ? pbrMat.emissiveColor.clone() : null,
+            alpha: pbrMat.alpha ?? 1.0,
+          });
+        }
+      }
+
+      // Apply visualization based on group membership
+      if (meshesASet.has(mesh.uniqueId)) {
+        // Group A - Deep vivid blue
+        console.log(`[CollisionDialog] Coloring mesh "${mesh.name}" BLUE (Group A)`);
+        if (isStandard) {
+          const stdMat = material as BABYLON.StandardMaterial;
+          stdMat.diffuseColor = colorA.clone();
+          stdMat.emissiveColor = colorA.scale(0.3);
+          stdMat.alpha = 1.0;
+        } else if (isPBR) {
+          const pbrMat = material as BABYLON.PBRMaterial;
+          pbrMat.albedoColor = colorA.clone();
+          pbrMat.emissiveColor = colorA.scale(0.3);
+          pbrMat.alpha = 1.0;
+        }
+      } else if (meshesBSet.has(mesh.uniqueId)) {
+        // Group B - Deep vivid orange
+        console.log(`[CollisionDialog] Coloring mesh "${mesh.name}" ORANGE (Group B)`);
+        if (isStandard) {
+          const stdMat = material as BABYLON.StandardMaterial;
+          stdMat.diffuseColor = colorB.clone();
+          stdMat.emissiveColor = colorB.scale(0.3);
+          stdMat.alpha = 1.0;
+        } else if (isPBR) {
+          const pbrMat = material as BABYLON.PBRMaterial;
+          pbrMat.albedoColor = colorB.clone();
+          pbrMat.emissiveColor = colorB.scale(0.3);
+          pbrMat.alpha = 1.0;
+        }
+      } else {
+        // Other meshes - Neutral gray (not transparent, just desaturated)
+        if (isStandard) {
+          const stdMat = material as BABYLON.StandardMaterial;
+          stdMat.diffuseColor = neutralGray.clone();
+          stdMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
+          stdMat.alpha = 1.0;
+        } else if (isPBR) {
+          const pbrMat = material as BABYLON.PBRMaterial;
+          pbrMat.albedoColor = neutralGray.clone();
+          pbrMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
+          pbrMat.alpha = 1.0;
+        }
+      }
+    }
+
+    setShowGroupView(true);
+    setStatus('Group visualization applied');
   };
 
   const runCollisionCheck = async () => {
@@ -359,108 +485,6 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     setIsRunning(false);
   };
 
-  const collectMeshesForGroup = (groupIds: string[], scene: BABYLON.Scene): Set<number> => {
-    const meshIds = new Set<number>();
-    const tree = SceneTreeManager.getInstance();
-
-    const addMesh = (mesh: BABYLON.AbstractMesh | null) => {
-      if (!mesh || !mesh.geometry) return;
-      meshIds.add(mesh.uniqueId);
-    };
-
-    const visitTransformDescendants = (transform: BABYLON.TransformNode) => {
-      const stack: BABYLON.Node[] = [transform];
-      while (stack.length) {
-        const current = stack.pop();
-        if (!current) continue;
-        if (current instanceof BABYLON.AbstractMesh) {
-          addMesh(current);
-        }
-        current.getChildren().forEach((c) => stack.push(c));
-      }
-    };
-
-    const visitTreeNode = (node: SceneNode) => {
-      if (node.babylonMeshId) {
-        addMesh(scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10)));
-      }
-      if (node.babylonTransformNodeId) {
-        const transform = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId, 10));
-        if (transform) {
-          visitTransformDescendants(transform);
-        }
-      }
-      const children = tree.getChildren(node.id);
-      children.forEach(visitTreeNode);
-    };
-
-    for (const id of groupIds) {
-      const node = tree.getNode(id);
-      if (node) visitTreeNode(node);
-    }
-
-    return meshIds;
-  };
-
-  const applyGroupVisualization = () => {
-    const scene = SceneManager.getInstance().getScene();
-    if (!scene) return;
-
-    // Restore any previous visualization first
-    clearGroupVisualization();
-
-    const meshIdsA = collectMeshesForGroup(groupA, scene);
-    const meshIdsB = collectMeshesForGroup(groupB, scene);
-
-    const colorA = new BABYLON.Color3(0.1, 0.35, 1.0); // vivid deep blue
-    const colorB = new BABYLON.Color3(1.0, 0.55, 0.05); // vivid deep gold/orange
-    const ghostColor = new BABYLON.Color3(0.35, 0.35, 0.35);
-
-    for (const mesh of scene.meshes) {
-      const mat = (mesh as BABYLON.Mesh).material as any;
-      if (!mat) continue;
-
-      if (!groupMaterialRef.current.has(mesh.uniqueId)) {
-        groupMaterialRef.current.set(mesh.uniqueId, {
-          diffuseColor: mat.diffuseColor ? mat.diffuseColor.clone() : mat.albedoColor ? mat.albedoColor.clone() : null,
-          emissiveColor: mat.emissiveColor ? mat.emissiveColor.clone() : null,
-          alpha: mat.alpha ?? 1.0,
-          renderOverlay: (mesh as any).renderOverlay ?? false,
-          overlayColor: (mesh as any).overlayColor ? (mesh as any).overlayColor.clone() : undefined,
-          overlayAlpha: (mesh as any).overlayAlpha,
-        });
-      }
-
-      if (meshIdsA.has(mesh.uniqueId)) {
-        (mesh as any).renderOverlay = true;
-        (mesh as any).overlayColor = colorA.clone();
-        (mesh as any).overlayAlpha = 0.9;
-        mat.alpha = 1.0;
-        if (mat.emissiveColor) mat.emissiveColor = colorA.scale(0.4);
-        if (mat.diffuseColor) mat.diffuseColor = colorA.clone();
-        if (mat.albedoColor) mat.albedoColor = colorA.clone();
-      } else if (meshIdsB.has(mesh.uniqueId)) {
-        (mesh as any).renderOverlay = true;
-        (mesh as any).overlayColor = colorB.clone();
-        (mesh as any).overlayAlpha = 0.9;
-        mat.alpha = 1.0;
-        if (mat.emissiveColor) mat.emissiveColor = colorB.scale(0.4);
-        if (mat.diffuseColor) mat.diffuseColor = colorB.clone();
-        if (mat.albedoColor) mat.albedoColor = colorB.clone();
-      } else {
-        (mesh as any).renderOverlay = true;
-        (mesh as any).overlayColor = ghostColor.clone();
-        (mesh as any).overlayAlpha = 0.25;
-        mat.alpha = 0.15;
-        if (mat.emissiveColor) mat.emissiveColor = ghostColor.scale(0.05);
-        if (mat.diffuseColor) mat.diffuseColor = ghostColor.clone();
-        if (mat.albedoColor) mat.albedoColor = ghostColor.clone();
-      }
-    }
-
-    setShowGroupView(true);
-  };
-
   const getNodeName = (nodeId: string): string => {
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(nodeId);
@@ -487,7 +511,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
             <AlertTriangle size={18} />
             <span>Collision Check</span>
           </div>
-          <button className="collision-dialog__icon-btn" onClick={() => { clearHighlights(); onClose(); }}>
+          <button className="collision-dialog__icon-btn" onClick={() => { clearHighlights(); clearGroupVisualization(); onClose(); }}>
             <X size={16} />
           </button>
         </div>
@@ -592,6 +616,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
                 }
               }}
               disabled={groupA.length === 0 && groupB.length === 0}
+              title={showGroupView ? 'Hide group visualization' : 'Show groups with distinct colors'}
             >
               {showGroupView ? 'Hide Groups' : 'Show Groups'}
             </button>
