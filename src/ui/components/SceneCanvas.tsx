@@ -781,7 +781,6 @@ App    : minPx=${appMinPx} near=${appNear} rw=${appRw} rh=${appRh} dpr=${appDpr.
                 if (treeNode) {
                   const { selectNode } = useEditorStore.getState();
                   selectNode(treeNode.id);
-                  toast.success(`Selected coordinate frame: ${frameRoot.name}`);
                 } else {
                   console.warn('[Selection] Frame root not found in scene tree:', frameRoot.name);
                   toast.error('Frame not found in scene tree');
