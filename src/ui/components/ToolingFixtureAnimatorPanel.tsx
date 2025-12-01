@@ -12,6 +12,7 @@ import { Play, Loader2, AlertCircle, CheckCircle, Camera, Cog, RotateCcw, Zap, C
 import { FloatingPanel } from './FloatingPanel/FloatingPanel';
 import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
+import './ToolingFixtureAnimatorPanel.css';
 import {
   ToolingFixtureAnimator,
   type CaptureWorkflowState,
@@ -903,15 +904,6 @@ export const ToolingFixtureAnimatorPanel: React.FC<ToolingFixtureAnimatorPanelPr
         </div>
       </div>
 
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .spin {
-          animation: spin 1s linear infinite;
-        }
-      `}</style>
     </FloatingPanel>
   );
 };

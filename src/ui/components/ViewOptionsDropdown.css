@@ -12,6 +12,8 @@
   height: 35px;
   min-height: 35px;
   padding: 0 10px;
+  font-size: 12px;
+  line-height: 14px;
   background: #2a3145;
   border: 1px solid #3a4154;
   border-radius: 6px;

@@ -5001,6 +5001,8 @@ export const useEditorStore = create<EditorState>((set, get) => {
       const frameRoot = new BABYLON.TransformNode(frameName, scene);
       const origin = userToBabylon(frame.origin);
       frameRoot.position = origin;
+      // Render in a dedicated group so frames aren't z-fighting with scene meshes
+      const FRAME_RENDER_GROUP_ID = 1;
 
       const xAxis = new BABYLON.Vector3(frame.xAxis.x, frame.xAxis.y, frame.xAxis.z).normalize();
       const yAxis = new BABYLON.Vector3(frame.yAxis.x, frame.yAxis.y, frame.yAxis.z).normalize();
@@ -5044,6 +5046,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
         cone.isPickable = true; // Make pickable for frame selection
         cone.parent = frameRoot;
         cone.metadata = { isFramePart: true, frameRoot: frameRoot };
+        cone.renderingGroupId = FRAME_RENDER_GROUP_ID;
         return cone;
       };
 
@@ -5081,6 +5084,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
         plane.isPickable = true; // Make pickable for frame selection
         plane.parent = frameRoot;
         plane.metadata = { isFramePart: true, frameRoot: frameRoot };
+        plane.renderingGroupId = FRAME_RENDER_GROUP_ID;
         return plane;
       };
 
@@ -5114,20 +5118,28 @@ export const useEditorStore = create<EditorState>((set, get) => {
       sphereMat.disableLighting = true;
       originSphere.material = sphereMat;
       originSphere.metadata = { isFramePart: true, frameRoot: frameRoot };
+      originSphere.renderingGroupId = FRAME_RENDER_GROUP_ID;
 
       const BASE_SIZE = 0.1;
       const camera = scene.activeCamera;
-      let initialScale = 1.0;
-      if (camera) {
-        const distanceToPoint = BABYLON.Vector3.Distance(camera.position, origin);
+      const MIN_SIZE = 0.05;
+      const MAX_SIZE = 2.0;
+      const updateScale = () => {
+        if (!camera) return;
+        const distanceToPoint = BABYLON.Vector3.Distance(camera.position, frameRoot.getAbsolutePosition());
         let frameSize = distanceToPoint * 0.1;
-        const MIN_SIZE = 0.05;
-        const MAX_SIZE = 2.0;
         frameSize = Math.max(MIN_SIZE, Math.min(MAX_SIZE, frameSize));
-        initialScale = frameSize / BASE_SIZE;
-      }
-
-      frameRoot.scaling = new BABYLON.Vector3(initialScale, initialScale, initialScale);
+        const scale = frameSize / BASE_SIZE;
+        frameRoot.scaling.setAll(scale);
+      };
+      updateScale();
+      // Keep scale consistent with camera distance (like gizmo scaling)
+      const scaleObserver = scene.onBeforeRenderObservable.add(updateScale);
+      frameRoot.onDisposeObservable.add(() => {
+        if (scaleObserver) {
+          scene.onBeforeRenderObservable.remove(scaleObserver);
+        }
+      });
 
       const { permanentFrames } = get();
       set({

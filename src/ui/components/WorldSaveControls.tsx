@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { Save, Download, Upload, Settings, Clock } from 'lucide-react';
 import { WorldSaveManager } from '../../scene/WorldSaveManager';
 import { toast } from './ToastNotifications';
+import './WorldSaveControls.css';
 
 export function WorldSaveControls() {
   const [isSaving, setIsSaving] = useState(false);
@@ -103,104 +104,6 @@ export function WorldSaveControls() {
   
   return (
     <div className="world-save-controls">
-      <style>{`
-        .world-save-controls {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px;
-          background: #1e1e1e;
-          border-radius: 4px;
-          border: 1px solid #333;
-        }
-        
-        .save-btn {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 12px;
-          background: #2d7d46;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 13px;
-          font-weight: 500;
-          transition: background 0.2s;
-        }
-        
-        .save-btn:hover:not(:disabled) {
-          background: #357a4f;
-        }
-        
-        .save-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        
-        .export-btn, .import-btn {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 12px;
-          background: #333;
-          color: white;
-          border: 1px solid #444;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 13px;
-          transition: background 0.2s;
-        }
-        
-        .export-btn:hover:not(:disabled),
-        .import-btn:hover:not(:disabled) {
-          background: #3a3a3a;
-        }
-        
-        .auto-save-toggle {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 12px;
-          background: transparent;
-          color: white;
-          border: 1px solid #444;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 13px;
-          transition: all 0.2s;
-        }
-        
-        .auto-save-toggle.active {
-          background: #1a5c38;
-          border-color: #2d7d46;
-        }
-        
-        .auto-save-toggle:hover {
-          background: #2a2a2a;
-        }
-        
-        .auto-save-toggle.active:hover {
-          background: #1f6b43;
-        }
-        
-        .last-save {
-          font-size: 12px;
-          color: #888;
-          padding: 0 8px;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-        
-        .divider {
-          width: 1px;
-          height: 24px;
-          background: #444;
-          margin: 0 4px;
-        }
-      `}</style>
-      
       {/* Save Button */}
       <button
         className="save-btn"
