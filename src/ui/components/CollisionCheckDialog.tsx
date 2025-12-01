@@ -6,6 +6,7 @@ import type { SceneNode } from '../../scene/SceneTreeNode';
 import { SceneManager } from '../../scene/SceneManager';
 import { useEditorStore } from '../store/editorStore';
 import { shallow } from 'zustand/shallow';
+import { resolveMeshUniqueIdsForNodes } from '../utils/meshResolver';
 import './CollisionCheckDialog.css';
 
 interface CollisionCheckDialogProps {
@@ -189,20 +190,12 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     scene: BABYLON.Scene
   ): Array<{ mesh: BABYLON.Mesh; node: SceneNode }> => {
     const results: Array<{ mesh: BABYLON.Mesh; node: SceneNode }> = [];
+    const meshIds = resolveMeshUniqueIdsForNodes([node.id], scene);
 
-    // If this node has a direct mesh, add it with this node
-    if (node.babylonMeshId) {
-      const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10)) as BABYLON.Mesh | null;
-      if (mesh && mesh.geometry) {
-        results.push({ mesh, node });
+    for (const mesh of scene.meshes) {
+      if (meshIds.has(mesh.uniqueId) && mesh.geometry) {
+        results.push({ mesh: mesh as BABYLON.Mesh, node });
       }
-    }
-
-    // Recursively collect from children
-    const tree = SceneTreeManager.getInstance();
-    const children = tree.getChildren(node.id);
-    for (const child of children) {
-      results.push(...collectMeshesWithNodes(child, scene));
     }
 
     return results;
