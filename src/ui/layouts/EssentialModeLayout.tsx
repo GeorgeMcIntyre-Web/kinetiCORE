@@ -45,9 +45,6 @@ import {
 import { useUserLevel } from '../core/UserLevelContext';
 import { useEditorStore } from '../store/editorStore';
 import { useAssetLibraryStore } from '../store/assetLibraryStore';
-import { SceneTree } from '../components/SceneTree';
-import { SceneCanvas } from '../components/SceneCanvas';
-import { SelectionIndicator } from '../components/SelectionIndicator';
 import { FloatingKinematicsPanel } from '../components/FloatingKinematicsPanel';
 import { FloatingKinematicsAnalysisPanel } from '../components/FloatingKinematicsAnalysisPanel';
 import { FloatingActuatorPanel } from '../components/FloatingActuatorPanel';
@@ -69,11 +66,9 @@ import { useProjectManagerStore } from '../store/projectManagerStore';
 import { SceneManager } from '../../scene/SceneManager';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import { EntityRegistry } from '../../entities/EntityRegistry';
-import { babylonToUser } from '../../core/CoordinateSystem';
 import { CreateProjectionViewCommand } from '../../history/commands/CreateProjectionViewCommand';
 import { toast } from '../components/ToastNotifications';
 import { useTreeAutoResize } from '../hooks/useTreeAutoResize';
-import { PerformanceMonitor, usePerformanceMonitor } from '../components/debug/PerformanceMonitor';
 import { VersionDisplay } from '../components/VersionDisplay';
 import { ToolbarContainer } from '../components/ToolbarContainer';
 import { ModeDropdown } from '../components/ModeDropdown';
@@ -85,6 +80,7 @@ import { ForwardKinematicsSolver } from '../../kinematics/ForwardKinematicsSolve
 import { TransformDebugVisualizer } from '../../kinematics/TransformDebugVisualizer';
 import { RobotJoggingPanelWithGizmo } from '../components/RobotJoggingPanelWithGizmo';
 import { FloatingPanel } from '../components/FloatingPanel/FloatingPanel';
+import { DockableLayoutWrapper } from './DockableLayoutWrapper';
 import './EssentialModeLayout.css';
 import './ProfessionalModeLayout.css';
 
@@ -122,26 +118,9 @@ export const EssentialModeLayout: React.FC = () => {
   const showProjectManager = useProjectManagerStore((state) => state.show);
 
   // Performance monitoring
-  const performanceEnabled = usePerformanceMonitor();
-
   // Project Management
   const saveProject = useEditorStore((state) => state.saveProject);
   const currentProject = useEditorStore((state) => state.currentProject);
-
-  // Picked point coordinates
-  const lastPickedPoint = useEditorStore((state) => state.lastPickedPoint);
-
-  const [transform, setTransform] = useState<{
-    x: number;
-    y: number;
-    z: number;
-    rx: number;
-    ry: number;
-    rz: number;
-  } | null>(null);
-
-  // Coordinate display mode: 'world' (default) or 'local'
-  const [coordMode, setCoordMode] = useState<'world' | 'local'>('world');
 
   const [showKinematicsPanel, setShowKinematicsPanel] = useState(false);
   const [showKinematicsAnalysisPanel, setShowKinematicsAnalysisPanel] = useState(false);
@@ -175,7 +154,6 @@ export const EssentialModeLayout: React.FC = () => {
 
   // Resizable sidebar state
   const [sidebarWidth, setSidebarWidth] = useState(256); // Default 256px (w-64)
-  const [isResizing, setIsResizing] = useState(false);
   const minSidebarWidth = 200; // Minimum width in pixels
   const maxSidebarWidth = 600; // Maximum width in pixels
 
@@ -247,13 +225,13 @@ export const EssentialModeLayout: React.FC = () => {
 
   // Update sidebar width when optimal width changes
   useEffect(() => {
-    if (!isResizing && optimalWidth && Number.isFinite(optimalWidth)) {
+    if (optimalWidth && Number.isFinite(optimalWidth)) {
       if (Math.abs(sidebarWidth - optimalWidth) > 2) {
         console.log(`Auto-sizing sidebar to ${optimalWidth}px (from ${sidebarWidth}px)`);
         setSidebarWidth(optimalWidth);
       }
     }
-  }, [optimalWidth, isResizing, sidebarWidth]);
+  }, [optimalWidth, sidebarWidth]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -697,144 +675,7 @@ export const EssentialModeLayout: React.FC = () => {
     }
   };
 
-  // Sidebar resize handlers
-  const handleMouseDown = useCallback(() => {
-    setIsResizing(true);
-  }, []);
-
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (!isResizing) return;
-
-      const newWidth = e.clientX;
-      // Prevent reducing width below optimal width, but allow increasing
-      const effectiveMinWidth = Math.max(minSidebarWidth, optimalWidth);
-
-      if (newWidth >= effectiveMinWidth && newWidth <= maxSidebarWidth) {
-        setSidebarWidth(newWidth);
-      }
-    },
-    [isResizing, minSidebarWidth, maxSidebarWidth, optimalWidth]
-  );
-
-  const handleMouseUp = useCallback(() => {
-    setIsResizing(false);
-  }, []);
-
-  // Add mouse event listeners for resizing
-  useEffect(() => {
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'ew-resize';
-      document.body.style.userSelect = 'none';
-
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-      };
-    }
-  }, [isResizing, handleMouseMove, handleMouseUp]);
-
-  // Update transform display when selection or mode changes
-  useEffect(() => {
-    if (!selectedNodeId) {
-      setTransform(null);
-      return;
-    }
-
-    const tree = SceneTreeManager.getInstance();
-    const sceneManager = SceneManager.getInstance();
-    const scene = sceneManager.getScene();
-    if (!scene) return;
-
-    let lastTransform: string | null = null;
-
-    const updateTransform = () => {
-      const node = tree.getNode(selectedNodeId);
-      if (!node) {
-        setTransform(null);
-        return;
-      }
-
-      let babylonNode: BABYLON.TransformNode | null = null;
-      const registry = EntityRegistry.getInstance();
-
-      if (node.babylonMeshId) {
-        const mesh = scene.getMeshByUniqueId(parseInt(node.babylonMeshId));
-        if (mesh) {
-          const entity = registry.getByMesh(mesh);
-          if (entity && entity.getIsDevice()) {
-            babylonNode = entity.getRootTransformNode();
-          } else {
-            babylonNode = mesh;
-          }
-        }
-      } else if (node.type === 'collection') {
-        babylonNode = scene.transformNodes.find(tn => tn.name === node.name) || null;
-      }
-
-      if (babylonNode) {
-        // Position (mm) and rotation (deg) in either local or world coordinates
-        let posUser: { x: number; y: number; z: number };
-        let eulerRad: BABYLON.Vector3;
-
-        if (coordMode === 'world') {
-          // WORLD: use absolute/world transform
-          babylonNode.computeWorldMatrix(true);
-          const worldMatrix = babylonNode.getWorldMatrix();
-          const worldTranslation = worldMatrix.getTranslation();
-          const worldRotationQuat = new BABYLON.Quaternion();
-          worldMatrix.decompose(undefined, worldRotationQuat, undefined);
-          posUser = babylonToUser(worldTranslation);
-          eulerRad = worldRotationQuat.toEulerAngles();
-        } else {
-          // LOCAL: use node-local transform
-          posUser = babylonToUser(babylonNode.position);
-          if (babylonNode.rotationQuaternion) {
-            eulerRad = babylonNode.rotationQuaternion.toEulerAngles();
-          } else {
-            eulerRad = babylonNode.rotation;
-          }
-        }
-
-        const newTransform = {
-          x: Math.round(posUser.x * 10) / 10,
-          y: Math.round(posUser.y * 10) / 10,
-          z: Math.round(posUser.z * 10) / 10,
-          rx: Math.round((eulerRad.x * 180 / Math.PI) * 10) / 10,
-          ry: Math.round((eulerRad.y * 180 / Math.PI) * 10) / 10,
-          rz: Math.round((eulerRad.z * 180 / Math.PI) * 10) / 10,
-        };
-
-        const newTransformStr = JSON.stringify(newTransform);
-        if (newTransformStr !== lastTransform) {
-          lastTransform = newTransformStr;
-          setTransform(newTransform);
-        }
-      } else {
-        setTransform(null);
-      }
-    };
-
-    updateTransform();
-
-    const handleSceneUpdate = () => updateTransform();
-    window.addEventListener('scenetree-update', handleSceneUpdate);
-
-    const observer = scene?.onBeforeRenderObservable.add(() => {
-      updateTransform();
-    });
-
-    return () => {
-      window.removeEventListener('scenetree-update', handleSceneUpdate);
-      if (scene && observer) {
-        scene.onBeforeRenderObservable.remove(observer);
-      }
-    };
-  }, [selectedNodeId, coordMode]);
+  // Transform and coordinate overlays now live inside the shared viewport panel
 
 
   return (
@@ -1376,138 +1217,22 @@ export const EssentialModeLayout: React.FC = () => {
       </div>
 
       <div className="professional-content essential-content">
-        <div className="essential-main-layout">
-          <aside
-            className="essential-sidebar border-r border-gray-200 bg-white flex-shrink-0 flex flex-col min-h-0 relative"
-            style={{ width: `${sidebarWidth}px` }}
-          >
-            <SceneTree />
-
-            <div
-              onMouseDown={handleMouseDown}
-              className="absolute top-0 right-0 w-1 h-full cursor-ew-resize hover:bg-blue-500 transition-colors z-50"
-              style={{
-                background: isResizing ? 'rgb(59, 130, 246)' : 'transparent',
-              }}
-            />
-          </aside>
-
-          <main className="essential-viewport flex-1 relative bg-gray-100">
-            <div id="viewport-essential" className="w-full h-full relative">
-              <SceneCanvas />
-              <SelectionIndicator selectedNodeIds={selectedNodeIds} />
-              <PerformanceMonitor enabled={performanceEnabled} position="top-right" detailed />
-            </div>
-
-            {transform && (
-              <div
-                className="fixed"
-                style={{
-                  position: 'absolute',
-                  bottom: '16px',
-                  right: '12px',
-                  background: 'transparent',
-                  border: 'none',
-                  borderRadius: '10px',
-                  paddingTop: 0,
-                  paddingBottom: 0,
-                  paddingLeft: '12px',
-                  paddingRight: '12px',
-                  color: '#fff',
-                  boxShadow: 'none',
-                  fontWeight: '600',
-                  WebkitFontSmoothing: 'antialiased',
-                  MozOsxFontSmoothing: 'grayscale',
-                  minWidth: '280px',
-                  marginBottom: '16px',
-                  transformOrigin: 'bottom right',
-                }}
-              >
-                <div style={{ transform: 'scale(0.95)', transformOrigin: 'bottom right', padding: '8px 0' }}>
-                  <div className="flex justify-end mb-1">
-                    <button
-                      onClick={() => setCoordMode(coordMode === 'world' ? 'local' : 'world')}
-                      title={coordMode === 'world' ? 'Showing World coordinates. Click for Local.' : 'Showing Local coordinates. Click for World.'}
-                      style={{
-                        background: 'rgba(0,0,0,0.45)',
-                        border: '1px solid rgba(255,255,255,0.18)',
-                        color: '#fff',
-                        padding: '2px 6px',
-                        borderRadius: '8px',
-                        fontSize: '9px',
-                        lineHeight: 1,
-                      }}
-                    >
-                      {coordMode === 'world' ? 'World' : 'Local'}
-                    </button>
-                  </div>
-                  <div className="flex justify-between" style={{ fontSize: '11.5px' }}>
-                    <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                      <span style={{ color: '#D0021B', fontWeight: '500' }}>X:</span>
-                      <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.x.toFixed(1)}</span>
-                    </div>
-                    <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                      <span style={{ color: '#7ED321', fontWeight: '500' }}>Y:</span>
-                      <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.y.toFixed(1)}</span>
-                    </div>
-                    <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                      <span style={{ color: '#4A90E2', fontWeight: '500' }}>Z:</span>
-                      <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.z.toFixed(1)}</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between mt-1" style={{ fontSize: '11.5px' }}>
-                    <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                      <span style={{ color: '#D0021B', fontWeight: '500' }}>RX:</span>
-                      <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rx.toFixed(1)}°</span>
-                    </div>
-                    <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                      <span style={{ color: '#7ED321', fontWeight: '500' }}>RY:</span>
-                      <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.ry.toFixed(1)}°</span>
-                    </div>
-                    <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                      <span style={{ color: '#4A90E2', fontWeight: '500' }}>RZ:</span>
-                      <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rz.toFixed(1)}°</span>
-                    </div>
-                  </div>
-
-                  {lastPickedPoint && (() => {
-                    const userCoords = babylonToUser(lastPickedPoint);
-                    return (
-                      <div style={{
-                        borderTop: '1px solid rgba(255,255,255,0.1)',
-                        margin: '6px 0',
-                        paddingTop: '6px'
-                      }}>
-                        <div style={{
-                          fontSize: '9px',
-                          color: 'rgba(255,255,255,0.5)',
-                          marginBottom: '4px',
-                          fontWeight: '500'
-                        }}>
-                          Picked Point:
-                        </div>
-                        <div className="flex justify-between" style={{ fontSize: '11.5px' }}>
-                          <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                            <span style={{ color: '#D0021B', fontWeight: '500' }}>X:</span>
-                            <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.x.toFixed(3)}</span>
-                          </div>
-                          <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                            <span style={{ color: '#7ED321', fontWeight: '500' }}>Y:</span>
-                            <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.y.toFixed(3)}</span>
-                          </div>
-                          <div className="flex space-x-1" style={{ minWidth: '80px' }}>
-                            <span style={{ color: '#4A90E2', fontWeight: '500' }}>Z:</span>
-                            <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.z.toFixed(3)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-            )}
-          </main>
-        </div>
+        <DockableLayoutWrapper
+          config={{
+            centerPanel: {
+              id: 'viewport-panel',
+              type: 'viewport',
+              title: '3D Viewport',
+            },
+            leftPanels: [
+              { id: 'sceneTree-panel', type: 'sceneTree', title: 'Scene Tree' },
+              { id: 'toolPalette-panel', type: 'toolPalette', title: 'Tools' },
+            ],
+            rightPanels: [],
+            bottomPanels: [],
+          }}
+          leftGroupWidth={sidebarWidth}
+        />
       </div>
 
       {/* Hidden file inputs for ribbon buttons */}

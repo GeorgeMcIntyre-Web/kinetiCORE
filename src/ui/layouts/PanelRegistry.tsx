@@ -77,6 +77,7 @@ const ViewportPanel: React.FC<IDockviewPanelProps> = () => {
   const selectedNodeIds = useEditorStore((state) => state.selectedNodeIds);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const performanceEnabled = usePerformanceMonitor();
+  const lastPickedPoint = useEditorStore((state) => state.lastPickedPoint);
   
   // Coordinate display mode: 'world' (default) or 'local'
   const [coordMode, setCoordMode] = React.useState<'world' | 'local'>('world');
@@ -281,6 +282,39 @@ const ViewportPanel: React.FC<IDockviewPanelProps> = () => {
               <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{transform.rz.toFixed(1)}°</span>
             </div>
           </div>
+          {lastPickedPoint && (() => {
+            const userCoords = babylonToUser(lastPickedPoint);
+            return (
+              <div style={{
+                borderTop: '1px solid rgba(255,255,255,0.1)',
+                margin: '6px 0',
+                paddingTop: '6px'
+              }}>
+                <div style={{
+                  fontSize: '9px',
+                  color: 'rgba(255,255,255,0.5)',
+                  marginBottom: '4px',
+                  fontWeight: '500'
+                }}>
+                  Picked Point:
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px' }}>
+                  <div style={{ display: 'flex', gap: '4px', minWidth: '80px' }}>
+                    <span style={{ color: '#D0021B', fontWeight: '500' }}>X:</span>
+                    <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.x.toFixed(3)}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px', minWidth: '80px' }}>
+                    <span style={{ color: '#7ED321', fontWeight: '500' }}>Y:</span>
+                    <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.y.toFixed(3)}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px', minWidth: '80px' }}>
+                    <span style={{ color: '#4A90E2', fontWeight: '500' }}>Z:</span>
+                    <span style={{ color: '#ffffff', fontWeight: '600', textAlign: 'right', minWidth: '60px', display: 'inline-block' }}>{userCoords.z.toFixed(3)}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
       )}
