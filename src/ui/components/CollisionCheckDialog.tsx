@@ -42,6 +42,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
   const [addModeB, setAddModeB] = useState(false);
   const [baselineSelectionA, setBaselineSelectionA] = useState<string[]>([]);
   const [baselineSelectionB, setBaselineSelectionB] = useState<string[]>([]);
+  const [showGroupView, setShowGroupView] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const COLLISION_DISPLAY_LIMIT = 20;
@@ -56,10 +57,24 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       }
     >
   >(new Map());
+  const groupMaterialRef = useRef<
+    Map<
+      number,
+      {
+        diffuseColor: BABYLON.Color3 | null;
+        emissiveColor: BABYLON.Color3 | null;
+        alpha: number;
+        renderOverlay: boolean;
+        overlayColor?: BABYLON.Color3;
+        overlayAlpha?: number;
+      }
+    >
+  >(new Map());
 
   useEffect(() => {
     if (!isOpen) {
       clearHighlights();
+      clearGroupVisualization();
     }
     return () => clearHighlights();
   }, [isOpen]);
@@ -79,6 +94,13 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       setBaselineSelectionB(selectionIds);
     }
   }, [selectionIds, addModeA, addModeB, baselineSelectionA, baselineSelectionB]);
+
+  // Re-apply group view when membership changes
+  useEffect(() => {
+    if (showGroupView) {
+      applyGroupVisualization();
+    }
+  }, [groupA, groupB, showGroupView]);
 
   // Dragging functionality
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -165,6 +187,37 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       material.alpha = state.alpha;
     }
     previousMaterialRef.current.clear();
+  };
+
+  const clearGroupVisualization = () => {
+    if (groupMaterialRef.current.size === 0) return;
+    const scene = SceneManager.getInstance().getScene();
+    if (!scene) {
+      groupMaterialRef.current.clear();
+      return;
+    }
+
+    for (const [uniqueId, state] of groupMaterialRef.current.entries()) {
+      const mesh = scene.getMeshByUniqueId(uniqueId) as BABYLON.Mesh | null;
+      if (!mesh || !mesh.material) continue;
+      const material = mesh.material as BABYLON.StandardMaterial;
+      material.alpha = state.alpha;
+      if (state.diffuseColor) {
+        (material as any).diffuseColor = state.diffuseColor.clone();
+      }
+      if (state.emissiveColor) {
+        (material as any).emissiveColor = state.emissiveColor.clone();
+      }
+      (mesh as any).renderOverlay = state.renderOverlay;
+      if (state.overlayColor) {
+        (mesh as any).overlayColor = state.overlayColor.clone();
+      }
+      if (state.overlayAlpha !== undefined) {
+        (mesh as any).overlayAlpha = state.overlayAlpha;
+      }
+    }
+    groupMaterialRef.current.clear();
+    setShowGroupView(false);
   };
 
   // Helper function to collect all meshes from a node with their corresponding nodes (for precise highlighting)
@@ -306,6 +359,108 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     setIsRunning(false);
   };
 
+  const collectMeshesForGroup = (groupIds: string[], scene: BABYLON.Scene): Set<number> => {
+    const meshIds = new Set<number>();
+    const tree = SceneTreeManager.getInstance();
+
+    const addMesh = (mesh: BABYLON.AbstractMesh | null) => {
+      if (!mesh || !mesh.geometry) return;
+      meshIds.add(mesh.uniqueId);
+    };
+
+    const visitTransformDescendants = (transform: BABYLON.TransformNode) => {
+      const stack: BABYLON.Node[] = [transform];
+      while (stack.length) {
+        const current = stack.pop();
+        if (!current) continue;
+        if (current instanceof BABYLON.AbstractMesh) {
+          addMesh(current);
+        }
+        current.getChildren().forEach((c) => stack.push(c));
+      }
+    };
+
+    const visitTreeNode = (node: SceneNode) => {
+      if (node.babylonMeshId) {
+        addMesh(scene.getMeshByUniqueId(parseInt(node.babylonMeshId, 10)));
+      }
+      if (node.babylonTransformNodeId) {
+        const transform = scene.getTransformNodeByUniqueId(parseInt(node.babylonTransformNodeId, 10));
+        if (transform) {
+          visitTransformDescendants(transform);
+        }
+      }
+      const children = tree.getChildren(node.id);
+      children.forEach(visitTreeNode);
+    };
+
+    for (const id of groupIds) {
+      const node = tree.getNode(id);
+      if (node) visitTreeNode(node);
+    }
+
+    return meshIds;
+  };
+
+  const applyGroupVisualization = () => {
+    const scene = SceneManager.getInstance().getScene();
+    if (!scene) return;
+
+    // Restore any previous visualization first
+    clearGroupVisualization();
+
+    const meshIdsA = collectMeshesForGroup(groupA, scene);
+    const meshIdsB = collectMeshesForGroup(groupB, scene);
+
+    const colorA = new BABYLON.Color3(0.1, 0.35, 1.0); // vivid deep blue
+    const colorB = new BABYLON.Color3(1.0, 0.55, 0.05); // vivid deep gold/orange
+    const ghostColor = new BABYLON.Color3(0.35, 0.35, 0.35);
+
+    for (const mesh of scene.meshes) {
+      const mat = (mesh as BABYLON.Mesh).material as any;
+      if (!mat) continue;
+
+      if (!groupMaterialRef.current.has(mesh.uniqueId)) {
+        groupMaterialRef.current.set(mesh.uniqueId, {
+          diffuseColor: mat.diffuseColor ? mat.diffuseColor.clone() : mat.albedoColor ? mat.albedoColor.clone() : null,
+          emissiveColor: mat.emissiveColor ? mat.emissiveColor.clone() : null,
+          alpha: mat.alpha ?? 1.0,
+          renderOverlay: (mesh as any).renderOverlay ?? false,
+          overlayColor: (mesh as any).overlayColor ? (mesh as any).overlayColor.clone() : undefined,
+          overlayAlpha: (mesh as any).overlayAlpha,
+        });
+      }
+
+      if (meshIdsA.has(mesh.uniqueId)) {
+        (mesh as any).renderOverlay = true;
+        (mesh as any).overlayColor = colorA.clone();
+        (mesh as any).overlayAlpha = 0.9;
+        mat.alpha = 1.0;
+        if (mat.emissiveColor) mat.emissiveColor = colorA.scale(0.4);
+        if (mat.diffuseColor) mat.diffuseColor = colorA.clone();
+        if (mat.albedoColor) mat.albedoColor = colorA.clone();
+      } else if (meshIdsB.has(mesh.uniqueId)) {
+        (mesh as any).renderOverlay = true;
+        (mesh as any).overlayColor = colorB.clone();
+        (mesh as any).overlayAlpha = 0.9;
+        mat.alpha = 1.0;
+        if (mat.emissiveColor) mat.emissiveColor = colorB.scale(0.4);
+        if (mat.diffuseColor) mat.diffuseColor = colorB.clone();
+        if (mat.albedoColor) mat.albedoColor = colorB.clone();
+      } else {
+        (mesh as any).renderOverlay = true;
+        (mesh as any).overlayColor = ghostColor.clone();
+        (mesh as any).overlayAlpha = 0.25;
+        mat.alpha = 0.15;
+        if (mat.emissiveColor) mat.emissiveColor = ghostColor.scale(0.05);
+        if (mat.diffuseColor) mat.diffuseColor = ghostColor.clone();
+        if (mat.albedoColor) mat.albedoColor = ghostColor.clone();
+      }
+    }
+
+    setShowGroupView(true);
+  };
+
   const getNodeName = (nodeId: string): string => {
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(nodeId);
@@ -347,13 +502,15 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
                 onClick={() => {
                   if (addModeA) {
                     setAddModeA(false);
-                  } else {
-                    setAddModeA(true);
-                    setAddModeB(false);
-                    setBaselineSelectionA(selectionIds); // do not add current selection immediately
+                    return;
                   }
+                  // Start mode: clear any current selection to prevent accidental add
+                  useEditorStore.getState().clearSelection();
+                  setAddModeA(true);
+                  setAddModeB(false);
+                  setBaselineSelectionA([]);
+                  setBaselineSelectionB([]);
                 }}
-                disabled={selectionIds.length === 0}
                 title="Add Selection Mode (toggle)"
               >
                 <MousePointer2 size={14} />
@@ -389,13 +546,14 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
                 onClick={() => {
                   if (addModeB) {
                     setAddModeB(false);
-                  } else {
-                    setAddModeB(true);
-                    setAddModeA(false);
-                    setBaselineSelectionB(selectionIds); // do not add current selection immediately
+                    return;
                   }
+                  useEditorStore.getState().clearSelection();
+                  setAddModeB(true);
+                  setAddModeA(false);
+                  setBaselineSelectionB([]);
+                  setBaselineSelectionA([]);
                 }}
-                disabled={selectionIds.length === 0}
                 title="Add Selection Mode (toggle)"
               >
                 <MousePointer2 size={14} />
@@ -424,6 +582,19 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
 
           {/* Actions */}
           <div className="collision-dialog__actions">
+            <button
+              className="collision-dialog__btn"
+              onClick={() => {
+                if (showGroupView) {
+                  clearGroupVisualization();
+                } else {
+                  applyGroupVisualization();
+                }
+              }}
+              disabled={groupA.length === 0 && groupB.length === 0}
+            >
+              {showGroupView ? 'Hide Groups' : 'Show Groups'}
+            </button>
             <button
               className="collision-dialog__btn collision-dialog__btn--primary"
               onClick={runCollisionCheck}
