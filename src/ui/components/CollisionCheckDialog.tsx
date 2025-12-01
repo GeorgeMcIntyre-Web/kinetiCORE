@@ -172,34 +172,24 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     return results;
   };
 
-  // Helper function to collect just meshes (for backward compatibility)
-  const collectMeshesFromNode = (node: SceneNode, scene: BABYLON.Scene): BABYLON.Mesh[] => {
-    return collectMeshesWithNodes(node, scene).map(r => r.mesh);
-  };
+  // Highlight a specific mesh (not all meshes from a node)
+  const highlightMesh = (mesh: BABYLON.Mesh) => {
+    if (!mesh.material) return;
 
-  const highlightNode = (node: SceneNode) => {
-    const scene = SceneManager.getInstance().getScene();
-    if (!scene) return;
+    const material = mesh.material as BABYLON.StandardMaterial;
 
-    // Collect all meshes from this node (handles transform nodes with children)
-    const meshes = collectMeshesFromNode(node, scene);
-
-    for (const mesh of meshes) {
-      if (!mesh.material) continue;
-
-      const material = mesh.material as BABYLON.StandardMaterial;
-
-      if (!previousMaterialRef.current.has(mesh.uniqueId)) {
-        previousMaterialRef.current.set(mesh.uniqueId, {
-          diffuseColor: material.diffuseColor ? material.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
-          emissiveColor: material.emissiveColor ? material.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
-          alpha: material.alpha ?? 1.0,
-        });
-      }
-
-      material.diffuseColor = new BABYLON.Color3(1, 0, 0);
-      material.emissiveColor = new BABYLON.Color3(0.3, 0, 0);
+    // Save original material properties if not already saved
+    if (!previousMaterialRef.current.has(mesh.uniqueId)) {
+      previousMaterialRef.current.set(mesh.uniqueId, {
+        diffuseColor: material.diffuseColor ? material.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
+        emissiveColor: material.emissiveColor ? material.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
+        alpha: material.alpha ?? 1.0,
+      });
     }
+
+    // Apply red highlighting
+    material.diffuseColor = new BABYLON.Color3(1, 0, 0);
+    material.emissiveColor = new BABYLON.Color3(0.3, 0, 0);
   };
 
   const runCollisionCheck = async () => {
@@ -277,8 +267,9 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
 
           if (isColliding) {
             collisionsFound.push({ nodeA, nodeB });
-            highlightNode(nodeA);
-            highlightNode(nodeB);
+            // Highlight only the specific meshes that collided, not all meshes from the nodes
+            highlightMesh(meshA);
+            highlightMesh(meshB);
           }
         } catch (error) {
           console.warn(`Error checking collision between ${nodeA.name} and ${nodeB.name}:`, error);
