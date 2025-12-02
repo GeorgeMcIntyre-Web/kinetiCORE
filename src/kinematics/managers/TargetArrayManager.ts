@@ -164,7 +164,6 @@ export class TargetArrayManager {
     
     console.log(`[Target Array Manager] Added target ${target.id} to robot ${robotId}`);
     this.notifyChangeListeners(robotId);
-    
     return true;
   }
 

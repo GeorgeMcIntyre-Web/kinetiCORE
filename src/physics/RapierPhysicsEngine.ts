@@ -117,6 +117,35 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
         colliderDesc = this.RAPIER.ColliderDesc.capsule(descriptor.height / 2, descriptor.radius);
         break;
 
+      case 'convexHull': {
+        if (!descriptor.vertices) {
+          throw new Error('Convex hull shape requires vertices');
+        }
+        const vertices = descriptor.vertices instanceof Float32Array
+          ? descriptor.vertices
+          : new Float32Array(descriptor.vertices);
+        const hullDesc = this.RAPIER.ColliderDesc.convexHull(vertices);
+        if (!hullDesc) {
+          throw new Error('Failed to create convex hull collider');
+        }
+        colliderDesc = hullDesc;
+        break;
+      }
+
+      case 'trimesh': {
+        if (!descriptor.vertices || !descriptor.indices) {
+          throw new Error('Trimesh shape requires vertices and indices');
+        }
+        const vertices = descriptor.vertices instanceof Float32Array
+          ? descriptor.vertices
+          : new Float32Array(descriptor.vertices);
+        const indices = descriptor.indices instanceof Uint32Array
+          ? descriptor.indices
+          : new Uint32Array(descriptor.indices);
+        colliderDesc = this.RAPIER.ColliderDesc.trimesh(vertices, indices);
+        break;
+      }
+
       default:
         throw new Error(`Unsupported collider shape: ${descriptor.shape}`);
     }

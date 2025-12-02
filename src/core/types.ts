@@ -71,6 +71,12 @@ export interface BodyDescriptor {
   height?: number; // For capsule, cylinder
   mass?: number;
   meshName?: string;
+  /**
+   * Optional raw geometry for convex hull or trimesh colliders.
+   * Vertices should be provided in local space; apply scaling before passing in.
+   */
+  vertices?: Float32Array | number[];
+  indices?: Uint32Array | number[];
   centerOfMass?: Vector3;
   friction?: number;
   restitution?: number;

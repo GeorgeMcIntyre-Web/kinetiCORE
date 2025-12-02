@@ -34,14 +34,16 @@ export function resolveMeshUniqueIdsForNodes(nodeIds: string[], scene: BABYLON.S
 
     const targetMeshUid = node.babylonMeshId ? Number(node.babylonMeshId) : null;
     const targetTransformUid = node.babylonTransformNodeId ? Number(node.babylonTransformNodeId) : null;
+    const hasExplicitId = Number.isFinite(targetMeshUid) || Number.isFinite(targetTransformUid);
 
+    // If a mesh uniqueId is provided, bind ONLY that mesh (avoid dragging siblings via transforms)
     if (Number.isFinite(targetMeshUid)) {
       addMesh(scene.getMeshByUniqueId(targetMeshUid!));
     }
 
-    // Preferred: transform by uniqueId
+    // Preferred: transform by uniqueId (only when no explicit mesh id)
     let foundTransform = false;
-    if (Number.isFinite(targetTransformUid)) {
+    if (!Number.isFinite(targetMeshUid) && Number.isFinite(targetTransformUid)) {
       const t = scene.getTransformNodeByUniqueId(targetTransformUid!);
       if (t) {
         traverseTransform(t);
@@ -51,13 +53,16 @@ export function resolveMeshUniqueIdsForNodes(nodeIds: string[], scene: BABYLON.S
 
     // Name fallback only if no transform uniqueId match
     if (!foundTransform) {
-      scene.meshes.forEach((m) => {
-        if (m.name === node.name) {
-          addMesh(m as BABYLON.Mesh);
-        }
-      });
-      const byNameTransform = scene.transformNodes.find((tn) => tn.name === node.name) || null;
-      traverseTransform(byNameTransform);
+      // Fallback by name ONLY when no explicit IDs were provided
+      if (!hasExplicitId) {
+        // Mesh name fallback: only first match to avoid pulling all duplicates
+        const byNameMesh = scene.meshes.find((m) => m.name === node.name) || null;
+        addMesh(byNameMesh as BABYLON.Mesh | null);
+
+        // Transform name fallback: only first match
+        const byNameTransform = scene.transformNodes.find((tn) => tn.name === node.name) || null;
+        traverseTransform(byNameTransform);
+      }
     }
 
     // Recurse into tree children

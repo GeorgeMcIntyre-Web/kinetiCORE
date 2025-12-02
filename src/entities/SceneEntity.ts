@@ -11,7 +11,7 @@ export interface SceneEntityConfig {
   physics?: {
     enabled: boolean;
     type?: 'static' | 'dynamic' | 'kinematic';
-    shape?: 'box' | 'sphere' | 'cylinder' | 'capsule';
+    shape?: 'box' | 'sphere' | 'cylinder' | 'capsule' | 'convexHull' | 'trimesh';
     mass?: number;
     // Shape-specific parameters
     dimensions?: { x: number; y: number; z: number }; // For box
@@ -83,15 +83,19 @@ export class SceneEntity {
     // Compute world matrix to get accurate bounds
     this.mesh.computeWorldMatrix(true);
 
-    const position = this.mesh.position;
-    const rotation = this.mesh.rotationQuaternion || BABYLON.Quaternion.Identity();
+    // Decompose world matrix to capture inherited transforms
+    const worldMatrix = this.mesh.getWorldMatrix();
+    const scaling = new BABYLON.Vector3();
+    const rotation = new BABYLON.Quaternion();
+    const translation = new BABYLON.Vector3();
+    worldMatrix.decompose(scaling, rotation, translation);
 
     // Build body descriptor
     const bodyDescriptor: any = {
       type: config.type || 'dynamic',
-      position: { x: position.x, y: position.y, z: position.z },
+      position: { x: translation.x, y: translation.y, z: translation.z },
       rotation: { x: rotation.x, y: rotation.y, z: rotation.z, w: rotation.w },
-      shape: config.shape || 'box',
+      shape: config.shape || 'convexHull',
       mass: config.mass || 1.0,
     };
 
@@ -111,6 +115,32 @@ export class SceneEntity {
 
     if (config.height !== undefined) {
       bodyDescriptor.height = config.height;
+    }
+
+    // Provide mesh geometry for convex hull/trimesh colliders
+    if (config.shape === 'convexHull' || config.shape === 'trimesh') {
+      const positions = this.mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind, false, true);
+      const indices = this.mesh.getIndices();
+
+      if (!positions || positions.length === 0 || !indices || indices.length === 0) {
+        console.warn(`[SceneEntity] Mesh ${this.mesh.name} is missing geometry data for ${config.shape} collider; falling back to box.`);
+        bodyDescriptor.shape = 'box';
+        const boundingInfo = this.mesh.getBoundingInfo();
+        const dimensions = boundingInfo.boundingBox.extendSize.scale(2);
+        bodyDescriptor.dimensions = { x: dimensions.x, y: dimensions.y, z: dimensions.z };
+      } else {
+        // Apply absolute scaling to vertex data so collider matches visible mesh size
+        const scaledPositions = new Float32Array(positions.length);
+        for (let i = 0; i < positions.length; i += 3) {
+          scaledPositions[i] = positions[i] * scaling.x;
+          scaledPositions[i + 1] = positions[i + 1] * scaling.y;
+          scaledPositions[i + 2] = positions[i + 2] * scaling.z;
+        }
+        bodyDescriptor.vertices = scaledPositions;
+        if (config.shape === 'trimesh') {
+          bodyDescriptor.indices = indices instanceof Uint32Array ? indices : new Uint32Array(indices);
+        }
+      }
     }
 
     // Create physics body

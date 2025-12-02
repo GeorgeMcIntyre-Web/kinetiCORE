@@ -63,9 +63,15 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     Map<
       number,
       {
-        diffuseColor: BABYLON.Color3 | null;
-        emissiveColor: BABYLON.Color3 | null;
-        alpha: number;
+        materialType: string;
+        originalProps: {
+          diffuseColor?: BABYLON.Color3;
+          emissiveColor?: BABYLON.Color3;
+          albedoColor?: BABYLON.Color3;
+          specularColor?: BABYLON.Color3;
+          alpha: number;
+          transparencyMode: number | null;
+        }
       }
     >
   >(new Map());
@@ -224,30 +230,60 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
   // Clear group visualization and restore original materials
   const clearGroupVisualization = () => {
     const scene = SceneManager.getInstance().getScene();
-    if (!scene || groupMaterialRef.current.size === 0) return;
+    if (!scene || groupMaterialRef.current.size === 0) {
+      console.log('[CollisionDialog] Nothing to clear');
+      return;
+    }
 
-    for (const [uniqueId, state] of groupMaterialRef.current.entries()) {
+    console.log('[CollisionDialog] Restoring materials for', groupMaterialRef.current.size, 'meshes');
+
+    for (const [uniqueId, saved] of groupMaterialRef.current.entries()) {
       const mesh = scene.getMeshByUniqueId(uniqueId) as BABYLON.Mesh | null;
-      if (!mesh || !mesh.material) continue;
+      if (!mesh || !mesh.material) {
+        console.warn('[CollisionDialog] Mesh or material not found for uniqueId:', uniqueId);
+        continue;
+      }
 
       const material = mesh.material;
-      const isStandard = material instanceof BABYLON.StandardMaterial;
-      const isPBR = material instanceof BABYLON.PBRMaterial;
+      console.log(`[CollisionDialog] Restoring material for mesh "${mesh.name}"`);
+      console.log('  - Material type:', saved.materialType);
+      console.log('  - Saved props:', saved.originalProps);
 
-      if (isStandard) {
+      // Restore based on saved material type
+      if (saved.materialType === 'StandardMaterial' && material instanceof BABYLON.StandardMaterial) {
         const stdMat = material as BABYLON.StandardMaterial;
-        if (state.diffuseColor) stdMat.diffuseColor = state.diffuseColor;
-        if (state.emissiveColor) stdMat.emissiveColor = state.emissiveColor;
-        stdMat.alpha = state.alpha;
-      } else if (isPBR) {
+        if (saved.originalProps.diffuseColor) {
+          stdMat.diffuseColor = saved.originalProps.diffuseColor.clone();
+          console.log('  - Restored diffuseColor:', saved.originalProps.diffuseColor);
+        }
+        if (saved.originalProps.emissiveColor) {
+          stdMat.emissiveColor = saved.originalProps.emissiveColor.clone();
+          console.log('  - Restored emissiveColor:', saved.originalProps.emissiveColor);
+        }
+        if (saved.originalProps.specularColor) {
+          stdMat.specularColor = saved.originalProps.specularColor.clone();
+        }
+        stdMat.alpha = saved.originalProps.alpha;
+        stdMat.transparencyMode = saved.originalProps.transparencyMode;
+      } else if (saved.materialType === 'PBRMaterial' && material instanceof BABYLON.PBRMaterial) {
         const pbrMat = material as BABYLON.PBRMaterial;
-        if (state.diffuseColor) pbrMat.albedoColor = state.diffuseColor;
-        if (state.emissiveColor) pbrMat.emissiveColor = state.emissiveColor;
-        pbrMat.alpha = state.alpha;
+        if (saved.originalProps.albedoColor) {
+          pbrMat.albedoColor = saved.originalProps.albedoColor.clone();
+          console.log('  - Restored albedoColor:', saved.originalProps.albedoColor);
+        }
+        if (saved.originalProps.emissiveColor) {
+          pbrMat.emissiveColor = saved.originalProps.emissiveColor.clone();
+          console.log('  - Restored emissiveColor:', saved.originalProps.emissiveColor);
+        }
+        pbrMat.alpha = saved.originalProps.alpha;
+        pbrMat.transparencyMode = saved.originalProps.transparencyMode;
+      } else {
+        console.warn(`  - Material type mismatch or unsupported. Saved: ${saved.materialType}, Current: ${material.getClassName?.()}`);
       }
     }
     groupMaterialRef.current.clear();
     setShowGroupView(false);
+    console.log('[CollisionDialog] Material restoration complete');
   };
 
   // Apply group visualization: color Group A and B, make others neutral gray
@@ -287,16 +323,103 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     console.log('[CollisionDialog] Total meshes in Group B:', meshesBSet.size);
 
     // Define distinct colors - vivid deep blue and deep orange
-    const colorA = new BABYLON.Color3(0.1, 0.35, 1.0);  // Deep vivid blue for Group A
-    const colorB = new BABYLON.Color3(1.0, 0.45, 0.0);  // Deep vivid orange for Group B
-    const neutralGray = new BABYLON.Color3(0.5, 0.5, 0.5);  // Neutral gray for others
+    const colorA = new BABYLON.Color3(0.2, 0.5, 1.0);  // Bright blue for Group A
+    const colorB = new BABYLON.Color3(1.0, 0.5, 0.1);  // Bright orange for Group B
+    const GHOST_ALPHA = 0.2;  // Make non-group objects semi-transparent
+
+    // Helper to save original material properties
+    const saveOriginalMaterial = (mesh: BABYLON.Mesh, mat: BABYLON.Material) => {
+      if (groupMaterialRef.current.has(mesh.uniqueId)) return;
+
+      const materialType = mat.getClassName?.() || 'Material';
+      const saved: {
+        materialType: string;
+        originalProps: {
+          diffuseColor?: BABYLON.Color3;
+          emissiveColor?: BABYLON.Color3;
+          albedoColor?: BABYLON.Color3;
+          specularColor?: BABYLON.Color3;
+          alpha: number;
+          transparencyMode: number | null;
+        }
+      } = {
+        materialType,
+        originalProps: { alpha: 1.0, transparencyMode: null }
+      };
+
+      console.log(`[CollisionDialog] Saving material for "${mesh.name}", type: ${materialType}`);
+
+      if (mat instanceof BABYLON.StandardMaterial) {
+        const stdMat = mat as BABYLON.StandardMaterial;
+        saved.originalProps.diffuseColor = stdMat.diffuseColor ? stdMat.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1);
+        saved.originalProps.emissiveColor = stdMat.emissiveColor ? stdMat.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0);
+        saved.originalProps.specularColor = stdMat.specularColor ? stdMat.specularColor.clone() : new BABYLON.Color3(1, 1, 1);
+        saved.originalProps.alpha = stdMat.alpha ?? 1.0;
+        saved.originalProps.transparencyMode = stdMat.transparencyMode;
+        console.log('  - Saved StandardMaterial:', {
+          diffuse: saved.originalProps.diffuseColor,
+          emissive: saved.originalProps.emissiveColor,
+          specular: saved.originalProps.specularColor,
+          alpha: saved.originalProps.alpha,
+          transparencyMode: saved.originalProps.transparencyMode
+        });
+      } else if (mat instanceof BABYLON.PBRMaterial) {
+        const pbrMat = mat as BABYLON.PBRMaterial;
+        saved.originalProps.albedoColor = pbrMat.albedoColor ? pbrMat.albedoColor.clone() : new BABYLON.Color3(1, 1, 1);
+        saved.originalProps.emissiveColor = pbrMat.emissiveColor ? pbrMat.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0);
+        saved.originalProps.alpha = pbrMat.alpha ?? 1.0;
+        saved.originalProps.transparencyMode = pbrMat.transparencyMode;
+        console.log('  - Saved PBRMaterial:', {
+          albedo: saved.originalProps.albedoColor,
+          emissive: saved.originalProps.emissiveColor,
+          alpha: saved.originalProps.alpha,
+          transparencyMode: saved.originalProps.transparencyMode
+        });
+      } else {
+        console.warn(`  - Unsupported material type: ${materialType}. Material will not be modified.`);
+        return; // Don't save or modify unsupported materials
+      }
+
+      groupMaterialRef.current.set(mesh.uniqueId, saved);
+    };
+
+    // Helper to apply highlighting to a group material (adds emissive glow)
+    const applyGroupHighlight = (mat: BABYLON.Material, color: BABYLON.Color3) => {
+      if (mat instanceof BABYLON.StandardMaterial) {
+        const stdMat = mat as BABYLON.StandardMaterial;
+        // Keep original diffuse, add emissive glow
+        stdMat.emissiveColor = color.scale(0.4);
+        stdMat.alpha = 1.0;
+        stdMat.transparencyMode = null; // Ensure no transparency mode
+      } else if (mat instanceof BABYLON.PBRMaterial) {
+        const pbrMat = mat as BABYLON.PBRMaterial;
+        // Keep original albedo, add emissive glow
+        pbrMat.emissiveColor = color.scale(0.4);
+        pbrMat.alpha = 1.0;
+        pbrMat.transparencyMode = null; // Ensure no transparency mode
+      }
+    };
+
+    // Helper to ghost non-group materials (make semi-transparent)
+    const applyGhosting = (mat: BABYLON.Material) => {
+      if (mat instanceof BABYLON.StandardMaterial) {
+        const stdMat = mat as BABYLON.StandardMaterial;
+        stdMat.alpha = GHOST_ALPHA;
+        stdMat.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND; // Enable alpha blending
+      } else if (mat instanceof BABYLON.PBRMaterial) {
+        const pbrMat = mat as BABYLON.PBRMaterial;
+        pbrMat.alpha = GHOST_ALPHA;
+        pbrMat.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND; // Enable alpha blending
+      }
+    };
 
     // Apply colors to all meshes in the scene
-    for (const mesh of scene.meshes) {
-      if (!mesh.material) continue;
+    for (const abstractMesh of scene.meshes) {
+      const material = abstractMesh.material;
+      if (!material) continue;
 
-      // Skip skybox and grid/floor meshes (common naming patterns)
-      const meshName = mesh.name.toLowerCase();
+      // Skip environment meshes
+      const meshName = abstractMesh.name.toLowerCase();
       if (
         meshName.includes('skybox') ||
         meshName.includes('sky') ||
@@ -308,75 +431,27 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
         continue;
       }
 
-      const material = mesh.material;
+      const mesh = abstractMesh as BABYLON.Mesh;
 
-      // Handle both StandardMaterial and PBRMaterial
-      const isStandard = material instanceof BABYLON.StandardMaterial;
-      const isPBR = material instanceof BABYLON.PBRMaterial;
+      // Save original material (this will return early if material type is unsupported)
+      saveOriginalMaterial(mesh, material);
 
-      if (!isStandard && !isPBR) continue;
-
-      // Save original material state
+      // Only apply colors if material was successfully saved (supported type)
       if (!groupMaterialRef.current.has(mesh.uniqueId)) {
-        if (isStandard) {
-          const stdMat = material as BABYLON.StandardMaterial;
-          groupMaterialRef.current.set(mesh.uniqueId, {
-            diffuseColor: stdMat.diffuseColor ? stdMat.diffuseColor.clone() : null,
-            emissiveColor: stdMat.emissiveColor ? stdMat.emissiveColor.clone() : null,
-            alpha: stdMat.alpha ?? 1.0,
-          });
-        } else if (isPBR) {
-          const pbrMat = material as BABYLON.PBRMaterial;
-          groupMaterialRef.current.set(mesh.uniqueId, {
-            diffuseColor: pbrMat.albedoColor ? pbrMat.albedoColor.clone() : null,
-            emissiveColor: pbrMat.emissiveColor ? pbrMat.emissiveColor.clone() : null,
-            alpha: pbrMat.alpha ?? 1.0,
-          });
-        }
+        console.warn(`[CollisionDialog] Skipping color application for "${mesh.name}" - unsupported material`);
+        continue;
       }
 
       // Apply visualization based on group membership
       if (meshesASet.has(mesh.uniqueId)) {
-        // Group A - Deep vivid blue
-        console.log(`[CollisionDialog] Coloring mesh "${mesh.name}" BLUE (Group A)`);
-        if (isStandard) {
-          const stdMat = material as BABYLON.StandardMaterial;
-          stdMat.diffuseColor = colorA.clone();
-          stdMat.emissiveColor = colorA.scale(0.3);
-          stdMat.alpha = 1.0;
-        } else if (isPBR) {
-          const pbrMat = material as BABYLON.PBRMaterial;
-          pbrMat.albedoColor = colorA.clone();
-          pbrMat.emissiveColor = colorA.scale(0.3);
-          pbrMat.alpha = 1.0;
-        }
+        console.log(`[CollisionDialog] Highlighting mesh "${mesh.name}" BLUE (Group A)`);
+        applyGroupHighlight(material, colorA);
       } else if (meshesBSet.has(mesh.uniqueId)) {
-        // Group B - Deep vivid orange
-        console.log(`[CollisionDialog] Coloring mesh "${mesh.name}" ORANGE (Group B)`);
-        if (isStandard) {
-          const stdMat = material as BABYLON.StandardMaterial;
-          stdMat.diffuseColor = colorB.clone();
-          stdMat.emissiveColor = colorB.scale(0.3);
-          stdMat.alpha = 1.0;
-        } else if (isPBR) {
-          const pbrMat = material as BABYLON.PBRMaterial;
-          pbrMat.albedoColor = colorB.clone();
-          pbrMat.emissiveColor = colorB.scale(0.3);
-          pbrMat.alpha = 1.0;
-        }
+        console.log(`[CollisionDialog] Highlighting mesh "${mesh.name}" ORANGE (Group B)`);
+        applyGroupHighlight(material, colorB);
       } else {
-        // Other meshes - Neutral gray (not transparent, just desaturated)
-        if (isStandard) {
-          const stdMat = material as BABYLON.StandardMaterial;
-          stdMat.diffuseColor = neutralGray.clone();
-          stdMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
-          stdMat.alpha = 1.0;
-        } else if (isPBR) {
-          const pbrMat = material as BABYLON.PBRMaterial;
-          pbrMat.albedoColor = neutralGray.clone();
-          pbrMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
-          pbrMat.alpha = 1.0;
-        }
+        console.log(`[CollisionDialog] Ghosting mesh "${mesh.name}" (non-group)`);
+        applyGhosting(material);
       }
     }
 
@@ -455,7 +530,8 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
         seenPairs.add(key);
 
         try {
-          const isColliding = meshA.intersectsMesh(meshB, false);
+          // Use precise mesh intersection (convex hull/triangle-based) instead of bounding boxes
+          const isColliding = meshA.intersectsMesh(meshB, true);
 
           if (isColliding) {
             collisionsFound.push({ nodeA, nodeB });
