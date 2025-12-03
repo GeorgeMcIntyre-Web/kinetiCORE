@@ -252,8 +252,9 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
   };
 
   // Apply selection highlight to the meshes that were just selected
-  const applySelectionHighlight = () => {
+  const applySelectionHighlight = (isGroupA: boolean) => {
     console.log('[CollisionDialog] === applySelectionHighlight START ===');
+    console.log('[CollisionDialog] Group:', isGroupA ? 'A (Deep Blue)' : 'B (Gold)');
 
     // Clear previous selection highlight
     console.log('[CollisionDialog] Step 1: Clearing previous selection highlight');
@@ -274,8 +275,10 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       console.log(`  [${idx}] Name: "${mesh.name}", UniqueId: ${mesh.uniqueId}, HasMaterial: ${!!mesh.material}`);
     });
 
-    // Apply cyan/blue highlight to all selected meshes
-    const highlightColor = new BABYLON.Color3(0.2, 0.7, 1.0); // Bright cyan/blue
+    // Deep Blue for Group A, Gold for Group B
+    const highlightColor = isGroupA
+      ? new BABYLON.Color3(0.0, 0.3, 1.0)  // Deep vivid blue
+      : new BABYLON.Color3(1.0, 0.84, 0.0); // Gold
     console.log('[CollisionDialog] Step 3: Applying highlight color:', highlightColor);
 
     let highlightedCount = 0;
@@ -338,9 +341,10 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
         }
       }
 
-      // Apply highlight
+      // Apply highlight - use strong diffuse and emissive for vivid color
       material.diffuseColor = highlightColor.clone();
-      material.emissiveColor = highlightColor.scale(0.3);
+      material.emissiveColor = highlightColor.scale(0.5); // Stronger emissive for more vibrant appearance
+      material.alpha = 1.0; // Ensure full opacity
       highlightedCount++;
       console.log(`  Applied highlight - Diffuse: ${material.diffuseColor}, Emissive: ${material.emissiveColor}`);
     }
@@ -456,9 +460,9 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     return `${name} (M:${meshId}, T:${transformId})`;
   };
 
-  const handleNodeClick = (nodeId: string) => {
+  const handleNodeClick = (nodeId: string, isGroupA: boolean) => {
     console.log('[CollisionDialog] === handleNodeClick START ===');
-    console.log('[CollisionDialog] Clicked nodeId:', nodeId);
+    console.log('[CollisionDialog] Clicked nodeId:', nodeId, 'Group:', isGroupA ? 'A' : 'B');
 
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(nodeId);
@@ -476,8 +480,8 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       useEditorStore.getState().selectNode(nodeId);
 
       // Apply highlight to the exact same meshes that were selected
-      console.log('[CollisionDialog] Calling applySelectionHighlight');
-      applySelectionHighlight();
+      console.log('[CollisionDialog] Calling applySelectionHighlight with group color');
+      applySelectionHighlight(isGroupA);
     } else {
       console.log('[CollisionDialog] Node not found, aborting');
     }
@@ -543,9 +547,9 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
                   <div key={nodeId} className="collision-dialog__node-item">
                     <span
                       className="collision-dialog__node-name"
-                      onClick={() => handleNodeClick(nodeId)}
+                      onClick={() => handleNodeClick(nodeId, true)}
                       style={{ cursor: 'pointer' }}
-                      title="Click to select in scene"
+                      title="Click to select in scene (Deep Blue)"
                     >
                       {getNodeDisplayText(nodeId)}
                     </span>
@@ -593,9 +597,9 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
                   <div key={nodeId} className="collision-dialog__node-item">
                     <span
                       className="collision-dialog__node-name"
-                      onClick={() => handleNodeClick(nodeId)}
+                      onClick={() => handleNodeClick(nodeId, false)}
                       style={{ cursor: 'pointer' }}
-                      title="Click to select in scene"
+                      title="Click to select in scene (Gold)"
                     >
                       {getNodeDisplayText(nodeId)}
                     </span>
