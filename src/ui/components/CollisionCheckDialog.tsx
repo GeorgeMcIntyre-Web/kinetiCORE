@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, CheckCircle, MousePointer2, Repeat, X, Trash2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle, MousePointer2, Repeat, X, Trash2, Eye } from 'lucide-react';
 import * as BABYLON from '@babylonjs/core';
 import { SceneTreeManager } from '../../scene/SceneTreeManager';
 import type { SceneNode } from '../../scene/SceneTreeNode';
@@ -43,6 +43,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
   const [addModeB, setAddModeB] = useState(false);
   const [baselineSelectionA, setBaselineSelectionA] = useState<string[]>([]);
   const [baselineSelectionB, setBaselineSelectionB] = useState<string[]>([]);
+  const [showingGroups, setShowingGroups] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const COLLISION_DISPLAY_LIMIT = 20;
@@ -463,6 +464,130 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     }
   };
 
+  const highlightAllGroups = () => {
+    if (showingGroups) {
+      clearSelectionHighlight();
+      setShowingGroups(false);
+      return;
+    }
+
+    clearSelectionHighlight();
+    const scene = SceneManager.getInstance().getScene();
+    if (!scene) return;
+
+    // Collect all meshes that need to be highlighted for each group
+    const meshesToHighlight: { mesh: BABYLON.AbstractMesh; isGroupA: boolean }[] = [];
+
+    // Helper to collect meshes from a node
+    const collectMeshesForNode = (nodeId: string, isGroupA: boolean) => {
+      const tree = SceneTreeManager.getInstance();
+      const node = tree.getNode(nodeId);
+      if (!node) return;
+
+      // Temporarily select the node to get the exact meshes the editor would select
+      useEditorStore.getState().selectNode(nodeId);
+      const selectedMeshes = useEditorStore.getState().selectedMeshes || [];
+
+      // Add to our collection
+      selectedMeshes.forEach(mesh => {
+        meshesToHighlight.push({ mesh, isGroupA });
+      });
+    };
+
+    // Collect meshes from both groups
+    groupA.forEach(nodeId => collectMeshesForNode(nodeId, true));
+    groupB.forEach(nodeId => collectMeshesForNode(nodeId, false));
+
+    // Clear editor selection
+    useEditorStore.getState().clearSelection();
+
+    // Now highlight all collected meshes
+    for (const { mesh, isGroupA } of meshesToHighlight) {
+      if (!mesh.material) continue;
+
+      const highlightColor = isGroupA
+        ? new BABYLON.Color3(0.0, 0.2, 0.6)  // Deep navy blue
+        : new BABYLON.Color3(0.6, 0.5, 0.0); // Dark gold
+
+      const originalMaterial = mesh.material;
+      const meshesWithSameMaterial = scene.meshes.filter(m => m.material === originalMaterial);
+      const isSharedMaterial = meshesWithSameMaterial.length > 1;
+
+      const isPBR = originalMaterial instanceof BABYLON.PBRMaterial;
+      const isStandard = originalMaterial instanceof BABYLON.StandardMaterial;
+
+      if (!isPBR && !isStandard) continue;
+
+      let workingMaterial: BABYLON.Material;
+
+      if (isSharedMaterial) {
+        const clonedMaterial = originalMaterial.clone(`${originalMaterial.name}_highlight_${mesh.uniqueId}`);
+        mesh.material = clonedMaterial;
+        workingMaterial = clonedMaterial;
+
+        if (!selectionMaterialRef.current.has(mesh.uniqueId)) {
+          if (isPBR) {
+            const pbrMat = workingMaterial as BABYLON.PBRMaterial;
+            selectionMaterialRef.current.set(mesh.uniqueId, {
+              diffuseColor: pbrMat.albedoColor ? pbrMat.albedoColor.clone() : new BABYLON.Color3(1, 1, 1),
+              emissiveColor: pbrMat.emissiveColor ? pbrMat.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
+              alpha: pbrMat.alpha ?? 1.0,
+              disableLighting: pbrMat.unlit ?? false,
+              originalMaterial: originalMaterial,
+            });
+          } else {
+            const stdMat = workingMaterial as BABYLON.StandardMaterial;
+            selectionMaterialRef.current.set(mesh.uniqueId, {
+              diffuseColor: stdMat.diffuseColor ? stdMat.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
+              emissiveColor: stdMat.emissiveColor ? stdMat.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
+              alpha: stdMat.alpha ?? 1.0,
+              disableLighting: stdMat.disableLighting ?? false,
+              originalMaterial: originalMaterial,
+            });
+          }
+        }
+      } else {
+        workingMaterial = mesh.material;
+
+        if (!selectionMaterialRef.current.has(mesh.uniqueId)) {
+          if (isPBR) {
+            const pbrMat = workingMaterial as BABYLON.PBRMaterial;
+            selectionMaterialRef.current.set(mesh.uniqueId, {
+              diffuseColor: pbrMat.albedoColor ? pbrMat.albedoColor.clone() : new BABYLON.Color3(1, 1, 1),
+              emissiveColor: pbrMat.emissiveColor ? pbrMat.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
+              alpha: pbrMat.alpha ?? 1.0,
+              disableLighting: pbrMat.unlit ?? false,
+            });
+          } else {
+            const stdMat = workingMaterial as BABYLON.StandardMaterial;
+            selectionMaterialRef.current.set(mesh.uniqueId, {
+              diffuseColor: stdMat.diffuseColor ? stdMat.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
+              emissiveColor: stdMat.emissiveColor ? stdMat.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
+              alpha: stdMat.alpha ?? 1.0,
+              disableLighting: stdMat.disableLighting ?? false,
+            });
+          }
+        }
+      }
+
+      if (isPBR) {
+        const pbrMat = workingMaterial as BABYLON.PBRMaterial;
+        pbrMat.albedoColor = highlightColor.clone();
+        pbrMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
+        pbrMat.unlit = true;
+        pbrMat.alpha = 1.0;
+      } else {
+        const stdMat = workingMaterial as BABYLON.StandardMaterial;
+        stdMat.diffuseColor = highlightColor.clone();
+        stdMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
+        stdMat.disableLighting = true;
+        stdMat.alpha = 1.0;
+      }
+    }
+
+    setShowingGroups(true);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -599,6 +724,15 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
             >
               <Repeat size={14} />
               {isRunning ? 'Checking...' : 'Check Collisions'}
+            </button>
+            <button
+              className={`collision-dialog__btn ${showingGroups ? 'collision-dialog__add-btn active' : ''}`}
+              onClick={highlightAllGroups}
+              disabled={groupA.length === 0 && groupB.length === 0}
+              title={showingGroups ? 'Hide group highlights' : 'View all groups with color-coded highlights'}
+            >
+              <Eye size={14} />
+              {showingGroups ? 'Hide Groups' : 'View Groups'}
             </button>
             {collisions.length > 0 && (
               <button className="collision-dialog__btn" onClick={clearHighlights}>
