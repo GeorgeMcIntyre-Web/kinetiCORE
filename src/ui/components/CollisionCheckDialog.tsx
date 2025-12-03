@@ -68,6 +68,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
         alpha: number;
         disableLighting: boolean;
         originalMaterial?: BABYLON.Material; // Track original material if we cloned it
+        hadEdgesEnabled?: boolean; // Track if edges were already enabled
       }
     >
   >(new Map());
@@ -232,6 +233,11 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       const mesh = scene.getMeshByUniqueId(uniqueId) as BABYLON.Mesh | null;
       if (!mesh) continue;
 
+      // Disable edge rendering if it wasn't enabled before
+      if (!state.hadEdgesEnabled && mesh instanceof BABYLON.Mesh) {
+        mesh.disableEdgesRendering();
+      }
+
       if (state.originalMaterial) {
         const clonedMaterial = mesh.material;
         mesh.material = state.originalMaterial;
@@ -255,6 +261,15 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       }
     }
     selectionMaterialRef.current.clear();
+  };
+
+  // Helper to apply edge rendering
+  const applyEdgeRendering = (mesh: BABYLON.Mesh, color: BABYLON.Color3, hadEdgesEnabled: boolean) => {
+    if (!hadEdgesEnabled) {
+      mesh.enableEdgesRendering();
+    }
+    mesh.edgesWidth = 2.0;
+    mesh.edgesColor = new BABYLON.Color4(color.r, color.g, color.b, 1.0);
   };
 
   // Apply selection highlight to the meshes that were just selected
@@ -284,6 +299,9 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
 
       if (!isPBR && !isStandard) continue;
 
+      // Track if edges were already enabled
+      const hadEdgesEnabled = (mesh as BABYLON.Mesh).edgesRenderer !== undefined && (mesh as BABYLON.Mesh).edgesRenderer !== null;
+
       let workingMaterial: BABYLON.Material;
 
       if (isSharedMaterial) {
@@ -300,6 +318,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
               alpha: pbrMat.alpha ?? 1.0,
               disableLighting: pbrMat.unlit ?? false,
               originalMaterial: originalMaterial,
+              hadEdgesEnabled,
             });
           } else {
             const stdMat = workingMaterial as BABYLON.StandardMaterial;
@@ -309,6 +328,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
               alpha: stdMat.alpha ?? 1.0,
               disableLighting: stdMat.disableLighting ?? false,
               originalMaterial: originalMaterial,
+              hadEdgesEnabled,
             });
           }
         }
@@ -323,6 +343,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
               emissiveColor: pbrMat.emissiveColor ? pbrMat.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
               alpha: pbrMat.alpha ?? 1.0,
               disableLighting: pbrMat.unlit ?? false,
+              hadEdgesEnabled,
             });
           } else {
             const stdMat = workingMaterial as BABYLON.StandardMaterial;
@@ -331,6 +352,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
               emissiveColor: stdMat.emissiveColor ? stdMat.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
               alpha: stdMat.alpha ?? 1.0,
               disableLighting: stdMat.disableLighting ?? false,
+              hadEdgesEnabled,
             });
           }
         }
@@ -349,6 +371,9 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
         stdMat.disableLighting = true;
         stdMat.alpha = 1.0;
       }
+
+      // Apply edge rendering
+      applyEdgeRendering(mesh as BABYLON.Mesh, highlightColor, hadEdgesEnabled);
     }
   };
 
@@ -518,6 +543,9 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
 
       if (!isPBR && !isStandard) continue;
 
+      // Track if edges were already enabled
+      const hadEdgesEnabled = mesh.edgesRenderer !== undefined && mesh.edgesRenderer !== null;
+
       let workingMaterial: BABYLON.Material;
 
       if (isSharedMaterial) {
@@ -534,6 +562,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
               alpha: pbrMat.alpha ?? 1.0,
               disableLighting: pbrMat.unlit ?? false,
               originalMaterial: originalMaterial,
+              hadEdgesEnabled,
             });
           } else {
             const stdMat = workingMaterial as BABYLON.StandardMaterial;
@@ -543,6 +572,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
               alpha: stdMat.alpha ?? 1.0,
               disableLighting: stdMat.disableLighting ?? false,
               originalMaterial: originalMaterial,
+              hadEdgesEnabled,
             });
           }
         }
@@ -557,6 +587,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
               emissiveColor: pbrMat.emissiveColor ? pbrMat.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
               alpha: pbrMat.alpha ?? 1.0,
               disableLighting: pbrMat.unlit ?? false,
+              hadEdgesEnabled,
             });
           } else {
             const stdMat = workingMaterial as BABYLON.StandardMaterial;
@@ -565,6 +596,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
               emissiveColor: stdMat.emissiveColor ? stdMat.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
               alpha: stdMat.alpha ?? 1.0,
               disableLighting: stdMat.disableLighting ?? false,
+              hadEdgesEnabled,
             });
           }
         }
@@ -582,6 +614,11 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
         stdMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
         stdMat.disableLighting = true;
         stdMat.alpha = 1.0;
+      }
+
+      // Apply edge rendering
+      if (mesh instanceof BABYLON.Mesh) {
+        applyEdgeRendering(mesh, highlightColor, hadEdgesEnabled);
       }
     }
 
