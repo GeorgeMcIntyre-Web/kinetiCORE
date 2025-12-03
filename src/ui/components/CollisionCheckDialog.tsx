@@ -239,34 +239,63 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
 
   // Apply selection highlight to the meshes that were just selected
   const applySelectionHighlight = () => {
+    console.log('[CollisionDialog] === applySelectionHighlight START ===');
+
     // Clear previous selection highlight
+    console.log('[CollisionDialog] Step 1: Clearing previous selection highlight');
     clearSelectionHighlight();
 
     // Get the meshes that were selected by the editor store
+    console.log('[CollisionDialog] Step 2: Getting selected meshes from editor store');
     const selectedMeshes = useEditorStore.getState().selectedMeshes;
-    if (!selectedMeshes || selectedMeshes.length === 0) return;
+    console.log('[CollisionDialog] Selected meshes count:', selectedMeshes?.length || 0);
+
+    if (!selectedMeshes || selectedMeshes.length === 0) {
+      console.log('[CollisionDialog] No meshes to highlight, exiting');
+      return;
+    }
+
+    console.log('[CollisionDialog] Selected meshes details:');
+    selectedMeshes.forEach((mesh, idx) => {
+      console.log(`  [${idx}] Name: "${mesh.name}", UniqueId: ${mesh.uniqueId}, HasMaterial: ${!!mesh.material}`);
+    });
 
     // Apply cyan/blue highlight to all selected meshes
     const highlightColor = new BABYLON.Color3(0.2, 0.7, 1.0); // Bright cyan/blue
+    console.log('[CollisionDialog] Step 3: Applying highlight color:', highlightColor);
 
+    let highlightedCount = 0;
     for (const mesh of selectedMeshes) {
-      if (!mesh.material) continue;
+      if (!mesh.material) {
+        console.log(`[CollisionDialog] Skipping mesh "${mesh.name}" (no material)`);
+        continue;
+      }
 
       const material = mesh.material as BABYLON.StandardMaterial;
+      console.log(`[CollisionDialog] Processing mesh "${mesh.name}" (uniqueId: ${mesh.uniqueId})`);
 
       // Save original material state
       if (!selectionMaterialRef.current.has(mesh.uniqueId)) {
-        selectionMaterialRef.current.set(mesh.uniqueId, {
+        const originalState = {
           diffuseColor: material.diffuseColor ? material.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
           emissiveColor: material.emissiveColor ? material.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
           alpha: material.alpha ?? 1.0,
-        });
+        };
+        selectionMaterialRef.current.set(mesh.uniqueId, originalState);
+        console.log(`  Saved original state - Diffuse: ${originalState.diffuseColor}, Emissive: ${originalState.emissiveColor}`);
+      } else {
+        console.log('  Original state already saved');
       }
 
       // Apply highlight
       material.diffuseColor = highlightColor.clone();
       material.emissiveColor = highlightColor.scale(0.3);
+      highlightedCount++;
+      console.log(`  Applied highlight - Diffuse: ${material.diffuseColor}, Emissive: ${material.emissiveColor}`);
     }
+
+    console.log(`[CollisionDialog] Step 4: Highlighting complete. Highlighted ${highlightedCount} meshes`);
+    console.log('[CollisionDialog] === applySelectionHighlight END ===');
   };
 
 
@@ -364,22 +393,45 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     setIsRunning(false);
   };
 
-  const getNodeName = (nodeId: string): string => {
+  const getNodeDisplayText = (nodeId: string): string => {
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(nodeId);
-    return node?.name || nodeId;
+    if (!node) return nodeId;
+
+    const name = node.name || nodeId;
+    const meshId = node.babylonMeshId || 'N/A';
+    const transformId = node.babylonTransformNodeId || 'N/A';
+
+    return `${name} (M:${meshId}, T:${transformId})`;
   };
 
   const handleNodeClick = (nodeId: string) => {
+    console.log('[CollisionDialog] === handleNodeClick START ===');
+    console.log('[CollisionDialog] Clicked nodeId:', nodeId);
+
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(nodeId);
+    console.log('[CollisionDialog] Node details:', {
+      name: node?.name,
+      type: node?.type,
+      babylonMeshId: node?.babylonMeshId,
+      babylonTransformNodeId: node?.babylonTransformNodeId,
+      entityId: node?.entityId
+    });
+
     if (node) {
       // Update editor store selection first
+      console.log('[CollisionDialog] Calling selectNode on editor store');
       useEditorStore.getState().selectNode(nodeId);
 
       // Apply highlight to the exact same meshes that were selected
+      console.log('[CollisionDialog] Calling applySelectionHighlight');
       applySelectionHighlight();
+    } else {
+      console.log('[CollisionDialog] Node not found, aborting');
     }
+
+    console.log('[CollisionDialog] === handleNodeClick END ===');
   };
 
   if (!isOpen) return null;
@@ -444,7 +496,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
                       style={{ cursor: 'pointer' }}
                       title="Click to select in scene"
                     >
-                      {getNodeName(nodeId)}
+                      {getNodeDisplayText(nodeId)}
                     </span>
                     <button
                       className="collision-dialog__delete-btn"
@@ -494,7 +546,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
                       style={{ cursor: 'pointer' }}
                       title="Click to select in scene"
                     >
-                      {getNodeName(nodeId)}
+                      {getNodeDisplayText(nodeId)}
                     </span>
                     <button
                       className="collision-dialog__delete-btn"
