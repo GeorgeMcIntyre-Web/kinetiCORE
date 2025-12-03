@@ -631,7 +631,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     <div className="collision-dialog-overlay">
       <div
         ref={dialogRef}
-        className="collision-dialog"
+        className="collision-dialog collision-dialog--compact"
         style={{
           position: 'fixed',
           left: `${position.x}px`,
@@ -754,37 +754,41 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
 
           {/* Actions */}
           <div className="collision-dialog__actions">
-            <button
-              className="collision-dialog__btn collision-dialog__btn--primary"
-              onClick={runCollisionCheck}
-              disabled={isRunning || groupA.length === 0 || groupB.length === 0}
-            >
-              <Repeat size={14} />
-              {isRunning ? 'Checking...' : 'Check Collisions'}
-            </button>
-            <button
-              className={`collision-dialog__btn ${showingGroups ? 'collision-dialog__add-btn active' : ''}`}
-              onClick={highlightAllGroups}
-              disabled={groupA.length === 0 && groupB.length === 0}
-              title={showingGroups ? 'Hide group highlights' : 'View all groups with color-coded highlights'}
-            >
-              <Eye size={14} />
-              {showingGroups ? 'Hide Groups' : 'View Groups'}
-            </button>
-            {collisions.length > 0 && (
-              <button className="collision-dialog__btn" onClick={clearHighlights}>
-                Clear Highlights
+            <div className="collision-dialog__action-buttons">
+              <button
+                className="collision-dialog__btn collision-dialog__btn--primary"
+                onClick={runCollisionCheck}
+                disabled={isRunning || groupA.length === 0 || groupB.length === 0}
+              >
+                <Repeat size={14} />
+                {isRunning ? 'Checking...' : 'Check Collisions'}
               </button>
+              <button
+                className={`collision-dialog__btn ${showingGroups ? 'collision-dialog__add-btn active' : ''}`}
+                onClick={highlightAllGroups}
+                disabled={groupA.length === 0 && groupB.length === 0}
+                title={showingGroups ? 'Hide group highlights' : 'View all groups with color-coded highlights'}
+              >
+                <Eye size={14} />
+                {showingGroups ? 'Hide Groups' : 'View Groups'}
+              </button>
+              {collisions.length > 0 && (
+                <button className="collision-dialog__btn" onClick={clearHighlights}>
+                  Clear Highlights
+                </button>
+              )}
+            </div>
+            {status && (
+              <div
+                className={`collision-dialog__status ${
+                  collisions.length > 0 ? 'collision-dialog__status--warning' : 'collision-dialog__status--success'
+                }`}
+              >
+                {collisions.length > 0 ? <AlertTriangle size={14} /> : <CheckCircle size={14} />}
+                <span>{status}</span>
+              </div>
             )}
           </div>
-
-          {/* Status */}
-          {status && (
-            <div className={`collision-dialog__status ${collisions.length > 0 ? 'collision-dialog__status--warning' : ''}`}>
-              {collisions.length > 0 ? <AlertTriangle size={14} /> : <CheckCircle size={14} />}
-              <span>{status}</span>
-            </div>
-          )}
 
           {/* Results */}
           {collisions.length > 0 && (
