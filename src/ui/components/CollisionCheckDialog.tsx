@@ -245,18 +245,15 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     // Clear previous selection highlight
     clearSelectionHighlight();
 
-    const tree = SceneTreeManager.getInstance();
-    const node = tree.getNode(nodeId);
-    if (!node) return;
-
-    // Collect all meshes from the node
-    const meshes = collectMeshesWithNodes(node, scene);
+    // Get all mesh uniqueIds for this node
+    const meshIds = resolveMeshUniqueIdsForNodes([nodeId], scene);
 
     // Apply cyan/blue highlight to all meshes
     const highlightColor = new BABYLON.Color3(0.2, 0.7, 1.0); // Bright cyan/blue
 
-    for (const { mesh } of meshes) {
-      if (!mesh.material) continue;
+    for (const uniqueId of meshIds) {
+      const mesh = scene.getMeshByUniqueId(uniqueId) as BABYLON.Mesh | null;
+      if (!mesh || !mesh.material) continue;
 
       const material = mesh.material as BABYLON.StandardMaterial;
 
