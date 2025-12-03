@@ -136,12 +136,17 @@ export async function batchCollisionCheck(
   meshesA: BABYLON.Mesh[],
   meshesB: BABYLON.Mesh[]
 ): Promise<Array<{ indexA: number; indexB: number; meshA: BABYLON.Mesh; meshB: BABYLON.Mesh }>> {
+  console.log(`[CollisionUtils] Starting batch check: Group A (${meshesA.length} meshes) vs Group B (${meshesB.length} meshes)`);
+
   const physicsEngine = PhysicsManager.getInstance().getCurrentEngine();
 
   if (!physicsEngine) {
-    console.warn('[CollisionUtils] Physics engine not initialized');
+    console.error('[CollisionUtils] Physics engine not initialized!');
     return [];
   }
+
+  console.log(`[CollisionUtils] Physics engine: ${PhysicsManager.getInstance().getCurrentEngineType()}`);
+
   const collisions: Array<{
     indexA: number;
     indexB: number;
@@ -154,8 +159,13 @@ export async function batchCollisionCheck(
 
   for (let i = 0; i < meshesA.length; i++) {
     for (let j = 0; j < meshesB.length; j++) {
+      // Ensure world matrices are computed
+      meshesA[i].computeWorldMatrix(true);
+      meshesB[j].computeWorldMatrix(true);
+
       if (meshesA[i].intersectsMesh(meshesB[j], false)) {
         potentialPairs.push([i, j]);
+        console.log(`[CollisionUtils] AABB overlap: ${meshesA[i].name} <-> ${meshesB[j].name}`);
       }
     }
   }
@@ -166,25 +176,44 @@ export async function batchCollisionCheck(
   const colliderMapA = new Map<number, string>();
   const colliderMapB = new Map<number, string>();
 
+  console.log(`[CollisionUtils] Creating colliders for ${potentialPairs.length} potential pairs...`);
+
   for (const [i, j] of potentialPairs) {
     if (!colliderMapA.has(i)) {
       const collider = createColliderFromMesh(meshesA[i]);
-      if (collider) colliderMapA.set(i, collider);
+      if (collider) {
+        colliderMapA.set(i, collider);
+        console.log(`[CollisionUtils] Created collider for Group A mesh: ${meshesA[i].name}`);
+      } else {
+        console.warn(`[CollisionUtils] Failed to create collider for Group A mesh: ${meshesA[i].name}`);
+      }
     }
 
     if (!colliderMapB.has(j)) {
       const collider = createColliderFromMesh(meshesB[j]);
-      if (collider) colliderMapB.set(j, collider);
+      if (collider) {
+        colliderMapB.set(j, collider);
+        console.log(`[CollisionUtils] Created collider for Group B mesh: ${meshesB[j].name}`);
+      } else {
+        console.warn(`[CollisionUtils] Failed to create collider for Group B mesh: ${meshesB[j].name}`);
+      }
     }
   }
 
+  console.log(`[CollisionUtils] Created ${colliderMapA.size} colliders for Group A, ${colliderMapB.size} colliders for Group B`);
+
   // Step 3: Narrow-phase - test actual collisions
+  console.log(`[CollisionUtils] Testing ${potentialPairs.length} pairs with Rapier...`);
+
   for (const [i, j] of potentialPairs) {
     const colliderA = colliderMapA.get(i);
     const colliderB = colliderMapB.get(j);
 
     if (colliderA && colliderB) {
-      if (physicsEngine.testColliderIntersection(colliderA, colliderB)) {
+      const intersects = physicsEngine.testColliderIntersection(colliderA, colliderB);
+      console.log(`[CollisionUtils] Testing ${meshesA[i].name} vs ${meshesB[j].name}: ${intersects ? 'COLLISION' : 'no collision'}`);
+
+      if (intersects) {
         collisions.push({
           indexA: i,
           indexB: j,
@@ -192,6 +221,8 @@ export async function batchCollisionCheck(
           meshB: meshesB[j],
         });
       }
+    } else {
+      console.warn(`[CollisionUtils] Missing colliders for pair [${i},${j}]: A=${!!colliderA}, B=${!!colliderB}`);
     }
   }
 
