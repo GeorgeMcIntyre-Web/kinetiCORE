@@ -136,16 +136,51 @@ export async function batchCollisionCheck(
   meshesA: BABYLON.Mesh[],
   meshesB: BABYLON.Mesh[]
 ): Promise<Array<{ indexA: number; indexB: number; meshA: BABYLON.Mesh; meshB: BABYLON.Mesh }>> {
-  console.log(`[CollisionUtils] Starting batch check: Group A (${meshesA.length} meshes) vs Group B (${meshesB.length} meshes)`);
+  const callId = Math.random().toString(36).substring(7);
+  console.log(`[CollisionUtils #${callId}] Starting batch check: Group A (${meshesA.length} meshes) vs Group B (${meshesB.length} meshes)`);
 
-  const physicsEngine = PhysicsManager.getInstance().getCurrentEngine();
+  let physicsEngine;
+  let engineType;
 
-  if (!physicsEngine) {
-    console.error('[CollisionUtils] Physics engine not initialized!');
+  try {
+    const physicsManager = PhysicsManager.getInstance();
+    physicsEngine = physicsManager.getCurrentEngine();
+    engineType = physicsManager.getCurrentEngineType();
+
+    console.log(`[CollisionUtils #${callId}] Current engine type: ${engineType}, engine exists: ${!!physicsEngine}`);
+
+    // If physics engine not initialized, initialize Rapier automatically
+    if (!physicsEngine) {
+      console.log(`[CollisionUtils #${callId}] Physics engine not initialized, initializing Rapier...`);
+      try {
+        await physicsManager.switchEngine('rapier');
+        physicsEngine = physicsManager.getCurrentEngine();
+        engineType = physicsManager.getCurrentEngineType();
+        console.log(`[CollisionUtils #${callId}] Rapier physics engine initialized successfully`);
+      } catch (initError) {
+        console.error(`[CollisionUtils #${callId}] Failed to initialize Rapier physics engine:`, initError);
+        return [];
+      }
+    }
+
+    // Double-check engine is now available
+    if (!physicsEngine) {
+      console.error(`[CollisionUtils #${callId}] Physics engine still null after initialization attempt`);
+      return [];
+    }
+
+    // Verify we're using Rapier
+    if (engineType !== 'rapier') {
+      console.error(`[CollisionUtils #${callId}] Wrong physics engine! Expected 'rapier', got '${engineType}'`);
+      console.error(`[CollisionUtils #${callId}] Collision checking requires Rapier physics engine`);
+      return [];
+    }
+
+    console.log(`[CollisionUtils #${callId}] Physics engine ready: ${engineType}`);
+  } catch (error) {
+    console.error(`[CollisionUtils #${callId}] Error initializing physics engine:`, error);
     return [];
   }
-
-  console.log(`[CollisionUtils] Physics engine: ${PhysicsManager.getInstance().getCurrentEngineType()}`);
 
   const collisions: Array<{
     indexA: number;
