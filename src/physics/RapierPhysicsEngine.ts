@@ -17,6 +17,8 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
   private colliderToHandle = new Map<RAPIER.Collider, string>();
   private eventQueue: RAPIER.EventQueue | null = null;
   private activeCollisions = new Map<string, { bodyA: string; bodyB: string }>();
+  // Standalone colliders for temporary collision testing
+  private standaloneColliders = new Map<string, RAPIER.Collider>();
 
   async initialize(gravity: Vector3 = DEFAULT_GRAVITY): Promise<void> {
     // Skip re-initialization if already initialized
@@ -482,5 +484,77 @@ export class RapierPhysicsEngine implements IPhysicsEngine {
 
   private getPairKey(bodyA: string, bodyB: string): string {
     return bodyA < bodyB ? `${bodyA}|${bodyB}` : `${bodyB}|${bodyA}`;
+  }
+
+  // === Temporary Collider Management ===
+
+  createConvexCollider(
+    vertices: Float32Array,
+    position: Vector3,
+    rotation: Quaternion
+  ): string {
+    if (!this.world || !this.RAPIER) {
+      throw new Error('Physics engine not initialized');
+    }
+
+    const handle = crypto.randomUUID();
+
+    try {
+      // Create convex hull collider descriptor
+      const colliderDesc = this.RAPIER.ColliderDesc.convexHull(vertices);
+
+      if (!colliderDesc) {
+        throw new Error('Failed to create convex hull from vertices');
+      }
+
+      // Set position and rotation
+      colliderDesc.setTranslation(position.x, position.y, position.z);
+      colliderDesc.setRotation({
+        x: rotation.x,
+        y: rotation.y,
+        z: rotation.z,
+        w: rotation.w,
+      });
+
+      // Create collider without attaching to a rigid body
+      const collider = this.world.createCollider(colliderDesc);
+
+      // Store standalone collider
+      this.standaloneColliders.set(handle, collider);
+
+      return handle;
+    } catch (error) {
+      console.error('[Rapier] Failed to create convex collider:', error);
+      throw error;
+    }
+  }
+
+  testColliderIntersection(colliderA: string, colliderB: string): boolean {
+    if (!this.world) return false;
+
+    const collA = this.standaloneColliders.get(colliderA) || this.colliders.get(colliderA);
+    const collB = this.standaloneColliders.get(colliderB) || this.colliders.get(colliderB);
+
+    if (!collA || !collB) {
+      console.warn('[Rapier] One or both colliders not found:', { colliderA, colliderB });
+      return false;
+    }
+
+    // Use Rapier's intersection test
+    return this.world.intersectionPair(collA, collB);
+  }
+
+  disposeCollider(colliderHandle: string): void {
+    if (!this.world) return;
+
+    const collider = this.standaloneColliders.get(colliderHandle);
+    if (collider) {
+      try {
+        this.world.removeCollider(collider, false);
+      } catch (e) {
+        console.warn('[Rapier] Error disposing collider:', e);
+      }
+      this.standaloneColliders.delete(colliderHandle);
+    }
   }
 }

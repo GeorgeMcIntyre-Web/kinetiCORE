@@ -7,6 +7,7 @@ import { SceneManager } from '../../scene/SceneManager';
 import { useEditorStore } from '../store/editorStore';
 import { shallow } from 'zustand/shallow';
 import { resolveMeshUniqueIdsForNodes } from '../utils/meshResolver';
+import { batchCollisionCheck } from '../utils/collisionUtils';
 import './CollisionCheckDialog.css';
 
 interface CollisionCheckDialogProps {
@@ -428,47 +429,46 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       return;
     }
 
-    const collisionsFound: CollisionResultRow[] = [];
-    const seenPairs = new Set<string>();
+    setStatus('Checking collisions with Rapier physics...');
 
-    for (const meshA of meshesA) {
-      meshA.computeWorldMatrix(true);
-      const nodeA = nodeToMeshMapA.get(meshA)!;
+    try {
+      // Use Rapier-based batch collision checking with hybrid approach
+      const collisionResults = await batchCollisionCheck(meshesA, meshesB);
 
-      for (const meshB of meshesB) {
-        meshB.computeWorldMatrix(true);
-        const nodeB = nodeToMeshMapB.get(meshB)!;
+      const collisionsFound: CollisionResultRow[] = [];
+      const seenPairs = new Set<string>();
 
-        if (meshA === meshB) continue;
+      // Process collision results
+      for (const { meshA, meshB } of collisionResults) {
+        const nodeA = nodeToMeshMapA.get(meshA);
+        const nodeB = nodeToMeshMapB.get(meshB);
 
-        const key = meshA.uniqueId < meshB.uniqueId
-          ? `${meshA.uniqueId}|${meshB.uniqueId}`
-          : `${meshB.uniqueId}|${meshA.uniqueId}`;
+        if (!nodeA || !nodeB) continue;
 
-        if (seenPairs.has(key)) continue;
-        seenPairs.add(key);
+        // Avoid duplicate pairs
+        const pairKey = nodeA.id < nodeB.id ? `${nodeA.id}|${nodeB.id}` : `${nodeB.id}|${nodeA.id}`;
+        if (seenPairs.has(pairKey)) continue;
+        seenPairs.add(pairKey);
 
-        try {
-          const isColliding = meshA.intersectsMesh(meshB, false);
+        collisionsFound.push({ nodeA, nodeB });
 
-          if (isColliding) {
-            collisionsFound.push({ nodeA, nodeB });
-            // Highlight only the specific meshes that collided, not all meshes from the nodes
-            highlightMesh(meshA);
-            highlightMesh(meshB);
-          }
-        } catch (error) {
-          console.warn(`Error checking collision between ${nodeA.name} and ${nodeB.name}:`, error);
-        }
+        // Highlight the colliding meshes
+        highlightMesh(meshA);
+        highlightMesh(meshB);
       }
+
+      setCollisions(collisionsFound);
+      setStatus(
+        collisionsFound.length > 0
+          ? `${collisionsFound.length} collision${collisionsFound.length === 1 ? '' : 's'} detected (Rapier)`
+          : 'No collisions detected (Rapier)'
+      );
+    } catch (error) {
+      console.error('[CollisionCheck] Error during collision detection:', error);
+      setStatus('Error during collision detection. Check console for details.');
+      setCollisions([]);
     }
 
-    setCollisions(collisionsFound);
-    setStatus(
-      collisionsFound.length > 0
-        ? `${collisionsFound.length} collision${collisionsFound.length === 1 ? '' : 's'} detected`
-        : 'No collisions detected'
-    );
     setIsRunning(false);
   };
 

@@ -173,4 +173,33 @@ export interface IPhysicsEngine {
    * @returns True if bodies are colliding
    */
   checkBodyCollision(bodyA: string, bodyB: string): boolean;
+
+  // === Temporary Collider Management (for collision checking) ===
+
+  /**
+   * Create a standalone convex hull collider for collision testing
+   * @param vertices Vertex positions as Float32Array [x1,y1,z1, x2,y2,z2, ...]
+   * @param position World position of the collider
+   * @param rotation World rotation of the collider
+   * @returns Collider handle for disposal
+   */
+  createConvexCollider(
+    vertices: Float32Array,
+    position: Vector3,
+    rotation: Quaternion
+  ): string;
+
+  /**
+   * Test collision between two standalone colliders
+   * @param colliderA First collider handle
+   * @param colliderB Second collider handle
+   * @returns True if colliders intersect
+   */
+  testColliderIntersection(colliderA: string, colliderB: string): boolean;
+
+  /**
+   * Dispose a standalone collider
+   * @param colliderHandle Handle returned from createConvexCollider
+   */
+  disposeCollider(colliderHandle: string): void;
 }

@@ -429,13 +429,32 @@ export class HavokPhysicsEngine implements IPhysicsEngine {
   checkBodyCollision(bodyA: string, bodyB: string): boolean {
     const bodyARef = this.bodyHandles.get(bodyA);
     const bodyBRef = this.bodyHandles.get(bodyB);
-    
+
     if (!bodyARef || !bodyBRef) return false;
 
     // Havok collision checking would be implemented here
     // This is a placeholder implementation
     console.log(`[Havok] Checking collision between ${bodyA} and ${bodyB} (placeholder)`);
-    
+
     return false;
+  }
+
+  // === Temporary Collider Management (Not implemented for Havok) ===
+
+  createConvexCollider(
+    _vertices: Float32Array,
+    _position: Vector3,
+    _rotation: Quaternion
+  ): string {
+    throw new Error('[Havok] Temporary collider creation not implemented. Use Rapier physics engine for collision checking.');
+  }
+
+  testColliderIntersection(_colliderA: string, _colliderB: string): boolean {
+    throw new Error('[Havok] Collider intersection testing not implemented. Use Rapier physics engine for collision checking.');
+  }
+
+  disposeCollider(_colliderHandle: string): void {
+    // No-op for Havok
+    console.warn('[Havok] disposeCollider called but not implemented');
   }
 }
