@@ -231,26 +231,19 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       const mesh = scene.getMeshByUniqueId(uniqueId) as BABYLON.Mesh | null;
       if (!mesh) continue;
 
-      // If we cloned the material, restore the original material reference
       if (state.originalMaterial) {
-        console.log(`[CollisionDialog] Restoring original material for mesh "${mesh.name}"`);
         const clonedMaterial = mesh.material;
         mesh.material = state.originalMaterial;
-        // Dispose the cloned material to free memory
         if (clonedMaterial) {
           clonedMaterial.dispose();
         }
       } else if (mesh.material) {
-        // Material wasn't cloned, just restore the properties
-        console.log(`[CollisionDialog] Restoring material properties for mesh "${mesh.name}"`);
-
-        // Handle both PBR and Standard materials
         if (mesh.material instanceof BABYLON.PBRMaterial) {
           const pbrMat = mesh.material as BABYLON.PBRMaterial;
-          pbrMat.albedoColor = state.diffuseColor; // PBR uses albedoColor
+          pbrMat.albedoColor = state.diffuseColor;
           pbrMat.emissiveColor = state.emissiveColor;
           pbrMat.alpha = state.alpha;
-          pbrMat.unlit = state.disableLighting; // PBR uses 'unlit'
+          pbrMat.unlit = state.disableLighting;
         } else if (mesh.material instanceof BABYLON.StandardMaterial) {
           const stdMat = mesh.material as BABYLON.StandardMaterial;
           stdMat.diffuseColor = state.diffuseColor;
@@ -265,75 +258,38 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
 
   // Apply selection highlight to the meshes that were just selected
   const applySelectionHighlight = (isGroupA: boolean) => {
-    console.log('[CollisionDialog] === applySelectionHighlight START ===');
-    console.log('[CollisionDialog] Group:', isGroupA ? 'A (Deep Blue)' : 'B (Gold)');
-
-    // Clear previous selection highlight
-    console.log('[CollisionDialog] Step 1: Clearing previous selection highlight');
     clearSelectionHighlight();
 
-    // Get the meshes that were selected by the editor store
-    console.log('[CollisionDialog] Step 2: Getting selected meshes from editor store');
     const selectedMeshes = useEditorStore.getState().selectedMeshes;
-    console.log('[CollisionDialog] Selected meshes count:', selectedMeshes?.length || 0);
+    if (!selectedMeshes || selectedMeshes.length === 0) return;
 
-    if (!selectedMeshes || selectedMeshes.length === 0) {
-      console.log('[CollisionDialog] No meshes to highlight, exiting');
-      return;
-    }
-
-    console.log('[CollisionDialog] Selected meshes details:');
-    selectedMeshes.forEach((mesh, idx) => {
-      console.log(`  [${idx}] Name: "${mesh.name}", UniqueId: ${mesh.uniqueId}, HasMaterial: ${!!mesh.material}`);
-    });
-
-    // Pure saturated colors - Blue for Group A, Gold for Group B
+    // Darker colors - Deep Navy Blue for Group A, Dark Gold for Group B
     const highlightColor = isGroupA
-      ? new BABYLON.Color3(0.0, 0.4, 1.0)  // Pure vivid blue
-      : new BABYLON.Color3(1.0, 0.843, 0.0); // Pure gold (FFD700)
-    console.log('[CollisionDialog] Step 3: Applying highlight color:', isGroupA ? 'BLUE' : 'GOLD', highlightColor);
+      ? new BABYLON.Color3(0.0, 0.2, 0.6)  // Deep navy blue
+      : new BABYLON.Color3(0.6, 0.5, 0.0); // Dark gold
 
-    let highlightedCount = 0;
     for (const mesh of selectedMeshes) {
-      if (!mesh.material) {
-        console.log(`[CollisionDialog] Skipping mesh "${mesh.name}" (no material)`);
-        continue;
-      }
+      if (!mesh.material) continue;
 
-      console.log(`[CollisionDialog] Processing mesh "${mesh.name}" (uniqueId: ${mesh.uniqueId})`);
-
-      // Check if material is shared with other meshes
       const originalMaterial = mesh.material;
       const scene = SceneManager.getInstance().getScene();
-      if (!scene) {
-        console.log(`[CollisionDialog] No scene available, skipping mesh`);
-        continue;
-      }
+      if (!scene) continue;
 
       const meshesWithSameMaterial = scene.meshes.filter(m => m.material === originalMaterial);
       const isSharedMaterial = meshesWithSameMaterial.length > 1;
-      console.log(`  Material "${originalMaterial.name}" is ${isSharedMaterial ? 'SHARED' : 'unique'} (used by ${meshesWithSameMaterial.length} mesh(es))`);
 
-      // Determine material type before processing
       const isPBR = originalMaterial instanceof BABYLON.PBRMaterial;
       const isStandard = originalMaterial instanceof BABYLON.StandardMaterial;
-      console.log(`  Material type: ${isPBR ? 'PBR' : isStandard ? 'Standard' : 'Unknown'}`);
 
-      if (!isPBR && !isStandard) {
-        console.log(`  Skipping mesh "${mesh.name}" - unsupported material type`);
-        continue;
-      }
+      if (!isPBR && !isStandard) continue;
 
       let workingMaterial: BABYLON.Material;
 
       if (isSharedMaterial) {
-        // Clone the material to avoid affecting other meshes
-        console.log(`  Cloning material to avoid affecting ${meshesWithSameMaterial.length - 1} other mesh(es)`);
         const clonedMaterial = originalMaterial.clone(`${originalMaterial.name}_highlight_${mesh.uniqueId}`);
         mesh.material = clonedMaterial;
         workingMaterial = clonedMaterial;
 
-        // Save reference to restore original material later
         if (!selectionMaterialRef.current.has(mesh.uniqueId)) {
           if (isPBR) {
             const pbrMat = workingMaterial as BABYLON.PBRMaterial;
@@ -355,68 +311,44 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
             });
           }
         }
-        console.log(`  Material cloned: "${workingMaterial.name}", original saved for restoration`);
       } else {
-        // Material is unique to this mesh, safe to modify directly
-        console.log(`  Material is unique, modifying directly`);
         workingMaterial = mesh.material;
 
-        // Save original material state (no need to save original material reference)
         if (!selectionMaterialRef.current.has(mesh.uniqueId)) {
           if (isPBR) {
             const pbrMat = workingMaterial as BABYLON.PBRMaterial;
-            const originalState = {
+            selectionMaterialRef.current.set(mesh.uniqueId, {
               diffuseColor: pbrMat.albedoColor ? pbrMat.albedoColor.clone() : new BABYLON.Color3(1, 1, 1),
               emissiveColor: pbrMat.emissiveColor ? pbrMat.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
               alpha: pbrMat.alpha ?? 1.0,
               disableLighting: pbrMat.unlit ?? false,
-            };
-            selectionMaterialRef.current.set(mesh.uniqueId, originalState);
-            console.log(`  Saved original state - AlbedoColor: ${originalState.diffuseColor}, Unlit: ${originalState.disableLighting}`);
+            });
           } else {
             const stdMat = workingMaterial as BABYLON.StandardMaterial;
-            const originalState = {
+            selectionMaterialRef.current.set(mesh.uniqueId, {
               diffuseColor: stdMat.diffuseColor ? stdMat.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
               emissiveColor: stdMat.emissiveColor ? stdMat.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
               alpha: stdMat.alpha ?? 1.0,
               disableLighting: stdMat.disableLighting ?? false,
-            };
-            selectionMaterialRef.current.set(mesh.uniqueId, originalState);
-            console.log(`  Saved original state - Diffuse: ${originalState.diffuseColor}, DisableLighting: ${originalState.disableLighting}`);
+            });
           }
-        } else {
-          console.log('  Original state already saved');
         }
       }
 
-      // Apply highlight - handle both StandardMaterial and PBRMaterial
       if (isPBR) {
-        // PBR Material
         const pbrMat = workingMaterial as BABYLON.PBRMaterial;
-        console.log(`  BEFORE: albedoColor=${pbrMat.albedoColor}, unlit=${pbrMat.unlit}`);
         pbrMat.albedoColor = highlightColor.clone();
         pbrMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
-        pbrMat.unlit = true; // PBR materials use 'unlit' instead of 'disableLighting'
+        pbrMat.unlit = true;
         pbrMat.alpha = 1.0;
-        console.log(`  AFTER: albedoColor=${pbrMat.albedoColor}, unlit=${pbrMat.unlit}`);
       } else {
-        // Standard Material
         const stdMat = workingMaterial as BABYLON.StandardMaterial;
-        console.log(`  BEFORE: diffuseColor=${stdMat.diffuseColor}, disableLighting=${stdMat.disableLighting}`);
         stdMat.diffuseColor = highlightColor.clone();
         stdMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
         stdMat.disableLighting = true;
         stdMat.alpha = 1.0;
-        console.log(`  AFTER: diffuseColor=${stdMat.diffuseColor}, disableLighting=${stdMat.disableLighting}`);
       }
-
-      console.log(`  Color should be: ${isGroupA ? 'BLUE (0.0, 0.4, 1.0)' : 'GOLD (1.0, 0.843, 0.0)'}`);
-      highlightedCount++;
-      console.log(`  ✓ Applied highlight successfully`);
     }
-
-    console.log(`[CollisionDialog] Step 4: Highlighting complete. Highlighted ${highlightedCount} meshes`);
-    console.log('[CollisionDialog] === applySelectionHighlight END ===');
   };
 
 
@@ -518,41 +450,17 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(nodeId);
     if (!node) return nodeId;
-
-    const name = node.name || nodeId;
-    const meshId = node.babylonMeshId || 'N/A';
-    const transformId = node.babylonTransformNodeId || 'N/A';
-
-    return `${name} (M:${meshId}, T:${transformId})`;
+    return node.name || nodeId;
   };
 
   const handleNodeClick = (nodeId: string, isGroupA: boolean) => {
-    console.log('[CollisionDialog] === handleNodeClick START ===');
-    console.log('[CollisionDialog] Clicked nodeId:', nodeId, 'Group:', isGroupA ? 'A' : 'B');
-
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(nodeId);
-    console.log('[CollisionDialog] Node details:', {
-      name: node?.name,
-      type: node?.type,
-      babylonMeshId: node?.babylonMeshId,
-      babylonTransformNodeId: node?.babylonTransformNodeId,
-      entityId: node?.entityId
-    });
 
     if (node) {
-      // Update editor store selection first
-      console.log('[CollisionDialog] Calling selectNode on editor store');
       useEditorStore.getState().selectNode(nodeId);
-
-      // Apply highlight to the exact same meshes that were selected
-      console.log('[CollisionDialog] Calling applySelectionHighlight with group color');
       applySelectionHighlight(isGroupA);
-    } else {
-      console.log('[CollisionDialog] Node not found, aborting');
     }
-
-    console.log('[CollisionDialog] === handleNodeClick END ===');
   };
 
   if (!isOpen) return null;
@@ -615,7 +523,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
                       className="collision-dialog__node-name"
                       onClick={() => handleNodeClick(nodeId, true)}
                       style={{ cursor: 'pointer' }}
-                      title="Click to select in scene (Deep Blue)"
+                      title="Click to select in scene (Navy Blue)"
                     >
                       {getNodeDisplayText(nodeId)}
                     </span>
@@ -665,7 +573,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
                       className="collision-dialog__node-name"
                       onClick={() => handleNodeClick(nodeId, false)}
                       style={{ cursor: 'pointer' }}
-                      title="Click to select in scene (Gold)"
+                      title="Click to select in scene (Dark Gold)"
                     >
                       {getNodeDisplayText(nodeId)}
                     </span>
