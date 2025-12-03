@@ -380,11 +380,11 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(nodeId);
     if (node) {
+      // Update editor store selection first
+      useEditorStore.getState().selectNode(nodeId);
+
       // Apply highlight to the node's meshes
       applySelectionHighlight(nodeId);
-
-      // Update editor store selection
-      useEditorStore.getState().selectNode(nodeId);
     }
   };
 
