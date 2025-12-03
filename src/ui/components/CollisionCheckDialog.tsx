@@ -65,6 +65,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
         diffuseColor: BABYLON.Color3;
         emissiveColor: BABYLON.Color3;
         alpha: number;
+        disableLighting: boolean;
         originalMaterial?: BABYLON.Material; // Track original material if we cloned it
       }
     >
@@ -246,6 +247,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
         material.diffuseColor = state.diffuseColor;
         material.emissiveColor = state.emissiveColor;
         material.alpha = state.alpha;
+        material.disableLighting = state.disableLighting;
       }
     }
     selectionMaterialRef.current.clear();
@@ -275,11 +277,11 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       console.log(`  [${idx}] Name: "${mesh.name}", UniqueId: ${mesh.uniqueId}, HasMaterial: ${!!mesh.material}`);
     });
 
-    // Deep Blue for Group A, Gold for Group B
+    // Pure saturated colors - Blue for Group A, Gold for Group B
     const highlightColor = isGroupA
-      ? new BABYLON.Color3(0.0, 0.3, 1.0)  // Deep vivid blue
-      : new BABYLON.Color3(1.0, 0.84, 0.0); // Gold
-    console.log('[CollisionDialog] Step 3: Applying highlight color:', highlightColor);
+      ? new BABYLON.Color3(0.0, 0.4, 1.0)  // Pure vivid blue
+      : new BABYLON.Color3(1.0, 0.843, 0.0); // Pure gold (FFD700)
+    console.log('[CollisionDialog] Step 3: Applying highlight color:', isGroupA ? 'BLUE' : 'GOLD', highlightColor);
 
     let highlightedCount = 0;
     for (const mesh of selectedMeshes) {
@@ -317,6 +319,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
             diffuseColor: material.diffuseColor ? material.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
             emissiveColor: material.emissiveColor ? material.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
             alpha: material.alpha ?? 1.0,
+            disableLighting: material.disableLighting ?? false,
             originalMaterial: originalMaterial, // Save original material to restore later
           });
         }
@@ -332,21 +335,29 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
             diffuseColor: material.diffuseColor ? material.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
             emissiveColor: material.emissiveColor ? material.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
             alpha: material.alpha ?? 1.0,
+            disableLighting: material.disableLighting ?? false,
             // originalMaterial not needed since we're modifying the material directly
           };
           selectionMaterialRef.current.set(mesh.uniqueId, originalState);
-          console.log(`  Saved original state - Diffuse: ${originalState.diffuseColor}, Emissive: ${originalState.emissiveColor}`);
+          console.log(`  Saved original state - Diffuse: ${originalState.diffuseColor}, DisableLighting: ${originalState.disableLighting}`);
         } else {
           console.log('  Original state already saved');
         }
       }
 
-      // Apply highlight - use strong diffuse and emissive for vivid color
+      // Apply highlight - use bright diffuse color and disable lighting for vivid appearance
+      console.log(`  BEFORE: Diffuse=${material.diffuseColor}, DisableLighting=${material.disableLighting}`);
+
       material.diffuseColor = highlightColor.clone();
-      material.emissiveColor = highlightColor.scale(0.5); // Stronger emissive for more vibrant appearance
+      material.emissiveColor = new BABYLON.Color3(0, 0, 0); // No emissive
+      material.disableLighting = true; // Make material unlit so it shows the pure color
       material.alpha = 1.0; // Ensure full opacity
+
+      console.log(`  AFTER: Diffuse=${material.diffuseColor}, DisableLighting=${material.disableLighting}`);
+      console.log(`  Color should be: ${isGroupA ? 'BLUE (0.0, 0.4, 1.0)' : 'GOLD (1.0, 0.843, 0.0)'}`);
+
       highlightedCount++;
-      console.log(`  Applied highlight - Diffuse: ${material.diffuseColor}, Emissive: ${material.emissiveColor}`);
+      console.log(`  ✓ Applied highlight successfully`);
     }
 
     console.log(`[CollisionDialog] Step 4: Highlighting complete. Highlighted ${highlightedCount} meshes`);
