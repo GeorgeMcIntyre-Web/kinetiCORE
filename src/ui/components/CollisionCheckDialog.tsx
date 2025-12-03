@@ -243,11 +243,21 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       } else if (mesh.material) {
         // Material wasn't cloned, just restore the properties
         console.log(`[CollisionDialog] Restoring material properties for mesh "${mesh.name}"`);
-        const material = mesh.material as BABYLON.StandardMaterial;
-        material.diffuseColor = state.diffuseColor;
-        material.emissiveColor = state.emissiveColor;
-        material.alpha = state.alpha;
-        material.disableLighting = state.disableLighting;
+
+        // Handle both PBR and Standard materials
+        if (mesh.material instanceof BABYLON.PBRMaterial) {
+          const pbrMat = mesh.material as BABYLON.PBRMaterial;
+          pbrMat.albedoColor = state.diffuseColor; // PBR uses albedoColor
+          pbrMat.emissiveColor = state.emissiveColor;
+          pbrMat.alpha = state.alpha;
+          pbrMat.unlit = state.disableLighting; // PBR uses 'unlit'
+        } else if (mesh.material instanceof BABYLON.StandardMaterial) {
+          const stdMat = mesh.material as BABYLON.StandardMaterial;
+          stdMat.diffuseColor = state.diffuseColor;
+          stdMat.emissiveColor = state.emissiveColor;
+          stdMat.alpha = state.alpha;
+          stdMat.disableLighting = state.disableLighting;
+        }
       }
     }
     selectionMaterialRef.current.clear();
@@ -304,58 +314,103 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       const isSharedMaterial = meshesWithSameMaterial.length > 1;
       console.log(`  Material "${originalMaterial.name}" is ${isSharedMaterial ? 'SHARED' : 'unique'} (used by ${meshesWithSameMaterial.length} mesh(es))`);
 
-      let material: BABYLON.StandardMaterial;
+      // Determine material type before processing
+      const isPBR = originalMaterial instanceof BABYLON.PBRMaterial;
+      const isStandard = originalMaterial instanceof BABYLON.StandardMaterial;
+      console.log(`  Material type: ${isPBR ? 'PBR' : isStandard ? 'Standard' : 'Unknown'}`);
+
+      if (!isPBR && !isStandard) {
+        console.log(`  Skipping mesh "${mesh.name}" - unsupported material type`);
+        continue;
+      }
+
+      let workingMaterial: BABYLON.Material;
 
       if (isSharedMaterial) {
         // Clone the material to avoid affecting other meshes
         console.log(`  Cloning material to avoid affecting ${meshesWithSameMaterial.length - 1} other mesh(es)`);
         const clonedMaterial = originalMaterial.clone(`${originalMaterial.name}_highlight_${mesh.uniqueId}`);
         mesh.material = clonedMaterial;
-        material = clonedMaterial as BABYLON.StandardMaterial;
+        workingMaterial = clonedMaterial;
 
         // Save reference to restore original material later
         if (!selectionMaterialRef.current.has(mesh.uniqueId)) {
-          selectionMaterialRef.current.set(mesh.uniqueId, {
-            diffuseColor: material.diffuseColor ? material.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
-            emissiveColor: material.emissiveColor ? material.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
-            alpha: material.alpha ?? 1.0,
-            disableLighting: material.disableLighting ?? false,
-            originalMaterial: originalMaterial, // Save original material to restore later
-          });
+          if (isPBR) {
+            const pbrMat = workingMaterial as BABYLON.PBRMaterial;
+            selectionMaterialRef.current.set(mesh.uniqueId, {
+              diffuseColor: pbrMat.albedoColor ? pbrMat.albedoColor.clone() : new BABYLON.Color3(1, 1, 1),
+              emissiveColor: pbrMat.emissiveColor ? pbrMat.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
+              alpha: pbrMat.alpha ?? 1.0,
+              disableLighting: pbrMat.unlit ?? false,
+              originalMaterial: originalMaterial,
+            });
+          } else {
+            const stdMat = workingMaterial as BABYLON.StandardMaterial;
+            selectionMaterialRef.current.set(mesh.uniqueId, {
+              diffuseColor: stdMat.diffuseColor ? stdMat.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
+              emissiveColor: stdMat.emissiveColor ? stdMat.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
+              alpha: stdMat.alpha ?? 1.0,
+              disableLighting: stdMat.disableLighting ?? false,
+              originalMaterial: originalMaterial,
+            });
+          }
         }
-        console.log(`  Material cloned: "${material.name}", original saved for restoration`);
+        console.log(`  Material cloned: "${workingMaterial.name}", original saved for restoration`);
       } else {
         // Material is unique to this mesh, safe to modify directly
         console.log(`  Material is unique, modifying directly`);
-        material = mesh.material as BABYLON.StandardMaterial;
+        workingMaterial = mesh.material;
 
         // Save original material state (no need to save original material reference)
         if (!selectionMaterialRef.current.has(mesh.uniqueId)) {
-          const originalState = {
-            diffuseColor: material.diffuseColor ? material.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
-            emissiveColor: material.emissiveColor ? material.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
-            alpha: material.alpha ?? 1.0,
-            disableLighting: material.disableLighting ?? false,
-            // originalMaterial not needed since we're modifying the material directly
-          };
-          selectionMaterialRef.current.set(mesh.uniqueId, originalState);
-          console.log(`  Saved original state - Diffuse: ${originalState.diffuseColor}, DisableLighting: ${originalState.disableLighting}`);
+          if (isPBR) {
+            const pbrMat = workingMaterial as BABYLON.PBRMaterial;
+            const originalState = {
+              diffuseColor: pbrMat.albedoColor ? pbrMat.albedoColor.clone() : new BABYLON.Color3(1, 1, 1),
+              emissiveColor: pbrMat.emissiveColor ? pbrMat.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
+              alpha: pbrMat.alpha ?? 1.0,
+              disableLighting: pbrMat.unlit ?? false,
+            };
+            selectionMaterialRef.current.set(mesh.uniqueId, originalState);
+            console.log(`  Saved original state - AlbedoColor: ${originalState.diffuseColor}, Unlit: ${originalState.disableLighting}`);
+          } else {
+            const stdMat = workingMaterial as BABYLON.StandardMaterial;
+            const originalState = {
+              diffuseColor: stdMat.diffuseColor ? stdMat.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
+              emissiveColor: stdMat.emissiveColor ? stdMat.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
+              alpha: stdMat.alpha ?? 1.0,
+              disableLighting: stdMat.disableLighting ?? false,
+            };
+            selectionMaterialRef.current.set(mesh.uniqueId, originalState);
+            console.log(`  Saved original state - Diffuse: ${originalState.diffuseColor}, DisableLighting: ${originalState.disableLighting}`);
+          }
         } else {
           console.log('  Original state already saved');
         }
       }
 
-      // Apply highlight - use bright diffuse color and disable lighting for vivid appearance
-      console.log(`  BEFORE: Diffuse=${material.diffuseColor}, DisableLighting=${material.disableLighting}`);
+      // Apply highlight - handle both StandardMaterial and PBRMaterial
+      if (isPBR) {
+        // PBR Material
+        const pbrMat = workingMaterial as BABYLON.PBRMaterial;
+        console.log(`  BEFORE: albedoColor=${pbrMat.albedoColor}, unlit=${pbrMat.unlit}`);
+        pbrMat.albedoColor = highlightColor.clone();
+        pbrMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
+        pbrMat.unlit = true; // PBR materials use 'unlit' instead of 'disableLighting'
+        pbrMat.alpha = 1.0;
+        console.log(`  AFTER: albedoColor=${pbrMat.albedoColor}, unlit=${pbrMat.unlit}`);
+      } else {
+        // Standard Material
+        const stdMat = workingMaterial as BABYLON.StandardMaterial;
+        console.log(`  BEFORE: diffuseColor=${stdMat.diffuseColor}, disableLighting=${stdMat.disableLighting}`);
+        stdMat.diffuseColor = highlightColor.clone();
+        stdMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
+        stdMat.disableLighting = true;
+        stdMat.alpha = 1.0;
+        console.log(`  AFTER: diffuseColor=${stdMat.diffuseColor}, disableLighting=${stdMat.disableLighting}`);
+      }
 
-      material.diffuseColor = highlightColor.clone();
-      material.emissiveColor = new BABYLON.Color3(0, 0, 0); // No emissive
-      material.disableLighting = true; // Make material unlit so it shows the pure color
-      material.alpha = 1.0; // Ensure full opacity
-
-      console.log(`  AFTER: Diffuse=${material.diffuseColor}, DisableLighting=${material.disableLighting}`);
       console.log(`  Color should be: ${isGroupA ? 'BLUE (0.0, 0.4, 1.0)' : 'GOLD (1.0, 0.843, 0.0)'}`);
-
       highlightedCount++;
       console.log(`  ✓ Applied highlight successfully`);
     }
