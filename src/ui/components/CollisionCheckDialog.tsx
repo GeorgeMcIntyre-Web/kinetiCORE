@@ -58,12 +58,25 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     >
   >(new Map());
 
+  const selectionMaterialRef = useRef<
+    Map<
+      number,
+      {
+        diffuseColor: BABYLON.Color3;
+        emissiveColor: BABYLON.Color3;
+        alpha: number;
+      }
+    >
+  >(new Map());
+
   useEffect(() => {
     if (!isOpen) {
       clearHighlights();
+      clearSelectionHighlight();
     }
     return () => {
       clearHighlights();
+      clearSelectionHighlight();
     };
   }, [isOpen]);
 
@@ -207,6 +220,61 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     material.emissiveColor = new BABYLON.Color3(0.3, 0, 0);
   };
 
+  // Clear selection highlight and restore original materials
+  const clearSelectionHighlight = () => {
+    const scene = SceneManager.getInstance().getScene();
+    if (!scene || selectionMaterialRef.current.size === 0) return;
+
+    for (const [uniqueId, state] of selectionMaterialRef.current.entries()) {
+      const mesh = scene.getMeshByUniqueId(uniqueId) as BABYLON.Mesh | null;
+      if (!mesh || !mesh.material) continue;
+
+      const material = mesh.material as BABYLON.StandardMaterial;
+      material.diffuseColor = state.diffuseColor;
+      material.emissiveColor = state.emissiveColor;
+      material.alpha = state.alpha;
+    }
+    selectionMaterialRef.current.clear();
+  };
+
+  // Apply selection highlight to a node's meshes
+  const applySelectionHighlight = (nodeId: string) => {
+    const scene = SceneManager.getInstance().getScene();
+    if (!scene) return;
+
+    // Clear previous selection highlight
+    clearSelectionHighlight();
+
+    const tree = SceneTreeManager.getInstance();
+    const node = tree.getNode(nodeId);
+    if (!node) return;
+
+    // Collect all meshes from the node
+    const meshes = collectMeshesWithNodes(node, scene);
+
+    // Apply cyan/blue highlight to all meshes
+    const highlightColor = new BABYLON.Color3(0.2, 0.7, 1.0); // Bright cyan/blue
+
+    for (const { mesh } of meshes) {
+      if (!mesh.material) continue;
+
+      const material = mesh.material as BABYLON.StandardMaterial;
+
+      // Save original material state
+      if (!selectionMaterialRef.current.has(mesh.uniqueId)) {
+        selectionMaterialRef.current.set(mesh.uniqueId, {
+          diffuseColor: material.diffuseColor ? material.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
+          emissiveColor: material.emissiveColor ? material.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
+          alpha: material.alpha ?? 1.0,
+        });
+      }
+
+      // Apply highlight
+      material.diffuseColor = highlightColor.clone();
+      material.emissiveColor = highlightColor.scale(0.3);
+    }
+  };
+
 
   const runCollisionCheck = async () => {
     clearHighlights();
@@ -312,6 +380,10 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     const tree = SceneTreeManager.getInstance();
     const node = tree.getNode(nodeId);
     if (node) {
+      // Apply highlight to the node's meshes
+      applySelectionHighlight(nodeId);
+
+      // Update editor store selection
       useEditorStore.getState().selectNode(nodeId);
     }
   };
@@ -336,7 +408,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
             <AlertTriangle size={18} />
             <span>Collision Check</span>
           </div>
-          <button className="collision-dialog__icon-btn" onClick={() => { clearHighlights(); onClose(); }}>
+          <button className="collision-dialog__icon-btn" onClick={() => { clearHighlights(); clearSelectionHighlight(); onClose(); }}>
             <X size={16} />
           </button>
         </div>
