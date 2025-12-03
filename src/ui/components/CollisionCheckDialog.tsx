@@ -65,6 +65,7 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
         diffuseColor: BABYLON.Color3;
         emissiveColor: BABYLON.Color3;
         alpha: number;
+        originalMaterial?: BABYLON.Material; // Track original material if we cloned it
       }
     >
   >(new Map());
@@ -227,12 +228,25 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
 
     for (const [uniqueId, state] of selectionMaterialRef.current.entries()) {
       const mesh = scene.getMeshByUniqueId(uniqueId) as BABYLON.Mesh | null;
-      if (!mesh || !mesh.material) continue;
+      if (!mesh) continue;
 
-      const material = mesh.material as BABYLON.StandardMaterial;
-      material.diffuseColor = state.diffuseColor;
-      material.emissiveColor = state.emissiveColor;
-      material.alpha = state.alpha;
+      // If we cloned the material, restore the original material reference
+      if (state.originalMaterial) {
+        console.log(`[CollisionDialog] Restoring original material for mesh "${mesh.name}"`);
+        const clonedMaterial = mesh.material;
+        mesh.material = state.originalMaterial;
+        // Dispose the cloned material to free memory
+        if (clonedMaterial) {
+          clonedMaterial.dispose();
+        }
+      } else if (mesh.material) {
+        // Material wasn't cloned, just restore the properties
+        console.log(`[CollisionDialog] Restoring material properties for mesh "${mesh.name}"`);
+        const material = mesh.material as BABYLON.StandardMaterial;
+        material.diffuseColor = state.diffuseColor;
+        material.emissiveColor = state.emissiveColor;
+        material.alpha = state.alpha;
+      }
     }
     selectionMaterialRef.current.clear();
   };
@@ -271,20 +285,57 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
         continue;
       }
 
-      const material = mesh.material as BABYLON.StandardMaterial;
       console.log(`[CollisionDialog] Processing mesh "${mesh.name}" (uniqueId: ${mesh.uniqueId})`);
 
-      // Save original material state
-      if (!selectionMaterialRef.current.has(mesh.uniqueId)) {
-        const originalState = {
-          diffuseColor: material.diffuseColor ? material.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
-          emissiveColor: material.emissiveColor ? material.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
-          alpha: material.alpha ?? 1.0,
-        };
-        selectionMaterialRef.current.set(mesh.uniqueId, originalState);
-        console.log(`  Saved original state - Diffuse: ${originalState.diffuseColor}, Emissive: ${originalState.emissiveColor}`);
+      // Check if material is shared with other meshes
+      const originalMaterial = mesh.material;
+      const scene = SceneManager.getInstance().getScene();
+      if (!scene) {
+        console.log(`[CollisionDialog] No scene available, skipping mesh`);
+        continue;
+      }
+
+      const meshesWithSameMaterial = scene.meshes.filter(m => m.material === originalMaterial);
+      const isSharedMaterial = meshesWithSameMaterial.length > 1;
+      console.log(`  Material "${originalMaterial.name}" is ${isSharedMaterial ? 'SHARED' : 'unique'} (used by ${meshesWithSameMaterial.length} mesh(es))`);
+
+      let material: BABYLON.StandardMaterial;
+
+      if (isSharedMaterial) {
+        // Clone the material to avoid affecting other meshes
+        console.log(`  Cloning material to avoid affecting ${meshesWithSameMaterial.length - 1} other mesh(es)`);
+        const clonedMaterial = originalMaterial.clone(`${originalMaterial.name}_highlight_${mesh.uniqueId}`);
+        mesh.material = clonedMaterial;
+        material = clonedMaterial as BABYLON.StandardMaterial;
+
+        // Save reference to restore original material later
+        if (!selectionMaterialRef.current.has(mesh.uniqueId)) {
+          selectionMaterialRef.current.set(mesh.uniqueId, {
+            diffuseColor: material.diffuseColor ? material.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
+            emissiveColor: material.emissiveColor ? material.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
+            alpha: material.alpha ?? 1.0,
+            originalMaterial: originalMaterial, // Save original material to restore later
+          });
+        }
+        console.log(`  Material cloned: "${material.name}", original saved for restoration`);
       } else {
-        console.log('  Original state already saved');
+        // Material is unique to this mesh, safe to modify directly
+        console.log(`  Material is unique, modifying directly`);
+        material = mesh.material as BABYLON.StandardMaterial;
+
+        // Save original material state (no need to save original material reference)
+        if (!selectionMaterialRef.current.has(mesh.uniqueId)) {
+          const originalState = {
+            diffuseColor: material.diffuseColor ? material.diffuseColor.clone() : new BABYLON.Color3(1, 1, 1),
+            emissiveColor: material.emissiveColor ? material.emissiveColor.clone() : new BABYLON.Color3(0, 0, 0),
+            alpha: material.alpha ?? 1.0,
+            // originalMaterial not needed since we're modifying the material directly
+          };
+          selectionMaterialRef.current.set(mesh.uniqueId, originalState);
+          console.log(`  Saved original state - Diffuse: ${originalState.diffuseColor}, Emissive: ${originalState.emissiveColor}`);
+        } else {
+          console.log('  Original state already saved');
+        }
       }
 
       // Apply highlight
