@@ -237,23 +237,20 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
     selectionMaterialRef.current.clear();
   };
 
-  // Apply selection highlight to a node's meshes
-  const applySelectionHighlight = (nodeId: string) => {
-    const scene = SceneManager.getInstance().getScene();
-    if (!scene) return;
-
+  // Apply selection highlight to the meshes that were just selected
+  const applySelectionHighlight = () => {
     // Clear previous selection highlight
     clearSelectionHighlight();
 
-    // Get all mesh uniqueIds for this node
-    const meshIds = resolveMeshUniqueIdsForNodes([nodeId], scene);
+    // Get the meshes that were selected by the editor store
+    const selectedMeshes = useEditorStore.getState().selectedMeshes;
+    if (!selectedMeshes || selectedMeshes.length === 0) return;
 
-    // Apply cyan/blue highlight to all meshes
+    // Apply cyan/blue highlight to all selected meshes
     const highlightColor = new BABYLON.Color3(0.2, 0.7, 1.0); // Bright cyan/blue
 
-    for (const uniqueId of meshIds) {
-      const mesh = scene.getMeshByUniqueId(uniqueId) as BABYLON.Mesh | null;
-      if (!mesh || !mesh.material) continue;
+    for (const mesh of selectedMeshes) {
+      if (!mesh.material) continue;
 
       const material = mesh.material as BABYLON.StandardMaterial;
 
@@ -380,8 +377,8 @@ export function CollisionCheckDialog({ isOpen, onClose }: CollisionCheckDialogPr
       // Update editor store selection first
       useEditorStore.getState().selectNode(nodeId);
 
-      // Apply highlight to the node's meshes
-      applySelectionHighlight(nodeId);
+      // Apply highlight to the exact same meshes that were selected
+      applySelectionHighlight();
     }
   };
 
