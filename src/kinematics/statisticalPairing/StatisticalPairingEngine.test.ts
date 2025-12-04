@@ -9,8 +9,8 @@ import {
     FlatNode,
     UnitPair,
     NodePair
-} from '../StatisticalPairingEngine';
-import { createMockFixture, createMockUnit112 } from '../fixtures/mockFixtureData';
+} from './StatisticalPairingEngine';
+import { createMockFixture, createMockUnit112 } from './fixtures/mockFixtureData';
 
 describe('Statistical Pairing Engine', () => {
 
@@ -41,7 +41,7 @@ describe('Statistical Pairing Engine', () => {
             const flat = collectSubtree(openScene, openScene.rootId);
             const fixtureTotal = 120000;
             const candidates = findUnitCandidates(flat, fixtureTotal);
-            const selected = selectUnits(candidates, openScene, fixtureTotal);
+            const selected = selectUnits(candidates, openScene);
 
             expect(selected.length).toBe(3);
             const ids = selected.sort();
@@ -56,8 +56,8 @@ describe('Statistical Pairing Engine', () => {
             const openCandidates = findUnitCandidates(openFlat, fixtureTotal);
             const closedCandidates = findUnitCandidates(closedFlat, fixtureTotal);
 
-            const openUnits = selectUnits(openCandidates, openScene, fixtureTotal);
-            const closedUnits = selectUnits(closedCandidates, closedScene, fixtureTotal);
+            const openUnits = selectUnits(openCandidates, openScene);
+            const closedUnits = selectUnits(closedCandidates, closedScene);
 
             const pairs = pairUnits(openScene, closedScene, openUnits, closedUnits);
 

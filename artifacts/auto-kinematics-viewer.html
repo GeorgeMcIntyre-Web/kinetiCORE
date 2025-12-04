@@ -210,10 +210,22 @@
             <button class="button-secondary button" onclick="loadFromCustomUrl()">Load URL</button>
         </div>
 
-        <h2>Analysis</h2>
-        <button class="button" onclick="analyzeFixture()">Analyze Hierarchy</button>
-        <button class="button" onclick="detectUnits()">Detect Units</button>
-        <button class="button" onclick="visualizeJoints()">Show Joints</button>
+        <h2>🔄 ICP Registration (Recommended)</h2>
+        <p style="font-size: 11px; opacity: 0.8;">Load two states for accurate joint detection</p>
+        <label class="file-label" for="state1Input" style="background: linear-gradient(135deg, #4CAF50, #45a049);">📥 State 1 (Closed)</label>
+        <input type="file" id="state1Input" class="file-input" accept=".glb,.gltf">
+
+        <label class="file-label" for="state2Input" style="background: linear-gradient(135deg, #2196F3, #1976D2);">📥 State 2 (Open)</label>
+        <input type="file" id="state2Input" class="file-input" accept=".glb,.gltf">
+
+        <button class="button" id="runICPBtn" onclick="runICPRegistration()" disabled>🔬 Detect Joints (ICP)</button>
+        <div class="status" id="icpStatus">Load both states to enable ICP</div>
+
+        <h2>Analysis (Legacy Single-State)</h2>
+        <p style="font-size: 11px; opacity: 0.8;">Heuristic approach - less accurate</p>
+        <button class="button-secondary button" onclick="analyzeFixture()">Analyze Hierarchy</button>
+        <button class="button-secondary button" onclick="detectUnits()">Detect Units</button>
+        <button class="button-secondary button" onclick="visualizeJoints()">Show Joints</button>
 
         <h2>View Controls</h2>
         <button class="button-secondary button" onclick="resetCamera()">Reset View</button>
@@ -234,6 +246,19 @@
     </div>
 
     <script>
+        /*
+         * kinetiCORE Auto-Kinematics Viewer with ICP Registration
+         *
+         * Stage 1 (Old Heuristic): Single-state detection was "really wrong" on 8X-140
+         *   - Detected 52 units / 22 joints vs expected 2 joints
+         *   - Cannot determine true rotation axes from static geometry alone
+         *
+         * Stage 2 (NEW - ICP): Uses CascadedPointCloudFit to compare open/closed states
+         *   - Computes 4×4 transformation matrix between two poses
+         *   - Extracts rotation axis, angle, and pivot point from matrix
+         *   - Name-agnostic, CAD-system-agnostic, mathematically sound approach
+         */
+
         // Global state
         let engine, scene, camera, wireframeMode = false, axesMode = false;
         let loadedModel = null;
@@ -241,6 +266,12 @@
         let detectedUnits = [];
         let detectedJoints = [];
         let jointGizmos = [];
+
+        // ICP Registration state
+        let state1Meshes = null;  // Closed position
+        let state2Meshes = null;  // Open position
+        const ICP_API_URL = 'http://localhost:5000/process_point_clouds';
+        const MAX_POINTS_FOR_ICP = 5000;  // Downsample to avoid performance issues
 
         // Statistical Pairing Engine (Simplified for artifact)
         class HierarchyAnalyzer {
@@ -421,6 +452,446 @@
                 return 'revolute'; // Default assumption
             }
         }
+
+        // ========================================================================
+        // ICP REGISTRATION FUNCTIONS (Stage 2 - Accurate Joint Detection)
+        // ========================================================================
+
+        // Load state 1 (closed position)
+        document.getElementById('state1Input')?.addEventListener('change', loadState1);
+
+        async function loadState1(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            updateICPStatus('Loading State 1 (Closed)...');
+            showLoader('Loading State 1...');
+
+            try {
+                // Dispose previous state 1
+                if (state1Meshes) {
+                    state1Meshes.forEach(m => m.dispose());
+                }
+
+                state1Meshes = await loadGLBToMemory(file);
+
+                // Hide state 1 meshes initially
+                state1Meshes.forEach(m => m.isVisible = false);
+
+                hideLoader();
+                updateICPStatus(`✓ State 1 loaded: ${state1Meshes.length} meshes`);
+                checkICPReady();
+
+            } catch (error) {
+                hideLoader();
+                updateICPStatus(`❌ State 1 load failed: ${error.message}`);
+                console.error('State 1 load error:', error);
+            }
+        }
+
+        // Load state 2 (open position)
+        document.getElementById('state2Input')?.addEventListener('change', loadState2);
+
+        async function loadState2(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            updateICPStatus('Loading State 2 (Open)...');
+            showLoader('Loading State 2...');
+
+            try {
+                // Dispose previous state 2
+                if (state2Meshes) {
+                    state2Meshes.forEach(m => m.dispose());
+                }
+
+                state2Meshes = await loadGLBToMemory(file);
+
+                // Hide state 2 meshes initially
+                state2Meshes.forEach(m => m.isVisible = false);
+
+                hideLoader();
+                updateICPStatus(`✓ State 2 loaded: ${state2Meshes.length} meshes`);
+                checkICPReady();
+
+            } catch (error) {
+                hideLoader();
+                updateICPStatus(`❌ State 2 load failed: ${error.message}`);
+                console.error('State 2 load error:', error);
+            }
+        }
+
+        // Load GLB into memory without displaying
+        function loadGLBToMemory(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    const blob = new Blob([e.target.result], { type: 'model/gltf-binary' });
+                    const url = URL.createObjectURL(blob);
+
+                    BABYLON.SceneLoader.ImportMesh(
+                        '',
+                        '',
+                        url,
+                        scene,
+                        (meshes) => {
+                            URL.revokeObjectURL(url);
+                            resolve(meshes);
+                        },
+                        null,
+                        (scene, error) => {
+                            URL.revokeObjectURL(url);
+                            reject(new Error(error || 'GLB load failed'));
+                        },
+                        '.glb'
+                    );
+                };
+
+                reader.onerror = () => reject(new Error('File read failed'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // Check if ICP is ready to run
+        function checkICPReady() {
+            const btn = document.getElementById('runICPBtn');
+
+            if (state1Meshes && state2Meshes) {
+                btn.disabled = false;
+                updateICPStatus(`✓ Ready for ICP registration\nState 1: ${state1Meshes.length} meshes\nState 2: ${state2Meshes.length} meshes`);
+            } else {
+                btn.disabled = true;
+            }
+        }
+
+        // Main ICP registration pipeline
+        async function runICPRegistration() {
+            if (!state1Meshes || !state2Meshes) {
+                updateICPStatus('⚠ Load both states first');
+                return;
+            }
+
+            updateICPStatus('🔄 Starting ICP registration...');
+            showLoader('Running ICP registration...');
+
+            try {
+                // 1. Match meshes between states
+                const pairs = matchMeshesBetweenStates(state1Meshes, state2Meshes);
+                console.log(`Matched ${pairs.length} mesh pairs`);
+                updateICPStatus(`Matched ${pairs.length} mesh pairs\nProcessing...`);
+
+                if (pairs.length === 0) {
+                    hideLoader();
+                    updateICPStatus('⚠ No matching meshes found between states');
+                    return;
+                }
+
+                const detectedJointsICP = [];
+
+                // 2. Process each pair
+                for (let i = 0; i < pairs.length; i++) {
+                    const { mesh1, mesh2, name } = pairs[i];
+
+                    updateICPStatus(`Processing ${i + 1}/${pairs.length}: ${name}`);
+                    console.log(`Processing pair ${i + 1}/${pairs.length}: ${name}`);
+
+                    // Extract point clouds
+                    const points1 = extractPointCloud(mesh1);
+                    const points2 = extractPointCloud(mesh2);
+
+                    if (points1.length < 10 || points2.length < 10) {
+                        console.log(`Skipping ${name}: insufficient points (${points1.length}, ${points2.length})`);
+                        continue;
+                    }
+
+                    // Downsample to avoid performance issues
+                    const sampledPoints1 = downsamplePoints(points1, MAX_POINTS_FOR_ICP);
+                    const sampledPoints2 = downsamplePoints(points2, MAX_POINTS_FOR_ICP);
+
+                    console.log(`  Points: ${points1.length} → ${sampledPoints1.length}, ${points2.length} → ${sampledPoints2.length}`);
+
+                    // Call ICP service
+                    const matrix = await callICPService(sampledPoints1, sampledPoints2);
+                    if (!matrix) {
+                        console.log(`  ICP failed for ${name}`);
+                        continue;
+                    }
+
+                    // Analyze transformation
+                    const joint = analyzeTransformation(matrix);
+
+                    // Filter out non-moving parts (angle < 1°)
+                    if (Math.abs(joint.angle) > 1.0) {
+                        joint.name = name;
+                        joint.mesh = mesh1;
+                        detectedJointsICP.push(joint);
+
+                        console.log(`✓ Joint detected: ${name}`);
+                        console.log(`  Angle: ${joint.angle.toFixed(1)}°`);
+                        console.log(`  Axis: [${joint.axis.map(v => v.toFixed(3)).join(', ')}]`);
+                        console.log(`  Pivot: [${joint.pivot.map(v => v.toFixed(2)).join(', ')}]`);
+                    } else {
+                        console.log(`  No movement detected (${joint.angle.toFixed(2)}°)`);
+                    }
+                }
+
+                // 3. Display results
+                hideLoader();
+
+                if (detectedJointsICP.length === 0) {
+                    updateICPStatus('✓ ICP complete\nNo moving joints detected (all parts are fixed)');
+                } else {
+                    updateICPStatus(`✓ ICP complete: ${detectedJointsICP.length} joints detected!`);
+                    displayJointsWithGizmos(detectedJointsICP);
+                }
+
+            } catch (error) {
+                hideLoader();
+                updateICPStatus(`❌ ICP failed: ${error.message}`);
+                console.error('ICP registration error:', error);
+            }
+        }
+
+        // Match meshes between two states by name
+        function matchMeshesBetweenStates(meshes1, meshes2) {
+            const pairs = [];
+
+            for (const mesh1 of meshes1) {
+                // Skip helper meshes
+                if (!mesh1.getTotalVertices || mesh1.getTotalVertices() === 0) continue;
+                if (mesh1.name.startsWith('jointGizmo_') || mesh1.name.startsWith('axisLine_')) continue;
+                if (mesh1.name === 'ground' || mesh1.name.includes('light') || mesh1.name.includes('camera')) continue;
+
+                // Find matching mesh in state 2
+                let mesh2 = meshes2.find(m => m.name === mesh1.name);
+
+                // Try fuzzy match if exact match fails
+                if (!mesh2) {
+                    const name1Lower = mesh1.name.toLowerCase();
+                    mesh2 = meshes2.find(m => {
+                        const name2Lower = m.name.toLowerCase();
+                        return name1Lower.includes(name2Lower) || name2Lower.includes(name1Lower);
+                    });
+                }
+
+                if (!mesh2) continue;
+
+                // Verify similar vertex counts (±10%)
+                const count1 = mesh1.getTotalVertices();
+                const count2 = mesh2.getTotalVertices();
+                const ratio = count1 / count2;
+
+                if (ratio > 0.9 && ratio < 1.1) {
+                    pairs.push({ mesh1, mesh2, name: mesh1.name });
+                }
+            }
+
+            return pairs;
+        }
+
+        // Extract point cloud from mesh
+        function extractPointCloud(mesh) {
+            const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+            if (!positions) return [];
+
+            const worldMatrix = mesh.getWorldMatrix();
+            const points = [];
+
+            for (let i = 0; i < positions.length; i += 3) {
+                const localPos = new BABYLON.Vector3(
+                    positions[i],
+                    positions[i + 1],
+                    positions[i + 2]
+                );
+
+                const worldPos = BABYLON.Vector3.TransformCoordinates(localPos, worldMatrix);
+                points.push([worldPos.x, worldPos.y, worldPos.z]);
+            }
+
+            return points;
+        }
+
+        // Downsample point cloud
+        function downsamplePoints(points, maxPoints) {
+            if (points.length <= maxPoints) return points;
+
+            const step = Math.floor(points.length / maxPoints);
+            const sampled = [];
+
+            for (let i = 0; i < points.length; i += step) {
+                sampled.push(points[i]);
+            }
+
+            return sampled;
+        }
+
+        // Call ICP service
+        async function callICPService(sourcePoints, targetPoints) {
+            try {
+                const response = await fetch(ICP_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        source_points: sourcePoints,
+                        target_points: targetPoints,
+                        max_iterations: 50,
+                        tolerance: 1e-6
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log(`  ICP converged: ${result.converged}, error: ${result.final_error?.toFixed(6)}`);
+
+                return result.transformation_matrix;
+
+            } catch (error) {
+                console.error('ICP service call failed:', error);
+
+                if (error.message.includes('Failed to fetch')) {
+                    updateICPStatus('⚠ Cannot connect to ICP service\nMake sure CascadedPointCloudFit is running:\n  python -m cascaded_fit.api.app');
+                } else {
+                    updateICPStatus(`⚠ ICP service error: ${error.message}`);
+                }
+
+                return null;
+            }
+        }
+
+        // Analyze transformation matrix
+        function analyzeTransformation(matrix4x4) {
+            // Extract rotation matrix (top-left 3×3)
+            const R = [
+                [matrix4x4[0][0], matrix4x4[0][1], matrix4x4[0][2]],
+                [matrix4x4[1][0], matrix4x4[1][1], matrix4x4[1][2]],
+                [matrix4x4[2][0], matrix4x4[2][1], matrix4x4[2][2]]
+            ];
+
+            // Extract translation vector
+            const t = [matrix4x4[0][3], matrix4x4[1][3], matrix4x4[2][3]];
+
+            // Calculate rotation axis and angle
+            const axis = computeRotationAxis(R);
+            const angle = computeRotationAngle(R);
+            const pivot = computePivotPoint(R, t, axis);
+
+            return {
+                axis: axis,
+                pivot: pivot,
+                angle: angle,
+                type: Math.abs(angle) > 1 ? 'revolute' : 'fixed'
+            };
+        }
+
+        // Compute rotation axis from rotation matrix (Rodrigues formula)
+        function computeRotationAxis(R) {
+            const x = R[2][1] - R[1][2];
+            const y = R[0][2] - R[2][0];
+            const z = R[1][0] - R[0][1];
+
+            const length = Math.sqrt(x * x + y * y + z * z);
+
+            if (!isFinite(length) || length < 0.001) {
+                return [0, 1, 0]; // Default to Y-axis
+            }
+
+            return [x / length, y / length, z / length];
+        }
+
+        // Compute rotation angle from rotation matrix
+        function computeRotationAngle(R) {
+            // trace(R) = 1 + 2*cos(θ)
+            const trace = R[0][0] + R[1][1] + R[2][2];
+            const cosTheta = (trace - 1) / 2;
+            const thetaRad = Math.acos(Math.max(-1, Math.min(1, cosTheta)));
+
+            return thetaRad * 180 / Math.PI; // Convert to degrees
+        }
+
+        // Compute pivot point from rotation and translation
+        function computePivotPoint(R, t, axis) {
+            // Decompose translation into parallel and perpendicular components
+            const [ax, ay, az] = axis;
+            const [tx, ty, tz] = t;
+
+            const dotProduct = ax * tx + ay * ty + az * tz;
+            const perpX = tx - dotProduct * ax;
+            const perpY = ty - dotProduct * ay;
+            const perpZ = tz - dotProduct * az;
+
+            // Pivot is at half the perpendicular translation
+            return [perpX / 2, perpY / 2, perpZ / 2];
+        }
+
+        // Display joints with gizmos (ICP version)
+        function displayJointsWithGizmos(joints) {
+            // Clear old gizmos
+            scene.meshes.forEach(mesh => {
+                if (mesh.name.startsWith('jointGizmo_') || mesh.name.startsWith('axisLine_')) {
+                    mesh.dispose();
+                }
+            });
+
+            jointGizmos = [];
+            detectedJoints = joints;
+
+            joints.forEach((joint, index) => {
+                const { pivot, axis, angle, name } = joint;
+
+                // Create sphere at pivot point
+                const sphere = BABYLON.MeshBuilder.CreateSphere(`jointGizmo_${index}`, {
+                    diameter: 0.2
+                }, scene);
+                sphere.position = new BABYLON.Vector3(pivot[0], pivot[1], pivot[2]);
+
+                const sphereMat = new BABYLON.StandardMaterial(`jointMat_${index}`, scene);
+                sphereMat.diffuseColor = new BABYLON.Color3(1, 0.5, 0); // Orange
+                sphereMat.emissiveColor = new BABYLON.Color3(0.3, 0.15, 0);
+                sphere.material = sphereMat;
+
+                jointGizmos.push(sphere);
+
+                // Create line showing rotation axis
+                const axisStart = new BABYLON.Vector3(pivot[0], pivot[1], pivot[2]);
+                const axisEnd = new BABYLON.Vector3(
+                    pivot[0] + axis[0] * 2,
+                    pivot[1] + axis[1] * 2,
+                    pivot[2] + axis[2] * 2
+                );
+
+                const axisLine = BABYLON.MeshBuilder.CreateLines(`axisLine_${index}`, {
+                    points: [axisStart, axisEnd]
+                }, scene);
+                axisLine.color = new BABYLON.Color3(0, 1, 1); // Cyan
+
+                jointGizmos.push(axisLine);
+            });
+
+            // Update joints list UI
+            document.getElementById('jointsContainer').classList.remove('hidden');
+            const jointsList = document.getElementById('jointsList');
+            jointsList.innerHTML = joints.map((j, i) =>
+                `<div class="joint-item" onclick="focusJoint(${i})">` +
+                `${i + 1}. ${j.name}<br>` +
+                `Angle: ${j.angle.toFixed(1)}°, Type: ${j.type}</div>`
+            ).join('');
+
+            console.log('Displayed joints:', joints);
+        }
+
+        // Update ICP status
+        function updateICPStatus(message) {
+            document.getElementById('icpStatus').textContent = message;
+            console.log('🔬 ICP:', message);
+        }
+
+        // ========================================================================
+        // LEGACY SINGLE-STATE FUNCTIONS (kept for reference/debugging)
+        // ========================================================================
 
         // Initialize Babylon.js scene
         function initScene() {
